@@ -129,6 +129,8 @@ class Binding:
     name: Name
     value: Expression
     site: Site
+    annotation: ValueType | None = None
+    explicit_binding: bool = True
 
 
 @dataclass(frozen=True)
@@ -458,25 +460,42 @@ class _Decoder:
             if kind == "constant_local":
                 converted.append(self._constant(raw_binding, kind, span, depth + 1))
                 continue
-            if kind not in {"let", "reassignment"}:
+            if kind not in {"let", "typed_local", "reassignment"}:
                 raise ValueError("native block has an invalid binding role")
-            binding, binding_span, site = self._node(raw_binding, kind, {"name", "value"}, span, depth + 1)
-            self._ordered([binding["name"], binding["value"]], binding_span)
+            fields = {"name", "value"}
+            annotated = kind == "typed_local" or (isinstance(raw_binding, dict) and "type" in raw_binding)
+            if annotated:
+                if kind == "reassignment":
+                    raise ValueError("native reassignment cannot carry a type annotation")
+                fields.add("type")
+            binding, binding_span, site = self._node(raw_binding, kind, fields, span, depth + 1)
+            raw_annotation = binding.get("type")
+            self._ordered(([raw_annotation] if annotated else []) + [binding["name"], binding["value"]], binding_span)
             raw_name, raw_value = binding["name"], binding["value"]
             if not isinstance(raw_name, dict) or not isinstance(raw_value, dict):
                 raise TypeError("native binding has no located name/value")
             name_span = self._span(raw_name.get("span"), binding_span)
             value_span = self._span(raw_value.get("span"), binding_span)
             cursor = self._keyword(binding_span[0], b"let") if kind == "let" else binding_span[0]
+            annotation = None
+            if annotated:
+                if not isinstance(raw_annotation, dict):
+                    raise TypeError("native typed binding has no located annotation")
+                annotation_span = self._span(raw_annotation.get("span"), binding_span)
+                if cursor != annotation_span[0]:
+                    raise ValueError("native typed binding leaves its annotation uncovered")
+                annotation = self._type(raw_annotation, binding_span, depth + 2)
+                cursor = trivia_end(self.source, annotation_span[1])
             equal = trivia_end(self.source, name_span[1])
             if (cursor != name_span[0] or self.source[equal:equal + 1] != b"="
                     or trivia_end(self.source, equal + 1) != value_span[0]
                     or trivia_end(self.source, value_span[1]) != binding_span[1] - 1
                     or self.source[binding_span[1] - 1:binding_span[1]] != b";"):
                 raise ValueError("native binding differs from its source spelling or coverage")
-            constructor = Binding if kind == "let" else Reassignment
-            converted.append(constructor(self._text(binding["name"], binding_span),
-                                     self._expression(binding["value"], binding_span, depth + 2), site))
+            binding_name = self._text(binding["name"], binding_span)
+            binding_value = self._expression(binding["value"], binding_span, depth + 2)
+            converted.append(Reassignment(binding_name, binding_value, site) if kind == "reassignment"
+                             else Binding(binding_name, binding_value, site, annotation, kind == "let"))
         raw_exit = node["exit"]
         if isinstance(raw_exit, dict) and raw_exit.get("kind") == "return":
             terminal, terminal_span, site = self._node(raw_exit, "return", {"value"}, span, depth + 1)

@@ -130,22 +130,28 @@ def _validate(snapshot: SourceSnapshot, raw: dict[str, object]) -> _Inspection |
         fields = {"name", "kind", "detail", "line", "column"}
         if isinstance(value, dict) and "documentation" in value:
             fields.add("documentation")
+        if isinstance(value, dict) and "inferred" in value:
+            fields.add("inferred")
         symbol = _object(value, fields)
         name, kind, detail = symbol["name"], symbol["kind"], symbol["detail"]
         if (not isinstance(name, str) or not IDENTIFIER.fullmatch(name)
                 or name in KEYWORDS | UNSUPPORTED or kind not in {"function", "parameter", "variable", "constant"}
                 or not isinstance(detail, str) or not detail or len(detail) > MAX_SOURCE_BYTES):
             raise InspectionError("Invalid pure prototype inspection symbol")
+        if "inferred" in symbol and (symbol["inferred"] is not False or kind != "variable"):
+            raise InspectionError("Invalid pure prototype local inference flag")
         first, last = _span(snapshot, lines, name, symbol)
         if symbols and first <= symbols[-1].start:
             raise InspectionError("Pure prototype inspection declarations are unordered or duplicated")
         type_hint = None
         if kind == "variable":
-            # The pure compiler's closed detail format already records the
-            # inferred type. Decode that fact; the adapter never infers a type.
+            # The compiler records each checked local type and whether an
+            # explicit annotation supplied it. The adapter never infers a type.
             type_hint = {f"{name}: Nat": ": Nat", f"{name}: bool": ": bool"}.get(detail)
             if type_hint is None:
                 raise InspectionError("Invalid pure prototype inferred local type")
+            if symbol.get("inferred") is False:
+                type_hint = None
         elif kind == "parameter":
             if detail not in {f"{name}: Nat", f"{name}: bool",
                               f"const {name}: Nat", f"const {name}: bool"}:

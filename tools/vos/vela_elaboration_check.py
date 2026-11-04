@@ -38,40 +38,48 @@ def fixtures(example: bytes) -> tuple[Fixture, ...]:
     """Independent source examples and well-formed semantic negative neighbors."""
     positives = (
         ("fresh-polymorphic-calls", """module GenericReplay;
-definition T Identity<T>(T value) = value;
-definition Nat Number() = Identity(3);
-definition bool Flag() = Identity(true);
-definition Nat Explicit() = Identity::<Nat>(4);
+definition T Identity<T>(T value) => value;
+definition Nat Number() => Identity(3);
+definition bool Flag() => Identity(true);
+definition Nat Explicit() => Identity<Nat>(4);
+"""),
+        ("retained-explicit-generic-values-and-calls", """module ExplicitReplay;
+definition T Identity<T>(T value) => value;
+definition U Apply<T,U>(Fn(T value) -> U function,T value) => function(value);
+definition Nat Value() => Apply(Identity::<Nat>,7);
+definition Nat Call() => Identity::<Nat>(8);
+lemma ValueCorrect(): Value() == 7 proof { return Refl(7); }
+lemma CallCorrect(): Call() == 8 proof { return Refl(8); }
 """),
         ("dependent-vector-lookup", """module VectorReplay;
-definition Vec<T,n> Copy<T, ghost Nat n>(Vec<T,n> xs) = xs;
-definition Vec<Nat,2> Two() = VCons(7, VCons(8, VNil::<Nat>()));
-definition Vec<Nat,0> Empty() = Copy(VNil::<Nat>());
-definition Nat Lookup() = At(Copy(Two()), FSucc(FZero::<0>()));
-lemma Selected(): At(Two(), FSucc(FZero::<0>())) == 8 proof { return Refl(8); }
+definition Vec<T,n> Copy<T, ghost Nat n>(Vec<T,n> xs) => xs;
+definition Vec<Nat,2> Two() => VCons(7, VCons(8, VNil<Nat>()));
+definition Vec<Nat,0> Empty() => Copy(VNil<Nat>());
+definition Nat Lookup() => At(Copy(Two()), FSucc(FZero<0>()));
+lemma Selected(): At(Two(), FSucc(FZero<0>())) == 8 proof { return Refl(8); }
 """),
         ("product-projection-conversion", """module ProductReplay;
-definition Nat Left() = Fst((7, true));
-definition bool Right() = Snd((7, true));
+definition Nat Left() => Fst((7, true));
+definition bool Right() => Snd((7, true));
 lemma LeftValue(): Fst((7, true)) == 7 proof { return Refl(7); }
 lemma RightValue(): Snd((7, true)) == true proof { return Refl(true); }
 """),
         ("higher-order-inference", """module InferenceReplay;
-definition U Apply<T,U>(Fn(T value) -> U f, T x) = f(x);
-definition Nat Increment() = Apply(x => x + 1, 2,);
+definition U Apply<T,U>(Fn(T value) -> U f, T x) => f(x);
+definition Nat Increment() => Apply(x => x + 1, 2,);
 Nat Arrow(Nat value,) => Apply((x) => x + 1, value,);
 """),
         ("dependent-type-family", """module FamilyReplay;
 definition type[family(n)] Keep(Fn(Nat index) -> Type family, Nat n,
-    type[family(n)] value) = value;
-definition Nat Use() = Keep((Nat index) => type Nat, 0, 7);
+    type[family(n)] value) => value;
+definition Nat Use() => Keep((Nat index) => type Nat, 0, 7);
 """),
         ("proof-composition", """module ProofReplay;
 lemma Same<T>(T x): x == x proof {
     let p = Refl(x);
     return Trans(p, Symm(p));
 }
-definition Eq<T,(x),(y)> KeepProof<T, ghost T x, ghost T y>(Eq<T,(x),(y)> p) = p;
+definition Eq<T,(x),(y)> KeepProof<T, ghost T x, ghost T y>(Eq<T,(x),(y)> p) => p;
 """),
         ("universal-explicit-equality-proof", """module QuantifierReplay;
 lemma Reflexive(): forall (Nat value) => value == value proof {
@@ -79,34 +87,34 @@ lemma Reflexive(): forall (Nat value) => value == value proof {
 }
 """),
         ("definitional-conversion", """module ConversionReplay;
-definition Nat Twice(Nat value) = value + value;
+definition Nat Twice(Nat value) => value + value;
 lemma Computed(): Twice(2) == 4 proof { return Refl(4); }
 """),
         ("canonical-unit-and-labeled-generics", """module NamedReplay;
-definition T Identity<T>(T value) = value;
-definition Unit Empty() = Identity::<Unit>(value: ());
-definition Nat Value() = Identity(value: 7,);
+definition T Identity<T>(T value) => value;
+definition Unit Empty() => Identity<Unit>(value: ());
+definition Nat Value() => Identity(value: 7,);
 lemma Same(): Identity(value: 7) == 7 proof { return Refl(7); }
 """),
         ("declared-dependent-callable-labels", """module CallableReplay;
 alias Reader<T> = Fn(Nat count, Vec<T,count> values) -> Vec<T,count>;
-definition Reader<Nat> Preserve() = (length, storage) => storage;
-definition Vec<Nat,1> Singleton() = VCons(7, VNil::<Nat>());
-definition Vec<Nat,1> Use() = Preserve()(count: 1, values: Singleton());
-definition Vec<Nat,count> Keep(Nat count, Vec<Nat,count> values) = values;
-definition Vec<Nat,1> Partial() = Keep(count: 1)(values: Singleton());
-definition U Apply<T,U>(Fn(T input) -> U function, T value) = function(input: value);
-definition Nat Higher() = Apply(implementation => implementation + 1, value: 41);
+definition Reader<Nat> Preserve() => (length, storage) => storage;
+definition Vec<Nat,1> Singleton() => VCons(7, VNil<Nat>());
+definition Vec<Nat,1> Use() => Preserve()(count: 1, values: Singleton());
+definition Vec<Nat,count> Keep(Nat count, Vec<Nat,count> values) => values;
+definition Vec<Nat,1> Partial() => Keep(count: 1)(values: Singleton());
+definition U Apply<T,U>(Fn(T input) -> U function, T value) => function(input: value);
+definition Nat Higher() => Apply(implementation => implementation + 1, value: 41);
 """),
         ("required-static-values-and-dependent-indices", """module StaticReplay;
 const Nat Base = 21;
-definition Nat Twice(Nat value) = let copy = value in copy + copy;
+definition Nat Twice(Nat value) => let copy = value in copy + copy;
 const Nat Answer = Twice(value: Base);
 const bool Accepted = Answer <= 42;
 const Unit Nothing = ();
 Nat Local() { const Nat Next = Answer + 1; return Next; }
 const Nat Count = 1;
-definition Vec<Nat,Count> One() = VCons(7, VNil::<Nat>());
+definition Vec<Nat,Count> One() => VCons(7, VNil<Nat>());
 lemma Correct(): Answer == 42 proof { return Refl(42); }
 """),
         ("compositional-static-and-runtime-calls", """module StaticCallsReplay;
@@ -124,22 +132,22 @@ lemma DualPhase(): RuntimeSquare(3) == 9 proof { return Refl(9); }
 """),
         ("static-callable-telescopes-and-lambdas", """module StaticCallableReplay;
 alias StaticMap = Fn(const Nat factor, Nat value) -> Nat;
-definition StaticMap Build() = (const Nat factor, Nat value) => factor * value;
-definition StaticMap Explicit() = Fn(const Nat factor, Nat value) -> Nat => factor * value;
-definition Nat Partial(Nat value) = Build()(factor: 4)(value: value);
-definition T Select<T>(const Nat index, T value) = value;
-definition Nat Generic(Nat value) = Select(index: 0, value: value);
+definition StaticMap Build() => (const Nat factor, Nat value) => factor * value;
+definition StaticMap Explicit() => Fn(const Nat factor, Nat value) -> Nat => factor * value;
+definition Nat Partial(Nat value) => Build()(factor: 4)(value: value);
+definition T Select<T>(const Nat index, T value) => value;
+definition Nat Generic(Nat value) => Select(index: 0, value: value);
 lemma Correct(): Partial(3) == 12 proof { return Refl(12); }
 lemma TypedCorrect(): Explicit()(factor: 5, value: 3) == 15 proof { return Refl(15); }
 """),
         ("nullary-and-explicit-unit-values", """module ArityReplay;
-definition Nat Empty() = 7;
-definition Nat Explicit(Unit token) = 7;
-definition Nat UseEmpty() = Empty();
-definition Nat UseExplicit() = Explicit(token: ());
-definition Nat UseLambda() = (() => 7)();
-definition Fn(Unit published) -> Nat Build() = actual => 7;
-definition Nat UseBuilt() = Build()(published: ());
+definition Nat Empty() => 7;
+definition Nat Explicit(Unit token) => 7;
+definition Nat UseEmpty() => Empty();
+definition Nat UseExplicit() => Explicit(token: ());
+definition Nat UseLambda() => (() => 7)();
+definition Fn(Unit published) -> Nat Build() => actual => 7;
+definition Nat UseBuilt() => Build()(published: ());
 """),
     )
     negatives = (
@@ -147,44 +155,44 @@ definition Nat UseBuilt() = Build()(published: ());
         ("static-parameter-ignored-runtime-input", "Nat Ignore(Nat value) => 0; Nat F(const Nat value) => value; "
          "Nat Wrong(Nat runtime) => F(Ignore(runtime));", "type"),
         ("static-parameter-higher-order-runtime-input", "alias F = Fn(const Nat index) -> Nat; "
-         "definition Nat Wrong(F function, Nat runtime) = function(runtime);", "type"),
+         "definition Nat Wrong(F function, Nat runtime) => function(runtime);", "type"),
         ("static-callable-requirement-erasure", "alias F = Fn(const Nat index) -> Nat; "
-         "definition Fn(Nat index) -> Nat Wrong(F function) = function;", "type"),
-        ("wrong-call-domain", "definition Nat Identity(Nat x) = x; "
-         "definition Nat Wrong() = Identity(true);", "type"),
-        ("unequal-vector-index", "definition Vec<Nat,0> Wrong() = VCons(1, VNil::<Nat>());", "type"),
-        ("out-of-bounds-index", "definition Nat Wrong() = At(VNil::<Nat>(), FZero::<0>());", "type"),
+         "definition Fn(Nat index) -> Nat Wrong(F function) => function;", "type"),
+        ("wrong-call-domain", "definition Nat Identity(Nat x) => x; "
+         "definition Nat Wrong() => Identity(true);", "type"),
+        ("unequal-vector-index", "definition Vec<Nat,0> Wrong() => VCons(1, VNil<Nat>());", "type"),
+        ("out-of-bounds-index", "definition Nat Wrong() => At(VNil<Nat>(), FZero<0>());", "type"),
         ("false-equality-proof", "lemma Wrong(): 1 == 2 proof { return Refl(1); }", "type"),
         ("non-proposition", "lemma Wrong(): 3 proof { return 3; }", "type"),
         ("unsupported-existential", "lemma Wrong(): exists (Nat value) => value == value "
          "proof { return (Nat value) => Refl(value); }", "unsupported"),
-        ("universe-self-typing", "definition Type Wrong() = type Type;", "type"),
-        ("unresolved-inference", "definition _ Unknown() = VNil();", "inference"),
+        ("universe-self-typing", "definition Type Wrong() => type Type;", "type"),
+        ("unresolved-inference", "definition _ Unknown() => VNil();", "inference"),
         ("unfinished-proof", "lemma Missing(): 1 == 1;", "unsupported"),
-        ("proof-hole", "definition Nat Hole() = ?proof;", "inference"),
-        ("unsupported-contract", "definition Nat Contract() requires true = 0;", "unsupported"),
-        ("unbound-value", "definition Nat Wrong() = missing;", "name"),
-        ("unknown-call-label", "definition Nat Id(Nat value) = value; "
-         "definition Nat Wrong() = Id(missing: 1);", "name"),
-        ("out-of-order-call-label", "definition Nat Pick(Nat first,Nat second) = first; "
-         "definition Nat Wrong() = Pick(second: 1,first: 2);", "name"),
-        ("duplicate-call-label", "definition Nat Pick(Nat first,Nat second) = first; "
-         "definition Nat Wrong() = Pick(first: 1,first: 2);", "name"),
-        ("positional-after-label", "definition Nat Pick(Nat first,Nat second) = first; "
-         "definition Nat Wrong() = Pick(first: 1,2);", "name"),
-        ("unnamed-callable-label", "definition Nat Use(Fn(Nat) -> Nat function) = function(value: 1);", "name"),
-        ("unnamed-builtin-label", "definition Nat Wrong() = Succ(value: 1);", "name"),
-        ("implementation-name-not-interface", "definition Fn(Nat published) -> Nat Build() = implementation => implementation; "
-         "definition Nat Wrong() = Build()(implementation: 1);", "name"),
-        ("labeled-dependent-index-mismatch", "definition Vec<Nat,n> Keep(Nat n,Vec<Nat,n> values) = values; "
-         "definition Vec<Nat,0> Wrong() = Keep(n: 1,values: VNil::<Nat>());", "type"),
-        ("labeled-false-equality", "definition Nat Id(Nat value) = value; "
+        ("proof-hole", "definition Nat Hole() => ?proof;", "inference"),
+        ("unsupported-contract", "definition Nat Contract() requires true => 0;", "unsupported"),
+        ("unbound-value", "definition Nat Wrong() => missing;", "name"),
+        ("unknown-call-label", "definition Nat Id(Nat value) => value; "
+         "definition Nat Wrong() => Id(missing: 1);", "name"),
+        ("out-of-order-call-label", "definition Nat Pick(Nat first,Nat second) => first; "
+         "definition Nat Wrong() => Pick(second: 1,first: 2);", "name"),
+        ("duplicate-call-label", "definition Nat Pick(Nat first,Nat second) => first; "
+         "definition Nat Wrong() => Pick(first: 1,first: 2);", "name"),
+        ("positional-after-label", "definition Nat Pick(Nat first,Nat second) => first; "
+         "definition Nat Wrong() => Pick(first: 1,2);", "name"),
+        ("unnamed-callable-label", "definition Nat Use(Fn(Nat) -> Nat function) => function(value: 1);", "name"),
+        ("unnamed-builtin-label", "definition Nat Wrong() => Succ(value: 1);", "name"),
+        ("implementation-name-not-interface", "definition Fn(Nat published) -> Nat Build() => implementation => implementation; "
+         "definition Nat Wrong() => Build()(implementation: 1);", "name"),
+        ("labeled-dependent-index-mismatch", "definition Vec<Nat,n> Keep(Nat n,Vec<Nat,n> values) => values; "
+         "definition Vec<Nat,0> Wrong() => Keep(n: 1,values: VNil<Nat>());", "type"),
+        ("labeled-false-equality", "definition Nat Id(Nat value) => value; "
          "lemma Wrong(): Id(value: 1) == 2 proof { return Refl(1); }", "type"),
-        ("unsupported-use-grade", "definition Nat Graded(Nat value @ 1) = value;", "unsupported"),
-        ("unsupported-source-loan", "definition Nat Loan(ref Nat value) = value;", "unsupported"),
+        ("unsupported-use-grade", "definition Nat Graded(Nat value @ 1) => value;", "unsupported"),
+        ("unsupported-source-loan", "definition Nat Loan(ref Nat value) => value;", "unsupported"),
         ("constant-runtime-input", "Nat Wrong(Nat runtime) { const Nat value = runtime; return value; }", "type"),
         ("constant-ordinary-let-input", "Nat Wrong() { let runtime = 3; const Nat value = runtime; return value; }", "type"),
-        ("constant-ignored-runtime-input", "definition Nat Ignore(Nat unused) = 0; "
+        ("constant-ignored-runtime-input", "definition Nat Ignore(Nat unused) => 0; "
          "Nat Wrong(Nat runtime) { const Nat value = Ignore(runtime); return value; }", "type"),
         ("constant-dead-runtime-input", "Nat Wrong(Nat runtime) { "
          "const Nat value = (() => { if(false) { return runtime; } else { return 0; } })(); return value; }", "type"),
@@ -192,17 +200,17 @@ definition Nat UseBuilt() = Build()(published: ());
         ("constant-wrong-type", "const Nat Wrong = true;", "type"),
         ("constant-forward-input", "const Nat First = Later; const Nat Later = 3;", "name"),
         ("constant-cyclic-input", "const Nat First = First;", "name"),
-        ("constant-noncallable", "const Nat Value = 3; definition Nat Wrong() = Value();", "type"),
+        ("constant-noncallable", "const Nat Value = 3; definition Nat Wrong() => Value();", "type"),
         ("constant-false-proof", "const Nat Value = 1; lemma Wrong(): Value == 2 proof { return Refl(1); }", "type"),
-        ("omitted-explicit-unit", "definition Nat Id(Unit token) = 1; definition Nat Wrong() = Id();", "type"),
-        ("explicit-nullary-unit", "definition Nat Empty() = 1; definition Nat Wrong() = Empty(());", "type"),
-        ("empty-lambda-explicit-interface", "definition Fn(Unit token) -> Nat Wrong() = () => 1;", "type"),
-        ("explicit-lambda-empty-interface", "definition Fn() -> Nat Wrong() = (Unit token) => 1;", "type"),
-        ("nullary-value-explicit-interface", "definition Nat Empty() = 1; "
-         "definition Nat Use(Fn(Unit) -> Nat function) = 0; definition Nat Wrong() = Use(Empty);", "type"),
-        ("explicit-value-nullary-interface", "definition Nat Explicit(Unit token) = 1; "
-         "definition Nat Use(Fn() -> Nat function) = 0; definition Nat Wrong() = Use(Explicit);", "type"),
-        ("omitted-unnamed-explicit-unit", "definition Nat Wrong(Fn(Unit) -> Nat function) = function();", "type"),
+        ("omitted-explicit-unit", "definition Nat Id(Unit token) => 1; definition Nat Wrong() => Id();", "type"),
+        ("explicit-nullary-unit", "definition Nat Empty() => 1; definition Nat Wrong() => Empty(());", "type"),
+        ("empty-lambda-explicit-interface", "definition Fn(Unit token) -> Nat Wrong() => () => 1;", "type"),
+        ("explicit-lambda-empty-interface", "definition Fn() -> Nat Wrong() => (Unit token) => 1;", "type"),
+        ("nullary-value-explicit-interface", "definition Nat Empty() => 1; "
+         "definition Nat Use(Fn(Unit) -> Nat function) => 0; definition Nat Wrong() => Use(Empty);", "type"),
+        ("explicit-value-nullary-interface", "definition Nat Explicit(Unit token) => 1; "
+         "definition Nat Use(Fn() -> Nat function) => 0; definition Nat Wrong() => Use(Explicit);", "type"),
+        ("omitted-unnamed-explicit-unit", "definition Nat Wrong(Fn(Unit) -> Nat function) => function();", "type"),
         ("constant-product-growth", f"const Nat Wrong = {10 ** 200} * {10 ** 200};", "limit"),
     )
     return (Fixture("authored-example", example),

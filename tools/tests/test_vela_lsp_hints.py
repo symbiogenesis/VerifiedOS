@@ -119,6 +119,40 @@ def _inferred_types_scopes_and_ranges() -> None:
            "a same-spelled function supplied the type or hint site of a local binding")
 
 
+def _explicit_annotations_and_inferred_flags() -> None:
+    text = ("module Typed;\r\npublic Nat F() {\r  let Nat count = 1;\n"
+            "  bool ready = true;\r\n  let next = count + 1;\n  return next;\n}")
+    source = text.encode()
+    facts = inspect_source(source)
+    variables = {symbol["name"]: symbol for symbol in cast("list[dict[str, object]]", facts["symbols"])
+                 if symbol["kind"] == "variable"}
+    ensure(variables["count"].get("inferred") is False and variables["ready"].get("inferred") is False,
+           "typed let or bare typed local lost its explicit-annotation fact")
+    ensure("inferred" not in variables["next"], "inferred locals changed their established fact shape")
+    snapshot = SourceSnapshot(_URI, 1, text, 1)
+    ensure(project(snapshot, facts, "textDocument/inlayHint", None,
+                   requested_range=((0, 0), (6, 1))) == [_hint(4, 10, "Nat")],
+           "explicit local annotations acquired redundant hints or hid an inferred local")
+    for malformed, kind in ((True, "variable"), (None, "variable"), (0, "variable"),
+                             ("false", "variable"), (False, "function")):
+        changed = copy.deepcopy(facts)
+        symbol = next(symbol for symbol in cast("list[dict[str, object]]", changed["symbols"])
+                      if symbol["kind"] == kind)
+        symbol["inferred"] = malformed
+        try:
+            project(snapshot, changed, "textDocument/inlayHint", None,
+                    requested_range=((0, 0), (6, 1)))
+        except InspectionError:
+            pass
+        else:
+            raise AssertionError("hint projection accepted an invented or misplaced inference flag")
+    updated = text.replace("let Nat count", "let count")
+    refreshed = inspect_source(updated.encode())
+    ensure(project(SourceSnapshot(_URI, 2, updated, 2), refreshed, "textDocument/inlayHint", None,
+                   requested_range=((0, 0), (6, 1))) == [_hint(2, 11, "Nat"), _hint(4, 10, "Nat")],
+           "removing a type annotation failed to refresh inferred-local hints")
+
+
 def _invalid_ranges_and_lifecycle() -> None:
     server = Server(checker=lambda _: None, inspector=_inspect)
     _error(server, _params(), -32002)
@@ -319,6 +353,7 @@ def _real_process_hints_and_unsaved_edits() -> None:
 
 def cases() -> list[Case]:
     return [Case("inferred-types-sibling-scopes-and-exact-ranges", _inferred_types_scopes_and_ranges),
+            Case("explicit-local-annotations-and-inference-flags", _explicit_annotations_and_inferred_flags),
             Case("invalid-ranges-lifecycle-and-no-resolve", _invalid_ranges_and_lifecycle),
             Case("incremental-edits-refusal-and-resynchronization", _edits_refusal_and_resynchronization),
             Case("malformed-facts-and-worker-failure", _malformed_facts_and_worker_failure),

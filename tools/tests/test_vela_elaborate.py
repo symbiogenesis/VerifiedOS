@@ -119,7 +119,7 @@ class _Fixture:
         for contract in contracts:
             self.write(" ")
             obligations.append(contract(self))
-        self.write(" = ")
+        self.write(" => ")
         body = value(self)
         self.write(";")
         self.declarations.append(self.node("definition", start, name=binding, result=annotation,
@@ -264,12 +264,13 @@ def _group(value: Form) -> Form:
 
 
 def _call(name: str | Form, *arguments: Form, generics: tuple[Form, ...] = (),
-          labels: tuple[str | None, ...] | None = None, trailing: bool = False) -> Form:
+          labels: tuple[str | None, ...] | None = None, trailing: bool = False,
+          explicit: bool = False) -> Form:
     def form(fixture: _Fixture) -> Node:
         start = fixture.offset
         callee = (_variable(name) if isinstance(name, str) else name)(fixture)
         if generics:
-            fixture.write("::<")
+            fixture.write("::<" if explicit else "<")
             generic_nodes = fixture.forms(generics)
             fixture.write(">")
             callee = fixture.node("generic_application", start, value=callee, arguments=generic_nodes)
@@ -540,6 +541,56 @@ def _polymorphism_and_higher_order() -> None:
            "definitions lost their independent hygienic names")
     ensure("Axiom " not in result.gallina and "Admitted" not in result.gallina,
            "generic inference emitted an unchecked assumption")
+
+
+def _familiar_generic_spellings() -> None:
+    def candidate(explicit: bool) -> _Fixture:
+        fixture = _Fixture("GenericSpellings")
+        _identity(fixture)
+        fixture.definition("Value", _NAT, (),
+                           _call("Identity", _natural(7), generics=(_NAT,), explicit=explicit))
+        return fixture
+
+    canonical_source, canonical_tree = candidate(False).response()
+    explicit_source, explicit_tree = candidate(True).response()
+    canonical = elaborate(canonical_source, canonical_tree).gallina
+    explicit = elaborate(explicit_source, explicit_tree).gallina
+    ensure(b"Identity<Nat>(7)" in canonical_source and b"Identity::<Nat>(7)" in explicit_source,
+           "generic spelling controls do not independently select both markers")
+    ensure(canonical.split("\n", 2)[2] == explicit.split("\n", 2)[2],
+           "ordinary and explicit generic calls changed interpreted terms")
+
+    for marker in (b"= ", b"==", b"->"):
+        source = canonical_source.replace(b"=>", marker, 1)
+        tree = copy.deepcopy(canonical_tree)
+        tree["source_sha256"] = hashlib.sha256(source).hexdigest()
+        try:
+            elaborate(source, tree)
+        except VelaError as error:
+            ensure(error.kind == "protocol", "a forged mathematical body marker reached semantics")
+        else:
+            raise AssertionError("a mathematical definition accepted a legacy or invented body marker")
+
+    def generic_value(explicit: bool) -> Form:
+        def form(fixture: _Fixture) -> Node:
+            start = fixture.offset
+            value = _variable("Identity")(fixture)
+            fixture.write("::<" if explicit else "<")
+            argument = _NAT(fixture)
+            fixture.write(">")
+            return fixture.node("generic_application", start, value=value, arguments=[argument])
+        return form
+
+    for explicit in (False, True):
+        fixture = _Fixture("GenericValues")
+        _identity(fixture)
+        fixture.definition("Value", _function_type((("value", _NAT),), _NAT), (),
+                           generic_value(explicit))
+        if explicit:
+            ensure("vela_d0_Identity" in elaborate(*fixture.response()).gallina,
+                   "explicit generic function values lost their interpretation")
+        else:
+            _refuses(fixture, "protocol", "followed by a call")
 
 
 def _canonical_named_call_terms() -> None:
@@ -1386,6 +1437,7 @@ def _elaboration_budgets() -> None:
 
 def cases() -> list[Case]:
     return [Case("fresh-polymorphism-and-higher-order-inference", _polymorphism_and_higher_order),
+            Case("familiar-generic-markers-and-mathematical-body-source-binding", _familiar_generic_spellings),
             Case("canonical-named-dependent-call-term-agreement", _canonical_named_call_terms),
             Case("required-static-values-and-dependent-indices", _required_static_constants),
             Case("static-dependencies-types-and-numeric-bounds", _static_dependency_refusals),
