@@ -7,7 +7,7 @@ from typing import cast
 from unittest.mock import patch
 
 from tests.harness import Case, ensure
-from vos import vela
+from vos import vela, vela_ast
 
 
 def _node(kind: str, start: int, end: int, **fields: object) -> dict[str, object]:
@@ -53,6 +53,58 @@ def _arrow_fixture(source: bytes, expression: dict[str, object]) -> dict[str, ob
     module = source.index(b"module")
     return {"schema": 1, "source_sha256": hashlib.sha256(source).hexdigest(),
             "ast": _node("file", module, end, name=_name("M", module + 7), declarations=[function])}
+
+
+def _typed_local_protocol() -> None:
+    for explicit in (False, True):
+        for newline in (b"\n", b"\r\n", b"\r"):
+            prefix = b"let Nat" if explicit else b"Nat"
+            source = (b"module M; public Nat F() {" + newline + b"  " + prefix
+                      + b" value = 1;" + newline + b"  return value;" + newline + b"}")
+            returned = source.index(b"value", source.index(b"return"))
+            tree = _fixture(source, _node("name", returned, returned + 5, name=_name("value", returned)))
+            local = source.index(prefix, source.index(b"{"))
+            annotation = source.index(b"Nat", local)
+            name = source.index(b"value", annotation)
+            literal = source.index(b"1", name)
+            binding = _node("let" if explicit else "typed_local", local, source.index(b";", local) + 1,
+                            name=_name("value", name), type=_node("type", annotation, annotation + 3, name="Nat"),
+                            value=_node("nat", literal, literal + 1, value="1"))
+            root = cast("dict[str, object]", tree["ast"])
+            function = cast("list[dict[str, object]]", root["declarations"])[0]
+            body = cast("dict[str, object]", function["body"])
+            body["bindings"] = [binding]
+            decoded = vela_ast.decode(source, tree)
+            declaration = decoded.declarations[0]
+            if not isinstance(declaration, vela_ast.Function):
+                raise AssertionError("typed-local fixture lost its function")
+            selected = declaration.body.bindings[0]
+            ensure(isinstance(selected, vela_ast.Binding) and selected.annotation == "Nat"
+                   and selected.explicit_binding is explicit,
+                   "native decoder lost the local annotation or source binding keyword")
+            with patch.object(vela, "_tokens", side_effect=AssertionError("Python parser fallback")):
+                ensure("Definition f_F" in vela.translate_ast(source, tree).gallina,
+                       "a typed native binding failed its separate AST consumer")
+            for mutation in ("missing-type", "wrong-type-span", "wrong-kind", "null-type"):
+                changed = copy.deepcopy(tree)
+                changed_root = cast("dict[str, object]", changed["ast"])
+                changed_function = cast("list[dict[str, object]]", changed_root["declarations"])[0]
+                changed_body = cast("dict[str, object]", changed_function["body"])
+                changed_binding = cast("list[dict[str, object]]", changed_body["bindings"])[0]
+                if mutation == "missing-type":
+                    del changed_binding["type"]
+                elif mutation == "wrong-type-span":
+                    cast("dict[str, object]", changed_binding["type"])["span"] = [name, name + 3]
+                elif mutation == "wrong-kind":
+                    changed_binding["kind"] = "typed_local" if explicit else "let"
+                else:
+                    changed_binding["type"] = None
+                try:
+                    vela_ast.decode(source, changed)
+                except (TypeError, ValueError):
+                    pass
+                else:
+                    raise AssertionError(f"native decoder accepted a {mutation} annotation forgery")
 
 
 def _expression_body_protocol() -> None:
@@ -321,6 +373,7 @@ def _located_named_arguments() -> None:
 
 def cases() -> list[Case]:
     return [Case("independent-located-ast-to-terms", _independent_translation),
+            Case("typed-local-source-annotations-and-keyword-provenance", _typed_local_protocol),
             Case("expression-body-source-binding-and-terms", _expression_body_protocol),
             Case("expression-body-complete-token-coverage", _expression_body_uncovered_tokens),
             Case("located-labels-and-complete-call-token-coverage", _located_named_arguments),
