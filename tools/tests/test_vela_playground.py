@@ -403,10 +403,66 @@ def _absolute_read_deadline() -> None:
                    "expired read kept the synchronous service unavailable")
 
 
+def _http_extended_expressions() -> None:
+    source = ("module Expressions;\n"
+              "public Nat Remaining(Nat total,Nat used)=>total-used;\n"
+              "public bool Allowed(Nat value,bool paused)=>!paused&&(value>=3&&value<10||value==20);\n"
+              "public bool Changed(bool before,bool after)=>before!=after;\n")
+    digest = hashlib.sha256(source.encode()).hexdigest()
+    with _running() as server:
+        compiled = _post(server, "/api/compile", {"source": source})
+        ensure(compiled["ok"] is True and compiled["sourceHash"] == digest,
+               "extended compilation lost source identity")
+        ensure("Corelib.Init.Nat.sub v_total v_used" in str(compiled["gallina"])
+               and "if v_paused then" in str(compiled["gallina"]),
+               "playground did not return real subtraction and Boolean emission")
+        for expression, value_type, expected in (
+                ("Remaining(total: 5, used: 8)", "Nat", "0"),
+                ("10 - 3 - 2", "Nat", "5"),
+                ("2 + 3 * 4 - 5", "Nat", "9"),
+                ("Allowed(value: 8, paused: false)", "bool", "true"),
+                ("Allowed(8, true)", "bool", "false"),
+                ("Allowed(20, false)", "bool", "true"),
+                ("Allowed(2, false)", "bool", "false"),
+                ("Changed(true, false)", "bool", "true"),
+                ("!false || false && false", "bool", "true"),
+                ("4 > 3 && 4 >= 4 && 1 != 2", "bool", "true")):
+            response = _post(server, "/api/evaluate", {
+                "source": source, "expression": expression, "valueType": value_type})
+            ensure(response == {"ok": True, "sourceHash": digest, "valueType": value_type, "value": expected},
+                   f"wrong isolated expression result for {expression}: {response}")
+        for expression, kind in (("!1", "type"), ("1 && true", "type"),
+                                 ("false || missing", "name"), ("1 < 2 < 3", "syntax")):
+            refused = _post(server, "/api/evaluate", {
+                "source": source, "expression": expression, "valueType": "bool"})
+            ensure(refused["ok"] is False and refused["sourceHash"] == digest
+                   and cast("dict[str, object]", refused["error"])["kind"] == kind,
+                   "extended expression refusal lost its kind or source binding")
+        authoring = _post(server, "/api/authoring", {"source": source})
+        ensure(authoring["ok"] is True and authoring["bindingPreview"] == source,
+               "authoring rejected or rewrote supported operator expressions")
+        session = cast("str", _post(server, "/api/session", {})["session"])
+        _rpc(server, session, "initialize", {"capabilities": {}}, 1)
+        _rpc(server, session, "initialized")
+        opened = _rpc(server, session, "textDocument/didOpen", {"textDocument": {
+            "uri": _URI, "languageId": "vela", "version": 1, "text": source}})
+        ensure(cast("dict[str, object]", opened[0]["params"])["diagnostics"] == [],
+               "new operators broke existing LSP diagnostics")
+        hover = _rpc(server, session, "textDocument/hover", {
+            "textDocument": {"uri": _URI}, "position": {"line": 2, "character": 13}}, 2)
+        ensure("Allowed" in str(hover[0].get("result")), "operator body lost resolved function facts")
+        formatted = _rpc(server, session, "textDocument/formatting", {
+            "textDocument": {"uri": _URI}, "options": {"tabSize": 4, "insertSpaces": True}}, 3)
+        edits = cast("list[dict[str, object]]", formatted[0].get("result"))
+        ensure(len(edits) == 1 and "!paused && (value >= 3 && value < 10 || value == 20)" in str(edits[0]["newText"]),
+               "real isolated LSP formatting lost canonical operator spacing")
+
+
 def cases() -> list[Case]:
     return [Case("compiler-owned-static-natural-and-boolean-results", _static_values),
             Case("compiler-refusals-injection-and-existing-budgets", _static_refusals),
             Case("real-isolated-http-compilation-and-evaluation", _http_compiler),
+            Case("real-http-extended-expressions-authoring-and-editor-services", _http_extended_expressions),
             Case("real-http-authoring-findings-preview-source-and-refusals", _http_authoring),
             Case("authoring-worker-incomplete-invalid-coordinate-and-budget-controls", _authoring_worker_refusals),
             Case("http-auth-authority-strict-json-path-and-session-bounds", _http_authority_and_bounds),

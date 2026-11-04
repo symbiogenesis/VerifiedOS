@@ -53,6 +53,43 @@ public bool SameSquare(Nat left, Nat right)
 }
 `,
     },
+    logic: {
+        expression: "CanProceed(value: 8, paused: false)", valueType: "bool",
+        source: `module Logic;
+
+/// Boolean operators combine comparisons, checking the lower bound first.
+public bool InRange(Nat value) => value >= 3 && value < 10;
+
+/// Negation and disjunction describe the ordinary Boolean decision.
+public bool CanProceed(Nat value, bool paused) => !paused && (InRange(value) || value == 20);
+
+/// Inequality works on both naturals and booleans.
+public bool Changed(Nat before, Nat after, bool previous, bool current)
+{
+    return before != after || previous != current;
+}
+
+/// Try CanProceed(2, false), CanProceed(20, false), and CanProceed(8, true).
+public bool Main() => CanProceed(value: 8, paused: false);
+`,
+    },
+    subtraction: {
+        expression: "Remaining(total: 5, used: 8)", valueType: "Nat",
+        source: `module NaturalArithmetic;
+
+/// Natural subtraction stops at zero: Remaining(5, 8) is zero.
+public Nat Remaining(Nat total, Nat used) => total - used;
+
+/// Multiplication binds tighter; addition and subtraction group left to right.
+public Nat Adjusted(Nat value) => value * 3 + 2 - 4;
+
+/// Ordering can decide whether any mathematical capacity remains.
+public bool HasRoom(Nat total, Nat used) => total > used;
+
+/// Try Remaining(12, 5), Adjusted(4), and HasRoom(5, 8) in the console.
+public Nat Main() => Remaining(total: 12, used: 5);
+`,
+    },
     constants: {
         expression: "Process(5)", valueType: "Nat",
         source: `module Configuration;
@@ -596,7 +633,7 @@ function registerLanguage() {
         typeKeywords: ["Nat", "bool"], tokenizer: { root: [
             [/\/\/.*$/, "comment"], [/\b(?:true|false)\b/, "constant"],
             [/[A-Za-z_][A-Za-z0-9_]*/, { cases: { "@keywords": "keyword", "@typeKeywords": "type", "@default": "identifier" } }],
-            [/[0-9](?:_?[0-9])*/, "number"], [/=>|==|<=|[+*=]/, "operator"], [/[{}()]/, "@brackets"], [/[;,.:]/, "delimiter"],
+            [/[0-9](?:_?[0-9])*/, "number"], [/=>|==|!=|<=|>=|&&|\|\||[+*!=<>-]/, "operator"], [/[{}()]/, "@brackets"], [/[;,.:]/, "delimiter"],
         ] },
     });
     monaco.editor.defineTheme("vela-night", {

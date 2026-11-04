@@ -88,17 +88,21 @@ binding   := 'let' type? name '=' expression ';'
 constant  := 'const' type name '=' expression ';'
 exit      := 'return' expression ';'
            | 'if' '(' expression ')' block 'else' block
-expression:= comparison
-comparison:= sum (('==' | '<=') sum)?
-sum       := product ('+' product)*
-product   := atom ('*' atom)*
+expression:= disjunction
+disjunction:= conjunction ('||' conjunction)*
+conjunction:= comparison ('&&' comparison)*
+comparison:= sum (('==' | '!=' | '<' | '<=' | '>' | '>=') sum)?
+sum       := product (('+' | '-') product)*
+product   := unary ('*' unary)*
+unary     := '!' unary | atom
 atom      := decimal | 'true' | 'false' | name
            | name '(' arguments? ')' | '(' expression ')'
 arguments := argument (',' argument)* ','?
 argument  := (name ':')? expression
 ```
 
-Arithmetic and `<=` take naturals; equality takes two operands of the same type.
+Arithmetic and ordering take naturals; equality and inequality take two operands
+of the same type. Negation, conjunction and disjunction take booleans.
 A condition is Boolean and every reachable branch returns the declared
 function result type. An expression body checks exactly like a single return;
 its expression is evaluated once. Optional trailing commas apply to nonempty
@@ -114,7 +118,8 @@ immutable too and receive advisory `VELA104`, preferring an explicit `let`.
 Duplicate functions, parameters, local bindings in an active
 scope (including active parameters) and unbound values are errors. Function and
 value namespaces are separate. Equality returns `bool`. Natural arithmetic,
-equality and comparison map to `Corelib.Init.Nat.add`, `.mul`, `.eqb` and `.leb`.
+equality and comparison map to `Corelib.Init.Nat.add`, `.sub`, `.mul`, `.eqb`,
+`.ltb` and `.leb`.
 Boolean equality maps to pure nested conditionals returning the Boolean
 constructors. Types and constructors come from `Corelib.Init.Datatypes`.
 Constants follow the [required-static contract](surface-grammar.md#required-static-constants):
@@ -263,5 +268,8 @@ python tools/run.py vela emit tools/vela/examples/pure.vela --output out/Pure.v
 Create the output directory first, or omit `--output` to print definitions.
 The [example](../../../tools/vela/examples/pure.vela) defines a cube and Boolean
 selection: intended `Choose(true, 1)` is true, `Choose(true, 2)` false. Output is
-module `Vela_Oracle` with `f_Cube`/`f_Choose`; execution requires the separate kernel
-replay, since this tool has no evaluator.
+module `Vela_Oracle` with `f_Cube`/`f_Choose`. The
+[expression example](../../../tools/vela/examples/expressions.vela) adds Boolean
+logic, comparisons and saturating natural subtraction. The playground console
+evaluates closed expressions through the bounded static evaluator; kernel
+acceptance requires the separate replay.

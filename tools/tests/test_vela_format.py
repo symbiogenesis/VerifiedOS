@@ -119,6 +119,26 @@ def _bounded_output() -> None:
         raise AssertionError("formatter accepted oversized input or output")
 
 
+def _extended_expression_spacing() -> None:
+    source = (b"module M;public bool Decide(bool flag,Nat value){"
+              b"let ready=!!flag;return !(ready||value<2)&&value>=1&&value!=3||value>4;}"
+              b"public Nat Remaining(Nat total,Nat used)=>total-used+2*3;")
+    expected = (b"module M;\n\npublic bool Decide(bool flag, Nat value)\n{\n"
+                b"    let ready = !!flag;\n"
+                b"    return !(ready || value < 2) && value >= 1 && value != 3 || value > 4;\n}\n\n"
+                b"public Nat Remaining(Nat total, Nat used) => total - used + 2 * 3;\n")
+    ensure(format_source(source) == expected, "prefix or binary operator spacing changed")
+    ensure(format_source(expected) == expected, "extended expressions are not idempotent")
+    ensure(translate(source).gallina.splitlines()[2:] == translate(expected).gallina.splitlines()[2:],
+           "operator formatting changed generated terms")
+    for boundary in (b"! // prefix\n!flag", b"! // group\n(flag || false)", b"!\n// comment\nflag"):
+        commented = b"module M;public bool Decide(bool flag)=>" + boundary + b";"
+        formatted = format_source(commented)
+        ensure(format_source(formatted) == formatted, "prefix comment layout failed to stabilize")
+        ensure(translate(commented).gallina.splitlines()[2:] == translate(formatted).gallina.splitlines()[2:],
+               "negation comment formatting changed meaning")
+
+
 def cases() -> list[Case]:
     return [Case("vela-style-allman-and-spacing", _allman_and_spacing),
             Case("vela-style-nested-control-and-expression-body", _nested_control_and_expression_bodies),
@@ -126,5 +146,6 @@ def cases() -> list[Case]:
             Case("vela-style-composed-authoring-features", _composed_authoring_features),
             Case("vela-style-inline-comments-in-delimiters", _inline_comments_in_delimiters),
             Case("vela-style-generated-comment-token-boundaries", _generated_comment_boundaries),
+            Case("vela-style-extended-expressions-and-prefix-comments", _extended_expression_spacing),
             Case("vela-style-invalid-and-unsupported-refusal", _refuses_invalid_and_unsupported),
             Case("vela-style-bounded-input", _bounded_output)]

@@ -167,10 +167,14 @@ def _render(parts: list[_Part]) -> bytes:
             if previous is not None and previous.text in {"if", "return"}:
                 current += " "
             current += "("
-        elif spelling in {"=", "=>", "+", "*", "==", "<="}:
+        elif spelling == "!":
+            if current and not current.endswith((" ", "(", "!")):
+                current += " "
+            current += "!"
+        elif spelling in {"=", "=>", "+", "-", "*", "==", "!=", "<", "<=", ">", ">=", "&&", "||"}:
             current = current.rstrip(" ") + " " + spelling + " "
         else:
-            if current and not current.endswith((" ", "(")):
+            if current and not current.endswith((" ", "(", "!")):
                 current += " "
             current += spelling
         previous = part

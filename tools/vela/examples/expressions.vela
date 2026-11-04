@@ -1,0 +1,19 @@
+module Expressions;
+
+/// Natural subtraction saturates at zero.
+public Nat Remaining(Nat total, Nat used) => total - used;
+
+/// Negation binds tighter than comparisons, conjunction, then disjunction.
+public bool Allowed(Nat value, bool paused)
+{
+    return !paused && (value >= 3 && value < 10 || value == 20);
+}
+
+/// Equality and inequality compare two values of the same type.
+public bool Changed(bool before, bool after) => before != after;
+
+/// Reversed comparisons still evaluate their left operand first.
+public bool HasRoom(Nat total, Nat used) => total > used;
+
+/// Subtraction groups left to right after multiplication.
+public Nat Adjusted(Nat value) => value * 3 + 2 - 4;
