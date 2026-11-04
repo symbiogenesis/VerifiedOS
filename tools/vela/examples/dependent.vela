@@ -2,7 +2,7 @@
 // Mathematical development prototype; kernel replay checks emitted terms.
 module Dependent;
 
-public definition T Identity<T>(T value) => value;
+public definition TValue Identity<TValue>(TValue value) => value;
 
 public const Nat Limit = Identity(value: 1);
 
@@ -14,7 +14,7 @@ public Nat Scale(const Nat factor, Nat value)
 }
 public Nat Process(Nat value) => Scale(factor: Limit, value: value);
 
-public definition U Apply<T, U>(Fn(T value) -> U function, T value) =>
+public definition TResult Apply<TInput, TResult>(Fn(TInput value) -> TResult function, TInput value) =>
     function(value: value);
 
 public definition (Nat, bool) SeparateInstantiations() =>
@@ -27,9 +27,9 @@ public definition bool SecondComponent() => Snd(SeparateInstantiations());
 public definition Nat HigherOrder() =>
     Apply(function: value => value + 1, value: 41,);
 
-public definition Vec<T, n> Copy<T, ghost Nat n>(Vec<T, n> values) => values;
+public definition Vec<TElement, length> Copy<TElement, ghost Nat length>(Vec<TElement, length> values) => values;
 
-public alias Words<ghost Nat n> = Vec<Nat, n>;
+public alias Words<ghost Nat length> = Vec<Nat, length>;
 
 public definition Vec<Nat, Limit> Singleton() => VCons(42, VNil<Nat>());
 
@@ -43,13 +43,13 @@ public lemma LookupValue(): Lookup() == 42
         return Refl(42);
     }
 
-public definition Fn(Nat n, Vec<Nat, n> values) -> Vec<Nat, n> PreserveLength() =>
-    (Nat n, Vec<Nat, n> values) => values;
+public definition Fn(Nat length, Vec<Nat, length> values) -> Vec<Nat, length> PreserveLength() =>
+    (Nat length, Vec<Nat, length> values) => values;
 
 public definition Vec<Nat, Limit> PreservedSingleton() =>
-    PreserveLength()(n: Limit, values: Singleton());
+    PreserveLength()(length: Limit, values: Singleton());
 
-public lemma Reflexivity<T>(T value): value == value
+public lemma Reflexivity<TValue>(TValue value): value == value
     proof
     {
         return Refl(value);
@@ -70,9 +70,9 @@ public lemma Congruence(Nat value): value + 1 == value + 1
 public definition type[Eq<Nat>(value, value)] KeepEvidence(
     Nat value, type[Eq<Nat>(value, value)] evidence) => evidence;
 
-public definition P KeepProof<P : Prop>(P evidence) => evidence;
+public definition TProposition KeepProof<TProposition : Prop>(TProposition evidence) => evidence;
 
-public lemma ForwardProof<P : Prop>(P evidence): P
+public lemma ForwardProof<TProposition : Prop>(TProposition evidence): TProposition
     proof
     {
         return KeepProof(evidence);

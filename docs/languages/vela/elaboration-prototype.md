@@ -164,7 +164,7 @@ a dependent callable and equality proofs. `elaborate` prints Gallina or writes
 toolchain; `elaborate-qualify` additionally requires the locked proof switch.
 Only the latter command supplies a kernel verdict for its declared fixtures.
 
-Generic parameters default to `Type`; `<T, ghost Nat n>` quantifies a type and
+Generic parameters default to `Type`; `<TElement, ghost Nat length>` quantifies a type and
 stable natural index. Each call infers new arguments, while `::<...>` supplies
 them explicitly and `_` requests an inferred argument. A contextual lambda can
 use `value => ...` or `(left, right) => ...`; omitted parameter annotations use
@@ -172,12 +172,12 @@ the same bounded expected-type inference as annotation holes. Missing type
 information remains an error. Ordinary value-returning functions may use
 `=> expression;` as the checked equivalent of a single return block.
 Declare a dependent callable with
-`Fn(Nat n, Vec<Nat, n> values) -> Vec<Nat, n>`.
+`Fn(Nat length, Vec<Nat, length> values) -> Vec<Nat, length>`.
 
-`Fst` and `Snd` project ordinary products. `Vec<T,n>` is a mathematical indexed collection, with `VNil`, `VCons`, `Fin`,
+`Fst` and `Snd` project ordinary products. `Vec<TElement,length>` is a mathematical indexed collection, with `VNil`, `VCons`, `Fin`,
 `FZero`, `FSucc` and `At` for construction and safe lookup. This prototype gives
-it no machine layout. Definitional equality is computational: use `Succ(n)` or
-`1 + n` for a successor index; arbitrary rearrangement of natural arithmetic
+it no machine layout. Definitional equality is computational: use `Succ(length)` or
+`1 + length` for a successor index; arbitrary rearrangement of natural arithmetic
 needs an explicit theorem. `Refl`, `Symm`, `Trans` and `Congr` construct equality
 evidence. Concrete product projections and finite lookup reduce during checking,
 so the example proves its lookup result. `type[Eq::<T>(left, right)]` lets an

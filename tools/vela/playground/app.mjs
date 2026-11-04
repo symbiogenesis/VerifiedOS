@@ -177,11 +177,11 @@ public Nat Total()
         expression: "HigherOrder()", valueType: "Nat",
         source: `module GenericFunctions;
 
-/// T is inferred separately at every call.
-public definition T Identity<T>(T value) => value;
+/// TValue is inferred separately at every call.
+public definition TValue Identity<TValue>(TValue value) => value;
 
 /// Functions are values, with their own input and result types.
-public definition U Apply<T, U>(Fn(T value) -> U function, T value) =>
+public definition TResult Apply<TInput, TResult>(Fn(TInput value) -> TResult function, TInput value) =>
     function(value: value);
 
 public definition (Nat, bool) DifferentTypes() =>
@@ -229,18 +229,18 @@ public lemma SelectedValue(): Second() == 20
         expression: "PreservedValue()", valueType: "Nat",
         source: `module LengthPreservation;
 
-/// The same inferred n appears in both the input and result.
-/// T names a type; n is a natural-number value index, so it stays camelCase.
-public definition Vec<T, n> Copy<T, ghost Nat n>(Vec<T, n> values) => values;
+/// The same inferred length appears in both the input and result.
+/// TElement names a type; length is a natural-number value index.
+public definition Vec<TElement, length> Copy<TElement, ghost Nat length>(Vec<TElement, length> values) => values;
 
 /// Later parameter types can depend on an earlier value parameter.
-public definition Fn(Nat n, Vec<Nat, n> values) -> Vec<Nat, n> Preserve() =>
-    (Nat n, Vec<Nat, n> values) => values;
+public definition Fn(Nat length, Vec<Nat, length> values) -> Vec<Nat, length> Preserve() =>
+    (Nat length, Vec<Nat, length> values) => values;
 
 public definition Vec<Nat, 1> Original() => VCons(42, VNil<Nat>());
 
 public definition Vec<Nat, 1> Preserved() =>
-    Preserve()(n: 1, values: Copy(Original()));
+    Preserve()(length: 1, values: Copy(Original()));
 
 public definition Nat PreservedValue() => At(Preserved(), FZero<0>());
 
