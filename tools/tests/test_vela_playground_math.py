@@ -14,6 +14,8 @@ from unittest.mock import patch
 from tests.harness import Case, ensure
 from tests.test_vela_playground import _http, _post, _running
 from vos import vela_playground as playground
+from vos.cli import vela_playground as playground_cli
+from vos.commands import COMMANDS
 from vos.vela import StaticEvaluation, VelaError
 from vos.vela_elaborate import Elaboration
 from vos.vela_playground_worker import compile_request
@@ -133,9 +135,17 @@ def _worker_reply_binding() -> None:
         semantic: dict[str, object] = {"ok": False, "sourceHash": _DIGEST,
                                       "error": {"kind": "type", "message": "expression: wrong vector length",
                                                 "line": 1, "column": 1}}
-        with patch.object(playground.subprocess, "run", return_value=_process(semantic)):
-            ensure(_post(server, "/api/evaluate", request) == semantic,
-                   "semantic mathematical refusal was replaced with a success or infrastructure error")
+        for kind in ("type", "inference", "protocol"):
+            cast("dict[str, object]", semantic["error"])["kind"] = kind
+            with patch.object(playground.subprocess, "run", return_value=_process(semantic)):
+                ensure(_post(server, "/api/evaluate", request) == semantic,
+                       "semantic mathematical refusal was replaced with a success or infrastructure error")
+        with patch.object(playground.subprocess, "run",
+                          side_effect=playground.subprocess.TimeoutExpired("worker", playground.WORKER_SECONDS)):
+            refused = _post(server, "/api/evaluate", request)
+        ensure(refused["ok"] is False and refused["sourceHash"] == _DIGEST
+               and cast("dict[str, object]", refused["error"])["kind"] == "timeout",
+               "mathematical worker timeout retained a successful or unbound result")
         with patch.object(playground.subprocess, "run", return_value=_process(_result())):
             ensure(_post(server, "/api/evaluate", request) == _result(),
                    "mathematical transport failed recovery after rejected worker replies")
@@ -143,9 +153,17 @@ def _worker_reply_binding() -> None:
 
 def _changed_parser_refuses() -> None:
     with _mathematical_server() as (server, parser):
-        parser.write_bytes(b"replaced parser with different executable bytes")
+        def replace_during_worker(*_args: object, **_kwargs: object) -> playground.subprocess.CompletedProcess[bytes]:
+            parser.write_bytes(b"replaced parser with different executable bytes")
+            return _process({"ok": True, "sourceHash": _DIGEST, "module": "Indexed", "gallina": "stale terms"})
+
+        request = {"source": _SOURCE, "mode": "mathematical"}
+        with patch.object(playground.subprocess, "run", side_effect=replace_during_worker) as worker:
+            refused = _post(server, "/api/compile", request)
+        ensure(worker.call_count == 1 and refused["ok"] is False and "gallina" not in refused,
+               "parser changed during compilation retained its earlier successful result")
         with patch.object(playground.subprocess, "run") as worker:
-            status, _, body = _http(server, "/api/compile", {"source": _SOURCE, "mode": "mathematical"})
+            status, _, body = _http(server, "/api/compile", request)
         response = cast("dict[str, object]", json.loads(body))
         ensure(status != 200 or response.get("ok") is False,
                "changed native parser identity retained mathematical compile authority")
@@ -183,9 +201,36 @@ def _worker_mathematical_routing() -> None:
            "worker lost original mathematical diagnostic positions or source identity")
 
 
+def _native_cli_startup() -> None:
+    commands = [command for command in COMMANDS if command.name == "vela-playground-math"]
+    ensure(len(commands) == 1 and commands[0].guest_only([]),
+           "native mathematical playground command did not select the guest toolchain")
+    with patch("vos.vela_parser.build") as build, patch.object(playground_cli, "PlaygroundServer") as factory:
+        prepared = build.return_value
+        prepared.executable = Path("/native/lane/build/vela-parser")
+        server = factory.return_value.__enter__.return_value
+        server.launch_url = "http://127.0.0.1:12345/#token=fixture"
+        ensure(playground_cli.serve(["--port", "0"], mathematical=True) == 0,
+               "mathematical playground failed its prepared native startup")
+        ensure(build.call_count == 1 and factory.call_args.args == (0,)
+               and factory.call_args.kwargs == {"mathematical_parser": prepared.executable},
+               "native parser was rebuilt per request or not supplied to the local server")
+        ensure(server.serve_forever.call_count == 1,
+               "prepared mathematical playground did not enter its HTTP service")
+    with patch("vos.vela_parser.build", side_effect=RuntimeError("native tools unavailable")), \
+            patch.object(playground_cli, "PlaygroundServer") as factory:
+        ensure(playground_cli.serve(["--port", "0"], mathematical=True) == 1 and not factory.called,
+               "unavailable native toolchain started a mathematical service without its parser")
+    with patch("vos.vela_parser.build") as build, patch.object(playground_cli, "PlaygroundServer") as factory:
+        factory.return_value.__enter__.return_value.launch_url = "http://127.0.0.1:12345/"
+        ensure(playground_cli.serve(["--port", "0"]) == 0 and not build.called,
+               "retained pure host command unexpectedly invoked the native parser toolchain")
+
+
 def cases() -> list[Case]:
     return [Case("mathematical-capabilities-authentication-and-retained-pure-default", _capabilities_and_pure_defaults),
             Case("mathematical-http-mode-routing-and-request-field-refusals", _http_dispatch_and_strict_fields),
             Case("mathematical-worker-source-type-and-schema-refusals-with-recovery", _worker_reply_binding),
             Case("mathematical-changed-parser-identity-refuses-before-worker", _changed_parser_refuses),
-            Case("mathematical-worker-reuses-elaborator-and-preserves-refusals", _worker_mathematical_routing)]
+            Case("mathematical-worker-reuses-elaborator-and-preserves-refusals", _worker_mathematical_routing),
+            Case("mathematical-cli-prepares-native-parser-once-and-refuses-missing-tools", _native_cli_startup)]
