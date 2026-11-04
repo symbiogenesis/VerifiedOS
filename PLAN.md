@@ -15,6 +15,17 @@ complete separately scoped hardening and physical qualification. Statements and
 experiments close only their stated scope; implementation and proof endpoints
 retain their own work.
 
+## Host migration status
+
+The old host's WSL data and retained Windows repositories are fully migrated as
+of 2026-11-03. The [current host status](tools/wsl-migration.md#current-host-status)
+records the restored default distribution, retained locations and verification.
+Work blocked only by access to the old machine's data is ready to continue under
+its existing task contract; migration is no longer an outstanding prerequisite.
+The native census follow-up and retained compiler investigation can resume their
+next actions. Hosted validation, complete input packaging and historical
+absolute-path checks retain their existing acceptance boundaries.
+
 ## Priorities and milestones
 
 | Planning question | Canonical section |
@@ -3114,9 +3125,12 @@ accept the complete checker and proof-header runtime improvements, retain smalle
 Markdown gains and inconclusive proof-context timings, and reject slower scanner
 experiments. The [follow-through](#guardrail-performance-follow-through) owns the
 subsequent bounded Markdown workers; other scheduling changes are not selected.
-The native census comparison still needs the original three-root control emission;
-its complete qualification remains open below. The stable-tree Host and Guest
-handoff retains the check and join requirements above.
+The native census and control data are restored by the
+[completed host migration](tools/wsl-migration.md#current-host-status). The native
+census comparison still needs the complete controls and readings exported and
+hash-bound for the hosted input descriptor; their absence from tracked inputs is
+separate from migration. Complete qualification remains open below. The stable-tree
+Host and Guest handoff retains the check and join requirements above.
 
 ## Guardrail performance follow-through
 
@@ -3159,6 +3173,15 @@ census generation, Python validation and retained-evidence replay are
 Target a tenfold reduction in end-to-end Python replay time without increasing
 peak memory. No such speedup has been measured; an interrupted local run supplies
 no completed baseline.
+
+The [host migration is complete](tools/wsl-migration.md#current-host-status): the
+checkpoint-recorded native census and control directories are available again.
+This work is ready to continue; access to the old host is no longer a blocker.
+First package and bind the complete restored control emission and readings for
+the [hosted comparison inputs](tools/ci/census-benchmark-inputs.json), then perform
+the profiling and acceptance below on GitHub-hosted Actions. The descriptor's
+unavailable controls still name a tracked-input packaging gap, not an unfinished
+WSL migration.
 
 - Profile parsing, schema traversal, native metadata/resolver joins, control-copy
   cost and each corruption case on the exact hash-bound support and control

@@ -248,8 +248,18 @@ remains pending with the shared batch.
 preserves source revisions, archive/compiler/input/lock hashes, original commands,
 logs and timings, producer identities and native retention locations. It is a
 dated observation, not a live index or a backup of the contained bytes. Compiler
-sources, objects, executables and installed libraries remain outside this public
-repository under the existing containment rules.
+sources, objects, executables and installed libraries remain unindexed and
+unpublished under the existing containment rules.
+
+The [host migration is complete](../../../tools/wsl-migration.md#current-host-status).
+Native build roots, installed switches, libraries and logs are restored in
+`VerifiedOS-Restored`; the complete private Git checkout and worktrees are retained
+locally under the ignored `out/migration-retained/20261103/` directory. Access to
+the old host no longer blocks this investigation. Select the retained source and
+driver explicitly for subsequent work. Historical receipts still bind their
+original absolute helper paths: resolve that relocation before an authenticated
+reuse attempt, preserving the receipts and their original verdicts. Migration
+provides data availability, not a new compilation or qualification verdict.
 
 The catalog's read-only `compiler-build status` operations authenticate the sealed
 VM compilation candidates through the private validator. Their compile phase is
