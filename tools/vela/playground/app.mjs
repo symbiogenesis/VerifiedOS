@@ -74,6 +74,45 @@ public Nat Scale(const Nat gain, Nat sample)
 public Nat Process(Nat sample) => Scale(gain: Gain, sample: sample);
 `,
     },
+    bindings: {
+        expression: "Count(true)", valueType: "Nat",
+        source: `module Bindings;
+
+/// Immutable locals may carry explicit type annotations.
+/// Check style to preview the explicit let spelling.
+public Nat Count(bool selected)
+{
+    Nat count = 1_000;
+    bool ready = selected == true;
+    if (ready)
+    {
+        return count;
+    }
+    else
+    {
+        return 0;
+    }
+}
+`,
+    },
+    named: {
+        expression: "Total()", valueType: "Nat",
+        source: `module NamedArguments;
+
+/// Natural literals accept decimal, binary and hexadecimal separators.
+public const Nat Base = 0x1_0;
+
+/// Parameter names document each value at a call site.
+public Nat Combine(Nat left, Nat right) => left + right;
+
+/// Named arguments and documented functions share ordinary compiler facts.
+public Nat Total()
+{
+    let Nat amount = Combine(right: 0b1_000, left: Base);
+    return amount + 1_000;
+}
+`,
+    },
 };
 
 const state = {
@@ -81,6 +120,8 @@ const state = {
     session: null, connected: false, generation: 0, opened: false, syncedVersion: 0,
     capabilities: {}, connection: null, queue: Promise.resolve(), requestId: 0,
     compileTicket: 0, evaluateTicket: 0, checkTimer: null, gallina: "",
+    authoringTicket: 0, authoring: null, outlineTicket: 0, inspectTicket: 0,
+    outlineSnapshot: null, undoSource: null, inspectPending: false, inspectSelection: "",
 };
 
 let token = new URLSearchParams(location.hash.slice(1)).get("token") || "";
@@ -207,11 +248,15 @@ function disconnected(error, generation) {
     state.connected = false;
     status(error.message || "Local language services disconnected.", true);
     clearDiagnostics("Language services are disconnected. Compile and expression evaluation remain available.");
+    clearAuthoring("Connection unavailable. Check style again when the local service is ready.");
+    clearInspection("Language services are disconnected. Reconnect to inspect symbols.");
 }
 
 async function connect() {
     const oldSession = state.session;
     const generation = ++state.generation;
+    clearAuthoring("Connection changed. Check style again for the current buffer.");
+    clearInspection("Connecting to the language server…");
     state.connected = false;
     state.session = null;
     state.opened = false;
@@ -232,6 +277,7 @@ async function connect() {
         state.connected = true;
         status("Language server connected");
         scheduleCheck(0);
+        if (!$("inspect-panel").hidden) refreshOutline();
     })();
     state.connection = pending;
     try { await pending; }
@@ -295,10 +341,17 @@ function sourceChanged(text) {
     state.compileTicket++;
     state.gallina = "";
     $("copy-output").disabled = true;
+    $("download-output").disabled = true;
     $("compile-button").disabled = false;
     $("gallina-output").textContent = "// Source changed. Compile again to inspect the current translation.";
     $("compile-summary").textContent = "Output cleared because the source changed.";
     clearEvaluation();
+    clearAuthoring("Source changed. Check style again for a current preview.");
+    clearInspection("Source changed. Refresh the outline to inspect this buffer.");
+    if (state.undoSource && state.undoSource.after !== text) {
+        state.undoSource = null;
+        $("undo-buffer").disabled = true;
+    }
     clearDiagnostics(state.connected ? "Checking the current buffer…" : "Language services are not connected.");
     activity("Source changed");
     scheduleCheck();
@@ -313,6 +366,209 @@ function setSource(text) {
 function toPosition(position) { return { line: position.lineNumber - 1, character: position.column - 1 }; }
 function toRange(range) { return { startLineNumber: range.start.line + 1, startColumn: range.start.character + 1, endLineNumber: range.end.line + 1, endColumn: range.end.character + 1 }; }
 function fromRange(range) { return { start: { line: range.startLineNumber - 1, character: range.startColumn - 1 }, end: { line: range.endLineNumber - 1, character: range.endColumn - 1 } }; }
+
+function sourceOffset(text, position) {
+    const lines = text.split(/\r\n|\n|\r/);
+    const separators = text.match(/\r\n|\n|\r/g) || [];
+    let offset = 0;
+    for (let line = 0; line < position.line; line++) offset += lines[line].length + separators[line].length;
+    return offset + position.character;
+}
+
+function sourcePosition(text, offset) {
+    const lines = text.slice(0, offset).split(/\r\n|\n|\r/);
+    return { line: lines.length - 1, character: lines.at(-1).length };
+}
+
+function compilerPosition(line, column) {
+    const sourceLine = state.text.split(/\r\n|\n|\r/)[line - 1] || "";
+    return { line: line - 1, character: Array.from(sourceLine).slice(0, column - 1).join("").length };
+}
+
+function revealSource(range) {
+    if (state.editor) {
+        state.editor.setSelection(toRange(range));
+        state.editor.revealRangeInCenter(toRange(range));
+        state.editor.focus();
+    } else {
+        const textarea = $("source-fallback");
+        textarea.focus();
+        textarea.setSelectionRange(sourceOffset(state.text, range.start), sourceOffset(state.text, range.end));
+        const lineHeight = Number.parseFloat(getComputedStyle(textarea).lineHeight) || 22;
+        textarea.scrollTop = Math.max(0, range.start.line * lineHeight - textarea.clientHeight / 2);
+        $("cursor-position").textContent = `Ln ${range.start.line + 1}, Col ${range.start.character + 1}`;
+    }
+}
+
+function replaceBuffer(text, source) {
+    if (text === state.text) return;
+    const before = state.text;
+    if (state.editor) {
+        state.editor.pushUndoStop();
+        state.editor.executeEdits(source, [{ range: state.model.getFullModelRange(), text }]);
+        state.editor.pushUndoStop();
+    } else setSource(text);
+    state.undoSource = { before, after: text };
+    $("undo-buffer").disabled = false;
+}
+
+function clearAuthoring(message) {
+    state.authoringTicket++;
+    state.authoring = null;
+    $("check-authoring").disabled = false;
+    $("apply-binding-preview").disabled = true;
+    $("authoring-summary").textContent = message;
+    $("authoring-findings").replaceChildren();
+    $("binding-preview").textContent = "No current preview.";
+}
+
+async function checkAuthoring() {
+    const captured = snapshot();
+    const ticket = ++state.authoringTicket;
+    const stillCurrent = () => current(captured) && ticket === state.authoringTicket;
+    state.authoring = null;
+    $("check-authoring").disabled = true;
+    $("apply-binding-preview").disabled = true;
+    $("authoring-summary").textContent = "Checking the complete source with the compiler…";
+    $("authoring-findings").replaceChildren();
+    $("binding-preview").textContent = "Waiting for a checked candidate…";
+    try {
+        const [result, hash] = await Promise.all([api("/api/authoring", { source: captured.text }), expectedHash(captured.text)]);
+        if (!stillCurrent()) return;
+        if (result.sourceHash !== hash) throw new Error("The authoring response does not match the requested source.");
+        if (!result.ok) throw new Error(errorText(result.error));
+        if (!Array.isArray(result.findings) || typeof result.bindingPreview !== "string") throw new Error("The authoring service returned an incomplete result.");
+        const changed = result.bindingPreview !== captured.text;
+        state.authoring = { captured, candidate: result.bindingPreview };
+        $("authoring-summary").textContent = `${result.findings.length} advisory finding${result.findings.length === 1 ? "" : "s"} · source SHA-256 ${hash.slice(0, 12)} · ${changed ? "binding preview available" : "no binding edits needed"}`;
+        $("authoring-findings").replaceChildren(...result.findings.map((finding) => {
+            const item = element("button", "diagnostic-item advisory-item");
+            item.type = "button";
+            item.append(element("span", "diagnostic-site", `${finding.code} · ${finding.line}:${finding.column}`), element("span", "diagnostic-message", finding.message));
+            item.addEventListener("click", () => {
+                if (!current(captured)) return;
+                const position = compilerPosition(finding.line, finding.column);
+                revealSource({ start: position, end: position });
+            });
+            return item;
+        }));
+        $("binding-preview").textContent = result.bindingPreview;
+        $("apply-binding-preview").disabled = !changed;
+        activity(changed ? "Authoring check ready; review the binding preview" : "Authoring check ready; no binding edits needed");
+    } catch (error) {
+        if (!stillCurrent()) return;
+        state.authoring = null;
+        $("authoring-summary").textContent = `Authoring check unavailable: ${error.message}`;
+        $("binding-preview").textContent = "No checked preview available.";
+        activity("Authoring check unavailable");
+    } finally { if (stillCurrent()) $("check-authoring").disabled = false; }
+}
+
+function clearInspection(message) {
+    state.outlineTicket++;
+    state.inspectTicket++;
+    state.outlineSnapshot = null;
+    state.inspectPending = false;
+    $("refresh-outline").disabled = false;
+    $("inspect-symbol").disabled = false;
+    $("outline").replaceChildren(element("p", "muted-message", message));
+    $("symbol-details").textContent = "Select a symbol from the current outline or inspect an identifier at the source cursor.";
+    $("symbol-references").replaceChildren();
+}
+
+async function refreshOutline() {
+    const captured = snapshot();
+    const ticket = ++state.outlineTicket;
+    const stillCurrent = () => current(captured) && ticket === state.outlineTicket;
+    $("refresh-outline").disabled = true;
+    $("outline").replaceChildren(element("p", "muted-message", "Loading compiler-resolved symbols…"));
+    try {
+        const result = await languageQuery("textDocument/documentSymbol", {}, captured);
+        if (!stillCurrent()) return;
+        if (!result) {
+            $("outline").replaceChildren(element("p", "muted-message", "Outline unavailable. Check the connection and source, then refresh."));
+            return;
+        }
+        state.outlineSnapshot = captured;
+        const symbols = result.filter((symbol) => symbol.location?.uri === DOCUMENT_URI);
+        $("outline").replaceChildren(...(symbols.length ? symbols.map((symbol) => {
+            const item = element("button", "symbol-item");
+            item.type = "button";
+            item.append(element("span", "symbol-name", symbol.name), element("span", "symbol-site", `${symbol.kind === 12 ? "function" : symbol.kind === 14 ? "constant" : "binding"} · ${symbol.location.range.start.line + 1}:${symbol.location.range.start.character + 1}`));
+            item.addEventListener("click", () => {
+                if (!current(captured)) return;
+                revealSource(symbol.location.range);
+                inspectSymbol(symbol.location.range.start);
+            });
+            return item;
+        }) : [element("p", "muted-message", "No resolved symbols returned for this source.")]));
+    } finally { if (stillCurrent()) $("refresh-outline").disabled = false; }
+}
+
+async function inspectSymbol(position = null) {
+    const captured = snapshot();
+    const ticket = ++state.inspectTicket;
+    const stillCurrent = () => current(captured) && ticket === state.inspectTicket;
+    if (!position) position = state.editor ? toPosition(state.editor.getPosition()) : sourcePosition(state.text, $("source-fallback").selectionStart);
+    $("inspect-symbol").disabled = true;
+    state.inspectPending = true;
+    state.inspectSelection = sourceSelectionKey();
+    $("symbol-details").textContent = "Inspecting the selected identifier…";
+    $("symbol-references").replaceChildren();
+    try {
+        const [hover, references] = await Promise.all([
+            languageQuery("textDocument/hover", { position }, captured),
+            languageQuery("textDocument/references", { position, context: { includeDeclaration: true } }, captured),
+        ]);
+        if (!stillCurrent()) return;
+        if (hover === undefined || references === undefined) {
+            $("symbol-details").textContent = "Inspection unavailable. Check the connection and source, then retry.";
+            return;
+        }
+        $("symbol-details").textContent = typeof hover?.contents === "string" ? hover.contents : hover?.contents?.value || "No resolved identifier at this source position.";
+        const local = (references || []).filter((reference) => reference.uri === DOCUMENT_URI);
+        $("symbol-references").append(element("p", "muted-message", `${local.length} resolved occurrence${local.length === 1 ? "" : "s"}, including the declaration.`));
+        const lines = captured.text.split(/\r\n|\n|\r/);
+        for (const reference of local) {
+            const item = element("button", "reference-item");
+            item.type = "button";
+            item.append(element("span", "symbol-site", `${reference.range.start.line + 1}:${reference.range.start.character + 1}`), element("span", "reference-source", lines[reference.range.start.line].trim()));
+            item.addEventListener("click", () => { if (current(captured)) revealSource(reference.range); });
+            $("symbol-references").append(item);
+        }
+    } finally {
+        if (stillCurrent()) {
+            state.inspectPending = false;
+            $("inspect-symbol").disabled = false;
+        }
+    }
+}
+
+function sourceSelectionKey() {
+    if (state.editor) return JSON.stringify(state.editor.getSelection());
+    const source = $("source-fallback");
+    return `${source.selectionStart}:${source.selectionEnd}`;
+}
+
+function sourceSelectionChanged() {
+    if (!state.inspectPending || state.inspectSelection === sourceSelectionKey()) return;
+    state.inspectTicket++;
+    state.inspectPending = false;
+    $("inspect-symbol").disabled = false;
+    $("symbol-details").textContent = "Source selection changed. Inspect the current identifier again.";
+    $("symbol-references").replaceChildren();
+}
+
+function download(text, name) {
+    const url = URL.createObjectURL(new Blob([text], { type: "text/plain;charset=utf-8" }));
+    const anchor = element("a");
+    anchor.href = url;
+    anchor.download = name;
+    document.body.append(anchor);
+    anchor.click();
+    anchor.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
 
 function plaintextMarkdown(text) {
     const runs = String(text).match(/`+/g) || [];
@@ -441,7 +697,7 @@ async function loadEditor() {
             minimap: { enabled: false }, scrollBeyondLastLine: false, smoothScrolling: false,
             renderLineHighlight: "line", lineNumbersMinChars: 3, glyphMargin: false,
             folding: false, fontLigatures: false, tabSize: 4, insertSpaces: true,
-            wordWrap: "off", inlayHints: { enabled: "on" }, "semanticHighlighting.enabled": true,
+            wordWrap: "off", inlayHints: { enabled: $("show-hints").checked ? "on" : "off" }, "semanticHighlighting.enabled": $("show-semantics").checked,
             quickSuggestions: false, suggestOnTriggerCharacters: false, wordBasedSuggestions: "off",
             ariaLabel: "Vela source editor", contextmenu: true,
         });
@@ -449,16 +705,24 @@ async function loadEditor() {
             $("source-fallback").value = state.model.getValue();
             sourceChanged(state.model.getValue());
         });
-        state.editor.onDidChangeCursorPosition(({ position }) => { $("cursor-position").textContent = `Ln ${position.lineNumber}, Col ${position.column}`; });
+        state.editor.onDidChangeCursorPosition(({ position }) => {
+            $("cursor-position").textContent = `Ln ${position.lineNumber}, Col ${position.column}`;
+            sourceSelectionChanged();
+        });
+        state.editor.onDidChangeCursorSelection(sourceSelectionChanged);
         state.editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, compile);
         $("source-fallback").hidden = true;
         $("editor-notice").hidden = true;
+        $("show-hints").disabled = false;
+        $("show-semantics").disabled = false;
         scheduleCheck(0);
     } catch (error) {
         state.editor?.dispose();
         state.model?.dispose();
         state.editor = null;
         state.model = null;
+        $("show-hints").disabled = true;
+        $("show-semantics").disabled = true;
         $("editor").hidden = true;
         $("source-fallback").hidden = false;
         $("source-fallback").value = state.text;
@@ -475,6 +739,7 @@ function selectTab(name) {
         button.tabIndex = selected ? 0 : -1;
         $(`${button.dataset.tab}-panel`).hidden = !selected;
     });
+    if (name === "inspect" && !state.outlineSnapshot) refreshOutline();
 }
 
 function errorText(error) {
@@ -494,6 +759,7 @@ async function compile() {
     selectTab("gallina");
     state.gallina = "";
     $("copy-output").disabled = true;
+    $("download-output").disabled = true;
     $("compile-button").disabled = true;
     $("compile-summary").textContent = "Compiling the current source…";
     $("gallina-output").textContent = "";
@@ -512,6 +778,7 @@ async function compile() {
         $("gallina-output").textContent = result.gallina;
         $("compile-summary").textContent = `${result.module} · unqualified pure translation · SHA-256 ${hash.slice(0, 12)}`;
         $("copy-output").disabled = false;
+        $("download-output").disabled = false;
         activity("Gallina output ready");
     } catch (error) {
         if (!stillCurrent()) return;
@@ -561,28 +828,22 @@ async function format() {
         if (!current(captured)) return;
         if (!edits) { activity("Formatting unavailable; check the connection"); return; }
         if (!edits.length) { activity("No formatting edit returned"); return; }
-        if (state.editor) {
-            state.editor.pushUndoStop();
-            state.editor.executeEdits("vela-format", edits.map((edit) => ({ range: toRange(edit.range), text: edit.newText })));
-            state.editor.pushUndoStop();
-        } else {
-            const lines = captured.text.split(/\r\n|\n|\r/);
-            const offset = (position) => {
-                let result = 0;
-                const separators = captured.text.match(/\r\n|\n|\r/g) || [];
-                for (let line = 0; line < position.line; line++) result += lines[line].length + separators[line].length;
-                return result + position.character;
-            };
-            const ordered = edits.map((edit) => ({ start: offset(edit.range.start), end: offset(edit.range.end), text: edit.newText })).sort((left, right) => right.start - left.start);
-            let text = captured.text;
-            for (const edit of ordered) text = text.slice(0, edit.start) + edit.text + text.slice(edit.end);
-            setSource(text);
-        }
+        const ordered = edits.map((edit) => ({ start: sourceOffset(captured.text, edit.range.start), end: sourceOffset(captured.text, edit.range.end), text: edit.newText })).sort((left, right) => right.start - left.start);
+        let text = captured.text;
+        for (const edit of ordered) text = text.slice(0, edit.start) + edit.text + text.slice(edit.end);
+        replaceBuffer(text, "vela-format");
         activity("Canonical formatting applied");
     } finally { $("format-button").disabled = false; }
 }
 
 $("source-fallback").addEventListener("input", () => sourceChanged($("source-fallback").value));
+$("source-fallback").addEventListener("select", sourceSelectionChanged);
+$("source-fallback").addEventListener("keyup", () => {
+    const position = sourcePosition(state.text, $("source-fallback").selectionStart);
+    $("cursor-position").textContent = `Ln ${position.line + 1}, Col ${position.character + 1}`;
+    sourceSelectionChanged();
+});
+$("source-fallback").addEventListener("click", sourceSelectionChanged);
 $("source-fallback").addEventListener("keydown", (event) => {
     if (event.key === "Tab") {
         event.preventDefault();
@@ -597,6 +858,35 @@ $("evaluate-form").addEventListener("submit", evaluate);
 $("compile-button").addEventListener("click", compile);
 $("format-button").addEventListener("click", format);
 $("reconnect-button").addEventListener("click", connect);
+$("check-authoring").addEventListener("click", checkAuthoring);
+$("apply-binding-preview").addEventListener("click", () => {
+    const preview = state.authoring;
+    if (!preview || !current(preview.captured) || preview.candidate === state.text) {
+        clearAuthoring("Preview is no longer current. Check style again before applying an edit.");
+        return;
+    }
+    replaceBuffer(preview.candidate, "vela-binding-preview");
+    activity("Explicit binding preview applied; undo is available");
+});
+$("undo-buffer").addEventListener("click", () => {
+    const previous = state.undoSource;
+    if (!previous || previous.after !== state.text) return;
+    if (state.editor) state.editor.trigger("vela-buffer-undo", "undo", null);
+    else setSource(previous.before);
+    state.undoSource = null;
+    $("undo-buffer").disabled = true;
+    activity("Prior source buffer restored");
+});
+$("refresh-outline").addEventListener("click", refreshOutline);
+$("inspect-symbol").addEventListener("click", () => inspectSymbol());
+$("show-hints").addEventListener("change", () => state.editor?.updateOptions({ inlayHints: { enabled: $("show-hints").checked ? "on" : "off" } }));
+$("show-semantics").addEventListener("change", () => state.editor?.updateOptions({ "semanticHighlighting.enabled": $("show-semantics").checked }));
+$("download-source").addEventListener("click", () => { download(state.text, "playground.vela"); activity("Source download requested"); });
+$("download-output").addEventListener("click", () => {
+    if (!state.gallina) return;
+    download(state.gallina, "playground.v");
+    activity("Gallina download requested");
+});
 $("examples").addEventListener("change", () => {
     const example = examples[$("examples").value];
     $("expression").value = example.expression;
