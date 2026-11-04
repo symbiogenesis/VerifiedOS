@@ -451,20 +451,20 @@ These figures cover the priced reference-build, assessment and named hardening b
 <!-- estimate-summary:start -->
 | Measure | Value |
 | --- | --- |
-| Total estimate midpoint h | 4,861.8 |
-| Total estimate range h | 3,176.2–6,547.4 |
+| Total estimate midpoint h | 4,869.8 |
+| Total estimate range h | 3,180.2–6,559.4 |
 | Completed scope h | 914.8 |
 | Complete by estimate % | 18.8 |
-| Remaining h | 3,947 |
-| Committed remaining h | 2,468.5 |
-| Open class I h | 933.5 |
+| Remaining h | 3,955 |
+| Committed remaining h | 2,476.5 |
+| Open class I h | 941.5 |
 | Open class X h | 3,013.5 |
 | Retained completion estimate h | 309.5 |
 | Unmeasured completed items | 32 |
-| Calibrated total h | 5,856.8 |
+| Calibrated total h | 5,862.4 |
 | Committed M8a open h | 74 |
 | Committed M8b open h | 105.5 |
-| Other committed open h | 2,289 |
+| Other committed open h | 2,297 |
 | Conditional open h | 1,064.5 |
 | Unfunded option open h | 414 |
 | Committed M8a open class X h | 0 |
@@ -1388,6 +1388,15 @@ The [first-release delivery sequence](#vela-first-release-delivery) governs new 
   * **Dispatch. Start:** the [refresh contract](tools/opam/README.md#rocq-dependency-refresh) and existing qualified snapshots. **Owns:** independent qualified/candidate QuickChick source checks, the immutable QuickChick/simple-io recipe refresh with intrinsics v0.17.3, and the isolated CertiRocq ocaml-version 4.1.5 trial. **Check:** crossed-source refusals before staging, fresh hosted recipe build/properties/import and seeded comparison, the polymorphic extraction control, and the contract's native CertiRocq consumer, exact-assumption, recursive-kernel and complete-vector checks before actual exported locks replace their baselines. **Join:** unchanged production package bounds and source semantics; Host CI and every Guest CI lane on the settled revision. Replacement snapshots remain unqualified until the hosted acceptance predicates pass.
   * **Estimate basis:** candidate source/recipe separation and focused controls 1–3 h; native consumer checks, hosted acceptance review and actual export adoption 1–3 h. Unattended build runtime is excluded.
 
+* [ ] **Q46 · Repair dictionary identity, executive clock arithmetic and apex transport**
+  * These bounded corrections retain the permanent dictionary decision, the static executive and the full-system proof owners. Each child starts after its own contract is committed; local candidate delivery leaves hosted acceptance pending.
+  * [ ] **Q46a · Key dictionary placement by canonical instruction words** · 2 h, range 1–3 · I
+    * **Start:** the [dictionary-word repair contract](docs/implementation/contracts/dictionary-word-repair.md), M1.4′'s assembler and composer, and the profile-freeze measurement contract. **Owns:** complete canonical-word identity, validated dictionary entries and independent operand/immediate controls. **Check:** differing canonical words cannot share one dictionary entry, exact repeats can hit, and malformed dictionaries refuse; focused assembler/composer controls and Host CI on both platforms. **Join:** M1.8b consumes corrected placement data; actual bundle encoding and its Sail/RTL decoder retain their separate implementation obligation.
+  * [ ] **Q46b · Refuse executive clock overflow before dispatch** · 2 h, range 1–3 · I
+    * **Start:** the [executive-clock repair contract](docs/implementation/contracts/executive-clock-repair.md), the authored C profile and M4.4's target interface. **Owns:** checked release/deadline arithmetic, transactional cursor advancement and consumer refusal before timer programming. **Check:** compiled controls cover the reported phase overflow, multiplication and boundary cases, unchanged valid scheduling and no timer write on refusal; Host CI and affected target validation. **Join:** actual contained compilation and target replay supply target acceptance; host C controls alone supply no purecap verdict.
+  * [ ] **Q46c · Bind apex transport to executable observations** · 4 h, range 2–6 · I
+    * **Start:** the [apex semantic-binding repair contract](docs/implementation/contracts/apex-semantic-binding-repair.md), R-05-161 and the portable proof workflow. **Owns:** input/context/assumption and three-channel observation transport, adjacent transport composition, and positive and refuting witnesses with the exact theorem T preserved. **Check:** the all-true leaking ledger supplies no semantic transport from a secure source; missing timing, context or declassification mappings are refuted; focused native compilation and reader controls precede cold hosted proof acceptance. **Join:** concrete tower and subsystem instantiations remain with R-18-031 and the existing proof workstreams; generic transport and finite witnesses do not instantiate those fields.
+
 **Evidence and cost stay with their owners.** Q2b owns the target connection and Q3b its selected functional/fault evidence; existing compiler, admission and image-validation owners retain the mandatory exact-artifact duties. The canceled Q20c comparison owns no production implementation. Share source/configuration/image identities and baseline records across them, adding each task's distinct check. Changed semantics or bytes invalidate affected evidence. Each missing theorem, port, primitive or executable gets one implementation owner and one estimate; Q2c's foundation map remains the shared prerequisite record for Q21b, Q25d and any separately commissioned generic-library proposal.
 
 Candidate selection is bounded by the current client's failed predicate. The [language strategy](docs/languages/vela/verification-strategy.md#existing-tooling-and-implementation-owners) owns the proof-tool research map and [THIRD-PARTY.md](THIRD-PARTY.md) the incorporated/pinned dependency record. Reuse those readings at the same revision. Inspect new terms and dependency closure only at the selected candidate's incorporation; do not install every surveyed alternative. Model weights, generated output and physical-design inputs retain their own provenance requirements.
@@ -1396,7 +1405,7 @@ Q6's conventional-memory simulators are conditional on a topology comparison nee
 
 No assessment completion automatically increases a performance estimate. For an optimization affecting fraction `f` of runtime by factor `s`, the unchanged-cost bound is `1 / ((1 - f) + f / s)`; added transfers or changed scheduling require a fresh whole-workload comparison. Better packing is not more fabricated capacity, and host performance is not target throughput.
 
-**Q subtotal:** 3,032.3 h · 62% · 302.8 h complete · open range 1,591–3,868 h.
+**Q subtotal:** 3,040.3 h · 62% · 302.8 h complete · open range 1,595–3,880 h.
 
 ### M0 · Hardware reference
 
