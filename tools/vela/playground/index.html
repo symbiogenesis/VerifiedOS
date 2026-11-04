@@ -5,7 +5,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="color-scheme" content="dark">
-    <meta name="description" content="Explore the pure Vela language prototype with a local compiler and language server.">
+    <meta name="description" content="Explore Vela functions, dependent types and proof terms with the local compiler playground.">
     <title>Vela · Playground</title>
     <link rel="stylesheet" href="/style.css">
     <script type="module" src="/app.mjs"></script>
@@ -18,9 +18,12 @@
 
     <main>
         <section class="introduction" aria-labelledby="page-title">
-            <div><p class="eyebrow">A SMALL WINDOW INTO VELA</p><h1 id="page-title">Write it. Inspect it. Try it.</h1><p class="intro-copy">Explore pure functions with a real compiler and language server.</p></div>
-            <div class="scope-note"><span class="scope-icon" aria-hidden="true">λ</span><div><strong>Pure Nat / bool fragment</strong><span>Mathematical values · compile-time evaluation</span></div></div>
+            <div><p class="eyebrow">A SMALL WINDOW INTO VELA</p><h1 id="page-title">Write it. Inspect it. Try it.</h1><p id="intro-copy" class="intro-copy">Explore pure functions with a real compiler and language server.</p></div>
+            <div class="scope-note"><span class="scope-icon" aria-hidden="true">λ</span><div><strong id="scope-title">Pure Nat / bool fragment</strong><span id="scope-detail">Mathematical values · compile-time evaluation</span></div></div>
         </section>
+
+        <div class="mode-toolbar"><label for="language-mode">Language mode</label><select id="language-mode" aria-describedby="mode-help"><option value="pure">Pure functions</option><option id="mathematical-option" value="mathematical" disabled>Dependent mathematics</option></select><span id="mode-help" role="status">For dependent types, launch: python tools/run.py vela-playground-math</span></div>
+        <p id="mode-services" class="mode-services" hidden>Mathematical diagnostics are updated on Compile. Formatting, hover, symbol inspection, type hints, semantic colors and style checks currently support pure Vela only.</p>
 
         <section class="workspace" aria-label="Vela development workspace">
             <div class="source-pane">
@@ -55,9 +58,9 @@
                     <div class="console-note"><span aria-hidden="true">ⓘ</span><p>Uses Vela’s bounded constant evaluator. Values are mathematical naturals and booleans; this console does not run native code or provide runtime I/O.</p></div>
                 </section>
 
-                <section id="gallina-panel" class="output-panel" role="tabpanel" aria-labelledby="gallina-tab" hidden><div class="panel-heading"><span class="eyebrow">COMPILER OUTPUT</span><div class="panel-actions"><button id="copy-output" class="text-button" type="button" disabled>Copy output</button><button id="download-output" class="text-button" type="button" disabled>Download .v</button></div></div><p class="panel-description">The pure compiler’s generated Gallina definitions.</p><div id="compile-summary" class="output-summary">Compile the source to inspect its translation.</div><pre id="gallina-output" class="gallina-code" tabindex="0" aria-label="Generated Gallina">// Generated output will appear here.</pre></section>
+                <section id="gallina-panel" class="output-panel" role="tabpanel" aria-labelledby="gallina-tab" hidden><div class="panel-heading"><span class="eyebrow">COMPILER OUTPUT</span><div class="panel-actions"><button id="copy-output" class="text-button" type="button" disabled>Copy output</button><button id="download-output" class="text-button" type="button" disabled>Download .v</button></div></div><p id="gallina-description" class="panel-description">The pure compiler’s generated Gallina definitions.</p><div id="compile-summary" class="output-summary">Compile the source to inspect its translation.</div><pre id="gallina-output" class="gallina-code" tabindex="0" aria-label="Generated Gallina">// Generated output will appear here.</pre></section>
 
-                <section id="problems-panel" class="output-panel" role="tabpanel" aria-labelledby="problems-tab" hidden><div class="panel-heading"><span class="eyebrow">LIVE DIAGNOSTICS</span><span class="subtle-tag">LSP</span></div><p class="panel-description">Diagnostics for the current unsaved buffer, from the pure Vela checker.</p><div id="diagnostics" class="diagnostics" aria-live="polite"><p class="muted-message">Connecting to the language server…</p></div></section>
+                <section id="problems-panel" class="output-panel" role="tabpanel" aria-labelledby="problems-tab" hidden><div class="panel-heading"><span class="eyebrow">CURRENT DIAGNOSTICS</span><span id="diagnostic-source" class="subtle-tag">LSP</span></div><p id="problems-description" class="panel-description">Diagnostics for the current unsaved buffer, from the pure Vela checker.</p><div id="diagnostics" class="diagnostics" aria-live="polite"><p class="muted-message">Connecting to the language server…</p></div></section>
                 <section id="inspect-panel" class="output-panel" role="tabpanel" aria-labelledby="inspect-tab" hidden>
                     <div class="panel-heading"><span class="eyebrow">SYMBOL INSPECTOR</span><button id="refresh-outline" class="text-button" type="button">Refresh outline</button></div>
                     <p class="panel-description">Browse declarations, documentation and resolved references in the current buffer.</p>
@@ -80,7 +83,7 @@
         </section>
 
         <footer class="page-footer"><div class="connection-status"><span id="connection-dot" class="status-dot" aria-hidden="true"></span><span id="connection-label" role="status">Connecting to local services…</span><button id="reconnect-button" class="text-button" type="button" hidden>Reconnect</button></div><p>Unqualified development prototype. No kernel or production acceptance is implied.</p></footer>
-        <div class="feature-notes"><span><span aria-hidden="true">⌘</span> Hover to inspect types</span><span><span aria-hidden="true">↗</span> F12 to go to definition</span><span><span aria-hidden="true">≡</span> Shift+Alt+F to format</span></div>
+        <div id="feature-notes" class="feature-notes"><span><span aria-hidden="true">⌘</span> Hover to inspect types</span><span><span aria-hidden="true">↗</span> F12 to go to definition</span><span><span aria-hidden="true">≡</span> Shift+Alt+F to format</span></div>
     </main>
 </body>
 </html>

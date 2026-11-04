@@ -28,6 +28,11 @@ h1 { margin: 0; font-size: clamp(24px, 2.4vw, 33px); font-weight: 500; letter-sp
 .scope-icon { width: 35px; height: 35px; border: 1px solid #343d54; background: #1b2232; color: #b0c1f3; border-radius: 9px; display: grid; place-items: center; font: 23px Georgia, serif; }
 .scope-note strong { font-size: 12px; font-weight: 500; display: block; margin-bottom: 5px; }
 .scope-note div > span { display: block; color: #7c899f; font-size: 11px; }
+.mode-toolbar { display: flex; align-items: center; flex-wrap: wrap; gap: 10px 13px; margin: -7px 0 15px; color: var(--muted); font-size: 11px; }
+.mode-toolbar label { font-weight: 600; color: #aebbd3; }
+#language-mode { font-size: 11px; padding: 7px 9px; color: #c6d0ee; }
+#mode-help { font-size: 10px; line-height: 1.6; overflow-wrap: anywhere; }
+.mode-services { color: #a99bc0; background: #211f2c; border: 1px solid #383245; border-radius: 5px; padding: 9px 13px; margin: 0 0 15px; font-size: 10px; line-height: 1.7; }
 .workspace { border: 1px solid #323949; border-radius: 10px; overflow: hidden; display: grid; grid-template-columns: minmax(0, 1.12fr) minmax(0, 1fr); min-height: 550px; height: min(64vh, 800px); box-shadow: 0 22px 70px #0003; }
 .source-pane { background: var(--editor); display: flex; flex-direction: column; min-width: 0; border-right: 1px solid #323949; }
 .pane-toolbar, .output-toolbar { height: 49px; flex-shrink: 0; background: #181d28; border-bottom: 1px solid var(--line); display: flex; align-items: center; }
@@ -66,6 +71,7 @@ kbd { border: 1px solid #384053; border-bottom-width: 2px; border-radius: 3px; p
 .output-tab { display: inline-flex; flex-shrink: 0; align-items: center; justify-content: center; gap: 7px; border: 0; border-bottom: 2px solid transparent; background: transparent; align-self: stretch; color: #8390a7; padding: 0 14px; font-size: 11px; }
 .output-tab.active { color: #c5ceeb; border-bottom-color: #b2c0ff; }
 .output-tab:hover { color: #d8def1; background: #212736; }
+.output-tab:disabled { color: #657086; background: transparent; }
 .output-tab > span[aria-hidden] { font: 13px var(--mono); color: #acbaf0; }
 .count-badge { font: 8px var(--mono); min-width: 15px; padding: 2px 3px; background: #30384a; color: #b1bbd1; border-radius: 4px; }
 .count-badge.has-problems { background: #4a2a35; color: #f4a7b2; }
