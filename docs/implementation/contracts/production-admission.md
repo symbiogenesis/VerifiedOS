@@ -80,6 +80,13 @@ separately proved capability-relative ABI. The producer must not replace this
 connection with a claim that arbitrary code is position independent. TAL-067 and
 TAL-068 still bind and check the derivation at every concrete layout.
 
+Every generation checks fresh modular linkage or instantiation evidence that
+discharges those premises for its exact installed layout and wired capabilities.
+The selected consumer must connect the reused package theorem to the final
+generation's source-correspondence claim, including assembly, linking and image
+construction. A package-local cache hit does not waive this check. Hash agreement,
+TAL acceptance or a theorem about another placement cannot replace it.
+
 For package-local CIC reuse, the trusted adapter obtains the prior checked-set
 root from the current admitted generation, then authenticates the complete saved
 set against it. The candidate package, composer, fetched receipt and successor

@@ -266,8 +266,9 @@ The risk is not merely slow feature delivery: it is a long degraded interval aft
 R-13-028's fixed packages avoid construction and package-local CIC checking for
 unchanged artifacts whose exact proof context remains admitted. That does not
 make an install proportional only to the changed package: object hashing,
-concrete-layout TAL, placement, initialization, wiring, the handler graph,
-scheduling and global resource checks still cover the resulting roster. A native
+concrete-layout TAL, fresh modular linkage/instantiation, placement,
+initialization, wiring, the handler graph, scheduling and global resource checks
+still cover the resulting roster. A native
 package change remains a generation activated at boot (R-13-001a), so its visible
 cost includes restart and restoration of declared durable state.
 

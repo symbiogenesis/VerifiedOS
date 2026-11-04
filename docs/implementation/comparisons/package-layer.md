@@ -89,7 +89,8 @@ the existing obligations; it does not supply their implementation or proofs.
 | Source closure and interface/resource contract | Fixed, content-bound inputs | Names the complete affected replacement closure |
 | Code-and-rodata and writable initializer | Existing bytes mapped unchanged | New replacement bytes need fresh evidence |
 | CHERI-TAL derivation | Template bound and checked at each concrete layout | Bound and checked for the replacement layout |
-| Source-correspondence and hyperproperty objects | Fixed objects; authenticated verdict reuse under exact context equality | Changed objects or context require actual checking |
+| Source-correspondence and hyperproperty objects | Fixed objects; authenticated package-local verdict reuse under exact context equality | Changed objects or context require actual checking |
+| Modular linkage/instantiation evidence | Fresh checked connection to the exact installed layout and wired capabilities | Fresh checked connection for the replacement composition |
 | Capability wiring and handler graph | Fresh for each roster | Fresh for the optimized roster |
 | Placement, initialization, schedule and global resources | Fresh roster checks over declared package spans | Fresh checks against the replacement contracts |
 | Generation root, checked-set root and signature | New transaction commits all roots together | The same transaction and failure rules apply |
@@ -134,7 +135,8 @@ are equivalent inputs to admission (R-13-001c, R-13-027).
 
 Composition selects those fixed artifacts, checks imports and export contracts,
 places their declared spans, constructs wiring and the handler graph, obtains a
-concrete-layout TAL binding and the roster's resource/scheduling evidence, then
+concrete-layout TAL binding, fresh checked modular linkage/instantiation and the
+roster's resource/scheduling evidence, then
 prepares the signed generation. No unchanged package producer is invoked merely
 because the roster changed.
 
