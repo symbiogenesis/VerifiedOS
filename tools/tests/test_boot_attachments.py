@@ -24,7 +24,9 @@ def _attached_recipe(root: Path) -> str:
     (root / "proofs").mkdir(exist_ok=True)
     (root / "tools" / "vos").mkdir(exist_ok=True)
     for relative in source_bindings.sources("boot-composition"):
-        shutil.copyfile(ROOT / relative, root / relative)
+        target = root / relative
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(ROOT / relative, target)
     reference = admission.read_reference(root)
     members = cast("list[dict[str, object]]", raw["members"])
     request: dict[str, object] = {

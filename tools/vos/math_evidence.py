@@ -240,7 +240,7 @@ def shape_report(root: Path) -> dict[str, Any]:
         raise EvidenceError(f"composer source comparison failed: {comparison['failures']}")
     result = dictionary_report(composer.reference_fixture(root))
     result["sources_sha256"] = {
-        name: digest(root / name) for name in SHAPE_SOURCES}
+        name: digest(root / name) for name in source_bindings.sources("math-shapes", root=root)}
     result["fixture_sha256"] = hashlib.sha256(composer.canonical_bytes(
         composer.document(composer.reference_fixture(root)))).hexdigest()
     return result

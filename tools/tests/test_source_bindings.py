@@ -27,7 +27,10 @@ def _fixture() -> Generator[Path]:
         for name in {name for view in bindings.GROUPS for name in bindings.sources(view)}:
             path = root / name
             path.parent.mkdir(parents=True, exist_ok=True)
-            path.write_text(f"fixture source: {name}\n", encoding="utf-8")
+            if name.endswith(".py"):
+                shutil.copyfile(ROOT / name, path)
+            else:
+                path.write_text(f"fixture source: {name}\n", encoding="utf-8")
         for name in (*bindings.PACKAGE_FILES.values(), bindings.COMPOSITION):
             path = root / name
             path.parent.mkdir(parents=True, exist_ok=True)
@@ -48,6 +51,9 @@ def _views() -> None:
     ensure(bindings.sources("projection") == composition.PRODUCERS, "projection consumes declaration")
     ensure(bindings.sources("admission-production") == admission_production.CHECKERS,
            "production receipts consume declaration")
+    for path in ("tools/vos/jsonc.py", "tools/vos/__init__.py", "tools/generated/dialect-table.json",
+                 "tools/pyproject.toml", "tools/uv.lock"):
+        ensure(path in bindings.sources("projection"), f"actual projection dependency is bound: {path}")
     for view in bindings.GROUPS:
         sources = bindings.sources(view)
         ensure(len(sources) == len(set(sources)), f"{view}: repeated joins are deduplicated")
@@ -104,18 +110,61 @@ def _generation() -> None:
 def _shared_dependency() -> None:
     with _fixture() as root:
         name = "tools/vos/new-shared-fixture.py"
-        (root / name).write_bytes(b"new shared implementation\n")
+        (root / name).write_bytes(b"# new shared implementation\n")
         with patch.dict(bindings.GROUPS, shared=(*bindings.GROUPS["shared"], name)):
             for view in ("composer-package", "admission-package", "composer-reference",
                          "admission-reference", "projection", "admission-comparison", "admission-production"):
                 refs = bindings.references(root, view)
                 ensure(sum(ref["path"] == name for ref in refs) == 1, f"{view}: shared dependency propagates")
                 before = next(ref for ref in refs if ref["path"] == name)
-                (root / name).write_bytes((root / name).read_bytes() + b"changed\n")
+                (root / name).write_bytes((root / name).read_bytes() + b"# changed\n")
                 after = next(ref for ref in bindings.references(root, view) if ref["path"] == name)
                 ensure(before["sha256"] != after["sha256"], f"{view}: substitution changes identity")
             (root / name).unlink()
             _refused(lambda: bindings.references(root, "composer-package"), "new-shared-fixture.py")
+
+
+def _current_import_closure() -> None:
+    with _fixture() as root:
+        before = bindings.references(root, "projection")
+        helper = root / "tools/vos/jsonc.py"
+        helper.write_bytes(helper.read_bytes() + b"\n# changed parser implementation\n")
+        after = bindings.references(root, "projection")
+        changed = {left["path"] for left, right in zip(before, after, strict=True) if left != right}
+        ensure(changed == {"tools/vos/jsonc.py"}, "transitive parser bytes change the projection identity")
+        unrelated = root / "tools/vos/unrelated_fixture.py"
+        unrelated.write_text("raise RuntimeError('must not execute')\n", encoding="utf-8")
+        ensure(bindings.references(root, "projection") == after,
+               "unimported tools do not change the projection identity")
+
+        seed = root / "tools/vos/composition.py"
+        seed.write_bytes(seed.read_bytes() + b"\nfrom vos import dependency_fixture\n")
+        imported = root / "tools/vos/dependency_fixture.py"
+        imported.write_text("from . import nested_fixture\nraise RuntimeError('must not execute')\n",
+                            encoding="utf-8")
+        nested = root / "tools/vos/nested_fixture.py"
+        nested.write_text("value = 1\n", encoding="utf-8")
+        current = bindings.sources("projection", root=root)
+        ensure({"tools/vos/dependency_fixture.py", "tools/vos/nested_fixture.py"} <= set(current),
+               "new direct and transitive imports join the selected checkout's next identity")
+        ensure("tools/vos/dependency_fixture.py" not in composition.PRODUCERS,
+               "the fixture dependency was not present in the module's import-time compatibility view")
+        with patch.object(composition, "_bound"), patch.object(composition, "_package", return_value=None):
+            binding = composition._binding(root, {"configuration": {}, "producers": [], "members": []}, {}, {})
+        ensure(binding["projection_producers"] == bindings.references(root, "projection"),
+               "receipt construction derives current membership from its explicit checkout")
+        ensure(bindings.sources("projection", root=root) == current, "closure ordering is deterministic")
+        nested.unlink()
+        _refused(lambda: bindings.references(root, "projection"), "nested_fixture")
+
+
+def _source_refusals() -> None:
+    with _fixture() as root:
+        path = root / "tools/vos/composition.py"
+        path.write_text("def incomplete(\n", encoding="utf-8")
+        _refused(lambda: bindings.references(root, "projection"), "composition.py")
+        path.unlink()
+        _refused(lambda: bindings.references(root, "projection"), "composition.py")
 
 
 def _declaration_refusals() -> None:
@@ -204,6 +253,8 @@ def _linked_destinations() -> None:
 def cases() -> list[Case]:
     return [Case("declared-consumer-views", _views), Case("generated-source-fields", _generation),
             Case("shared-dependency-propagation", _shared_dependency),
+            Case("current transitive imports bind actual checkout bytes", _current_import_closure),
+            Case("unreadable and malformed source dependencies refuse", _source_refusals),
             Case("source-declaration-refusals", _declaration_refusals),
             Case("malformed inputs preserve outputs", _malformed_inputs),
             Case("all destinations preflight before publication", _destination_preflight),

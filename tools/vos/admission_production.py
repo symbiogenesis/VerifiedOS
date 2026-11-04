@@ -72,7 +72,8 @@ def make_record(root: Path, source: str, projections: str, build_record: str,
         return data
 
     source_data = read(source)
-    for checker in CHECKERS:
+    checkers = source_bindings.sources("admission-production", root=root)
+    for checker in checkers:
         read(checker)
     outputs = {name: read(f"{projections}/{name}") for name in composition.OUTPUTS}
     build_data, image_data, graph_data = read(build_record), read(image), read(graph)
@@ -116,6 +117,8 @@ def make_record(root: Path, source: str, projections: str, build_record: str,
     for relative, data in snapshots.items():
         if _path(root, relative).read_bytes() != data:
             raise ProductionAdmissionError(f"stale admission input: {relative}")
+    if source_bindings.sources("admission-production", root=root) != checkers:
+        raise ProductionAdmissionError("stale admission input: checker dependency membership changed")
     return {"schema_version": 1, "scope": SCOPE, "production_admission": False,
             "decision": "refused", "generation_accepted": False,
             "composition": SourceRef(path=source, sha256=composition.digest(source_data)),

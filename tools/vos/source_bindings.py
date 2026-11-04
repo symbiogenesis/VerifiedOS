@@ -1,8 +1,9 @@
 # SPDX-License-Identifier: Apache-2.0
 """Declared source identities shared by composition and admission views.
 
-The ordered groups below own membership. Packages, production-input references
-and receipt inventories derive their role-specific views from these declarations.
+The ordered groups below declare entrypoints and non-Python inputs. Packages,
+production-input references and receipt inventories add the current local Python
+import closure to their role-specific views without executing those sources.
 Generated JSON retains its other authored choices; no generator assigns handlers,
 products, admission tiers or proof evidence.
 """
@@ -12,7 +13,7 @@ import json
 from pathlib import Path
 from typing import Any, Final
 
-from vos import proof_staging
+from vos import python_dependencies
 from vos.jsonutil import unique_object
 from vos.receipts import atomic_path, digest
 
@@ -21,22 +22,19 @@ COMPOSITION: Final = "tools/composer/m8a-composition.json"
 PACKAGE_FILES: Final[dict[str, str]] = {
     name: f"tools/composer/packages/{name}.json" for name in ("composer", "admission")}
 
-# A dependency is declared once, at the narrowest common group. Ordered expansion
-# keeps source manifests deterministic while removing repeated members at joins.
+# Python helpers derive from imports; other inputs remain explicit. Ordered group
+# expansion and sorted Python closures keep source manifests deterministic.
 GROUPS: Final[dict[str, tuple[str, ...]]] = {
-    "shared": (OWNER, "tools/vos/jsonutil.py", *proof_staging.IMPLEMENTATION_SOURCES,
-               "proofs/ProofSupport.v"),
+    "shared": (OWNER, "proofs/ProofSupport.v", "tools/pyproject.toml", "tools/uv.lock"),
     "composer-reference": ("@shared", "tools/vos/composer.py", "proofs/HandlerGraph.v"),
     "admission-reference": ("@shared", "tools/vos/admission.py", "proofs/AdmissionPath.v"),
-    "composer-package": ("@composer-reference", "tools/vos/composition.py", "tools/vos/schema.py",
-                         "tools/vos/cli/composer.py", "tools/vos/composition_staged.py"),
-    "admission-package": ("@admission-reference", "tools/vos/admission_production.py",
-                          "tools/vos/cli/admission.py"),
-    "projection": ("@composer-reference", "tools/vos/composition.py", "tools/vos/schema.py", "tools/vos/boot.py",
-                   "tools/vos/image.py", "tools/composer/composition.schema.json",
-                   "tools/composer/package.schema.json"),
-    "admission-comparison": ("@admission-reference", "tools/vos/cli/admission.py"),
-    "admission-production": ("@admission-package", "@projection"),
+    "composer-package": ("@projection", "tools/vos/cli/composer.py"),
+    "admission-package": ("@admission-reference", "@projection", "tools/vos/cli/admission.py"),
+    "projection": ("@composer-reference", "tools/vos/composition.py",
+                   "tools/composer/composition.schema.json", "tools/composer/package.schema.json",
+                   "tools/generated/dialect-table.json"),
+    "admission-comparison": ("@admission-package",),
+    "admission-production": ("@admission-package",),
     "boot-composition": ("@composer-reference", "@admission-reference"),
     "math-shapes": ("@composer-reference", "tools/vos/math_evidence.py"),
 }
@@ -50,8 +48,9 @@ class SourceBindingError(ValueError):
     """A declared inventory cannot be generated or published at its boundary."""
 
 
-def sources(view: str) -> tuple[str, ...]:
-    """Expand one declared view, refusing unknown or recursive declarations."""
+def sources(view: str, *, root: Path | None = None) -> tuple[str, ...]:
+    """Expand current imports and declared inputs in the selected checkout."""
+    root = Path(__file__).resolve().parents[2] if root is None else root
     found: dict[str, None] = {}
 
     def visit(name: str, active: tuple[str, ...]) -> None:
@@ -69,12 +68,17 @@ def sources(view: str) -> tuple[str, ...]:
                 found[member] = None
 
     visit(view, ())
-    return tuple(found)
+    python = tuple(name for name in found if name.endswith(".py"))
+    try:
+        imported = python_dependencies.sources(root, python)
+    except ValueError as error:
+        raise SourceBindingError(f"{view}: {error}") from error
+    return tuple(dict.fromkeys((*found, *imported)))
 
 
 def references(root: Path, view: str) -> list[dict[str, str]]:
     """Bind the current bytes of a declared view; missing members are errors."""
-    return [{"path": name, "sha256": digest(_path(root, name))} for name in sources(view)]
+    return [{"path": name, "sha256": digest(_path(root, name))} for name in sources(view, root=root)]
 
 
 def _path(root: Path, relative: str) -> Path:
@@ -131,7 +135,7 @@ def _destinations(root: Path) -> dict[str, Path]:
     """Preflight every output against containment, peers and bound source inputs."""
     destinations: dict[str, Path] = {}
     views = [*(f"{package}-package" for package in PACKAGE_FILES), *PRODUCER_VIEWS.values()]
-    inputs = {_path(root, name) for view in views for name in sources(view)}
+    inputs = {_path(root, name) for view in views for name in sources(view, root=root)}
     for name in (*PACKAGE_FILES.values(), COMPOSITION):
         selected = _path(root, name)
         peers = [*destinations.values(), *inputs]

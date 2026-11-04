@@ -12,7 +12,13 @@ from typing import Any, cast
 from unittest.mock import patch
 
 from tests.harness import Case, ensure
-from tests.test_composition import ROOT, _resolve_descriptors, _sandbox, _write
+from tests.test_composition import (
+    ROOT,
+    _rebind_inventory_source,
+    _resolve_descriptors,
+    _sandbox,
+    _write,
+)
 from vos import admission_production as production
 from vos import boot, composer, composition, image
 from vos.cli import admission as cli
@@ -241,6 +247,29 @@ def _construction_drift() -> None:
                 _refused(lambda: _record(root), "stale admission input")
 
 
+def _current_checker_dependencies() -> None:
+    with _fixture() as (root, raw):
+        source = "tools/vos/cli/admission.py"
+        path = root / source
+        path.write_bytes(path.read_bytes() + b"\nfrom vos import checker_fixture\n")
+        helper = "tools/vos/checker_fixture.py"
+        (root / helper).write_text("raise RuntimeError('must not execute')\n", encoding="utf-8")
+        _rebind_inventory_source(root, raw, source)
+        built = json.loads((root / BUILD).read_bytes())
+        outputs = composition.projections(root)
+        composition.emit(root, composition.EXAMPLE, PROJECTIONS)
+        rebuilt = composition.build_record(root, composition.EXAMPLE, outputs, built["artifacts"],
+                                             composition.reference(root, IMAGE), (root / GRAPH).read_bytes())
+        (root / BUILD).write_bytes(composer.canonical_bytes(rebuilt))
+        result = _record(root)
+        inputs = cast("list[dict[str, str]]", result["inputs"])
+        ensure(helper not in production.CHECKERS and any(ref["path"] == helper for ref in inputs),
+               "new checker imports in the selected checkout join current refusal-record inputs")
+        production.validate_record(root, result)
+        (root / helper).unlink()
+        _refused(lambda: production.validate_record(root, result), "checker_fixture")
+
+
 def cases() -> list[Case]:
     return [Case("production joins bind every declared identity but refuse unchecked evidence", _bound_refusal),
             Case("missing tiers and derivations remain per-member generation refusals", _missing_and_forged_evidence),
@@ -248,4 +277,5 @@ def cases() -> list[Case]:
             Case("image graph artifact derivation and projection substitutions refuse", _stale_joins),
             Case("publication protects consumed bytes and CLI reports a refused generation", _publication_and_cli),
             Case("derivation drift before publication withholds the record", _publication_drift),
-            Case("drift after the build join cannot publish stale owner identities", _construction_drift)]
+            Case("drift after the build join cannot publish stale owner identities", _construction_drift),
+            Case("current checker dependency membership is bound on replay", _current_checker_dependencies)]

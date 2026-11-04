@@ -775,7 +775,7 @@ def compose(root: Path, recipe: Recipe, out: Path) -> dict[str, object]:
               + [m.source for m in recipe.members] + producing_inputs(root))
     if recipe.composer is not None and recipe.admission is not None:
         inputs += [recipe.composer.source, recipe.admission,
-                   *source_bindings.sources("boot-composition")]
+                   *source_bindings.sources("boot-composition", root=root)]
         if admission_record is not None:
             inputs += [cast("str", member["artifact"])
                        for member in cast("list[dict[str, object]]", admission_record["members"])]

@@ -300,7 +300,7 @@ def _binding(root: Path, raw: dict[str, Any], input_binding: dict[str, str],
             packages.append({"member": member["id"], "descriptor": member["descriptor"],
                              "sources": _package_sources(package)})
     return {"input": input_binding, "roster": roster_binding,
-            "projection_producers": [reference(root, path) for path in PRODUCERS],
+            "projection_producers": source_bindings.references(root, "projection"),
             "member_producers": raw["producers"], "configuration": raw["configuration"],
             "package_sources": packages}
 
@@ -374,7 +374,8 @@ def emit(root: Path, source: str, output: str) -> dict[str, str]:
         raise CompositionError("projection output belongs under out/ or tools/composer/generated")
     raw, input_binding, roster, roster_binding = _load(root, source)
     outputs = _projections(root, raw, input_binding, roster, roster_binding)
-    sources = {source, boot.CONTRACT, *PRODUCERS, raw["configuration"]["path"]}
+    sources = {source, boot.CONTRACT, *source_bindings.sources("projection", root=root),
+               raw["configuration"]["path"]}
     for producer in raw["producers"]:
         sources.update(ref["path"] for ref in producer["sources"])
     for member in raw["members"]:

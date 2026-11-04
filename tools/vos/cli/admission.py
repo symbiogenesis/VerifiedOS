@@ -24,7 +24,7 @@ def _compare(root: Path) -> int:
     logs.mkdir(parents=True, exist_ok=True)
     (folder / "comparison.json").unlink(missing_ok=True)
     proof_inputs = proof_staging.inputs(root, ("AdmissionPath.v",))
-    owners = tuple(dict.fromkeys((*source_bindings.sources("admission-comparison"),
+    owners = tuple(dict.fromkeys((*source_bindings.sources("admission-comparison", root=root),
                                  *proof_staging.IMPLEMENTATION_SOURCES, *proof_inputs)))
     before = {name: admission.digest((root / name).read_bytes()) for name in owners}
     reference = admission.read_reference(root)
