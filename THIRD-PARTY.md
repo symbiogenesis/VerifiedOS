@@ -61,8 +61,11 @@ The local [Vela playground](docs/languages/vela/playground.md) loads
 `monaco-editor` 0.55.1's browser distribution from the version-pinned jsDelivr
 package URL. The selected release's own
 [LICENSE.txt](https://github.com/microsoft/monaco-editor/blob/v0.55.1/LICENSE.txt)
-and [package manifest](https://github.com/microsoft/monaco-editor/blob/v0.55.1/package.json)
-were read on 2026-11-03: Monaco is MIT, copyright Microsoft Corporation.
+and [package manifest](https://github.com/microsoft/monaco-editor/blob/v0.55.1/package.json),
+with its [third-party notices](https://github.com/microsoft/monaco-editor/blob/v0.55.1/ThirdPartyNotices.txt),
+were read on 2026-11-03: Monaco is MIT, copyright Microsoft Corporation. The
+notices retain included TypeScript, Unicode, DOM, WebGL, HTML, beautifier and
+documentation material under their stated terms.
 The license permits use, modification and distribution with its copyright and
 permission notice. Browser assets and their upstream notices are served by the
 package CDN, rather than copied into this repository or shipped in a VerifiedOS
