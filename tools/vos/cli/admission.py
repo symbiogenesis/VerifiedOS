@@ -109,6 +109,6 @@ def main(argv: list[str] | None = None) -> int:
                           "production_admission": False, "open": result["open"]}))
         return 0 if result["decision"] == "accepted" else 1
     except (admission.AdmissionError, admission_production.ProductionAdmissionError,
-            boot.RecipeError, OSError, subprocess.TimeoutExpired) as exc:
+            source_bindings.SourceBindingError, boot.RecipeError, OSError, subprocess.TimeoutExpired) as exc:
         print(f"FAIL admission: {exc}")
         return 2
