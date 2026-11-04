@@ -199,6 +199,12 @@ and full recommended hosted selection through `fanout`. The user owns Host CI
 and Guest CI, including native generation and kernel replay; no pending verdict
 counts as qualification or production acceptance.
 
+Hosted `vela-parser elaborate-qualify` includes native pure parsing and the
+shared pure translator, alongside the mathematical consumer. Independently
+expected equalities check emitted runtime functions and evaluated constants;
+the kernel and assumption audit cover both the generated library and these
+observations. A syntax refusal cannot satisfy a semantic negative fixture.
+
 ## Command and publication
 
 `python tools/run.py vela check SOURCE` parses and checks the complete file,

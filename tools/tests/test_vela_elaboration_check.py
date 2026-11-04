@@ -255,6 +255,16 @@ def _pure_semantic_negatives_and_inventory() -> None:
     ensure(any(case.name == "pure-skipped-runtime-dependency" and case.pure
                and case.expected == "unsupported" for case in fixtures),
            "hosted replay lost required-static checking of skipped operands")
+    for case in fixtures:
+        if not case.pure:
+            continue
+        try:
+            replay.vela.translate(case.source)
+        except VelaError as error:
+            ensure(case.expected != "accepted" and error.kind == case.expected,
+                   f"hosted pure fixture {case.name} reached {error.kind}, expected {case.expected}")
+        else:
+            ensure(case.expected == "accepted", f"hosted semantic negative {case.name} was accepted")
 
 
 def cases() -> list[Case]:
