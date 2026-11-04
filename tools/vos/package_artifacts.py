@@ -132,6 +132,11 @@ def _manifest(document: dict[str, Any]) -> None:
             raise PackageError("fixed package export is outside its regions")
         if item["offset"] % 4 and any(start <= item["offset"] < end for start, end in code):
             raise PackageError("fixed package code export is not instruction aligned")
+    proof_objects = {ref["sha256"] for ref in (
+        document["proofs"]["derivation_template"], document["proofs"]["correspondence"],
+        *document["proofs"]["hyperproperties"])}
+    if any(region["object"]["sha256"] in proof_objects for region in document["regions"]):
+        raise PackageError("fixed package proof objects cannot be loadable regions")
     _references(document)
 
 
@@ -169,10 +174,18 @@ class Artifact:
             raise PackageError("fixed package object population is incomplete")
 
 
-def _ordinary_file(path: Path) -> bytes:
+def _ordinary_file(path: Path, *, size: int | None = None) -> bytes:
     if path.resolve() != path or not stat.S_ISREG(path.stat().st_mode):
         raise PackageError(f"fixed package input must be an ordinary non-redirected file: {path}")
-    return path.read_bytes()
+    limit = MANIFEST_LIMIT if size is None else size
+    actual_size = path.stat().st_size
+    if actual_size > limit or (size is not None and actual_size != size):
+        raise PackageError("fixed package object digest or byte length differs")
+    with path.open("rb") as stream:
+        data = stream.read(limit + 1)
+    if len(data) > limit or (size is not None and len(data) != size):
+        raise PackageError("fixed package object digest or byte length differs")
+    return data
 
 
 def _input(root: Path, relative: object) -> Path:
@@ -207,7 +220,7 @@ def read_request(root: Path, source: str) -> Artifact:
         path = _input(root, transport["path"])
         if path.stat().st_size != size:
             raise PackageError("fixed package transport byte length differs")
-        objects[identity] = _ordinary_file(path)
+        objects[identity] = _ordinary_file(path, size=size)
     content = canonical(document)
     artifact = Artifact(digest(content), content, tuple(sorted(objects.items())))
     artifact.validate()
@@ -229,7 +242,7 @@ def _directory(path: Path, *, create: bool) -> None:
 
 def _publish(path: Path, data: bytes) -> None:
     if path.exists() or path.is_symlink():
-        if _ordinary_file(path) != data:
+        if _ordinary_file(path, size=len(data)) != data:
             raise PackageError("corrupt fixed package store object refuses publication")
         return
     with atomic_path(path) as pending:
@@ -247,11 +260,17 @@ def store(directory: Path, artifact: Artifact) -> str:
     with FileLock(lock, timeout=30):
         _directory(home / "objects", create=True)
         _directory(home / "manifests", create=True)
+        retained = home / "manifests" / f"{artifact.identity}.json"
+        if retained.exists() or retained.is_symlink():
+            # An existing root must still be complete; publishing the same
+            # artifact cannot silently restore a missing retained object.
+            load(home, artifact.identity)
+            return artifact.identity
         # Preflight every existing destination before publishing any new object.
         outputs = [(home / "objects" / f"{identity}.bin", data) for identity, data in artifact.objects]
         outputs.append((home / "manifests" / f"{artifact.identity}.json", artifact.manifest))
         for path, data in outputs:
-            if (path.exists() or path.is_symlink()) and _ordinary_file(path) != data:
+            if (path.exists() or path.is_symlink()) and _ordinary_file(path, size=len(data)) != data:
                 raise PackageError("corrupt fixed package store object refuses publication")
         for path, data in outputs:
             _publish(path, data)
@@ -265,8 +284,8 @@ def load(directory: Path, identity: str) -> Artifact:
     content = _ordinary_file(home / "manifests" / f"{identity}.json")
     document = _decode(content)
     _manifest(document)
-    objects = tuple((sha, _ordinary_file(home / "objects" / f"{sha}.bin"))
-                    for sha in sorted(_references(document)))
+    objects = tuple((sha, _ordinary_file(home / "objects" / f"{sha}.bin", size=size))
+                    for sha, size in sorted(_references(document).items()))
     artifact = Artifact(identity, content, objects)
     artifact.validate()
     return artifact
@@ -358,6 +377,8 @@ def verify_image(blob: bytes, placements: Sequence[Placement]) -> None:
         raise PackageError("fixed package image is not a supported ELF64 RISC-V executable")
     if header[5] + header[10] * image.PHDR_SIZE > len(blob):
         raise PackageError("fixed package image program table is truncated")
+    if header[4] not in {item.entry for item in fresh}:
+        raise PackageError("fixed package image entry differs from declared package entries")
     expected = [(item, section) for item in fresh for section in item.sections]
     matched: set[int] = set()
     extents: list[tuple[int, int]] = []
@@ -373,10 +394,6 @@ def verify_image(blob: bytes, placements: Sequence[Placement]) -> None:
         if memory_size and any(physical < end and start < physical + memory_size for start, end in extents):
             raise PackageError("fixed package image load segments overlap")
         extents.append((physical, physical + memory_size))
-        touched = [item for item in fresh if memory_size and physical < item.base + item.span
-                   and item.base < physical + memory_size]
-        if not touched:
-            continue
         hits = [i for i, (_, section) in enumerate(expected)
                 if section.addr == physical and len(section.data) == file_size == memory_size]
         if len(hits) != 1 or hits[0] in matched:
