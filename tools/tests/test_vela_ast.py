@@ -310,6 +310,38 @@ def _negation_source_coverage() -> None:
             ensure(count == 63, "native decoder accepted excessive unary depth")
 
 
+def _combined_negation_and_group_limits() -> None:
+    prefix = b"module M; public bool F() { return "
+    for negations, expected in ((31, "accepted"), (32, "limit")):
+        for outer in ("unary", "group"):
+            wrappers = (("unary",) * negations + ("group",) * 32 if outer == "unary"
+                        else ("group",) * 32 + ("unary",) * negations)
+            opens = b"".join(b"!" if kind == "unary" else b"(" for kind in wrappers)
+            source = prefix + opens + b"true" + b")" * 32 + b"; }"
+            literal = len(prefix) + len(opens)
+            end = literal + 4
+            tree = _node("bool", literal, end, value=True)
+            for index in reversed(range(len(wrappers))):
+                start = len(prefix) + index
+                if wrappers[index] == "group":
+                    end += 1
+                    tree = _node("group", start, end, value=tree)
+                else:
+                    tree = _node("unary", start, end, operator=_name("!", start), value=tree)
+            native = _fixture(source, tree, value_type="bool")
+            outputs = []
+            for native_route in (False, True):
+                try:
+                    translated = vela.translate_ast(source, native) if native_route else vela.translate(source)
+                except vela.VelaError as error:
+                    ensure(expected == "limit" and error.kind == "limit", "mixed nesting reached wrong refusal")
+                else:
+                    ensure(expected == "accepted", f"{outer} mixed nesting bypassed the combined depth budget")
+                    outputs.append(translated)
+            if expected == "accepted":
+                ensure(len(outputs) == 2 and outputs[0] == outputs[1], "mixed nesting changed translation")
+
+
 def _protocol_controls() -> None:
     source = b"module M; public Nat F() { return 1; }"
     expected = _fixture(source, _literal(source))
@@ -482,6 +514,7 @@ def cases() -> list[Case]:
             Case("held-out-source-edits", _held_out_edits),
             Case("extended-operator-schema-and-sites", _extended_operator_protocol),
             Case("negation-source-token-coverage-and-depth", _negation_source_coverage),
+            Case("combined-negation-and-group-depth-boundaries", _combined_negation_and_group_limits),
             Case("strict-native-schema-and-provenance", _protocol_controls),
             Case("native-semantic-diagnostics", _semantic_refusals),
             Case("native-resource-boundaries", _resource_boundaries)]

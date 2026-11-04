@@ -201,6 +201,12 @@ def fixtures(example: bytes) -> tuple[Fixture, ...]:
     for count, expected in ((63, "accepted"), (64, "limit"), (2000, "limit")):
         result.append(Fixture(f"negation-boundary-{count}",
                               b"module M; public bool F() => " + b"!" * count + b"true;", expected))
+    for count, expected in ((31, "accepted"), (32, "limit")):
+        for outer in ("negation", "group"):
+            expression = (b"!" * count + b"(" * 32 + b"true" + b")" * 32 if outer == "negation"
+                          else b"(" * 32 + b"!" * count + b"true" + b")" * 32)
+            result.append(Fixture(f"combined-{outer}-group-boundary-{count}",
+                                  b"module M; public bool F() => " + expression + b";", expected))
     for bindings, expected in ((63, "accepted"), (64, "limit")):
         source = (b"module M; public Nat F() { "
                   + b"".join(f"let x{i} = 0; ".encode() for i in range(bindings)) + b"return 0; }")

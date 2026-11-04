@@ -116,7 +116,7 @@ def expression(kind: str, value: str | bool, site: Site,
         raise VelaError("limit", site.line, site.column,
                         f"expression exceeds depth {MAX_EXPRESSION_DEPTH}")
     nesting = max((child.nesting for child in children), default=1)
-    if kind == "group" or (kind == "call" and children):
+    if kind in {"group", "unary"} or (kind == "call" and children):
         nesting += 1
     if nesting > MAX_EXPRESSION_DEPTH:
         raise VelaError("limit", site.line, site.column,
