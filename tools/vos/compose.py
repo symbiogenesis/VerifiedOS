@@ -42,14 +42,9 @@ parameter and not a freeze verdict. A caller sweeping FD-2 passes the other two.
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Final
 
 from . import freezeschema
-from .asm import Site
-
-# The canonical instruction this composer lays down, in bits. It is what an escape has to
-# carry verbatim, and it is why two slots of sixteen bits is the escape's width.
-CANONICAL_BITS: Final[int] = 32
+from .asm import CANONICAL_BITS, Site
 
 
 @dataclass(frozen=True)
@@ -123,14 +118,33 @@ class Composition:
         return sum(1 for row in self.placed if not row.escape) / len(self.placed)
 
 
+def _dictionary(dictionary: dict[int, int] | None, width: int) -> dict[int, int]:
+    """Validate the finite canonical-word dictionary before computing any placement."""
+    if dictionary is None:
+        return {}
+    if not isinstance(dictionary, dict):
+        raise ValueError("dictionary must map canonical words to integer indices")
+    for word, index in dictionary.items():
+        if type(word) is not int or not 0 <= word < 1 << CANONICAL_BITS:
+            raise ValueError("dictionary key must be an unsigned 32-bit instruction word")
+        if type(index) is not int or not 0 <= index < 1 << width:
+            raise ValueError("dictionary index must be an unsigned integer fitting the slot width")
+    if len(set(dictionary.values())) != len(dictionary):
+        raise ValueError("dictionary indices must be distinct")
+    if set(dictionary.values()) != set(range(len(dictionary))):
+        raise ValueError("dictionary indices must be contiguous from zero")
+    return dict(dictionary)
+
+
 def compose(sites: list[Site], image: bytes, geometry: Geometry | None = None,
-            dictionary: dict[str, str] | None = None) -> Composition:
+            dictionary: dict[int, int] | None = None) -> Composition:
     """Pack an assembled image's sites into bundles, at one geometry.
 
-    `dictionary` maps a site's own opcode-and-operand key to the dictionary entry that
-    encodes it, and the **empty** dictionary is the default for the reason this module's
-    docstring states. A site the dictionary does not carry takes an escape, which costs
-    `escape_slots` slots and reproduces the canonical word verbatim.
+    `dictionary` maps a site's complete canonical word to its integer dictionary index.
+    Resolved registers and immediates are part of that word. The **empty** dictionary
+    is the default for the reason this module's docstring states. A site the dictionary
+    does not carry takes an escape, which costs `escape_slots` slots and reproduces the
+    canonical word verbatim. Malformed and ambiguous dictionaries refuse before packing.
 
     The image's bytes are carried through rather than re-encoded, because the bundle
     format is not implemented in the model and an image this composer packed would be one
@@ -139,18 +153,18 @@ def compose(sites: list[Site], image: bytes, geometry: Geometry | None = None,
     stream the emulator actually runs.
     """
     geometry = geometry or Geometry()
-    table = dictionary or {}
+    table = _dictionary(dictionary, geometry.width)
     placed: list[Placed] = []
     bundle = 0
     slot = 0
     for site in sites:
-        entry = table.get(site.opcode)
+        entry = table.get(site.word)
         cost = 1 if entry is not None else geometry.escape_slots
         if slot + cost > geometry.slots:
             bundle += 1
             slot = 0
         placed.append(Placed(site=site, bundle=bundle, slot=slot,
-                             entry=entry if entry is not None else "-",
+                             entry=str(entry) if entry is not None else "-",
                              escape=entry is None))
         slot += cost
     return Composition(geometry=geometry, placed=placed, image=image)

@@ -20,10 +20,11 @@ image bytes; adding a member cannot rerecord an old image.
 
 import argparse
 import io
+import struct
 import tempfile
 from contextlib import redirect_stderr
 from pathlib import Path
-from typing import Final
+from typing import Final, cast
 from unittest.mock import patch
 
 from tests.harness import Case, ensure
@@ -41,7 +42,7 @@ def _program(rows: int) -> str:
 
 
 def _compose(rows: int, geometry: compose.Geometry | None = None,
-             dictionary: dict[str, str] | None = None) -> compose.Composition:
+             dictionary: dict[int, int] | None = None) -> compose.Composition:
     with tempfile.TemporaryDirectory() as scratch:
         source = Path(scratch) / "probe.s"
         with source.open("w", encoding="utf-8", newline="") as handle:
@@ -96,15 +97,105 @@ def _empty_dictionary_is_all_escapes() -> None:
 def _a_dictionary_is_a_parameter() -> None:
     """A supplied dictionary changes the packing, which is what makes the empty one a
     *default* rather than a limitation of the composer."""
-    composed = _compose(6, dictionary={"addi": "e0"})
+    composed = _compose(6, dictionary={0x00028293: 0})
     hits = [row for row in composed.placed if not row.escape]
-    ensure(len(hits) == 6,
-           f"six `addi` sites take the one entry, got {len(hits)}")
-    ensure(all(row.entry == "e0" for row in hits),
+    ensure(len(hits) == 1 and hits[0].site.address == asm.TEXT_BASE,
+           f"only addi t0,t0,0 takes its entry, got {[row.site.address for row in hits]}")
+    ensure(all(row.entry == "0" for row in hits),
            "a hit carries the entry it took")
     ensure(composed.placed[-1].site.opcode == "ecall"
            and composed.placed[-1].escape,
            "the site the dictionary does not carry still escapes")
+
+
+def _assembled_sites(source: str) -> tuple[list[asm.Site], bytes]:
+    with tempfile.TemporaryDirectory() as scratch:
+        program, executable = Path(scratch) / "word-sites.s", Path(scratch) / "word-sites.elf"
+        program.write_text(source, encoding="utf-8", newline="")
+        sites: list[asm.Site] = []
+        asm.assemble_file(program, executable, sites)
+        elf = executable.read_bytes()
+    phoff = struct.unpack_from("<Q", elf, 32)[0]
+    kind, flags, offset, _virtual, physical, size, _memory, _alignment = struct.unpack_from(
+        "<IIQQQQQQ", elf, phoff)
+    ensure((kind, flags, physical) == (1, 5, asm.TEXT_BASE),
+           "the fixture's first ELF segment must load its executable text")
+    return sites, elf[offset:offset + size]
+
+
+def _dictionary_identity_includes_operands() -> None:
+    sites, image = _assembled_sites(""".text
+_start:
+    addi t0, t0, 1
+    addi t0, t0, 2
+    addi t0, t1, 1
+    addi t1, t0, 1
+    addi t0, t0, 1
+    ecall
+""")
+    expected = [0x00128293, 0x00228293, 0x00130293, 0x00128313, 0x00128293, 0x00000073]
+    ensure([site.word for site in sites] == expected,
+           "instruction identity must include immediate, source and destination registers")
+    ensure(image == b"".join(word.to_bytes(4, "little") for word in expected),
+           "the recorded words must be the independently specified ELF text bytes")
+    composed = compose.compose(sites, image, dictionary={0x00128293: 0, 0x00130293: 1})
+    ensure([row.entry for row in composed.placed] == ["0", "-", "1", "-", "0", "-"],
+           "only complete word matches may take a dictionary entry")
+    ensure([row.escape for row in composed.placed] == [False, True, False, True, False, True],
+           "a changed register or immediate needs its own dictionary entry")
+    ensure(composed.image == image, "placement must preserve the canonical bytes")
+
+
+def _expanded_and_alignment_sites_keep_their_words() -> None:
+    sites, image = _assembled_sites(""".text
+_start:
+    li t0, 0x12345678
+    .balign 16
+    ecall
+""")
+    expected = [0x123452B7, 0x6782829B, 0x00000013, 0x00000013, 0x00000073]
+    ensure([site.word for site in sites] == expected,
+           "each expanded instruction and each padding nop needs its actual word")
+    ensure([site.address - asm.TEXT_BASE for site in sites] == [0, 4, 8, 12, 16],
+           "instruction identities must follow emitted instruction boundaries")
+    ensure(image == b"".join(word.to_bytes(4, "little") for word in expected),
+           "pseudo and alignment metadata must agree with the loaded ELF text bytes")
+    composed = compose.compose(sites, image, dictionary={0x00000013: 0, 0x123452B7: 1})
+    ensure([row.entry for row in composed.placed] == ["1", "-", "0", "0", "-"],
+           "pseudo expansion and repeated alignment nops use complete-word lookup")
+
+
+def _invalid_dictionaries_are_refused() -> None:
+    for dictionary, message in (
+        ([], "map canonical words"),
+        ({"addi": 0}, "unsigned 32-bit instruction word"),
+        ({True: 0}, "unsigned 32-bit instruction word"),
+        ({-1: 0}, "unsigned 32-bit instruction word"),
+        ({1 << 32: 0}, "unsigned 32-bit instruction word"),
+        ({0x13: "e0"}, "fitting the slot width"),
+        ({0x13: True}, "fitting the slot width"),
+        ({0x13: -1}, "fitting the slot width"),
+        ({0x13: 1 << 16}, "fitting the slot width"),
+        ({0x13: 0, 0x73: 0}, "indices must be distinct"),
+        ({0x13: 1}, "contiguous from zero"),
+    ):
+        try:
+            compose.compose([], b"", dictionary=cast("dict[int, int]", dictionary))
+        except ValueError as error:
+            ensure(message in str(error), f"unhelpful dictionary diagnostic: {error}")
+        else:
+            raise AssertionError(f"invalid dictionary was accepted: {dictionary!r}")
+
+
+def _invalid_site_words_are_refused() -> None:
+    for word in (True, -1, 1 << 32):
+        try:
+            asm.Site(site_id="bad#0", address=asm.TEXT_BASE, opcode="addi", word=word,
+                     source=1, section=".text")
+        except ValueError as error:
+            ensure("unsigned 32-bit integer" in str(error), f"unhelpful site diagnostic: {error}")
+        else:
+            raise AssertionError(f"invalid instruction word was accepted: {word!r}")
 
 
 def _geometry_is_a_parameter() -> None:
@@ -193,6 +284,10 @@ def cases() -> list[Case]:
         Case("every-site-is-recorded", _every_site_is_recorded),
         Case("empty-dictionary-is-all-escapes", _empty_dictionary_is_all_escapes),
         Case("a-dictionary-is-a-parameter", _a_dictionary_is_a_parameter),
+        Case("dictionary-identity-includes-operands", _dictionary_identity_includes_operands),
+        Case("expanded-and-alignment-site-words", _expanded_and_alignment_sites_keep_their_words),
+        Case("invalid-dictionaries-are-refused", _invalid_dictionaries_are_refused),
+        Case("invalid-site-words-are-refused", _invalid_site_words_are_refused),
         Case("geometry-is-a-parameter", _geometry_is_a_parameter),
         Case("invalid-geometry-is-refused", _invalid_geometry_is_refused),
         Case("exploratory-widths-still-pack", _exploratory_widths_still_pack),
