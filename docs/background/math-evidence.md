@@ -292,17 +292,23 @@ Sorted reference payload SHA-256: `23b690105f12b96f3ef7a997cf508a5b775e70bcaf077
 
 | Bound input or implementation | SHA-256 |
 | --- | --- |
-| [tools/vos/source_bindings.py](../../tools/vos/source_bindings.py) | `7c96e6be48f46004e0a6d5bc045a8845be701ca934f4f96e5f1285a56cc7a058` |
-| [tools/vos/jsonutil.py](../../tools/vos/jsonutil.py) | `651b6cf84e7e3d3af970df71a286b5c700eea9b2b1b88f2db7dd44f572bfd8e5` |
-| [tools/vos/proof_staging.py](../../tools/vos/proof_staging.py) | `ab0615ff765fa486883a2f9846bc7660efe7ef225d562dfe5a0a800addf8d32c` |
-| [tools/vos/proofs.py](../../tools/vos/proofs.py) | `fb53cdb3b596ee5918c6c4111c1f247f157e6ec0ae5dd8a1b4cbf244ca3e8e8c` |
-| [tools/vos/prooflex.py](../../tools/vos/prooflex.py) | `d3cc29a77d0f9b214afeaa4bb7b54a8ffefac77e04bc7881ff5d25f237731913` |
-| [tools/vos/receipts.py](../../tools/vos/receipts.py) | `25bbf0b0288363f3b1fe9b0eff3616839dce7d61720814fe2f350f1fbba8d822` |
-| [tools/vos/proofenv.py](../../tools/vos/proofenv.py) | `8554680f83eacb10085c9c35a1e7951c66129fe409bb5bcb845df1baa40d8c28` |
-| [tools/vos/atomic.py](../../tools/vos/atomic.py) | `384e706e945f8cead1e1b3791f916f6e7f8783a7497c17dd3a551a765e670471` |
+| [tools/vos/source_bindings.py](../../tools/vos/source_bindings.py) | `1bfe1f594aed03ee4168fd2f836d01444383cb8998565d8fb7e0549be2cac270` |
 | [proofs/ProofSupport.v](../../proofs/ProofSupport.v) | `21fefa8c275f9a6ee41299d2d59b971974a8f89453cb8749bbec0d7d13e86a22` |
+| [tools/pyproject.toml](../../tools/pyproject.toml) | `3d1bbd38f558a98c46d87ba87ac62f360cca55dafd9ba42c323acb162e46b781` |
+| [tools/uv.lock](../../tools/uv.lock) | `3ec7b8f3b137af6405df6ea1085da2c789611bcb05bb5297ff7292f0a1824c12` |
 | [tools/vos/composer.py](../../tools/vos/composer.py) | `b96169f76319dd55c7597462472257830370fe9c86c44236ae3379efe34bcd3e` |
 | [proofs/HandlerGraph.v](../../proofs/HandlerGraph.v) | `7bbb0de40e8e485e2797155515dd0c0d00f808e8b5254bbbc9f54c95ef18b4a2` |
-| [tools/vos/math_evidence.py](../../tools/vos/math_evidence.py) | `03470df2ecb081d31c94895714038514855075b19a2bae7e1c242dd550dfc566` |
+| [tools/vos/math_evidence.py](../../tools/vos/math_evidence.py) | `cbe9e115518178c4ad00db96377ccbd9508544e9b24fbe78055b3d921d700a3c` |
+| [tools/vos/__init__.py](../../tools/vos/__init__.py) | `f4212439e361dd2a6d2b25d97c82b6ba6ab8aa4cf3814a69023d8a745b11d49c` |
+| [tools/vos/atomic.py](../../tools/vos/atomic.py) | `384e706e945f8cead1e1b3791f916f6e7f8783a7497c17dd3a551a765e670471` |
+| [tools/vos/corpus.py](../../tools/vos/corpus.py) | `0a5ae1dd52c7fbf0e6f2fd26903ce261c478928a94d07023c64fa9fd3be089b2` |
+| [tools/vos/env.py](../../tools/vos/env.py) | `53d87fcd904db53c0c81359f2999be4290fbdb518fa987cc9d035e4271742dcc` |
+| [tools/vos/jsonutil.py](../../tools/vos/jsonutil.py) | `651b6cf84e7e3d3af970df71a286b5c700eea9b2b1b88f2db7dd44f572bfd8e5` |
+| [tools/vos/proof_staging.py](../../tools/vos/proof_staging.py) | `ab0615ff765fa486883a2f9846bc7660efe7ef225d562dfe5a0a800addf8d32c` |
+| [tools/vos/proofenv.py](../../tools/vos/proofenv.py) | `8554680f83eacb10085c9c35a1e7951c66129fe409bb5bcb845df1baa40d8c28` |
+| [tools/vos/prooflex.py](../../tools/vos/prooflex.py) | `d3cc29a77d0f9b214afeaa4bb7b54a8ffefac77e04bc7881ff5d25f237731913` |
+| [tools/vos/proofs.py](../../tools/vos/proofs.py) | `fb53cdb3b596ee5918c6c4111c1f247f157e6ec0ae5dd8a1b4cbf244ca3e8e8c` |
+| [tools/vos/python_dependencies.py](../../tools/vos/python_dependencies.py) | `f7fc844fcb85635dd45532ccd510aca2c743ca18b2bd6a55a1f32fe0591fed15` |
+| [tools/vos/receipts.py](../../tools/vos/receipts.py) | `25bbf0b0288363f3b1fe9b0eff3616839dce7d61720814fe2f350f1fbba8d822` |
 
 Before adopting a compact dictionary, name a real consumer, record its table shapes and access trace or justified query distribution, compare sorted arrays and generated perfect hashing, and declare finite byte/work thresholds. Construction and any randomized seed need their own bounds. Timing comparisons and benchmarks run on CI. Dynamic service indexes separately owe update, exhaustion and recovery behavior.

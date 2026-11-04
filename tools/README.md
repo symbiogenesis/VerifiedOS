@@ -930,6 +930,15 @@ receipt. These checks improve freshness and provenance; they do not establish an
 independent bit-for-bit rebuild, constrain every OS input or discharge the checker
 bootstrap's diverse-compilation obligation.
 
+Model receipts derive their local Python implementation from the launcher's and
+selected model command's transitive imports through
+[the shared dependency reader](vos/python_dependencies.py). The
+[model receipt owner](vos/cli/model.py) separately declares consumed data,
+toolchain locks and gitlinks. Unrelated tool modules and generated proof views
+do not join that identity. A later unrelated commit does not invalidate unchanged
+build inputs: the observed build revision remains provenance beside the reuse
+identity, and artifact hashes retain the actual built bytes and version stamp.
+
 ## Worktree isolation during fan-out
 
 Apply the [shared isolation and ownership rules](../AGENTS.md#worktree-isolation-and-ownership)
@@ -1821,10 +1830,15 @@ All tools must follow these rules.
   hashes of parsed snapshots and structured values retain their own policies.
 - **Source-binding views have one declared owner.**
   [vos/source_bindings.py](vos/source_bindings.py) declares the composer and
-  admission source sets used by package inventories, composition inputs and
-  receipt manifests. Regenerate its owned fields with `composer bind-sources`
-  before `composer project`; K-88 checks those views and the existing generated
-  artifacts. Keep authored package and composition decisions outside those fields.
+  admission entry points and non-Python inputs used by package inventories,
+  composition inputs and receipt manifests.
+  [The dependency reader](vos/python_dependencies.py) derives local transitive
+  Python imports, including package initializers and imports inside functions,
+  without executing inspected code. Closures are read from each selected checkout;
+  dynamic command targets and data dependencies remain explicit roots.
+  Regenerate owned fields with `composer bind-sources` before `composer project`;
+  K-88 checks those views and the existing generated artifacts. Keep authored
+  package and composition decisions outside those fields.
 - **Annotate every function and type every table.** Use a `Protocol` for dispatch families, a `TypedDict` for configuration rows, and type parameters for containers and `re.Match`. This catches callback-shape errors in tables such as `dialect.KINDS` and `asm.PSEUDOS` before execution.
 - **ID patterns must admit letter suffixes.** Inserted IDs use suffixes instead of renumbering. A pattern such as `A-\d+` can undercount entries and make `--fix` write an incorrect total. With a trailing `(?![\w-])`, it can also skip an unknown suffixed citation entirely. Audit both enumeration and citation readers; fixing one leaves the other unsound.
 - **An invariant is stated where it is relied on.** A reader entitled to a value because two branches above ruled out the alternatives says so, rather than leaving a `None` to be subscripted at the point the tool is reporting the finding it exists to report.

@@ -3051,6 +3051,14 @@ and Ubuntu Host CI and all Guest lanes as user-managed acceptance under the
 reuse or new model/proof acceptance follows from this change; Q31 retains that
 separate comparison.
 
+Implemented: model receipts and composer/admission views derive their local Python
+closures from the shared source reader, and explicit data and lock inputs retain
+their own bindings. Model reuse preserves observed build provenance across
+unrelated commits. Focused dependency, model receipt, proof-cache and
+composition/admission controls pass locally; the `dependency-identities-20261103`
+fanout journal records the settled local checks and user-managed hosted selection.
+Fresh model/proof acceptance and hosted verdicts remain pending.
+
 ## Compiler differential library boundary
 
 Firmware, kernel and service target instruments share `vos/compiler_diff.py`; `vos/cli/compiler_diff.py` owns parsing, orchestration and output. Consumers import the library directly. Preserve compilation, assembly, generated programs, HTIF/trace decisions, encodings and diagnostics.

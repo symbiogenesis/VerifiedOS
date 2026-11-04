@@ -132,10 +132,16 @@ sources and named interface owners separately from `HandlerGraph.Descriptor`.
 The [production input](m8a-composition.json) names every real roster member's
 [source-owned inventory](packages/); those files own the component and interface
 source lists, except the composer and admission `sources` fields, which derive from
-the ordered groups in [source_bindings.py](../vos/source_bindings.py). The same
-declaration derives their production-input source sets, projection producers and
-admission receipt inventories, including shared dependencies and the declaration
-itself. `run.py composer bind-sources` regenerates those package and production-input
+the entry points and non-Python inputs in
+[source_bindings.py](../vos/source_bindings.py).
+[The shared dependency reader](../vos/python_dependencies.py) follows local Python
+imports transitively, including package initializers and function-local imports,
+without executing inspected sources. Every selected checkout supplies its own
+closure; adding an import changes the next identity without updating a helper list.
+The same declaration derives production-input source sets, projection producers
+and admission receipt inventories, including the dependency reader and declaration
+itself. Data inputs such as schemas and the generated instruction table remain
+explicit. `run.py composer bind-sources` regenerates those package and production-input
 fields; then `run.py composer project tools/composer/m8a-composition.json --output
 tools/composer/generated` regenerates the projections. K-88 checks the derived
 fields while preserving authored interfaces, handlers and composition choices.
