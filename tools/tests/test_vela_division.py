@@ -185,7 +185,7 @@ def _native_source_binding() -> None:
             source = (b"// caf\xc3\xa9" + newline + b"module M;" + newline + b"public Nat F() {" + newline
                       + b" return 17 " + operation.encode() + b" // operand comment" + newline
                       + b" 5;" + newline + b"}" + newline + b"// tail")
-            tree, expression = _native_fixture(source, operation)
+            tree, raw_expression = _native_fixture(source, operation)
             decoded = vela_ast.decode(source, tree)
             declaration = decoded.declarations[0]
             ensure(isinstance(declaration, vela_ast.Function), "native fixture lost its function")
@@ -202,7 +202,7 @@ def _native_source_binding() -> None:
             ensure(f"(Corelib.Init.Nat.{target} (17 : {_NAT}) (5 : {_NAT}))" in emitted,
                    "native division emitted the wrong operation or source operands")
             for mutation in ("operator", "missing-right", "extra-field", "operator-span"):
-                changed = copy.deepcopy(expression)
+                changed = copy.deepcopy(raw_expression)
                 if mutation == "operator":
                     changed["operator"] = _name("%" if operation == "/" else "/",
                                                 source.index(operation.encode(), source.index(b"17")))
@@ -216,12 +216,12 @@ def _native_source_binding() -> None:
                 root = cast("dict[str, object]", changed_tree["ast"])
                 declarations = cast("list[dict[str, object]]", root["declarations"])
                 body = cast("dict[str, object]", declarations[0]["body"])
-                terminal = cast("dict[str, object]", body["exit"])
-                terminal["value"] = changed
+                raw_terminal = cast("dict[str, object]", body["exit"])
+                raw_terminal["value"] = changed
                 _refuses_native(source, changed_tree)
-        for expression in (f"17 {operation} + 5", f"17 {operation}= 5",
-                           f"17 * 3 {operation} 5", f"17 {operation} 5 * 2"):
-            source = ("module M; public Nat F() { return " + expression + "; }").encode()
+        for source_expression in (f"17 {operation} + 5", f"17 {operation}= 5",
+                                  f"17 * 3 {operation} 5", f"17 {operation} 5 * 2"):
+            source = ("module M; public Nat F() { return " + source_expression + "; }").encode()
             tree, _ = _native_fixture(source, operation)
             _refuses_native(source, tree)
 
