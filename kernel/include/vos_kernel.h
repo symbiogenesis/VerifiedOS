@@ -131,8 +131,12 @@ enum vos_status vos_frame_validate(const struct vos_frame *f);
 void vos_exec_start(struct vos_exec *e);
 uint32_t vos_exec_slot(const struct vos_exec *e);
 uint32_t vos_exec_tenant(const struct vos_frame *f, const struct vos_exec *e);
-uint64_t vos_exec_release(const struct vos_frame *f, const struct vos_exec *e);
-void vos_exec_advance(const struct vos_frame *f, struct vos_exec *e);
+/* Checked clock operations return one on success. Refusal leaves output or
+ * cursor unchanged, and zero/MAX instants carry no sentinel meaning.
+ * [Clock boundary](../../docs/implementation/contracts/executive-clock-repair.md#clock-boundary). */
+int vos_exec_release(const struct vos_frame *f, const struct vos_exec *e,
+                      uint64_t *release);
+int vos_exec_advance(const struct vos_frame *f, struct vos_exec *e);
 
 /* ------------------------------------------------------------------------
  * The partition context (PartitionContext.v `Machine`, `Context`).

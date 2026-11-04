@@ -111,6 +111,9 @@ enum vos_status vos_frame_validate(const struct vos_frame *f)
     if (!vos_slot_in_frame(s, f->major_frame)) {
       return VOS_TABLE_OUTSIDE_FRAME;
     }
+    if (f->phase_offset > UINT64_MAX - s->offset) {
+      return VOS_TABLE_OVERFLOW;
+    }
   }
   if (!vos_frame_pairwise_disjoint(f)) {
     return VOS_TABLE_OVERLAP;
@@ -148,20 +151,48 @@ uint32_t vos_exec_tenant(const struct vos_frame *f, const struct vos_exec *e)
  * instant plus R-07-040's padded boundary constant, which the boundary
  * handler waits out on `mtime`; neither term reads the predecessor.
  */
-uint64_t vos_exec_release(const struct vos_frame *f, const struct vos_exec *e)
+int vos_exec_release(const struct vos_frame *f, const struct vos_exec *e,
+                      uint64_t *release)
 {
-  return f->phase_offset + e->frame_index * f->major_frame + f->slots[e->cursor].offset;
+  if (f == 0 || e == 0 || release == 0 || f->major_frame == 0u ||
+      f->slot_count == 0u || f->slot_count > VOS_MAX_SLOTS || e->cursor >= f->slot_count) {
+    return 0;
+  }
+  const uint64_t offset = f->slots[e->cursor].offset;
+  if (f->phase_offset > UINT64_MAX - offset) {
+    return 0;
+  }
+  const uint64_t origin = f->phase_offset + offset;
+  if (e->frame_index > (UINT64_MAX - origin) / f->major_frame) {
+    return 0;
+  }
+  *release = origin + e->frame_index * f->major_frame;
+  return 1;
 }
 
-/* The next entry is the next row of the table, wrapping into the next major
- * frame. The only input is the cursor. */
-void vos_exec_advance(const struct vos_frame *f, struct vos_exec *e)
+/* The next entry is the next row of the table. A clock-horizon refusal
+ * preserves the cursor; the caller must stop dispatch rather than wrap time.
+ * [Clock boundary](../../docs/implementation/contracts/executive-clock-repair.md#clock-boundary). */
+int vos_exec_advance(const struct vos_frame *f, struct vos_exec *e)
 {
-  const uint32_t next = e->cursor + 1u;
-  if (next >= f->slot_count) {
-    e->cursor = 0;
-    e->frame_index = e->frame_index + 1u;
-  } else {
-    e->cursor = next;
+  uint64_t release;
+  if (!vos_exec_release(f, e, &release)) {
+    return 0;
   }
+  struct vos_exec candidate = *e;
+  const uint32_t next = candidate.cursor + 1u;
+  if (next >= f->slot_count) {
+    if (candidate.frame_index == UINT64_MAX) {
+      return 0;
+    }
+    candidate.cursor = 0;
+    ++candidate.frame_index;
+  } else {
+    candidate.cursor = next;
+  }
+  if (!vos_exec_release(f, &candidate, &release)) {
+    return 0;
+  }
+  *e = candidate;
+  return 1;
 }

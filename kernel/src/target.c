@@ -47,14 +47,26 @@ uint32_t vos_target_tenant(const struct vos_target_state *state)
   return vos_exec_tenant(&state->handoff.init.frame, &state->executive);
 }
 
-uint64_t vos_target_release(const struct vos_target_state *state)
+int vos_target_release(const struct vos_target_state *state, uint64_t epoch,
+                         uint64_t duration, uint64_t *deadline)
 {
-  return vos_exec_release(&state->handoff.init.frame, &state->executive);
+  uint64_t release;
+  if (state == 0 || deadline == 0 ||
+      !vos_exec_release(&state->handoff.init.frame, &state->executive, &release) ||
+      epoch > UINT64_MAX - release) {
+    return 0;
+  }
+  const uint64_t absolute = epoch + release;
+  if (duration > UINT64_MAX - absolute) {
+    return 0;
+  }
+  *deadline = absolute + duration;
+  return 1;
 }
 
-void vos_target_advance(struct vos_target_state *state)
+int vos_target_advance(struct vos_target_state *state)
 {
-  vos_exec_advance(&state->handoff.init.frame, &state->executive);
+  return state != 0 && vos_exec_advance(&state->handoff.init.frame, &state->executive);
 }
 
 void vos_target_switch(const struct vos_target_state *state,

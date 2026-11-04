@@ -282,15 +282,18 @@ static int check_kx(void)
     struct vos_exec e;
     vos_exec_start(&e);
     for (i = 0; i < 3; i++) {
-      uint64_t at = vos_exec_release(&fr, &e);
+      uint64_t at = 0;
+      expect_u("release_ok", 1u, (uint64_t)vos_exec_release(&fr, &e, &at));
       expect_u("release", fr.slots[i].offset, at);
       if (answer_at_offset[i] != (long)vos_exec_slot(&e)) {
         differ(f, "sequence", "the time map's slot", "a different table entry");
       }
-      vos_exec_advance(&fr, &e);
+      expect_u("advance_ok", 1u, (uint64_t)vos_exec_advance(&fr, &e));
     }
     expect_u("wrap", 1u, e.frame_index);
-    expect_u("wrap_release", fr.major_frame + fr.slots[0].offset, vos_exec_release(&fr, &e));
+    uint64_t at = 0;
+    expect_u("wrap_release_ok", 1u, (uint64_t)vos_exec_release(&fr, &e, &at));
+    expect_u("wrap_release", fr.major_frame + fr.slots[0].offset, at);
   }
   return 1;
 }
