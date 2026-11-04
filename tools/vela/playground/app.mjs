@@ -434,10 +434,16 @@ function mathematicalDiagnostics(result, captured) {
     if (!current(captured)) return;
     const error = result.error;
     const position = error ? compilerPosition(error.line, error.column) : null;
+    const findings = result.ok ? result.findings : [];
+    if (!Array.isArray(findings)) throw new Error("The mathematical compiler returned incomplete naming findings.");
     publishDiagnostics({ uri: DOCUMENT_URI, version: captured.version, diagnostics: error ? [{
         range: { start: position, end: position }, severity: 1, message: errorText(error),
         source: "Vela mathematical elaborator",
-    }] : [] }, captured.generation, "mathematical");
+    }] : findings.map((finding) => {
+        const start = compilerPosition(finding.line, finding.column);
+        return { range: { start, end: start }, severity: 2, message: finding.message,
+            code: finding.code, source: "Vela naming lint" };
+    }) }, captured.generation, "mathematical");
 }
 
 async function wire(session, message, generation) {

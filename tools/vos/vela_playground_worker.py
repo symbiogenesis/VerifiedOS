@@ -19,7 +19,10 @@ def _mathematical_request(request: dict[str, object], source: bytes, digest: str
     if request["action"] == "compile":
         compiled = vela_mathematical.compile_source(source, parser)
         return {"ok": True, "sourceHash": digest,
-                "module": compiled.module, "gallina": compiled.gallina}
+                "module": compiled.module, "gallina": compiled.gallina,
+                "findings": [{"code": finding.code, "message": finding.message,
+                              "line": finding.line, "column": finding.column}
+                             for finding in compiled.findings]}
     result = vela_mathematical.evaluate_source(
         source, cast("str", request["expression"]), cast("ValueType", request["valueType"]), parser)
     value = (("true" if result.value else "false") if result.value_type == "bool" else str(result.value))

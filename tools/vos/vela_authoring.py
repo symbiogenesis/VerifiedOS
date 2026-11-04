@@ -15,7 +15,7 @@ from vos import vela_ast as syntax
 from vos.vela_source import SourceSnapshot
 
 STYLE_VERSION = 1
-LINT_CODES = frozenset({"VELA100", "VELA101", "VELA102", "VELA103", "VELA104"})
+LINT_CODES = frozenset({"VELA100", "VELA101", "VELA102", "VELA103", "VELA104", "VELA105"})
 _MEMBER = re.compile(r"[A-Z][A-Za-z0-9]*")
 _BINDING = re.compile(r"[a-z][A-Za-z0-9]*")
 
@@ -28,6 +28,18 @@ class Finding:
     message: str
     line: int
     column: int
+
+
+def is_pascal_case(name: str) -> bool:
+    return _MEMBER.fullmatch(name) is not None
+
+
+def generic_type_findings(names: tuple[syntax.Name, ...]) -> tuple[Finding, ...]:
+    """Apply type naming to compiler-recorded generic type identifiers only."""
+    return tuple(Finding("VELA105", f"generic type parameter '{name.text}' should use PascalCase "
+                         "(for example T or TValue); value indices remain camelCase",
+                         name.site.line, name.site.column)
+                 for name in names if not is_pascal_case(name.text))
 
 
 @dataclass(frozen=True)

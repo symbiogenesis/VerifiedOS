@@ -16,8 +16,8 @@ from pathlib import Path
 from typing import cast, override
 
 from vos.protocol_json import MAX_BODY_BYTES, decode_message, encode_message
-from vos.vela_ast import MAX_SOURCE_BYTES
-from vos.vela_authoring import LINT_CODES
+from vos.vela_ast import IDENTIFIER, MAX_SOURCE_BYTES
+from vos.vela_authoring import LINT_CODES, is_pascal_case
 from vos.vela_lsp import Server
 from vos.vela_source import SourceSnapshot
 
@@ -45,8 +45,13 @@ def _validate_result(response: dict[str, object], request: dict[str, object], di
             return
         fields = {"ok", "sourceHash", "module", "gallina"} if request["action"] == "compile" else {
             "ok", "sourceHash", "valueType", "value"}
-        if set(response) != fields or not all(isinstance(response[key], str) for key in fields - {"ok"}):
+        mathematical = request["action"] == "compile" and request.get("mode") == "mathematical"
+        if mathematical:
+            fields.add("findings")
+        if set(response) != fields or not all(isinstance(response[key], str) for key in fields - {"ok", "findings"}):
             raise ValueError("compiler worker returned an invalid result")
+        if mathematical:
+            _validate_findings(response["findings"], cast("str", request["source"]), mathematical=True)
         if request["action"] == "evaluate":
             value = cast("str", response["value"])
             if (response["valueType"] != request["valueType"]
@@ -77,14 +82,32 @@ def _validate_authoring(response: dict[str, object], source: str) -> None:
     if (not isinstance(findings, list) or len(findings) > MAX_AUTHORING_FINDINGS
             or not isinstance(preview, str) or len(preview.encode("utf-8")) > MAX_SOURCE_BYTES):
         raise ValueError("authoring worker returned an invalid or oversized result")
-    snapshot = SourceSnapshot("vela:playground-authoring", 0, source, 1)
+    _validate_findings(findings, source)
+
+
+def _validate_findings(findings: object, source: str, *, mathematical: bool = False) -> None:
+    if not isinstance(findings, list) or len(findings) > MAX_AUTHORING_FINDINGS:
+        raise ValueError("compiler worker returned oversized or invalid findings")
+    snapshot = SourceSnapshot("vela:playground-findings", 0, source, 1)
+    lines = source.replace("\r\n", "\n").replace("\r", "\n").split("\n")
+    previous = (0, 0)
+    allowed = {"VELA105"} if mathematical else LINT_CODES
     for finding in findings:
         if (not isinstance(finding, dict) or set(finding) != {"code", "message", "line", "column"}
-                or not isinstance(finding["code"], str) or finding["code"] not in LINT_CODES
+                or not isinstance(finding["code"], str) or finding["code"] not in allowed
                 or not isinstance(finding["message"], str) or not finding["message"]
                 or type(finding["line"]) is not int or type(finding["column"]) is not int):
             raise ValueError("authoring worker returned an invalid finding")
         snapshot.diagnostic_position(finding["line"], finding["column"])
+        if mathematical:
+            site = (finding["line"], finding["column"])
+            line, column = lines[site[0] - 1], site[1] - 1
+            name = IDENTIFIER.match(line, column)
+            if (site <= previous or name is None or is_pascal_case(name.group())
+                    or (column and (line[column - 1].isascii()
+                                    and (line[column - 1].isalnum() or line[column - 1] == "_")))):
+                raise ValueError("mathematical naming finding does not identify a source name")
+            previous = site
 
 
 def _compiler_response(request: dict[str, object], digest: str, *,
