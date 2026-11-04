@@ -7,14 +7,16 @@ browser demo of the implemented [pure Nat/bool compiler](vela-prototype.md) and
 [language server](lsp-prototype.md). Launch it with
 `python tools/run.py vela-playground` (`python3` on Linux), then open the printed
 loopback URL. The command accepts a port, including zero for an available port,
-and stops with Ctrl+C. It never publishes, writes source files or installs an
-editor extension. Hosting and wider-language qualification retain their owners.
+and stops with Ctrl+C. The server never publishes, writes source files or installs
+an editor extension. Explicit browser downloads save the current buffer or output
+only when requested. Hosting and wider-language qualification retain their owners.
 
 The editor uses pinned Monaco 0.55.1 browser assets from jsDelivr. Internet access
 is needed for those editor assets; authored source is sent only to the local
 compiler service. The browser must clearly report an editor-load failure and
 offer plain-text editing with the same compile/evaluate controls. This fallback
-does not claim highlighting or editor language services. The
+does not claim Monaco highlighting or inline editor providers; the inspector
+panels still use the local language services. The
 [third-party record](../../../THIRD-PARTY.md#browser-editor-assets) owns the
 selected upstream terms and intended distribution.
 

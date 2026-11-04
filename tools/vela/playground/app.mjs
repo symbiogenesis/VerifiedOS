@@ -99,8 +99,8 @@ public Nat Count(bool selected)
         expression: "Total()", valueType: "Nat",
         source: `module NamedArguments;
 
-/// Natural literals accept decimal, binary and hexadecimal separators.
-public const Nat Base = 0x1_0;
+/// Decimal natural literals accept separators for readability.
+public const Nat Base = 1_000;
 
 /// Parameter names document each value at a call site.
 public Nat Combine(Nat left, Nat right) => left + right;
@@ -108,8 +108,8 @@ public Nat Combine(Nat left, Nat right) => left + right;
 /// Named arguments and documented functions share ordinary compiler facts.
 public Nat Total()
 {
-    let Nat amount = Combine(right: 0b1_000, left: Base);
-    return amount + 1_000;
+    let Nat amount = Combine(left: Base, right: 8);
+    return amount + 16;
 }
 `,
     },
@@ -728,7 +728,7 @@ async function loadEditor() {
         $("editor").hidden = true;
         $("source-fallback").hidden = false;
         $("source-fallback").value = state.text;
-        $("editor-notice").textContent = "Plain-text mode: Monaco could not load from the CDN. Compile, format and evaluate are available; highlighting and editor navigation need the code editor.";
+        $("editor-notice").textContent = "Plain-text mode: Monaco could not load from the CDN. Compile, format, evaluate, authoring checks and symbol inspection are available; inline editor features need Monaco.";
         $("editor-notice").hidden = false;
     }
 }
