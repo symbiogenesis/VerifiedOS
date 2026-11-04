@@ -408,7 +408,7 @@ function replaceBuffer(text, source) {
         state.editor.executeEdits(source, [{ range: state.model.getFullModelRange(), text }]);
         state.editor.pushUndoStop();
     } else setSource(text);
-    state.undoSource = { before, after: text };
+    state.undoSource = { before, after: state.text };
     $("undo-buffer").disabled = false;
 }
 
