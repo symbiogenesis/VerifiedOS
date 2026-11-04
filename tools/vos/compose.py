@@ -123,7 +123,7 @@ def _dictionary(dictionary: dict[int, int] | None, width: int) -> dict[int, int]
     if dictionary is None:
         return {}
     if not isinstance(dictionary, dict):
-        raise ValueError("dictionary must map canonical words to integer indices")
+        raise TypeError("dictionary must map canonical words to integer indices")
     for word, index in dictionary.items():
         if type(word) is not int or not 0 <= word < 1 << CANONICAL_BITS:
             raise ValueError("dictionary key must be an unsigned 32-bit instruction word")

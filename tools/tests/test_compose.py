@@ -181,7 +181,7 @@ def _invalid_dictionaries_are_refused() -> None:
     ):
         try:
             compose.compose([], b"", dictionary=cast("dict[int, int]", dictionary))
-        except ValueError as error:
+        except (TypeError, ValueError) as error:
             ensure(message in str(error), f"unhelpful dictionary diagnostic: {error}")
         else:
             raise AssertionError(f"invalid dictionary was accepted: {dictionary!r}")
