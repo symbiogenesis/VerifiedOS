@@ -147,10 +147,10 @@ int main(void)
     return 3;
   }
   vos_exec_start(&e);
-  vos_exec_advance(&desc.frame, &e);
-  vos_exec_advance(&desc.frame, &e);
-  vos_exec_advance(&desc.frame, &e);
-  if (e.frame_index != 1u || vos_exec_release(&desc.frame, &e) != 200u) {
+  uint64_t release;
+  if (!vos_exec_advance(&desc.frame, &e) || !vos_exec_advance(&desc.frame, &e) ||
+      !vos_exec_advance(&desc.frame, &e) || e.frame_index != 1u ||
+      !vos_exec_release(&desc.frame, &e, &release) || release != 200u) {
     return 4;
   }
   /* Register 0 stays the null slot; every other slot holds a capability to its

@@ -162,6 +162,7 @@ def consumer_source(compiled: str, init_magic: int,
     lines += [*_address(19, "dispatch_count"), "    ld x5, 0(c19)",
               f"    li x6, {SLOTS}", "    beq x5, x6, kernel_complete"]
     lines += [*_address(10, "target_state"), "    call vos_target_advance",
+              "    li x3, 22", "    beqz x10, kernel_fail",
               "    cspecialrw c18, mtdc, cnull", "kernel_select:"]
     lines += [*_address(10, "target_state"), "    call vos_target_tenant",
               "    cspecialrw c18, mtdc, cnull", "    li x3, 10",
@@ -217,11 +218,12 @@ def consumer_source(compiled: str, init_magic: int,
               "target_switch_return:", "    cspecialrw c18, mtdc, cnull"]
     lines += [*_address(19, "saved_entry"), "    lc c20, 0(c19)"]
     lines += [*_address(19, "restore_context"), "    sc c20, 256(c19)"]
-    lines += [*_address(10, "target_state"), "    call vos_target_release",
+    lines += [*_address(19, "timer_epoch"), "    ld x11, 0(c19)",
+              *_address(10, "target_state"), f"    li x12, {SLOT_WIDTH}",
+              *_address(13, "timer_deadline"), "    call vos_target_release",
+              "    li x3, 22", "    beqz x10, kernel_fail",
               "    cspecialrw c18, mtdc, cnull"]
-    lines += [*_address(19, "timer_epoch"), "    ld x5, 0(c19)",
-              "    add x6, x5, x10", f"    li x5, {SLOT_WIDTH}",
-              "    add x6, x6, x5"]
+    lines += [*_address(19, "timer_deadline"), "    ld x6, 0(c19)"]
     lines += [*_address(19, "root_handle"), "    lc c19, 0(c19)",
               "    lc c20, 8(c19)", "    sd x6, 0(c20)"]
     lines += [*_address(19, "dispatch_count"), "    ld x5, 0(c19)",
@@ -239,7 +241,8 @@ def consumer_source(compiled: str, init_magic: int,
                   f"{name}_end:"]
     lines += [".data", ".align 13", "kdata_base:", "tohost:", "    .dword 0",
               "root_handle:", "    .dword 0",
-              "timer_epoch:", "    .dword 0", "dispatch_count:", "    .dword 0",
+              "timer_epoch:", "    .dword 0", "timer_deadline:", "    .dword 0",
+              "dispatch_count:", "    .dword 0",
               "saved_entry:", "    .dword 0", "saved_data:", "    .dword 0",
               "selected_context:", "    .dword 0", ".align 6", "retired_object:",
               f"    .space {RETIRED_BYTES}", "retired_object_end:",

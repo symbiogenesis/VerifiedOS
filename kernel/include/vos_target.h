@@ -26,8 +26,11 @@ int vos_target_prepare(const uint8_t *boot, const uint8_t *init,
                        struct vos_target_state *state, size_t state_bytes,
                        uint64_t composition, uint64_t hart);
 uint32_t vos_target_tenant(const struct vos_target_state *state);
-uint64_t vos_target_release(const struct vos_target_state *state);
-void vos_target_advance(struct vos_target_state *state);
+/* Deadline includes the sampled timer epoch and duration. Refusal leaves the
+ * output untouched; assembly must check success before programming the timer. */
+int vos_target_release(const struct vos_target_state *state, uint64_t epoch,
+                         uint64_t duration, uint64_t *deadline);
+int vos_target_advance(struct vos_target_state *state);
 void vos_target_switch(const struct vos_target_state *state,
                        const struct vos_context *successor,
                        const struct vos_context *previous,
