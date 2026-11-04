@@ -11,7 +11,7 @@ public const Nat Base = 2;
 /// Compares the cubed input using the selected branch.
 public bool Choose(bool flag, Nat x)
 {
-    let y = Cube(x: x + 1,);
+    let Nat y = Cube(x: x + 1,);
     if (flag == true)
     {
         const Nat limit = Cube(x: Base) + 1;

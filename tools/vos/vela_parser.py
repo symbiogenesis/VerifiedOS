@@ -394,9 +394,41 @@ def _constant_callable_fixture(compiled: Build) -> str:
     return "compositional-constant-function-and-parameter-roles"
 
 
+def _typed_local_fixture(compiled: Build) -> str:
+    source = (b"// caf\xc3\xa9\r\nmodule Typed;\r\npublic Nat F() { "
+              b"let inferred = 1; let Nat annotated = inferred; "
+              b"Nat bare = annotated; let bool ready = true; bool selected = ready; return bare; }")
+    parsed = parse_source(compiled, source)
+    tree = _object(parsed.get("ast"), "typed local file")
+    declarations = tree.get("declarations")
+    if not isinstance(declarations, list) or len(declarations) != 1:
+        raise ValueError("typed local fixture changed pure declaration boundaries")
+    function = _object(declarations[0], "typed local function")
+    bindings = _object(function.get("body"), "typed local block").get("bindings")
+    if not isinstance(bindings, list) or len(bindings) != 5:
+        raise ValueError("typed local syntax lost an immutable binding")
+    for binding, kind, type_name, spelling in zip(bindings,
+            ("let", "let", "typed_local", "let", "typed_local"),
+            (None, "Nat", "Nat", "bool", "bool"),
+            (b"let inferred = 1;", b"let Nat annotated = inferred;", b"Nat bare = annotated;",
+             b"let bool ready = true;", b"bool selected = ready;"), strict=True):
+        node = _object(binding, "typed local binding")
+        start = source.index(spelling)
+        if node.get("kind") != kind or node.get("span") != [start, start + len(spelling)]:
+            raise ValueError("typed local kind or original UTF-8 byte span differs")
+        if type_name is None:
+            if "type" in node:
+                raise ValueError("unannotated pure let acquired a fabricated annotation")
+        elif _object(node.get("type"), "pure local annotation").get("name") != type_name:
+            raise ValueError("pure local annotation changed its scalar type")
+    # Mismatched types are valid syntax for the existing semantic consumer.
+    parse_source(compiled, b"module M; public Nat F() { let bool wrong = 1; return wrong; }")
+    return "typed-immutable-locals-and-original-byte-spans"
+
+
 def _fixtures(compiled: Build) -> list[str]:
     """Expected trees selected by the independent grammar reviewer."""
-    passed: list[str] = [_concise_fixture(compiled), _constant_callable_fixture(compiled)]
+    passed: list[str] = [_concise_fixture(compiled), _constant_callable_fixture(compiled), _typed_local_fixture(compiled)]
     prefix = b"module M; public Nat F() { return "
     expressions: tuple[tuple[bytes, Json], ...] = (
         (b"1 + 2 * 3", ["+", ["nat", "1"], ["*", ["nat", "2"], ["nat", "3"]]]),

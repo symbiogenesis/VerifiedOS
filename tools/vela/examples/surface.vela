@@ -27,7 +27,7 @@ public void Fill<ghost Nat count>(ref Span<byte, count> target, byte value)
     effects writes(target)
     ensures target.Model == Seq.Repeat(value, count)
 {
-    foreach (let index in 0usize..target.Length)
+    foreach (let index in 0..target.Length)
         invariant target.Model.Take(Nat(index)) == Seq.Repeat(value, Nat(index))
     {
         target[index] = value;
@@ -35,6 +35,30 @@ public void Fill<ghost Nat count>(ref Span<byte, count> target, byte value)
         {
             ?extend;
         }
+    }
+}
+
+// Collection loops preserve explicit value and element-loan modes.
+public void Visit(ref Span<byte> target, in Span<byte> source)
+    effects reads(source), writes(target)
+{
+    foreach (let byte value in source)
+        invariant Valid(source)
+    {
+        let byte observed = value;
+        Inspect(observed);
+        continue;
+    }
+    foreach (in item in source)
+        invariant Valid(source)
+    {
+        Inspect(in item);
+        break;
+    }
+    foreach (ref byte item in target)
+        invariant Valid(target)
+    {
+        Update(ref item);
     }
 }
 
@@ -100,7 +124,7 @@ public Unit ForwardPair<ghost Nat n>((owned Packet<n>, tracked Permit<n>) pair)
 }
 
 // Higher-order libraries accept the same operator values as grade dictionaries.
-public definition Nat SumValues(Seq<Nat> values) = Fold((+), 0, values);
+public definition Nat SumValues(Seq<Nat> values) => Fold((+), 0, values);
 
 // Constructor elimination reuses the patterns of matches and pattern tests.
 public Unit ConsumeReady<ghost Nat n>(Initialization<n> outcome)
@@ -182,10 +206,10 @@ public alias ScopedUpdate<T, captures C> =
         };
 
 // A dependent match names its scrutinee in the result type before eliminating it.
-public definition owned Buffer<T, packet.Length> TakeStorage<T>(owned Sized<T> packet) =
+public definition owned Buffer<T, packet.Length> TakeStorage<T>(owned Sized<T> packet) =>
     match (packet) as whole : owned Buffer<T, whole.Length>
     {
-        case Sized(length, storage, evidence) => move storage;
+        Sized(length, storage, evidence) => move storage,
     };
 
 public Result<ref<'workspace.bytes> byte, Error> ForwardSlot(ref Workspace workspace)
@@ -195,8 +219,8 @@ public Result<ref<'workspace.bytes> byte, Error> ForwardSlot(ref Workspace works
 {
     return match (workspace.TryFirst())
     {
-        case Ok(slot) => Ok(slot);
-        case Err(error) => Err(error);
+        Ok(slot) => Ok(slot),
+        Err(error) => Err(error),
     };
 }
 
@@ -243,27 +267,27 @@ public Nat ForwardChoice()
 universe u;
 public definition Type<u> RepeatedType<T : Type<u>>(bool repeated)
     where Repeatable(T)
-    = match (repeated) as choice : Type<u>
+    => match (repeated) as choice : Type<u>
     {
-        case true => type (T, T);
-        case false => type T;
+        true => type (T, T),
+        false => type T,
     };
 
 // Type-valued library functions can supply types throughout the same surface.
 public alias Repeated<T : Type<u>, ghost bool repeated>
     where Repeatable(T)
-    = type[RepeatedType::<T>(repeated)];
+    = type[RepeatedType<T>(repeated)];
 
-public operation type[RepeatedType::<T>(repeated)] Repeat<T : Type<u>>(
+public operation type[RepeatedType<T>(repeated)] Repeat<T : Type<u>>(
     bool repeated, T value @ NatExact(1))
     where Repeatable(T);
 
 public void UseRepeated<T : Type<u>>(bool repeated, T source)
     where Repeatable(T)
 {
-    type[RepeatedType::<T>(repeated)] selected @ NatExact(1) = Repeat(repeated, source);
-    let identity = (type[RepeatedType::<T>(repeated)] value @ NatExact(1)) => value;
-    Box<type[RepeatedType::<T>(repeated)], (NatExact(1))> boxed = Box(identity(selected));
+    let type[RepeatedType<T>(repeated)] selected @ NatExact(1) = Repeat(repeated, source);
+    let identity = (type[RepeatedType<T>(repeated)] value @ NatExact(1)) => value;
+    let Box<type[RepeatedType<T>(repeated)], (NatExact(1))> boxed = Box(identity(selected));
     Consume(move boxed);
 }
 
@@ -271,17 +295,17 @@ public void UseRepeated<T : Type<u>>(bool repeated, T source)
 public inductive Never
 {
 }
-public definition T Absurd<T>(Never impossible) =
+public definition T Absurd<T>(Never impossible) =>
     match (impossible) as whole : T
     {
     };
 
 // Literal discrimination composes with the same indexed-result match syntax.
-public definition Nat ClassifyCharacter(char value) = match (value)
+public definition Nat ClassifyCharacter(char value) => match (value)
 {
-    case 'a' => 1;
-    case '\n' => 2;
-    case _ => 0;
+    'a' => 1,
+    '\n' => 2,
+    _ => 0,
 };
 
 public trait ResourceFamily<T : Type<u>> where Representable(T)

@@ -52,14 +52,19 @@ let binary first last operator left right =
 %token LBRACKET RBRACKET DOT COLON AT QUESTION RANGE ARROW FATARROW IMPLIES IFF
 %token MINUS SLASH PERCENT LT GT GE NE AND OR NOT AMP BAR CARET TILDE
 %token PLUS_ASSIGN MINUS_ASSIGN STAR_ASSIGN SLASH_ASSIGN MOD_ASSIGN
-%token GENERIC_OPEN
+%token GENERIC_OPEN CALL_GENERIC_OPEN
 %token ANNOTATION_OPEN LAMBDA_OPEN
 %token <string * string> NUMBER
 %token <string> LIFETIME STRING CHARACTER HOLE ANNOTATION_NAME
 %start <Ast.node> file
 %start <Ast.node> surface_file
+%start <unit> generic_call_prefix
 
 %%
+
+/* Internal token-only prefix probe; the public entries still own complete files. */
+generic_call_prefix:
+  comma_nonempty_list(s_type_argument) GT s_open_paren { () }
 
 file:
   MODULE module_name=name SEMICOLON declarations=nonempty_list(pure_declaration) EOF
@@ -109,6 +114,12 @@ binding:
   LET binding_name=name EQUAL value=expression SEMICOLON
     { make "let" $startpos $endpos
         [("name", binding_name); ("value", value.syntax)] [value] }
+| LET annotation=value_type binding_name=name EQUAL value=expression SEMICOLON
+    { make "let" $startpos $endpos
+        [("name", binding_name); ("type", annotation.syntax); ("value", value.syntax)] [annotation; value] }
+| annotation=value_type binding_name=name EQUAL value=expression SEMICOLON
+    { make "typed_local" $startpos $endpos
+        [("name", binding_name); ("type", annotation.syntax); ("value", value.syntax)] [annotation; value] }
 | binding_name=name EQUAL value=expression SEMICOLON
     { make "reassignment" $startpos $endpos
         [("name", binding_name); ("value", value.syntax)] [value] }
@@ -252,7 +263,7 @@ s_decl:
     { make "proof_signature" $startpos $endpos [("name", proof_name)] [] }
 | UNIVERSE universe=s_identifier SEMICOLON
     { make "universe" $startpos $endpos [("name", universe)] [] }
-| DEFINITION header=s_callable_header contracts=list(s_contract) EQUAL value=s_expression SEMICOLON
+| DEFINITION header=s_callable_header contracts=list(s_contract) FATARROW value=s_expression SEMICOLON
     { let result, definition_name, generics, parameters = header in
       make "definition" $startpos $endpos [("name", definition_name); ("result", result.syntax);
         ("generics", array generics); ("parameters", array parameters); ("contracts", array contracts);
@@ -355,7 +366,9 @@ s_resumes:
   RESUMES LPAREN value=s_expression RPAREN { value }
 
 s_generics:
-  { [] } | LT values=comma_nonempty_list(s_generic_parameter) GT { values }
+  { [] } | s_generic_open values=comma_nonempty_list(s_generic_parameter) GT { values }
+%inline s_generic_open:
+  LT { () } | CALL_GENERIC_OPEN { () }
 s_generic_parameter:
   binder=s_generic_binder
     { let mode, generic_name, value_type = binder in
@@ -392,7 +405,7 @@ s_modified_type(base):
   OWNED { "owned" } | IN { "in" } | REF { "ref" } | OUT { "out" } | GHOST { "ghost" }
 | TRACKED { "tracked" } | SCOPED { "scoped" }
 s_loan_lifetime:
-  LT value=LIFETIME GT
+  s_generic_open value=LIFETIME GT
     { make "lifetime" $startpos $endpos [("name", name $startpos(value) $endpos(value) value)] [] }
 s_type_atom:
   value=s_named_type(s_path) { value }
@@ -428,7 +441,7 @@ s_capture_type:
 s_type_effects:
   EFFECTS s_open_paren effects=comma_list(s_type) RPAREN { effects }
 s_type_arguments:
-  { [] } | LT values=comma_nonempty_list(s_type_argument) GT { values }
+  { [] } | s_generic_open values=comma_nonempty_list(s_type_argument) GT { values }
 s_type_argument:
   value=s_generic_type { value }
 | value=s_operator_value { value }
@@ -491,9 +504,23 @@ s_simple_statement:
 | WHILE LPAREN condition=s_expression RPAREN contracts=list(s_contract) body=s_block
     { make "while" $startpos $endpos [("condition", condition.syntax); ("contracts", array contracts); ("body", body.syntax)]
         (condition :: body :: contracts) }
-| FOREACH LPAREN LET binding_name=s_identifier IN range=s_expression RPAREN contracts=list(s_contract) body=s_block
-    { make "foreach" $startpos $endpos [("name", binding_name); ("range", range.syntax);
-        ("contracts", array contracts); ("body", body.syntax)] (range :: body :: contracts) }
+| FOREACH LPAREN mode=s_iteration_mode binding=s_iteration_binding IN collection=s_expression RPAREN
+  contracts=list(s_contract) body=s_block
+    { let binding_name, annotation = binding in
+      let rec range = function
+        | Object fields -> (match List.assoc_opt "kind" fields with
+            | Some (String "range") -> true
+            | Some (String "group") -> (match List.assoc_opt "value" fields with
+                | Some value -> range value | None -> false)
+            | _ -> false)
+        | _ -> false in
+      if mode = "value" && annotation = None && range collection.syntax then
+        make "foreach" $startpos $endpos [("name", binding_name); ("range", collection.syntax);
+          ("contracts", array contracts); ("body", body.syntax)] (collection :: body :: contracts)
+      else make "foreach_collection" $startpos $endpos [("name", binding_name);
+        ("type", optional annotation); ("mode", String mode); ("collection", collection.syntax);
+        ("contracts", array contracts); ("body", body.syntax)]
+        (children annotation @ collection :: body :: contracts) }
 
 | kind=s_local_kind binding=s_local_initializer SEMICOLON
     { let suffix, fields, parts = binding in
@@ -528,6 +555,11 @@ s_annotation_type_atom:
 | value=s_computed_type { value }
 | value=s_function_type { value }
 | value=s_parenthesized_type(ANNOTATION_OPEN) { value }
+s_iteration_mode:
+  LET { "value" } | IN { "in" } | REF { "ref" }
+s_iteration_binding:
+  binding_name=s_identifier { binding_name, None }
+| annotation=s_type binding_name=s_identifier { binding_name, Some annotation }
 %inline s_proof_block_kind:
   PROOF { "proof" } | CALC { "calc" }
 s_annotation_path:
@@ -563,7 +595,7 @@ s_match_motive:
   AS scrutinee=s_identifier COLON value_type=s_type
     { make "match_motive" $startpos $endpos [("name", scrutinee); ("type", value_type.syntax)] [value_type] }
 s_match_expression_case:
-  CASE pattern=s_pattern FATARROW value=s_expression SEMICOLON
+  pattern=s_pattern FATARROW value=s_expression
     { make "expression_case" $startpos $endpos [("pattern", pattern.syntax); ("value", value.syntax)] [pattern; value] }
 /* Sharing the empty prefix avoids competing empty case-list reductions. Keep
    value elimination at the full-expression boundary, like lambdas/type values. */
@@ -720,10 +752,12 @@ s_postfix_with(opening):
     { make "member" $startpos $endpos [("value", value.syntax); ("name", member)] [value] }
 | value=s_postfix_with(opening) LBRACKET index=s_expression RBRACKET
     { make "index" $startpos $endpos [("value", value.syntax); ("index", index.syntax)] [value; index] }
-| value=s_postfix_with(opening) GENERIC_OPEN arguments=comma_nonempty_list(s_type_argument) GT
+| value=s_postfix_with(opening) s_expression_generic_open arguments=comma_nonempty_list(s_type_argument) GT
     { make "generic_application" $startpos $endpos [("value", value.syntax); ("arguments", array arguments)] (value :: arguments) }
 | value=s_postfix_with(opening) QUESTION
     { make "propagate" $startpos $endpos [("value", value.syntax)] [value] }
+%inline s_expression_generic_open:
+  GENERIC_OPEN { () } | CALL_GENERIC_OPEN { () }
 s_atom_with(opening):
   value=s_literal { value }
 | value=s_operator_value_with(opening) { value }
@@ -734,7 +768,7 @@ s_atom_with(opening):
 | opening first=s_expression COMMA rest=separated_nonempty_list(COMMA, s_expression) RPAREN
     { make "tuple" $startpos $endpos [("values", array (first :: rest))] (first :: rest) }
 | MATCH LPAREN value=s_expression RPAREN motive=option(s_match_motive)
-  LBRACE cases=nonempty_list(s_match_expression_case) RBRACE
+  LBRACE cases=comma_nonempty_list(s_match_expression_case) RBRACE
     { make "match_expression" $startpos $endpos [("value", value.syntax); ("motive", optional motive);
         ("cases", array cases)] (value :: children motive @ cases) }
 | kind=s_handle_kind shallow=option(SHALLOW) LPAREN value=s_expression RPAREN

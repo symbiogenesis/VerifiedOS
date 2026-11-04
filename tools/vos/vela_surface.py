@@ -24,14 +24,62 @@ class Fixture:
 
 
 POSITIVE: tuple[Fixture, ...] = (
+    Fixture("familiar-generic-calls-and-expression-arms", """// café: token shape fixes every generic application.
+module Familiar;
+import Vela.Numerics;
+alias Count = int;
+alias Qualified = Vela.Numerics.ulong;
+definition T Identity<T>(T value) => value;
+definition Nat Choose(Option<Nat> option) => match (option) {
+    Some(value) => Identity<Nat>(value), None() => 0,
+};
+void Calls() {
+    let genericSingle = Outer(F<A, B>(7));
+    let comparisons = Outer(F /* unsuccessful probe */ <
+        A, B > 7);
+    let ambiguous = f /* comment */ < n > (x);
+    let groupedComparison = (f < n) > x;
+    let memberCall = Library.F<List<T>, (a < b), 'input, type (T, U),>(x);
+    let computedCall = factory()<T>(x);
+    let explicitValue = Apply(Identity::<Nat>, value);
+    let explicitCall = Identity::<Nat>(value);
+    let nestedValue = Choose<(Identity<T>(value))>(x);
+    let typed = Build<type[Family<T>(true)]>(x);
+    let Box<type[Family<T>(true)]> annotated = value;
+    let callback = (Box<type[Family<T>(true)]> item) => item;
+}
+""", ("definition", "generic_application", "match_expression", "expression_case", "binary",
+      "member", "computed_type", "type_argument", "lifetime")),
+    Fixture("bounded-collection-iteration", """// café: modes, type annotations and range compatibility are syntax facts.
+module Iteration;
+void Visit(ref Span<byte> target, in Span<byte> source) {
+    foreach (let copied in source) { Inspect(copied); }
+    foreach (let byte typed in source) invariant Valid(source) { continue; }
+    foreach (in borrowed in source) { Inspect(in borrowed); break; }
+    foreach (in Core.Byte<byte> shared in source) { Inspect(in shared); }
+    foreach (ref selected in target) { Update(ref selected); }
+    foreach (ref Core.Byte<byte> exclusive in target)
+        invariant Valid(target) decreases Remaining(target)
+    {
+        foreach (let inner in source) { Inspect(inner); }
+        return;
+    }
+    foreach (let index in 0..target.Length) { continue; }
+    foreach (let grouped in ((0..target.Length))) { break; }
+    foreach (let usize explicitRange in 0..target.Length) {}
+    foreach (ref loanRange in 0..target.Length) {}
+    foreach (let invalidCopy in owners) { Consume(move invalidCopy); Consume(move invalidCopy); }
+    foreach (ref invalidLoan in sharedSource) { Escape(ref invalidLoan); }
+}
+""", ("foreach", "foreach_collection", "contract", "break", "continue", "return", "range", "unary")),
     Fixture("numeric-separator-values-patterns-and-indices", """// café: retain every authored digit and separator.
 module NumericSeparators;
 public const usize Capacity = 1_024usize;
-public definition Nat Scale(Nat count) = count + 1_000;
+public definition Nat Scale(Nat count) => count + 1_000;
 public alias Sized = Buffer<byte, 1_024>;
 public byte Classify(byte value) => match (value) {
-    case 0b1010_0011byte => 0xA_3u8;
-    case 0xFF_FFu16 => 1_0;
+    0b1010_0011byte => 0xA_3u8,
+    0xFF_FFu16 => 1_0,
 };
 """, ("constant", "definition", "alias", "nat", "nat_pattern", "match_expression")),
     Fixture("callable-list-boundaries", """module CallableLists;
@@ -85,9 +133,9 @@ public Nat OperatorContract() requires (+) => 0;
 public Nat ResumeContract() requires resume k(value) => 0;
 public void StructuralPatterns() {
     let eliminated = match (value) {
-        case () => 0;
-        case (left, right) => left;
-        case (Some(item)) => item;
+        () => 0,
+        (left, right) => left,
+        (Some(item)) => item,
     };
     Fn() -> usize effects(Choose) score = () => Score();
 }
@@ -141,10 +189,10 @@ public void Modes<region 'slot>(Nat value, in Nat read, ref Nat write,
     let words = "null ?? ?. out";
     // null ?? ?. out stay comment text.
 }
-definition Nat Consume(Option<Option<Nat>> choice) = match (choice) {
-    case Some(Some(n)) => n;
-    case Some(None()) => 0;
-    case None() => 0;
+definition Nat Consume(Option<Option<Nat>> choice) => match (choice) {
+    Some(Some(n)) => n,
+    Some(None()) => 0,
+    None() => 0,
 };
 """, ("modified_type", "unary", "let", "typed_local", "var", "lambda",
       "call", "match_expression", "constructor_pattern", "propagate", "hole", "string")),
@@ -189,17 +237,17 @@ public void Invalid(in Nat shared, ref Nat exclusive, out Nat output, owned Pack
     let uninitialized = output;
     return;
 }
-definition Nat Partial(Option<Nat> choice) = match (choice) {
-    case Some(value) => value;
+definition Nat Partial(Option<Nat> choice) => match (choice) {
+    Some(value) => value,
 };
 """, ("let", "typed_local", "assignment", "unary", "call", "match_expression")),
     Fixture("expression-local-bindings", """// café: expression bindings retain initializer and body scopes separately.
 module LocalExpressions;
 universe u;
-definition Type<u> Family<T : Type<u>>(bool pair) =
+definition Type<u> Family<T : Type<u>>(bool pair) =>
     let chosen = Select::<T>(pair) in chosen;
 alias Shared = type[let chosen = Family::<Nat>(true) in chosen];
-definition Type<u> Inject<T : Type<u>>(bool pair) =
+definition Type<u> Inject<T : Type<u>>(bool pair) =>
     let chosen = Select::<T>(pair) in type type[chosen];
 public Nat Read(scoped in<'source> Nat source)
     requires (let amount = Limit(source) in amount <= 10)
@@ -215,23 +263,23 @@ public Nat Read(scoped in<'source> Nat source)
     let projected = (let item = Build() in item).Value;
     let callback = (Nat input) => let doubled = input + input in doubled;
     let matched = match (ready) {
-        case Ready(loan) => let borrowed = in loan in Inspect(borrowed);
+        Ready(loan) => let borrowed = in loan in Inspect(borrowed),
     };
     return let outer = 1 in let inner = outer + 1 in inner;
 }
-definition Nat Shadow(Nat value) =
+definition Nat Shadow(Nat value) =>
     let value = value in let value = value + 1 in value;
-definition Fn(Nat value) -> Nat Callback() =
+definition Fn(Nat value) -> Nat Callback() =>
     Fn(Nat value) -> Nat with { requires (let valid = Valid(value) in valid); }
     => let copied = value in copied;
 """, ("let_expression", "let", "let_pattern", "computed_type", "type_expression", "contract",
       "constructor_pattern", "tuple_pattern", "lambda", "typed_lambda", "match_expression")),
     Fixture("expression-binding-errors-remain-syntax", """module InvalidExpressionBindings;
-definition T Duplicate(owned T owner) = let retained = move owner in (owner, retained);
-definition T Missing() = let value = value in value;
-definition T Refutable() = let Some(value) = None() in value;
-definition T Dropped(tracked T token) = let value @ 0 = Effectful(move token) in ();
-definition in<'local> T Escape() = let owner = Local() in in owner;
+definition T Duplicate(owned T owner) => let retained = move owner in (owner, retained);
+definition T Missing() => let value = value in value;
+definition T Refutable() => let Some(value) = None() in value;
+definition T Dropped(tracked T token) => let value @ 0 = Effectful(move token) in ();
+definition in<'local> T Escape() => let owner = Local() in in owner;
 """, ("let_expression", "let_pattern", "modified_type", "unary", "tuple", "unit")),
     Fixture("shared-syntax-primitives", """// café: shared forms preserve byte spans and syntax roles.
 module SyntaxPrimitives;
@@ -251,12 +299,12 @@ public void Compose() {
         case false: return;
     }
 }
-definition bool Nested() = forall (Nat outer) => exists (Nat inner) => outer == inner;
+definition bool Nested() => forall (Nat outer) => exists (Nat inner) => outer == inner;
 """, ("tuple_type", "type", "group_type", "typed_local", "lambda", "quantifier",
       "nat", "string", "character", "bool", "nat_pattern", "string_pattern", "character_pattern", "bool_pattern")),
-    Fixture("shared-operator-values", """// caf\u00e9: operators retain symbol and expression spans independently.
+    Fixture("shared-operator-values", """// café: operators retain symbol and expression spans independently.
 module SharedOperators;
-definition Fn(Nat x, Nat y) -> Nat Addition() = (+);
+definition Fn(Nat x, Nat y) -> Nat Addition() => (+);
 alias Computed = type[Family((+))];
 public Nat Use(Nat left, Nat right) requires Law((+)) {
     let all = ((+), (-), (*), (/), (%), (<), (<=), (>), (>=), (==), (!=),
@@ -282,18 +330,18 @@ domain Arithmetic {
 }
 """, ("operator", "function_type", "computed_type", "tuple", "member", "generic_application", "lambda", "domain")),
     Fixture("shared-operator-precedence", """module OperatorPrecedence;
-definition Nat Ladder() = 1 ==> 2 <==> 3 || 4 && 5 == 6..7 | 8 ^ 9 & 10 + 11 * 12;
-definition Nat Additive() = 20 - 6 + 2;
-definition Nat Multiplicative() = 24 / 4 % 3 * 2;
-definition Nat Disjunction() = 1 || 2 || 3;
-definition Nat Conjunction() = 1 && 2 && 3;
-definition Nat BitOr() = 1 | 2 | 3;
-definition Nat BitXor() = 1 ^ 2 ^ 3;
-definition Nat BitAnd() = 1 & 2 & 3;
-definition Nat Implication() = 1 ==> 2 ==> 3;
-definition Nat Equivalence() = 1 <==> 2 <==> 3;
-definition Nat Prefixes() = !~-1;
-definition Nat Grouping() = (-1) + (2 + 3);
+definition Nat Ladder() => 1 ==> 2 <==> 3 || 4 && 5 == 6..7 | 8 ^ 9 & 10 + 11 * 12;
+definition Nat Additive() => 20 - 6 + 2;
+definition Nat Multiplicative() => 24 / 4 % 3 * 2;
+definition Nat Disjunction() => 1 || 2 || 3;
+definition Nat Conjunction() => 1 && 2 && 3;
+definition Nat BitOr() => 1 | 2 | 3;
+definition Nat BitXor() => 1 ^ 2 ^ 3;
+definition Nat BitAnd() => 1 & 2 & 3;
+definition Nat Implication() => 1 ==> 2 ==> 3;
+definition Nat Equivalence() => 1 <==> 2 <==> 3;
+definition Nat Prefixes() => !~-1;
+definition Nat Grouping() => (-1) + (2 + 3);
 """, ("binary", "range", "unary", "group")),
     Fixture("recursive-local-patterns", """// caf\u00e9: constructors and groups retain distinct pattern roles.
 module LocalPatterns;
@@ -331,10 +379,10 @@ universe u;
 alias Selected<ghost bool choose> = type[ChooseType(choose)];
 alias Wrapped = Box<type[PayloadType(true)]>;
 alias Structural = (owned type[OwnerType()], tracked type[ReceiptType()]);
-definition Type<u> Reinject() = type type[ReifiedType()];
+definition Type<u> Reinject() => type type[ReifiedType()];
 alias Conditional = type[match (flag) {
-    case true => type owned Packet;
-    case false => type Unit;
+    true => type owned Packet,
+    false => type Unit,
 }];
 trait Family<T : type[KindOf()]> {
     type Item : type[UniverseOf(T)] = type[MemberType(T)];
@@ -347,8 +395,8 @@ public type[ResultType(value)] Select(type[InputType()] value) {
     let typed = Fn(type[CallbackInput()] selected) -> type[OutputType(selected)]
         with { restores Closed(selected); } => selected;
     Box<type[GenericType(value)]> boxed = source;
-    Box<type[match (flag) { case true => type Nat; case false => type bool; }]> choiceBox = source;
-    let nestedCallback = (Box<type[match (callbackFlag) { case true => type Nat; case false => type bool; }]> item) => item;
+    Box<type[match (flag) { true => type Nat, false => type bool, }]> choiceBox = source;
+    let nestedCallback = (Box<type[match (callbackFlag) { true => type Nat, false => type bool, }]> item) => item;
     let generic = Apply::<type[CallType(value)]>(local);
     return local;
 }
@@ -375,15 +423,15 @@ effect PlainEffect { Nat Read(); }
 """, ("alias", "effect", "contract", "effects", "function_type", "effect_operation", "range")),
     Fixture("literal-patterns-and-dependent-branches", r"""// café: patterns preserve literal spelling rather than decoding it.
 module LiteralPatterns;
-definition Nat Classify(char marker) = match (marker) as token : Nat {
-    case 'x' => 1;
-    case '\n' => 2;
-    case _ => 3;
+definition Nat Classify(char marker) => match (marker) as token : Nat {
+    'x' => 1,
+    '\n' => 2,
+    _ => 3,
 };
-definition Nat Parse(Text text) = match (text) {
-    case "ready" => 4;
-    case "// {\"}" => 5;
-    case _ => 6;
+definition Nat Parse(Text text) => match (text) {
+    "ready" => 4,
+    "// {\"}" => 5,
+    _ => 6,
 };
 public void Inspect(Text text) {
     match (text) {
@@ -396,7 +444,7 @@ public void Inspect(Text text) {
     Fixture("empty-dependent-elimination", """// café: expression and statement eliminators keep distinct roles.
 module EmptyElimination;
 inductive Never {}
-definition T Absurd<T>(Never impossible) = match (impossible) as whole : T {};
+definition T Absurd<T>(Never impossible) => match (impossible) as whole : T {};
 alias EmptyFamily<ghost Never empty> = type[match (empty) as witness : Type<u> {}];
 public T Eliminate<T>(Never absent) { return match (absent) {}; }
 public void Use(Never missing, Never last) {
@@ -413,7 +461,7 @@ public void Use(Never missing, Never last) {
     Fixture("family-type-errors-remain-syntax", """module InvalidFamilies;
 alias Invalid where false = type[17];
 effect Impossible<grade q : NatExact> where false { tracked Permit Read() ensures false; }
-definition Type<u> Erased(ghost bool erased) = type type[RuntimeRead(erased)];
+definition Type<u> Erased(ghost bool erased) => type type[RuntimeRead(erased)];
 public async void Invalid(ref Buffer buffer, tracked Permit permit) {
     type[buffer.CurrentType()] stale = move permit;
     buffer.Replace(replacement);
@@ -475,7 +523,7 @@ domain Legacy {
     admits (==); interpret Use.Exact; laws ExactLaws;
 }
 alias Associated = Library.NatExact.carrier;
-definition NatExact.carrier AddZero(NatExact.carrier value) = NatExact.add(value, NatExact.zero);
+definition NatExact.carrier AddZero(NatExact.carrier value) => NatExact.add(value, NatExact.zero);
 public void Inspect<grade q : NatExact>() {
     NatExact.carrier selected @ q = NatExact.one;
     let identity = (NatExact.carrier operand) => operand;
@@ -543,14 +591,14 @@ trait Family<T : Type<u>> {
     Fixture("type-valued-dependent-matches", """// café: structural types stay inside explicit type expressions.
 module TypeFamilies;
 universe u;
-definition Type<u> LoanType<T : Type<u>>(bool exclusive) where Stable(T) =
+definition Type<u> LoanType<T : Type<u>>(bool exclusive) where Stable(T) =>
     match (exclusive) as mode : Type<u> {
-        case true => type ref T;
-        case false => type in T;
+        true => type ref T,
+        false => type in T,
     };
-definition Type<u> Product<T>() = type (owned T, tracked Receipt);
-definition Type<u> UnitType() = type Unit;
-definition Type<u> Callback<T>() = type (Fn<region 'local>(
+definition Type<u> Product<T>() => type (owned T, tracked Receipt);
+definition Type<u> UnitType() => type Unit;
+definition Type<u> Callback<T>() => type (Fn<region 'local>(
     scoped ref<'local> T value @ NatExact(1)) -> Unit
     with { restores Valid(value); });
 public void Inspect() { Compare((type Nat), (type bool)); }
@@ -582,7 +630,7 @@ public void Use<T : Type<u>, captures C, grade q : NatExact>(in Cell<T> cell) {
     let consume = FnOnce(owned T item @ NatExact(1)) -> T
         with { ensures Returned(result); } => move item;
     let classify = Fn(bool flag) -> Type<u> =>
-        match (flag) { case true => type T; case false => type Unit; };
+        match (flag) { true => type T, false => type Unit, };
 }
 """, ("typed_lambda", "function_type", "modified_type", "contract", "type_expression", "match_expression")),
     Fixture("typed-callable-expression-composition", """// café: explicit signatures compose wherever values occur.
@@ -612,9 +660,9 @@ coinductive Stream<T> where Guarded(T) {
     More(T head, Stream<T> tail) : Stream<T> ensures Productive(result);
 }
 definition Nat Count<T>(in Outcome<T> value) requires Available(value)
-    ensures Stable(result) = 0;
+    ensures Stable(result) => 0;
 union Legacy { Done(); }
-definition Nat Zero() = 0;
+definition Nat Zero() => 0;
 """, ("union", "inductive", "coinductive", "constructor", "contract", "definition")),
     Fixture("stable-literal-generic-arguments", """// café: generic literal spelling is not normalized.
 module StableArguments;
@@ -626,8 +674,8 @@ public void Use() { Select::<true, "tag", 'z', ?choice>(value); }
     Fixture("typed-resource-errors-remain-syntax", """module InvalidTypedResources;
 universe u;
 alias NonType<T : Nat> = T;
-definition Type<u> ErasedChoice(ghost bool flag) =
-    match (flag) { case true => type Packet; case false => type Unit; };
+definition Type<u> ErasedChoice(ghost bool flag) =>
+    match (flag) { true => type Packet, false => type Unit, };
 public async void Invalid(owned Packet packet, tracked Receipt receipt) {
     let duplicate = Fn(owned Packet p @ NatExact(0)) -> (Packet, Packet)
         => (move p, move p);
@@ -732,7 +780,7 @@ public Nat Escape(ref BorrowCell<byte> cell) {
 module Elimination;
 public Vec<byte, packet.Length> Unpack(owned Packed packet) {
     return match (move packet) as packed : Vec<byte, packed.Length> {
-        case Packed(count, bytes) => bytes;
+        Packed(count, bytes) => bytes,
     };
 }
 public Nat Inspect(owned Selection selected) {
@@ -743,14 +791,14 @@ public Nat Inspect(owned Selection selected) {
 }
 public Nat Nested(bool flag) {
     return 2 + match (flag) {
-        case true => match (other) { case false => 3; case true => 4; };
-        case false => 5;
+        true => match (other) { false => 3, true => 4, },
+        false => 5,
     } * 3;
 }
 public Result<ref<'workspace.bytes> byte, Error> Borrow(ref Workspace workspace) {
     return Wrap(match (Find(ref workspace)) as outcome : LoanResult<outcome> {
-        case Ok(selected) => Ok(selected);
-        case Err(error) => Err(error);
+        Ok(selected) => Ok(selected),
+        Err(error) => Err(error),
     });
 }
 """, ("match_expression", "expression_case", "match_motive", "match", "case", "modified_type")),
@@ -787,11 +835,11 @@ alias Plain = Fn(byte) -> byte;
     Fixture("dependent-elimination-errors-remain-syntax", """module InvalidElimination;
 public async Nat Bad(ref BorrowCell<byte> cell, tracked Permit permit) {
     let incompatible = match (cell.TryWrite()) as observed : Bytes<observed.Length> {
-        case Acquired(writer, debt) => (move permit, move permit);
-        case BorrowConflict() => 0;
+        Acquired(writer, debt) => (move permit, move permit),
+        BorrowConflict() => 0,
     };
     let escaping = match (incompatible) as erased : Never<missing> {
-        case _ => (scoped ref byte loan) => { await Ready(); return loan; };
+        _ => (scoped ref byte loan) => { await Ready(); return loan; },
     };
     return escaping;
 }
@@ -1141,8 +1189,8 @@ public async Result Serve(ref Frames frames, owned Packet packet) {
 """, ("function", "scope", "match", "unary", "return")),
     Fixture("mathematical-definitions-and-proofs", """module Mathematics;
 universe u;
-public definition Nat Twice(Nat x) = x + x;
-public definition Type<u> Identity<T>(T value) = T;
+public definition Nat Twice(Nat x) => x + x;
+public definition Type<u> Identity<T>(T value) => T;
 public inductive Natural { Zero(); Succ(Natural predecessor); }
 public inductive Vec<T, ghost Nat n> {
     Nil() : Vec<T, 0>;
@@ -1198,8 +1246,8 @@ public Nat Scale(const Nat factor, Nat value) {
 }
 const internal Nat Hidden(Nat value) => Square(value);
 alias StaticMap = Fn(const Nat dimension, Nat item) -> Nat;
-definition StaticMap Build() = (const Nat coefficient, Nat element) => coefficient * element;
-definition StaticMap Explicit() = Fn(const Nat axis, Nat entry) -> Nat => axis * entry;
+definition StaticMap Build() => (const Nat coefficient, Nat element) => coefficient * element;
+definition StaticMap Explicit() => Fn(const Nat axis, Nat entry) -> Nat => axis * entry;
 interface StaticProvider {
     public const Nat Select(const Nat selector);
 }
@@ -1236,6 +1284,21 @@ public UnknownType F() { return missing; }
 
 
 NEGATIVE: tuple[tuple[str, bytes, str], ...] = (
+    ("legacy-definition-body", b"module M; definition Nat F() = 0;", "syntax"),
+    ("combined-definition-bodies", b"module M; definition Nat F() = => 0;", "syntax"),
+    ("legacy-expression-arms", b"module M; Nat F() => match (x) { case _ => 0; };", "syntax"),
+    ("expression-arm-semicolons", b"module M; Nat F() => match (x) { _ => 0; };", "syntax"),
+    ("expression-arms-empty-comma", b"module M; Nat F() => match (x) { , };", "syntax"),
+    ("expression-arms-double-comma", b"module M; Nat F() => match (x) { _ => 0,, };", "syntax"),
+    ("selected-generic-call-incomplete", b"module M; Nat F() => f<T>(;", "syntax"),
+    ("collection-missing-binder", b"module M; void F() { foreach (let in values) {} }", "syntax"),
+    ("collection-missing-in", b"module M; void F() { foreach (let item values) {} }", "syntax"),
+    ("collection-missing-source", b"module M; void F() { foreach (in item in) {} }", "syntax"),
+    ("collection-out-binder", b"module M; void F() { foreach (out item in values) {} }", "syntax"),
+    ("collection-move-binder", b"module M; void F() { foreach (move item in values) {} }", "syntax"),
+    ("collection-var-binder", b"module M; void F() { foreach (var item in values) {} }", "syntax"),
+    ("collection-incomplete-type", b"module M; void F() { foreach (ref Box<T item in values) {} }", "syntax"),
+    ("collection-unbraced-body", b"module M; void F() { foreach (let item in values) Consume(item); }", "syntax"),
     ("repeated-const-function", b"module M; public const const Nat F() => 1;", "syntax"),
     ("repeated-const-parameter", b"module M; Nat F(const const Nat value) => value;", "syntax"),
     ("repeated-const-lambda-parameter", b"module M; Nat F() => (const const Nat value) => value;", "syntax"),
@@ -1283,44 +1346,44 @@ NEGATIVE: tuple[tuple[str, bytes, str], ...] = (
     ("nullable-type", b"module M; alias A = Nat?;", "syntax"),
     ("nullable-parameter", b"module M; void F(Nat? value) {}", "syntax"),
     ("nullable-local", b"module M; void F() { let Nat? value = None(); }", "syntax"),
-    ("null-forgiving", b"module M; definition T F() = value!;", "syntax"),
-    ("null-coalescing", b"module M; definition T F() = value??other;", "syntax"),
-    ("null-conditional", b"module M; definition T F() = value?.Member;", "syntax"),
+    ("null-forgiving", b"module M; definition T F() => value!;", "syntax"),
+    ("null-coalescing", b"module M; definition T F() => value??other;", "syntax"),
+    ("null-conditional", b"module M; definition T F() => value?.Member;", "syntax"),
     ("pointer-declarator", b"module M; alias A = Nat*;", "syntax"),
     ("pointer-parameter-declarator", b"module M; void F(Nat* p) {}", "syntax"),
-    ("pointer-member-arrow", b"module M; definition T F() = p->Member;", "syntax"),
+    ("pointer-member-arrow", b"module M; definition T F() => p->Member;", "syntax"),
     ("out-missing-type", b"module M; void F(out) {}", "syntax"),
     ("out-missing-argument", b"module M; void F() { Apply(out); }", "syntax"),
     ("out-incomplete-lifetime", b"module M; void F(out<'slot Nat value) {}", "syntax"),
     ("out-incomplete-local", b"module M; void F() { let out Nat = value; }", "syntax"),
-    ("dereference-missing-operand", b"module M; definition T F() = *;", "syntax"),
-    ("address-missing-operand", b"module M; definition T F() = &;", "syntax"),
-    ("pointer-prefix-incomplete-group", b"module M; definition T F() = *(;", "syntax"),
-    ("out-prefix-depth", b"module M; definition T F() = " + b"out " * 257 + b"value;", "limit"),
-    ("pointer-prefix-depth", b"module M; definition T F() = " + b"*&" * 129 + b"value;", "limit"),
-    ("expression-binding-missing-name", b"module M; definition T F() = let = value in value;", "syntax"),
-    ("expression-binding-missing-initializer", b"module M; definition T F() = let value = in value;", "syntax"),
-    ("expression-binding-missing-delimiter", b"module M; definition T F() = let value = source value;", "syntax"),
-    ("expression-binding-missing-body", b"module M; definition T F() = let value = source in;", "syntax"),
-    ("expression-binding-statement-terminator", b"module M; definition T F() = let value = source; in value;", "syntax"),
-    ("expression-binding-mutable-keyword", b"module M; definition T F() = var value = source in value;", "syntax"),
-    ("expression-binding-missing-annotation-name", b"module M; definition T F() = let ref T = source in value;", "syntax"),
-    ("expression-binding-incomplete-grade", b"module M; definition T F() = let value @ = source in value;", "syntax"),
-    ("expression-binding-incomplete-pattern", b"module M; definition T F() = let Some(let) = source in value;", "syntax"),
-    ("expression-binding-pattern-grade", b"module M; definition T F() = let Some(x) @ q = source in x;", "syntax"),
-    ("expression-binding-body-depth", b"module M; definition T F() = " + b"let value = source in " * 257 + b"value;", "limit"),
-    ("expression-binding-initializer-depth", b"module M; definition T F() = " + b"let value = " * 257
+    ("dereference-missing-operand", b"module M; definition T F() => *;", "syntax"),
+    ("address-missing-operand", b"module M; definition T F() => &;", "syntax"),
+    ("pointer-prefix-incomplete-group", b"module M; definition T F() => *(;", "syntax"),
+    ("out-prefix-depth", b"module M; definition T F() => " + b"out " * 257 + b"value;", "limit"),
+    ("pointer-prefix-depth", b"module M; definition T F() => " + b"*&" * 129 + b"value;", "limit"),
+    ("expression-binding-missing-name", b"module M; definition T F() => let = value in value;", "syntax"),
+    ("expression-binding-missing-initializer", b"module M; definition T F() => let value = in value;", "syntax"),
+    ("expression-binding-missing-delimiter", b"module M; definition T F() => let value = source value;", "syntax"),
+    ("expression-binding-missing-body", b"module M; definition T F() => let value = source in;", "syntax"),
+    ("expression-binding-statement-terminator", b"module M; definition T F() => let value = source; in value;", "syntax"),
+    ("expression-binding-mutable-keyword", b"module M; definition T F() => var value = source in value;", "syntax"),
+    ("expression-binding-missing-annotation-name", b"module M; definition T F() => let ref T = source in value;", "syntax"),
+    ("expression-binding-incomplete-grade", b"module M; definition T F() => let value @ = source in value;", "syntax"),
+    ("expression-binding-incomplete-pattern", b"module M; definition T F() => let Some(let) = source in value;", "syntax"),
+    ("expression-binding-pattern-grade", b"module M; definition T F() => let Some(x) @ q = source in x;", "syntax"),
+    ("expression-binding-body-depth", b"module M; definition T F() => " + b"let value = source in " * 257 + b"value;", "limit"),
+    ("expression-binding-initializer-depth", b"module M; definition T F() => " + b"let value = " * 257
      + b"source" + b" in value" * 257 + b";", "limit"),
-    ("operator-value-missing-close", b"module M; definition T F() = (+;", "syntax"),
-    ("operator-value-mixed-symbols", b"module M; definition T F() = (+*);", "syntax"),
-    ("operator-value-plus-operand", b"module M; definition T F() = (+ 1);", "syntax"),
-    ("operator-value-assignment", b"module M; definition T F() = (=);", "syntax"),
-    ("operator-value-range", b"module M; definition T F() = (..);", "syntax"),
-    ("operator-value-propagation", b"module M; definition T F() = (?);", "syntax"),
-    ("operator-value-keyword", b"module M; definition T F() = (await);", "syntax"),
-    ("operator-generic-missing-close", b"module M; definition T F() = Apply::<(+>();", "syntax"),
-    ("operator-generic-doubled-comma", b"module M; definition T F() = Apply::<(+),,>();", "syntax"),
-    ("operator-group-depth", b"module M; definition T F() = " + b"(" * 257
+    ("operator-value-missing-close", b"module M; definition T F() => (+;", "syntax"),
+    ("operator-value-mixed-symbols", b"module M; definition T F() => (+*);", "syntax"),
+    ("operator-value-plus-operand", b"module M; definition T F() => (+ 1);", "syntax"),
+    ("operator-value-assignment", b"module M; definition T F() => (=);", "syntax"),
+    ("operator-value-range", b"module M; definition T F() => (..);", "syntax"),
+    ("operator-value-propagation", b"module M; definition T F() => (?);", "syntax"),
+    ("operator-value-keyword", b"module M; definition T F() => (await);", "syntax"),
+    ("operator-generic-missing-close", b"module M; definition T F() => Apply::<(+>();", "syntax"),
+    ("operator-generic-doubled-comma", b"module M; definition T F() => Apply::<(+),,>();", "syntax"),
+    ("operator-group-depth", b"module M; definition T F() => " + b"(" * 257
      + b"(+)" + b")" * 257 + b";", "limit"),
     ("local-constructor-incomplete-argument", b"module M; void F() { let Some(let) = value; }", "syntax"),
     ("local-constructor-doubled-comma", b"module M; void F() { var Some(x,,) = value; }", "syntax"),
@@ -1336,7 +1399,7 @@ NEGATIVE: tuple[tuple[str, bytes, str], ...] = (
      + b"value" + b")" * 257 + b" = source; }", "limit"),
     ("local-pattern-syntax-depth", b"module M; void F() { let " + b"Some((" * 126
      + b"value" + b"))" * 126 + b" = source; }", "limit"),
-    *((f"nonassociative-{name}", b"module M; definition T F() = 1 " + symbol
+    *((f"nonassociative-{name}", b"module M; definition T F() => 1 " + symbol
        + b" 2 " + symbol + b" 3;", "syntax")
       for name, symbol in (("equal", b"=="), ("unequal", b"!="), ("less", b"<"),
                            ("less-equal", b"<="), ("greater", b">"), ("greater-equal", b">="),
@@ -1355,15 +1418,15 @@ NEGATIVE: tuple[tuple[str, bytes, str], ...] = (
     ("effect-family-missing-law", b"module M; effect E<T> where { Nat Get(); }", "syntax"),
     ("effect-family-missing-invariant", b"module M; effect E invariant { Nat Get(); }", "syntax"),
     ("effect-family-law-semicolon", b"module M; effect E where Ready(); { Nat Get(); }", "syntax"),
-    ("literal-pattern-missing-arrow", b'module M; Nat F() { return match (x) { case "ready" 1; }; }', "syntax"),
-    ("literal-pattern-unterminated-string", b'module M; Nat F() { return match (x) { case "ready => 1; }; }', "syntax"),
+    ("literal-pattern-missing-arrow", b'module M; Nat F() { return match (x) { "ready" 1, }; }', "syntax"),
+    ("literal-pattern-unterminated-string", b'module M; Nat F() { return match (x) { "ready => 1, }; }', "syntax"),
     ("literal-pattern-empty-character", b"module M; void F() { match (x) { case '' : return; } }", "syntax"),
-    ("empty-match-missing-group-close", b"module M; definition T F() = (match (x) {};", "syntax"),
-    ("empty-match-missing-motive-name", b"module M; definition T F() = (match (x) as : T {});", "syntax"),
-    ("empty-match-missing-motive-type", b"module M; definition T F() = (match (x) as p : {});", "syntax"),
-    ("empty-match-missing-motive-colon", b"module M; definition T F() = (match (x) as p T {});", "syntax"),
-    ("empty-match-ungrouped-operator", b"module M; definition Nat F() = match (x) {} + 1;", "syntax"),
-    ("empty-match-ungrouped-postfix", b"module M; definition Nat F() = match (x) {}.Member();", "syntax"),
+    ("empty-match-missing-group-close", b"module M; definition T F() => (match (x) {};", "syntax"),
+    ("empty-match-missing-motive-name", b"module M; definition T F() => (match (x) as : T {});", "syntax"),
+    ("empty-match-missing-motive-type", b"module M; definition T F() => (match (x) as p : {});", "syntax"),
+    ("empty-match-missing-motive-colon", b"module M; definition T F() => (match (x) as p T {});", "syntax"),
+    ("empty-match-ungrouped-operator", b"module M; definition Nat F() => match (x) {} + 1;", "syntax"),
+    ("empty-match-ungrouped-postfix", b"module M; definition Nat F() => match (x) {}.Member();", "syntax"),
     ("local-inferred-missing-grade", b"module M; void F() { let value @ = Make(); }", "syntax"),
     ("local-var-missing-grade", b"module M; void F() { var Nat value @ = Make(); }", "syntax"),
     ("local-bare-missing-grade", b"module M; void F() { Nat value @ = Make(); }", "syntax"),
@@ -1376,7 +1439,7 @@ NEGATIVE: tuple[tuple[str, bytes, str], ...] = (
     ("domain-incomplete-law", b"module M; domain Product<A> where {}", "syntax"),
     ("domain-missing-carrier-member", b"module M; alias A = D.;", "syntax"),
     ("domain-member-without-value", b"module M; void F() { D.add(); let value = D.; }", "syntax"),
-    ("domain-role-remains-reserved", b"module M; definition Nat add() = 0;", "syntax"),
+    ("domain-role-remains-reserved", b"module M; definition Nat add() => 0;", "syntax"),
     ("domain-role-remains-reserved-value", b"module M; void F() { let value = zero; }", "syntax"),
     ("disposal-clause-missing-binder", b"module M; void F() { handle (Run()) { dispose => Cleanup(); }; }", "syntax"),
     ("disposal-clause-missing-arrow", b"module M; void F() { handle (Run()) { dispose reason Cleanup(reason), }; }", "syntax"),
@@ -1391,7 +1454,7 @@ NEGATIVE: tuple[tuple[str, bytes, str], ...] = (
      + b"{" * 257 + b"requires Ready();" + b"}" * 257 + b"> value = source; }", "limit"),
     ("ungrouped-callable-kind", b"module M; alias A<F : Fn() -> Nat> = F;", "syntax"),
     ("ungrouped-associated-callable-kind", b"module M; trait F { type A : Fn() -> Nat; }", "syntax"),
-    ("ungrouped-callable-type-expression", b"module M; definition Type<u> F() = type Fn() -> Nat;", "syntax"),
+    ("ungrouped-callable-type-expression", b"module M; definition Type<u> F() => type Fn() -> Nat;", "syntax"),
     ("typed-callable-statement-missing-body", b"module M; void F() { Fn() -> Nat =>; }", "syntax"),
     ("typed-callable-argument-missing-body", b"module M; void F() { Apply(Fn() -> Nat =>); }", "syntax"),
     ("typed-callable-return-missing-body", b"module M; void F() { let f = Fn() -> (Fn() -> Nat) =>; }", "syntax"),
@@ -1400,9 +1463,9 @@ NEGATIVE: tuple[tuple[str, bytes, str], ...] = (
     ("associated-missing-kind", b"module M; trait F { type Value :; }", "syntax"),
     ("associated-missing-law", b"module M; trait F { type Value : Type<u> where; }", "syntax"),
     ("associated-kind-after-law", b"module M; trait F { type Value where Stable(T) : Type<u>; }", "syntax"),
-    ("type-expression-missing-type", b"module M; definition Type<u> F() = type;", "syntax"),
-    ("type-expression-missing-component", b"module M; definition Type<u> F() = type (T,);", "syntax"),
-    ("type-expression-incomplete-callable", b"module M; definition Type<u> F() = type Fn(T) ->;", "syntax"),
+    ("type-expression-missing-type", b"module M; definition Type<u> F() => type;", "syntax"),
+    ("type-expression-missing-component", b"module M; definition Type<u> F() => type (T,);", "syntax"),
+    ("type-expression-incomplete-callable", b"module M; definition Type<u> F() => type Fn(T) ->;", "syntax"),
     ("typed-lambda-missing-result", b"module M; void F() { let f = Fn(T x) -> => x; }", "syntax"),
     ("typed-lambda-missing-arrow", b"module M; void F() { let f = Fn(T x) -> T x; }", "syntax"),
     ("typed-lambda-missing-body", b"module M; void F() { let f = FnOnce(T x) -> T =>; }", "syntax"),
@@ -1412,7 +1475,7 @@ NEGATIVE: tuple[tuple[str, bytes, str], ...] = (
     ("sum-missing-law", b"module M; union Result<T> where { Ok(T value); }", "syntax"),
     ("constructor-missing-law", b"module M; union Result { Ok() : Result ensures; }", "syntax"),
     ("constructor-result-after-law", b"module M; union Result { Ok() ensures Ready() : Result; }", "syntax"),
-    ("definition-missing-law", b"module M; definition Nat F() requires = 0;", "syntax"),
+    ("definition-missing-law", b"module M; definition Nat F() requires => 0;", "syntax"),
     ("predicate-missing-law", b"module M; predicate P(Nat n) where = true;", "syntax"),
     ("literal-generic-missing-neighbor", b"module M; alias A = Indexed<true,,>;", "syntax"),
     ("typed-callable-generic-depth", b"module M; void F() { let f = Fn<T : "
@@ -1431,16 +1494,16 @@ NEGATIVE: tuple[tuple[str, bytes, str], ...] = (
     ("shallow-missing-capability", b"module M; Nat F() { return handle shallow (Read()) as {}; }", "syntax"),
     ("rehandle-missing-capability", b"module M; Nat F() { return rehandle (resume k(0)) as {}; }", "syntax"),
     ("handler-double-capability", b"module M; Nat F() { return handle (Read()) as first as second {}; }", "syntax"),
-    ("missing-match-motive-binder", b"module M; public Nat F() { return match (x) as : Nat { case _ => 0; }; }", "syntax"),
-    ("missing-match-motive-colon", b"module M; public Nat F() { return match (x) as p Nat { case _ => 0; }; }", "syntax"),
-    ("missing-match-motive-type", b"module M; public Nat F() { return match (x) as p : { case _ => 0; }; }", "syntax"),
+    ("missing-match-motive-binder", b"module M; public Nat F() { return match (x) as : Nat { _ => 0, }; }", "syntax"),
+    ("missing-match-motive-colon", b"module M; public Nat F() { return match (x) as p Nat { _ => 0, }; }", "syntax"),
+    ("missing-match-motive-type", b"module M; public Nat F() { return match (x) as p : { _ => 0, }; }", "syntax"),
     ("empty-expression-match-missing-body", b"module M; public Nat F() { return match (x); }", "syntax"),
     ("expression-match-colon-arm", b"module M; public Nat F() { return match (x) { case _ : 0; }; }", "syntax"),
-    ("expression-match-mixed-arms", b"module M; public Nat F() { return match (x) { case true => 0; case false : 1; }; }", "syntax"),
-    ("expression-match-missing-value", b"module M; public Nat F() { return match (x) { case _ => ; }; }", "syntax"),
-    ("expression-match-missing-semicolon", b"module M; public Nat F() { return match (x) { case _ => 0 }; }", "syntax"),
+    ("expression-match-mixed-arms", b"module M; public Nat F() { return match (x) { true => 0, case false : 1; }; }", "syntax"),
+    ("expression-match-missing-value", b"module M; public Nat F() { return match (x) { _ => , }; }", "syntax"),
+    ("expression-match-missing-comma", b"module M; public Nat F() { return match (x) { true => 0 false => 1 }; }", "syntax"),
     ("match-motive-depth", b"module M; public Nat F() { return match (x) as p : "
-     + b"Box<" * 257 + b"Nat" + b">" * 257 + b" { case _ => 0; }; }", "limit"),
+     + b"Box<" * 257 + b"Nat" + b">" * 257 + b" { _ => 0, }; }", "limit"),
     ("field-missing-grade", b"module M; struct Box { Nat Value @; }", "syntax"),
     ("field-grade-after-initializer", b"module M; struct Box { Nat Value = 0 @ q; }", "syntax"),
     ("impl-incomplete-telescope", b"module M; impl<T,,> Dup<T> {}", "syntax"),
@@ -1879,7 +1942,7 @@ def _explicit_value_roles(source: bytes, result: dict[str, Json]) -> None:
         pattern = _object(_object(raw, "option case").get("pattern"), "option pattern")
         if _recursive_pattern_shape(pattern) != expected_pattern:
             raise ValueError("surface nested option cases were flattened or changed")
-        start = source.index(b"case " + spelling) + len(b"case ")
+        start = source.index(spelling + b" =>")
         if pattern.get("span") != [start, start + len(spelling)]:
             raise ValueError("surface nested option pattern original-byte span differs")
     for name, shape in (("present", ["call", "Some", [["call", "Some", ["value"]]]]),
@@ -2111,7 +2174,7 @@ def _concise_authoring_roles(source: bytes, result: dict[str, Json]) -> None:
     if [_recursive_pattern_shape(pattern) for pattern in patterns] != expected_patterns:
         raise ValueError("surface expression-arm arrows changed structural pattern roles")
     for pattern, spelling in zip(patterns, (b"()", b"(left, right)", b"(Some(item))"), strict=True):
-        start = source.index(b"case " + spelling) + len(b"case ")
+        start = source.index(spelling + b" =>", source.index(b"let eliminated ="))
         if pattern.get("span") != [start, start + len(spelling)]:
             raise ValueError("surface expression-arm structural pattern span differs")
     score = _named(structural, "typed_local", "score")
@@ -2480,7 +2543,7 @@ def _computed_type_roles(source: bytes, result: dict[str, Json]) -> None:
         if computed.get("kind") != "computed_type" or match.get("kind") != "match_expression":
             raise ValueError("surface nested computed annotation lost its match")
         _exact_span(source, computed,
-                    ("type[match (" + scrutinee + ") { case true => type Nat; case false => type bool; }]").encode())
+                    ("type[match (" + scrutinee + ') { true => type Nat, false => type bool, }]').encode())
     application = next(node for node in nodes(function) if node.get("kind") == "generic_application")
     argument = _sequence(application.get("arguments"), "computed generic application arguments")[0]
     _computed_type(source, argument, b"type[CallType(value)]", "CallType")
@@ -3254,7 +3317,7 @@ def _dependent_match_roles(source: bytes, result: dict[str, Json]) -> None:
     _exact_span(source, _object(arm.get("pattern"), "dependent arm pattern"), b"Packed(count, bytes)")
     if _texts(arm.get("value")) != ["bytes"] or "statements" in arm:
         raise ValueError("surface expression arm value became a statement body")
-    value_start = source.index(b"=> bytes;") + len(b"=> ")
+    value_start = source.index(b"=> bytes,") + len(b"=> ")
     if _object(arm.get("value"), "dependent arm value").get("span") != [value_start, value_start + 5]:
         raise ValueError("surface expression arm value span differs")
     inspect = _named(result.get("ast"), "function", "Inspect")
@@ -4057,6 +4120,114 @@ def _numeric_separator_limits(parse: Callable[[bytes], dict[str, Json]]) -> None
             raise ValueError(f"malformed numeric separator parsed: {spelling!r}")
 
 
+def _familiar_call_roles(source: bytes, result: dict[str, Json]) -> None:
+    tree = result.get("ast")
+
+    def local(name: str) -> dict[str, Json]:
+        return _object(_named(tree, "let", name).get("value"), "familiar local value")
+
+    one = local("genericSingle")
+    arguments = _sequence(one.get("arguments"), "outer generic-call arguments")
+    if len(arguments) != 1:
+        raise ValueError("ordinary generic call became comma-separated comparison arguments")
+    inner = _object(arguments[0], "inner call")
+    generic = _object(inner.get("callee"), "ordinary generic application")
+    if inner.get("kind") != "call" or generic.get("kind") != "generic_application":
+        raise ValueError("ordinary generic call lost its application and call roles")
+    if [_texts(argument.get("name")) for argument in
+            (_object(value, "generic type") for value in _sequence(generic.get("arguments"), "type arguments"))] != [["A"], ["B"]]:
+        raise ValueError("ordinary generic call changed its type arguments")
+    comparisons = _sequence(local("comparisons").get("arguments"), "comparison arguments")
+    operators = [_texts(_object(value, "comparison").get("operator"))
+                 for value in comparisons]
+    if operators != [["<"], [">"]]:
+        raise ValueError("unsuccessful generic probe changed ordinary comparisons")
+    if (local("ambiguous").get("kind") != "call" or local("groupedComparison").get("kind") != "binary"
+            or local("computedCall").get("kind") != "call"):
+        raise ValueError("generic classification depends on whitespace, resolution or callee spelling")
+    for name, spelling in (("ambiguous", b"f /* comment */ < n >"), ("explicitCall", b"Identity::<Nat>")):
+        application = _object(local(name).get("callee"), "source-bound application")
+        binding_start = _sequence(_named(tree, "let", name).get("span"), "generic local span")[0]
+        if type(binding_start) is not int:
+            raise ValueError("generic local has no byte offset")
+        start = source.index(spelling, binding_start)
+        if application.get("kind") != "generic_application" or application.get("span") != [start, start + len(spelling)]:
+            raise ValueError("ordinary/explicit generic application lost original UTF-8 spans")
+    match = next(node for node in nodes(tree) if node.get("kind") == "match_expression")
+    cases = _sequence(match.get("cases"), "familiar expression arms")
+    if len(cases) != 2 or any(_object(value, "expression arm").get("kind") != "expression_case" for value in cases):
+        raise ValueError("comma expression match changed arm roles")
+    nested = _object(local("nestedValue").get("callee"), "nested generic value application")
+    grouped = _object(_sequence(nested.get("arguments"), "nested generic value arguments")[0], "grouped generic value")
+    called = _object(grouped.get("value"), "nested ordinary call")
+    if (grouped.get("kind") != "group" or called.get("kind") != "call"
+            or _object(called.get("callee"), "nested call callee").get("kind") != "generic_application"):
+        raise ValueError("nested ordinary generic call became type syntax or comparisons")
+    for annotation in (_named(tree, "let", "annotated").get("type"),
+                       _sequence(local("callback").get("parameters"), "typed callback parameters")[0]):
+        if not any(node.get("kind") == "computed_type" for node in nodes(annotation)):
+            raise ValueError("annotation lookahead lost the computed type's ordinary generic call")
+
+
+def _collection_iteration_roles(source: bytes, result: dict[str, Json]) -> None:
+    loops = [node for node in nodes(result.get("ast")) if node.get("kind") in {"foreach", "foreach_collection"}]
+    expected = {
+        "copied": ("value", False), "typed": ("value", True), "borrowed": ("in", False),
+        "shared": ("in", True), "selected": ("ref", False), "exclusive": ("ref", True),
+        "inner": ("value", False), "explicitRange": ("value", True), "loanRange": ("ref", False),
+        "invalidCopy": ("value", False), "invalidLoan": ("ref", False),
+    }
+    if len(loops) != len(expected) + 2:
+        raise ValueError("collection iteration lost a nested loop or a syntax-valid invalid neighbor")
+    for loop in loops:
+        name = _texts(loop.get("name"))
+        if len(name) != 1:
+            raise ValueError("collection loop lost its located immutable binder")
+        binder = name[0]
+        if binder in {"index", "grouped"}:
+            if loop.get("kind") != "foreach" or set(loop) != {"kind", "span", "name", "range", "contracts", "body"}:
+                raise ValueError("unannotated range/grouped range changed its existing AST fields")
+            continue
+        mode, typed = expected[binder]
+        if (loop.get("kind") != "foreach_collection" or loop.get("mode") != mode
+                or (loop.get("type") is not None) != typed
+                or set(loop) != {"kind", "span", "name", "type", "mode", "collection", "contracts", "body"}):
+            raise ValueError("collection iteration changed element mode, type or AST ownership")
+        located = _object(loop.get("name"), "collection binder")
+        start, end = _sequence(located.get("span"), "collection binder span")
+        if type(start) is not int or type(end) is not int or source[start:end] != binder.encode():
+            raise ValueError("collection binder has no exact original-byte source span")
+        if binder == "exclusive" and len(_sequence(loop.get("contracts"), "exclusive loop contracts")) != 2:
+            raise ValueError("collection contracts became body statements or type annotations")
+
+
+def _generic_probe_limits(parse: Callable[[bytes], dict[str, Json]]) -> None:
+    # A depth-n nested call inspects (7*n*n-n)/2 tokens: each enclosing
+    # prefix adds seven tokens. Distinct source positions have distinct probes.
+    nested = b"F<T>()"
+    for _ in range(79):
+        nested = b"F<(" + nested + b")>()"
+    # F<A<B>>() includes a three-token unsuccessful nested probe (nine total).
+    # Outer comparisons add a five-token unsuccessful probe across comments.
+    base = (nested + b";") * 8 + b"F<A<B>>();Outer(F /* comment */ <\n T, A > value);"
+    base_count = 8 * (7 * 80 * 80 - 80) // 2 + 9 + 5
+    for count in (199_999, 200_000, 200_001):
+        remainder = count - base_count
+        pairs = remainder % 3
+        singles = (remainder - 13 * pairs) // 3
+        source = b"module M; void Main() {" + base + b"F<(F<T>())>();" * pairs + b"F<T>();" * singles + b"}"
+        if len(source) > MAX_SOURCE_BYTES:
+            raise ValueError("generic probe boundary fixture exceeds the independent source limit")
+        try:
+            parse(source)
+        except VelaError as error:
+            if count <= 200_000 or error.kind != "limit" or "200000 inspected tokens" not in error.message:
+                raise ValueError("generic probe inspection boundary has the wrong refusal") from error
+        else:
+            if count > 200_000:
+                raise ValueError("generic probe inspection exhaustion reinterpreted source or published syntax")
+
+
 def qualify(parse: Callable[[bytes], dict[str, Json]]) -> list[str]:
     """Exercise independent syntax cases; a failed oracle never passes a case."""
     _precedence_and_spans(parse)
@@ -4065,13 +4236,20 @@ def qualify(parse: Callable[[bytes], dict[str, Json]]) -> list[str]:
     passed = ["surface:independent-precedence-and-spans", "surface:literal-and-comment-boundaries",
               "surface:numeric-separator-suffixes-and-digit-limits"]
     for fixture in POSITIVE:
-        result = parse(fixture.source.encode("utf-8"))
+        try:
+            result = parse(fixture.source.encode("utf-8"))
+        except VelaError as error:
+            raise ValueError(f"surface fixture {fixture.name} failed at {error.line}:{error.column}: {error}") from error
         _argument_roles(fixture.source.encode("utf-8"), result)
         found = {node.get("kind") for node in nodes(result.get("ast"))}
         missing = set(fixture.kinds) - found
         if missing:
             raise ValueError(f"surface fixture {fixture.name} lacks AST roles: {sorted(missing)}")
-        if fixture.name == "numeric-separator-values-patterns-and-indices":
+        if fixture.name == "familiar-generic-calls-and-expression-arms":
+            _familiar_call_roles(fixture.source.encode("utf-8"), result)
+        elif fixture.name == "bounded-collection-iteration":
+            _collection_iteration_roles(fixture.source.encode("utf-8"), result)
+        elif fixture.name == "numeric-separator-values-patterns-and-indices":
             _numeric_separator_roles(fixture.source.encode("utf-8"), result)
         elif fixture.name == "callable-list-boundaries":
             _callable_list_roles(fixture.source.encode("utf-8"), result)
@@ -4184,6 +4362,8 @@ def qualify(parse: Callable[[bytes], dict[str, Json]]) -> list[str]:
         elif fixture.name == "callback-expressions-in-grades":
             _callback_grade_roles(result)
         passed.append(f"surface:{fixture.name}")
+    _generic_probe_limits(parse)
+    passed.append("surface:generic-probe-inspection-boundaries")
     for name, source, kind in NEGATIVE:
         try:
             parse(source)

@@ -19,6 +19,7 @@ let max_literal_digits = 256
    Semantic expression and block budgets are enforced by the AST consumer. *)
 let max_delimiter_depth = 256
 let max_syntax_depth = 256
+let max_generic_probe_tokens = 200_000
 
 let offsets first last =
   Array [Number first.Lexing.pos_cnum; Number last.Lexing.pos_cnum]
