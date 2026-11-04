@@ -66,6 +66,7 @@ The JSON API is same-origin POST with `Authorization: Bearer TOKEN`:
 | `/api/lsp` | `{ "session": "opaque-id", "message": LSP_OBJECT }` | `{ "messages": [LSP_OBJECT] }` |
 | `/api/compile` | `{ "source": "UTF-8 text" }` | `{ "ok": true, "sourceHash": "sha256", "module": "name", "gallina": "text" }` |
 | `/api/evaluate` | `{ "source": "UTF-8 text", "expression": "text", "valueType": "Nat or bool" }` | `{ "ok": true, "sourceHash": "sha256", "valueType": "Nat or bool", "value": "decimal or true/false" }` |
+| `/api/authoring` | `{ "source": "UTF-8 text" }` | `{ "ok": true, "sourceHash": "sha256", "findings": [{ "code": "VELA104", "message": "text", "line": 1, "column": 1 }], "bindingPreview": "UTF-8 candidate" }` |
 
 Compiler refusals return `ok: false`, the original `sourceHash`, and an `error`
 object containing `kind`, `message`, `line` and `column`. Coordinates are
@@ -84,6 +85,52 @@ Compile and evaluation use isolated same-interpreter workers with a finite
 timeout and bounded input/output; no source becomes Python code. Sessions expire
 and shutdown releases server resources. Log no source text or bearer tokens
 except the initial local launch URL.
+
+## Authoring and inspection increment
+
+Q25ab in [the plan](../../../PLAN.md#q-assessment-actions) extends the local
+playground using the existing [authoring tools](authoring-tools.md) and
+[pure navigation facts](lsp-prototype.md#pure-navigation-increment). Keep the
+pure Nat/bool scope and all existing transport and stale-result constraints.
+
+An explicit authoring check calls `lint_source` and `preview_bindings` in the
+same bounded isolated worker used by compilation. Return advisory VELA100 through
+VELA104 findings at original one-based compiler positions and the producer's
+rechecked explicit-binding candidate. Validate the complete response, known
+codes, original-source positions, at most 8,192 findings and the compiler's
+source-byte bound for the candidate. Refuse malformed, incomplete, oversized or
+failed producer results; an unavailable inspection is never a clean lint result.
+No checker, parser or edit inference is duplicated in the browser. A check
+changes no source. Render the candidate separately and apply it only through an
+explicit action against the unchanged captured buffer. Applying it is a single
+undoable editor edit; plain-text mode also offers recovery of the prior buffer.
+Invalidate findings, preview and apply authority on edits and reconnection.
+
+A visible symbol outline queries the existing document-symbol service. Selecting
+a symbol shows its existing plain-text hover, including documentation, and its
+resolved references, with navigation to exact UTF-16 ranges. Keep each request
+bound to the current source version and session generation, including selection
+changes while replies are pending. Clear old inspection on edits or service
+failure. These controls also work with plain-text editing. Do not advertise new
+LSP capabilities. Display toggles may change inferred-type hints and semantic
+coloring without changing compiler judgments.
+
+Offer explicit browser downloads of the current source and current successful
+Gallina output; revoke temporary object URLs and disable output export after an
+edit. Add examples exercising already supported named arguments, immutable
+bindings, documentation and numeric separators. Neither examples nor inspector
+controls imply wider-language implementation.
+
+Acceptance adds independent HTTP/worker controls for exact lint findings,
+source-preserving and rechecked candidates, no-op previews, invalid source,
+Unicode/newline coordinates, malformed worker results, size/time limits and
+recovery. Exercise the browser's authoring check, stale-preview refusal, explicit
+apply/undo, outline/documentation/reference navigation, display toggles and
+downloads using available local browser infrastructure. If that infrastructure
+is unavailable, record the missing browser verification explicitly and retain
+focused API/LSP checks and code review as their narrower evidence. Run the
+focused playground controls, Python validation and corpus checker; record the
+settled revision and user-managed hosted selection through `fanout`.
 
 ## Acceptance
 
