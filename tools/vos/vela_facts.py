@@ -17,6 +17,7 @@ class _Symbol:
     name: Name
     kind: SymbolKind
     detail: str
+    inferred: bool | None = None
 
 
 @dataclass(frozen=True)
@@ -36,12 +37,14 @@ class Facts:
         self.documentation = None if source is None else DocumentationSource(source)
         self.declaration_sites = {} if declaration_sites is None else dict(declaration_sites)
 
-    def declare(self, name: Name, kind: SymbolKind, detail: str) -> int:
+    def declare(self, name: Name, kind: SymbolKind, detail: str, *, inferred: bool | None = None) -> int:
         if len(self.symbols) >= MAX_SYMBOLS:
             raise VelaError("inspection-limit", name.site.line, name.site.column,
                             "pure inspection exceeds declaration limit")
         identity = len(self.symbols)
-        self.symbols.append(_Symbol(name, kind, detail))
+        if inferred is not None and (inferred is not False or kind != "variable"):
+            raise ValueError("only an explicitly annotated variable carries an inference flag")
+        self.symbols.append(_Symbol(name, kind, detail, inferred))
         self.reference(identity, name.site, declaration=True)
         return identity
 
@@ -60,6 +63,8 @@ class Facts:
              "line": symbol.name.site.line, "column": symbol.name.site.column}
             for _, symbol in ordered]
         for data, (_, symbol) in zip(symbols, ordered, strict=True):
+            if symbol.inferred is not None:
+                data["inferred"] = symbol.inferred
             site = self.declaration_sites.get(symbol.name.site)
             if site is not None and self.documentation is not None:
                 try:
