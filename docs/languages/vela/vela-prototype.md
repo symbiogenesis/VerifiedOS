@@ -118,8 +118,7 @@ immutable too and receive advisory `VELA104`, preferring an explicit `let`.
 Duplicate functions, parameters, local bindings in an active
 scope (including active parameters) and unbound values are errors. Function and
 value namespaces are separate. Equality returns `bool`. Natural arithmetic,
-division, remainder, equality and comparison map to `Corelib.Init.Nat.add`, `.sub`,
-`.mul`, `.div`, `.modulo`, `.eqb`,
+equality and comparison map to `Corelib.Init.Nat.add`, `.sub`, `.mul`, `.div`, `.modulo`, `.eqb`,
 `.ltb` and `.leb`.
 Boolean equality maps to pure nested conditionals returning the Boolean
 constructors. Types and constructors come from `Corelib.Init.Datatypes`.
@@ -219,9 +218,9 @@ These operations denote `Corelib.Init.Nat.div` and `.modulo`. For a positive
 divisor, division is the natural quotient and remainder is the nonnegative
 remainder. The operations are total: `n / 0` is `0`, and `n % 0` is `n`.
 The static evaluator must match these terms, including zero divisors, without
-Python division exceptions. Both operands remain checked and evaluated once
-in source order, including when the divisor is zero. Existing static work,
-depth, numeric and emission bounds apply. There is no represented integer,
+Python division exceptions. Both operands remain checked; the static evaluator
+evaluates them once in source order, including when the divisor is zero.
+Existing static work, depth, numeric and emission bounds apply. There is no represented integer,
 target divide instruction, timing claim or new proof-admission route.
 This reuses the mathematical elaborator's existing total `Nat` interpretation.
 Represented first-release arithmetic retains the nonzero-divisor and

@@ -102,7 +102,7 @@ def _semantic_and_syntax_refusals() -> None:
             _refuses(f"module M; public Nat F() => {expression};", "syntax")
         source = f"module M;\r\n// supplementary comment: \U0001f680\r\npublic Nat F() => true {operation} 2;"
         error = _refuses(source, "type", f"'{operation}'")
-        ensure((error.line, error.column) == (3, 23), "operator diagnostic lost original Unicode/CRLF site")
+        ensure((error.line, error.column) == (3, 24), "operator diagnostic lost original Unicode/CRLF site")
     _refuses("module M; public Nat F() => 8 // comment hides the apparent operand / 2;", "syntax")
     _refuses("module M; public Nat F() => 1" + "/1" * 64 + ";", "limit")
 
