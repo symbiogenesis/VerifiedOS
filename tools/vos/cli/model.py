@@ -71,6 +71,7 @@ from vos import (
     model_corpus,
     model_dependencies,
     native_build,
+    python_dependencies,
     receipts,
     rocqterm,
     sailbundle,
@@ -100,8 +101,11 @@ ORACLE_SRC = "upstream/sail-cheri-riscv"
 # Bind only gitlinks consumed by model commands; unrelated pins must not invalidate
 # build receipts or evidence. `build_inputs` rejects a missing pin.
 BUILD_GITLINKS = (ORACLE_SRC,)
-BUILD_INPUTS = ("model", "tools/run.py", "tools/vos", "tools/generated", "interfaces", "corpus",
-                *BUILD_GITLINKS, ".gitmodules")
+# Command dispatch is dynamic; the selected command is an explicit source root.
+BUILD_ENTRYPOINTS = ("tools/run.py", "tools/vos/cli/model.py")
+BUILD_INPUTS = ("model", "corpus", "interfaces/block-device-contract.md",
+                "tools/generated/dialect-table.json", sailbundle.BUNDLE, sailbundle.SOURCE_IDENTITY,
+                "tools/pyproject.toml", "tools/uv.lock", *BUILD_GITLINKS, ".gitmodules")
 BUILD_ARTIFACTS = ("c_emulator/sail_riscv_sim", "test/unit_tests/unit_tests",
                    "test/unit_tests/block_payload", "test/unit_tests/block_reset",
                    "test/unit_tests/block_image",
@@ -116,7 +120,11 @@ def build_inputs(root: Path, *extra: str) -> dict[str, str]:
     commit, so a submodule removed, renamed or replaced by ordinary files is refused
     rather than dropped from the identity.
     """
-    manifest = receipts.inputs(root, *BUILD_INPUTS, *extra)
+    implementation = python_dependencies.sources(root, BUILD_ENTRYPOINTS)
+    manifest = receipts.inputs(root, *BUILD_INPUTS, *implementation, *extra)
+    missing = set(implementation) - manifest.keys()
+    if missing:
+        raise ValueError("model implementation inputs are not recorded: " + ", ".join(sorted(missing)))
     for gitlink in BUILD_GITLINKS:
         if not manifest.get(gitlink, "").startswith("gitlink:"):
             raise ValueError(f"{gitlink} is not a pinned gitlink in this checkout's index, "
@@ -131,26 +139,28 @@ def _generator_identity() -> rocqterm.GeneratorIdentity:
     return rocqterm.generator_identity(sail)
 
 
-def build_identity(e: env.Environment) -> dict[str, object]:
-    """The source closure, selected tools and build options of a model run."""
-    if e.model.resolve() != (e.root / "model").resolve():
-        raise ValueError("recorded builds require this checkout's model; unset VOS_MODEL")
+def _observed_revision(e: env.Environment) -> str:
+    """Observe checkout provenance without making unrelated commits stale a build."""
     version = subprocess.run(
-        # Working bytes are bound by BUILD_INPUTS below. A repository-wide dirty
-        # flag also changes when the proof gate publishes its output receipt.
         ["git", "describe", "--tags", "--always"],
         cwd=e.model, capture_output=True, text=True, check=False, timeout=60,
         env={**os.environ, **env.git_env(e.root)})
     if version.returncode or not version.stdout.strip():
         raise ValueError("git could not identify the model for its build receipt")
+    return version.stdout.strip()
+
+
+def build_identity(e: env.Environment) -> dict[str, object]:
+    """The source closure, selected tools and build options of a model run."""
+    if e.model.resolve() != (e.root / "model").resolve():
+        raise ValueError("recorded builds require this checkout's model; unset VOS_MODEL")
     compilers = [arg.split("=", 1)[1] for arg in e.compilers if "=" in arg]
     return {
         "inputs": build_inputs(e.root),
         "tools": receipts.executables("sail", "z3", "cmake", "ctest", "ninja",
                                       *(compilers or ["cc", "c++"])),
-        "compiler_options": e.compilers, "cache_options": e.ccache,
+        "compiler_options": list(e.compilers), "cache_options": list(e.ccache),
         "generator_inputs": _generator_identity(),
-        "model_revision": version.stdout.strip(),
     }
 
 
@@ -894,6 +904,7 @@ def _build_locked(e: env.Environment, build_dir: Path, log: Path,
     record_path = log.with_suffix(".json")
     record_path.unlink(missing_ok=True)
     identity = build_identity(e)
+    observed_revision = _observed_revision(e)
     stages: dict[str, int] = {}
     native_before: native_build.Manifest | None = None
     native_inputs: native_build.Manifest | None = None
@@ -979,6 +990,7 @@ def _build_locked(e: env.Environment, build_dir: Path, log: Path,
     receipts.write(record_path, {
         "schema": 1, "run_id": run_id, "exit_code": code, "stages": stages,
         "identity": identity, "artifacts": artifacts,
+        "observed_revision": observed_revision,
         "native_inputs": native_inputs,
         "log_sha256": receipts.digest(log), "extra_options": extra,
         **({"refusal": refusal} if refusal else {}),

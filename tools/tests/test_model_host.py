@@ -1327,6 +1327,7 @@ def _build_records_an_unreadable_product() -> None:
         def built() -> tuple[int, dict[str, object]]:
             # The Sail test runs in the ctest stage, which stands in with the others.
             with (patch.object(_MODEL, "build_identity", return_value={"inputs": {}}),
+                  patch.object(_MODEL, "_observed_revision", return_value="fixture revision"),
                   patch.object(_MODEL, "_configure", return_value=0),
                   patch.object(_MODEL, "_native_start", return_value={}),
                   patch.object(_MODEL, "_native_finish", return_value={}),
@@ -1439,6 +1440,7 @@ class _BuildRig:
         self._on_build = on_build
         sail = subprocess.CompletedProcess([], 0, "Sail 9.9.9 (fixture)\n", "")
         with (patch.object(_MODEL, "build_identity", return_value={"inputs": {}}),
+              patch.object(_MODEL, "_observed_revision", return_value="fixture revision"),
               patch.object(_MODEL, "_configure", return_value=self.configure_code),
               patch.object(_MODEL, "_native_start", return_value={}),
               patch.object(_MODEL, "_native_finish", return_value={}),

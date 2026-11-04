@@ -85,6 +85,7 @@ def _native_refusal_is_not_success() -> None:
         log = e.log("model-build")
         version = argparse.Namespace(stdout="Sail fixture")
         with (patch.object(model, "build_identity", return_value={"inputs": {}}),
+              patch.object(model, "_observed_revision", return_value="fixture revision"),
               patch.object(model, "_configure", return_value=0),
               patch.object(model, "_native_start", return_value={}),
               patch.object(model, "_native_finish", side_effect=ValueError("header changed")),

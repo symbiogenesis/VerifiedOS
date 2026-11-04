@@ -31,7 +31,6 @@ hop to hash native outputs; `proofs export` preserves an existing run without Ro
 """
 
 import argparse
-import ast
 import hashlib
 import heapq
 import json
@@ -50,7 +49,7 @@ from pathlib import Path
 from types import MappingProxyType
 from typing import cast
 
-from vos import proofaudit, proofenv, receipts
+from vos import proofaudit, proofenv, python_dependencies, receipts
 from vos import proofs as proofs_mod
 from vos.corpus import find_root
 
@@ -702,37 +701,8 @@ def _gate_modules(root: Path) -> list[Path]:
     entry point's first import path. The launcher, command table and lockfile stay
     out: they choose the process, whose environment `_cache_context` binds.
     """
-    tools = root / "tools"
-
-    def module(name: str) -> Path | None:
-        base = tools.joinpath(*name.split("."))
-        for path in (base / "__init__.py", base.with_suffix(".py")):
-            if path.is_file():
-                return path
-        return None   # an imported attribute, or a module outside the checkout
-
-    if module(__name__) is None:
-        raise ValueError(f"the proof gate cannot find its own module {__name__} under {tools}")
-    pending: list[str] = [__name__]
-    seen: set[str] = set()
-    found: set[Path] = set()
-    while pending:
-        name = pending.pop()
-        if name in seen or (path := module(name)) is None:
-            continue
-        seen.add(name)
-        found.add(path)
-        parts = name.split(".")
-        pending += [".".join(parts[:end]) for end in range(1, len(parts))]
-        package = parts if path.name == "__init__.py" else parts[:-1]
-        for node in ast.walk(ast.parse(path.read_bytes(), filename=str(path))):
-            if isinstance(node, ast.Import):
-                pending += [alias.name for alias in node.names]
-            elif isinstance(node, ast.ImportFrom):
-                anchor = package[:len(package) + 1 - node.level] if node.level else []
-                named = ".".join([*anchor, *([node.module] if bool(node.module) else [])])
-                pending += [named, *(f"{named}.{alias.name}" for alias in node.names)]
-    return sorted(found)
+    entry = "tools/" + __name__.replace(".", "/") + ".py"
+    return [root / source for source in python_dependencies.sources(root, (entry,))]
 
 
 def _inputs(root: Path, sources: list[Path]) -> dict[str, str]:
