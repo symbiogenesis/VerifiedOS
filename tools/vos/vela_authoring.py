@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""Source-preserving pure Vela formatting and optional compiler-owned lints.
+"""Source-preserving Vela formatting and optional compiler-owned lints.
 
 The existing compiler owns syntax and semantic acceptance. This module only
 renders its token stream and inspects its syntax and resolved declaration facts.

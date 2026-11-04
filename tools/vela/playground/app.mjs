@@ -230,6 +230,7 @@ public lemma SelectedValue(): Second() == 20
         source: `module LengthPreservation;
 
 /// The same inferred n appears in both the input and result.
+/// T names a type; n is a natural-number value index, so it stays camelCase.
 public definition Vec<T, n> Copy<T, ghost Nat n>(Vec<T, n> values) => values;
 
 /// Later parameter types can depend on an earlier value parameter.
@@ -415,7 +416,8 @@ function publishDiagnostics(params, generation, mode = "pure") {
     $("diagnostics").replaceChildren(...diagnostics.map((diagnostic) => {
         const item = element("button", "diagnostic-item");
         item.type = "button";
-        item.append(element("span", "diagnostic-site", `playground.vela · ${diagnostic.range.start.line + 1}:${diagnostic.range.start.character + 1}`));
+        const code = diagnostic.code ? ` · ${diagnostic.severity === 2 ? "warning" : "error"} ${diagnostic.code}` : "";
+        item.append(element("span", "diagnostic-site", `playground.vela · ${diagnostic.range.start.line + 1}:${diagnostic.range.start.character + 1}${code}`));
         item.append(element("span", "diagnostic-message", diagnostic.message));
         item.addEventListener("click", () => {
             if (state.editor) {

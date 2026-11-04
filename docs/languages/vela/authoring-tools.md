@@ -5,9 +5,11 @@ The [surface grammar](surface-grammar.md) owns syntax and the
 [pure prototype](vela-prototype.md) owns its executable semantic boundary.
 The compiler includes a formatter and an advisory lint pass. The design keeps
 checking and emission read-only with respect to source; formatting writes require
-an explicit command or option. The initial executable formatter and lints cover
+an explicit command or option. The formatter and original lints cover
 the pure subset, following the
-[source-preserving command policy](#compiler-commands-and-publication). Wider formatting
+[source-preserving command policy](#compiler-commands-and-publication).
+Q25ae's [generic type naming lint](#generic-type-parameter-naming) also covers the
+mathematical development fragment. Wider formatting
 and semantic lints consume qualified parser/frontend producers through
 [compiler services](tooling-protocols.md#compiler-inspection-api).
 Q25z owns the [familiar authoring migration](surface-grammar.md#familiar-authoring-migration),
@@ -170,7 +172,34 @@ The initial rule identities are defined here:
 | `VELA104` | An immutable typed local omits an explicit `let` binding keyword |
 | `VELA105` | A generic type parameter name does not use a capital initial and ASCII alphanumeric words |
 
-### Generic type parameter naming
+`VELA104` points to the original type token and explains that an unmarked typed
+local is immutable. The pure implementation covers its checked `Nat`/`bool`
+locals; wider syntax needs its own qualified compiler facts. Optional annotations
+on `let` are checked independently of the binding's immutability. Naming and
+mutability guidance does not rename a symbol or change the formatter's tokens.
+
+`vela lint --preview-bindings SOURCE` checks the exact source, reports findings
+normally and prints a candidate source containing only `let ` insertions for
+`VELA104`. It never writes source or emits an accepted artifact. Bind every
+insertion to the checked original bytes, apply insertions without normalizing
+comments/newlines, then recheck the candidate and compare its interpreted terms
+apart from source provenance before printing. Changed, invalid, unsupported or
+incomplete inputs refuse without a partial candidate. Normal allow/deny policy
+still applies; a denied finding prevents publication. This explicit command
+preview adds no LSP code-action capability. Qualification covers nested and
+shadowed locals, comments, mixed newlines/Unicode, source identity, annotation
+mismatch, suppressed/denied findings and unchanged input bytes.
+
+Repeatable `--allow ID` suppresses optional findings; `--deny ID` makes them
+errors. The same ID cannot be both allowed and denied. Unknown IDs are command
+errors. Defaults and rule identities are compiler-versioned; disabling an optional
+lint cannot waive a language error. Findings go to stderr, keeping emitted Gallina
+on stdout usable. A denied finding prevents any requested formatting and output writes.
+If bounded compiler inspection cannot supply complete lint facts, normal advisory
+compilation reports lints unavailable and continues. Explicit `vela lint` and a
+command with denied lints require complete findings and refuse without writes.
+
+## Generic type parameter naming
 
 Q25ae's [mathematical playground](playground.md#dependent-mathematics-increment)
 and mathematical CLI expose `VELA105` as an advisory naming lint. Generic types
@@ -200,33 +229,6 @@ nested-binder, Unicode/newline, invalid-source and source-protocol controls; str
 CLI publication preservation; worker/HTTP findings validation and browser warning
 recovery. Run focused host controls, Python and corpus checks, then record
 user-managed Host CI and all Guest CI lanes as pending until evidence is supplied.
-
-`VELA104` points to the original type token and explains that an unmarked typed
-local is immutable. The pure implementation covers its checked `Nat`/`bool`
-locals; wider syntax needs its own qualified compiler facts. Optional annotations
-on `let` are checked independently of the binding's immutability. Naming and
-mutability guidance does not rename a symbol or change the formatter's tokens.
-
-`vela lint --preview-bindings SOURCE` checks the exact source, reports findings
-normally and prints a candidate source containing only `let ` insertions for
-`VELA104`. It never writes source or emits an accepted artifact. Bind every
-insertion to the checked original bytes, apply insertions without normalizing
-comments/newlines, then recheck the candidate and compare its interpreted terms
-apart from source provenance before printing. Changed, invalid, unsupported or
-incomplete inputs refuse without a partial candidate. Normal allow/deny policy
-still applies; a denied finding prevents publication. This explicit command
-preview adds no LSP code-action capability. Qualification covers nested and
-shadowed locals, comments, mixed newlines/Unicode, source identity, annotation
-mismatch, suppressed/denied findings and unchanged input bytes.
-
-Repeatable `--allow ID` suppresses optional findings; `--deny ID` makes them
-errors. The same ID cannot be both allowed and denied. Unknown IDs are command
-errors. Defaults and rule identities are compiler-versioned; disabling an optional
-lint cannot waive a language error. Findings go to stderr, keeping emitted Gallina
-on stdout usable. A denied finding prevents any requested formatting and output writes.
-If bounded compiler inspection cannot supply complete lint facts, normal advisory
-compilation reports lints unavailable and continues. Explicit `vela lint` and a
-command with denied lints require complete findings and refuse without writes.
 
 ## Qualification
 

@@ -91,7 +91,7 @@ def _validate_findings(findings: object, source: str, *, mathematical: bool = Fa
     snapshot = SourceSnapshot("vela:playground-findings", 0, source, 1)
     lines = source.replace("\r\n", "\n").replace("\r", "\n").split("\n")
     previous = (0, 0)
-    allowed = {"VELA105"} if mathematical else LINT_CODES
+    allowed = {"VELA105"} if mathematical else LINT_CODES - {"VELA105"}
     for finding in findings:
         if (not isinstance(finding, dict) or set(finding) != {"code", "message", "line", "column"}
                 or not isinstance(finding["code"], str) or finding["code"] not in allowed
