@@ -20,11 +20,11 @@ def compile_request(request: dict[str, object]) -> dict[str, object]:
         result = evaluate(source, cast("str", request["expression"]),
                           cast("ValueType", request["valueType"]))
         value = ("true" if result.value else "false") if result.value_type == "bool" else str(result.value)
-        return {"ok": True, "sourceHash": digest, "valueType": result.value_type, "value": value}
     except VelaError as error:
         return {"ok": False, "sourceHash": digest,
                 "error": {"kind": error.kind, "message": error.message,
                           "line": error.line, "column": error.column}}
+    return {"ok": True, "sourceHash": digest, "valueType": result.value_type, "value": value}
 
 
 def main() -> int:

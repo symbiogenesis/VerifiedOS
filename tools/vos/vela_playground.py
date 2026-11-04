@@ -9,6 +9,7 @@ import subprocess
 import sys
 import threading
 import time
+from contextlib import suppress
 from dataclasses import dataclass, field
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
@@ -58,21 +59,26 @@ def _validate_result(response: dict[str, object], request: dict[str, object], di
             raise ValueError("compiler worker returned an invalid refusal")
 
 
+def _compiler_response(request: dict[str, object], digest: str) -> dict[str, object]:
+    directory = str(Path(__file__).resolve().parents[1])
+    script = (f"import sys; sys.path.insert(0, {directory!r}); "
+              "from vos.vela_playground_worker import main; raise SystemExit(main())")
+    done = subprocess.run([sys.executable, "-I", "-c", script], input=_raw(request),
+                          capture_output=True, timeout=WORKER_SECONDS, check=False)
+    if done.returncode != 0:
+        raise ValueError("compiler worker unavailable or output exceeds its budget")
+    response = decode_message(done.stdout)
+    _validate_result(response, request, digest)
+    _raw(response)
+    return response
+
+
 def run_compiler(request: dict[str, object]) -> dict[str, object]:
     """Source is worker stdin data, never an executable argument or a disk path."""
     source = cast("str", request["source"]).encode("utf-8")
     digest = hashlib.sha256(source).hexdigest()
     try:
-        directory = str(Path(__file__).resolve().parents[1])
-        script = (f"import sys; sys.path.insert(0, {directory!r}); "
-                  "from vos.vela_playground_worker import main; raise SystemExit(main())")
-        done = subprocess.run([sys.executable, "-I", "-c", script], input=_raw(request),
-                              capture_output=True, timeout=WORKER_SECONDS, check=False)
-        if done.returncode != 0:
-            raise ValueError("compiler worker unavailable or output exceeds its budget")
-        response = decode_message(done.stdout)
-        _validate_result(response, request, digest)
-        _raw(response)
+        response = _compiler_response(request, digest)
     except subprocess.TimeoutExpired:
         return {"ok": False, "sourceHash": digest,
                 "error": {"kind": "timeout", "line": 1, "column": 1,
@@ -112,7 +118,7 @@ class PlaygroundServer(HTTPServer):
     def get_request(self) -> tuple[socket.socket, tuple[str, int]]:
         connection, address = super().get_request()
         connection.settimeout(READ_SECONDS)
-        return connection, address
+        return connection, cast("tuple[str, int]", address)
 
     def expire_sessions(self) -> None:
         now = time.monotonic()
@@ -137,17 +143,13 @@ class PlaygroundHandler(BaseHTTPRequestHandler):
         self._read_timer.start()
 
     def _end_read(self) -> None:
-        try:
+        with suppress(OSError):
             self.connection.shutdown(socket.SHUT_RD)
-        except OSError:
-            pass
 
     @override
     def handle(self) -> None:
-        try:
+        with suppress(ConnectionError, TimeoutError):
             super().handle()
-        except (ConnectionError, TimeoutError):
-            pass
 
     @override
     def finish(self) -> None:
@@ -159,7 +161,7 @@ class PlaygroundHandler(BaseHTTPRequestHandler):
         return cast("PlaygroundServer", self.server)
 
     @override
-    def log_message(self, _format: str, *args: object) -> None:
+    def log_message(self, format: str, *args: object) -> None:
         """Avoid logging source, request paths or authentication material."""
 
     def _send(self, status: int, body: bytes, content_type: str = "application/json; charset=utf-8") -> None:
@@ -199,7 +201,7 @@ class PlaygroundHandler(BaseHTTPRequestHandler):
             return False
         return True
 
-    def do_GET(self) -> None:  # noqa: N802 - the standard HTTP dispatcher names this hook.
+    def do_GET(self) -> None:
         if not self._authority():
             return
         asset = ASSETS.get(self.path)
@@ -213,7 +215,15 @@ class PlaygroundHandler(BaseHTTPRequestHandler):
             return
         self._send(200, body, asset[1])
 
-    def do_POST(self) -> None:  # noqa: N802 - the standard HTTP dispatcher names this hook.
+    def _read_json(self, size: int) -> dict[str, object]:
+        self._body_read = True
+        raw = self.rfile.read(size)
+        if len(raw) != size:
+            raise ValueError("Truncated JSON body")
+        self._read_timer.cancel()
+        return decode_message(raw)
+
+    def do_POST(self) -> None:
         if not self._authority():
             return
         authorization = self.headers.get_all("Authorization", [])
@@ -237,12 +247,7 @@ class PlaygroundHandler(BaseHTTPRequestHandler):
             self._error(415, "Use application/json with UTF-8")
             return
         try:
-            self._body_read = True
-            raw = self.rfile.read(size)
-            if len(raw) != size:
-                raise ValueError("Truncated JSON body")
-            self._read_timer.cancel()
-            request = decode_message(raw)
+            request = self._read_json(size)
             response = self._dispatch(request)
             encoded = _raw(response)
         except TimeoutError:

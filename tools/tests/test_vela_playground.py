@@ -7,7 +7,7 @@ import socket
 import tempfile
 import threading
 import time
-from collections.abc import Callable, Iterator
+from collections.abc import Callable, Generator
 from contextlib import contextmanager
 from http.client import HTTPConnection
 from pathlib import Path
@@ -101,7 +101,7 @@ def _static_refusals() -> None:
 
 
 @contextmanager
-def _running() -> Iterator[playground.PlaygroundServer]:
+def _running() -> Generator[playground.PlaygroundServer]:
     with tempfile.TemporaryDirectory(prefix="vos-vela-http-") as temporary:
         assets = Path(temporary)
         (assets / "index.html").write_text("<!doctype html><title>Vela fixture</title>", encoding="utf-8")
@@ -263,7 +263,7 @@ def _http_lsp() -> None:
         changed = _rpc(server, session, "textDocument/didChange", {
             "textDocument": {"uri": _URI, "version": 2}, "contentChanges": [{"text": broken}]})
         params = cast("dict[str, object]", changed[0]["params"])
-        ensure(params["version"] == 2 and params["diagnostics"], "changed unsaved source lost its error/version")
+        ensure(params["version"] == 2 and bool(params["diagnostics"]), "changed unsaved source lost its error/version")
         _rpc(server, session, "textDocument/didChange", {
             "textDocument": {"uri": _URI, "version": 1}, "contentChanges": [{"text": _SOURCE}]})
         refused = _rpc(server, session, "textDocument/hover", {
