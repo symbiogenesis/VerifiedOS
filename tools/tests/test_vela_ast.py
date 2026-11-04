@@ -77,7 +77,7 @@ def _typed_local_protocol() -> None:
             decoded = vela_ast.decode(source, tree)
             declaration = decoded.declarations[0]
             if not isinstance(declaration, vela_ast.Function):
-                raise AssertionError("typed-local fixture lost its function")
+                raise TypeError("typed-local fixture lost its function")
             selected = declaration.body.bindings[0]
             ensure(isinstance(selected, vela_ast.Binding) and selected.annotation == "Nat"
                    and selected.explicit_binding is explicit,
