@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "VerifiedOS fixed-package host composition recipe",
+  "description": "Producer-side placement of immutable artifacts. This recipe supplies no admission verdict or authenticated prior checked state.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "context", "packages", "memory", "entry"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "context": {"type": "object"},
+    "packages": {
+      "type": "array", "minItems": 1, "maxItems": 1024,
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["artifact", "base"],
+        "properties": {"artifact": {"$ref": "#/$defs/hash"}, "base": {"$ref": "#/$defs/address"}}
+      }
+    },
+    "entry": {"$ref": "#/$defs/hash"},
+    "memory": {
+      "type": "array", "minItems": 1, "maxItems": 256,
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["base", "size", "memory_class", "writable", "executable"],
+        "properties": {
+          "base": {"$ref": "#/$defs/address"},
+          "size": {"type": "integer", "minimum": 1, "maximum": 68719476736},
+          "memory_class": {"type": "integer", "enum": [0, 1]},
+          "writable": {"type": "boolean"}, "executable": {"type": "boolean"}
+        }
+      }
+    }
+  },
+  "$defs": {
+    "hash": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "address": {"type": "integer", "minimum": 0, "maximum": 68719476735}
+  }
+}

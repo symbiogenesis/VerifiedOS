@@ -1,11 +1,11 @@
 # SPDX-License-Identifier: Apache-2.0
-"""Compose a descriptor-only typed graph and compare its finite source reference."""
+"""Compose fixed native artifacts, typed graphs and source-bound projections."""
 
 import argparse
 import json
 from pathlib import Path
 
-from vos import composer, composition_staged, corpus, source_bindings
+from vos import composer, composition_staged, corpus, fixed_composition, source_bindings
 from vos import composition as production
 
 
@@ -78,6 +78,15 @@ def _build_record(root: Path, args: argparse.Namespace) -> None:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(suggest_on_error=True, description=__doc__)
     commands = parser.add_subparsers(dest="command", required=True)
+    package_store = commands.add_parser("package-store", suggest_on_error=True,
+                                       help="store a fixed native artifact and its exact content objects")
+    package_store.add_argument("source")
+    package_store.add_argument("--store", default="out/native-packages")
+    fixed = commands.add_parser("compose-fixed", suggest_on_error=True,
+                               help="compose stored fixed package bytes without re-lowering")
+    fixed.add_argument("source")
+    fixed.add_argument("--store", default="out/native-packages")
+    fixed.add_argument("--output", required=True)
     emit = commands.add_parser("compose", suggest_on_error=True, help="emit canonical graph bytes from a descriptor document")
     emit.add_argument("source")
     emit.add_argument("--output", required=True)
@@ -122,6 +131,12 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     root = corpus.find_root()
     try:
+        if args.command == "package-store":
+            print(json.dumps(fixed_composition.publish_package(root, args.source, args.store), indent=2))
+            return 0
+        if args.command == "compose-fixed":
+            print(json.dumps(fixed_composition.compose(root, args.source, args.store, args.output), indent=2))
+            return 0
         if args.command == "bind-sources":
             print(json.dumps({"source_bindings": source_bindings.emit(root)}, indent=2))
             return 0

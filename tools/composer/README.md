@@ -1,4 +1,55 @@
-# Offline typed graph composer
+# Offline package and typed graph composer
+
+## Fixed native packages
+
+The [fixed-package contract](../../docs/implementation/contracts/fixed-packages.md)
+separates package construction from generation composition. Build a package once;
+the host composer copies its stored code and initializer bytes unchanged into
+each successor image. A common base translation preserves the package's internal
+region geometry. Changing one package does not invoke its neighbors' producers.
+
+```text
+python tools/run.py composer package-store out/package-request.json
+python tools/run.py composer compose-fixed out/layout.json --output out/generation.elf
+```
+
+Both commands accept `--store out/native-packages`, their default content-addressed
+store. Store and image outputs stay under `out/`. The first command reads the
+[fixed artifact schema](fixed-package.schema.json): a `manifest` and an `objects`
+array whose entries bind checkout-relative transport paths to exact byte lengths
+and SHA-256 hashes. The manifest binds the package identity, source closure,
+contract, target/specification/model/descriptor/profile/decoder/dictionary context,
+relative region geometry, entry and exports, and proof objects. The artifact root
+hashes the canonical manifest, including actual output object hashes; moving a
+transport file preserves that root. The store rehashes existing objects before
+reuse and refuses missing or corrupt content.
+
+The [composition recipe schema](fixed-composition.schema.json) takes
+`schema_version: 1`, the selected artifact `context`, `packages` containing
+`artifact` roots and `base` addresses, a physical `memory` map, and an `entry`
+artifact root. Each memory region declares its base, size, memory class and
+writable/executable permissions. Composition checks context agreement, alignment,
+address bounds, nonoverlapping package spans and compatible memory placement.
+The emitted ELF's complete loadable contents, physical addresses, permissions
+and entry are checked against the artifacts before atomic publication. The
+transport request and composition recipe run no package scripts.
+
+[The admission coordinator](../vos/package_admission.py) separately supports
+package-local proof reuse. Its prior checked set must authenticate to the trusted
+current generation's root; requests cannot choose their own checking policy.
+Exact artifact and proof-context matches skip only package-local checks. Fresh
+concrete TAL, modular linkage and generation checks still run for every image.
+Only a completely checked candidate can supply a successor checked-set root to
+the authenticated generation transaction. The host commands report
+`production_admission: false`: actual TAL/CIC consumers, the native transaction
+join and resident qualification retain their existing implementation owners.
+
+Focused controls are `test --only test_package_artifacts`,
+`test --only test_package_admission`, and `test --only test_fixed_composition`.
+They include two layouts from one assembled fixture, a two-package update across
+simulated reboot, stale-context invalidation and corrupt-state/image refusals.
+
+## Typed graph reference
 
 `python tools/run.py composer compose INPUT --output out/graph.json` executes the
 descriptor-only filter in [HandlerGraph.v](../../proofs/HandlerGraph.v). It emits

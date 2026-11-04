@@ -41,6 +41,8 @@ from tests.test_boot_attachments import _attached_recipe
 from tests.test_boot_chain import _chain_reports
 from tests.test_boot_crypto import _shard, _staged_root
 from tests.test_composition import _graph_image
+from tests.test_fixed_composition import fixture_recipe as _fixed_recipe
+from tests.test_fixed_composition import fixture_store as _fixed_store
 from vos import (
     admission,
     admission_production,
@@ -365,6 +367,8 @@ _RUNS: dict[tuple[str, str], Argv] = {
     ("memory-certificates", "encode"): _memory_encoding,
     ("boot", "roster"): lambda _: [],
     ("composer", "compose"): _composition_fixture,
+    ("composer", "package-store"): lambda scratch: [_fixed_store(scratch)],
+    ("composer", "compose-fixed"): lambda scratch: [_fixed_recipe(scratch), "--output", "out/fixed-image.elf"],
     ("composer", "fixture"): lambda _: ["--output", "out/descriptor-fixture.json"],
     ("composer", "bind-sources"): _source_binding_fixture,
     ("composer", "compare"): lambda _: [],
