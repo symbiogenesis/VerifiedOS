@@ -1809,6 +1809,8 @@ def evaluate(source: bytes, parsed: object, expression: str, value_type: ValueTy
         line = min(line, len(lines))
         column = min(column, len(lines[line - 1]) + 1)
         raise VelaError(error.kind, line, column, f"expression: {error.message}") from error
+    except RecursionError as error:
+        raise VelaError("limit", 1, 1, "expression: syntax nesting exceeds the host stack bound") from error
     elaborator.protocol = protocol
     try:
         result = elaborator.constant_value(declaration, {})

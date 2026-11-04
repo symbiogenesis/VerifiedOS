@@ -288,7 +288,25 @@ public const Nat ZeroRemainder = 17 % 0;
         ("pure-skipped-runtime-dependency", "public bool Wrong(bool runtime) { "
          "const bool Value = false && runtime; return Value; }", "unsupported"),
     )
-    return (Fixture("authored-example", example), pure, division,
+    dependent_playground = Fixture("dependent-playground-observations", b"""module DependentPlaygroundReplay;
+public definition T Identity<T>(T value) => value;
+public definition U Apply<T,U>(Fn(T value) -> U function,T value) => function(value);
+public definition Nat HigherOrder() => Apply(function: value => value + 1, value: 41);
+public definition Vec<Nat,3> Samples() => VCons(10, VCons(20, VCons(30, VNil<Nat>())));
+public definition Nat Second() => At(Samples(), FSucc(FZero<1>()));
+public definition bool SelectedValue() => Second() == 20;
+public definition Vec<T,n> Copy<T,ghost Nat n>(Vec<T,n> values) => values;
+public definition Fn(Nat n,Vec<Nat,n> values) -> Vec<Nat,n> Preserve() =>
+    (Nat n,Vec<Nat,n> values) => values;
+public definition Vec<Nat,1> Original() => VCons(42, VNil<Nat>());
+public definition Nat PreservedValue() =>
+    At(Preserve()(n: 1, values: Copy(Original())), FZero<0>());
+""", observations=(
+        ("vela_d2_HigherOrder Corelib.Init.Datatypes.tt", "42"),
+        ("vela_d4_Second Corelib.Init.Datatypes.tt", "20"),
+        ("vela_d5_SelectedValue Corelib.Init.Datatypes.tt", "true"),
+        ("vela_d9_PreservedValue Corelib.Init.Datatypes.tt", "42")))
+    return (Fixture("authored-example", example), pure, division, dependent_playground,
             *(Fixture(name, ("module PureNegativeReplay; " + source).encode(), expected, pure=True)
               for name, source, expected in pure_negatives),
             *(Fixture(name, source.encode()) for name, source in positives),
