@@ -1360,6 +1360,45 @@ both calibration columns remain `n/a`.
 Landed: Tier A. Full source and contract reads, independent review and local
 compiler/protocol/browser evidence accept this bounded development demo.
 
+<a id="q25ab-extend-the-vela-playground-authoring-and-inspection-controls"></a>
+
+#### Q25ab · Extend the Vela playground authoring and inspection controls
+
+Accepted on 2026-11-03 as a local development increment under the
+[playground contract](../languages/vela/playground.md#authoring-and-inspection-increment).
+Authoring checks expose the existing compiler's advisory lints and rechecked
+explicit-binding candidate through the bounded isolated worker. Preview apply
+requires the unchanged source snapshot and supports undo. The visible outline
+shows compiler-owned signatures, documentation and resolved references; display
+toggles, supported examples and explicit source/Gallina downloads complete the
+browser controls. Plain-text fallback retains the new authoring and inspection
+panels. No new language semantics or filesystem authority is introduced.
+
+At `dd83c995`, focused playground HTTP/worker and retained LSP service controls
+pass. Independent review covers producer reuse, exact schemas and coordinates,
+source and candidate limits, unavailable inspection, stale replies and source
+immutability. Local headless Edge verifies all supplied examples, preview
+apply/undo, formatting/undo, delayed replies after edits, reconnection and cursor
+changes, signature/documentation/reference navigation, display settings and exact
+downloads in Monaco and with its CDN blocked. Narrow layouts stay within the
+page width and these interactions report no browser exceptions.
+
+Findings fixed before acceptance: failed outline refresh clears old inspection;
+examples use the pure compiler's decimal literals and declaration-order named
+arguments; undo recovery binds the editor's actual line endings after formatting.
+These are local browser and prototype results, not independent-client LSP,
+wider-language, native execution or production qualification.
+
+The `vela-playground-features-20261103` fanout journal records the settled local
+revision, comparison base, Python/corpus validation and recommended hosted
+selection. Host and Guest CI remain user-managed with no verdict from this
+session; no push or dispatch is performed. The original 8 h estimate, range
+6–10, is retained because complete summed active agent-session intervals were
+not captured; both calibration columns remain `n/a`.
+
+Landed: Tier A. Full contract/source review, independent review and focused
+compiler/protocol/browser evidence accept this bounded local increment.
+
 <a id="q26-price-the-resident-toolchain-against-the-floors-own-comparisons"></a>
 
 ### Q26 · Price the resident toolchain against the floor's own comparisons

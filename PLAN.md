@@ -451,17 +451,17 @@ These figures cover the priced reference-build, assessment and named hardening b
 <!-- estimate-summary:start -->
 | Measure | Value |
 | --- | --- |
-| Total estimate midpoint h | 4,881.8 |
-| Total estimate range h | 3,192.2–6,571.4 |
-| Completed scope h | 926.8 |
-| Complete by estimate % | 19.0 |
+| Total estimate midpoint h | 4,889.8 |
+| Total estimate range h | 3,200.2–6,579.4 |
+| Completed scope h | 934.8 |
+| Complete by estimate % | 19.1 |
 | Remaining h | 3,955 |
 | Committed remaining h | 2,476.5 |
 | Open class I h | 941.5 |
 | Open class X h | 3,013.5 |
-| Retained completion estimate h | 321.5 |
-| Unmeasured completed items | 33 |
-| Calibrated total h | 5,874.4 |
+| Retained completion estimate h | 329.5 |
+| Unmeasured completed items | 34 |
+| Calibrated total h | 5,882.4 |
 | Committed M8a open h | 74 |
 | Committed M8b open h | 105.5 |
 | Other committed open h | 2,297 |
@@ -1045,8 +1045,8 @@ The [first-release delivery sequence](#vela-first-release-delivery) governs new 
   * **Remaining work:** the [ergonomics follow-through](#remaining-vela-ergonomics) assigns qualification, represented semantics, library, diagnostic, editor and adoption duties to their existing owners, with entry conditions and independently checked outcomes. Runtime and wider tooling implementation is outside this syntax increment's estimate.
 * [x] **Q25aa · Build a local Vela browser playground** · 12 h retained estimate, actual n/a · agent-parallel
   * The local Monaco playground connects the pure compiler and LSP to source editing, Gallina output and a bounded compile-time expression console. ([note](docs/implementation/completion-log.md#q25aa-build-a-local-vela-browser-playground))
-* [ ] **Q25ab · Extend the Vela playground authoring and inspection controls** · 8 h, range 6–10 · I · agent-parallel
-  * **Start:** Q25aa and the landed [authoring and inspection increment](docs/languages/vela/playground.md#authoring-and-inspection-increment), existing pure authoring producers and LSP facts. **Owns:** isolated lint/explicit-binding preview transport, explicit buffer-only preview application, visible outline/documentation/references, editor display controls, browser downloads and supported examples. **Check:** every increment predicate, focused playground HTTP/worker and retained LSP controls, Python validation, corpus checks and local browser behavior when infrastructure is available; explicitly record unavailable browser verification and pending user-managed hosted verdicts. **Join:** independent producer/schema/stale-response review and local `fanout` handoff. **Execute:** reuse the existing compiler and services without new language semantics or file authority; preserve pure scope, bounded transport and unchanged-snapshot edits.
+* [x] **Q25ab · Extend the Vela playground authoring and inspection controls** · 8 h retained estimate, actual n/a · agent-parallel
+  * The playground exposes compiler-backed lint and binding previews, symbol inspection, editor display controls and explicit browser downloads. ([note](docs/implementation/completion-log.md#q25ab-extend-the-vela-playground-authoring-and-inspection-controls))
 * [x] **Q26 · Price the resident toolchain against the floor's own comparisons** · 4.6 h actual · agent-parallel
   * [The toolchain residency report](docs/performance/toolchain-residency.md) records the three quantities with their predicates, instruments, lanes and revisions, scores each against the artifact that owns its supply or declares it unscorable with the act that owes the supply named, and states which of the three binds and what would have to move, as arms for the product's owner with none taken. ([note](docs/implementation/completion-log.md#q26-price-the-resident-toolchain-against-the-floors-own-comparisons))
 
@@ -1410,7 +1410,7 @@ Q6's conventional-memory simulators are conditional on a topology comparison nee
 
 No assessment completion automatically increases a performance estimate. For an optimization affecting fraction `f` of runtime by factor `s`, the unchanged-cost bound is `1 / ((1 - f) + f / s)`; added transfers or changed scheduling require a fresh whole-workload comparison. Better packing is not more fabricated capacity, and host performance is not target throughput.
 
-**Q subtotal:** 3,052.3 h · 63% · 314.8 h complete · open range 1,595–3,880 h.
+**Q subtotal:** 3,060.3 h · 63% · 322.8 h complete · open range 1,595–3,880 h.
 
 ### M0 · Hardware reference
 
@@ -2495,6 +2495,7 @@ One row per completed item marked `agent-parallel`, using the [calibration recor
 | Q25t | n/a | n/a |
 | Q25v | I | 4 |
 | Q25aa | n/a | n/a |
+| Q25ab | n/a | n/a |
 | Q26 | X-read | 12 |
 | Q27a | I | 7 |
 | Q27b | I | 6 |
