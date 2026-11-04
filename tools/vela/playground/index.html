@@ -26,14 +26,15 @@
             <div class="source-pane">
                 <div class="pane-toolbar">
                     <div class="file-tab"><span class="file-icon" aria-hidden="true">V</span><span id="filename">playground.vela</span><span class="unsaved-dot" title="Unsaved browser buffer" aria-label="Unsaved browser buffer"></span></div>
-                    <div class="source-actions"><label class="sr-only" for="examples">Load an example</label><select id="examples" aria-label="Load an example"><option value="squares">Functions &amp; values</option><option value="branches">Branches &amp; booleans</option><option value="constants">Static configuration</option></select></div>
+                    <div class="source-actions"><label class="sr-only" for="examples">Load an example</label><select id="examples" aria-label="Load an example"><option value="squares">Functions &amp; values</option><option value="branches">Branches &amp; booleans</option><option value="constants">Static configuration</option><option value="bindings">Explicit bindings &amp; style</option><option value="named">Named arguments &amp; numbers</option></select></div>
                 </div>
                 <div class="editor-shell">
                     <div id="editor" aria-label="Vela source editor" hidden></div>
                     <textarea id="source-fallback" aria-label="Vela source" spellcheck="false" autocapitalize="off" autocomplete="off"></textarea>
                     <div id="editor-notice" class="editor-notice" role="status">Loading the code editor…</div>
                 </div>
-                <div class="editor-bottom"><span id="cursor-position">Ln 1, Col 1</span><span><span class="language-dot" aria-hidden="true"></span> Vela<span class="bottom-separator">UTF-8</span></span></div>
+                <div class="editor-bottom"><span id="cursor-position">Ln 1, Col 1</span><div class="editor-options"><label title="Display compiler-inferred local types in Monaco"><input id="show-hints" type="checkbox" checked disabled> Type hints</label><label title="Color resolved identifiers in Monaco"><input id="show-semantics" type="checkbox" checked disabled> Semantic color</label><span>UTF-8</span></div></div>
+                <div class="buffer-actions"><button id="download-source" class="text-button" type="button">Download source</button><button id="undo-buffer" class="text-button" type="button" disabled>Undo last source action</button><span id="buffer-note">Changes stay in this browser buffer.</span></div>
                 <div class="source-footer"><span class="shortcut-hint"><kbd>Ctrl</kbd><kbd>↵</kbd><span>compile</span></span><div class="footer-actions"><button id="format-button" class="button button-quiet" type="button" title="Format the current source (Shift+Alt+F)"><span aria-hidden="true">≡</span> Format</button><button id="compile-button" class="button button-primary" type="button"><span aria-hidden="true">▷</span> Compile</button></div></div>
             </div>
 
@@ -42,6 +43,8 @@
                     <button id="console-tab" class="output-tab active" type="button" role="tab" aria-selected="true" aria-controls="console-panel" data-tab="console"><span aria-hidden="true">›_</span> Console</button>
                     <button id="gallina-tab" class="output-tab" type="button" role="tab" aria-selected="false" aria-controls="gallina-panel" tabindex="-1" data-tab="gallina">Gallina</button>
                     <button id="problems-tab" class="output-tab" type="button" role="tab" aria-selected="false" aria-controls="problems-panel" tabindex="-1" data-tab="problems">Problems <span id="problem-count" class="count-badge">0</span></button>
+                    <button id="inspect-tab" class="output-tab" type="button" role="tab" aria-selected="false" aria-controls="inspect-panel" tabindex="-1" data-tab="inspect">Inspect</button>
+                    <button id="authoring-tab" class="output-tab" type="button" role="tab" aria-selected="false" aria-controls="authoring-panel" tabindex="-1" data-tab="authoring">Authoring</button>
                 </div>
 
                 <section id="console-panel" class="output-panel console-panel" role="tabpanel" aria-labelledby="console-tab">
@@ -52,9 +55,26 @@
                     <div class="console-note"><span aria-hidden="true">ⓘ</span><p>Uses Vela’s bounded constant evaluator. Values are mathematical naturals and booleans; this console does not run native code or provide runtime I/O.</p></div>
                 </section>
 
-                <section id="gallina-panel" class="output-panel" role="tabpanel" aria-labelledby="gallina-tab" hidden><div class="panel-heading"><span class="eyebrow">COMPILER OUTPUT</span><button id="copy-output" class="text-button" type="button" disabled>Copy output</button></div><p class="panel-description">The pure compiler’s generated Gallina definitions.</p><div id="compile-summary" class="output-summary">Compile the source to inspect its translation.</div><pre id="gallina-output" class="gallina-code" tabindex="0" aria-label="Generated Gallina">// Generated output will appear here.</pre></section>
+                <section id="gallina-panel" class="output-panel" role="tabpanel" aria-labelledby="gallina-tab" hidden><div class="panel-heading"><span class="eyebrow">COMPILER OUTPUT</span><div class="panel-actions"><button id="copy-output" class="text-button" type="button" disabled>Copy output</button><button id="download-output" class="text-button" type="button" disabled>Download .v</button></div></div><p class="panel-description">The pure compiler’s generated Gallina definitions.</p><div id="compile-summary" class="output-summary">Compile the source to inspect its translation.</div><pre id="gallina-output" class="gallina-code" tabindex="0" aria-label="Generated Gallina">// Generated output will appear here.</pre></section>
 
                 <section id="problems-panel" class="output-panel" role="tabpanel" aria-labelledby="problems-tab" hidden><div class="panel-heading"><span class="eyebrow">LIVE DIAGNOSTICS</span><span class="subtle-tag">LSP</span></div><p class="panel-description">Diagnostics for the current unsaved buffer, from the pure Vela checker.</p><div id="diagnostics" class="diagnostics" aria-live="polite"><p class="muted-message">Connecting to the language server…</p></div></section>
+                <section id="inspect-panel" class="output-panel" role="tabpanel" aria-labelledby="inspect-tab" hidden>
+                    <div class="panel-heading"><span class="eyebrow">SYMBOL INSPECTOR</span><button id="refresh-outline" class="text-button" type="button">Refresh outline</button></div>
+                    <p class="panel-description">Browse declarations, documentation and resolved references in the current buffer.</p>
+                    <div id="outline" class="symbol-outline" aria-label="Document symbols"><p class="muted-message">Open Inspect to load the current outline.</p></div>
+                    <div class="panel-heading inspector-heading"><span class="eyebrow">SELECTED SYMBOL</span><button id="inspect-symbol" class="text-button" type="button">Inspect at cursor</button></div>
+                    <pre id="symbol-details" class="symbol-details" tabindex="0" aria-live="polite">Select a symbol from the outline or place the source cursor on an identifier.</pre>
+                    <div id="symbol-references" class="symbol-references" aria-label="Resolved references"></div>
+                </section>
+                <section id="authoring-panel" class="output-panel" role="tabpanel" aria-labelledby="authoring-tab" hidden>
+                    <div class="panel-heading"><span class="eyebrow">AUTHORING TOOLS</span><button id="check-authoring" class="button button-quiet" type="button">Check style</button></div>
+                    <p class="panel-description">Compiler-backed advisory checks for naming, documentation, Boolean comparisons and explicit immutable bindings.</p>
+                    <div id="authoring-summary" class="output-summary" aria-live="polite">Check style to inspect the current source. Checks preserve your buffer.</div>
+                    <div id="authoring-findings" aria-label="Advisory style findings"></div>
+                    <div class="panel-heading preview-heading"><span class="eyebrow">EXPLICIT BINDING PREVIEW</span><button id="apply-binding-preview" class="button button-quiet" type="button" disabled>Apply preview</button></div>
+                    <p class="preview-description">The compiler inserts <code>let</code> before bare typed immutable locals. Review the candidate before applying it.</p>
+                    <pre id="binding-preview" class="binding-preview" tabindex="0" aria-label="Proposed source">No current preview.</pre>
+                </section>
                 <div class="output-status"><span id="activity-label">Ready to explore</span><span class="readonly-label">SOURCE STAYS LOCAL</span></div>
             </div>
         </section>
