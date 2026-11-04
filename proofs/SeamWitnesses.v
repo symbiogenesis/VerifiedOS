@@ -23,8 +23,8 @@
    seam statements or crown-jewel row 1. It adds no axioms or obligations.
    (*| BEGIN derived: cited entries |*)
    Owner: docs/requirements-register.md
-   Requirements: R-05-160 R-05-163 R-05-164 R-05-165 R-05-166 R-18-031
-   SHA256: 775dfecaaa575f3e8a7f0d8c9925b7edfe61b3a3effb15cffe0423c886f7d36e
+   Requirements: R-05-160 R-05-161 R-05-163 R-05-164 R-05-165 R-05-166 R-18-031
+   SHA256: 7917148395276627dc9bbe0a57d7353159963c0a6decb89e3096ebd0e2313524
    (*| END derived |*)
    ========================================================================= *)
 
