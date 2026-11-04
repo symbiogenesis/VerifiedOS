@@ -1,0 +1,640 @@
+// SPDX-License-Identifier: Apache-2.0
+const MONACO_ROOT = "https://cdn.jsdelivr.net/npm/monaco-editor@0.55.1/min/vs";
+const DOCUMENT_URI = "untitled:playground.vela";
+const $ = (id) => document.getElementById(id);
+const examples = {
+    squares: {
+        expression: "Square(7)", valueType: "Nat",
+        source: `module Playground;
+
+/// A small function with a mathematical result.
+public const Nat Square(Nat value) => value * value;
+
+/// A named value, computed during compilation.
+public const Nat StartingPoint = 7;
+
+/// Combine earlier functions with an immutable local.
+public Nat SumOfSquares(Nat left, Nat right)
+{
+    let total = Square(left) + Square(right);
+    return total;
+}
+
+/// Try this expression in the console, too.
+public Nat Main() => SumOfSquares(3, 4);
+`,
+    },
+    branches: {
+        expression: "WithinLimit(8)", valueType: "bool",
+        source: `module Decisions;
+
+/// The upper bound is an ordinary mathematical natural.
+public const Nat Limit = 10;
+
+/// Every branch returns a result of the declared type.
+public bool WithinLimit(Nat value)
+{
+    if (value <= Limit)
+    {
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+}
+
+/// Natural-number comparison produces a boolean.
+public bool SameSquare(Nat left, Nat right)
+{
+    let leftSquare = left * left;
+    let rightSquare = right * right;
+    return leftSquare == rightSquare;
+}
+`,
+    },
+    constants: {
+        expression: "Process(5)", valueType: "Nat",
+        source: `module Configuration;
+
+/// Available to both static evaluation and ordinary calls.
+public const Nat Square(Nat value) => value * value;
+
+/// The configuration is fixed before runtime data arrives.
+public const Nat Gain = 4;
+
+/// A static parameter can initialize a required constant.
+public Nat Scale(const Nat gain, Nat sample)
+{
+    const Nat multiplier = Square(gain);
+    return multiplier * sample;
+}
+
+/// Apply the configured multiplier to a sample.
+public Nat Process(Nat sample) => Scale(gain: Gain, sample: sample);
+`,
+    },
+};
+
+const state = {
+    text: examples.squares.source, version: 1, model: null, editor: null,
+    session: null, connected: false, generation: 0, opened: false, syncedVersion: 0,
+    capabilities: {}, connection: null, queue: Promise.resolve(), requestId: 0,
+    compileTicket: 0, evaluateTicket: 0, checkTimer: null, gallina: "",
+};
+
+let token = new URLSearchParams(location.hash.slice(1)).get("token") || "";
+try {
+    if (token) sessionStorage.setItem("vela-playground-token", token);
+    else token = sessionStorage.getItem("vela-playground-token") || "";
+} catch { /* A tab with storage disabled can still use its launch fragment. */ }
+if (location.hash) history.replaceState(null, "", location.pathname + location.search);
+
+$("source-fallback").value = state.text;
+
+function status(message, failed = false) {
+    $("connection-label").textContent = message;
+    $("connection-dot").className = `status-dot${failed ? " failed" : state.connected ? " connected" : ""}`;
+    $("reconnect-button").hidden = !failed || !token;
+}
+
+function activity(message) { $("activity-label").textContent = message; }
+
+function element(tag, className, text) {
+    const node = document.createElement(tag);
+    if (className) node.className = className;
+    if (text !== undefined) node.textContent = text;
+    return node;
+}
+
+async function api(path, body, { keepalive = false } = {}) {
+    if (!token) throw new Error("Open the complete launch URL printed by vela-playground to connect.");
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 15000);
+    try {
+        const response = await fetch(path, {
+            method: "POST", headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+            body: JSON.stringify(body), credentials: "omit", cache: "no-store", redirect: "error",
+            signal: controller.signal, keepalive,
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(typeof data.error === "string" ? data.error : `Local service returned HTTP ${response.status}.`);
+        return data;
+    } catch (error) {
+        if (error.name === "AbortError") throw new Error("The local service timed out. Reconnect if language services stopped responding.");
+        throw error;
+    } finally { clearTimeout(timer); }
+}
+
+function snapshot() { return { text: state.text, version: state.version, generation: state.generation }; }
+function current(captured) { return captured.version === state.version && captured.text === state.text && captured.generation === state.generation; }
+
+function clearDiagnostics(message = "Checking the current buffer…") {
+    $("problem-count").textContent = "0";
+    $("problem-count").classList.remove("has-problems");
+    $("diagnostics").replaceChildren(element("p", "muted-message", message));
+    if (state.model && window.monaco) monaco.editor.setModelMarkers(state.model, "vela", []);
+}
+
+function publishDiagnostics(params, generation) {
+    if (generation !== state.generation || params.uri !== DOCUMENT_URI || params.version !== state.version) return;
+    const diagnostics = params.diagnostics || [];
+    $("problem-count").textContent = String(diagnostics.length);
+    $("problem-count").classList.toggle("has-problems", diagnostics.length > 0);
+    if (state.model && window.monaco) {
+        monaco.editor.setModelMarkers(state.model, "vela", diagnostics.map((diagnostic) => ({
+            ...toRange(diagnostic.range), message: diagnostic.message,
+            severity: diagnostic.severity === 2 ? monaco.MarkerSeverity.Warning : monaco.MarkerSeverity.Error,
+            source: diagnostic.source || "Vela pure prototype", code: diagnostic.code,
+        })));
+    }
+    if (!diagnostics.length) {
+        const clean = element("div", "diagnostic-clean", "No error reported by the pure prototype.");
+        clean.append(element("small", "", "This is a development check, with no kernel or production acceptance verdict."));
+        $("diagnostics").replaceChildren(clean);
+        activity("Current buffer checked");
+        return;
+    }
+    $("diagnostics").replaceChildren(...diagnostics.map((diagnostic) => {
+        const item = element("button", "diagnostic-item");
+        item.type = "button";
+        item.append(element("span", "diagnostic-site", `playground.vela · ${diagnostic.range.start.line + 1}:${diagnostic.range.start.character + 1}`));
+        item.append(element("span", "diagnostic-message", diagnostic.message));
+        item.addEventListener("click", () => {
+            if (state.editor) {
+                const range = toRange(diagnostic.range);
+                state.editor.setSelection(range);
+                state.editor.revealRangeInCenter(range);
+                state.editor.focus();
+            } else $("source-fallback").focus();
+        });
+        return item;
+    }));
+    activity(`${diagnostics.length} problem${diagnostics.length === 1 ? "" : "s"} in current buffer`);
+}
+
+async function wire(session, message, generation) {
+    const response = await api("/api/lsp", { session, message });
+    if (!Array.isArray(response.messages)) throw new Error("The language server returned an invalid response.");
+    for (const item of response.messages) {
+        if (item.method === "textDocument/publishDiagnostics") publishDiagnostics(item.params, generation);
+    }
+    if (!("id" in message)) return undefined;
+    const reply = response.messages.find((item) => item.id === message.id && "jsonrpc" in item);
+    if (!reply) throw new Error("The language server returned no correlated reply.");
+    if (reply.error) {
+        const error = new Error(reply.error.message || "The language server refused this request.");
+        error.lspCode = reply.error.code;
+        throw error;
+    }
+    return reply.result;
+}
+
+async function closeSession(session, options = {}) {
+    try {
+        await api("/api/lsp", { session, message: { jsonrpc: "2.0", id: ++state.requestId, method: "shutdown" } }, options);
+        await api("/api/lsp", { session, message: { jsonrpc: "2.0", method: "exit" } }, options);
+    } catch { /* Expired sessions and closing tabs also have bounded server-side expiry. */ }
+}
+
+function enqueue(operation) {
+    const result = state.queue.then(operation);
+    state.queue = result.catch(() => undefined);
+    return result;
+}
+
+function disconnected(error, generation) {
+    if (generation !== state.generation) return;
+    state.connected = false;
+    status(error.message || "Local language services disconnected.", true);
+    clearDiagnostics("Language services are disconnected. Compile and expression evaluation remain available.");
+}
+
+async function connect() {
+    const oldSession = state.session;
+    const generation = ++state.generation;
+    state.connected = false;
+    state.session = null;
+    state.opened = false;
+    state.syncedVersion = 0;
+    status("Connecting to the local language server…");
+    if (oldSession) closeSession(oldSession);
+    const pending = (async () => {
+        const response = await api("/api/session", {});
+        const session = response.session;
+        const initialized = await wire(session, {
+            jsonrpc: "2.0", id: ++state.requestId, method: "initialize",
+            params: { processId: null, rootUri: null, capabilities: { general: { positionEncodings: ["utf-16"] } } },
+        }, generation);
+        await wire(session, { jsonrpc: "2.0", method: "initialized", params: {} }, generation);
+        if (generation !== state.generation) return;
+        state.session = session;
+        state.capabilities = initialized.capabilities;
+        state.connected = true;
+        status("Language server connected");
+        scheduleCheck(0);
+    })();
+    state.connection = pending;
+    try { await pending; }
+    catch (error) { disconnected(error, generation); }
+}
+
+async function synchronize(captured) {
+    if (!current(captured) || !state.connected) return false;
+    if (state.syncedVersion === captured.version) return true;
+    const message = state.opened
+        ? { jsonrpc: "2.0", method: "textDocument/didChange", params: { textDocument: { uri: DOCUMENT_URI, version: captured.version }, contentChanges: [{ text: captured.text }] } }
+        : { jsonrpc: "2.0", method: "textDocument/didOpen", params: { textDocument: { uri: DOCUMENT_URI, languageId: "vela", version: captured.version, text: captured.text } } };
+    await wire(state.session, message, captured.generation);
+    if (captured.generation !== state.generation) return false;
+    state.opened = true;
+    state.syncedVersion = captured.version;
+    return current(captured);
+}
+
+async function languageQuery(method, params = {}, captured = snapshot(), cancellation = null) {
+    try {
+        await state.connection;
+        return await enqueue(async () => {
+            if (!current(captured) || cancellation?.isCancellationRequested || !state.connected) return undefined;
+            if (!await synchronize(captured)) return undefined;
+            const result = await wire(state.session, {
+                jsonrpc: "2.0", id: ++state.requestId, method,
+                params: { textDocument: { uri: DOCUMENT_URI }, ...params },
+            }, captured.generation);
+            return current(captured) && !cancellation?.isCancellationRequested ? result : undefined;
+        });
+    } catch (error) {
+        if (error.lspCode !== undefined) {
+            if (current(captured)) activity(`Language service refused: ${error.message}`);
+        } else disconnected(error, captured.generation);
+        return undefined;
+    }
+}
+
+function scheduleCheck(delay = 400) {
+    clearTimeout(state.checkTimer);
+    state.checkTimer = setTimeout(async () => {
+        const captured = snapshot();
+        try {
+            await state.connection;
+            await enqueue(() => synchronize(captured));
+        } catch (error) { disconnected(error, captured.generation); }
+    }, delay);
+}
+
+function clearEvaluation(message = "Evaluate an expression against the current source.") {
+    state.evaluateTicket++;
+    $("evaluate-button").disabled = false;
+    $("console-result").replaceChildren(element("p", "muted-message", message));
+}
+
+function sourceChanged(text) {
+    if (text === state.text) return;
+    state.text = text;
+    state.version++;
+    state.compileTicket++;
+    state.gallina = "";
+    $("copy-output").disabled = true;
+    $("compile-button").disabled = false;
+    $("gallina-output").textContent = "// Source changed. Compile again to inspect the current translation.";
+    $("compile-summary").textContent = "Output cleared because the source changed.";
+    clearEvaluation();
+    clearDiagnostics(state.connected ? "Checking the current buffer…" : "Language services are not connected.");
+    activity("Source changed");
+    scheduleCheck();
+}
+
+function setSource(text) {
+    $("source-fallback").value = text;
+    if (state.model) state.model.setValue(text);
+    else sourceChanged(text);
+}
+
+function toPosition(position) { return { line: position.lineNumber - 1, character: position.column - 1 }; }
+function toRange(range) { return { startLineNumber: range.start.line + 1, startColumn: range.start.character + 1, endLineNumber: range.end.line + 1, endColumn: range.end.character + 1 }; }
+function fromRange(range) { return { start: { line: range.startLineNumber - 1, character: range.startColumn - 1 }, end: { line: range.endLineNumber - 1, character: range.endColumn - 1 } }; }
+
+function plaintextMarkdown(text) {
+    const runs = String(text).match(/`+/g) || [];
+    const fence = "`".repeat(Math.max(3, ...runs.map((run) => run.length + 1)));
+    return { value: `${fence}text\n${text}\n${fence}`, isTrusted: false, supportHtml: false };
+}
+
+function locations(result) {
+    return (Array.isArray(result) ? result : result ? [result] : [])
+        .filter((location) => location.uri === DOCUMENT_URI)
+        .map((location) => ({ uri: monaco.Uri.parse(location.uri), range: toRange(location.range) }));
+}
+
+function registerLanguage() {
+    monaco.languages.register({ id: "vela", extensions: [".vela"] });
+    monaco.languages.setLanguageConfiguration("vela", {
+        comments: { lineComment: "//" }, brackets: [["{", "}"], ["(", ")"]],
+        autoClosingPairs: [{ open: "{", close: "}" }, { open: "(", close: ")" }],
+        surroundingPairs: [{ open: "{", close: "}" }, { open: "(", close: ")" }],
+    });
+    monaco.languages.setMonarchTokensProvider("vela", {
+        keywords: ["module", "public", "const", "let", "if", "else", "return"],
+        typeKeywords: ["Nat", "bool"], tokenizer: { root: [
+            [/\/\/.*$/, "comment"], [/\b(?:true|false)\b/, "constant"],
+            [/[A-Za-z_][A-Za-z0-9_]*/, { cases: { "@keywords": "keyword", "@typeKeywords": "type", "@default": "identifier" } }],
+            [/[0-9](?:_?[0-9])*/, "number"], [/=>|==|<=|[+*=]/, "operator"], [/[{}()]/, "@brackets"], [/[;,.:]/, "delimiter"],
+        ] },
+    });
+    monaco.editor.defineTheme("vela-night", {
+        base: "vs-dark", inherit: true,
+        rules: [
+            { token: "keyword", foreground: "C6AEED" }, { token: "type", foreground: "93C6DA" },
+            { token: "identifier", foreground: "CDD7EB" }, { token: "comment", foreground: "687D85", fontStyle: "italic" },
+            { token: "number", foreground: "D9BA8B" }, { token: "constant", foreground: "D9BA8B" },
+            { token: "operator", foreground: "AAB6D2" }, { token: "function", foreground: "BDCDFF" },
+            { token: "parameter", foreground: "B5D4DB" }, { token: "variable", foreground: "C8D4E9" },
+        ], colors: {
+            "editor.background": "#10141C", "editor.foreground": "#CDD7EB", "editorLineNumber.foreground": "#46536A",
+            "editorLineNumber.activeForeground": "#9BABCA", "editor.selectionBackground": "#34436B80",
+            "editor.inactiveSelectionBackground": "#303C5655", "editor.lineHighlightBackground": "#1B223040",
+            "editorCursor.foreground": "#C5D0FF", "editorIndentGuide.background1": "#27314470",
+            "editorIndentGuide.activeBackground1": "#53607A", "editorWidget.background": "#1A2130",
+            "editorWidget.border": "#3C4861", "editorHoverWidget.background": "#1A2130",
+            "editorHoverWidget.border": "#3C4861", "editorInlayHint.background": "#1C263555",
+            "editorInlayHint.foreground": "#788CAC", "editorError.foreground": "#E49AA9",
+        },
+    });
+    monaco.languages.registerHoverProvider("vela", {
+        async provideHover(model, position, cancellation) {
+            const result = await languageQuery("textDocument/hover", { position: toPosition(position) }, snapshot(), cancellation);
+            if (!result) return null;
+            const content = typeof result.contents === "string" ? result.contents : result.contents?.value || "";
+            return { contents: [plaintextMarkdown(content)], ...(result.range ? { range: toRange(result.range) } : {}) };
+        },
+    });
+    monaco.languages.registerDefinitionProvider("vela", {
+        async provideDefinition(model, position, cancellation) {
+            return locations(await languageQuery("textDocument/definition", { position: toPosition(position) }, snapshot(), cancellation));
+        },
+    });
+    monaco.languages.registerReferenceProvider("vela", {
+        async provideReferences(model, position, context, cancellation) {
+            return locations(await languageQuery("textDocument/references", { position: toPosition(position), context: { includeDeclaration: context.includeDeclaration } }, snapshot(), cancellation));
+        },
+    });
+    monaco.languages.registerDocumentSymbolProvider("vela", {
+        async provideDocumentSymbols(model, cancellation) {
+            const result = await languageQuery("textDocument/documentSymbol", {}, snapshot(), cancellation);
+            return (result || []).map((symbol) => ({
+                name: symbol.name, detail: "", kind: symbol.kind - 1, tags: [],
+                range: toRange(symbol.location.range), selectionRange: toRange(symbol.location.range), children: [],
+            }));
+        },
+    });
+    monaco.languages.registerInlayHintsProvider("vela", {
+        async provideInlayHints(model, range, cancellation) {
+            const result = await languageQuery("textDocument/inlayHint", { range: fromRange(range) }, snapshot(), cancellation);
+            return { hints: (result || []).map((hint) => ({
+                position: { lineNumber: hint.position.line + 1, column: hint.position.character + 1 },
+                label: hint.label, kind: monaco.languages.InlayHintKind.Type,
+                paddingLeft: Boolean(hint.paddingLeft), paddingRight: Boolean(hint.paddingRight),
+            })), dispose() {} };
+        },
+    });
+    monaco.languages.registerDocumentSemanticTokensProvider("vela", {
+        getLegend() { return state.capabilities.semanticTokensProvider?.legend || { tokenTypes: ["function", "parameter", "variable"], tokenModifiers: ["declaration", "readonly"] }; },
+        async provideDocumentSemanticTokens(model, lastResultId, cancellation) {
+            const result = await languageQuery("textDocument/semanticTokens/full", {}, snapshot(), cancellation);
+            return result ? { data: new Uint32Array(result.data) } : null;
+        },
+        releaseDocumentSemanticTokens() {},
+    });
+    monaco.languages.registerDocumentFormattingEditProvider("vela", {
+        async provideDocumentFormattingEdits(model, options, cancellation) {
+            const result = await languageQuery("textDocument/formatting", { options: { tabSize: options.tabSize, insertSpaces: options.insertSpaces } }, snapshot(), cancellation);
+            return (result || []).map((edit) => ({ range: toRange(edit.range), text: edit.newText }));
+        },
+    });
+}
+
+async function loadEditor() {
+    try {
+        window.MonacoEnvironment = { getWorkerUrl() {
+            return URL.createObjectURL(new Blob([`self.MonacoEnvironment={baseUrl:${JSON.stringify(MONACO_ROOT + "/../")}};importScripts(${JSON.stringify(MONACO_ROOT + "/base/worker/workerMain.js")});`], { type: "text/javascript" }));
+        } };
+        await new Promise((resolve, reject) => {
+            const script = document.createElement("script");
+            script.src = `${MONACO_ROOT}/loader.js`;
+            script.onload = resolve;
+            script.onerror = () => reject(new Error("Monaco assets could not be loaded."));
+            document.head.append(script);
+            setTimeout(() => reject(new Error("Monaco assets took too long to load.")), 12000);
+        });
+        window.require.config({ paths: { vs: MONACO_ROOT } });
+        await new Promise((resolve, reject) => {
+            window.require(["vs/editor/editor.main"], resolve, reject);
+            setTimeout(() => reject(new Error("The code editor took too long to initialize.")), 15000);
+        });
+        registerLanguage();
+        state.model = monaco.editor.createModel(state.text, "vela", monaco.Uri.parse(DOCUMENT_URI));
+        $("editor").hidden = false;
+        state.editor = monaco.editor.create($("editor"), {
+            model: state.model, theme: "vela-night", automaticLayout: true,
+            fontFamily: '"Cascadia Code", "SFMono-Regular", Consolas, "Liberation Mono", monospace',
+            fontSize: 12, lineHeight: 22, padding: { top: 22, bottom: 20 },
+            minimap: { enabled: false }, scrollBeyondLastLine: false, smoothScrolling: false,
+            renderLineHighlight: "line", lineNumbersMinChars: 3, glyphMargin: false,
+            folding: false, fontLigatures: false, tabSize: 4, insertSpaces: true,
+            wordWrap: "off", inlayHints: { enabled: "on" }, "semanticHighlighting.enabled": true,
+            quickSuggestions: false, suggestOnTriggerCharacters: false, wordBasedSuggestions: "off",
+            ariaLabel: "Vela source editor", contextmenu: true,
+        });
+        state.model.onDidChangeContent(() => {
+            $("source-fallback").value = state.model.getValue();
+            sourceChanged(state.model.getValue());
+        });
+        state.editor.onDidChangeCursorPosition(({ position }) => { $("cursor-position").textContent = `Ln ${position.lineNumber}, Col ${position.column}`; });
+        state.editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, compile);
+        $("source-fallback").hidden = true;
+        $("editor-notice").hidden = true;
+        scheduleCheck(0);
+    } catch (error) {
+        state.editor?.dispose();
+        state.model?.dispose();
+        state.editor = null;
+        state.model = null;
+        $("editor").hidden = true;
+        $("source-fallback").hidden = false;
+        $("source-fallback").value = state.text;
+        $("editor-notice").textContent = "Plain-text mode: Monaco could not load from the CDN. Compile, format and evaluate are available; highlighting and editor navigation need the code editor.";
+        $("editor-notice").hidden = false;
+    }
+}
+
+function selectTab(name) {
+    document.querySelectorAll("[data-tab]").forEach((button) => {
+        const selected = button.dataset.tab === name;
+        button.classList.toggle("active", selected);
+        button.setAttribute("aria-selected", String(selected));
+        button.tabIndex = selected ? 0 : -1;
+        $(`${button.dataset.tab}-panel`).hidden = !selected;
+    });
+}
+
+function errorText(error) {
+    if (!error || typeof error === "string") return error || "The compiler refused this input.";
+    return `${error.kind || "error"} at ${error.line || 1}:${error.column || 1}: ${error.message || "The compiler refused this input."}`;
+}
+
+async function expectedHash(text) {
+    const bytes = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
+    return Array.from(new Uint8Array(bytes), (byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
+async function compile() {
+    const captured = snapshot();
+    const ticket = ++state.compileTicket;
+    const stillCurrent = () => captured.version === state.version && captured.text === state.text && ticket === state.compileTicket;
+    selectTab("gallina");
+    state.gallina = "";
+    $("copy-output").disabled = true;
+    $("compile-button").disabled = true;
+    $("compile-summary").textContent = "Compiling the current source…";
+    $("gallina-output").textContent = "";
+    activity("Compiling…");
+    try {
+        const [result, hash] = await Promise.all([api("/api/compile", { source: captured.text }), expectedHash(captured.text)]);
+        if (!stillCurrent()) return;
+        if (result.sourceHash !== hash) throw new Error("The compiler response does not match the requested source.");
+        if (!result.ok) {
+            $("compile-summary").textContent = "Compilation refused; no generated output.";
+            $("gallina-output").textContent = errorText(result.error);
+            activity("Compiler refused the source");
+            return;
+        }
+        state.gallina = result.gallina;
+        $("gallina-output").textContent = result.gallina;
+        $("compile-summary").textContent = `${result.module} · unqualified pure translation · SHA-256 ${hash.slice(0, 12)}`;
+        $("copy-output").disabled = false;
+        activity("Gallina output ready");
+    } catch (error) {
+        if (!stillCurrent()) return;
+        $("compile-summary").textContent = "Compilation unavailable; no generated output.";
+        $("gallina-output").textContent = error.message;
+        activity("Compilation unavailable");
+    } finally { if (stillCurrent()) $("compile-button").disabled = false; }
+}
+
+async function evaluate(event) {
+    event?.preventDefault();
+    const captured = snapshot();
+    const expression = $("expression").value;
+    const valueType = $("value-type").value;
+    const ticket = ++state.evaluateTicket;
+    const stillCurrent = () => captured.version === state.version && captured.text === state.text && ticket === state.evaluateTicket && expression === $("expression").value && valueType === $("value-type").value;
+    selectTab("console");
+    $("evaluate-button").disabled = true;
+    $("console-result").replaceChildren(element("p", "muted-message", "Evaluating with the pure compiler…"));
+    activity("Evaluating…");
+    try {
+        const [result, hash] = await Promise.all([api("/api/evaluate", { source: captured.text, expression, valueType }), expectedHash(captured.text)]);
+        if (!stillCurrent()) return;
+        if (result.sourceHash !== hash) throw new Error("The evaluation response does not match the requested source.");
+        const card = element("div", `result-card${result.ok ? "" : " error"}`);
+        card.append(element("p", "result-caption", result.ok ? "COMPILE-TIME RESULT" : "EVALUATION REFUSED"));
+        card.append(element("p", "result-expression", `› ${expression}`));
+        card.append(element("p", "result-value", result.ok ? result.value : errorText(result.error)));
+        if (result.ok) card.append(element("div", "result-type", `: ${result.valueType}`));
+        card.append(element("div", "result-identity", `Source SHA-256 ${hash.slice(0, 12)} · unqualified pure prototype`));
+        $("console-result").replaceChildren(card);
+        activity(result.ok ? "Compile-time value ready" : "Compiler refused the expression");
+    } catch (error) {
+        if (!stillCurrent()) return;
+        const card = element("div", "result-card error");
+        card.append(element("p", "result-caption", "EVALUATION UNAVAILABLE"), element("p", "result-value", error.message));
+        $("console-result").replaceChildren(card);
+        activity("Evaluation unavailable");
+    } finally { if (stillCurrent()) $("evaluate-button").disabled = false; }
+}
+
+async function format() {
+    const captured = snapshot();
+    $("format-button").disabled = true;
+    try {
+        const edits = await languageQuery("textDocument/formatting", { options: { tabSize: 4, insertSpaces: true } }, captured);
+        if (!current(captured)) return;
+        if (!edits) { activity("Formatting unavailable; check the connection"); return; }
+        if (!edits.length) { activity("No formatting edit returned"); return; }
+        if (state.editor) {
+            state.editor.pushUndoStop();
+            state.editor.executeEdits("vela-format", edits.map((edit) => ({ range: toRange(edit.range), text: edit.newText })));
+            state.editor.pushUndoStop();
+        } else {
+            const lines = captured.text.split(/\r\n|\n|\r/);
+            const offset = (position) => {
+                let result = 0;
+                const separators = captured.text.match(/\r\n|\n|\r/g) || [];
+                for (let line = 0; line < position.line; line++) result += lines[line].length + separators[line].length;
+                return result + position.character;
+            };
+            const ordered = edits.map((edit) => ({ start: offset(edit.range.start), end: offset(edit.range.end), text: edit.newText })).sort((left, right) => right.start - left.start);
+            let text = captured.text;
+            for (const edit of ordered) text = text.slice(0, edit.start) + edit.text + text.slice(edit.end);
+            setSource(text);
+        }
+        activity("Canonical formatting applied");
+    } finally { $("format-button").disabled = false; }
+}
+
+$("source-fallback").addEventListener("input", () => sourceChanged($("source-fallback").value));
+$("source-fallback").addEventListener("keydown", (event) => {
+    if (event.key === "Tab") {
+        event.preventDefault();
+        const source = $("source-fallback");
+        source.setRangeText("    ", source.selectionStart, source.selectionEnd, "end");
+        sourceChanged(source.value);
+    }
+});
+$("expression").addEventListener("input", () => clearEvaluation("Expression changed. Evaluate again for a current result."));
+$("value-type").addEventListener("change", () => clearEvaluation("Result type changed. Evaluate again for a current result."));
+$("evaluate-form").addEventListener("submit", evaluate);
+$("compile-button").addEventListener("click", compile);
+$("format-button").addEventListener("click", format);
+$("reconnect-button").addEventListener("click", connect);
+$("examples").addEventListener("change", () => {
+    const example = examples[$("examples").value];
+    $("expression").value = example.expression;
+    $("value-type").value = example.valueType;
+    clearEvaluation();
+    setSource(example.source);
+    state.editor?.setPosition({ lineNumber: 1, column: 1 });
+    activity("Example loaded");
+});
+$("copy-output").addEventListener("click", async () => {
+    try { await navigator.clipboard.writeText(state.gallina); activity("Gallina output copied"); }
+    catch { activity("Clipboard unavailable; select the output to copy it"); }
+});
+document.querySelectorAll("[data-tab]").forEach((button) => {
+    button.addEventListener("click", () => selectTab(button.dataset.tab));
+    button.addEventListener("keydown", (event) => {
+        const tabs = [...document.querySelectorAll("[data-tab]")];
+        const index = tabs.indexOf(button);
+        let next;
+        if (event.key === "ArrowRight") next = tabs[(index + 1) % tabs.length];
+        else if (event.key === "ArrowLeft") next = tabs[(index + tabs.length - 1) % tabs.length];
+        else if (event.key === "Home") next = tabs[0];
+        else if (event.key === "End") next = tabs[tabs.length - 1];
+        if (next) { event.preventDefault(); selectTab(next.dataset.tab); next.focus(); }
+    });
+});
+document.addEventListener("keydown", (event) => {
+    if ((event.ctrlKey || event.metaKey) && event.key === "Enter" && !state.editor?.hasTextFocus()) {
+        event.preventDefault();
+        if (document.activeElement === $("expression")) evaluate();
+        else compile();
+    }
+    if (event.shiftKey && event.altKey && event.key.toLowerCase() === "f" && !state.editor?.hasTextFocus()) { event.preventDefault(); format(); }
+});
+window.addEventListener("pagehide", () => {
+    if (state.session) closeSession(state.session, { keepalive: true });
+});
+
+connect();
+loadEditor();
