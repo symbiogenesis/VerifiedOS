@@ -33,8 +33,9 @@ not make it part of this release.
 The selected [familiar authoring surface](surface-grammar.md#familiar-authoring-migration)
 uses explicit `let`/`var` local conventions, ordinary numeric aliases, concise
 expression matches, one function-expression body marker and ordinary generic
-calls. Q25z migrates and qualifies these forms after the first synchronous slice
-under the [delivery order](../../../PLAN.md#vela-first-release-delivery). Typed
+calls. Q25z migrates syntax and existing consumers independently; represented
+libraries and runtime qualification follow the first synchronous slice under
+the [delivery order](../../../PLAN.md#vela-first-release-delivery). Typed
 `let` already parses; the other selected changes do not describe current
 prototype support. Their adoption preserves this release's semantic scope and
 does not become a prerequisite for its concrete foundation investigation or
@@ -116,6 +117,28 @@ no new productions for them, but implementations and operation laws remain to be
 qualified. No generic operator overload can change these primitive meanings or
 silently insert a conversion. Bounds failures use explicit checked APIs or proof
 premises under the same rule; there is no unchecked indexing shortcut.
+
+### Contextual inference
+
+Local inference removes an annotation only when the selected declaration and
+checking context determine its meaning. Expected types may determine exact
+integer literal representations, generic arguments, lambda parameters and
+stable dependent indices. Range bounds share a selected integer representation:
+`0..buffer.Length` can infer `usize` for the literal from that upper bound.
+A suffix or annotation conflicting with the bound is an error; an already typed
+operand never changes type to make the range fit. Ambiguous runtime widths need
+an annotation, including an otherwise unconstrained `let count = 0;`.
+
+Inferred indices retain stability and representation checks. Inference never
+changes instance coherence, supplies authority, converts an existing value,
+inserts ownership transfer or drops an obligation. An inferred proof is still
+checked evidence; an unresolved goal remains unresolved. Public signatures keep
+reviewed representations, static inputs, resource modes, effects and exits.
+Qualification compares explicit and inferred clients at the same interpretation
+and artifact endpoint, with exact boundary literals, ambiguity, wrong widths,
+unstable indices and stale-source controls. Current pure/mathematical prototypes
+retain their own scalar types; parsing a machine literal or loop supplies no
+represented-inference implementation.
 
 ### Bytes and text
 
@@ -202,6 +225,16 @@ they do not require ordinary users to reconstruct a separation-logic proof at
 each element. Codecs retain the platform's required format-description and
 [boundary initialization obligations](../../spec.md#r-05-124).
 
+The [collection-loop surface](surface-grammar.md#ergonomic-authoring-and-bounded-collection-iteration)
+uses those same proved bounded iterators. Value iteration requires copy
+permission; shared/exclusive iteration selects an explicit element loan. The
+source is evaluated once, and a declared bound and stable footprint determine
+iteration. All exhaustion and early-exit paths restore or explicitly return the
+resources promised by the iterator contract. No enumerator allocation, implicit
+disposal, owned-element copy, escaping element loan or invalidating mutation is
+introduced. Parser support is syntax-only until a real iterator library and
+represented checker discharge those duties.
+
 `out T` retains its simple rule: no reads before initialization and a fully
 initialized `T` on every normal return, including an error return. Fallible
 construction instead consumes an owned storage/builder state and returns an
@@ -230,6 +263,32 @@ preserve the program's meaning. Named disjoint views can avoid the conflict.
 Two-phase receiver borrowing remains a separately priced option, triggered by
 measured client friction rather than made a prerequisite for ordinary ownership.
 No diagnostic may silently reorder effectful arguments or insert hidden loans.
+
+## C# transition guide <a id="csharp-transition-guide"></a>
+
+Use type-first declarations, PascalCase members, camelCase locals, `this`, ordinary
+generic calls, expression bodies and inferred lambdas consistently. The
+[authoring style](authoring-tools.md#common-style) and
+[binding guidance](authoring-tools.md#lint-policy) keep `let`/`var` visible whether
+the type is inferred or explicit. These familiar spellings retain Vela's rules:
+
+| Surface | Vela meaning to explain |
+| --- | --- |
+| `let T value`, bare `T value` | Immutable binding; writing through an eligible exclusive loan is a separate operation |
+| `var T value` | Mutable binding, with no implicit shared-write permission |
+| `in`, `ref`, `out` | Explicit shared-read, initialized-exclusive and initialization-exclusive loans; ordinary calls repeat their mode |
+| `out T` with a fallible result | `T` is initialized on every normal return, including errors; partial construction uses outcome-indexed owned storage |
+| Labeled arguments | Labels name the next declared parameter, preserving dependent substitution and left-to-right evaluation; no reordering or defaults |
+| `int` and ordinary arithmetic | Explicitly imported exact alias; representability obligations and checked-result alternatives retain the primitive contract |
+| `Option<T>` and propagation | Absence is an explicit case; every reachable exit accounts for retained loans and required resources |
+
+Receiver signature help shows the selected mode and named view. A conflict names
+both accesses and may offer a preceding immutable snapshot only when evaluation,
+effects and lifetimes preserve meaning. Completion can offer exhaustive
+`Option`/`Result` arms and explicit propagation only from the current resolved
+type and resource exits. These wider editor features require their qualified
+[compiler facts](tooling-protocols.md#language-server-protocol); the pure language
+server cannot infer a borrow verdict or advertise unsupported code actions.
 
 ## Qualification
 

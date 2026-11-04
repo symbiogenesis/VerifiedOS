@@ -27,7 +27,9 @@ schematic library calls in that dossier are not parser fixtures.
 
 ## Entry points
 
-One authored Menhir grammar owns two entry points. The `file` entry and
+One authored Menhir grammar owns two public entry points and may use an internal
+generic-call prefix probe sharing its generic-argument productions. The internal
+probe is not an input/output protocol or a second syntax authority. The `file` entry and
 schema 1 serve the pure prototype and its parser comparison. The
 `surface_file` entry, selected with `vela-parser parse --surface SOURCE`, emits
 schema 2 and a `surface_file` node with a module name and declarations. It has no
@@ -687,8 +689,11 @@ part of this increment follows the [hint contract](lsp-prototype.md#authoring-hi
 
 ### Familiar authoring migration
 
-[Q25z](../../../PLAN.md#q-assessment-actions) selects this surface refinement;
-its implementation follows the [first synchronous component](../../../PLAN.md#vela-first-release-delivery).
+[Q25z](../../../PLAN.md#q-assessment-actions) selects this surface refinement.
+Its bounded syntax and existing-consumer migration can proceed independently of
+the [first synchronous component](../../../PLAN.md#vela-first-release-delivery);
+represented libraries, runtime checking and production qualification retain
+that component's prerequisites.
 The current surface parser already accepts typed `let` and `var` through the
 shared local initializer. It still requires `case ... => ...;` expression arms,
 `definition ... = EXPR;` mathematical bodies and `::<...>` explicit expression
@@ -763,7 +768,8 @@ bounds, plus a declared aggregate token-inspection budget covering unsuccessful
 and nested probes. Exhaustion is a resource refusal for the whole parse, never
 permission to reinterpret the source as comparisons. No speculative AST or
 token rewrite may leak into a failed probe. The implementation freezes the
-numeric budget and boundary fixtures before qualification, retaining the
+aggregate bound at 200,000 inspected tokens per parse and shares it across
+recursive probes, with boundary fixtures before qualification, retaining the
 current source-consumption and diagnostic bounds.
 
 **Qualification and migration.** Independently expected fixtures cover all
@@ -794,6 +800,83 @@ Qualify strict conflict-free Menhir generation, byte-identical regeneration,
 all retained pure migration cases and mathematical kernel replay for supported
 new spellings. Native acceptance and full suites remain hosted under the
 [validation handoff](../../../AGENTS.md#tool-execution-and-validation).
+
+### Ergonomic authoring and bounded collection iteration
+
+Q25z also owns these authoring refinements. Syntax qualification and the existing
+mathematical consumers do not supply a represented collection checker, iterator
+implementation, source-correspondence theorem or admitted executable.
+
+**Contextual inference.** Infer a literal representation, generic argument,
+lambda annotation or stable dependent index only from the selected declaration
+and its checking context. A unique expected integer type can type an unsuffixed
+literal, including `0` in `0..buffer.Length` when the upper bound establishes
+`usize`. Check its exact value against that representation. Already typed
+operands are never widened, narrowed or otherwise converted; ambiguous widths,
+indices, grades or instances require an annotation or evidence. Inference does
+not invent an `in`, `ref`, `out`, `move`, disposal operation or proof premise.
+Public interfaces retain their reviewed types, modes, effects and contracts.
+The [primitive contract](first-release.md#contextual-inference) owns the semantic
+qualification; the parser preserves unsuffixed literals without guessing types.
+
+**Collection loops.** The following forms select value, shared-read and exclusive
+element iteration respectively, with an optional explicit element type:
+
+```text
+foreach (let item in values) { ConsumeValue(item); }
+foreach (let byte item in values) { ConsumeByte(item); }
+foreach (in item in values) { Inspect(in item); }
+foreach (ref byte item in values) { Update(ref item); }
+```
+
+The element binding is immutable. Value iteration requires permission to copy
+each element; it never consumes an owned element implicitly. `in`/`ref` select
+the corresponding element loan and its eligible source view. No `out`, `move`
+or mutable-rebinding loop binder is introduced. The collection expression is
+evaluated once before iteration. A qualified, coherent bounded iterator library
+supplies the iteration bound, element access, effects and restoration contract;
+there is no ambient enumerator protocol, allocation or implicit disposal.
+Checking proves initialization, bounds, representability, termination/WCET and
+the resource state on exhaustion, `continue`, `break`, return and propagation.
+An element loan cannot escape or overlap the next iteration without a proved
+interface permitting it. Mutation cannot invalidate the iteration footprint or
+bound. The [ownership library contract](first-release.md#ownership-libraries)
+retains all of these semantic obligations.
+
+An unannotated value binder whose source expression is a range retains the
+existing `foreach` node and `name`, `range`, `contracts`, `body` fields. Other
+forms produce `foreach_collection` with located `name`, nullable `type`, string
+`mode` (`value`, `in` or `ref`), `collection`, `contracts` and `body` fields.
+Parenthesized range grouping does not change its range role. Explicitly typed
+or loan binders over ranges parse as collection syntax; their eligibility is a
+checking question. This distinction depends only on syntax, never resolution.
+The type, collection, contracts and body all contribute to depth accounting.
+Loop contracts retain the range-loop placement before the braced body.
+
+**Pure typed locals and binding guidance.** Both pure syntax routes accept
+`let Nat count = value;`, `let bool ready = value;` and the immutable bare forms
+`Nat count = value;` and `bool ready = value;`. The annotation must equal the
+initializer's checked type; it grants no coercion or mutation. In schema 1 an
+annotated `let` adds a located `type` field to its existing local node; an
+unmarked annotation uses `typed_local` with `name`, `type`, `value`. Unannotated
+`let` keeps its existing shape. The shared pure binding records the optional
+annotation independently of its value. Wider types and mutable locals retain
+their unsupported-feature diagnostics. The [binding lint and preview](authoring-tools.md#lint-policy)
+prefer explicit `let`, preserve original formatting and never change binding
+semantics. The formatter preserves whichever accepted spelling was authored.
+
+**Qualification.** Independently expected fixtures cover both pure local routes,
+annotation mismatch, shadowing, original UTF-8 spans, comments/mixed newlines and
+unchanged interpreted terms apart from source provenance. Collection fixtures
+distinguish all modes, optional qualified/applied types, range/grouped-range
+compatibility, nested loops, contracts and exits. Refuse incomplete binders,
+missing `in`, malformed annotations and budget exhaustion without an AST. Keep
+syntax-valid borrowing, copying and cleanup violations for the semantic checker
+to diagnose. Preserve exact-source consumer validation, the retained pure
+migration corpus, strict conflict-free generation and bounded native output.
+Represented inference and iterator acceptance require independent positive and
+invalid-neighbor cases through their actual future producers; parser success
+and an unsupported-feature refusal supply neither verdict.
 
 ### Required-static constants
 

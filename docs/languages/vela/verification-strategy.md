@@ -1094,6 +1094,15 @@ default unit value.
 
 #### Permanent Language Exclusions
 
+The [ergonomic authoring contract](surface-grammar.md#ergonomic-authoring-and-bounded-collection-iteration)
+keeps routine code focused on values, `owned`/`move`, `in`/`ref`/`out`, explicit
+`Option`/`Result` outcomes and concise contracts. Contextual inference and bounded
+collection loops preserve those distinctions. General grade expressions,
+universes, explicit regions and dependent match motives stay available when a
+client needs them; introductory examples do not require that entire vocabulary.
+The [C# transition guide](first-release.md#csharp-transition-guide) records familiar
+spellings whose stricter Vela meanings need explicit explanation.
+
 These are language design constraints, including for future extensions. The
 [surface contract](surface-grammar.md#explicit-values-loans-and-absence) owns their
 syntax qualification; the existing resource and machine contracts own semantic

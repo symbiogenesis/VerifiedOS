@@ -137,6 +137,19 @@ syntax diagnostics and syntax symbols, but must label semantic/proof operations
 unsupported. Incomplete editor input may produce partial syntax for navigation;
 it cannot become accepted source or emitted production code.
 
+For the [familiar authoring surface](surface-grammar.md#ergonomic-authoring-and-bounded-collection-iteration),
+resolved signatures show receiver loan modes/views and explicit argument modes.
+Resource conflicts identify both accesses and the outstanding exit obligation.
+A snapshot suggestion is a version-bound proposed source edit, checked for
+evaluation order, effects and lifetime preservation; it never silently moves an
+argument. Exhaustive `Option`/`Result` templates use current resolved constructors
+and resource-bearing outcomes, and propagation suggestions retain cleanup and
+restoration obligations. Show inferred types on demand without manufacturing
+authority or hiding an unresolved proof. Advertise these semantic features only
+when their actual producer supports them; parser acceptance supplies no resource
+facts. The [pure binding preview](authoring-tools.md#lint-policy) remains an
+explicit command and grants no extra LSP capability.
+
 Semantic highlighting uses LSP semantic tokens from compiler-resolved facts,
 with a declared token legend and qualified full/range/delta capabilities. Test
 legend interpretation, Unicode coordinates and invalidation after edits; never
