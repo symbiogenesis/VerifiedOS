@@ -160,6 +160,8 @@ def _http_compiler() -> None:
                "HTTP compile lost original source identity")
         ensure(compiled["gallina"] == vela.translate(_SOURCE.encode()).gallina,
                "HTTP compile did not expose actual compiler emission")
+        ensure(compiled["editorServices"] is True and compiled["findings"] == [],
+               "pure source lost editor services or acquired mathematical findings")
         evaluated = _post(server, "/api/evaluate",
                           {"source": _SOURCE, "expression": "Square(7)", "valueType": "Nat"})
         ensure(evaluated == {"ok": True, "sourceHash": digest, "valueType": "Nat", "value": "49"},
@@ -175,11 +177,13 @@ def _http_compiler() -> None:
                "refused expression retained success or lost its expression context")
         broken = "module Bad; public Nat Wrong() => true;"
         refused = _post(server, "/api/compile", {"source": broken})
-        ensure(refused["ok"] is False and refused["sourceHash"] == hashlib.sha256(broken.encode()).hexdigest(),
+        ensure(refused["ok"] is False and refused["editorServices"] is True
+               and refused["sourceHash"] == hashlib.sha256(broken.encode()).hexdigest(),
                "failed compiler request lost its exact source binding")
         with patch.object(playground.subprocess, "run", side_effect=playground.subprocess.TimeoutExpired("worker", 5)):
             timeout = _post(server, "/api/compile", {"source": _SOURCE})
-        ensure(timeout["ok"] is False and cast("dict[str, object]", timeout["error"])["kind"] == "timeout",
+        ensure(timeout["ok"] is False and timeout["editorServices"] is False
+               and cast("dict[str, object]", timeout["error"])["kind"] == "timeout",
                "worker timeout masqueraded as completed compilation")
         malformed = {"ok": False, "sourceHash": digest,
                      "error": {"kind": [], "message": "bad", "line": 1, "column": 1}}
