@@ -52,7 +52,7 @@ construct syntax, including syntactically valid programs with semantic errors.
 | Data and dependency | Records, structs, tagged unions, fields, constructors, named views, generic types and applications, typed ghost indices, region and capture parameters, grade parameters and annotations |
 | Types and resources | Qualified and applied types, ownership, shared/exclusive loans and place-named lifetimes, ghost/tracked/scoped modifiers, function types with captures and effects, dependent binders and universe syntax |
 | Contracts | Requires, ensures, restores, where, effects, invariants and decreasing measures; old/final are ordinary calls |
-| Expressions | Literal spellings and representation suffixes, qualified access, nested calls, indexing and ranges, unary/arithmetic/comparison/logical operators, implication, pattern tests, explicit generic application, tuples, lambdas and named holes |
+| Expressions | Literal spellings (including multi-quote raw strings and interpolated format templates) and representation suffixes, qualified access, nested calls, indexing and ranges, unary/arithmetic/comparison/logical operators, implication, pattern tests, explicit generic application, tuples, lambdas and named holes |
 | Control | Immutable/mutable and typed locals, required-static local constants, assignments, blocks, returns, if/else, bounded-loop syntax, exhaustive-match syntax, break/continue and explicit propagation |
 | Grades | Domain carrier/zero/one/add/mul/admits/interpret/laws declarations and parameter use grades |
 | Effects and tasks | Effect operations and resumption bounds, deep/shallow handlers, return/operation clauses, resume/dispose/rehandle, async functions, scope/spawn/await/commit and on-cancel cleanup |
@@ -873,6 +873,33 @@ productions. Their standard-library definitions and pre-proved finite-sequence
 lemmas belong to the [ownership library](first-release.md#ownership-libraries) and
 [refinement/domain tier](core-design.md#refinement-effects-and-staging).
 
+**Raw string literals and allocation-free checked formatting.** Raw string
+literals open with three or more double quotes (`"""..."""`) and close with the
+same quote count (`string` in expressions and `string_pattern` in patterns,
+retaining the exact authored spelling and original-byte span). Single-line raw
+strings contain no line breaks; multi-line raw strings require a newline after
+the opening delimiter, a closing delimiter on its own whitespace-indented line,
+and at least that closing indentation prefix on every non-empty content line.
+Excess closing quotes, missing opening/closing line breaks and under-indented
+content lines are syntax refusals. Interpolated format templates `$"..."` parse
+as located `interpolated_string` expression nodes with their original-byte
+`span` and raw `value` spelling. Holes `{expr}` and `{expr:spec}` require a
+non-empty expression, balanced delimiters within the delimiter budget and an
+optional non-empty format specifier without whitespace or quotes; literal braces
+use `{{` and `}}`. Unterminated templates, empty holes (`{}`), empty or
+whitespace-containing specifiers (`{x:}`), unescaped closing braces and `$"..."`
+in pattern positions are syntax refusals. Under the
+[text and ownership contracts](first-release.md#bytes-and-text), `$"..."` is not
+a heap-allocating `string` value: it is elaborated only as the format template
+of an explicit buffer-writing operation such as `Format.Write(ref builder, $"...")`
+targeting `ref TextBuilder<capacity>` or `ref Span<byte>`, resolving a coherent
+static `Format<T>` instance per hole (no runtime reflection, virtual `ToString()`
+or ambient locale) and returning `Result<usize, CapacityError>`. Standalone
+`$"..."` bindings, missing `Format<T>` instances, unexamined
+`Result<usize, CapacityError>` outcomes and hole expressions that conflict with
+the active `ref` target loan remain valid syntax for the semantic and borrow
+checkers to diagnose.
+
 **Pure typed locals and binding guidance.** Both pure syntax routes accept
 `let Nat count = value;`, `let bool ready = value;` and the immutable bare forms
 `Nat count = value;` and `bool ready = value;`. The annotation must equal the
@@ -889,7 +916,15 @@ semantics. The formatter preserves whichever accepted spelling was authored.
 annotation mismatch, shadowing, original UTF-8 spans, comments/mixed newlines and
 unchanged interpreted terms apart from source provenance. Collection fixtures
 distinguish all modes, optional qualified/applied types, range/grouped-range
-compatibility, nested loops, contracts and exits. Refuse incomplete binders,
+compatibility, nested loops, contracts and exits. Text and formatting fixtures
+cover single-line and multi-line raw string literals (including embedded quotes,
+backslashes and pattern matching), `Format.Write(ref builder, $"...")`
+interpolated templates with expressions, format specifiers and escaped `{{`/`}}`
+braces, syntax-valid semantic error neighbors (standalone `$"..."` value
+bindings and conflicting receiver reads inside holes), and syntax refusals for
+malformed raw-string delimiters/indentation, empty or unclosed interpolation
+holes, malformed specifiers, unescaped braces and interpolated patterns. Refuse
+incomplete binders,
 missing `in`, malformed annotations and budget exhaustion without an AST. Keep
 syntax-valid borrowing, copying and cleanup violations for the semantic checker
 to diagnose. Preserve exact-source consumer validation, the retained pure

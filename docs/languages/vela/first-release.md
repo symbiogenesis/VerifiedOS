@@ -151,7 +151,15 @@ without normalization, a terminator or implicit allocation. Embedded `U+0000`
 is an ordinary scalar. Literal escapes are `\\`, `\"`, `\'`, `\n`, `\r`, `\t`,
 `\0`, and `\u{H...}` with one through six hexadecimal digits denoting a scalar;
 malformed/unknown escapes, invalid UTF-8 and non-scalar escapes are rejected.
-Character literals decode to exactly one scalar. Raw byte data uses byte buffers
+Character literals decode to exactly one scalar. Raw string literals open with
+three or more double quotes (`"""..."""`) and close with the matching quote
+count without escape processing. Single-line raw strings contain no line breaks
+between delimiters; multi-line raw strings follow the opening delimiter with a
+newline, place the closing delimiter on its own whitespace-indented line, strip
+that closing line's leading horizontal whitespace from every non-empty content
+line (rejecting non-empty content lines with less indentation), exclude the
+opening newline and the newline immediately preceding the closing delimiter, and
+normalize interior line breaks to LF (`\n`). Raw byte data uses byte buffers
 and explicit encoders rather than malformed text literals.
 
 The initial text library uses an immutable validated UTF-8 view with represented
@@ -168,7 +176,19 @@ equality compares exact encoded bytes; canonically equivalent but differently
 encoded scalar sequences remain distinct. Normalization, locale collation and
 grapheme segmentation require separately specified libraries. Runtime-built
 text uses explicit bounded storage, capacity outcomes and validation; literals'
-read-only backing is charged to the composed image.
+read-only backing is charged to the composed image. Instead of C#/Kotlin's
+heap-allocating `$"..."` string interpolation, runtime `Object.ToString()`
+reflection or ambient `CultureInfo` locale formatting, Vela provides an explicit
+buffer-writing interpolation and format surface (comparable to C# 10's
+`InterpolatedStringHandler` or Rust's `write!`) such as
+`Format.Write(ref builder, $"...")` that targets an explicit
+`ref TextBuilder<capacity>` or `ref Span<byte>`, resolves a coherent static
+`Format<T>` interface per interpolation hole (`{value}` or compile-time checked
+`{value:spec}`) without runtime reflection, boxing or ambient locale, and
+returns an explicit `Result<usize, CapacityError>`. Standalone `$"..."`
+expressions without an explicit destination buffer are rejected; capacity
+exhaustion returns `Err(CapacityError)` under the target builder or span's
+declared rollback/prefix contract.
 
 ## Modules and packages
 
@@ -267,6 +287,14 @@ partially built object visits only those entries, accounts for their resources,
 and restores the promised storage state. Failure must return storage and
 unconsumed inputs or discharge them through an explicit proved operation.
 Boundary-mandated whole-buffer initialization and zeroization are unchanged.
+`TextBuilder<capacity>` and `Format.Write(ref builder, $"...")` (or
+`Format.Write(ref span, $"...")` over `ref Span<byte>`) follow the same
+bounded-storage contract: each literal segment and `{hole}` appends deterministic
+UTF-8 bytes through the hole's coherent static `Format<T>` instance without
+heap allocation, reflection or ambient locale, evaluates hole arguments
+left-to-right under the active receiver loan, and returns
+`Result<usize, CapacityError>` with the declared prefix/rollback state on
+`Err(CapacityError)`.
 
 Construction, replacement and bounded collection growth must demonstrate failure
 before the first write, partial failure, successful completion and rollback with
@@ -302,6 +330,8 @@ the type is inferred or explicit. These familiar spellings retain Vela's rules:
 | Labeled arguments | Labels name the next declared parameter, preserving dependent substitution and left-to-right evaluation; no reordering or defaults |
 | `int` and ordinary arithmetic | Explicitly imported exact alias; representability obligations and checked-result alternatives retain the primitive contract |
 | `Option<T>` and propagation | Absence is an explicit case; every reachable exit accounts for retained loans and required resources |
+| `"""..."""` (raw string literals) | Exact UTF-8 bytes without escape processing; multi-line forms strip the closing delimiter line's indentation prefix and normalize interior line breaks to LF (`\n`) in the read-only image |
+| `Format.Write(ref builder, $"...")` (instead of heap `$"..."` / `ToString()`) | Allocation-free checked formatting into an explicit `ref TextBuilder<capacity>` or `ref Span<byte>`, resolving a coherent static `Format<T>` instance per `{hole}` (no heap allocation, runtime reflection or ambient locale) and returning `Result<usize, CapacityError>` |
 | `.Model.All(x => ...)`, `.Any(x => ...)`, `.Contains(x)`, `.Take(n)`, `.Skip(n)`, `.Slice(a, b)`, `.Count` | Pure mathematical `Seq<T>` predicates and slices in contracts, backed by standard-library lemmas and discharged in the finite-sequence refinement/domain tier instead of raw `forall`/`exists` index quantifiers |
 | `ISequenceModel<T>`, `IBoundedIterable<T>` (instead of `IEnumerable<T>` / `IQueryable<T>`) | Law-carrying interfaces projecting containers to canonical `Model : Seq<T>` and linking bounded `foreach` steps to `Model.At(k)`, `Model.Take(k)` and `Model.Skip(k)` with explicit element loans, zero enumerator allocation and static contract-lambda inspection instead of runtime expression-tree reflection |
 
@@ -324,9 +354,9 @@ emits a term or returns an unconstrained theorem has not met this predicate.
 | Subject | Acceptance evidence |
 | --- | --- |
 | Interpretation and concrete resources | Checked elaboration-image laws, an inhabited carrier state, read/write/initialization/frame and loan restoration, with wrong-offset, alias, premature-restoration and partial-initialization neighbors rejected at the intended obligations. Missing laws remain missing; no axiom or source judgment substitutes for them. |
-| Scalar and text behavior | Independent boundary fixtures for every supported type and operation, signed division/remainder signs, zero and minimum/-1, shift zero/width-1/width, exact/wrapping/saturating arithmetic, target versus host width, invalid conversions, embedded NUL, malformed UTF-8/escapes, scalar boundaries and byte slicing. Static and runtime meanings agree under the same target. Generate finite boundary classes from an independently reviewed oracle; a shared implementation is not an independent expectation. |
+| Scalar and text behavior | Independent boundary fixtures for every supported type and operation, signed division/remainder signs, zero and minimum/-1, shift zero/width-1/width, exact/wrapping/saturating arithmetic, target versus host width, invalid conversions, embedded NUL, malformed UTF-8/escapes, raw-string delimiter/indentation and LF-normalization rules, static `Format<T>` checked formatting (`Result<usize, CapacityError>` on exact fit and `CapacityError` exhaustion without heap allocation or ambient locale), scalar boundaries and byte slicing. Static and runtime meanings agree under the same target. Generate finite boundary classes from an independently reviewed oracle; a shared implementation is not an independent expectation. |
 | Package composition | Two independently authored packages compose with fixed instances; reordered imports preserve meaning; overlap, cycles and conflicting nominal identities are diagnosed. Locked builds reproduce their source/input closure. Contract, representation, proof assumption and tool changes invalidate affected evidence before reuse. |
-| Everyday ownership | Bounded collection/iterator, `.Model` sequence-predicate/slice, receiver-snapshot, fallible-builder and error-propagation clients compile under their actual representations and the [borrow-analysis promotion contract](core-design.md#borrow-analysis-promotion); escaped views, duplicated tokens, reads of unwritten fields, stale current-content facts and lost mandatory outcomes fail at the responsible resource rule. |
+| Everyday ownership | Bounded collection/iterator, `.Model` sequence-predicate/slice, `TextBuilder<capacity>` / `Format<T>` checked formatting, receiver-snapshot, fallible-builder and error-propagation clients compile under their actual representations and the [borrow-analysis promotion contract](core-design.md#borrow-analysis-promotion); escaped views, duplicated tokens, reads of unwritten fields, stale current-content facts and lost mandatory outcomes fail at the responsible resource rule. |
 | Complete software path | Authored source and independent contract reach one retained backend with checked correspondence, representation and lowering; applicable final-byte, resource, observation and admission duties meet their existing owners. Report source, artifact and production evidence separately. |
 | Developer usefulness | Record annotation burden, first useful diagnostic, checking latency, code/stack/storage consequences and repair after a semantic-preserving refactor, a representation change and a real contract change on both clients. A held-out client cannot be redesigned to fit the candidate unnoticed. |
 

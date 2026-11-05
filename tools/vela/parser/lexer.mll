@@ -90,6 +90,14 @@ let annotation lexbuf parenthesized =
           trivia (line (index + 2))
       | _ -> index
   in
+  let rec skip_raw quotes index =
+    if index >= length then length
+    else if at index = '"' then
+      let rec run cursor = if cursor < length && at cursor = '"' then 1 + run (cursor + 1) else 0 in
+      let count = run index in
+      if count >= quotes then index + count else skip_raw quotes (index + count)
+    else skip_raw quotes (index + 1)
+  in
   let rec quoted index =
     if index >= length then length
     else match at index with
@@ -97,6 +105,13 @@ let annotation lexbuf parenthesized =
       | '"' -> index + 1
       | '\r' | '\n' -> length
       | _ -> quoted (index + 1)
+  in
+  let skip_double_quoted start_quote =
+    let rec run cursor = if cursor < length && at cursor = '"' then 1 + run (cursor + 1) else 0 in
+    let quotes = run start_quote in
+    if quotes >= 3 then skip_raw quotes (start_quote + quotes)
+    else if quotes = 2 then start_quote + 2
+    else quoted (start_quote + 1)
   in
   (* A grade or a generic value may contain a callback block. Skip its balanced
      delimiters without interpreting statements or changing lexer positions. *)
@@ -106,7 +121,7 @@ let annotation lexbuf parenthesized =
     else let index = trivia index in
       if index >= length then length
       else match at index with
-        | '"' -> block closing depth (quoted (index + 1))
+        | '"' -> block closing depth (skip_double_quoted index)
         | '\'' when index + 2 < length && at (index + 2) = '\'' -> block closing depth (index + 3)
         | '\'' when index + 3 < length && at (index + 1) = '\\' && at (index + 3) = '\'' -> block closing depth (index + 4)
         | '{' -> block ('}' :: closing) (depth + 1) (index + 1)
@@ -126,7 +141,7 @@ let annotation lexbuf parenthesized =
     else let index = trivia index in
       if index >= length then length
       else match at index with
-        | '"' -> angles depth parens brackets (quoted (index + 1))
+        | '"' -> angles depth parens brackets (skip_double_quoted index)
         | '\'' when index + 2 < length && at (index + 2) = '\'' -> angles depth parens brackets (index + 3)
         | '\'' when index + 3 < length && at (index + 1) = '\\' && at (index + 3) = '\'' -> angles depth parens brackets (index + 4)
         | '(' -> angles depth (parens + 1) brackets (index + 1)
@@ -157,7 +172,7 @@ let annotation lexbuf parenthesized =
     else let index = trivia index in
       if index >= length then length
       else match at index with
-        | '"' -> parenthesized_type depth (quoted (index + 1))
+        | '"' -> parenthesized_type depth (skip_double_quoted index)
         | '\'' when index + 2 < length && at (index + 2) = '\'' -> parenthesized_type depth (index + 3)
         | '\'' when index + 3 < length && at (index + 1) = '\\' && at (index + 3) = '\'' -> parenthesized_type depth (index + 4)
         | '(' -> parenthesized_type (depth + 1) (index + 1)
@@ -182,7 +197,7 @@ let annotation lexbuf parenthesized =
     else let index = trivia index in
       if index >= length then false
       else match at index with
-        | '"' -> binder_tail parens brackets graded (quoted (index + 1))
+        | '"' -> binder_tail parens brackets graded (skip_double_quoted index)
         | '\'' when index + 2 < length && at (index + 2) = '\'' -> binder_tail parens brackets graded (index + 3)
         | '\'' when index + 3 < length && at (index + 1) = '\\' && at (index + 3) = '\'' -> binder_tail parens brackets graded (index + 4)
         | '(' -> binder_tail (parens + 1) brackets graded (index + 1)
@@ -236,6 +251,14 @@ let lambda_open lexbuf =
           trivia (line (index + 2))
       | _ -> index
   in
+  let rec skip_raw quotes index =
+    if index >= length then length
+    else if at index = '"' then
+      let rec run cursor = if cursor < length && at cursor = '"' then 1 + run (cursor + 1) else 0 in
+      let count = run index in
+      if count >= quotes then index + count else skip_raw quotes (index + count)
+    else skip_raw quotes (index + 1)
+  in
   let rec quoted quote index =
     if index >= length then length else match at index with
       | '\\' -> quoted quote (min length (index + 2))
@@ -243,11 +266,18 @@ let lambda_open lexbuf =
       | '\r' | '\n' -> length
       | _ -> quoted quote (index + 1)
   in
+  let skip_double_quoted start_quote =
+    let rec run cursor = if cursor < length && at cursor = '"' then 1 + run (cursor + 1) else 0 in
+    let quotes = run start_quote in
+    if quotes >= 3 then skip_raw quotes (start_quote + quotes)
+    else if quotes = 2 then start_quote + 2
+    else quoted '"' (start_quote + 1)
+  in
   let rec balanced stack depth index =
     if depth > Ast.max_delimiter_depth then refuse "limit" lexbuf "lambda delimiter nesting exceeds 256"
     else let index = trivia index in
       if index >= length then false else match at index with
-        | '"' -> balanced stack depth (quoted '"' (index + 1))
+        | '"' -> balanced stack depth (skip_double_quoted index)
         | '\'' when index + 2 < length && at (index + 2) = '\'' ->
             balanced stack depth (index + 3)
         | '\'' when index + 3 < length && at (index + 1) = '\\' && at (index + 3) = '\'' ->
@@ -349,6 +379,200 @@ let numeric state lexbuf =
   if suffix <> "" && (suffix.[0] >= '0' && suffix.[0] <= '9') then
     refuse "syntax" lexbuf "invalid digit for numeric base";
   if suffix = "" && prefix = 0 then DECIMAL digits else NUMBER (digits, suffix)
+let is_space = function ' ' | '\t' -> true | _ -> false
+let is_newline = function '\r' | '\n' -> true | _ -> false
+let is_hex = function '0'..'9' | 'a'..'f' | 'A'..'F' -> true | _ -> false
+let line_break_end source length index =
+  if index < length && Bytes.get source index = '\r'
+     && index + 1 < length && Bytes.get source (index + 1) = '\n'
+  then index + 2 else index + 1
+let valid_escape source length index =
+  if index >= length then None
+  else match Bytes.get source index with
+    | '"' | '\'' | '\\' | 'n' | 'r' | 't' | '0' -> Some (index + 1)
+    | 'u' when index + 2 < length && Bytes.get source (index + 1) = '{' ->
+        let rec digits count value cursor =
+          if cursor < length && is_hex (Bytes.get source cursor) then
+            let digit = match Bytes.get source cursor with
+              | '0'..'9' as ch -> Char.code ch - Char.code '0'
+              | 'a'..'f' as ch -> 10 + Char.code ch - Char.code 'a'
+              | 'A'..'F' as ch -> 10 + Char.code ch - Char.code 'A'
+              | _ -> 0
+            in
+            if count >= 6 then None else digits (count + 1) (value * 16 + digit) (cursor + 1)
+          else if count >= 1 && cursor < length && Bytes.get source cursor = '}'
+                  && value <= 0x10ffff && (value < 0xd800 || value > 0xdfff) then
+            Some (cursor + 1)
+          else None
+        in
+        digits 0 0 (index + 2)
+    | _ -> None
+let raw_string state lexbuf =
+  let start = Lexing.lexeme_start lexbuf in
+  if not state.surface then
+    refuse "syntax" lexbuf "raw string literals require the wider Vela surface";
+  let after_open = Lexing.lexeme_end lexbuf in
+  let quotes = after_open - start in
+  let source = lexbuf.Lexing.lex_buffer in
+  let length = lexbuf.Lexing.lex_buffer_len in
+  let at index = Bytes.get source index in
+  let rec count_quotes index =
+    if index < length && at index = '"' then 1 + count_quotes (index + 1) else 0
+  in
+  let rec find_close index =
+    if index >= length then
+      raise (Ast.Refusal ("syntax", start, "unterminated raw string literal"))
+    else if at index = '"' then
+      let run = count_quotes index in
+      if run < quotes then find_close (index + run)
+      else if run > quotes then
+        raise (Ast.Refusal ("syntax", start, "raw string closing delimiter has excess quotes"))
+      else index
+    else find_close (index + 1)
+  in
+  let close_start = find_close after_open in
+  let close_end = close_start + quotes in
+  let rec first_newline index =
+    if index >= close_start then None
+    else if is_newline (at index) then Some index
+    else first_newline (index + 1)
+  in
+  (match first_newline after_open with
+   | None -> ()
+   | Some open_nl ->
+       for index = after_open to open_nl - 1 do
+         if not (is_space (at index)) then
+           raise (Ast.Refusal ("syntax", start, "multi-line raw string opening line must end with a newline"))
+       done;
+       let rec last_line_start index current =
+         if index >= close_start then current
+         else if is_newline (at index) then
+           let next = line_break_end source close_start index in
+           last_line_start next next
+         else last_line_start (index + 1) current
+       in
+       let body_start = line_break_end source close_start open_nl in
+       let close_line = last_line_start body_start body_start in
+       for index = close_line to close_start - 1 do
+         if not (is_space (at index)) then
+           raise (Ast.Refusal ("syntax", start, "multi-line raw string closing delimiter must be on its own line"))
+       done;
+       let indent_len = close_start - close_line in
+       let rec check_lines line_start =
+         if line_start < close_line then begin
+           let rec line_end index has_non_space =
+             if index >= close_line || is_newline (at index) then index, has_non_space
+             else line_end (index + 1) (has_non_space || not (is_space (at index)))
+           in
+           let nl_pos, has_non_space = line_end line_start false in
+           if has_non_space then begin
+             if nl_pos - line_start < indent_len then
+               raise (Ast.Refusal ("syntax", start, "raw string content line has less indentation than the closing delimiter"));
+             for k = 0 to indent_len - 1 do
+               if at (line_start + k) <> at (close_line + k) then
+                 raise (Ast.Refusal ("syntax", start, "raw string content line has less indentation than the closing delimiter"))
+             done
+           end;
+           check_lines (line_break_end source close_line nl_pos)
+         end
+       in
+       check_lines body_start);
+  lexbuf.Lexing.lex_curr_pos <- close_end;
+  lexbuf.Lexing.lex_curr_p <- { lexbuf.Lexing.lex_curr_p with Lexing.pos_cnum = close_end };
+  STRING (Bytes.sub_string source start (close_end - start))
+let interpolated_string state lexbuf =
+  let start = Lexing.lexeme_start lexbuf in
+  if not state.surface then
+    refuse "syntax" lexbuf "unexpected character";
+  let after_open = Lexing.lexeme_end lexbuf in
+  let source = lexbuf.Lexing.lex_buffer in
+  let length = lexbuf.Lexing.lex_buffer_len in
+  let at index = Bytes.get source index in
+  let rec skip_inner_quoted quote index =
+    if index >= length || is_newline (at index) then
+      raise (Ast.Refusal ("syntax", start, "unterminated literal in interpolation hole"))
+    else if at index = '\\' then
+      match valid_escape source length (index + 1) with
+      | Some next -> skip_inner_quoted quote next
+      | None -> raise (Ast.Refusal ("syntax", start, "invalid escape in interpolation hole"))
+    else if at index = quote then index + 1
+    else skip_inner_quoted quote (index + 1)
+  in
+  let rec scan_hole stack depth has_expr in_spec has_spec index =
+    if depth > Ast.max_delimiter_depth then
+      raise (Ast.Refusal ("limit", start, "delimiter nesting exceeds 256"));
+    if index >= length || is_newline (at index) then
+      raise (Ast.Refusal ("syntax", start, "unterminated interpolation hole"));
+    match at index with
+    | ' ' | '\t' ->
+        if in_spec then
+          raise (Ast.Refusal ("syntax", start, "whitespace is not permitted in an interpolation format specifier"));
+        scan_hole stack depth has_expr in_spec has_spec (index + 1)
+    | '"' ->
+        if in_spec then
+          raise (Ast.Refusal ("syntax", start, "quotes are not permitted in an interpolation format specifier"));
+        scan_hole stack depth true in_spec has_spec (skip_inner_quoted '"' (index + 1))
+    | '\'' ->
+        if in_spec then
+          raise (Ast.Refusal ("syntax", start, "quotes are not permitted in an interpolation format specifier"));
+        if index + 1 < length && (at (index + 1) = '\\' || (index + 2 < length && at (index + 2) = '\'')) then
+          scan_hole stack depth true in_spec has_spec (skip_inner_quoted '\'' (index + 1))
+        else
+          scan_hole stack depth true in_spec has_spec (index + 1)
+    | '(' when not in_spec -> scan_hole (')' :: stack) (depth + 1) true in_spec has_spec (index + 1)
+    | '[' when not in_spec -> scan_hole (']' :: stack) (depth + 1) true in_spec has_spec (index + 1)
+    | '{' when not in_spec -> scan_hole ('}' :: stack) (depth + 1) true in_spec has_spec (index + 1)
+    | (')' | ']') as closing when not in_spec ->
+        (match stack with
+         | expected :: rest when expected = closing ->
+             scan_hole rest (depth - 1) has_expr in_spec has_spec (index + 1)
+         | _ -> raise (Ast.Refusal ("syntax", start, "mismatched delimiter in interpolation hole")))
+    | '}' ->
+        (match stack with
+         | '}' :: rest -> scan_hole rest (depth - 1) has_expr in_spec has_spec (index + 1)
+         | _ :: _ -> raise (Ast.Refusal ("syntax", start, "mismatched delimiter in interpolation hole"))
+         | [] ->
+             if not has_expr then
+               raise (Ast.Refusal ("syntax", start, "empty interpolation hole"));
+             if in_spec && not has_spec then
+               raise (Ast.Refusal ("syntax", start, "empty interpolation format specifier"));
+             index + 1)
+    | ':' when stack = [] && not in_spec ->
+        if index + 1 < length && at (index + 1) = ':' then
+          scan_hole stack depth has_expr false false (index + 2)
+        else if not has_expr then
+          raise (Ast.Refusal ("syntax", start, "empty interpolation hole"))
+        else
+          scan_hole stack depth has_expr true false (index + 1)
+    | ':' when in_spec ->
+        raise (Ast.Refusal ("syntax", start, "multiple colons in interpolation format specifier"))
+    | ('(' | ')' | '[' | ']' | '{') when in_spec ->
+        raise (Ast.Refusal ("syntax", start, "delimiters are not permitted in an interpolation format specifier"))
+    | _ ->
+        if in_spec then scan_hole stack depth has_expr true true (index + 1)
+        else scan_hole stack depth true false false (index + 1)
+  in
+  let rec scan index =
+    if index >= length || is_newline (at index) then
+      raise (Ast.Refusal ("syntax", start, "unterminated interpolated format string"));
+    match at index with
+    | '"' -> index + 1
+    | '\\' ->
+        (match valid_escape source length (index + 1) with
+         | Some next -> scan next
+         | None -> raise (Ast.Refusal ("syntax", start, "invalid escape in interpolated format string")))
+    | '{' ->
+        if index + 1 < length && at (index + 1) = '{' then scan (index + 2)
+        else scan (scan_hole [] (state.delimiters + 1) false false false (index + 1))
+    | '}' ->
+        if index + 1 < length && at (index + 1) = '}' then scan (index + 2)
+        else raise (Ast.Refusal ("syntax", start, "unescaped closing brace in interpolated format string"))
+    | _ -> scan (index + 1)
+  in
+  let close_end = scan after_open in
+  lexbuf.Lexing.lex_curr_pos <- close_end;
+  lexbuf.Lexing.lex_curr_p <- { lexbuf.Lexing.lex_curr_p with Lexing.pos_cnum = close_end };
+  INTERPOLATED_STRING (Bytes.sub_string source start (close_end - start))
 }
 let identifier = ['A'-'Z' 'a'-'z' '_'] ['A'-'Z' 'a'-'z' '0'-'9' '_']*
 let decimal = ['0'-'9']+
@@ -362,6 +586,8 @@ rule token state = parse
              comment state 1 (Lexing.lexeme_start lexbuf) lexbuf; token state lexbuf }
   | identifier { identifier state lexbuf }
   | decimal identifier? { if state.surface then numeric state lexbuf else pure_decimal lexbuf }
+  | '"' '"' '"' '"'* { raw_string state lexbuf }
+  | "$\"" { interpolated_string state lexbuf }
   | '"' ([^ '"' '\\' '\r' '\n'] | escape)* '"' { STRING (Lexing.lexeme lexbuf) }
   | '\'' ([^ '\'' '\\' '\r' '\n'] | escape) '\'' { CHARACTER (Lexing.lexeme lexbuf) }
   | '\'' identifier ('.' identifier)* { LIFETIME (Lexing.lexeme lexbuf) }

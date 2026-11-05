@@ -995,6 +995,8 @@ retain their qualified parser/frontend prerequisites.
 | `owned T`, `move x` | A consuming parameter, and the call-site spelling that supplies one. The moved-from binding is unusable afterwards. |
 | `in T`, `ref T`, `out T` | Shared-read, initialized-exclusive and initialization-exclusive loans. Ordinary arguments repeat the mode; member-call syntax supplies the declared receiver loan. None is a freely copyable authority token. |
 | `Option<T>`, `Some(value)`, `None()` | Explicit optional data and its two tagged cases; payload use accounts for presence and absence. |
+| `"""..."""` | A single-line or indentation-stripped multi-line raw string literal denoting exact static UTF-8 bytes without escape processing or heap allocation. |
+| `Format.Write(ref builder, $"...")` | Allocation-free checked formatting into an explicit `ref TextBuilder<capacity>` or `ref Span<byte>`, resolving a coherent static `Format<T>` instance per `{hole}` (no heap allocation, runtime reflection or ambient locale) and returning `Result<usize, CapacityError>`. |
 | `*p`, `&place`, `p + n`, `p[i]` | Explicit dereference, address/loan derivation, pointer offset and indexing, under checked representation and access contracts. |
 | `'input`, `'this.text` | The loan on a named place, either a parameter or a field of one. A view returned from one source names that source; `region 'r` declares a lifetime parameter only for generic or multi-source relationships. |
 | `view Tail = ...`, `ref this.Tail` | A named part of a record, which a public signature can lend while other parts stay borrowed elsewhere. |

@@ -290,7 +290,8 @@ def _numeric_separator_limits_required() -> None:
 
 def _familiar_authoring_oracles_required() -> None:
     for name, oracle_name in (("familiar-generic-calls-and-expression-arms", "_familiar_call_roles"),
-                              ("bounded-collection-iteration", "_collection_iteration_roles")):
+                              ("bounded-collection-iteration", "_collection_iteration_roles"),
+                              ("raw-strings-and-checked-formatting", "_raw_string_and_format_roles")):
         fixture = next(value for value in surface.POSITIVE if value.name == name)
         result: dict[str, parser.Json] = {"ast": [{"kind": kind} for kind in fixture.kinds]}
         with patch.object(surface, "POSITIVE", (fixture,)), \

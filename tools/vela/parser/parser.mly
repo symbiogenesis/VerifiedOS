@@ -55,7 +55,7 @@ let binary first last operator left right =
 %token GENERIC_OPEN CALL_GENERIC_OPEN
 %token ANNOTATION_OPEN LAMBDA_OPEN
 %token <string * string> NUMBER
-%token <string> LIFETIME STRING CHARACTER HOLE ANNOTATION_NAME
+%token <string> LIFETIME STRING INTERPOLATED_STRING CHARACTER HOLE ANNOTATION_NAME
 %start <Ast.node> file
 %start <Ast.node> surface_file
 %start <unit> generic_call_prefix
@@ -775,6 +775,8 @@ s_postfix_with(opening):
   GENERIC_OPEN { () } | CALL_GENERIC_OPEN { () }
 s_atom_with(opening):
   value=s_literal { value }
+| value=INTERPOLATED_STRING
+    { make "interpolated_string" $startpos $endpos [("value", String value)] [] }
 | value=s_operator_value_with(opening) { value }
 | value=s_hole { value }
 | value=s_value_identifier { make "name" $startpos $endpos [("name", value)] [] }

@@ -77,6 +77,30 @@ void Visit(ref Span<byte> target, in Span<byte> source)
     foreach (ref invalidLoan in sharedSource) { Escape(ref invalidLoan); }
 }
 """, ("foreach", "foreach_collection", "contract", "break", "continue", "return", "range", "unary")),
+    Fixture("raw-strings-and-checked-formatting", r'''// café: raw strings and buffer-writing format templates keep exact byte spans.
+module CheckedFormatting;
+public const Span<byte> SingleRaw = """exact "quoted" \raw café""";
+public const Span<byte> MultiRaw = """
+    VERSION 1
+    MODE "STRICT" \raw
+    """;
+public Result<usize, CapacityError> WriteHeader<ghost Nat capacity>(
+    ref TextBuilder<capacity> builder, ref Span<byte> scratch, usize id, byte tag)
+    where Format(usize) && Format(byte)
+    effects writes(builder), writes(scratch)
+{
+    let first = Format.Write(ref builder, $"packet[{id}]={{tag:{tag:x2}}}")?;
+    let second = Format.Write(target: ref scratch, template: $"id={Identity::<usize>(id)}")?;
+    let matched = match (SingleRaw) {
+        """"matched """ \raw"""" => first + second,
+        _ => 0usize,
+    };
+    let invalidStandaloneHeap = $"allocated {id}";
+    let invalidReceiverRead = Format.Write(ref builder, $"len={builder.Length}");
+    return Ok(matched);
+}
+''', ("constant", "function", "contract", "call", "propagate", "string",
+      "string_pattern", "interpolated_string", "match_expression")),
     Fixture("numeric-separator-values-patterns-and-indices", """// café: retain every authored digit and separator.
 module NumericSeparators;
 public const usize Capacity = 1_024usize;
@@ -1543,6 +1567,21 @@ NEGATIVE: tuple[tuple[str, bytes, str], ...] = (
     ("missing-match-colon", b"module M; public void F() { match (x) { case Ok(x) return; } }", "syntax"),
     ("incomplete-cancel", b"module M; public async Nat F() { return 0; } on cancel", "syntax"),
     ("unterminated-string", b'module M; public void F() { let text = "unterminated', "syntax"),
+    ("unterminated-raw-string", b'module M; public void F() { let text = """unterminated ""; }', "syntax"),
+    ("raw-string-excess-closing-quotes", b'module M; public void F() { let text = """raw""""; }', "syntax"),
+    ("raw-string-opening-line-text", b'module M; public void F() { let text = """text\n"""; }', "syntax"),
+    ("raw-string-closing-not-own-line", b'module M; public void F() { let text = """\n  text """; }', "syntax"),
+    ("raw-string-underindented-content", b'module M; public void F() { let text = """\n  short\n    """; }', "syntax"),
+    ("unterminated-interpolated-string", b'module M; public void F() { Format.Write(ref b, $"unterminated); }', "syntax"),
+    ("interpolated-empty-hole", b'module M; public void F() { Format.Write(ref b, $"empty {}"); }', "syntax"),
+    ("interpolated-whitespace-hole", b'module M; public void F() { Format.Write(ref b, $"empty {   }"); }', "syntax"),
+    ("interpolated-empty-specifier", b'module M; public void F() { Format.Write(ref b, $"spec {x:}"); }', "syntax"),
+    ("interpolated-whitespace-specifier", b'module M; public void F() { Format.Write(ref b, $"spec {x: x2}"); }', "syntax"),
+    ("interpolated-unescaped-close-brace", b'module M; public void F() { Format.Write(ref b, $"bad }"); }', "syntax"),
+    ("interpolated-unclosed-hole", b'module M; public void F() { Format.Write(ref b, $"bad {x"); }', "syntax"),
+    ("interpolated-pattern-disallowed", b'module M; public void F() { match (x) { case $"bad {y}": return; } }', "syntax"),
+    ("interpolated-hole-delimiter-limit", b'module M; public void F() { Format.Write(ref b, $"{'
+     + b"(" * 256 + b"x" + b")" * 256 + b'}"); }', "limit"),
     ("unterminated-comment", b"module M; /* unterminated {", "syntax"),
     ("chained-comparison", b"module M; public bool F() { return a < b < c; }", "syntax"),
     ("generic-looking-comparison-group", b"module M; public bool F() { return (a < b > c); }", "syntax"),
@@ -4221,6 +4260,56 @@ def _collection_iteration_roles(source: bytes, result: dict[str, Json]) -> None:
             raise ValueError("collection contracts became body statements or type annotations")
 
 
+def _raw_string_and_format_roles(source: bytes, result: dict[str, Json]) -> None:
+    tree = result.get("ast")
+    single = _object(_named(tree, "constant", "SingleRaw").get("value"), "single-line raw string")
+    multi = _object(_named(tree, "constant", "MultiRaw").get("value"), "multi-line raw string")
+    single_spelling = b'"""exact "quoted" \\raw caf\xc3\xa9"""'
+    multi_spelling = b'"""\n    VERSION 1\n    MODE "STRICT" \\raw\n    """'
+    for node, spelling in ((single, single_spelling), (multi, multi_spelling)):
+        if node.get("kind") != "string" or node.get("value") != spelling.decode("utf-8"):
+            raise ValueError("raw string literal changed its AST kind or raw spelling")
+        _exact_span(source, node, spelling)
+    pattern = next(node for node in nodes(tree) if node.get("kind") == "string_pattern")
+    pattern_spelling = b'""""matched """ \\raw""""'
+    if pattern.get("value") != pattern_spelling.decode("utf-8"):
+        raise ValueError("raw string pattern lost its raw spelling")
+    _exact_span(source, pattern, pattern_spelling)
+    header = _named(tree, "function", "WriteHeader")
+    clauses = [_object(value, "formatting contract")
+               for value in _sequence(header.get("contracts"), "formatting contracts")]
+    if [clause.get("role", clause.get("kind")) for clause in clauses] != ["where", "effects"]:
+        raise ValueError("checked formatting contract or effects roles differ")
+    if [_texts(node.get("callee")) for node in nodes(clauses[0]) if node.get("kind") == "call"] != [["Format"], ["Format"]]:
+        raise ValueError("checked formatting lost its static Format<T> trait bounds")
+    interpolated = [node for node in nodes(header) if node.get("kind") == "interpolated_string"]
+    expected = (
+        b'$"packet[{id}]={{tag:{tag:x2}}}"',
+        b'$"id={Identity::<usize>(id)}"',
+        b'$"allocated {id}"',
+        b'$"len={builder.Length}"',
+    )
+    if len(interpolated) != len(expected):
+        raise ValueError("interpolated format templates were omitted or conflated with ordinary strings")
+    for node, spelling in zip(interpolated, expected, strict=True):
+        if node.get("value") != spelling.decode("utf-8") or set(node) != {"kind", "span", "value"}:
+            raise ValueError("interpolated format template changed its AST fields or spelling")
+        _exact_span(source, node, spelling)
+    for binding_name, target_name in (("first", "builder"), ("second", "scratch")):
+        propagated = _object(_named(header, "let", binding_name).get("value"), "propagated Format.Write")
+        call = _object(propagated.get("value"), "Format.Write call")
+        arguments = _sequence(call.get("arguments"), "Format.Write arguments")
+        if (propagated.get("kind") != "propagate" or call.get("kind") != "call"
+                or _texts(call.get("callee")) != ["Format", "Write"] or len(arguments) != 2):
+            raise ValueError("Format.Write call lost its propagation or receiver/template arity")
+        target = _object(arguments[0], "Format.Write target loan")
+        template = _object(arguments[1], "Format.Write template")
+        if (target.get("kind") != "unary" or _texts(target.get("operator")) != ["ref"]
+                or _texts(target.get("value")) != [target_name]
+                or template.get("kind") != "interpolated_string"):
+            raise ValueError("Format.Write lost its explicit ref target loan or interpolated template role")
+
+
 def _generic_probe_limits(parse: Callable[[bytes], dict[str, Json]]) -> None:
     # A depth-n nested call inspects (7*n*n-n)/2 tokens: each enclosing
     # prefix adds seven tokens. Distinct source positions have distinct probes.
@@ -4269,6 +4358,8 @@ def qualify(parse: Callable[[bytes], dict[str, Json]]) -> list[str]:
             _familiar_call_roles(fixture.source.encode("utf-8"), result)
         elif fixture.name == "bounded-collection-iteration":
             _collection_iteration_roles(fixture.source.encode("utf-8"), result)
+        elif fixture.name == "raw-strings-and-checked-formatting":
+            _raw_string_and_format_roles(fixture.source.encode("utf-8"), result)
         elif fixture.name == "numeric-separator-values-patterns-and-indices":
             _numeric_separator_roles(fixture.source.encode("utf-8"), result)
         elif fixture.name == "callable-list-boundaries":

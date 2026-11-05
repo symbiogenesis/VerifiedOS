@@ -66,6 +66,21 @@ public void Visit(ref Span<byte> target, in Span<byte> source)
     }
 }
 
+// Raw string literals and buffer-writing format templates avoid heap allocation.
+public const Span<byte> HeaderBanner = """
+    VELA-PACKET "v1" \raw
+    """;
+
+public Result<usize, CapacityError> FormatPacketHeader<ghost Nat capacity>(
+    ref TextBuilder<capacity> builder, usize packetId, byte tag)
+    where Format(usize) && Format(byte)
+    effects writes(builder)
+{
+    let bannerBytes = Format.Write(ref builder, """header={{""")?;
+    let bodyBytes = Format.Write(ref builder, $"id={packetId},tag={tag:x2}}}")?;
+    return Ok(bannerBytes + bodyBytes);
+}
+
 public effect Choose
 {
     bool Choose() resumes(0..2);
