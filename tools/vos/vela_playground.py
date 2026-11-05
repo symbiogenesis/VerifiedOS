@@ -39,19 +39,24 @@ def _raw(message: dict[str, object]) -> bytes:
 def _validate_result(response: dict[str, object], request: dict[str, object], digest: str) -> None:
     if response.get("sourceHash") != digest or type(response.get("ok")) is not bool:
         raise ValueError("compiler worker returned an invalid source identity")
+    compilation = request["action"] == "compile"
+    if compilation and type(response.get("editorServices")) is not bool:
+        raise ValueError("compiler worker returned invalid editor-service availability")
     if response["ok"]:
         if request["action"] == "authoring":
             _validate_authoring(response, cast("str", request["source"]))
             return
-        fields = {"ok", "sourceHash", "module", "gallina"} if request["action"] == "compile" else {
+        fields = {"ok", "sourceHash", "module", "gallina", "findings", "editorServices"} if compilation else {
             "ok", "sourceHash", "valueType", "value"}
-        mathematical = request["action"] == "compile" and request.get("mode") == "mathematical"
-        if mathematical:
-            fields.add("findings")
-        if set(response) != fields or not all(isinstance(response[key], str) for key in fields - {"ok", "findings"}):
+        if (set(response) != fields
+                or not all(isinstance(response[key], str) for key in fields - {"ok", "findings", "editorServices"})):
             raise ValueError("compiler worker returned an invalid result")
-        if mathematical:
-            _validate_findings(response["findings"], cast("str", request["source"]), mathematical=True)
+        if compilation:
+            if response["editorServices"]:
+                if response["findings"] != []:
+                    raise ValueError("pure compilation returned mathematical findings")
+            else:
+                _validate_findings(response["findings"], cast("str", request["source"]), mathematical=True)
         if request["action"] == "evaluate":
             value = cast("str", response["value"])
             if (response["valueType"] != request["valueType"]
@@ -61,11 +66,12 @@ def _validate_result(response: dict[str, object], request: dict[str, object], di
     else:
         error = response.get("error")
         kinds = {"syntax", "name", "type", "unsupported", "limit", "encoding"}
-        if request.get("mode") == "mathematical":
+        if request["action"] != "authoring" and (not compilation or not response["editorServices"]):
             kinds.update({"protocol", "inference"})
         if request["action"] == "authoring":
             kinds.update({"inspection-limit", "lint-preview", "format"})
-        if (set(response) != {"ok", "sourceHash", "error"} or not isinstance(error, dict)
+        fields = {"ok", "sourceHash", "error"} | ({"editorServices"} if compilation else set())
+        if (set(response) != fields or not isinstance(error, dict)
                 or set(error) != {"kind", "message", "line", "column"}
                 or not isinstance(error["kind"], str)
                 or error["kind"] not in kinds
@@ -139,8 +145,9 @@ def run_compiler(request: dict[str, object], *, mathematical_parser: Path | None
     """Source is worker stdin data, never an executable argument or a disk path."""
     source = cast("str", request["source"]).encode("utf-8")
     digest = hashlib.sha256(source).hexdigest()
+    response: dict[str, object]
     try:
-        if request.get("mode") == "mathematical":
+        if mathematical_parser is not None and request["action"] != "authoring":
             _require_parser(mathematical_parser, parser_sha256)
             response = _compiler_response(request, digest, mathematical_parser=mathematical_parser,
                                           parser_sha256=parser_sha256)
@@ -148,13 +155,17 @@ def run_compiler(request: dict[str, object], *, mathematical_parser: Path | None
         else:
             response = _compiler_response(request, digest)
     except subprocess.TimeoutExpired:
-        return {"ok": False, "sourceHash": digest,
-                "error": {"kind": "timeout", "line": 1, "column": 1,
-                          "message": "Compiler exceeded five seconds; no result"}}
+        response = {"ok": False, "sourceHash": digest,
+                    "error": {"kind": "timeout", "line": 1, "column": 1,
+                              "message": "Compiler exceeded five seconds; no result"}}
     except (OSError, ValueError):
-        return {"ok": False, "sourceHash": digest,
-                "error": {"kind": "internal", "line": 1, "column": 1,
-                          "message": "Compiler worker unavailable or response exceeds its budget"}}
+        response = {"ok": False, "sourceHash": digest,
+                    "error": {"kind": "internal", "line": 1, "column": 1,
+                              "message": "Compiler worker unavailable or response exceeds its budget"}}
+    else:
+        return response
+    if request["action"] == "compile":
+        response["editorServices"] = False
     return response
 
 
@@ -366,18 +377,8 @@ class PlaygroundHandler(BaseHTTPRequestHandler):
                 del self.playground.sessions[request["session"]]
             return {"messages": messages}
         expected = {"source", "expression", "valueType"} if self.path == "/api/evaluate" else {"source"}
-        if "mode" in request:
-            expected.add("mode")
         if set(request) != expected or not all(isinstance(value, str) for value in request.values()):
             raise ValueError("Compiler request has missing, extra or non-text fields")
-        mode = request.get("mode", "pure")
-        if mode not in {"pure", "mathematical"}:
-            raise ValueError("Compiler mode must be pure or mathematical")
-        if mode == "mathematical":
-            if self.path == "/api/authoring":
-                raise ValueError("Authoring services support pure mode only")
-            if self.playground.mathematical_parser is None:
-                raise ValueError("Mathematical mode unavailable; launch vela-playground-math")
         source = cast("str", request["source"])
         if len(source.encode("utf-8")) > MAX_SOURCE_BYTES:
             raise ValueError("Source exceeds the compiler's UTF-8 byte budget")
@@ -387,7 +388,5 @@ class PlaygroundHandler(BaseHTTPRequestHandler):
             if len(cast("str", request["expression"]).encode("utf-8")) > 4096:
                 raise ValueError("Expression exceeds 4096 UTF-8 bytes")
         operation = {**request, "action": self.path.rsplit("/", 1)[1]}
-        if mode == "mathematical":
-            return run_compiler(operation, mathematical_parser=self.playground.mathematical_parser,
-                                parser_sha256=self.playground.parser_sha256)
-        return run_compiler(operation)
+        return run_compiler(operation, mathematical_parser=self.playground.mathematical_parser,
+                            parser_sha256=self.playground.parser_sha256)
