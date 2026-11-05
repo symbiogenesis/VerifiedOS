@@ -30,8 +30,7 @@ remain available for generic values and disambiguation. The
 [familiar authoring migration](surface-grammar.md#familiar-authoring-migration)
 binds each accepted spelling to exact source bytes. Native syntax and local
 consumer agreement supply no hosted kernel or source-correspondence verdict.
-Expression matches and collection loops parse but remain unsupported by this
-mathematical consumer.
+Collection loops parse but remain unsupported by this mathematical consumer.
 
 The supported increment includes:
 
@@ -58,6 +57,12 @@ The supported increment includes:
 - Mathematical `Nat`, `bool`, `Unit`, products, equality propositions and explicit
   proof constructors. Indexed vectors and finite indices provide a concrete
   dependent collection boundary, including length preservation and safe lookup.
+- Exhaustive `match` expressions and returning statement `match` over `Nat`,
+  `bool`, `Unit` and products, with wildcard (`_`), variable, `()`, Boolean
+  literal, nested tuple, decimal natural (bounded by structural unrolling) and
+  `Succ(...)` patterns, optional dependent `as name : Type` motives, and
+  irrefutable `let (a, b) = ...` product/unit destructuring in blocks and
+  `let ... in ...` expressions.
 - Typed `const` values of `Nat`, `bool` or `Unit`, at module or local scope,
   under the [required-static contract](surface-grammar.md#required-static-constants).
   Initializers use earlier constants and admitted total pure calls with static

@@ -151,6 +151,43 @@ definition Nat UseLambda() => (() => 7)();
 definition Fn(Unit published) -> Nat Build() => actual => 7;
 definition Nat UseBuilt() => Build()(published: ());
 """),
+        ("pattern-matching-and-destructuring", """module PatternReplay;
+definition (TRight, TLeft) Swap<TLeft, TRight>((TLeft, TRight) pair) =>
+    let (left, right) = pair in (right, left);
+definition Nat Predecessor(Nat value) =>
+    match (value) {
+        0 => 0,
+        Succ(previous) => previous,
+    };
+Nat Classify((bool, Nat) item) {
+    let (flag, count) = item;
+    match ((flag, count)) {
+        case (true, 0): return 1;
+        case (true, Succ(rest)): return rest + 2;
+        case (false, _): return 0;
+    }
+}
+lemma PredecessorStep(Nat value): Predecessor(Succ(value)) == value proof {
+    return Refl(value);
+}
+definition bool Flip(bool flag) =>
+    match (flag) {
+        true => false,
+        false => true,
+    };
+lemma BoolInvolution(bool flag): Flip(Flip(flag)) == flag proof {
+    return match (flag) as current : type[Eq(Flip(Flip(current)), current)] {
+        true => Refl(true),
+        false => Refl(false),
+    };
+}
+lemma PairEta<TLeft, TRight>((TLeft, TRight) pair):
+    pair == (Fst(pair), Snd(pair)) proof {
+    return match (pair) as whole : type[Eq(whole, (Fst(whole), Snd(whole)))] {
+        (left, right) => Refl((left, right)),
+    };
+}
+"""),
     )
     negatives = (
         ("static-parameter-runtime-input", "Nat F(const Nat value) => value; Nat Wrong(Nat runtime) => F(runtime);", "type"),
@@ -213,6 +250,10 @@ definition Nat UseBuilt() => Build()(published: ());
         ("explicit-value-nullary-interface", "definition Nat Explicit(Unit token) => 1; "
          "definition Nat Use(Fn() -> Nat function) => 0; definition Nat Wrong() => Use(Explicit);", "type"),
         ("omitted-unnamed-explicit-unit", "definition Nat Wrong(Fn(Unit) -> Nat function) => function();", "type"),
+        ("non-exhaustive-nat-match", "definition Nat Wrong(Nat value) => match (value) { 0 => 0 };", "type"),
+        ("non-exhaustive-bool-match", "definition Nat Wrong(bool flag) => match (flag) { true => 1 };", "type"),
+        ("duplicate-pattern-binder", "definition Nat Wrong((Nat, Nat) pair) => let (x, x) = pair in x;", "name"),
+        ("refutable-local-pattern", "definition Nat Wrong(Nat value) => let Succ(previous) = value in previous;", "type"),
         ("constant-product-growth", f"const Nat Wrong = {10 ** 200} * {10 ** 200};", "limit"),
     )
     pure = Fixture("pure-expression-operators", b"""module PureExpressions;

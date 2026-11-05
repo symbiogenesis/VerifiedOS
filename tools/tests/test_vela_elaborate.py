@@ -1435,6 +1435,372 @@ def _elaboration_budgets() -> None:
             _refuses(fixture, "limit")
 
 
+def _pat_wild() -> Form:
+    def form(fixture: _Fixture) -> Node:
+        start = fixture.offset
+        fixture.write("_")
+        return fixture.node("wildcard_pattern", start)
+    return form
+
+
+def _pat_bind(name: str) -> Form:
+    def form(fixture: _Fixture) -> Node:
+        start = fixture.offset
+        return fixture.node("binding_pattern", start, name=fixture.name(name))
+    return form
+
+
+def _pat_unit() -> Form:
+    def form(fixture: _Fixture) -> Node:
+        start = fixture.offset
+        fixture.write("()")
+        return fixture.node("unit_pattern", start)
+    return form
+
+
+def _pat_group(inner: Form) -> Form:
+    def form(fixture: _Fixture) -> Node:
+        start = fixture.offset
+        fixture.write("(")
+        node = inner(fixture)
+        fixture.write(")")
+        return fixture.node("group_pattern", start, pattern=node)
+    return form
+
+
+def _pat_tuple(*patterns: Form) -> Form:
+    def form(fixture: _Fixture) -> Node:
+        start = fixture.offset
+        fixture.write("(")
+        nodes = fixture.forms(patterns)
+        fixture.write(")")
+        return fixture.node("tuple_pattern", start, patterns=nodes)
+    return form
+
+
+def _pat_bool(value: bool) -> Form:
+    def form(fixture: _Fixture) -> Node:
+        start = fixture.offset
+        fixture.write("true" if value else "false")
+        return fixture.node("bool_pattern", start, value=value)
+    return form
+
+
+def _pat_nat(value: int, suffix: str = "") -> Form:
+    def form(fixture: _Fixture) -> Node:
+        start = fixture.offset
+        fixture.write(f"{value}{suffix}")
+        return fixture.node("nat_pattern", start, value=str(value), suffix=suffix)
+    return form
+
+
+def _pat_ctor(name: str, *arguments: Form) -> Form:
+    def form(fixture: _Fixture) -> Node:
+        start = fixture.offset
+        ctor = fixture.name(name)
+        fixture.write("(")
+        nodes = fixture.forms(arguments)
+        fixture.write(")")
+        return fixture.node("constructor_pattern", start, name=ctor, arguments=nodes)
+    return form
+
+
+def _let_pattern(pattern: Form, value: Form, body: Form, *, block: bool = False) -> Form:
+    def form(fixture: _Fixture) -> Node:
+        start = fixture.offset
+        if block:
+            fixture.write("{ ")
+            local_start = fixture.offset
+            fixture.write("let ")
+            pat_node = pattern(fixture)
+            fixture.write(" = ")
+            val_node = value(fixture)
+            fixture.write(";")
+            local_node = fixture.node("let_pattern", local_start, pattern=pat_node, value=val_node)
+            fixture.write(" ")
+            ret_start = fixture.offset
+            fixture.write("return ")
+            out_node = body(fixture)
+            fixture.write(";")
+            ret_node = fixture.node("return", ret_start, value=out_node)
+            fixture.write(" }")
+            return fixture.node("block", start, statements=[local_node, ret_node])
+        fixture.write("let ")
+        pat_node = pattern(fixture)
+        fixture.write(" = ")
+        val_node = value(fixture)
+        local_node = fixture.node("let_pattern", start, pattern=pat_node, value=val_node)
+        fixture.write(" in ")
+        out_node = body(fixture)
+        return fixture.node("let_expression", start, binding=local_node, body=out_node)
+    return form
+
+
+def _match_expr(value: Form, arms: tuple[tuple[Form, Form], ...],
+                motive: tuple[str, Form] | None = None, *, trailing: bool = False) -> Form:
+    def form(fixture: _Fixture) -> Node:
+        start = fixture.offset
+        fixture.write("match (")
+        scrutinee = value(fixture)
+        fixture.write(")")
+        motive_node = None
+        if motive is not None:
+            fixture.write(" ")
+            motive_start = fixture.offset
+            fixture.write("as ")
+            binder = fixture.name(motive[0])
+            fixture.write(" : ")
+            motive_type = motive[1](fixture)
+            motive_node = fixture.node("match_motive", motive_start, name=binder, type=motive_type)
+        fixture.write(" {")
+        case_nodes: list[Node] = []
+        for index, (pat, body) in enumerate(arms):
+            if index:
+                fixture.write(",")
+            fixture.write(" ")
+            case_start = fixture.offset
+            pat_node = pat(fixture)
+            fixture.write(" => ")
+            body_node = body(fixture)
+            case_nodes.append(fixture.node("expression_case", case_start, pattern=pat_node, value=body_node))
+        if arms and trailing:
+            fixture.write(",")
+        if arms:
+            fixture.write(" ")
+        fixture.write("}")
+        return fixture.node("match_expression", start, value=scrutinee, motive=motive_node, cases=case_nodes)
+    return form
+
+
+def _match_stmt(value: Form, arms: tuple[tuple[Form, Form], ...],
+                motive: tuple[str, Form] | None = None) -> Form:
+    def form(fixture: _Fixture) -> Node:
+        start = fixture.offset
+        fixture.write("{ ")
+        match_start = fixture.offset
+        fixture.write("match (")
+        scrutinee = value(fixture)
+        fixture.write(")")
+        motive_node = None
+        if motive is not None:
+            fixture.write(" ")
+            motive_start = fixture.offset
+            fixture.write("as ")
+            binder = fixture.name(motive[0])
+            fixture.write(" : ")
+            motive_type = motive[1](fixture)
+            motive_node = fixture.node("match_motive", motive_start, name=binder, type=motive_type)
+        fixture.write(" {")
+        case_nodes: list[Node] = []
+        for pat, body in arms:
+            fixture.write(" ")
+            case_start = fixture.offset
+            fixture.write("case ")
+            pat_node = pat(fixture)
+            fixture.write(": ")
+            ret_start = fixture.offset
+            fixture.write("return ")
+            body_node = body(fixture)
+            fixture.write(";")
+            ret_node = fixture.node("return", ret_start, value=body_node)
+            case_nodes.append(fixture.node("case", case_start, pattern=pat_node, statements=[ret_node]))
+        if arms:
+            fixture.write(" ")
+        fixture.write("}")
+        match_node = fixture.node("match", match_start, value=scrutinee, motive=motive_node, cases=case_nodes)
+        fixture.write(" }")
+        return fixture.node("block", start, statements=[match_node])
+    return form
+
+
+def _pattern_matching_and_destructuring() -> None:
+    fixture = _Fixture("Patterns")
+    fixture.definition(
+        "Swap", _tuple(_type("U"), _T, types=True),
+        (("pair", _tuple(_T, _type("U"), types=True)),),
+        _let_pattern(_pat_tuple(_pat_bind("left"), _pat_bind("right")),
+                     _variable("pair"),
+                     _tuple(_variable("right"), _variable("left"))),
+        (*_POLY, ("type", "U", None)),
+    )
+    fixture.function(
+        "NestedSum", _NAT,
+        (("triple", _tuple(_NAT, _NAT, _NAT, types=True)), ("token", _type("Unit"))),
+        _let_pattern(
+            _pat_unit(), _variable("token"),
+            _let_pattern(
+                _pat_group(_pat_tuple(_pat_bind("a"), _pat_wild(), _pat_bind("c"))),
+                _variable("triple"),
+                _binary("+", _variable("a"), _variable("c")),
+                block=True,
+            ),
+            block=True,
+        ),
+        block=True,
+    )
+    fixture.definition(
+        "Predecessor", _NAT, (("value", _NAT),),
+        _match_expr(
+            _variable("value"),
+            ((_pat_nat(0), _natural(0)),
+             (_pat_ctor("Succ", _pat_bind("previous")), _variable("previous"))),
+            trailing=True,
+        ),
+    )
+    fixture.definition(
+        "ClassifyNat", _NAT, (("value", _NAT),),
+        _match_expr(
+            _variable("value"),
+            ((_pat_nat(0), _natural(10)),
+             (_pat_nat(1), _natural(20)),
+             (_pat_ctor("Succ", _pat_ctor("Succ", _pat_bind("rest"))), _variable("rest"))),
+        ),
+    )
+    fixture.function(
+        "ClassifyPair", _NAT, (("item", _tuple(_BOOL, _NAT, types=True)),),
+        _match_stmt(
+            _variable("item"),
+            ((_pat_tuple(_pat_bool(True), _pat_nat(0)), _natural(1)),
+             (_pat_tuple(_pat_bool(True), _pat_ctor("Succ", _pat_bind("k"))),
+              _binary("+", _variable("k"), _natural(2))),
+             (_pat_tuple(_pat_bool(False), _pat_wild()), _natural(0))),
+        ),
+        block=True,
+    )
+    fixture.constant(
+        "StaticMatched", _NAT,
+        _call("ClassifyNat", _call("NestedSum", _tuple(_natural(1), _natural(9), _natural(1)), _unit())),
+    )
+    fixture.theorem(
+        "PredecessorStep", (("value", _NAT),),
+        _binary("==", _call("Predecessor", _call("Succ", _variable("value"))), _variable("value")),
+        _call("Refl", _variable("value")),
+    )
+    fixture.theorem(
+        "StaticMatchedValue", (),
+        _binary("==", _variable("StaticMatched"), _natural(0)),
+        _call("Refl", _natural(0)),
+    )
+    fixture.definition(
+        "Not", _BOOL, (("flag", _BOOL),),
+        _match_expr(
+            _variable("flag"),
+            ((_pat_bool(True), _boolean(False)),
+             (_pat_bool(False), _boolean(True))),
+        ),
+    )
+    fixture.theorem(
+        "BoolInvolution", (("flag", _BOOL),),
+        _binary("==", _call("Not", _call("Not", _variable("flag"))), _variable("flag")),
+        _match_expr(
+            _variable("flag"),
+            ((_pat_bool(True), _call("Refl", _boolean(True))),
+             (_pat_bool(False), _call("Refl", _boolean(False)))),
+            motive=("branch", _computed(_call("Eq", _call("Not", _call("Not", _variable("branch"))),
+                                              _variable("branch")))),
+        ),
+    )
+    fixture.theorem(
+        "UnitEta", (("token", _type("Unit")),),
+        _binary("==", _variable("token"), _unit()),
+        _match_expr(
+            _variable("token"),
+            ((_pat_unit(), _call("Refl", _unit())),),
+            motive=("current", _computed(_call("Eq", _variable("current"), _unit()))),
+        ),
+    )
+    fixture.theorem(
+        "PairEta", (("pair", _tuple(_T, _type("U"), types=True)),),
+        _binary("==", _variable("pair"),
+                _tuple(_call("Fst", _variable("pair")), _call("Snd", _variable("pair")))),
+        _match_expr(
+            _variable("pair"),
+            ((_pat_tuple(_pat_bind("left"), _pat_bind("right")),
+              _call("Refl", _tuple(_variable("left"), _variable("right")))),),
+            motive=("whole", _computed(_call("Eq", _variable("whole"),
+                                             _tuple(_call("Fst", _variable("whole")),
+                                                    _call("Snd", _variable("whole")))))),
+        ),
+        (*_POLY, ("type", "U", None)),
+    )
+    source, response = fixture.response()
+    emitted = elaborate(source, response).gallina
+    ensure("Corelib.Init.Datatypes.O =>" in emitted and "Corelib.Init.Datatypes.S " in emitted,
+           "Nat match lost its constructor branches")
+    ensure("@Corelib.Init.Datatypes.pair _ _" in emitted,
+           "product match lost its pair elimination branch")
+
+
+def _pattern_matching_refusals_and_protocol() -> None:
+    for name, body, kind, fragment in (
+        ("NonExhaustiveZero", _match_expr(_variable("value"), ((_pat_nat(0), _natural(0)),)),
+         "type", "non-exhaustive"),
+        ("NonExhaustiveOne", _match_expr(_variable("value"),
+                                         ((_pat_nat(0), _natural(0)), (_pat_nat(1), _natural(1)))),
+         "type", "non-exhaustive"),
+        ("NonExhaustiveSucc", _match_expr(_variable("value"),
+                                          ((_pat_ctor("Succ", _pat_bind("k")), _variable("k")),)),
+         "type", "non-exhaustive"),
+        ("EmptyMatch", _match_expr(_variable("value"), ()), "type", "non-exhaustive"),
+        ("RefutableLocal", _let_pattern(_pat_ctor("Succ", _pat_bind("k")), _variable("value"), _variable("k")),
+         "type", "irrefutable"),
+        ("RefutableTupleLocal", _let_pattern(_pat_tuple(_pat_nat(0), _pat_bind("k")),
+                                             _tuple(_variable("value"), _variable("value")), _variable("k")),
+         "type", "irrefutable"),
+        ("DuplicateTupleBinder", _let_pattern(_pat_tuple(_pat_bind("x"), _pat_bind("x")),
+                                              _tuple(_variable("value"), _variable("value")), _variable("x")),
+         "name", "duplicate"),
+        ("DuplicateMatchBinder", _match_expr(_tuple(_variable("value"), _variable("value")),
+                                             ((_pat_tuple(_pat_bind("x"), _pat_bind("x")), _variable("x")),)),
+         "name", "duplicate"),
+        ("UnknownConstructor", _match_expr(_variable("value"), ((_pat_ctor("Missing", _pat_bind("k")), _variable("k")),)),
+         "name", "unknown constructor"),
+        ("IndexedConstructor", _match_expr(_variable("value"), ((_pat_ctor("VNil"), _natural(0)),)),
+         "unsupported", "indexed elimination"),
+        ("WrongSuccArity", _match_expr(_variable("value"),
+                                       ((_pat_nat(0), _natural(0)),
+                                        (_pat_ctor("Succ", _pat_bind("a"), _pat_bind("b")), _variable("a")))),
+         "type", "expects 1"),
+        ("WrongPatternType", _match_expr(_variable("value"),
+                                         ((_pat_bool(True), _natural(1)), (_pat_bool(False), _natural(0)))),
+         "type", ""),
+        ("NotAProductScrutinee", _let_pattern(_pat_tuple(_pat_bind("a"), _pat_bind("b")),
+                                              _variable("value"), _variable("a")),
+         "type", "product"),
+        ("PatternBoundLimit", _match_expr(_variable("value"),
+                                          ((_pat_nat(65), _natural(1)), (_pat_wild(), _natural(0)))),
+         "limit", "structural bound"),
+    ):
+        wrong = _Fixture("PatternRefusals")
+        wrong.definition(name, _NAT, (("value", _NAT),), body)
+        _refuses(wrong, kind, fragment)
+
+    fixture = _Fixture("PatternProtocol")
+    fixture.definition(
+        "Valid", _NAT, (("pair", _tuple(_NAT, _NAT, types=True)),),
+        _let_pattern(_pat_tuple(_pat_bind("a"), _pat_bind("b")), _variable("pair"),
+                     _match_expr(_variable("a"),
+                                 ((_pat_nat(0), _variable("b")),
+                                  (_pat_ctor("Succ", _pat_bind("k")), _variable("k"))))),
+    )
+    source, response = fixture.response()
+    elaborate(source, response)
+
+    tampered = copy.deepcopy(response)
+    declaration = cast("list[Node]", cast("Node", tampered["ast"])["declarations"])[0]
+    let_expr = cast("Node", declaration["value"])
+    let_pat = cast("Node", let_expr["binding"])
+    tuple_pat = cast("Node", let_pat["pattern"])
+    first_bind = cast("list[Node]", tuple_pat["patterns"])[0]
+    cast("Node", first_bind["name"])["text"] = "_"
+    try:
+        elaborate(source, tampered)
+    except VelaError as error:
+        ensure(error.kind == "protocol", "wildcard inside binding_pattern reached semantics")
+    else:
+        raise AssertionError("accepted binding_pattern with wildcard text")
+
+
 def cases() -> list[Case]:
     return [Case("fresh-polymorphism-and-higher-order-inference", _polymorphism_and_higher_order),
             Case("familiar-generic-markers-and-mathematical-body-source-binding", _familiar_generic_spellings),
@@ -1458,4 +1824,6 @@ def cases() -> list[Case]:
             Case("malformed-role-containers", _malformed_role_containers),
             Case("holes-unsupported-forms-and-hygiene", _holes_unsupported_and_hygiene),
             Case("bounded-source-and-syntax", _source_limits),
-            Case("inference-reduction-and-output-budgets", _elaboration_budgets)]
+            Case("inference-reduction-and-output-budgets", _elaboration_budgets),
+            Case("pattern-matching-and-product-destructuring", _pattern_matching_and_destructuring),
+            Case("pattern-matching-refusals-and-protocol", _pattern_matching_refusals_and_protocol)]

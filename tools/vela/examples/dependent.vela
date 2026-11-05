@@ -24,6 +24,36 @@ public definition Nat FirstComponent() => Fst(SeparateInstantiations());
 
 public definition bool SecondComponent() => Snd(SeparateInstantiations());
 
+public definition (TRight, TLeft) SwapPair<TLeft, TRight>((TLeft, TRight) pair) =>
+    let (left, right) = pair in (right, left);
+
+public definition Nat Predecessor(Nat value) =>
+    match (value) {
+        0 => 0,
+        Succ(previous) => previous,
+    };
+
+public lemma PredecessorSuccessor(Nat value): Predecessor(Succ(value)) == value
+    proof
+    {
+        return Refl(value);
+    }
+
+public definition bool Flip(bool flag) =>
+    match (flag) {
+        true => false,
+        false => true,
+    };
+
+public lemma DoubleNegation(bool flag): Flip(Flip(flag)) == flag
+    proof
+    {
+        return match (flag) as branch : type[Eq(Flip(Flip(branch)), branch)] {
+            true => Refl(true),
+            false => Refl(false),
+        };
+    }
+
 public definition Nat HigherOrder() =>
     Apply(function: value => value + 1, value: 41,);
 
