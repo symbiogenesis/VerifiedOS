@@ -34,7 +34,9 @@ The server binds the prepared parser's executable identity and rejects changed
 parser bytes. Source, expression and result type all invalidate stale output.
 
 Runnable examples demonstrate generic instantiation, safe vector lookup, dependent
-length preservation and a proof, with independently expected console answers.
+length preservation, multi-quote raw string literals with allocation-free checked
+`Format.Write(ref builder, $"...")` formatting, and explicit proofs, with
+independently expected console answers.
 All examples share one selector and one source buffer. Debounced source checks
 automatically update diagnostics and editor-service availability. Dependent source
 disables pure-only LSP, formatting, lint and binding preview services explicitly;

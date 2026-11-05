@@ -1801,6 +1801,107 @@ def _pattern_matching_refusals_and_protocol() -> None:
         raise AssertionError("accepted binding_pattern with wildcard text")
 
 
+def _string_literal(spelling: str) -> Form:
+    def form(fixture: _Fixture) -> Node:
+        start = fixture.offset
+        fixture.write(spelling)
+        return fixture.node("string", start, value=spelling)
+    return form
+
+
+def _interpolated_literal(spelling: str) -> Form:
+    def form(fixture: _Fixture) -> Node:
+        start = fixture.offset
+        fixture.write(spelling)
+        return fixture.node("interpolated_string", start, value=spelling)
+    return form
+
+
+def _member(receiver: Form, member_name: str) -> Form:
+    def form(fixture: _Fixture) -> Node:
+        start = fixture.offset
+        value = receiver(fixture)
+        fixture.write(".")
+        name = fixture.name(member_name)
+        return fixture.node("member", start, value=value, name=name)
+    return form
+
+
+def _ref_arg(inner: Form) -> Form:
+    def form(fixture: _Fixture) -> Node:
+        start = fixture.offset
+        operator = fixture.name("ref")
+        fixture.write(" ")
+        value = inner(fixture)
+        return fixture.node("unary", start, operator=operator, value=value)
+    return form
+
+
+def _raw_strings_and_checked_formatting() -> None:
+    fixture = _Fixture("CheckedFormatting")
+    raw_multiline = '"""\n    [vela-hdr]\n    """'
+    fixture.definition("HeaderTag", _type("Vec", _NAT, _natural(10)), (), _string_literal(raw_multiline))
+    fixture.constant("HeaderBytes", _NAT, _call("ByteLength", _call("HeaderTag")))
+    fixture.definition(
+        "FormatPacket",
+        _type("TextBuilder", _natural(36)),
+        (("id", _NAT), ("ok", _BOOL)),
+        _call(
+            _member(_variable("Format"), "Write"),
+            _ref_arg(
+                _call(
+                    _member(_variable("Format"), "Write"),
+                    _ref_arg(_call("EmptyBuilder", generics=(_natural(36),))),
+                    _interpolated_literal('$"hdr={HeaderTag()} "'),
+                )
+            ),
+            _interpolated_literal('$"id=0x{id:x4} ok={ok}"'),
+        ),
+    )
+    fixture.theorem(
+        "DedentedLength",
+        (),
+        _binary("==", _variable("HeaderBytes"), _natural(10)),
+        _call("Refl", _natural(10)),
+    )
+    fixture.theorem(
+        "PacketWrites32",
+        (),
+        _binary("==", _call("Written", _call("FormatPacket", _natural(42), _boolean(True))), _natural(32)),
+        _call("Refl", _natural(32)),
+    )
+    source, response = fixture.response()
+    emitted = elaborate(source, response).gallina
+    ensure("vela_TextBuilder" in emitted and "vela_FormatStep" in emitted,
+           "elaborated Gallina lost TextBuilder or FormatStep definitions")
+
+    standalone = _Fixture("StandaloneInterpolated")
+    standalone.definition("Wrong", _type("Vec", _NAT, _natural(3)), (), _interpolated_literal('$"abc"'))
+    _refuses(standalone, "type", "Format.Write")
+
+    missing_ref = _Fixture("MissingRef")
+    missing_ref.definition(
+        "Wrong",
+        _type("TextBuilder", _natural(16)),
+        (("b", _type("TextBuilder", _natural(16))),),
+        _call(_member(_variable("Format"), "Write"), _variable("b"), _interpolated_literal('$"ok"')),
+    )
+    _refuses(missing_ref, "type", "ref TextBuilder")
+
+    alias_read = _Fixture("AliasRead")
+    alias_read.definition(
+        "Wrong",
+        _type("TextBuilder", _natural(16)),
+        (("b", _type("TextBuilder", _natural(16))),),
+        _call(
+            _member(_variable("Format"), "Write"),
+            _ref_arg(_variable("b")),
+            _interpolated_literal('$"n={Written(b):x4}"'),
+        ),
+    )
+    _refuses(alias_read, "type", "alias")
+
+
 def cases() -> list[Case]:
     return [Case("fresh-polymorphism-and-higher-order-inference", _polymorphism_and_higher_order),
             Case("familiar-generic-markers-and-mathematical-body-source-binding", _familiar_generic_spellings),
@@ -1826,4 +1927,5 @@ def cases() -> list[Case]:
             Case("bounded-source-and-syntax", _source_limits),
             Case("inference-reduction-and-output-budgets", _elaboration_budgets),
             Case("pattern-matching-and-product-destructuring", _pattern_matching_and_destructuring),
-            Case("pattern-matching-refusals-and-protocol", _pattern_matching_refusals_and_protocol)]
+            Case("pattern-matching-refusals-and-protocol", _pattern_matching_refusals_and_protocol),
+            Case("raw-strings-and-checked-formatting", _raw_strings_and_checked_formatting)]

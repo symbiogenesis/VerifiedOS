@@ -363,6 +363,16 @@ def _pure_authoring_rejects_mathematical_lint() -> None:
                    "pure authoring failed recovery after a refused mathematical finding")
 
 
+def _playground_formatting_example_assets() -> None:
+    root = Path(__file__).resolve().parents[2]
+    html = (root / "tools/vela/playground/index.html").read_text(encoding="utf-8")
+    script = (root / "tools/vela/playground/app.mjs").read_text(encoding="utf-8")
+    ensure('<option value="formatting">Raw strings &amp; checked formatting</option>' in html,
+           "playground selector omitted the raw-strings and checked-formatting example")
+    ensure("formatting: {" in script and "Format.Write(ref " in script and '"""' in script,
+           "playground app.mjs omitted the raw-strings and checked-formatting example source")
+
+
 def cases() -> list[Case]:
     return [Case("unified-capabilities-authentication-and-source-selection", _capabilities_and_automatic_selection),
             Case("unified-http-source-routing-and-request-field-refusals", _http_dispatch_and_strict_fields),
@@ -372,4 +382,5 @@ def cases() -> list[Case]:
             Case("automatic-selection-preserves-source-and-expression-refusals", _automatic_selection_preserves_refusals),
             Case("mathematical-naming-findings-source-shape-budget-and-recovery", _mathematical_naming_reply_validation),
             Case("pure-authoring-refuses-mathematical-only-naming-finding", _pure_authoring_rejects_mathematical_lint),
-            Case("mathematical-cli-prepares-native-parser-once-and-refuses-missing-tools", _native_cli_startup)]
+            Case("mathematical-cli-prepares-native-parser-once-and-refuses-missing-tools", _native_cli_startup),
+            Case("playground-formatting-example-assets", _playground_formatting_example_assets)]

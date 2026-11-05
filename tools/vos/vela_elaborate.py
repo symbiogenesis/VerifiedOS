@@ -32,6 +32,7 @@ MAX_UNIVERSE = 8
 MAX_NAT_BITS = 4096
 MAX_CONSTANT_NAT = 10 ** MAX_LITERAL_DIGITS - 1
 MAX_PATTERN_NAT = 64
+MAX_STRING_BYTES = 256
 
 
 @dataclass(frozen=True)
@@ -59,6 +60,7 @@ _FIELDS: dict[str, set[str]] = {
     "group_type": {"type"}, "computed_type": {"value"}, "type_argument": {"type"},
     "tuple_type": {"types"},
     "name": {"name"}, "nat": {"value", "suffix"}, "bool": {"value"},
+    "string": {"value"}, "interpolated_string": {"value"}, "member": {"value", "name"},
     "unit": set(), "tuple": {"values"}, "group": {"value"},
     "call": {"callee", "arguments"}, "generic_application": {"value", "arguments"},
     "argument": {"label", "value"},
@@ -350,6 +352,10 @@ class _Protocol:
         elif kind == "unary":
             cursor = self._child(node, span, cursor, node["operator"])
             cursor = self._child(node, span, cursor, node["value"])
+        elif kind == "member":
+            cursor = self._child(node, span, cursor, node["value"])
+            cursor = self._token(node, cursor, b".")
+            cursor = self._child(node, span, cursor, node["name"])
         elif kind in {"group", "group_type", "group_pattern", "operator"}:
             cursor = self._token(node, cursor, b"(")
             field = {"group": "value", "group_type": "type", "group_pattern": "pattern", "operator": "name"}[cast("str", kind)]
@@ -597,6 +603,14 @@ class _Protocol:
             value = node["value"]
             if type(value) is not bool or self.source[span[0]:span[1]] != (b"true" if value else b"false"):
                 raise self.error("protocol", "Boolean literal differs from its source", node)
+        if kind in {"string", "interpolated_string"}:
+            value = node["value"]
+            if not isinstance(value, str) or self.source[span[0]:span[1]] != value.encode("utf-8"):
+                raise self.error("protocol", "string literal differs from its source", node)
+            if kind == "string" and (len(value) < 2 or not value.startswith('"') or not value.endswith('"')):
+                raise self.error("protocol", "string literal lacks quotation delimiters", node)
+            if kind == "interpolated_string" and (len(value) < 3 or not value.startswith('$"') or not value.endswith('"')):
+                raise self.error("protocol", "interpolated string literal lacks quotation delimiters", node)
         if kind in {"unit", "unit_pattern"}:
             cursor = trivia_end(self.source, span[0] + 1, block_comments=True)
             if (self.source[span[0]:span[0] + 1] != b"("
@@ -840,6 +854,19 @@ class _Elaborator:
         bind("FZero", telescope((n,), self.pi(_UNIT, _app(_constant("Fin"), successor), nullary=True)), 1)
         bind("FSucc", telescope((n,), self.pi(fin, _app(_constant("Fin"), successor))), 1)
         bind("At", telescope((a, n), self.pi(vec, self.pi(fin, a))), 2)
+        vec_nat = _apps(_constant("Vec"), _NAT, n)
+        tb = _app(_constant("TextBuilder"), n)
+        bind("ByteLength", telescope((n,), self.pi(vec_nat, _NAT)), 1)
+        bind("TextBuilder", telescope((n,), _SORT))
+        bind("EmptyBuilder", telescope((n,), self.pi(_UNIT, tb, nullary=True)), 1)
+        bind("Fits", telescope((n,), self.pi(tb, _BOOL)), 1)
+        bind("Written", telescope((n,), self.pi(tb, _NAT)), 1)
+        self.constants["TextBuilderVal"] = _Binding(
+            _constant("TextBuilderVal"), telescope((n,), self.pi(_BOOL, self.pi(_NAT, tb))), 1
+        )
+        self.constants["FormatStep"] = _Binding(
+            _constant("FormatStep"), telescope((n,), self.pi(tb, self.pi(_NAT, tb))), 1
+        )
         for name in ("+", "*", "-", "/", "%"):
             bind(name, self.pi(_NAT, self.pi(_NAT, _NAT)))
         for name in ("<=", "<", ">=", ">"):
@@ -984,6 +1011,42 @@ class _Elaborator:
                 if index == _constant("FSucc") and len(indices) == 2:
                     self.tick(True)
                     return self.whnf(_apps(_constant("At"), arguments[0], values[1], values[3], indices[1]))
+        if name == "ByteLength" and len(arguments) == 2:
+            self.tick(True)
+            return self.whnf(arguments[0])
+        if name == "EmptyBuilder" and len(arguments) == 2 and self.whnf(arguments[1]).kind == "unit":
+            self.tick(True)
+            return _apps(
+                _constant("TextBuilderVal"),
+                self.whnf(arguments[0]),
+                _term("bool", value=1),
+                _term("nat", value=0),
+            )
+        if name in {"Fits", "Written"} and len(arguments) == 2:
+            builder_head, builder_args = self.spine(self.whnf(arguments[1]))
+            if builder_head == _constant("TextBuilderVal") and len(builder_args) == 3:
+                self.tick(True)
+                return self.whnf(builder_args[1] if name == "Fits" else builder_args[2])
+        if name == "FormatStep" and len(arguments) == 3:
+            cap = self.whnf(arguments[0])
+            builder_head, builder_args = self.spine(self.whnf(arguments[1]))
+            chunk = self.whnf(arguments[2])
+            if (cap.kind == "nat" and chunk.kind == "nat"
+                    and builder_head == _constant("TextBuilderVal") and len(builder_args) == 3):
+                ok = self.whnf(builder_args[1])
+                used = self.whnf(builder_args[2])
+                if ok.kind == "bool" and used.kind == "nat":
+                    self.tick(True)
+                    total = cast("int", used.value) + cast("int", chunk.value)
+                    if total > self.natural_limit():
+                        raise self.fail("limit", "computed natural exceeds representation bound")
+                    fits = int(bool(cast("int", ok.value)) and total <= cast("int", cap.value))
+                    return _apps(
+                        _constant("TextBuilderVal"),
+                        cap,
+                        _term("bool", value=fits),
+                        _term("nat", value=total),
+                    )
         if name == "Succ" and len(arguments) == 1:
             value = self.whnf(arguments[0])
             if value.kind == "nat":
@@ -1896,6 +1959,272 @@ class _Elaborator:
             return self.block(node, environment, expected)
         return self.block({"kind": "block", "span": node["span"], "statements": [node]}, environment, expected)
 
+    def _decode_escaped_segment(self, segment: str, node: Node) -> bytes:
+        escapes = {"\\": "\\", '"': '"', "'": "'", "n": "\n", "r": "\r", "t": "\t", "0": "\0"}
+        chars: list[str] = []
+        index = 0
+        while index < len(segment):
+            ch = segment[index]
+            if ch != "\\":
+                chars.append(ch)
+                index += 1
+                continue
+            if index + 1 >= len(segment):
+                raise self.fail("syntax", "unterminated escape sequence in string literal", node)
+            nxt = segment[index + 1]
+            if nxt in escapes:
+                chars.append(escapes[nxt])
+                index += 2
+                continue
+            if nxt == "u" and index + 2 < len(segment) and segment[index + 2] == "{":
+                end = segment.find("}", index + 3)
+                if end == -1:
+                    raise self.fail("syntax", "unterminated \\u{...} escape sequence", node)
+                hex_digits = segment[index + 3:end]
+                if not (1 <= len(hex_digits) <= 6 and all(c in "0123456789abcdefABCDEF" for c in hex_digits)):
+                    raise self.fail("syntax", "invalid \\u{...} hex digits", node)
+                codepoint = int(hex_digits, 16)
+                if codepoint > 0x10FFFF or 0xD800 <= codepoint <= 0xDFFF:
+                    raise self.fail("syntax", "Unicode scalar escape is out of range or a surrogate", node)
+                chars.append(chr(codepoint))
+                index = end + 1
+                continue
+            raise self.fail("syntax", f"unsupported string escape '\\{nxt}'", node)
+        return "".join(chars).encode("utf-8")
+
+    def _decode_string_literal(self, spelling: str, node: Node) -> bytes:
+        if spelling.startswith('"""'):
+            quotes = len(spelling) - len(spelling.lstrip('"'))
+            body = spelling[quotes:-quotes]
+            if "\n" in body or "\r" in body:
+                normalized = body.replace("\r\n", "\n").replace("\r", "\n")
+                lines = normalized.split("\n")
+                closing_indent = lines[-1]
+                dedented: list[str] = []
+                for content_line in lines[1:-1]:
+                    if content_line == "":
+                        dedented.append("")
+                    else:
+                        if not content_line.startswith(closing_indent):
+                            raise self.fail(
+                                "syntax",
+                                "raw string content line has less indentation than closing delimiter",
+                                node,
+                            )
+                        dedented.append(content_line[len(closing_indent):])
+                raw_bytes = "\n".join(dedented).encode("utf-8")
+            else:
+                raw_bytes = body.encode("utf-8")
+        else:
+            raw_bytes = self._decode_escaped_segment(spelling[1:-1], node)
+        if len(raw_bytes) > MAX_STRING_BYTES:
+            raise self.fail("limit", f"string literal exceeds {MAX_STRING_BYTES} UTF-8 bytes", node)
+        return raw_bytes
+
+    def _bytes_binding(self, raw_bytes: bytes) -> _Binding:
+        term = _apps(_constant("VNil"), _NAT, _term("unit"))
+        for length, byte_val in enumerate(reversed(raw_bytes)):
+            term = _apps(
+                _constant("VCons"),
+                _NAT,
+                _term("nat", value=length),
+                _term("nat", value=byte_val),
+                term,
+            )
+        return _Binding(term, _apps(_constant("Vec"), _NAT, _term("nat", value=len(raw_bytes))))
+
+    def _elaborate_hole_expression(
+        self, expr_text: str, node: Node, environment: dict[str, _Binding]
+    ) -> _Binding:
+        text = expr_text.strip()
+        if not text:
+            raise self.fail("syntax", "empty interpolation hole in format template", node)
+        if text in {"true", "false"}:
+            return _Binding(_term("bool", value=1 if text == "true" else 0), _BOOL)
+        if DECIMAL.fullmatch(text):
+            if len(text.replace("_", "")) > MAX_LITERAL_DIGITS:
+                raise self.fail("limit", "numeric literal exceeds digit bound", node)
+            return _Binding(_term("nat", value=int(text.replace("_", ""))), _NAT)
+        if text.startswith('"') and text.endswith('"') and len(text) >= 2:
+            return self._bytes_binding(self._decode_string_literal(text, node))
+        if _IDENTIFIER.fullmatch(text):
+            return self.lookup(text, environment)
+        call_match = re.fullmatch(r"([A-Za-z_][A-Za-z_0-9]*)\((.*)\)", text, re.DOTALL)
+        if call_match is not None:
+            callee_name, raw_args = call_match.group(1), call_match.group(2).strip()
+            callee = self.lookup(callee_name, environment)
+            if not raw_args:
+                return self.apply(callee, [], environment)
+            arg_binding = self._elaborate_hole_expression(raw_args, node, environment)
+            fn_type = self.whnf(callee.type)
+            if fn_type.kind != "pi" or cast("int", fn_type.value) in self.nullary_parameters:
+                raise self.fail("type", f"invalid call to '{callee_name}' in interpolation hole", node)
+            self.unify(arg_binding.type, fn_type.args[0])
+            return _Binding(
+                _app(callee.term, arg_binding.term),
+                self.substitute(fn_type.args[1], cast("int", fn_type.value), arg_binding.term),
+            )
+        raise self.fail("unsupported", f"unsupported interpolation hole expression '{text}'", node)
+
+    def _format_write(
+        self, node: Node, arguments: list[Node], environment: dict[str, _Binding]
+    ) -> _Binding:
+        if len(arguments) != 2:
+            raise self.fail("type", "Format.Write requires (ref builder, $\"...\") arguments", node)
+        labeled = False
+        for idx, arg_node in enumerate(arguments):
+            self.node(arg_node, "argument")
+            label = arg_node["label"]
+            if label is None and labeled:
+                raise self.fail("name", "positional arguments cannot follow a named argument", arg_node)
+            labeled = labeled or label is not None
+            if label is not None:
+                spelling = self.name(label)
+                expected_label = "target" if idx == 0 else "template"
+                if spelling != expected_label:
+                    raise self.fail(
+                        "name", f"expected argument label '{expected_label}', got '{spelling}'", arg_node
+                    )
+        target_arg = self.node(arguments[0]["value"])
+        if (target_arg["kind"] != "unary"
+                or not isinstance(target_arg["operator"], dict)
+                or target_arg["operator"].get("text") != "ref"):
+            raise self.fail(
+                "type",
+                "Format.Write requires an explicit ref TextBuilder<capacity> target",
+                arguments[0],
+            )
+        target_inner = self.node(target_arg["value"])
+        target_name = self.name(target_inner["name"]) if target_inner["kind"] == "name" else None
+        builder = self.expression(target_inner, environment)
+        capacity = self.meta(_NAT, environment)
+        self.unify(builder.type, _app(_constant("TextBuilder"), capacity))
+        capacity = self.whnf(capacity)
+        template_arg = self.node(arguments[1]["value"])
+        if template_arg["kind"] != "interpolated_string":
+            raise self.fail(
+                "type",
+                "Format.Write requires an interpolated $\"...\" format template",
+                arguments[1],
+            )
+        spelling = cast("str", template_arg["value"])
+        body = spelling[2:-1]
+        literal_chars: list[str] = []
+        chunk_terms: list[_Term] = []
+        concrete_bytes = 0
+        index = 0
+        while index < len(body):
+            ch = body[index]
+            if ch == "{":
+                if index + 1 < len(body) and body[index + 1] == "{":
+                    literal_chars.append("{")
+                    index += 2
+                    continue
+                if literal_chars:
+                    concrete_bytes += len(
+                        self._decode_escaped_segment("".join(literal_chars), template_arg)
+                    )
+                    literal_chars.clear()
+                end = body.find("}", index + 1)
+                if end == -1:
+                    raise self.fail("syntax", "unterminated interpolation hole in format template", template_arg)
+                hole_content = body[index + 1:end]
+                if ":" in hole_content:
+                    expr_part, spec_part = hole_content.rsplit(":", 1)
+                    expr_text, spec = expr_part.strip(), spec_part.strip()
+                else:
+                    expr_text, spec = hole_content.strip(), ""
+                if target_name is not None and re.search(rf"\b{re.escape(target_name)}\b", expr_text):
+                    raise self.fail(
+                        "type",
+                        f"Format.Write hole cannot alias or read target buffer '{target_name}'",
+                        template_arg,
+                    )
+                hole_binding = self._elaborate_hole_expression(expr_text, template_arg, environment)
+                hole_type = self.whnf(hole_binding.type)
+                head, type_args = self.spine(hole_type)
+                if hole_type == _NAT:
+                    if spec not in {"", "d", "x", "x2", "x4", "x8", "X", "X2", "X4", "X8", "b"}:
+                        raise self.fail(
+                            "type", f"unsupported format specifier '{spec}' for Nat hole", template_arg
+                        )
+                    val = self.whnf(hole_binding.term)
+                    if val.kind == "nat":
+                        n_val = cast("int", val.value)
+                        if spec in {"", "d"}:
+                            concrete_bytes += len(str(n_val))
+                        elif spec in {"x", "X"}:
+                            concrete_bytes += len(format(n_val, "x"))
+                        elif spec in {"x2", "X2"}:
+                            concrete_bytes += max(2, len(format(n_val, "x")))
+                        elif spec in {"x4", "X4"}:
+                            concrete_bytes += max(4, len(format(n_val, "x")))
+                        elif spec in {"x8", "X8"}:
+                            concrete_bytes += max(8, len(format(n_val, "x")))
+                        else:
+                            concrete_bytes += len(format(n_val, "b"))
+                    elif spec in {"x2", "X2", "x4", "X4", "x8", "X8"}:
+                        concrete_bytes += int(spec[1:])
+                    else:
+                        raise self.fail(
+                            "type",
+                            "symbolic Nat hole requires a fixed-width hex specifier (x2, x4, x8) or concrete value",
+                            template_arg,
+                        )
+                elif hole_type == _BOOL:
+                    if spec != "":
+                        raise self.fail(
+                            "type", f"unsupported format specifier '{spec}' for bool hole", template_arg
+                        )
+                    val = self.whnf(hole_binding.term)
+                    if val.kind == "bool":
+                        concrete_bytes += 4 if val.value else 5
+                    else:
+                        chunk_terms.append(
+                            _term("if", _NAT, hole_binding.term, _term("nat", value=4), _term("nat", value=5))
+                        )
+                elif head == _constant("Vec") and len(type_args) == 2 and self.whnf(type_args[0]) == _NAT:
+                    if spec != "":
+                        raise self.fail(
+                            "type", f"unsupported format specifier '{spec}' for byte-vector hole", template_arg
+                        )
+                    len_term = self.whnf(type_args[1])
+                    if len_term.kind == "nat":
+                        concrete_bytes += cast("int", len_term.value)
+                    else:
+                        chunk_terms.append(len_term)
+                else:
+                    raise self.fail(
+                        "type",
+                        "interpolated hole type does not implement static Format<T>",
+                        template_arg,
+                    )
+                index = end + 1
+                continue
+            if ch == "}":
+                if index + 1 < len(body) and body[index + 1] == "}":
+                    literal_chars.append("}")
+                    index += 2
+                    continue
+                raise self.fail("syntax", "unescaped closing '}' in interpolated format template", template_arg)
+            literal_chars.append(ch)
+            index += 1
+        if literal_chars:
+            concrete_bytes += len(self._decode_escaped_segment("".join(literal_chars), template_arg))
+        if concrete_bytes > MAX_STRING_BYTES:
+            raise self.fail(
+                "limit", f"formatted template exceeds {MAX_STRING_BYTES} UTF-8 bytes", template_arg
+            )
+        total_chunk = _term("nat", value=concrete_bytes)
+        for extra in chunk_terms:
+            total_chunk = (
+                extra if total_chunk == _term("nat", value=0) else _apps(_constant("+"), total_chunk, extra)
+            )
+        return _Binding(
+            _apps(_constant("FormatStep"), capacity, builder.term, total_chunk),
+            _app(_constant("TextBuilder"), capacity),
+        )
+
     def expression(self, node: Node, environment: dict[str, _Binding]) -> _Binding:
         self.tick()
         self.site = node
@@ -1908,6 +2237,16 @@ class _Elaborator:
             return _Binding(_term("bool", value=int(cast("bool", node["value"]))), _BOOL)
         if kind == "unit":
             return _Binding(_term("unit"), _UNIT)
+        if kind == "string":
+            return self._bytes_binding(self._decode_string_literal(cast("str", node["value"]), node))
+        if kind == "interpolated_string":
+            raise self.fail(
+                "type",
+                "interpolated format template requires an explicit Format.Write destination buffer",
+                node,
+            )
+        if kind == "member":
+            raise self.fail("unsupported", "member projection requires a Format.Write call or the full frontend", node)
         if kind in {"name", "operator"}:
             name = self.operator(node["name"]) if kind == "operator" else self.name(node["name"])
             if name == "Type":
@@ -1938,7 +2277,14 @@ class _Elaborator:
             binding = self.lookup(self.name(target["name"]), environment, raw=True)
             return self.instantiate(binding, environment, self.nodes(node["arguments"]))
         if kind == "call":
-            return self.apply(self.expression(self.node(node["callee"]), environment), self.nodes(node["arguments"]), environment)
+            callee = self.node(node["callee"])
+            if callee["kind"] == "member":
+                receiver = self.node(callee["value"])
+                if (receiver["kind"] == "name"
+                        and self.name(receiver["name"]) == "Format"
+                        and self.name(callee["name"]) == "Write"):
+                    return self._format_write(node, self.nodes(node["arguments"]), environment)
+            return self.apply(self.expression(callee, environment), self.nodes(node["arguments"]), environment)
         if kind in {"lambda", "typed_lambda"}:
             return self.lambda_(node, environment)
         if kind == "let_expression":
@@ -1967,6 +2313,8 @@ class _Elaborator:
             self.unify(right.type, signature.args[0])
             return _Binding(_apps(binding.term, left.term, right.term), signature.args[1])
         if kind == "unary":
+            if isinstance(node["operator"], dict) and node["operator"].get("text") == "ref":
+                raise self.fail("type", "ref argument is only supported as the target of Format.Write", node)
             operator = self.operator(node["operator"])
             if operator != "!":
                 raise self.fail("unsupported", f"prefix '{operator}' is unsupported")
@@ -2136,7 +2484,10 @@ _GALLINA = {
     "Refl": "Corelib.Init.Logic.eq_refl", "Symm": "Corelib.Init.Logic.eq_sym",
     "Trans": "Corelib.Init.Logic.eq_trans", "Congr": "vela_Congr",
     "Fst": "Corelib.Init.Datatypes.fst", "Snd": "Corelib.Init.Datatypes.snd",
-    "Vec": "vela_Vec", "VNil": "vela_VNil", "VCons": "vela_VCons",
+    "Vec": "vela_Vec", "VNil": "vela_VNil", "VCons": "vela_VCons", "ByteLength": "vela_ByteLength",
+    "TextBuilder": "vela_TextBuilder", "TextBuilderVal": "vela_text_builder",
+    "EmptyBuilder": "vela_EmptyBuilder", "FormatStep": "vela_FormatStep",
+    "Fits": "vela_Fits", "Written": "vela_Written",
     "Fin": "vela_Fin", "FZero": "vela_FZero", "FSucc": "vela_FSucc", "At": "vela_At",
     "+": "Corelib.Init.Nat.add", "*": "Corelib.Init.Nat.mul", "-": "Corelib.Init.Nat.sub",
     "/": "Corelib.Init.Nat.div", "%": "Corelib.Init.Nat.modulo",
@@ -2195,6 +2546,28 @@ Fixpoint vela_lookup (A : Type@{vela_u0}) (n : nat) (i : vela_Fin n) {struct i}
   end.
 Definition vela_At (A : Type@{vela_u0}) (n : nat) (xs : vela_Vec A n) (i : vela_Fin n)
     : A := vela_lookup A n i xs.
+Definition vela_ByteLength (n : nat) (_ : vela_Vec nat n) : nat := n.
+
+Inductive vela_TextBuilder (capacity : nat) : Type@{vela_u0} :=
+| vela_text_builder : bool -> nat -> vela_TextBuilder capacity.
+Definition vela_EmptyBuilder (capacity : nat) (_ : unit) : vela_TextBuilder capacity :=
+  vela_text_builder capacity true O.
+Definition vela_FormatStep (capacity : nat) (builder : vela_TextBuilder capacity) (chunk : nat)
+    : vela_TextBuilder capacity :=
+  match builder with
+  | vela_text_builder _ ok used =>
+      vela_text_builder capacity
+        (vela_and ok (Corelib.Init.Nat.leb (Corelib.Init.Nat.add used chunk) capacity))
+        (Corelib.Init.Nat.add used chunk)
+  end.
+Definition vela_Fits (capacity : nat) (builder : vela_TextBuilder capacity) : bool :=
+  match builder with
+  | vela_text_builder _ ok _ => ok
+  end.
+Definition vela_Written (capacity : nat) (builder : vela_TextBuilder capacity) : nat :=
+  match builder with
+  | vela_text_builder _ _ used => used
+  end.
 """
 
 

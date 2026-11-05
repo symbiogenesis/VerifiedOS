@@ -255,6 +255,63 @@ public lemma SameValue(): PreservedValue() == 42
 // Change Refl(42) to Refl(41) to see a false proof refused.
 `,
     },
+    formatting: {
+        label: "Raw strings & checked formatting",
+        expression: "Written(FormatPacket(42, true))", valueType: "Nat",
+        source: `module CheckedFormatting;
+
+/// Multi-quote raw string literals need no backslash escapes and dedent by closing quotes.
+public definition Vec<Nat, 10> HeaderTag() =>
+    """
+    [vela-hdr]
+    """;
+
+public const Nat HeaderBytes = ByteLength(HeaderTag());
+
+/// Format.Write targets an explicit ref TextBuilder<capacity> without heap allocation.
+public TextBuilder<36> FormatPacket(Nat id, bool ok)
+{
+    let TextBuilder<36> builder = EmptyBuilder();
+    let TextBuilder<36> withHeader = Format.Write(ref builder, $"hdr={HeaderTag()} ");
+    let TextBuilder<36> complete = Format.Write(ref withHeader, $"id=0x{id:x4} ok={ok}");
+    return complete;
+}
+
+/// A buffer whose capacity is too small fails closed without partial mutation.
+public TextBuilder<12> OverflowPacket(Nat id)
+{
+    let TextBuilder<12> tiny = EmptyBuilder();
+    return Format.Write(ref tiny, $"hdr={HeaderTag()} id=0x{id:x4}");
+}
+
+public lemma DedentedHeaderLength(): HeaderBytes == 10
+    proof
+    {
+        return Refl(10);
+    }
+
+public theorem PacketFitsForEveryId(): forall (Nat id) => Fits(FormatPacket(id, true)) == true
+    proof
+    {
+        return (Nat id) => Refl(true);
+    }
+
+public lemma PacketWrites32Bytes(): Written(FormatPacket(42, true)) == 32
+    proof
+    {
+        return Refl(32);
+    }
+
+public lemma SmallBufferFailsClosed(): Fits(OverflowPacket(42)) == false
+    proof
+    {
+        return Refl(false);
+    }
+
+// Try HeaderBytes, Fits(FormatPacket(42, true)), and Fits(OverflowPacket(42)).
+// Standalone $"..." without Format.Write(ref builder, ...) is rejected.
+`,
+    },
 };
 
 const state = {
@@ -840,9 +897,9 @@ function registerLanguage() {
         surroundingPairs: [{ open: "{", close: "}" }, { open: "(", close: ")" }],
     });
     monaco.languages.setMonarchTokensProvider("vela", {
-        keywords: ["module", "public", "const", "let", "if", "else", "return", "definition", "alias", "ghost", "lemma", "theorem", "proof", "type", "forall", "exists"],
-        typeKeywords: ["Nat", "bool", "Unit", "Type", "Prop", "Fn", "Vec", "Fin", "Eq"], tokenizer: { root: [
-            [/\/\/.*$/, "comment"], [/\b(?:true|false)\b/, "constant"],
+        keywords: ["module", "public", "const", "let", "if", "else", "return", "definition", "alias", "ghost", "lemma", "theorem", "proof", "type", "forall", "exists", "ref"],
+        typeKeywords: ["Nat", "bool", "Unit", "Type", "Prop", "Fn", "Vec", "Fin", "Eq", "TextBuilder"], tokenizer: { root: [
+            [/\/\/.*$/, "comment"], [/"""[\s\S]*?"""/, "string"], [/\$"(?:\\.|[^"\\])*"/, "string"], [/"(?:\\.|[^"\\])*"/, "string"], [/\b(?:true|false)\b/, "constant"],
             [/[A-Za-z_][A-Za-z0-9_]*/, { cases: { "@keywords": "keyword", "@typeKeywords": "type", "@default": "identifier" } }],
             [/[0-9](?:_?[0-9])*/, "number"], [/=>|==|!=|<=|>=|&&|\|\||[+*\/%!=<>-]/, "operator"], [/[{}()]/, "@brackets"], [/[;,.:]/, "delimiter"],
         ] },
@@ -852,7 +909,7 @@ function registerLanguage() {
         rules: [
             { token: "keyword", foreground: "C6AEED" }, { token: "type", foreground: "93C6DA" },
             { token: "identifier", foreground: "CDD7EB" }, { token: "comment", foreground: "687D85", fontStyle: "italic" },
-            { token: "number", foreground: "D9BA8B" }, { token: "constant", foreground: "D9BA8B" },
+            { token: "string", foreground: "A8D4A2" }, { token: "number", foreground: "D9BA8B" }, { token: "constant", foreground: "D9BA8B" },
             { token: "operator", foreground: "AAB6D2" }, { token: "function", foreground: "BDCDFF" },
             { token: "parameter", foreground: "B5D4DB" }, { token: "variable", foreground: "C8D4E9" },
         ], colors: {

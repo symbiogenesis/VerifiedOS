@@ -57,6 +57,12 @@ The supported increment includes:
 - Mathematical `Nat`, `bool`, `Unit`, products, equality propositions and explicit
   proof constructors. Indexed vectors and finite indices provide a concrete
   dependent collection boundary, including length preservation and safe lookup.
+  Regular and multi-quote raw string literals (`"""..."""`) elaborate to
+  UTF-8 byte vectors `Vec<Nat, n>` (bounded by 256 bytes) with `ByteLength`
+  and `At` lookup, and `TextBuilder<capacity>` / `EmptyBuilder` /
+  `Format.Write(ref builder, $"...")` / `Fits` / `Written` model allocation-free
+  checked formatting with static hole formatting (`Nat`, `bool`, `Vec<Nat, n>`,
+  and `:x2`/`:x4`/`:x8`/`:d`/`:b` specifiers) and fail-closed capacity bounds.
 - Exhaustive `match` expressions and returning statement `match` over `Nat`,
   `bool`, `Unit` and products, with wildcard (`_`), variable, `()`, Boolean
   literal, nested tuple, decimal natural (bounded by structural unrolling) and

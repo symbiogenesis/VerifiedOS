@@ -188,6 +188,28 @@ lemma PairEta<TLeft, TRight>((TLeft, TRight) pair):
     };
 }
 """),
+        ("raw-strings-and-checked-formatting", '''module CheckedFormattingReplay;
+public definition Vec<Nat, 10> HeaderTag() =>
+    """
+    [vela-hdr]
+    """;
+public const Nat HeaderBytes = ByteLength(HeaderTag());
+public TextBuilder<36> FormatPacket(Nat id, bool ok) {
+    let TextBuilder<36> builder = EmptyBuilder();
+    let TextBuilder<36> withHeader = Format.Write(ref builder, $"hdr={HeaderTag()} ");
+    let TextBuilder<36> complete = Format.Write(ref withHeader, $"id=0x{id:x4} ok={ok}");
+    return complete;
+}
+public TextBuilder<12> OverflowPacket(Nat id) {
+    let TextBuilder<12> tiny = EmptyBuilder();
+    return Format.Write(ref tiny, $"hdr={HeaderTag()} id=0x{id:x4}");
+}
+public lemma DedentedHeaderLength(): HeaderBytes == 10 proof { return Refl(10); }
+public theorem PacketFitsForEveryId(): forall (Nat id) => Fits(FormatPacket(id, true)) == true
+    proof { return (Nat id) => Refl(true); }
+public lemma PacketWrites32Bytes(): Written(FormatPacket(42, true)) == 32 proof { return Refl(32); }
+public lemma SmallBufferFailsClosed(): Fits(OverflowPacket(42)) == false proof { return Refl(false); }
+'''),
     )
     negatives = (
         ("static-parameter-runtime-input", "Nat F(const Nat value) => value; Nat Wrong(Nat runtime) => F(runtime);", "type"),
@@ -255,6 +277,17 @@ lemma PairEta<TLeft, TRight>((TLeft, TRight) pair):
         ("duplicate-pattern-binder", "definition Nat Wrong((Nat, Nat) pair) => let (x, x) = pair in x;", "name"),
         ("refutable-local-pattern", "definition Nat Wrong(Nat value) => let Succ(previous) = value in previous;", "type"),
         ("constant-product-growth", f"const Nat Wrong = {10 ** 200} * {10 ** 200};", "limit"),
+        ("standalone-interpolated-template", 'definition Vec<Nat, 4> Wrong(Nat id) => $"x={id}";', "type"),
+        ("format-write-missing-ref",
+         'definition TextBuilder<16> Wrong(TextBuilder<16> b, Nat id) => Format.Write(b, $"x={id:x4}");', "type"),
+        ("format-write-non-interpolated",
+         'definition TextBuilder<16> Wrong(TextBuilder<16> b) => Format.Write(ref b, """plain""");', "type"),
+        ("format-write-unformattable-hole",
+         'definition TextBuilder<16> Wrong(TextBuilder<16> b, Unit u) => Format.Write(ref b, $"u={u}");', "type"),
+        ("format-write-target-alias-read",
+         'definition TextBuilder<16> Wrong(TextBuilder<16> b) => Format.Write(ref b, $"n={Written(b):x4}");', "type"),
+        ("format-write-capacity-mismatch",
+         'definition TextBuilder<32> Wrong(TextBuilder<16> b) => Format.Write(ref b, $"ok");', "type"),
     )
     pure = Fixture("pure-expression-operators", b"""module PureExpressions;
 public Nat Difference(Nat left, Nat right) => left - right;
@@ -329,7 +362,7 @@ public const Nat ZeroRemainder = 17 % 0;
         ("pure-skipped-runtime-dependency", "public bool Wrong(bool runtime) { "
          "const bool Value = false && runtime; return Value; }", "unsupported"),
     )
-    dependent_playground = Fixture("dependent-playground-observations", b"""module DependentPlaygroundReplay;
+    dependent_playground = Fixture("dependent-playground-observations", b'''module DependentPlaygroundReplay;
 public definition T Identity<T>(T value) => value;
 public definition U Apply<T,U>(Fn(T value) -> U function,T value) => function(value);
 public definition Nat HigherOrder() => Apply(function: value => value + 1, value: 41);
@@ -342,11 +375,21 @@ public definition Fn(Nat n,Vec<Nat,n> values) -> Vec<Nat,n> Preserve() =>
 public definition Vec<Nat,1> Original() => VCons(42, VNil<Nat>());
 public definition Nat PreservedValue() =>
     At(Preserve()(n: 1, values: Copy(Original())), FZero<0>());
-""", observations=(
+public definition Vec<Nat,10> HeaderTag() => """[vela-hdr]""";
+public TextBuilder<36> FormatPacket(Nat id, bool ok) {
+    let TextBuilder<36> builder = EmptyBuilder();
+    let TextBuilder<36> withHeader = Format.Write(ref builder, $"hdr={HeaderTag()} ");
+    return Format.Write(ref withHeader, $"id=0x{id:x4} ok={ok}");
+}
+public definition Nat PacketWritten() => Written(FormatPacket(42, true));
+public definition bool PacketFits() => Fits(FormatPacket(42, true));
+''', observations=(
         ("vela_d2_HigherOrder Corelib.Init.Datatypes.tt", "42"),
         ("vela_d4_Second Corelib.Init.Datatypes.tt", "20"),
         ("vela_d5_SelectedValue Corelib.Init.Datatypes.tt", "true"),
-        ("vela_d9_PreservedValue Corelib.Init.Datatypes.tt", "42")))
+        ("vela_d9_PreservedValue Corelib.Init.Datatypes.tt", "42"),
+        ("vela_d12_PacketWritten Corelib.Init.Datatypes.tt", "32"),
+        ("vela_d13_PacketFits Corelib.Init.Datatypes.tt", "true")))
     return (Fixture("authored-example", example), pure, division, dependent_playground,
             *(Fixture(name, ("module PureNegativeReplay; " + source).encode(), expected, pure=True)
               for name, source, expected in pure_negatives),
