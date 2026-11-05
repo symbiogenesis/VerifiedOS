@@ -141,15 +141,26 @@ class _Fixture:
             self.write(";")
         else:
             self.write(" proof ")
+            saved_text = self.text
             block_start = self.offset
             self.write("{ ")
-            return_start = self.offset
-            self.write("return ")
-            value = proof(self)
-            self.write(";")
-            terminal = self.node("return", return_start, value=value)
-            self.write(" }")
-            body = self.node("block", block_start, statements=[terminal])
+            probe_text = self.text
+            probe_node = proof(self)
+            if probe_node["kind"] == "block":
+                self.text = saved_text
+                body = proof(self)
+            elif probe_node["kind"] in {"assert", "return", "match", "if", "proof"}:
+                self.write(" }")
+                body = self.node("block", block_start, statements=[probe_node])
+            else:
+                self.text = probe_text
+                return_start = self.offset
+                self.write("return ")
+                value = proof(self)
+                self.write(";")
+                terminal = self.node("return", return_start, value=value)
+                self.write(" }")
+                body = self.node("block", block_start, statements=[terminal])
         self.declarations.append(self.node("lemma", start, name=binding, generics=generic_nodes,
                                            parameters=parameter_nodes, proposition=goal, body=body,
                                            modifiers=["public"]))
@@ -476,6 +487,33 @@ def _hole(name: str = "?unfinished") -> Form:
     return form
 
 
+def _assert(value: Form, by: Form | None = None, *, by_block: tuple[Form, ...] | None = None) -> Form:
+    def form(fixture: _Fixture) -> Node:
+        start = fixture.offset
+        fixture.write("assert ")
+        val_node = value(fixture)
+        by_node = None
+        if by_block is not None:
+            fixture.write(" by ")
+            block_start = fixture.offset
+            fixture.write("{ ")
+            stmts: list[Node] = []
+            for index, stmt in enumerate(by_block):
+                if index:
+                    fixture.write(" ")
+                stmts.append(stmt(fixture))
+            fixture.write(" }")
+            by_node = fixture.node("block", block_start, statements=stmts)
+        elif by is not None:
+            fixture.write(" by ")
+            by_node = by(fixture)
+            fixture.write(";")
+        else:
+            fixture.write(";")
+        return fixture.node("assert", start, value=val_node, by=by_node)
+    return form
+
+
 def _contract(role: str, value: Form) -> Form:
     def form(fixture: _Fixture) -> Node:
         start = fixture.offset
@@ -655,7 +693,7 @@ def _required_static_constants() -> None:
     fixture.definition("One", _type("Vec", _NAT, _type("Length")), (),
                        _call("VCons", _natural(7), _call("VNil", generics=(_NAT,))))
     fixture.theorem("Computed", (), _binary("==", _variable("Answer"), _natural(42)),
-                    _call("Refl", _natural(42)))
+                    _assert(_binary("==", _variable("Answer"), _natural(42))))
     source, response = fixture.response()
     emitted = elaborate(source, response).gallina
     ensure("Definition vela_d2_Answer : Corelib.Init.Datatypes.nat :=\n  (42 :" in emitted,
@@ -960,7 +998,7 @@ def _named_call_refusals() -> None:
     _identity(fixture)
     fixture.theorem("False", (),
                     _binary("==", _call("Identity", _natural(0), labels=("value",)), _natural(1)),
-                    _call("Refl", _natural(0)))
+                    _assert(_binary("==", _call("Identity", _natural(0), labels=("value",)), _natural(1))))
     _refuses(fixture, "type")
 
 
@@ -1176,15 +1214,30 @@ def _dependent_vectors_and_indices() -> None:
 
 def _proof_values_and_false_neighbors() -> None:
     fixture = _Fixture("Proofs")
+    _identity(fixture)
     x = _variable("x")
-    fixture.theorem("Reflexive", (("x", _T),), _binary("==", x, x), _call("Refl", x), _POLY)
-    fixture.theorem("Composed", (("x", _NAT),), _binary("==", x, x),
-                    _call("Trans", _call("Refl", x), _call("Symm", _call("Refl", x))))
-    fixture.theorem("Congruent", (("x", _NAT),),
-                    _binary("==", _binary("+", x, _natural(1)), _binary("+", x, _natural(1))),
-                    _call("Congr", _lambda((("n", _NAT),),
-                                            _binary("+", _variable("n"), _natural(1))),
-                          _call("Refl", x)))
+    fixture.theorem("Reflexive", (("x", _T),), _binary("==", x, x), _assert(_binary("==", x, x)), _POLY)
+    fixture.theorem(
+        "Composed",
+        (("x", _NAT),),
+        _binary("==", x, x),
+        _assert(
+            _binary("==", x, x),
+            by_block=(
+                _assert(_binary("==", x, _call("Identity", x))),
+                _assert(_binary("==", _call("Identity", x), x)),
+            ),
+        ),
+    )
+    fixture.theorem(
+        "Congruent",
+        (("x", _NAT),),
+        _binary("==", _binary("+", x, _natural(1)), _binary("+", x, _natural(1))),
+        _assert(
+            _binary("==", _binary("+", x, _natural(1)), _binary("+", x, _natural(1))),
+            by=_call("Reflexive", x),
+        ),
+    )
     fixture.definition("ProofParameter", _computed(_call("Eq", x, x, generics=(_NAT,))),
                        (("x", _NAT), ("evidence", _computed(_call("Eq", x, x, generics=(_NAT,))))),
                        _variable("evidence"))
@@ -1192,12 +1245,28 @@ def _proof_values_and_false_neighbors() -> None:
     fixture.definition("KeepProof", _type("P"), (("evidence", _type("P")),),
                        _variable("evidence"), proposition_generic)
     fixture.theorem("ForwardProof", (("evidence", _type("P")),), _variable("P"),
-                    _call("KeepProof", _variable("evidence")), proposition_generic)
+                    _assert(_variable("P"), by=_call("KeepProof", _variable("evidence"))),
+                    proposition_generic)
     source, response = fixture.response()
     emitted = elaborate(source, response).gallina
     ensure("Corelib.Init.Logic.eq" in emitted, "proof goal omitted propositional equality")
+    ensure(
+        "Corelib.Init.Logic.eq_refl" in emitted
+        and "Corelib.Init.Logic.eq_sym" in emitted
+        and "Corelib.Init.Logic.eq_trans" in emitted
+        and "vela_Congr" in emitted,
+        "assert and by-justifications omitted equality proof constructors",
+    )
     for name, goal, proof, kind in (
-            ("False", _binary("==", _natural(0), _natural(1)), _call("Refl", _natural(0)), "type"),
+            ("False", _binary("==", _natural(0), _natural(1)),
+             _assert(_binary("==", _natural(0), _natural(1))), "type"),
+            ("FalseByExpr", _binary("==", _natural(0), _natural(1)),
+             _assert(_binary("==", _natural(0), _natural(1)), by=_natural(0)), "type"),
+            ("FalseByBlock", _binary("==", _natural(0), _natural(0)),
+             _assert(_binary("==", _natural(0), _natural(0)),
+                     by_block=(_assert(_binary("==", _natural(1), _natural(1))),)), "type"),
+            ("ObsoleteRefl", _binary("==", _natural(0), _natural(0)),
+             _call("Refl", _natural(0)), "name"),
             ("NoProof", _binary("==", _natural(0), _natural(0)), None, "unsupported"),
             ("NotAProposition", _natural(0), _natural(0), "type")):
         wrong = _Fixture()
@@ -1244,9 +1313,11 @@ def _definitional_conversion() -> None:
     fixture = _Fixture("Conversion")
     n = _variable("n")
     fixture.theorem("ZeroOnLeft", (("n", _NAT),),
-                    _binary("==", _binary("+", _natural(0), n), n), _call("Refl", n))
+                    _binary("==", _binary("+", _natural(0), n), n),
+                    _assert(_binary("==", _binary("+", _natural(0), n), n)))
     identity = _group(_lambda((("value", _NAT),), _variable("value")))
-    fixture.theorem("Beta", (("n", _NAT),), _binary("==", _call(identity, n), n), _call("Refl", n))
+    fixture.theorem("Beta", (("n", _NAT),), _binary("==", _call(identity, n), n),
+                    _assert(_binary("==", _call(identity, n), n)))
     fixture.definition("ComputedLength", _type("Vec", _NAT,
                                                _group(_binary("+", _natural(0), _natural(1)))), (),
                        _call("VCons", _natural(4), _call("VNil", generics=(_NAT,))))
@@ -1254,10 +1325,11 @@ def _definitional_conversion() -> None:
     emitted = elaborate(source, response).gallina
     ensure("Corelib.Init.Logic.eq_refl" in emitted, "definitional equality lost its proof constructor")
     # Nat.add recurses on its first operand: n + 0 is stuck for arbitrary n.
-    # Accepting this neighbor with Refl would invent an arithmetic theorem.
+    # Accepting this neighbor with bare assert would invent an arithmetic theorem.
     wrong = _Fixture()
     wrong.theorem("ZeroOnRight", (("n", _NAT),),
-                  _binary("==", _binary("+", n, _natural(0)), n), _call("Refl", n))
+                  _binary("==", _binary("+", n, _natural(0)), n),
+                  _assert(_binary("==", _binary("+", n, _natural(0)), n)))
     _refuses(wrong, "type")
 
 
@@ -1269,16 +1341,21 @@ def _products_and_lookup_computation() -> None:
                        _call("Snd", _tuple(_natural(7), _boolean(True)), generics=(_NAT, _BOOL)))
     fixture.theorem("Projection", (),
                     _binary("==", _call("Fst", _tuple(_natural(7), _boolean(False))), _natural(7)),
-                    _call("Refl", _natural(7)))
+                    _assert(_binary("==", _call("Fst", _tuple(_natural(7), _boolean(False))), _natural(7))))
     values = _call("VCons", _natural(7),
                    _call("VCons", _natural(9), _call("VNil", generics=(_NAT,))))
     fixture.theorem("LookupFirst", (),
                     _binary("==", _call("At", values, _call("FZero", generics=(_natural(1),))),
-                            _natural(7)), _call("Refl", _natural(7)))
+                            _natural(7)),
+                    _assert(_binary("==", _call("At", values, _call("FZero", generics=(_natural(1),))),
+                                    _natural(7))))
     fixture.theorem("LookupSecond", (),
                     _binary("==", _call("At", values,
                                         _call("FSucc", _call("FZero", generics=(_natural(0),)))),
-                            _natural(9)), _call("Refl", _natural(9)))
+                            _natural(9)),
+                    _assert(_binary("==", _call("At", values,
+                                                _call("FSucc", _call("FZero", generics=(_natural(0),)))),
+                                    _natural(9))))
     source, response = fixture.response()
     emitted = elaborate(source, response).gallina
     ensure("Corelib.Init.Datatypes.fst" in emitted and "Corelib.Init.Datatypes.snd" in emitted,
@@ -1289,7 +1366,9 @@ def _products_and_lookup_computation() -> None:
     wrong = _Fixture()
     wrong.theorem("WrongLookup", (),
                   _binary("==", _call("At", values, _call("FZero", generics=(_natural(1),))),
-                          _natural(9)), _call("Refl", _natural(9)))
+                          _natural(9)),
+                  _assert(_binary("==", _call("At", values, _call("FZero", generics=(_natural(1),))),
+                                  _natural(9))))
     _refuses(wrong, "type")
 
 
@@ -1427,7 +1506,7 @@ def _source_limits() -> None:
 def _elaboration_budgets() -> None:
     fixture = _Fixture()
     fixture.theorem("Computed", (), _binary("==", _binary("+", _natural(1), _natural(1)), _natural(2)),
-                    _call("Refl", _natural(2)))
+                    _assert(_binary("==", _binary("+", _natural(1), _natural(1)), _natural(2))))
     source, response = fixture.response()
     elaborate(source, response)
     for owner in ("MAX_WORK", "MAX_REDUCTIONS", "MAX_OUTPUT_BYTES"):
@@ -1573,7 +1652,7 @@ def _match_expr(value: Form, arms: tuple[tuple[Form, Form], ...],
 
 
 def _match_stmt(value: Form, arms: tuple[tuple[Form, Form], ...],
-                motive: tuple[str, Form] | None = None) -> Form:
+                motive: tuple[str, Form] | None = None, *, assert_arms: bool = False) -> Form:
     def form(fixture: _Fixture) -> Node:
         start = fixture.offset
         fixture.write("{ ")
@@ -1598,12 +1677,16 @@ def _match_stmt(value: Form, arms: tuple[tuple[Form, Form], ...],
             fixture.write("case ")
             pat_node = pat(fixture)
             fixture.write(": ")
-            ret_start = fixture.offset
-            fixture.write("return ")
-            body_node = body(fixture)
-            fixture.write(";")
-            ret_node = fixture.node("return", ret_start, value=body_node)
-            case_nodes.append(fixture.node("case", case_start, pattern=pat_node, statements=[ret_node]))
+            if assert_arms:
+                stmt_node = body(fixture)
+                case_nodes.append(fixture.node("case", case_start, pattern=pat_node, statements=[stmt_node]))
+            else:
+                ret_start = fixture.offset
+                fixture.write("return ")
+                body_node = body(fixture)
+                fixture.write(";")
+                ret_node = fixture.node("return", ret_start, value=body_node)
+                case_nodes.append(fixture.node("case", case_start, pattern=pat_node, statements=[ret_node]))
         if arms:
             fixture.write(" ")
         fixture.write("}")
@@ -1674,12 +1757,12 @@ def _pattern_matching_and_destructuring() -> None:
     fixture.theorem(
         "PredecessorStep", (("value", _NAT),),
         _binary("==", _call("Predecessor", _call("Succ", _variable("value"))), _variable("value")),
-        _call("Refl", _variable("value")),
+        _assert(_binary("==", _call("Predecessor", _call("Succ", _variable("value"))), _variable("value"))),
     )
     fixture.theorem(
         "StaticMatchedValue", (),
         _binary("==", _variable("StaticMatched"), _natural(0)),
-        _call("Refl", _natural(0)),
+        _assert(_binary("==", _variable("StaticMatched"), _natural(0))),
     )
     fixture.definition(
         "Not", _BOOL, (("flag", _BOOL),),
@@ -1692,34 +1775,39 @@ def _pattern_matching_and_destructuring() -> None:
     fixture.theorem(
         "BoolInvolution", (("flag", _BOOL),),
         _binary("==", _call("Not", _call("Not", _variable("flag"))), _variable("flag")),
-        _match_expr(
+        _match_stmt(
             _variable("flag"),
-            ((_pat_bool(True), _call("Refl", _boolean(True))),
-             (_pat_bool(False), _call("Refl", _boolean(False)))),
-            motive=("branch", _computed(_call("Eq", _call("Not", _call("Not", _variable("branch"))),
-                                              _variable("branch")))),
+            ((_pat_bool(True),
+              _assert(_binary("==", _call("Not", _call("Not", _boolean(True))), _boolean(True)))),
+             (_pat_bool(False),
+              _assert(_binary("==", _call("Not", _call("Not", _boolean(False))), _boolean(False))))),
+            assert_arms=True,
         ),
     )
     fixture.theorem(
         "UnitEta", (("token", _type("Unit")),),
         _binary("==", _variable("token"), _unit()),
-        _match_expr(
+        _match_stmt(
             _variable("token"),
-            ((_pat_unit(), _call("Refl", _unit())),),
+            ((_pat_unit(), _assert(_binary("==", _unit(), _unit()))),),
             motive=("current", _computed(_call("Eq", _variable("current"), _unit()))),
+            assert_arms=True,
         ),
     )
     fixture.theorem(
         "PairEta", (("pair", _tuple(_T, _type("U"), types=True)),),
         _binary("==", _variable("pair"),
                 _tuple(_call("Fst", _variable("pair")), _call("Snd", _variable("pair")))),
-        _match_expr(
+        _match_stmt(
             _variable("pair"),
             ((_pat_tuple(_pat_bind("left"), _pat_bind("right")),
-              _call("Refl", _tuple(_variable("left"), _variable("right")))),),
+              _assert(_binary("==", _tuple(_variable("left"), _variable("right")),
+                              _tuple(_call("Fst", _tuple(_variable("left"), _variable("right"))),
+                                     _call("Snd", _tuple(_variable("left"), _variable("right"))))))),),
             motive=("whole", _computed(_call("Eq", _variable("whole"),
                                              _tuple(_call("Fst", _variable("whole")),
                                                     _call("Snd", _variable("whole")))))),
+            assert_arms=True,
         ),
         (*_POLY, ("type", "U", None)),
     )
@@ -1862,13 +1950,13 @@ def _raw_strings_and_checked_formatting() -> None:
         "DedentedLength",
         (),
         _binary("==", _variable("HeaderBytes"), _natural(10)),
-        _call("Refl", _natural(10)),
+        _assert(_binary("==", _variable("HeaderBytes"), _natural(10))),
     )
     fixture.theorem(
         "PacketWrites32",
         (),
         _binary("==", _call("Written", _call("FormatPacket", _natural(42), _boolean(True))), _natural(32)),
-        _call("Refl", _natural(32)),
+        _assert(_binary("==", _call("Written", _call("FormatPacket", _natural(42), _boolean(True))), _natural(32))),
     )
     source, response = fixture.response()
     emitted = elaborate(source, response).gallina

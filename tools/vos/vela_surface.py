@@ -1227,9 +1227,15 @@ public inductive Vec<T, ghost Nat n> {
 }
 public coinductive Stream<T> { More(T head, Stream<T> tail); }
 public lemma Reflexive(Nat n): forall (Nat x) => x == x
-    proof { calc { n + 0 == n; n == n; } assert n == n; ?step; }
+    proof {
+        calc { n + 0 == n; n == n; }
+        assert n == n;
+        assert n == n by Reflexivity(n);
+        assert n == n by { assert n + 0 == n; }
+        ?step;
+    }
 public theorem Witness(): exists (Nat n) => n == 0;
-""", ("universe", "definition", "inductive", "coinductive", "lemma", "theorem", "quantifier", "calc")),
+""", ("universe", "definition", "inductive", "coinductive", "lemma", "theorem", "quantifier", "calc", "assert")),
     Fixture("represented-numeric-patterns", """module Patterns;
 public bool IsLow(byte value) {
     match (value) {
@@ -1330,6 +1336,10 @@ NEGATIVE: tuple[tuple[str, bytes, str], ...] = (
     ("collection-var-binder", b"module M; void F() { foreach (var item in values) {} }", "syntax"),
     ("collection-incomplete-type", b"module M; void F() { foreach (ref Box<T item in values) {} }", "syntax"),
     ("collection-unbraced-body", b"module M; void F() { foreach (let item in values) Consume(item); }", "syntax"),
+    ("assert-missing-by-justification", b"module M; void F() { assert x == x by; }", "syntax"),
+    ("assert-by-expression-missing-semicolon", b"module M; void F() { assert x == x by Lemma(x) }", "syntax"),
+    ("assert-double-by", b"module M; void F() { assert x == x by Lemma(x) by Other(x); }", "syntax"),
+    ("by-remains-reserved", b"module M; void F() { let by = 1; }", "syntax"),
     ("repeated-const-function", b"module M; public const const Nat F() => 1;", "syntax"),
     ("repeated-const-parameter", b"module M; Nat F(const const Nat value) => value;", "syntax"),
     ("repeated-const-lambda-parameter", b"module M; Nat F() => (const const Nat value) => value;", "syntax"),
@@ -3694,7 +3704,7 @@ def _unbraced_if_roles(result: dict[str, Json]) -> None:
             raise ValueError(f"surface unbraced conditional/nearest-else shape differs in {name}")
 
 
-def _indexed_constructor_roles(result: dict[str, Json]) -> None:
+def _indexed_constructor_roles(source: bytes, result: dict[str, Json]) -> None:
     vector = _named(result.get("ast"), "inductive", "Vec")
     for name in ("Nil", "Cons"):
         constructor = _constructor(vector, name)
@@ -3721,6 +3731,34 @@ def _indexed_constructor_roles(result: dict[str, Json]) -> None:
     successor = _constructor(natural, "Succ")
     if "result" not in successor or successor["result"] is not None:
         raise ValueError("surface unindexed constructor needs an explicit absent result")
+    reflexive = _named(result.get("ast"), "lemma", "Reflexive")
+    body = _object(reflexive.get("body"), "lemma proof block")
+    statements = [_object(item, "lemma proof statement")
+                  for item in _sequence(body.get("statements"), "lemma proof statements")]
+    assertions = [item for item in statements if item.get("kind") == "assert"]
+    if len(assertions) != 3:
+        raise ValueError("surface proof block lost its bare, expression-by or block-by assertions")
+    bare, by_expr, by_block = assertions
+    for node, spelling in (
+            (bare, b"assert n == n;"),
+            (by_expr, b"assert n == n by Reflexivity(n);"),
+            (by_block, b"assert n == n by { assert n + 0 == n; }")):
+        if set(node) != {"kind", "span", "value", "by"}:
+            raise ValueError("surface assert node changed its required AST fields")
+        _exact_span(source, node, spelling)
+    if bare.get("by") is not None:
+        raise ValueError("surface bare assert fabricated a justification")
+    expr_justification = _object(by_expr.get("by"), "assert expression justification")
+    if expr_justification.get("kind") != "call" or _texts(expr_justification.get("callee")) != ["Reflexivity"]:
+        raise ValueError("surface assert expression justification lost its call role")
+    _exact_span(source, expr_justification, b"Reflexivity(n)")
+    block_justification = _object(by_block.get("by"), "assert block justification")
+    inner_statements = _sequence(block_justification.get("statements"), "assert block justification statements")
+    if block_justification.get("kind") != "block" or len(inner_statements) != 1:
+        raise ValueError("surface assert block justification lost its block role")
+    inner_assert = _object(inner_statements[0], "nested assert")
+    if inner_assert.get("kind") != "assert" or inner_assert.get("by") is not None:
+        raise ValueError("surface nested assert in by-block changed its role")
 
 
 def _numeric_pattern_roles(source: bytes, result: dict[str, Json]) -> None:
@@ -4459,7 +4497,7 @@ def qualify(parse: Callable[[bytes], dict[str, Json]]) -> list[str]:
         elif fixture.name == "structured-tasks-and-cleanup":
             _cancellation_roles(result)
         elif fixture.name == "mathematical-definitions-and-proofs":
-            _indexed_constructor_roles(result)
+            _indexed_constructor_roles(fixture.source.encode("utf-8"), result)
         elif fixture.name == "represented-numeric-patterns":
             _numeric_pattern_roles(fixture.source.encode("utf-8"), result)
         elif fixture.name == "dependent-callable-telescopes":

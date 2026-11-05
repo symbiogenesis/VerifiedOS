@@ -33,6 +33,11 @@ public void Fill<ghost Nat count>(ref Span<byte, count> target, byte value)
         target[index] = value;
         proof
         {
+            assert target[index] == value by ExtendAll(target, index, value);
+            assert target.Model.Take(Nat(index)).All(x => x == value) by
+            {
+                assert target[index] == value;
+            }
             ?extend;
         }
     }

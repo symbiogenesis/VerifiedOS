@@ -15,6 +15,7 @@ from tests.harness import Case, ensure
 from tests.test_vela_elaborate import (
     Form,
     Node,
+    _assert,
     _binary,
     _boolean,
     _call,
@@ -130,7 +131,7 @@ def _semantic_refusals() -> None:
     _refuses(lambda: _evaluate(fixture, _variable("missing")), "name")
     wrong_proof = _module()
     wrong_proof.theorem("False", (), _binary("==", _natural(0), _natural(1)),
-                        _call("Refl", _natural(0)))
+                        _assert(_binary("==", _natural(0), _natural(1))))
     called = False
 
     def parse(_raw: bytes) -> object:

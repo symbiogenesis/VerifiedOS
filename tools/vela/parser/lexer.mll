@@ -329,7 +329,7 @@ let identifier state lexbuf =
   | "break" -> BREAK | "continue" -> CONTINUE | "definition" -> DEFINITION
   | "theorem" -> THEOREM | "lemma" -> LEMMA | "inductive" -> INDUCTIVE
   | "coinductive" -> COINDUCTIVE | "universe" -> UNIVERSE | "forall" -> FORALL
-  | "exists" -> EXISTS | "assert" -> ASSERT | "calc" -> CALC
+  | "exists" -> EXISTS | "assert" -> ASSERT | "by" -> BY | "calc" -> CALC
   | "machine" -> MACHINE | "hardware" -> HARDWARE | "state" -> STATE | "register" -> REGISTER
   | "transition" -> TRANSITION | "rule" -> RULE | "when" -> WHEN
   | "next" -> NEXT | "schedule" -> SCHEDULE | "cycle" -> CYCLE

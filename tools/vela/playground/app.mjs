@@ -191,11 +191,11 @@ public definition (Nat, bool) DifferentTypes() =>
 public definition Nat HigherOrder() =>
     Apply(function: value => value + 1, value: 41);
 
-/// Proof terms inhabit their declared equality proposition.
+/// Proof blocks verify their declared equality proposition.
 public lemma Result(): HigherOrder() == 42
     proof
     {
-        return Refl(42);
+        assert HigherOrder() == 42;
     }
 `,
     },
@@ -217,7 +217,7 @@ public definition Nat Second() => Read(FSucc(FZero<1>()));
 public lemma SelectedValue(): Second() == 20
     proof
     {
-        return Refl(20);
+        assert Second() == 20;
     }
 
 // Try Read(FZero<2>()) and Read(FSucc(FSucc(FZero<0>()))).
@@ -248,11 +248,11 @@ public definition Nat PreservedValue() => At(Preserved(), FZero<0>());
 public lemma SameValue(): PreservedValue() == 42
     proof
     {
-        return Refl(42);
+        assert PreservedValue() == 42;
     }
 
-// Change n: 1 to n: 2 above to see a length mismatch.
-// Change Refl(42) to Refl(41) to see a false proof refused.
+// Change length: 1 to length: 2 above to see a length mismatch.
+// Change 42 to 41 in SameValue to see a false assertion refused.
 `,
     },
     formatting: {
@@ -287,25 +287,25 @@ public TextBuilder<12> OverflowPacket(Nat id)
 public lemma DedentedHeaderLength(): HeaderBytes == 10
     proof
     {
-        return Refl(10);
+        assert HeaderBytes == 10;
     }
 
 public theorem PacketFitsForEveryId(): forall (Nat id) => Fits(FormatPacket(id, true)) == true
     proof
     {
-        return (Nat id) => Refl(true);
+        assert Fits(FormatPacket(id, true));
     }
 
 public lemma PacketWrites32Bytes(): Written(FormatPacket(42, true)) == 32
     proof
     {
-        return Refl(32);
+        assert Written(FormatPacket(42, true)) == 32;
     }
 
 public lemma SmallBufferFailsClosed(): Fits(OverflowPacket(42)) == false
     proof
     {
-        return Refl(false);
+        assert Fits(OverflowPacket(42)) == false;
     }
 
 // Try HeaderBytes, Fits(FormatPacket(42, true)), and Fits(OverflowPacket(42)).
@@ -897,7 +897,7 @@ function registerLanguage() {
         surroundingPairs: [{ open: "{", close: "}" }, { open: "(", close: ")" }],
     });
     monaco.languages.setMonarchTokensProvider("vela", {
-        keywords: ["module", "public", "const", "let", "if", "else", "return", "definition", "alias", "ghost", "lemma", "theorem", "proof", "type", "forall", "exists", "ref"],
+        keywords: ["module", "public", "const", "let", "if", "else", "match", "case", "return", "definition", "alias", "ghost", "lemma", "theorem", "proof", "assert", "by", "type", "forall", "exists", "ref"],
         typeKeywords: ["Nat", "bool", "Unit", "Type", "Prop", "Fn", "Vec", "Fin", "Eq", "TextBuilder"], tokenizer: { root: [
             [/\/\/.*$/, "comment"], [/"""[\s\S]*?"""/, "string"], [/\$"(?:\\.|[^"\\])*"/, "string"], [/"(?:\\.|[^"\\])*"/, "string"], [/\b(?:true|false)\b/, "constant"],
             [/[A-Za-z_][A-Za-z0-9_]*/, { cases: { "@keywords": "keyword", "@typeKeywords": "type", "@default": "identifier" } }],

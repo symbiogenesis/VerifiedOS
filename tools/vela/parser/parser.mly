@@ -46,7 +46,7 @@ let binary first last operator left right =
 %token VIEW GROWS TYPE PREDICATE OPERATION PROOF
 %token EFFECT RESUMES HANDLE SHALLOW WITH RESUME DISPOSE REHANDLE
 %token AWAIT SCOPE SPAWN COMMIT ON CANCEL VAR FOREACH WHILE MATCH CASE BREAK CONTINUE
-%token DEFINITION THEOREM LEMMA INDUCTIVE COINDUCTIVE UNIVERSE FORALL EXISTS ASSERT CALC
+%token DEFINITION THEOREM LEMMA INDUCTIVE COINDUCTIVE UNIVERSE FORALL EXISTS ASSERT BY CALC
 %token MACHINE HARDWARE STATE REGISTER TRANSITION RULE WHEN NEXT SCHEDULE CYCLE
 %token FN FNMUT FNONCE IS CARRIER ZERO ONE ADD MUL ADMITS INTERPRET LAWS
 %token LBRACKET RBRACKET DOT COLON AT QUESTION RANGE ARROW FATARROW IMPLIES IFF
@@ -547,7 +547,9 @@ s_simple_statement:
 | BREAK SEMICOLON { make "break" $startpos $endpos [] [] }
 | CONTINUE SEMICOLON { make "continue" $startpos $endpos [] [] }
 | kind=s_proof_block_kind body=s_block { make kind $startpos $endpos [("body", body.syntax)] [body] }
-| ASSERT value=s_expression SEMICOLON { make "assert" $startpos $endpos [("value", value.syntax)] [value] }
+| ASSERT value=s_expression justification=s_assert_tail
+    { let by_node, parts = justification in
+      make "assert" $startpos $endpos [("value", value.syntax); ("by", by_node)] (value :: parts) }
 | SCOPE LPAREN values=comma_list(s_expression) RPAREN body=s_block
     { make "scope" $startpos $endpos [("resources", array values); ("body", body.syntax)] (body :: values) }
 | MATCH LPAREN value=s_expression RPAREN motive=option(s_match_motive) LBRACE cases=nonempty_list(s_match_case) RBRACE
@@ -577,6 +579,10 @@ s_iteration_binding:
 | annotation=s_type binding_name=s_identifier { binding_name, Some annotation }
 %inline s_proof_block_kind:
   PROOF { "proof" } | CALC { "calc" }
+s_assert_tail:
+  SEMICOLON { Null, [] }
+| BY justification=s_expression SEMICOLON { justification.syntax, [justification] }
+| BY body=s_block { body.syntax, [body] }
 s_annotation_path:
   first=ANNOTATION_NAME rest=list(s_path_segment)
     { name $startpos $endpos (String.concat "." (first :: rest)) }

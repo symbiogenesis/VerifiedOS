@@ -54,8 +54,9 @@ The supported increment includes:
   argument reordering, omission or defaults are inferred. Dependent later
   parameters are instantiated in declaration order before their arguments are
   checked, preserving complete telescope substitution.
-- Mathematical `Nat`, `bool`, `Unit`, products, equality propositions and explicit
-  proof constructors. Indexed vectors and finite indices provide a concrete
+- Mathematical `Nat`, `bool`, `Unit`, products, equality propositions and proof
+  blocks with `assert` statements and lightweight `by` expression or block
+  justifications. Indexed vectors and finite indices provide a concrete
   dependent collection boundary, including length preservation and safe lookup.
   Regular and multi-quote raw string literals (`"""..."""`) elaborate to
   UTF-8 byte vectors `Vec<Nat, n>` (bounded by 256 bytes) with `ByteLength`
@@ -189,7 +190,9 @@ Declare a dependent callable with
 `FZero`, `FSucc` and `At` for construction and safe lookup. This prototype gives
 it no machine layout. Definitional equality is computational: use `Succ(length)` or
 `1 + length` for a successor index; arbitrary rearrangement of natural arithmetic
-needs an explicit theorem. `Refl`, `Symm`, `Trans` and `Congr` construct equality
-evidence. Concrete product projections and finite lookup reduce during checking,
+needs an explicit theorem. Inside `proof` blocks, `assert expr;`,
+`assert expr by Lemma(args);` and `assert expr by { ... }` guide verification
+using ordinary lemma calls and intermediate assertions rather than hand-built
+proof combinators. Concrete product projections and finite lookup reduce during checking,
 so the example proves its lookup result. `type[Eq::<T>(left, right)]` lets an
 ordinary parameter carry that proof.

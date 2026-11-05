@@ -36,7 +36,7 @@ public definition Nat Predecessor(Nat value) =>
 public lemma PredecessorSuccessor(Nat value): Predecessor(Succ(value)) == value
     proof
     {
-        return Refl(value);
+        assert Predecessor(Succ(value)) == value;
     }
 
 public definition bool Flip(bool flag) =>
@@ -48,10 +48,13 @@ public definition bool Flip(bool flag) =>
 public lemma DoubleNegation(bool flag): Flip(Flip(flag)) == flag
     proof
     {
-        return match (flag) as branch : type[Eq(Flip(Flip(branch)), branch)] {
-            true => Refl(true),
-            false => Refl(false),
-        };
+        match (flag)
+        {
+            case true:
+                assert Flip(Flip(true)) == true;
+            case false:
+                assert Flip(Flip(false)) == false;
+        }
     }
 
 public definition Nat HigherOrder() =>
@@ -70,7 +73,7 @@ public definition Nat Lookup() => At(Copy(values: Singleton()), FZero<0>());
 public lemma LookupValue(): Lookup() == 42
     proof
     {
-        return Refl(42);
+        assert Lookup() == 42;
     }
 
 public definition Fn(Nat length, Vec<Nat, length> values) -> Vec<Nat, length> PreserveLength() =>
@@ -82,19 +85,24 @@ public definition Vec<Nat, Limit> PreservedSingleton() =>
 public lemma Reflexivity<TValue>(TValue value): value == value
     proof
     {
-        return Refl(value);
+        assert value == value;
     }
 
 public lemma Composed(Nat value): value == value
     proof
     {
-        return Trans(Refl(value), Symm(Refl(value)));
+        assert value == value by
+        {
+            let step = Identity(value);
+            assert value == step;
+            assert step == value;
+        }
     }
 
 public lemma Congruence(Nat value): value + 1 == value + 1
     proof
     {
-        return Congr(item => item + 1, Refl(value));
+        assert value + 1 == value + 1 by Reflexivity(value);
     }
 
 public definition type[Eq<Nat>(value, value)] KeepEvidence(
@@ -105,7 +113,7 @@ public definition TProposition KeepProof<TProposition : Prop>(TProposition evide
 public lemma ForwardProof<TProposition : Prop>(TProposition evidence): TProposition
     proof
     {
-        return KeepProof(evidence);
+        assert TProposition by KeepProof(evidence);
     }
 
 public definition Type<1> SmallUniverse() => type Type;

@@ -81,6 +81,7 @@ _FIELDS: dict[str, set[str]] = {
     "tuple_pattern": {"patterns"}, "bool_pattern": {"value"},
     "nat_pattern": {"value", "suffix"}, "constructor_pattern": {"name", "arguments"},
     "quantifier": {"quantifier", "parameters", "value"},
+    "assert": {"value", "by"}, "proof": {"body"},
     "hole": {"name"},
 }
 _PATTERN_KINDS = {
@@ -279,6 +280,21 @@ class _Protocol:
             if node["value"] is not None:
                 cursor = self._child(node, span, cursor, node["value"])
             cursor = self._token(node, cursor, b";")
+        elif kind == "assert":
+            cursor = self._token(node, cursor, b"assert")
+            cursor = self._child(node, span, cursor, node["value"])
+            if node["by"] is not None:
+                cursor = self._token(node, cursor, b"by")
+                cursor = self._child(node, span, cursor, node["by"])
+                if not isinstance(node["by"], dict) or node["by"].get("kind") != "block":
+                    cursor = self._token(node, cursor, b";")
+            else:
+                cursor = self._token(node, cursor, b";")
+        elif kind == "proof":
+            if not isinstance(node["body"], dict) or node["body"].get("kind") != "block":
+                raise self.error("protocol", "proof statement requires a block body", node)
+            cursor = self._token(node, cursor, b"proof")
+            cursor = self._child(node, span, cursor, node["body"])
         elif kind == "if":
             cursor = self._token(node, cursor, b"if")
             cursor = self._token(node, cursor, b"(")
@@ -836,12 +852,18 @@ class _Elaborator:
             return _apps(_constant("Eq"), a, left, right)
 
         bind("Eq", telescope((a, x, y), _PROP), 1)
-        bind("Refl", telescope((a, x), eq(x, x)), 1)
-        bind("Symm", telescope((a, x, y), self.pi(eq(x, y), eq(y, x))), 3)
-        bind("Trans", telescope((a, x, y, z), self.pi(eq(x, y), self.pi(eq(y, z), eq(x, z)))), 4)
+        self.constants["Refl"] = _Binding(_constant("Refl"), telescope((a, x), eq(x, x)), 1)
+        self.constants["Symm"] = _Binding(
+            _constant("Symm"), telescope((a, x, y), self.pi(eq(x, y), eq(y, x))), 3
+        )
+        self.constants["Trans"] = _Binding(
+            _constant("Trans"), telescope((a, x, y, z), self.pi(eq(x, y), self.pi(eq(y, z), eq(x, z)))), 4
+        )
         f = self.fresh(self.pi(a, b))
         congr_result = _apps(_constant("Eq"), b, _app(f, x), _app(f, y))
-        bind("Congr", telescope((a, b, x, y, f), self.pi(eq(x, y), congr_result)), 4)
+        self.constants["Congr"] = _Binding(
+            _constant("Congr"), telescope((a, b, x, y, f), self.pi(eq(x, y), congr_result)), 4
+        )
         bind("Fst", telescope((a, b), self.pi(_term("prod", a, b), a)), 2)
         bind("Snd", telescope((a, b), self.pi(_term("prod", a, b), b)), 2)
         bind("Vec", telescope((a, n), _SORT))
@@ -1647,7 +1669,7 @@ class _Elaborator:
                 return _Pat("succ", node, args=(self._parse_pattern(arguments[0], seen),))
             if cname not in self.globals:
                 raise self.fail("name", f"unknown constructor '{cname}'", node)
-            if cname in {"VNil", "VCons", "FZero", "FSucc", "Refl", "Symm", "Trans", "Congr"}:
+            if cname in {"VNil", "VCons", "FZero", "FSucc"}:
                 raise self.fail("unsupported", f"indexed elimination over '{cname}' requires the full frontend", node)
             raise self.fail("type", f"'{cname}' is not a pattern constructor", node)
         raise self.fail("protocol", f"unexpected pattern node '{kind}'", node)
@@ -1726,7 +1748,7 @@ class _Elaborator:
         return extended
 
     def match(self, node: Node, environment: dict[str, _Binding], expected: _Term | None = None,
-              *, expression_arms: bool = True) -> _Binding:
+              *, expression_arms: bool = True, facts: tuple[_Binding, ...] = ()) -> _Binding:
         self.site = node
         scrutinee = self.expression(self.node(node["value"]), environment)
         root_var = self.fresh(scrutinee.type)
@@ -1741,6 +1763,9 @@ class _Elaborator:
             match_type = self.substitute(motive_body, root_var_id, scrutinee.term)
             if expected is not None:
                 self.unify(match_type, expected)
+        elif (expected is not None and scrutinee.term.kind == "var"
+              and cast("int", scrutinee.term.value) in self.free(expected)):
+            motive_body = self.substitute(expected, cast("int", scrutinee.term.value), root_var)
         cases = self.nodes(node["cases"])
         rows: list[_Row] = []
         for arm in cases:
@@ -1803,7 +1828,7 @@ class _Elaborator:
                         return evaluated.term
                     return self.check(value_node, leaf_expected, arm_env)
                 block_node = {"kind": "block", "span": arm["span"], "statements": arm["statements"]}
-                evaluated = self.block(block_node, arm_env, leaf_expected)
+                evaluated = self.block(block_node, arm_env, leaf_expected, facts=facts)
                 if motive_body is None and inferred_result[0] is None:
                     inferred_result[0] = evaluated.type
                 return evaluated.term
@@ -1919,15 +1944,588 @@ class _Elaborator:
         finally:
             self.static_forbidden = previous
 
-    def block(self, node: Node, environment: dict[str, _Binding], expected: _Term | None = None) -> _Binding:
-        self.node(node, "block")
-        statements = self.nodes(node["statements"])
-        extended = dict(environment)
+    def _try_unify(self, left: _Term, right: _Term) -> bool:
+        saved = [_Meta(m.type, m.scope, m.solution) for m in self.metas]
+        try:
+            self.unify(left, right)
+        except VelaError as error:
+            if error.kind != "type":
+                raise
+            self.metas = saved
+            return False
+        else:
+            return True
+
+    def _is_prop_type(self, value_type: _Term) -> bool:
+        return self.whnf(self.infer(value_type)) == _PROP
+
+    def _extract_equality(self, prop: _Term) -> tuple[_Term, _Term, _Term] | None:
+        head, args = self.spine(self.resolve(prop))
+        if head == _constant("Eq") and len(args) == 3:
+            return args[0], args[1], args[2]
+        head, args = self.spine(self.whnf(prop))
+        if head == _constant("Eq") and len(args) == 3:
+            return args[0], args[1], args[2]
+        return None
+
+    def _try_congruence(
+        self,
+        goal_type: _Term,
+        lhs: _Term,
+        rhs: _Term,
+        eq_type: _Term,
+        u: _Term,
+        v: _Term,
+        proof_term: _Term,
+    ) -> _Term | None:
+        saved = [_Meta(m.type, m.scope, m.solution) for m in self.metas]
+        if not (self._try_unify(self.infer(goal_type), _SORT)
+                and self._try_unify(self.infer(eq_type), _SORT)):
+            self.metas = saved
+            return None
+        z = self.fresh(eq_type)
+
+        def build_ctx(sub_l: _Term, sub_r: _Term) -> tuple[_Term | None, bool]:
+            sub_l = self.resolve(sub_l)
+            sub_r = self.resolve(sub_r)
+            if sub_l == u and sub_r == v:
+                return z, True
+            if (sub_l != lhs or sub_r != rhs) and (
+                self._try_unify(self.infer(sub_l), eq_type)
+                and self._try_unify(sub_l, u)
+                and self._try_unify(sub_r, v)
+            ):
+                return z, True
+            if (sub_l.kind == sub_r.kind
+                    and sub_l.value == sub_r.value
+                    and len(sub_l.args) == len(sub_r.args)
+                    and sub_l.kind not in {"pi", "lam", "let"}):
+                child_ctxs: list[_Term] = []
+                any_replaced = False
+                ok = True
+                for c_l, c_r in zip(sub_l.args, sub_r.args, strict=True):
+                    c_ctx, c_rep = build_ctx(c_l, c_r)
+                    if c_ctx is None:
+                        ok = False
+                        break
+                    child_ctxs.append(c_ctx)
+                    any_replaced = any_replaced or c_rep
+                if ok and any_replaced:
+                    return _Term(sub_l.kind, sub_l.value, tuple(child_ctxs)), True
+            if self._try_unify(sub_l, sub_r):
+                return sub_l, False
+            return None, False
+
+        ctx, replaced = build_ctx(lhs, rhs)
+        if not replaced or ctx is None or ctx == z:
+            self.metas = saved
+            return None
+        fn = _term("lam", eq_type, ctx, value=z.value)
+        return _apps(_constant("Congr"), eq_type, goal_type, u, v, fn, proof_term)
+
+    def _equality_edges(
+        self, goal_type: _Term, facts: tuple[_Binding, ...]
+    ) -> list[tuple[int, _Term, _Term, _Term]]:
+        edges: list[tuple[int, _Term, _Term, _Term]] = []
+        for idx, fact in enumerate(facts):
+            extracted = self._extract_equality(fact.type)
+            if extracted is None:
+                continue
+            eq_type, u, v = extracted
+            if not self._try_unify(eq_type, goal_type):
+                continue
+            edges.append((idx, u, v, fact.term))
+            if u != v:
+                edges.append((idx, v, u, _apps(_constant("Symm"), goal_type, u, v, fact.term)))
+        return edges
+
+    def _chain_sequence(
+        self, goal_type: _Term, lhs: _Term, rhs: _Term, sequence: tuple[_Binding, ...]
+    ) -> _Term | None:
+        if len(sequence) < 2:
+            return None
+        saved = [_Meta(m.type, m.scope, m.solution) for m in self.metas]
+        steps: list[tuple[_Term, _Term, _Term]] = []
+        current = lhs
+        for fact in sequence:
+            extracted = self._extract_equality(fact.type)
+            if extracted is None:
+                self.metas = saved
+                return None
+            eq_type, u, v = extracted
+            if not self._try_unify(eq_type, goal_type):
+                self.metas = saved
+                return None
+            if u == current:
+                steps.append((u, v, fact.term))
+                current = v
+            elif v == current:
+                steps.append((v, u, _apps(_constant("Symm"), goal_type, u, v, fact.term)))
+                current = u
+            elif self._try_unify(u, current):
+                steps.append((current, v, fact.term))
+                current = v
+            elif self._try_unify(v, current):
+                steps.append((current, u, _apps(_constant("Symm"), goal_type, u, v, fact.term)))
+                current = u
+            else:
+                self.metas = saved
+                return None
+        if current != rhs and not self._try_unify(current, rhs):
+            self.metas = saved
+            return None
+        acc_u, acc_v, acc_term = steps[0]
+        for _, next_v, next_term in steps[1:]:
+            acc_term = _apps(_constant("Trans"), goal_type, acc_u, acc_v, next_v, acc_term, next_term)
+            acc_v = next_v
+        return acc_term
+
+    def _prove_proposition(
+        self,
+        goal: _Term,
+        environment: dict[str, _Binding],
+        facts: tuple[_Binding, ...],
+        node: Node,
+        *,
+        allow_refl: bool = True,
+        include_env: bool = True,
+    ) -> _Term:
+        self.tick()
+        self.site = node
+        env_facts = (
+            tuple(
+                binding for binding in environment.values()
+                if self._is_prop_type(binding.type)
+                and not any(binding.term == existing.term for existing in facts)
+            )
+            if include_env
+            else ()
+        )
+        all_facts = (*facts, *env_facts)
+        for fact in reversed(all_facts):
+            if fact.type == goal:
+                return fact.term
+        goal_whnf = self.whnf(goal)
+        if goal_whnf.kind == "pi" and cast("int", goal_whnf.value) not in self.nullary_parameters:
+            for fact in reversed(all_facts):
+                if self._try_unify(fact.type, goal):
+                    return fact.term
+            var_id = cast("int", goal_whnf.value)
+            domain = goal_whnf.args[0]
+            var = self.fresh(domain)
+            child_env = dict(environment)
+            child_facts = list(facts)
+            if var_id in self.parameter_names:
+                param_name = self.parameter_names[var_id]
+                self.parameter_names[cast("int", var.value)] = param_name
+                self.bind_local(child_env, param_name, _Binding(var, domain))
+            if self._is_prop_type(domain):
+                child_facts.append(_Binding(var, domain))
+            codomain = self.substitute(goal_whnf.args[1], var_id, var)
+            body_term = self._prove_proposition(
+                codomain,
+                child_env,
+                tuple(child_facts),
+                node,
+                allow_refl=allow_refl,
+                include_env=include_env,
+            )
+            return _term("lam", domain, body_term, value=var.value)
+
+        goal_eq = self._extract_equality(goal)
+        if goal_eq is not None:
+            goal_type, lhs, rhs = goal_eq
+            edges = self._equality_edges(goal_type, all_facts)
+            for _, u, v, p in reversed(edges):
+                if u == lhs and v == rhs:
+                    return p
+            for i1, u1, v1, p1 in edges:
+                if u1 != lhs:
+                    continue
+                for i2, u2, v2, p2 in edges:
+                    if v1 == u2 and v2 == rhs and (i1 != i2 or u1 != v1):
+                        return _apps(_constant("Trans"), goal_type, lhs, v1, rhs, p1, p2)
+                    if v1 == u2 and i1 != i2:
+                        for i3, u3, v3, p3 in edges:
+                            if v2 == u3 and v3 == rhs and i3 not in {i1, i2}:
+                                step12 = _apps(_constant("Trans"), goal_type, lhs, v1, v2, p1, p2)
+                                return _apps(_constant("Trans"), goal_type, lhs, v2, rhs, step12, p3)
+            for _, u, v, p in reversed(edges):
+                if u != lhs or v != rhs:
+                    congr = self._try_congruence(goal_type, lhs, rhs, goal_type, u, v, p)
+                    if congr is not None:
+                        return congr
+            for fact in reversed(all_facts):
+                extracted = self._extract_equality(fact.type)
+                if extracted is None:
+                    continue
+                eq_type, u, v = extracted
+                if u != lhs or v != rhs:
+                    congr = self._try_congruence(goal_type, lhs, rhs, eq_type, u, v, fact.term)
+                    if congr is not None:
+                        return congr
+                    if u != v:
+                        sym_p = _apps(_constant("Symm"), eq_type, u, v, fact.term)
+                        congr_sym = self._try_congruence(goal_type, lhs, rhs, eq_type, v, u, sym_p)
+                        if congr_sym is not None:
+                            return congr_sym
+            for _, u, v, p in reversed(edges):
+                saved = [_Meta(m.type, m.scope, m.solution) for m in self.metas]
+                if self._try_unify(u, lhs) and self._try_unify(v, rhs):
+                    return p
+                self.metas = saved
+            for i1, u1, v1, p1 in edges:
+                saved1 = [_Meta(m.type, m.scope, m.solution) for m in self.metas]
+                if not self._try_unify(u1, lhs):
+                    self.metas = saved1
+                    continue
+                for i2, u2, v2, p2 in edges:
+                    if i1 == i2:
+                        continue
+                    saved2 = [_Meta(m.type, m.scope, m.solution) for m in self.metas]
+                    if self._try_unify(v1, u2) and self._try_unify(v2, rhs):
+                        return _apps(_constant("Trans"), goal_type, lhs, v1, rhs, p1, p2)
+                    self.metas = saved2
+                self.metas = saved1
+            if allow_refl and self._try_unify(lhs, rhs):
+                return _apps(_constant("Refl"), goal_type, lhs)
+
+        for fact in reversed(all_facts):
+            if self._try_unify(fact.type, goal):
+                return fact.term
+
+        raise self.fail(
+            "type",
+            "assertion could not be established; terms or dependent indices are not definitionally equal",
+            node,
+        )
+
+    def asserted_proposition(self, node: Node, environment: dict[str, _Binding]) -> _Term:
+        self.site = node
+        if node["kind"] == "group":
+            return self.asserted_proposition(self.node(node["value"]), environment)
+        if node["kind"] == "binary":
+            operator = self.operator(node["operator"])
+            if operator == "==":
+                return self.proposition(node, environment)
+            if operator == "==>":
+                domain = self.asserted_proposition(self.node(node["left"]), environment)
+                return self.pi(domain, self.asserted_proposition(self.node(node["right"]), environment))
+        if node["kind"] == "quantifier":
+            if node["quantifier"] != "forall":
+                raise self.fail("unsupported", "only universal propositions are supported", node)
+            variables, extended = self.telescope([], self.nodes(node["parameters"]), environment)
+            return self.wrap("pi", variables, self.asserted_proposition(self.node(node["value"]), extended))
+        value = self.expression(node, environment)
+        value_type = self.whnf(value.type)
+        if value_type == _PROP:
+            return value.term
+        if value_type == _BOOL:
+            return _apps(_constant("Eq"), _BOOL, value.term, _term("bool", value=1))
+        self.unify(value.type, _PROP)
+        return value.term
+
+    def _elaborate_by_expression(
+        self,
+        goal: _Term,
+        by_node: Node,
+        environment: dict[str, _Binding],
+        facts: tuple[_Binding, ...],
+        assert_node: Node,
+    ) -> _Term:
+        self.site = by_node
+        if by_node["kind"] in {"lambda", "typed_lambda", "match_expression"}:
+            return self.check(by_node, goal, environment)
+        justification = self.expression(by_node, environment)
+        goal_whnf = self.whnf(goal)
+        while self.whnf(justification.type).kind == "pi" and goal_whnf.kind != "pi":
+            pi_type = self.whnf(justification.type)
+            if cast("int", pi_type.value) in self.nullary_parameters:
+                break
+            domain = pi_type.args[0]
+            if self._is_prop_type(domain):
+                arg = self._prove_proposition(domain, environment, facts, by_node)
+            else:
+                arg = self.meta(domain, environment)
+            justification = _Binding(
+                _app(justification.term, arg),
+                self.substitute(pi_type.args[1], cast("int", pi_type.value), arg),
+            )
+        if not self._is_prop_type(justification.type):
+            raise self.fail("type", "assert 'by' justification must be a proof of a proposition", by_node)
+        goal_eq = self._extract_equality(goal)
+        just_eq = self._extract_equality(justification.type)
+        if goal_eq is not None and just_eq is not None:
+            goal_type, lhs, rhs = goal_eq
+            eq_type, u, v = just_eq
+            if u != lhs or v != rhs:
+                congr = self._try_congruence(goal_type, lhs, rhs, eq_type, u, v, justification.term)
+                if congr is not None:
+                    return congr
+                if u != v:
+                    sym_p = _apps(_constant("Symm"), eq_type, u, v, justification.term)
+                    congr_sym = self._try_congruence(goal_type, lhs, rhs, eq_type, v, u, sym_p)
+                    if congr_sym is not None:
+                        return congr_sym
+        if self._try_unify(justification.type, goal):
+            return justification.term
+        if goal_eq is not None and just_eq is not None:
+            goal_type, lhs, rhs = goal_eq
+            eq_type, u, v = just_eq
+            saved = [_Meta(m.type, m.scope, m.solution) for m in self.metas]
+            if (self._try_unify(eq_type, goal_type)
+                    and self._try_unify(v, lhs)
+                    and self._try_unify(u, rhs)):
+                return _apps(_constant("Symm"), goal_type, u, v, justification.term)
+            self.metas = saved
+            edges = self._equality_edges(goal_type, facts)
+            if self._try_unify(eq_type, goal_type):
+                just_orientations = [(u, v, justification.term)]
+                if u != v:
+                    just_orientations.append((v, u, _apps(_constant("Symm"), goal_type, u, v, justification.term)))
+                for ju, jv, jp in just_orientations:
+                    if ju == lhs or self._try_unify(ju, lhs):
+                        for _, eu, ev, ep in edges:
+                            if (jv == eu or self._try_unify(jv, eu)) and (ev == rhs or self._try_unify(ev, rhs)):
+                                return _apps(_constant("Trans"), goal_type, lhs, jv, rhs, jp, ep)
+                    if jv == rhs or self._try_unify(jv, rhs):
+                        for _, eu, ev, ep in edges:
+                            if (eu == lhs or self._try_unify(eu, lhs)) and (ev == ju or self._try_unify(ev, ju)):
+                                return _apps(_constant("Trans"), goal_type, lhs, ju, rhs, ep, jp)
+        raise self.fail("type", "assert justification does not establish the asserted proposition", assert_node)
+
+    def _elaborate_by_block(
+        self,
+        goal: _Term,
+        by_node: Node,
+        environment: dict[str, _Binding],
+        facts: tuple[_Binding, ...],
+        assert_node: Node,
+    ) -> _Term:
+        self.node(by_node, "block")
+        statements = self.nodes(by_node["statements"])
+        if not statements:
+            raise self.fail("type", "empty 'by' block cannot justify assertion", by_node)
+        child_env = dict(environment)
+        active_facts: list[_Binding] = list(facts)
+        child_facts: list[_Binding] = []
+        peeled_vars: list[_Term] = []
+        target_goal = goal
+        while self._is_prop_type(target_goal):
+            resolved = self.whnf(target_goal)
+            if resolved.kind != "pi" or cast("int", resolved.value) in self.nullary_parameters:
+                break
+            var_id = cast("int", resolved.value)
+            if var_id in self.parameter_names:
+                param_name = self.parameter_names[var_id]
+                if param_name in child_env:
+                    break
+                var = self.fresh(resolved.args[0])
+                self.parameter_names[cast("int", var.value)] = param_name
+                self.bind_local(child_env, param_name, _Binding(var, resolved.args[0]))
+                if self._is_prop_type(resolved.args[0]):
+                    active_facts.append(_Binding(var, resolved.args[0]))
+            else:
+                var = self.fresh(resolved.args[0])
+                active_facts.append(_Binding(var, resolved.args[0]))
+            peeled_vars.append(var)
+            target_goal = self.substitute(resolved.args[1], var_id, var)
+
+        def finish(term: _Term) -> _Term:
+            return self.wrap("lam", peeled_vars, term) if peeled_vars else term
+
         for index, statement in enumerate(statements):
             self.site = statement
             kind = statement["kind"]
             if kind in {"let", "typed_local", "let_pattern", "constant_local"}:
+                previous_keys = set(child_env)
+                child_env = self.local(statement, child_env)
+                for new_key in set(child_env) - previous_keys:
+                    bound = child_env[new_key]
+                    if self._is_prop_type(bound.type):
+                        child_facts.append(bound)
+                continue
+            if kind == "assert":
+                fact = self._elaborate_assert(statement, child_env, (*active_facts, *child_facts))
+                child_facts.append(fact)
+                continue
+            if kind == "proof":
+                sub_facts = self._elaborate_proof_statement(
+                    self.node(statement["body"], "block"), child_env, (*active_facts, *child_facts)
+                )
+                child_facts.extend(sub_facts)
+                continue
+            if index == len(statements) - 1 and kind in {"match", "if", "return", "block"}:
+                synthetic = {"kind": "block", "span": by_node["span"], "statements": [statement]}
+                evaluated = self.block(synthetic, child_env, target_goal, facts=(*active_facts, *child_facts))
+                return finish(evaluated.term)
+            raise self.fail("unsupported", f"statement '{kind}' is not supported in an assert 'by' block", statement)
+
+        if not child_facts:
+            raise self.fail("type", "assert 'by' block contains no proof steps", by_node)
+        goal_eq = self._extract_equality(target_goal)
+        if goal_eq is not None and len(child_facts) >= 2:
+            goal_type, lhs, rhs = goal_eq
+            chained = self._chain_sequence(goal_type, lhs, rhs, tuple(child_facts))
+            if chained is not None:
+                return finish(chained)
+        return finish(
+            self._prove_proposition(
+                target_goal,
+                child_env,
+                tuple(child_facts),
+                assert_node,
+                allow_refl=False,
+                include_env=False,
+            )
+        )
+
+    def _elaborate_assert(
+        self, node: Node, environment: dict[str, _Binding], facts: tuple[_Binding, ...]
+    ) -> _Binding:
+        self.site = node
+        goal = self.asserted_proposition(self.node(node["value"]), environment)
+        by_raw = node["by"]
+        if by_raw is None:
+            term = self._prove_proposition(goal, environment, facts, node)
+        else:
+            by_node = self.node(by_raw)
+            if by_node["kind"] == "block":
+                term = self._elaborate_by_block(goal, by_node, environment, facts, node)
+            else:
+                term = self._elaborate_by_expression(goal, by_node, environment, facts, node)
+        return _Binding(term, goal)
+
+    def _elaborate_proof_statement(
+        self, body_node: Node, environment: dict[str, _Binding], facts: tuple[_Binding, ...]
+    ) -> list[_Binding]:
+        self.node(body_node, "block")
+        statements = self.nodes(body_node["statements"])
+        extended = dict(environment)
+        new_facts: list[_Binding] = []
+        for statement in statements:
+            self.site = statement
+            kind = statement["kind"]
+            if kind in {"let", "typed_local", "let_pattern", "constant_local"}:
+                previous_keys = set(extended)
                 extended = self.local(statement, extended)
+                for new_key in set(extended) - previous_keys:
+                    bound = extended[new_key]
+                    if self._is_prop_type(bound.type):
+                        new_facts.append(bound)
+                continue
+            if kind == "assert":
+                new_facts.append(self._elaborate_assert(statement, extended, (*facts, *new_facts)))
+                continue
+            if kind == "proof":
+                sub = self._elaborate_proof_statement(
+                    self.node(statement["body"], "block"), extended, (*facts, *new_facts)
+                )
+                new_facts.extend(sub)
+                continue
+            raise self.fail("unsupported", f"statement '{kind}' requires the full frontend", statement)
+        return new_facts
+
+    @staticmethod
+    def _unwrap_group(node: Node) -> Node:
+        while node["kind"] == "group" and isinstance(node.get("value"), dict):
+            node = cast("Node", node["value"])
+        return node
+
+    def block(self, node: Node, environment: dict[str, _Binding], expected: _Term | None = None,
+              *, facts: tuple[_Binding, ...] = ()) -> _Binding:
+        self.node(node, "block")
+        statements = self.nodes(node["statements"])
+        extended = dict(environment)
+        active_facts: list[_Binding] = list(facts)
+        statement_facts: list[_Binding] = []
+        peeled_vars: list[_Term] = []
+        returns_lambda = False
+        final_assert_value: Node | None = None
+        if statements:
+            last = statements[-1]
+            if last["kind"] == "return" and isinstance(last.get("value"), dict):
+                unwrapped = self._unwrap_group(cast("Node", last["value"]))
+                returns_lambda = unwrapped["kind"] in {"lambda", "typed_lambda"}
+            elif last["kind"] == "assert" and isinstance(last.get("value"), dict):
+                final_assert_value = self._unwrap_group(cast("Node", last["value"]))
+        if not returns_lambda:
+            while expected is not None and self._is_prop_type(expected):
+                resolved_expected = self.whnf(expected)
+                if (resolved_expected.kind != "pi"
+                        or cast("int", resolved_expected.value) in self.nullary_parameters):
+                    break
+                var_id = cast("int", resolved_expected.value)
+                if var_id in self.parameter_names:
+                    if final_assert_value is not None and final_assert_value["kind"] == "quantifier":
+                        break
+                    param_name = self.parameter_names[var_id]
+                    if param_name in extended:
+                        break
+                    var = self.fresh(resolved_expected.args[0])
+                    self.parameter_names[cast("int", var.value)] = param_name
+                    self.bind_local(extended, param_name, _Binding(var, resolved_expected.args[0]))
+                    if self._is_prop_type(resolved_expected.args[0]):
+                        active_facts.append(_Binding(var, resolved_expected.args[0]))
+                else:
+                    if (final_assert_value is not None
+                            and final_assert_value["kind"] == "binary"
+                            and isinstance(final_assert_value.get("operator"), dict)
+                            and cast("Node", final_assert_value["operator"]).get("text") == "==>"):
+                        break
+                    var = self.fresh(resolved_expected.args[0])
+                    active_facts.append(_Binding(var, resolved_expected.args[0]))
+                peeled_vars.append(var)
+                expected = self.substitute(resolved_expected.args[1], var_id, var)
+
+        def finish(result: _Binding) -> _Binding:
+            if not peeled_vars:
+                return result
+            return _Binding(
+                self.wrap("lam", peeled_vars, result.term),
+                self.wrap("pi", peeled_vars, result.type),
+            )
+
+        for index, statement in enumerate(statements):
+            self.site = statement
+            kind = statement["kind"]
+            if kind in {"let", "typed_local", "let_pattern", "constant_local"}:
+                previous_keys = set(extended)
+                extended = self.local(statement, extended)
+                for new_key in set(extended) - previous_keys:
+                    bound = extended[new_key]
+                    if self._is_prop_type(bound.type):
+                        statement_facts.append(bound)
+                continue
+            if kind == "assert":
+                fact = self._elaborate_assert(statement, extended, (*active_facts, *statement_facts))
+                statement_facts.append(fact)
+                if index == len(statements) - 1 and expected is not None and self._is_prop_type(expected):
+                    term = self._prove_proposition(
+                        expected,
+                        extended,
+                        tuple(statement_facts),
+                        statement,
+                        allow_refl=False,
+                        include_env=False,
+                    )
+                    return finish(_Binding(term, expected))
+                continue
+            if kind == "proof":
+                sub_facts = self._elaborate_proof_statement(
+                    self.node(statement["body"], "block"), extended, (*active_facts, *statement_facts)
+                )
+                statement_facts.extend(sub_facts)
+                if index == len(statements) - 1 and expected is not None and self._is_prop_type(expected):
+                    term = self._prove_proposition(
+                        expected,
+                        extended,
+                        tuple(statement_facts),
+                        statement,
+                        allow_refl=False,
+                        include_env=False,
+                    )
+                    return finish(_Binding(term, expected))
                 continue
             if index != len(statements) - 1:
                 raise self.fail("unsupported", "a returning terminal must be the final statement")
@@ -1936,28 +2534,49 @@ class _Elaborator:
                     value = _Binding(_term("unit"), _UNIT)
                     if expected is not None:
                         self.unify(value.type, expected)
-                    return value
+                    return finish(value)
                 value_node = self.node(statement["value"])
-                return (self.expression(value_node, extended) if expected is None
-                        else _Binding(self.check(value_node, expected, extended), expected))
+                result = (
+                    self.expression(value_node, extended)
+                    if expected is None
+                    else _Binding(self.check(value_node, expected, extended), expected)
+                )
+                return finish(result)
             if kind == "if":
                 condition = self.check(self.node(statement["condition"]), _BOOL, extended)
                 if statement["else"] is None:
                     raise self.fail("type", "every conditional branch must return")
-                yes = self.branch(self.node(statement["then"]), extended, expected)
-                no = self.branch(self.node(statement["else"]), extended, yes.type)
-                return _Binding(_term("if", yes.type, condition, yes.term, no.term), yes.type)
+                combined_facts = (*active_facts, *statement_facts)
+                yes = self.branch(self.node(statement["then"]), extended, expected, facts=combined_facts)
+                no = self.branch(self.node(statement["else"]), extended, yes.type, facts=combined_facts)
+                return finish(_Binding(_term("if", yes.type, condition, yes.term, no.term), yes.type))
             if kind == "match":
-                return self.match(statement, extended, expected, expression_arms=False)
+                return finish(
+                    self.match(
+                        statement,
+                        extended,
+                        expected,
+                        expression_arms=False,
+                        facts=(*active_facts, *statement_facts),
+                    )
+                )
             if kind == "block":
-                return self.block(statement, extended, expected)
+                return finish(
+                    self.block(statement, extended, expected, facts=(*active_facts, *statement_facts))
+                )
             raise self.fail("unsupported", f"statement '{kind}' requires the full frontend")
         raise self.fail("type", "a pure block requires an explicit terminal return", node)
 
-    def branch(self, node: Node, environment: dict[str, _Binding], expected: _Term | None) -> _Binding:
+    def branch(self, node: Node, environment: dict[str, _Binding], expected: _Term | None,
+               *, facts: tuple[_Binding, ...] = ()) -> _Binding:
         if node["kind"] == "block":
-            return self.block(node, environment, expected)
-        return self.block({"kind": "block", "span": node["span"], "statements": [node]}, environment, expected)
+            return self.block(node, environment, expected, facts=facts)
+        return self.block(
+            {"kind": "block", "span": node["span"], "statements": [node]},
+            environment,
+            expected,
+            facts=facts,
+        )
 
     def _decode_escaped_segment(self, segment: str, node: Node) -> bytes:
         escapes = {"\\": "\\", '"': '"', "'": "'", "n": "\n", "r": "\r", "t": "\t", "0": "\0"}

@@ -56,7 +56,7 @@ construct syntax, including syntactically valid programs with semantic errors.
 | Control | Immutable/mutable and typed locals, required-static local constants, assignments, blocks, returns, if/else, bounded-loop syntax, exhaustive-match syntax, break/continue and explicit propagation |
 | Grades | Domain carrier/zero/one/add/mul/admits/interpret/laws declarations and parameter use grades |
 | Effects and tasks | Effect operations and resumption bounds, deep/shallow handlers, return/operation clauses, resume/dispose/rehandle, async functions, scope/spawn/await/commit and on-cancel cleanup |
-| Mathematical proofs | Definitions, theorem/lemma statements, proof blocks, assertions, calculations, quantifiers, inductive/coinductive declarations and constructors, universes and typed holes |
+| Mathematical proofs | Definitions, theorem/lemma statements, proof blocks, assertions with optional `by` expression or block justifications, calculations, quantifiers, inductive/coinductive declarations and constructors, universes and typed holes |
 | Architecture and hardware | Machine/hardware containers, state/register declarations, transitions/rules, guards, next-state assignments and explicit schedules/cycles |
 
 The surface uses type-first declarations and braced containers.
@@ -94,7 +94,7 @@ public Nat Increment(Nat x)
 public inductive Natural { Zero(); Succ(Natural predecessor); }
 public coinductive Stream<T> { More(T head, Stream<T> tail); }
 public lemma Reflexive(Nat n): forall (Nat x) => x == x
-    proof { assert n == n; ?step; }
+    proof { assert n == n; assert n == n by Reflexive(n); ?step; }
 public theorem Witness(): exists (Nat n) => n == 0;
 public machine Counter {
     state Nat value = 0;
@@ -898,6 +898,15 @@ or ambient locale) and returning `Result<usize, CapacityError>`. Standalone
 `Result<usize, CapacityError>` outcomes and hole expressions that conflict with
 the active `ref` target loan remain valid syntax for the semantic and borrow
 checkers to diagnose.
+
+**Lightweight `by` justifications on `assert`.** Assertions accept an optional
+Dafny/Verus-style `by` justification: `assert EXPR;`, `assert EXPR by EXPR;`
+(terminated by a semicolon, typically a lemma or proof-carrying call) and
+`assert EXPR by { ... }` (a braced block of intermediate `let` bindings and
+`assert` steps, requiring no trailing semicolon after `}`). Every `assert` node
+exposes located `value` and nullable `by` fields (`null` for a bare assertion,
+the located expression node for `by EXPR;`, or the located `block` node for
+`by { ... }`). `by` remains a reserved keyword in the surface lexer.
 
 **Pure typed locals and binding guidance.** Both pure syntax routes accept
 `let Nat count = value;`, `let bool ready = value;` and the immutable bare forms

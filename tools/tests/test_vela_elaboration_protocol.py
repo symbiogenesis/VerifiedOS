@@ -9,8 +9,8 @@ from tests.test_vela_elaborate import (
     _NAT,
     Form,
     Node,
+    _assert,
     _binary,
-    _call,
     _Fixture,
     _function_type,
     _lambda,
@@ -39,7 +39,7 @@ def _fixture(word: str = "forall") -> _Fixture:
     fixture.definition("Generic", _type("T"), (("value", _type("T")),), _variable("value"),
                        generics=(("type", "T", None),))
     fixture.theorem("Reflexive", (), _quantifier(word),
-                    _lambda((("value", _NAT),), _call("Refl", _variable("value"))))
+                    _assert(_binary("==", _variable("value"), _variable("value"))))
     return fixture
 
 

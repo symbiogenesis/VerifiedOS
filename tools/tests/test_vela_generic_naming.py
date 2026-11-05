@@ -9,8 +9,8 @@ from tests.harness import Case, ensure
 from tests.test_vela_elaborate import (
     Form,
     Node,
+    _assert,
     _binary,
-    _call,
     _Fixture,
     _natural,
     _type,
@@ -109,7 +109,8 @@ def _unicode_and_mixed_newline_coordinates() -> None:
 def _invalid_source_and_protocol_never_report_partial_warnings() -> None:
     fixture = _Fixture("NoPartialNaming")
     _identity(fixture, "t", 0)
-    fixture.theorem("Impossible", (), _binary("==", _natural(1), _natural(2)), _call("Refl", _natural(1)))
+    fixture.theorem("Impossible", (), _binary("==", _natural(1), _natural(2)),
+                    _assert(_binary("==", _natural(1), _natural(2))))
     _refuses(lambda: adapter.inspect_source(*fixture.response()), "type")
     good = _Fixture("BoundNaming")
     _identity(good, "t", 0)
