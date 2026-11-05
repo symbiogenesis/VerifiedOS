@@ -210,10 +210,11 @@ snapshots retain their previously qualified versions.
 
 ## Merged checker and printer improvements
 
-Rocq [PR 22611](https://github.com/rocq-prover/rocq/pull/22611) and
+Rocq [PR 22609](https://github.com/rocq-prover/rocq/pull/22609),
+[PR 22611](https://github.com/rocq-prover/rocq/pull/22611) and
 [PR 22614](https://github.com/rocq-prover/rocq/pull/22614) are merged into `master`
 for milestone `9.4+rc1`. The proof switch still locks Rocq 9.3.0, which contains
-neither change. Their [tracker entries](../../docs/implementation/upstream-prs.md)
+none of these changes. Their [tracker entries](../../docs/implementation/upstream-prs.md)
 record the merge revisions and public checks. A qualified prover-lock move must
 precede relying on these improvements in production.
 
@@ -227,10 +228,13 @@ unchecked. At adoption, compare those native contexts against the proof gate's
 existing extra admitted-root cover pass, retaining genuine hidden axioms and
 admission accounting. Once the comparison and hosted proof acceptance pass, retire
 that redundant context pass. Checked alias/functor sealed-field assumption queries
-retain their independent purpose and remain required. The separate
-[`-axiom-free` PR 22609](https://github.com/rocq-prover/rocq/pull/22609) is still open;
-its integration must enable the bookkeeping without `-o` and cover the combined
-options before replacing context-summary parsing.
+retain their independent purpose and remain required. Merged
+[`-axiom-free` PR 22609](https://github.com/rocq-prover/rocq/pull/22609) and
+companion [PR 22710](https://github.com/rocq-prover/rocq/pull/22710) enable the
+assumption-collection path without `-o`; qualify the combined recursive, `-norec`,
+`-admit`, sealed, primitive and rewrite-permission cases (alongside open
+[`-allow-axiom` PR 22668](https://github.com/rocq-prover/rocq/pull/22668) if selected)
+before replacing context-summary parsing.
 
 PR 22614 adds the default warning `module-printing-fallback` when rich module or
 module-type printing returns names without types. After adoption, Q35q's rich-print

@@ -2,7 +2,7 @@
   "version": 1,
   "author": "symbiogenesis",
   "created_since": "2026-10-19",
-  "observed_at": "2026-11-03 08:22:12 UTC",
+  "observed_at": "2026-11-05 05:34:39 UTC",
   "items": [
     {
       "id": "1",
@@ -53,11 +53,12 @@
       "pr": "https://github.com/rocq-prover/rocq/pull/22609",
       "benefit": "Reduces reliance on parsing human-readable context summaries to decide proof acceptance.",
       "reviewed_head": "d0c923cc6c7285669a27240470883ded58a2475a",
-      "review": "The current revision moves unsafe-flag checks into constant and inductive assumption collection, enables collection for -axiom-free without -o, and adds recursive/-norec/-admit controls for sealed constants, inductives and axioms. Candidates 10 and 22 are merged. Maintainer discussion now concerns primitive types and rewrite-permission handling; the author explains their existing checker representation and import behavior. That exchange supplies no independent acceptance verdict.",
-      "next_action": "Await maintainer review of the revised collection and exit-status behavior; qualify recursive, -norec, -admit, sealed, primitive and rewrite-permission cases with candidates 10, 21, 22 and 47 before prover adoption.",
+      "review": "The merged diff moves unsafe-flag checks into constant and inductive assumption collection, enables collection for -axiom-free without -o, and adds recursive/-norec/-admit controls for sealed constants, inductives and axioms. Maintainer SkySkimmer factored checker axiom collection in PR 22710, approved after the primitive-type and rewrite-permission discussion, and merged the PR alongside candidates 10 and 22. Upstream merge supplies no local proof-gate qualification.",
+      "next_action": "At qualified prover adoption, qualify -axiom-free without -o across recursive, -norec, -admit, sealed, primitive and rewrite-permission cases with candidates 10, 21, 22 and 47 before replacing context-summary parsing.",
       "evidence": [
-        "The displayed GitHub platform jobs succeed. The current GitLab check explicitly reports FULL_CI false and a successful light pipeline through a NEUTRAL result; it supplies no full GitLab pipeline verdict.",
-        "[The maintainer request](https://github.com/rocq-prover/rocq/pull/22609#discussion_r4337474886) is implemented in the reviewed revision. [Current review](https://github.com/rocq-prover/rocq/pull/22609#discussion_r4414635701) and [the author response](https://github.com/rocq-prover/rocq/pull/22609#discussion_r4414724542) retain the primitive/rewrite discussion."
+        "Merged into master on 2026-11-04 at 090bbfcd2afb62af12c5244946b853eacaf56fe2, milestone 9.4+rc1, closing issue 10372. [The lock guide's adoption conditions](../../tools/opam/README.md#merged-checker-and-printer-improvements) retain the locked Rocq 9.3.0 implementation until qualified adoption.",
+        "[The maintainer request](https://github.com/rocq-prover/rocq/pull/22609#discussion_r4337474886) is implemented in the merged head; [companion PR 22710](https://github.com/rocq-prover/rocq/pull/22710) separates the checker axiom-collection path, and [the primitive/rewrite discussion](https://github.com/rocq-prover/rocq/pull/22609#discussion_r4414635701) precedes [approval](https://github.com/rocq-prover/rocq/pull/22609#pullrequestreview-5342546166).",
+        "GitHub platform jobs and the full GitLab CI pipeline check pass for the final head."
       ]
     },
     {
@@ -138,11 +139,11 @@
       "pr": "https://github.com/rocq-prover/rocq/pull/22611",
       "benefit": "Enables retirement of the proof gate's extra admitted-root context pass after qualified prover adoption; checked sealed-field handling remains separately necessary.",
       "reviewed_head": "0eb30a4e1540b5d4c7c62a84399d32f97433349c",
-      "review": "The merged diff collects sealed implementation dependencies for admitted libraries when context output is enabled. Regressions preserve genuine hidden/declared axioms across recursive, -norec and -admit output. Admitted terms remain unchecked. Candidate 4's separate -axiom-free integration still needs combined-option coverage without -o.",
-      "next_action": "At qualified prover adoption, compare native admitted-root contexts with the current cover pass and retire only that redundancy; keep checked sealed-field audits. Coordinate -axiom-free integration with candidate 4.",
+      "review": "The merged diff collects sealed implementation dependencies for admitted libraries when context output is enabled. Regressions preserve genuine hidden/declared axioms across recursive, -norec and -admit output. Admitted terms remain unchecked. Candidate 4 is now merged and extends collection to -axiom-free without -o; local qualification of the combined options remains open until prover adoption.",
+      "next_action": "At qualified prover adoption, compare native admitted-root contexts with the current cover pass and retire only that redundancy; keep checked sealed-field audits and qualify the combined -axiom-free options with candidate 4.",
       "evidence": [
         "Merged into master on 2026-10-22 at 52b9ccf77b20272622bf580a7f15816cab567291, milestone 9.4+rc1. [The lock guide's adoption conditions](../../tools/opam/README.md#merged-checker-and-printer-improvements) retain the locked Rocq 9.3.0 implementation until qualified adoption.",
-        "[The merged checker](https://github.com/rocq-prover/rocq/blob/52b9ccf77b20272622bf580a7f15816cab567291/checker/coqchk_main.ml) enables admitted-library bookkeeping only with output_context. Candidate 4 must also enable it for axiom-free checking without -o and test the combined options.",
+        "[The merged checker at 52b9ccf7](https://github.com/rocq-prover/rocq/blob/52b9ccf77b20272622bf580a7f15816cab567291/checker/coqchk_main.ml) enabled admitted-library bookkeeping only with output_context; merged candidate 4 and [PR 22710](https://github.com/rocq-prover/rocq/pull/22710) extend collection to -axiom-free without -o.",
         "GitHub CI and the displayed GitLab pipeline check pass for the final head. The separate benchmark check was canceled and supplies no passing measurement."
       ]
     },
@@ -224,11 +225,11 @@
       "pr": "https://github.com/CertiRocq/certirocq/pull/168",
       "benefit": "Repairs upstream validation infrastructure for the bootstrap fix and subsequent CertiRocq contributions.",
       "reviewed_head": "f3015e6a9f82ca8b08522d1e1e108d556c16d902",
-      "review": "Updates the image dependency route and main-branch trigger; now merged. Four Nix checks pass. The recorded Docker run reaches tests/axioms, where print_lst segfaults and Makefile line 45 reports Error 139. Root cause is unestablished; this is a runtime-test failure, not an approval/permissions block.",
-      "next_action": "Investigate the print_lst segfault before treating Docker validation as restored.",
+      "review": "Updated the image dependency route and main-branch trigger; merged with four passing Nix checks while its own recorded Docker run failed in tests/axioms with a print_lst segfault (Error 139). Subsequent upstream PRs 178 and 181 migrated .github/workflows/build.yml to an on-demand OPAM CI workflow on rocq/rocq-prover:9.1-ocaml-4.14-flambda, bounded rocq-mathcomp-ssreflect < 2.6~, repaired the Linux bootstrap inlined_constants double-boxing segfault and tests/config.mk installed-package test wiring, and passed on workflow_dispatch. Upstream CI restoration supplies no VerifiedOS adoption verdict for candidate 14.",
+      "next_action": "Retain candidate 14's deferred local qualification requirements; upstream OPAM CI now runs on workflow_dispatch rather than automatically on PRs.",
       "evidence": [
-        "[Recorded failed Docker run](https://github.com/CertiRocq/certirocq/actions/runs/39468861002) passes dependency installation and compiler construction but fails the axioms runtime test.",
-        "Merged 2026-10-21 at b7138434cb8d844d3d9bc196e3db8e02308ac9eb. The merge supplies no Docker runtime-test or VerifiedOS adoption verdict."
+        "[Recorded failed Docker run](https://github.com/CertiRocq/certirocq/actions/runs/39468861002) on PR 168 passes dependency installation and compiler construction but fails the axioms runtime test.",
+        "Merged 2026-10-21 at b7138434cb8d844d3d9bc196e3db8e02308ac9eb. Follow-up [PR 178](https://github.com/CertiRocq/certirocq/pull/178) and [PR 181](https://github.com/CertiRocq/certirocq/pull/181) repair the Linux bootstrap crash and installed-package test configuration, passing in [dispatched OPAM CI run 41534292823](https://github.com/CertiRocq/certirocq/actions/runs/41534292823); neither supplies a VerifiedOS adoption verdict."
       ]
     },
     {
@@ -557,7 +558,7 @@
       "next_action": "Reproduce the retained integer-memory cases, then coordinate a narrow legality-before-assertion repair under issue 1800 with valid controls and preserved capability fault ordering.",
       "evidence": [
         "[The curated memory clauses](../../model/model/extensions/V/vext_mem_insts.sail) retain the assertion ordering; the relevant path does not require floating-point extensions.",
-        "[The upstream diagnosis in issue 1800](https://github.com/riscv/sail-riscv/issues/1800) identifies the memory assertions. [PR 1828](https://github.com/riscv/sail-riscv/pull/1828) is closed unmerged; the current upstream source still contains the assertion ordering at observation.",
+        "[The upstream diagnosis in issue 1800](https://github.com/riscv/sail-riscv/issues/1800) and its 2026-11-04 follow-up confirmation (for example vle64 at SEW=8, LMUL=2) identify the memory assertions. [PR 1828](https://github.com/riscv/sail-riscv/pull/1828) remains closed unmerged, and the upstream source still contains the assertion ordering at observation.",
         "Acceptance covers lower and upper invalid EMUL combinations and adjacent valid controls for each retained form, architectural state at the trap and capability permission/fault precedence. A new upstream pin alone supplies no local model qualification."
       ]
     },
@@ -699,16 +700,17 @@
       "topic": "Exercise relaxed-dot intermediate i16 overflow",
       "issue": null,
       "pr": "https://github.com/WebAssembly/spec/pull/2228",
-      "benefit": "Strengthens Q34g’s mandatory relaxed-SIMD corpus with cases that distinguish the required intermediate truncation from a direct sum into i32.",
+      "benefit": "Strengthens Q34g’s mandatory relaxed-SIMD corpus with -128 intermediate-overflow boundary cases across R_idot and R_idot_add.",
       "reviewed_head": "ce2f20c26b4f2b66c85d7cc90d0571f5b00f89b7",
       "priority": "high",
       "proposed_on": "2026-10-22",
-      "review": "Open PR adds byte-operand -128 boundary cases that expose i16 intermediate overflow. For the add variant with zero accumulator, summing byte products directly gives 65536, outside the proposed expectations. The captured old-head interpreter check still fails, but the maintainer diagnoses a missing saturation step and reports a fix on upstream main; the PR needs a refresh before a new verdict. The reviewer also disputes the proposed -1 mixed wrap/saturate result because the two intermediate results must use consistent choices. The accepted fixture expectations remain unsettled. No local interpreter failure was demonstrated.",
-      "next_action": "Refresh the PR against the upstream interpreter repair and resolve the consistent-choice objection to the mixed wrap/saturate expectation; then qualify agreed fixtures against Q34g's generation-fixed DET choices, including a control that omits the i16 intermediate.",
+      "review": "Open PR adds byte-operand -128 boundary cases for i16x8.relaxed_dot_i8x16_i7x16_s and i32x4.relaxed_dot_i8x16_i7x16_add_s. Subsequent merged PR 2312 adds relaxed parameter R_idot_add to wasm-3.0 and wasm-latest so the add variant admits either a 16-bit or 32-bit intermediate pairwise sum, lands -128 corner cases in relaxed_dot_product.wast permitting 65537 alongside the 16-bit intermediate results, and rewrites interpreter dot_add_s via i16x8.dot_s and extadd_pairwise_s; merged PR 2318 then restores modular i32 addition in i32x4.dot_i16x8_s and restricts ixx saturation to widths at most 16. PR 2228 remains unrefreshed at its older head, where its add-variant expectations omit the R_idot_add 32-bit-intermediate choice and still include the disputed -1 mixed wrap/saturate value. No local interpreter failure was demonstrated.",
+      "next_action": "Track whether PR 2228 is refreshed or superseded after PRs 2312 and 2318; qualify Q34g's selected Core 3.0 edition and fixture manifest with explicit generation-fixed DET choices for both R_idot and R_idot_add.",
       "evidence": [
         "[The complete guest-language contract](contracts/wasm-execution.md#wasm-30-inside-the-existing-boundary) includes fixed and relaxed SIMD with generation-fixed DET choices. [The shared corpus](contracts/wasm-execution.md#shared-upstream-corpus) has one feature-mapped fixture manifest.",
-        "Acceptance exercises both relaxed-dot forms, the intermediate-overflow case, nonzero accumulators and ordinary in-range controls. Each implementation must return its selected deterministic result; a broad allowed-result set must not replace the exact DET-profile check.",
-        "[The maintainer review](https://github.com/WebAssembly/spec/pull/2228#pullrequestreview-5081321440) identifies the missing interpreter saturation and a fix on main. [The inline objection](https://github.com/WebAssembly/spec/pull/2228#discussion_r3906878937) challenges the mixed wrap/saturate expected value. The captured old-head failure is not a verdict on a refreshed PR or an independent reproduction."
+        "[Merged PR 2312](https://github.com/WebAssembly/spec/pull/2312) introduces R_idot_add in wasm-3.0 and wasm-latest, updates relaxed_dot_product.wast and rewrites interpreter dot_add_s; [merged PR 2318](https://github.com/WebAssembly/spec/pull/2318) restores modular i32x4.dot_i16x8_s addition and narrows ixx saturation to 16-bit and narrower lanes.",
+        "[The maintainer review on PR 2228](https://github.com/WebAssembly/spec/pull/2228#pullrequestreview-5081321440) and [inline objection](https://github.com/WebAssembly/spec/pull/2228#discussion_r3906878937) precede those merges; the captured old-head failure on PR 2228 is not a verdict on current upstream main.",
+        "Acceptance exercises both relaxed-dot forms, -128 intermediate-overflow cases, nonzero accumulators and ordinary in-range controls, requiring the implementation's exact selected DET-profile result for R_idot and R_idot_add rather than an unconstrained Either set."
       ],
       "kind": "watch"
     },
@@ -813,8 +815,8 @@
       "pr": "https://github.com/rocq-prover/rocq/pull/22668",
       "benefit": "Allows a declared axiom policy at the checker exit-status boundary while retaining the local exact assumption-set audit.",
       "reviewed_head": "78c86c3b1ef0ebb5dd0e265544e7b4acd1c11696",
-      "review": "Adds repeatable -allow-axiom NAME to candidate 4's -axiom-free checker, matching fully qualified axiom names from -o exactly while retaining their report entries and rejecting other detected axioms or unsafe features. Static inspection found no material issue in the allowlist addition. The author reports static review and shell-syntax validation; no independent build or regression verdict is established by that report. Depends on candidate 4.",
-      "next_action": "Track candidate 4's landing and upstream review; qualify exact-name matching, sealed and non-rechecked dependency contexts, and retained unsafe-feature refusals before adoption. Keep VerifiedOS's exact assumption-set audit.",
+      "review": "Adds repeatable -allow-axiom NAME to candidate 4's -axiom-free checker, matching fully qualified axiom names from -o exactly while retaining their report entries and rejecting other detected axioms or unsafe features. Prerequisite candidate 4 is now merged and this PR targets master directly, with upstream review and full GitLab CI still pending. Static inspection found no material issue in the allowlist addition; the author's static review and shell-syntax report supplies no independent build or regression verdict.",
+      "next_action": "Await maintainer review and full upstream CI on master; qualify exact-name matching, sealed and non-rechecked dependency contexts, and retained unsafe-feature refusals before adoption. Keep VerifiedOS's exact assumption-set audit.",
       "evidence": [
         "Unknown or unused allowed names are accepted: the feature is a permissive allowlist, not an exact expected-assumption-set check.",
         "Assumption discovery retains the parent checker's context coverage and -admit/-norec trust assumptions; the new flag does not independently establish complete discovery."
@@ -865,16 +867,16 @@
       "url": "https://github.com/rems-project/sail/pull/1786",
       "workflow_runs": [
         {
-          "name": "Check formatting",
-          "status": "completed",
-          "conclusion": "action_required",
-          "html_url": "https://github.com/rems-project/sail/actions/runs/40354312797"
-        },
-        {
           "name": "Test matrix",
           "status": "completed",
           "conclusion": "action_required",
           "html_url": "https://github.com/rems-project/sail/actions/runs/40354312774"
+        },
+        {
+          "name": "Check formatting",
+          "status": "completed",
+          "conclusion": "action_required",
+          "html_url": "https://github.com/rems-project/sail/actions/runs/40354312797"
         }
       ]
     },
@@ -997,9 +999,9 @@
     {
       "headRefOid": "d0c923cc6c7285669a27240470883ded58a2475a",
       "isDraft": false,
-      "mergedAt": null,
+      "mergedAt": "2026-11-04T13:55:49Z",
       "number": 22609,
-      "state": "OPEN",
+      "state": "MERGED",
       "statusCheckRollup": [
         {
           "__typename": "CheckRun",
@@ -1033,38 +1035,45 @@
         },
         {
           "__typename": "CheckRun",
-          "completedAt": "2026-10-29T20:01:48Z",
-          "conclusion": "NEUTRAL",
-          "detailsUrl": "https://gitlab.inria.fr/coq/coq/-/pipelines/1523268",
+          "completedAt": "2026-11-03T15:26:36Z",
+          "conclusion": "SUCCESS",
+          "detailsUrl": "https://gitlab.inria.fr/coq/coq/-/pipelines/1527178",
           "name": "GitLab CI pipeline (pull request)",
-          "startedAt": "2026-10-29T20:01:48Z",
+          "startedAt": "2026-11-03T15:26:36Z",
           "status": "COMPLETED",
           "workflowName": ""
         },
         {
           "__typename": "StatusContext",
-          "context": "doc:init: corelib artifact",
-          "startedAt": "2026-10-29T19:52:19Z",
+          "context": "doc:ci-refman: ci-refman artifact",
+          "startedAt": "2026-11-03T14:39:19Z",
           "state": "SUCCESS",
-          "targetUrl": "https://coq.gitlabpages.inria.fr/-/coq/-/jobs/8195811/artifacts/_build/default/doc/corelib/html/index.html"
+          "targetUrl": "https://coq.gitlabpages.inria.fr/-/coq/-/jobs/8227612/artifacts/_build_ci/refman/refman-html/index.html"
+        },
+        {
+          "__typename": "StatusContext",
+          "context": "doc:init: corelib artifact",
+          "startedAt": "2026-11-03T13:45:46Z",
+          "state": "SUCCESS",
+          "targetUrl": "https://coq.gitlabpages.inria.fr/-/coq/-/jobs/8227520/artifacts/_build/default/doc/corelib/html/index.html"
         },
         {
           "__typename": "StatusContext",
           "context": "doc:ml-api:odoc: ml-api artifact",
-          "startedAt": "2026-10-29T19:51:46Z",
+          "startedAt": "2026-11-03T13:46:33Z",
           "state": "SUCCESS",
-          "targetUrl": "https://coq.gitlabpages.inria.fr/-/coq/-/jobs/8195812/artifacts/_build/default/_doc/_html/index.html"
+          "targetUrl": "https://coq.gitlabpages.inria.fr/-/coq/-/jobs/8227521/artifacts/_build/default/_doc/_html/index.html"
         },
         {
           "__typename": "StatusContext",
           "context": "doc:refman: refman artifact",
-          "startedAt": "2026-10-29T19:53:41Z",
+          "startedAt": "2026-11-03T13:50:33Z",
           "state": "SUCCESS",
-          "targetUrl": "https://coq.gitlabpages.inria.fr/-/coq/-/jobs/8195809/artifacts/doc/refman-html/index.html"
+          "targetUrl": "https://coq.gitlabpages.inria.fr/-/coq/-/jobs/8227518/artifacts/doc/refman-html/index.html"
         }
       ],
       "title": "checker: add opt-in -axiom-free exit status",
-      "updatedAt": "2026-10-29T16:01:49Z",
+      "updatedAt": "2026-11-04T13:57:31Z",
       "url": "https://github.com/rocq-prover/rocq/pull/22609",
       "workflow_runs": [
         {
@@ -3081,7 +3090,7 @@
         }
       ],
       "title": "checker: allow named axioms with -axiom-free",
-      "updatedAt": "2026-10-29T15:52:43Z",
+      "updatedAt": "2026-11-04T14:07:02Z",
       "url": "https://github.com/rocq-prover/rocq/pull/22668",
       "workflow_runs": [
         {
@@ -3236,5 +3245,5 @@
       ]
     }
   ],
-  "reviewed_on": "2026-11-03"
+  "reviewed_on": "2026-11-05"
 }
