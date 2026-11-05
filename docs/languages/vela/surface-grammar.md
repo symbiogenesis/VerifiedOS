@@ -858,19 +858,18 @@ Loop contracts retain the range-loop placement before the braced body.
 and `invariant`, a container's logical `.Model` (`Seq<T>`, projected directly or
 through `ISequenceModel<T>`) exposes the C#/Kotlin-style pure sequence vocabulary
 `.All(x => ...)`, `.Any(x => ...)`, `.Contains(x)`, `.Take(n)`, `.Skip(n)`,
-`.Slice(a, b)` and `.Count` alongside `.At(i)`, `.Update(i, v)`, `.Append(x)` and
-`Seq.Repeat(v, n)`. Authors write `requires items.Model.All(x => x > 0)` instead
-of raw quantifier and index arithmetic
-`requires (forall (Nat i) => i < items.Length ==> items.Model.At(i) > 0)`.
-`ISequenceModel<T>` and `IBoundedIterable<T>` reuse ordinary `interface`, `impl`
-and `where` syntax to project containers to canonical `Seq<T>` and connect
-bounded `foreach` steps to `Model.At(k)`, `Model.Take(k)` and `Model.Skip(k)`,
-without importing stateful `IEnumerable<T>` enumerators or runtime `IQueryable<T>`
-expression-tree reflection. In the surface grammar these are ordinary member
-projections, calls and inferred lambdas inside `s_contract_expression`, requiring
-no outer quantifier parentheses and adding no new reserved words or parser
-productions. Their standard-library definitions and pre-proved finite-sequence
-lemmas belong to the [ownership library](first-release.md#ownership-libraries) and
+`.Slice(a, b)` and `.Count` alongside `.At(i)`, `.Update(i, v)` and `.Append(x)`.
+Authors write `requires items.Model.All(x => x > 0)` rather than raw index
+quantifiers. `ISequenceModel<T>` and `IBoundedIterable<T>` reuse ordinary
+`interface`, `impl` and `where` syntax to project containers to canonical
+`Seq<T>` and connect bounded `foreach` steps to `Model.At(k)`, `Model.Take(k)`
+and `Model.Skip(k)`, without importing stateful `IEnumerable<T>` enumerators or
+runtime `IQueryable<T>` expression-tree reflection. In the surface grammar these
+are ordinary member projections, calls and inferred lambdas inside
+`s_contract_expression`, requiring no outer quantifier parentheses and adding no
+new reserved words or parser productions. Their standard-library definitions and
+pre-proved finite-sequence lemmas belong to the
+[ownership library](first-release.md#ownership-libraries) and
 [refinement/domain tier](core-design.md#refinement-effects-and-staging).
 
 **Raw string literals and allocation-free checked formatting.** Raw string

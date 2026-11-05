@@ -246,14 +246,13 @@ the law-carrying `ISequenceModel<T>` interface, projecting the container to its
 canonical erased pure `Model : Seq<T>` (`Nat(Length) == Model.Count`) while
 keeping the C#/Kotlin-style collection predicates and slice combinators—`.All(x => ...)`,
 `.Any(x => ...)`, `.Contains(x)`, `.Take(n)`, `.Skip(n)`, `.Slice(a, b)` and
-`.Count` alongside `.At(i)`, `.Update(i, v)`, `.Append(x)` and
-`Seq.Repeat(v, n)`—as concrete operations on `Seq<T>` backed by pre-proved
-standard-library lemmas. Contracts on concrete or `ISequenceModel<T>`-bounded
-containers write `requires items.Model.All(x => x > 0)` instead of raw
-`forall`/`exists` quantifiers and index arithmetic
-`requires (forall (Nat i) => i < items.Length ==> items.Model.At(i) > 0)`, and
-bounded predicates over finite sequences with decidable element bodies discharge
-in the [decidable/domain refinement tier](core-design.md#refinement-effects-and-staging)
+`.Count` alongside `.At(i)`, `.Update(i, v)` and `.Append(x)`—as concrete
+operations on `Seq<T>` backed by pre-proved standard-library lemmas. Contracts
+on concrete or `ISequenceModel<T>`-bounded containers write
+`requires items.Model.All(x => x > 0)` rather than raw `forall`/`exists`
+index quantifiers, and bounded predicates over finite sequences with decidable
+element bodies discharge in the
+[decidable/domain refinement tier](core-design.md#refinement-effects-and-staging)
 rather than open quantifier instantiation or polymorphic LINQ dispatch. No
 runtime `IQueryable<T>` or reflection-based expression-tree interface is
 introduced; contract checking inspects `Seq<T>` predicate lambdas statically, and

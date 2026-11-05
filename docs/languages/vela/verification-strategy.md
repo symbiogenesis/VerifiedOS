@@ -1214,19 +1214,19 @@ module Buffers;
 
 public void Fill<ghost Nat count>(ref Span<byte, count> target, byte value)
 	effects writes(target)
-	ensures target.Model == Seq.Repeat(value, count)
+	ensures target.Model.All(x => x == value)
 {
 	foreach (let index in 0usize..target.Length)
-		invariant target.Model.Take(Nat(index)) == Seq.Repeat(value, Nat(index))
+		invariant target.Model.Take(Nat(index)).All(x => x == value)
 	{
 		target[index] = value;
 	}
 }
 ```
 
-The caller writes `Fill(target: ref target, value: value)`, and `count` is inferred from the view; it never serves as the executable bound. The `foreach` range supplies what a `while` loop would make the author write: `index < target.Length`, a representable increment under the instance's length and index laws, and the decreasing measure. Only the functional invariant is authored. The exclusive loan returns on exit with an inferred frame, so storage outside `target` is unchanged. `Take`, `Skip`, `Slice`, `All`, `Any`, `Contains`, `Count` and `Repeat` compute in specifications through standard-library sequence lemmas, never on the target. Filling initialized public data establishes no secure erasure, device-memory semantics or resistance to dead-store elimination.
+The caller writes `Fill(target: ref target, value: value)`, and `count` is inferred from the view; it never serves as the executable bound. The `foreach` range supplies what a `while` loop would make the author write: `index < target.Length`, a representable increment under the instance's length and index laws, and the decreasing measure. Only the functional invariant is authored. The exclusive loan returns on exit with an inferred frame, so storage outside `target` is unchanged. `Take`, `Skip`, `Slice`, `All`, `Any`, `Contains` and `Count` compute in specifications through standard-library sequence lemmas, never on the target. Filling initialized public data establishes no secure erasure, device-memory semantics or resistance to dead-store elimination.
 
-When a step fails, the editor shows the local store, the live loans, the arithmetic facts and the remaining goal. Adding `proof { Seq.RepeatSnoc(value, Nat(index)); }` to the loop body invokes a named lemma with inferred arguments, and its unresolved premises stay goals. Writing `proof { ?extend; }` instead leaves a named typed hole that keeps its expected proposition, locals, loans and exit state. The build reports the hole, and nothing containing it enters an accepted package. One module system resolves executable definitions, specifications, lemmas and source locations.
+When a step fails, the editor shows the local store, the live loans, the arithmetic facts and the remaining goal. Adding `proof { Seq.TakeAllSnoc(value, Nat(index)); }` to the loop body invokes a named lemma with inferred arguments, and its unresolved premises stay goals. Writing `proof { ?extend; }` instead leaves a named typed hole that keeps its expected proposition, locals, loans and exit state. The build reports the hole, and nothing containing it enters an accepted package. One module system resolves executable definitions, specifications, lemmas and source locations.
 
 #### Dependent Results and Place-Named Loans
 
@@ -1329,7 +1329,7 @@ An initialization operation returns a different state rather than letting a call
 public Buffer<byte, count, Initialized> Initialize<ghost Nat count>(
 	owned Buffer<byte, count, Uninitialized> storage, byte value)
 	effects writes(storage)
-	ensures result.Model == Seq.Repeat(value, count);
+	ensures result.Model.All(x => x == value);
 ```
 
 Inside a caller:

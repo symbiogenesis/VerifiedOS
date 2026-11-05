@@ -964,7 +964,7 @@ public union Initialized<ghost Nat n> {
 }
 public Result<ref<'workspace.bytes> byte, Error> Select(ref Workspace workspace)
     effects writes(workspace.bytes), writes(workspace.audit)
-    restores result is Ok(slot) ==> workspace.bytes.Model == old(workspace.bytes.Model).Set(0, final(slot))
+    restores result is Ok(slot) ==> workspace.bytes.Model == old(workspace.bytes.Model).Update(0, final(slot))
 {
     ref Span<byte> parent = ref workspace.bytes;
     ref byte child = ref parent[0usize];

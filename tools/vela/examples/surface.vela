@@ -25,10 +25,10 @@ public union Delivery<ghost Nat n>
 
 public void Fill<ghost Nat count>(ref Span<byte, count> target, byte value)
     effects writes(target)
-    ensures target.Model == Seq.Repeat(value, count)
+    ensures target.Model.All(x => x == value)
 {
     foreach (let index in 0..target.Length)
-        invariant target.Model.Take(Nat(index)) == Seq.Repeat(value, Nat(index))
+        invariant target.Model.Take(Nat(index)).All(x => x == value)
     {
         target[index] = value;
         proof
@@ -47,20 +47,20 @@ public void Visit(ref Span<byte> target, in Span<byte> source)
     effects reads(source), writes(target)
 {
     foreach (let byte value in source)
-        invariant Valid(source)
+        invariant source.Model.All(x => x > 0)
     {
         let byte observed = value;
         Inspect(observed);
         continue;
     }
     foreach (in item in source)
-        invariant Valid(source)
+        invariant source.Model.Contains(1)
     {
         Inspect(in item);
         break;
     }
     foreach (ref byte item in target)
-        invariant Valid(target)
+        invariant target.Model.Count == old(target.Model.Count)
     {
         Update(ref item);
     }
@@ -160,7 +160,7 @@ public Result<ref<'workspace.bytes> byte, Error> First(ref Workspace workspace)
     requires workspace.bytes.Length > 0
     effects writes(workspace.bytes)
     restores result is Ok(slot) ==>
-        workspace.bytes.Model == old(workspace.bytes.Model).Set(0, final(slot))
+        workspace.bytes.Model == old(workspace.bytes.Model).Update(0, final(slot))
 {
     ref Span<byte> parent = ref workspace.bytes;
     ref byte child = ref parent[FirstOffset];
@@ -234,7 +234,7 @@ public definition owned Buffer<T, packet.Length> TakeStorage<T>(owned Sized<T> p
 public Result<ref<'workspace.bytes> byte, Error> ForwardSlot(ref Workspace workspace)
     effects writes(workspace.bytes)
     restores result is Ok(slot) ==>
-        workspace.bytes.Model == old(workspace.bytes.Model).Set(0, final(slot))
+        workspace.bytes.Model == old(workspace.bytes.Model).Update(0, final(slot))
 {
     return match (workspace.TryFirst())
     {
