@@ -173,7 +173,7 @@ public Nat Total()
 `,
     },
     generic: {
-        mode: "mathematical", label: "Generics & higher-order functions",
+        label: "Generics & higher-order functions",
         expression: "HigherOrder()", valueType: "Nat",
         source: `module GenericFunctions;
 
@@ -200,7 +200,7 @@ public lemma Result(): HigherOrder() == 42
 `,
     },
     vectors: {
-        mode: "mathematical", label: "Indexed vectors & safe lookup",
+        label: "Indexed vectors & safe lookup",
         expression: "Second()", valueType: "Nat",
         source: `module SafeLookup;
 
@@ -225,7 +225,7 @@ public lemma SelectedValue(): Second() == 20
 `,
     },
     dependent: {
-        mode: "mathematical", label: "Dependent functions & length proofs",
+        label: "Dependent functions & length proofs",
         expression: "PreservedValue()", valueType: "Nat",
         source: `module LengthPreservation;
 
@@ -264,9 +264,8 @@ const state = {
     compileTicket: 0, evaluateTicket: 0, checkTimer: null, gallina: "",
     authoringTicket: 0, authoring: null, outlineTicket: 0, inspectTicket: 0,
     outlineSnapshot: null, undoSource: null, inspectPending: false, inspectSelection: "",
-    mode: "pure", mathematical: false, buffers: {},
+    editorServices: null, analysisTicket: 0,
 };
-const pureExampleOptions = [...$("examples").options].map((option) => ({ value: option.value, label: option.textContent }));
 
 let token = new URLSearchParams(location.hash.slice(1)).get("token") || "";
 try {
@@ -285,77 +284,48 @@ function status(message, failed = false) {
 
 function activity(message) { $("activity-label").textContent = message; }
 
-function updateModeUI() {
-    const mathematical = state.mode === "mathematical";
-    $("language-mode").value = state.mode;
-    $("mode-help").textContent = state.mathematical
-        ? mathematical ? "Dependent types and proof terms are checked on Compile. Kernel replay is separate."
-            : "Switch to Dependent mathematics to explore indexed vectors, generic functions and proofs."
-        : "For dependent types, launch: python tools/run.py vela-playground-math";
-    $("scope-title").textContent = mathematical ? "Dependent mathematics" : "Pure Nat / bool fragment";
-    $("scope-detail").textContent = mathematical ? "Generics · indexed vectors · proof terms" : "Mathematical values · compile-time evaluation";
-    $("intro-copy").textContent = mathematical ? "Make lengths, bounds and proofs part of the types you write." : "Explore pure functions with a real compiler and language server.";
-    $("gallina-description").textContent = mathematical ? "The mathematical elaborator’s proposed Gallina terms. Kernel replay is a separate check." : "The pure compiler’s generated Gallina definitions.";
-    $("problems-description").textContent = mathematical ? "Compile the current buffer to check dependent types and explicit proofs." : "Diagnostics for the current unsaved buffer, from the pure Vela checker.";
-    $("diagnostic-source").textContent = mathematical ? "ELABORATOR" : "LSP";
-    $("mode-services").hidden = !mathematical;
-    $("feature-notes").hidden = mathematical;
-    $("format-button").disabled = mathematical;
-    $("check-authoring").disabled = mathematical;
-    $("refresh-outline").disabled = mathematical;
-    $("inspect-symbol").disabled = mathematical;
-    $("show-hints").disabled = mathematical || !state.editor;
-    $("show-semantics").disabled = mathematical || !state.editor;
+function updateServiceUI() {
+    const available = state.connected && state.editorServices === true;
+    const checking = state.editorServices === null;
+    $("diagnostic-source").textContent = checking ? "CHECKING" : available ? "LSP" : "COMPILER";
+    $("service-notice").hidden = checking || available;
+    $("feature-notes").hidden = !available;
+    $("format-button").disabled = !available;
+    $("check-authoring").disabled = !available;
+    $("refresh-outline").disabled = !available;
+    $("inspect-symbol").disabled = !available;
+    $("show-hints").disabled = !available || !state.editor;
+    $("show-semantics").disabled = !available || !state.editor;
     for (const name of ["inspect", "authoring"]) {
         const tab = document.querySelector(`[data-tab="${name}"]`);
-        tab.disabled = mathematical;
-        tab.title = mathematical ? "This service currently supports pure Vela only." : "";
+        tab.disabled = !available;
+        tab.title = available ? "" : checking ? "Checking whether this service supports the current source." : "This service currently supports pure functions.";
     }
-    state.editor?.updateOptions({ inlayHints: { enabled: !mathematical && $("show-hints").checked ? "on" : "off" }, "semanticHighlighting.enabled": !mathematical && $("show-semantics").checked });
+    if (!available && (!$("inspect-panel").hidden || !$("authoring-panel").hidden)) selectTab("problems");
+    state.editor?.updateOptions({ inlayHints: { enabled: available && $("show-hints").checked ? "on" : "off" }, "semanticHighlighting.enabled": available && $("show-semantics").checked });
     if (!state.editor && $("editor-notice").textContent.startsWith("Plain-text mode:")) {
-        $("editor-notice").textContent = mathematical
-            ? "Plain-text mode: Monaco could not load from the CDN. Mathematical compilation, expression evaluation and downloads are available."
-            : "Plain-text mode: Monaco could not load from the CDN. Compile, format, evaluate, authoring checks and symbol inspection are available; inline editor features need Monaco.";
+        $("editor-notice").textContent = available
+            ? "Plain-text mode: Monaco could not load from the CDN. Compile, format, evaluate, authoring checks and symbol inspection are available; inline editor features need Monaco."
+            : "Plain-text mode: Monaco could not load from the CDN. Compilation, automatic diagnostics, expression evaluation and downloads are available.";
     }
 }
 
-function changeMode() {
-    const mode = $("language-mode").value;
-    if (mode === state.mode || (mode === "mathematical" && !state.mathematical)) return;
-    state.buffers[state.mode] = { source: state.text, expression: $("expression").value, valueType: $("value-type").value, example: $("examples").value };
-    state.mode = mode;
-    clearTimeout(state.checkTimer);
-    const options = mode === "pure" ? pureExampleOptions : Object.entries(examples)
-        .filter(([, example]) => example.mode === mode).map(([value, example]) => ({ value, label: example.label }));
-    $("examples").replaceChildren(...options.map(({ value, label }) => {
-        const option = element("option", "", label);
-        option.value = value;
-        return option;
-    }));
-    const saved = state.buffers[mode];
-    const selected = saved?.example || options[0].value;
-    const example = saved || examples[selected];
-    $("examples").value = selected;
-    $("expression").value = example.expression;
-    $("value-type").value = example.valueType;
+function invalidateServices() {
+    state.analysisTicket++;
+    state.editorServices = null;
+    clearAuthoring("Checking whether authoring services support the current source.");
+    clearInspection("Checking whether symbol inspection supports the current source.");
+    updateServiceUI();
+}
+
+function clearCompilation(message) {
     state.compileTicket++;
     state.gallina = "";
-    $("compile-button").disabled = false;
     $("copy-output").disabled = true;
     $("download-output").disabled = true;
-    $("gallina-output").textContent = "// Language mode changed. Compile to inspect the current translation.";
-    $("compile-summary").textContent = "Output cleared because the language mode changed.";
-    clearEvaluation("Language mode changed. Evaluate again for a current result.");
-    clearDiagnostics(mode === "mathematical" ? "Compile to check dependent types and proofs." : "Checking the current pure buffer…");
-    clearAuthoring("Style checks currently support pure Vela only.");
-    clearInspection("Symbol inspection currently supports pure Vela only.");
-    state.undoSource = null;
-    $("undo-buffer").disabled = true;
-    updateModeUI();
-    selectTab("console");
-    setSource(example.source);
-    connect();
-    activity(mode === "mathematical" ? "Dependent mathematics selected" : "Pure Vela selected");
+    $("compile-button").disabled = false;
+    $("gallina-output").textContent = "// Compile the current source to inspect its translation.";
+    $("compile-summary").textContent = message;
 }
 
 function element(tag, className, text) {
@@ -384,8 +354,8 @@ async function api(path, body, { keepalive = false } = {}) {
     } finally { clearTimeout(timer); }
 }
 
-function snapshot() { return { text: state.text, version: state.version, generation: state.generation, mode: state.mode }; }
-function current(captured) { return captured.version === state.version && captured.text === state.text && captured.generation === state.generation && captured.mode === state.mode; }
+function snapshot() { return { text: state.text, version: state.version, generation: state.generation }; }
+function current(captured) { return captured.version === state.version && captured.text === state.text && captured.generation === state.generation; }
 
 function clearDiagnostics(message = "Checking the current buffer…") {
     $("problem-count").textContent = "0";
@@ -394,8 +364,8 @@ function clearDiagnostics(message = "Checking the current buffer…") {
     if (state.model && window.monaco) monaco.editor.setModelMarkers(state.model, "vela", []);
 }
 
-function publishDiagnostics(params, generation, mode = "pure") {
-    if (mode !== state.mode || generation !== state.generation || params.uri !== DOCUMENT_URI || params.version !== state.version) return;
+function publishDiagnostics(params, generation, fromCompiler = false) {
+    if ((!fromCompiler && state.editorServices !== true) || generation !== state.generation || params.uri !== DOCUMENT_URI || params.version !== state.version) return;
     const diagnostics = params.diagnostics || [];
     $("problem-count").textContent = String(diagnostics.length);
     $("problem-count").classList.toggle("has-problems", diagnostics.length > 0);
@@ -403,11 +373,11 @@ function publishDiagnostics(params, generation, mode = "pure") {
         monaco.editor.setModelMarkers(state.model, "vela", diagnostics.map((diagnostic) => ({
             ...toRange(diagnostic.range), message: diagnostic.message,
             severity: diagnostic.severity === 2 ? monaco.MarkerSeverity.Warning : monaco.MarkerSeverity.Error,
-            source: diagnostic.source || (mode === "mathematical" ? "Vela mathematical elaborator" : "Vela pure prototype"), code: diagnostic.code,
+            source: diagnostic.source || "Vela compiler", code: diagnostic.code,
         })));
     }
     if (!diagnostics.length) {
-        const clean = element("div", "diagnostic-clean", mode === "mathematical" ? "Mathematical elaboration reported no error." : "No error reported by the pure prototype.");
+        const clean = element("div", "diagnostic-clean", "No error reported for the current source.");
         clean.append(element("small", "", "This is a development check, with no kernel or production acceptance verdict."));
         $("diagnostics").replaceChildren(clean);
         activity("Current buffer checked");
@@ -432,20 +402,20 @@ function publishDiagnostics(params, generation, mode = "pure") {
     activity(`${diagnostics.length} problem${diagnostics.length === 1 ? "" : "s"} in current buffer`);
 }
 
-function mathematicalDiagnostics(result, captured) {
+function compilerDiagnostics(result, captured) {
     if (!current(captured)) return;
     const error = result.error;
     const position = error ? compilerPosition(error.line, error.column) : null;
     const findings = result.ok ? result.findings : [];
-    if (!Array.isArray(findings)) throw new Error("The mathematical compiler returned incomplete naming findings.");
+    if (!Array.isArray(findings)) throw new Error("The compiler returned incomplete naming findings.");
     publishDiagnostics({ uri: DOCUMENT_URI, version: captured.version, diagnostics: error ? [{
         range: { start: position, end: position }, severity: 1, message: errorText(error),
-        source: "Vela mathematical elaborator",
+        source: "Vela compiler",
     }] : findings.map((finding) => {
         const start = compilerPosition(finding.line, finding.column);
         return { range: { start, end: start }, severity: 2, message: finding.message,
             code: finding.code, source: "Vela naming lint" };
-    }) }, captured.generation, "mathematical");
+    }) }, captured.generation, true);
 }
 
 async function wire(session, message, generation) {
@@ -480,6 +450,7 @@ function enqueue(operation) {
 function disconnected(error, generation) {
     if (generation !== state.generation) return;
     state.connected = false;
+    invalidateServices();
     status(error.message || "Local language services disconnected.", true);
     clearDiagnostics("Language services are disconnected. Compile and expression evaluation remain available.");
     clearAuthoring("Connection unavailable. Check style again when the local service is ready.");
@@ -489,6 +460,12 @@ function disconnected(error, generation) {
 async function connect() {
     const oldSession = state.session;
     const generation = ++state.generation;
+    state.connected = false;
+    clearTimeout(state.checkTimer);
+    invalidateServices();
+    clearCompilation("Connection changed. Compile again for current output.");
+    clearEvaluation("Connection changed. Evaluate again for a current result.");
+    clearDiagnostics("Checking the current buffer…");
     clearAuthoring("Connection changed. Check style again for the current buffer.");
     clearInspection("Connecting to the language server…");
     state.connected = false;
@@ -500,16 +477,7 @@ async function connect() {
     const pending = (async () => {
         const available = await api("/api/capabilities", {});
         if (generation !== state.generation) return;
-        state.mathematical = available.mathematical === true;
-        $("mathematical-option").disabled = !state.mathematical;
-        updateModeUI();
-        if (state.mode === "mathematical") {
-            if (!state.mathematical) throw new Error("Mathematical mode needs a server launched with vela-playground-math.");
-            state.connected = true;
-            status("Mathematical compiler connected");
-            clearDiagnostics("Compile to check dependent types and proofs in the current buffer.");
-            return;
-        }
+        if (available.mathematical !== true) throw new Error("The playground service is missing dependent mathematics. Restart vela-playground and reopen its launch URL.");
         const response = await api("/api/session", {});
         const session = response.session;
         let adopted = false;
@@ -539,7 +507,7 @@ async function connect() {
 }
 
 async function synchronize(captured) {
-    if (state.mode !== "pure" || captured.mode !== "pure" || !current(captured) || !state.connected) return false;
+    if (state.editorServices !== true || !current(captured) || !state.connected) return false;
     if (state.syncedVersion === captured.version) return true;
     const message = state.opened
         ? { jsonrpc: "2.0", method: "textDocument/didChange", params: { textDocument: { uri: DOCUMENT_URI, version: captured.version }, contentChanges: [{ text: captured.text }] } }
@@ -552,7 +520,7 @@ async function synchronize(captured) {
 }
 
 async function languageQuery(method, params = {}, captured = snapshot(), cancellation = null) {
-    if (state.mode !== "pure" || captured.mode !== "pure") return undefined;
+    if (state.editorServices !== true) return undefined;
     try {
         await state.connection;
         return await enqueue(async () => {
@@ -572,15 +540,40 @@ async function languageQuery(method, params = {}, captured = snapshot(), cancell
     }
 }
 
+async function acceptAnalysis(result, captured, ticket) {
+    if (!current(captured) || ticket !== state.analysisTicket) return;
+    if (typeof result.editorServices !== "boolean") throw new Error("The compiler returned incomplete editor-service availability.");
+    state.editorServices = state.connected ? result.editorServices : null;
+    updateServiceUI();
+    compilerDiagnostics(result, captured);
+    if (state.editorServices === true) {
+        try {
+            await enqueue(() => synchronize(captured));
+            if (current(captured) && ticket === state.analysisTicket && !$("inspect-panel").hidden) refreshOutline();
+        } catch (error) {
+            if (current(captured) && ticket === state.analysisTicket) disconnected(error, captured.generation);
+        }
+    }
+}
+
 function scheduleCheck(delay = 400) {
     clearTimeout(state.checkTimer);
-    if (state.mode !== "pure") return;
+    const ticket = ++state.analysisTicket;
     state.checkTimer = setTimeout(async () => {
         const captured = snapshot();
         try {
             await state.connection;
-            await enqueue(() => synchronize(captured));
-        } catch (error) { disconnected(error, captured.generation); }
+            if (!current(captured) || ticket !== state.analysisTicket || !state.connected) return;
+            const [result, hash] = await Promise.all([api("/api/compile", { source: captured.text }), expectedHash(captured.text)]);
+            if (!current(captured) || ticket !== state.analysisTicket) return;
+            if (result.sourceHash !== hash) throw new Error("The compiler response does not match the requested source.");
+            await acceptAnalysis(result, captured, ticket);
+        } catch (error) {
+            if (!current(captured) || ticket !== state.analysisTicket) return;
+            invalidateServices();
+            clearDiagnostics(`Source check unavailable: ${error.message}`);
+            activity("Source check unavailable; compile or reconnect to retry");
+        }
     }, delay);
 }
 
@@ -594,13 +587,8 @@ function sourceChanged(text) {
     if (text === state.text) return;
     state.text = text;
     state.version++;
-    state.compileTicket++;
-    state.gallina = "";
-    $("copy-output").disabled = true;
-    $("download-output").disabled = true;
-    $("compile-button").disabled = false;
-    $("gallina-output").textContent = "// Source changed. Compile again to inspect the current translation.";
-    $("compile-summary").textContent = "Output cleared because the source changed.";
+    invalidateServices();
+    clearCompilation("Output cleared because the source changed.");
     clearEvaluation();
     clearAuthoring("Source changed. Check style again for a current preview.");
     clearInspection("Source changed. Refresh the outline to inspect this buffer.");
@@ -608,7 +596,7 @@ function sourceChanged(text) {
         state.undoSource = null;
         $("undo-buffer").disabled = true;
     }
-    clearDiagnostics(state.mode === "mathematical" ? "Source changed. Compile to check dependent types and proofs." : state.connected ? "Checking the current buffer…" : "Language services are not connected.");
+    clearDiagnostics(state.connected ? "Checking the current buffer…" : "Language services are not connected.");
     activity("Source changed");
     scheduleCheck();
 }
@@ -671,7 +659,7 @@ function replaceBuffer(text, source) {
 function clearAuthoring(message) {
     state.authoringTicket++;
     state.authoring = null;
-    $("check-authoring").disabled = state.mode !== "pure";
+    $("check-authoring").disabled = state.editorServices !== true;
     $("apply-binding-preview").disabled = true;
     $("authoring-summary").textContent = message;
     $("authoring-findings").replaceChildren();
@@ -679,7 +667,7 @@ function clearAuthoring(message) {
 }
 
 async function checkAuthoring() {
-    if (state.mode !== "pure") return;
+    if (state.editorServices !== true) return;
     const captured = snapshot();
     const ticket = ++state.authoringTicket;
     const stillCurrent = () => current(captured) && ticket === state.authoringTicket;
@@ -726,15 +714,15 @@ function clearInspection(message) {
     state.inspectTicket++;
     state.outlineSnapshot = null;
     state.inspectPending = false;
-    $("refresh-outline").disabled = state.mode !== "pure";
-    $("inspect-symbol").disabled = state.mode !== "pure";
+    $("refresh-outline").disabled = state.editorServices !== true;
+    $("inspect-symbol").disabled = state.editorServices !== true;
     $("outline").replaceChildren(element("p", "muted-message", message));
     $("symbol-details").textContent = "Select a symbol from the current outline or inspect an identifier at the source cursor.";
     $("symbol-references").replaceChildren();
 }
 
 async function refreshOutline() {
-    if (state.mode !== "pure") return;
+    if (state.editorServices !== true) return;
     const captured = snapshot();
     clearInspection("Loading compiler-resolved symbols…");
     const ticket = ++state.outlineTicket;
@@ -765,7 +753,7 @@ async function refreshOutline() {
 }
 
 async function inspectSymbol(position = null) {
-    if (state.mode !== "pure") return;
+    if (state.editorServices !== true) return;
     const captured = snapshot();
     const ticket = ++state.inspectTicket;
     const stillCurrent = () => current(captured) && ticket === state.inspectTicket;
@@ -812,7 +800,7 @@ function sourceSelectionKey() {
 }
 
 function sourceSelectionChanged() {
-    if (state.mode !== "pure") return;
+    if (state.editorServices !== true) return;
     if (!state.inspectPending || state.inspectSelection === sourceSelectionKey()) return;
     state.inspectTicket++;
     state.inspectPending = false;
@@ -959,7 +947,7 @@ async function loadEditor() {
             minimap: { enabled: false }, scrollBeyondLastLine: false, smoothScrolling: false,
             renderLineHighlight: "line", lineNumbersMinChars: 3, glyphMargin: false,
             folding: false, fontLigatures: false, tabSize: 4, insertSpaces: true,
-            wordWrap: "off", inlayHints: { enabled: state.mode === "pure" && $("show-hints").checked ? "on" : "off" }, "semanticHighlighting.enabled": state.mode === "pure" && $("show-semantics").checked,
+            wordWrap: "off", inlayHints: { enabled: state.editorServices === true && $("show-hints").checked ? "on" : "off" }, "semanticHighlighting.enabled": state.editorServices === true && $("show-semantics").checked,
             quickSuggestions: false, suggestOnTriggerCharacters: false, wordBasedSuggestions: "off",
             ariaLabel: "Vela source editor", contextmenu: true,
         });
@@ -975,7 +963,7 @@ async function loadEditor() {
         state.editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, compile);
         $("source-fallback").hidden = true;
         $("editor-notice").hidden = true;
-        updateModeUI();
+        updateServiceUI();
         scheduleCheck(0);
     } catch (error) {
         state.editor?.dispose();
@@ -989,12 +977,12 @@ async function loadEditor() {
         $("source-fallback").value = state.text;
         $("editor-notice").textContent = "Plain-text mode: Monaco could not load from the CDN. Compile, format, evaluate, authoring checks and symbol inspection are available; inline editor features need Monaco.";
         $("editor-notice").hidden = false;
-        updateModeUI();
+        updateServiceUI();
     }
 }
 
 function selectTab(name) {
-    if (state.mode !== "pure" && ["inspect", "authoring"].includes(name)) return;
+    if (state.editorServices !== true && ["inspect", "authoring"].includes(name)) return;
     document.querySelectorAll("[data-tab]").forEach((button) => {
         const selected = button.dataset.tab === name;
         button.classList.toggle("active", selected);
@@ -1018,6 +1006,8 @@ async function expectedHash(text) {
 async function compile() {
     const captured = snapshot();
     const ticket = ++state.compileTicket;
+    clearTimeout(state.checkTimer);
+    const analysisTicket = ++state.analysisTicket;
     const stillCurrent = () => current(captured) && ticket === state.compileTicket;
     selectTab("gallina");
     state.gallina = "";
@@ -1028,10 +1018,11 @@ async function compile() {
     $("gallina-output").textContent = "";
     activity("Compiling…");
     try {
-        const [result, hash] = await Promise.all([api("/api/compile", { source: captured.text, mode: captured.mode }), expectedHash(captured.text)]);
+        const [result, hash] = await Promise.all([api("/api/compile", { source: captured.text }), expectedHash(captured.text)]);
         if (!stillCurrent()) return;
         if (result.sourceHash !== hash) throw new Error("The compiler response does not match the requested source.");
-        if (captured.mode === "mathematical") mathematicalDiagnostics(result, captured);
+        await acceptAnalysis(result, captured, analysisTicket);
+        if (!stillCurrent()) return;
         if (!result.ok) {
             $("compile-summary").textContent = "Compilation refused; no generated output.";
             $("gallina-output").textContent = errorText(result.error);
@@ -1040,12 +1031,13 @@ async function compile() {
         }
         state.gallina = result.gallina;
         $("gallina-output").textContent = result.gallina;
-        $("compile-summary").textContent = `${result.module} · ${captured.mode === "mathematical" ? "mathematical elaboration; kernel replay separate" : "unqualified pure translation"} · SHA-256 ${hash.slice(0, 12)}`;
+        $("compile-summary").textContent = `${result.module} · unqualified translation; kernel replay separate · SHA-256 ${hash.slice(0, 12)}`;
         $("copy-output").disabled = false;
         $("download-output").disabled = false;
         activity("Gallina output ready");
     } catch (error) {
         if (!stillCurrent()) return;
+        if (analysisTicket === state.analysisTicket) invalidateServices();
         $("compile-summary").textContent = "Compilation unavailable; no generated output.";
         $("gallina-output").textContent = error.message;
         activity("Compilation unavailable");
@@ -1061,10 +1053,10 @@ async function evaluate(event) {
     const stillCurrent = () => current(captured) && ticket === state.evaluateTicket && expression === $("expression").value && valueType === $("value-type").value;
     selectTab("console");
     $("evaluate-button").disabled = true;
-    $("console-result").replaceChildren(element("p", "muted-message", captured.mode === "mathematical" ? "Reducing with the mathematical elaborator…" : "Evaluating with the pure compiler…"));
+    $("console-result").replaceChildren(element("p", "muted-message", "Evaluating the expression against the current source…"));
     activity("Evaluating…");
     try {
-        const [result, hash] = await Promise.all([api("/api/evaluate", { source: captured.text, expression, valueType, mode: captured.mode }), expectedHash(captured.text)]);
+        const [result, hash] = await Promise.all([api("/api/evaluate", { source: captured.text, expression, valueType }), expectedHash(captured.text)]);
         if (!stillCurrent()) return;
         if (result.sourceHash !== hash) throw new Error("The evaluation response does not match the requested source.");
         const card = element("div", `result-card${result.ok ? "" : " error"}`);
@@ -1072,7 +1064,7 @@ async function evaluate(event) {
         card.append(element("p", "result-expression", `› ${expression}`));
         card.append(element("p", "result-value", result.ok ? result.value : errorText(result.error)));
         if (result.ok) card.append(element("div", "result-type", `: ${result.valueType}`));
-        card.append(element("div", "result-identity", `Source SHA-256 ${hash.slice(0, 12)} · ${captured.mode === "mathematical" ? "mathematical reduction; no kernel verdict" : "unqualified pure prototype"}`));
+        card.append(element("div", "result-identity", `Source SHA-256 ${hash.slice(0, 12)} · compile-time evaluation; no kernel verdict`));
         $("console-result").replaceChildren(card);
         activity(result.ok ? "Compile-time value ready" : "Compiler refused the expression");
     } catch (error) {
@@ -1085,7 +1077,7 @@ async function evaluate(event) {
 }
 
 async function format() {
-    if (state.mode !== "pure") return;
+    if (state.editorServices !== true) return;
     const captured = snapshot();
     $("format-button").disabled = true;
     try {
@@ -1098,7 +1090,7 @@ async function format() {
         for (const edit of ordered) text = text.slice(0, edit.start) + edit.text + text.slice(edit.end);
         replaceBuffer(text, "vela-format");
         activity("Canonical formatting applied");
-    } finally { updateModeUI(); }
+    } finally { updateServiceUI(); }
 }
 
 $("source-fallback").addEventListener("input", () => sourceChanged($("source-fallback").value));
@@ -1126,7 +1118,7 @@ $("reconnect-button").addEventListener("click", connect);
 $("check-authoring").addEventListener("click", checkAuthoring);
 $("apply-binding-preview").addEventListener("click", () => {
     const preview = state.authoring;
-    if (!preview || !current(preview.captured) || preview.candidate === state.text) {
+    if (state.editorServices !== true || !preview || !current(preview.captured) || preview.candidate === state.text) {
         clearAuthoring("Preview is no longer current. Check style again before applying an edit.");
         return;
     }
@@ -1144,9 +1136,8 @@ $("undo-buffer").addEventListener("click", () => {
 });
 $("refresh-outline").addEventListener("click", refreshOutline);
 $("inspect-symbol").addEventListener("click", () => inspectSymbol());
-$("language-mode").addEventListener("change", changeMode);
-$("show-hints").addEventListener("change", updateModeUI);
-$("show-semantics").addEventListener("change", updateModeUI);
+$("show-hints").addEventListener("change", updateServiceUI);
+$("show-semantics").addEventListener("change", updateServiceUI);
 $("download-source").addEventListener("click", () => { download(state.text, "playground.vela"); activity("Source download requested"); });
 $("download-output").addEventListener("click", () => {
     if (!state.gallina) return;
@@ -1191,5 +1182,6 @@ window.addEventListener("pagehide", () => {
     if (state.session) closeSession(state.session, { keepalive: true });
 });
 
+updateServiceUI();
 connect();
 loadEditor();
