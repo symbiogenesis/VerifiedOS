@@ -90,7 +90,7 @@ public Result<usize, CapacityError> WriteHeader<ghost Nat capacity>(
     effects writes(builder), writes(scratch)
 {
     let first = Format.Write(ref builder, $"packet[{id}]={{tag:{tag:x2}}}")?;
-    let second = Format.Write(target: ref scratch, template: $"id={Identity::<usize>(id)}")?;
+    let second = Format.Write(target: ref scratch, template: $"id={Identity<usize>(id)}")?;
     let matched = match (SingleRaw) {
         """"matched """ \raw"""" => first + second,
         _ => 0usize,
@@ -1316,6 +1316,8 @@ NEGATIVE: tuple[tuple[str, bytes, str], ...] = (
     ("legacy-definition-body", b"module M; definition Nat F() = 0;", "syntax"),
     ("combined-definition-bodies", b"module M; definition Nat F() = => 0;", "syntax"),
     ("legacy-expression-arms", b"module M; Nat F() => match (x) { case _ => 0; };", "syntax"),
+    ("legacy-guard-clause", b"module M; public machine Counter { transition Step() guard true {} }", "syntax"),
+    ("legacy-parenthesized-generic-callable", b"module M; alias A = Box<(Fn() -> Nat)>;", "syntax"),
     ("expression-arm-semicolons", b"module M; Nat F() => match (x) { _ => 0; };", "syntax"),
     ("expression-arms-empty-comma", b"module M; Nat F() => match (x) { , };", "syntax"),
     ("expression-arms-double-comma", b"module M; Nat F() => match (x) { _ => 0,, };", "syntax"),
@@ -4285,7 +4287,7 @@ def _raw_string_and_format_roles(source: bytes, result: dict[str, Json]) -> None
     interpolated = [node for node in nodes(header) if node.get("kind") == "interpolated_string"]
     expected = (
         b'$"packet[{id}]={{tag:{tag:x2}}}"',
-        b'$"id={Identity::<usize>(id)}"',
+        b'$"id={Identity<usize>(id)}"',
         b'$"allocated {id}"',
         b'$"len={builder.Length}"',
     )

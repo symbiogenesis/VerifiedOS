@@ -47,7 +47,7 @@ let binary first last operator left right =
 %token EFFECT RESUMES HANDLE SHALLOW WITH RESUME DISPOSE REHANDLE
 %token AWAIT SCOPE SPAWN COMMIT ON CANCEL VAR FOREACH WHILE MATCH CASE BREAK CONTINUE
 %token DEFINITION THEOREM LEMMA INDUCTIVE COINDUCTIVE UNIVERSE FORALL EXISTS ASSERT CALC
-%token MACHINE HARDWARE STATE REGISTER TRANSITION RULE GUARD WHEN NEXT SCHEDULE CYCLE
+%token MACHINE HARDWARE STATE REGISTER TRANSITION RULE WHEN NEXT SCHEDULE CYCLE
 %token FN FNMUT FNONCE IS CARRIER ZERO ONE ADD MUL ADMITS INTERPRET LAWS
 %token LBRACKET RBRACKET DOT COLON AT QUESTION RANGE ARROW FATARROW IMPLIES IFF
 %token MINUS SLASH PERCENT LT GT GE NE AND OR NOT AMP BAR CARET TILDE
@@ -335,7 +335,6 @@ s_rule_kind:
   TRANSITION { "transition" } | RULE { "rule" }
 s_guard:
   WHEN LPAREN value=s_expression RPAREN { value }
-| GUARD value=s_expression { value }
 s_schedule_entry:
   rule_name=s_path SEMICOLON { make "schedule_entry" $startpos $endpos [("name", rule_name)] [] }
 s_record_tail:
@@ -468,14 +467,13 @@ s_type_argument:
 | value=LIFETIME { make "lifetime" $startpos $endpos [("name", name $startpos $endpos value)] [] }
 | LPAREN value=s_expression RPAREN { make "group" $startpos $endpos [("value", value.syntax)] [value] }
 /* Bare parentheses in generic arguments remain value syntax. Structural types
-   have an explicit `type` introducer; legacy parenthesized callables are distinct. */
+   have an explicit `type` introducer. */
 s_generic_type:
   value=s_modified_type(s_generic_type_atom) { value }
 s_generic_type_atom:
   value=s_named_type(s_path) { value }
 | value=s_computed_type { value }
 | value=s_function_type { value }
-| LPAREN value=s_function_type RPAREN { make "group_type" $startpos $endpos [("type", value.syntax)] [value] }
 s_parameter:
   constant=option(CONST) value_type=s_type parameter_name=option(s_parameter_name) grade=option(s_grade)
     { make "parameter" $symbolstartpos $endpos

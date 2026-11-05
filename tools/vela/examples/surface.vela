@@ -76,7 +76,7 @@ public Result<usize, CapacityError> FormatPacketHeader<ghost Nat capacity>(
     where Format(usize) && Format(byte)
     effects writes(builder)
 {
-    let bannerBytes = Format.Write(ref builder, """header={{""")?;
+    let bannerBytes = Format.Write(ref builder, $"header={{")?;
     let bodyBytes = Format.Write(ref builder, $"id={packetId},tag={tag:x2}}}")?;
     return Ok(bannerBytes + bodyBytes);
 }

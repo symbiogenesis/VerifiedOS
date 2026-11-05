@@ -331,7 +331,7 @@ let identifier state lexbuf =
   | "coinductive" -> COINDUCTIVE | "universe" -> UNIVERSE | "forall" -> FORALL
   | "exists" -> EXISTS | "assert" -> ASSERT | "calc" -> CALC
   | "machine" -> MACHINE | "hardware" -> HARDWARE | "state" -> STATE | "register" -> REGISTER
-  | "transition" -> TRANSITION | "rule" -> RULE | "guard" -> GUARD | "when" -> WHEN
+  | "transition" -> TRANSITION | "rule" -> RULE | "when" -> WHEN
   | "next" -> NEXT | "schedule" -> SCHEDULE | "cycle" -> CYCLE
   | "Fn" -> FN | "FnMut" -> FNMUT | "FnOnce" -> FNONCE | "is" -> IS
   | "carrier" -> CARRIER | "zero" -> ZERO | "one" -> ONE | "add" -> ADD | "mul" -> MUL
