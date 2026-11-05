@@ -221,7 +221,17 @@ invalidates the reachable component closure conservatively.
 The initial client needs a small, proved library of buffers, immutable/mutable
 spans, bounded iteration, records/sums, initialization and typed errors. Public
 operations state capacity, bounds, overlap, initialization, retained loans and
-resource states on every exit. Iterators carry their bounds and loan contracts;
+resource states on every exit. Every sequence-modeled view or buffer exposes its
+erased pure `Model : Seq<T>` with C#/Kotlin-style collection predicates and slice
+combinators—`.All(x => ...)`, `.Any(x => ...)`, `.Contains(x)`, `.Take(n)`,
+`.Skip(n)`, `.Slice(a, b)` and `.Count` alongside `.At(i)`, `.Update(i, v)`,
+`.Append(x)` and `Seq.Repeat(v, n)`—backed by pre-proved standard-library lemmas.
+Contracts write `requires items.Model.All(x => x > 0)` instead of raw
+`forall`/`exists` quantifiers and index arithmetic
+`requires (forall (Nat i) => i < items.Length ==> items.Model.At(i) > 0)`, and
+bounded predicates over finite sequences with decidable element bodies discharge
+in the [decidable/domain refinement tier](core-design.md#refinement-effects-and-staging)
+rather than open quantifier instantiation. Iterators carry their bounds and loan contracts;
 they do not require ordinary users to reconstruct a separation-logic proof at
 each element. Codecs retain the platform's required format-description and
 [boundary initialization obligations](../../spec.md#r-05-124).
@@ -282,6 +292,7 @@ the type is inferred or explicit. These familiar spellings retain Vela's rules:
 | Labeled arguments | Labels name the next declared parameter, preserving dependent substitution and left-to-right evaluation; no reordering or defaults |
 | `int` and ordinary arithmetic | Explicitly imported exact alias; representability obligations and checked-result alternatives retain the primitive contract |
 | `Option<T>` and propagation | Absence is an explicit case; every reachable exit accounts for retained loans and required resources |
+| `.Model.All(x => ...)`, `.Any(x => ...)`, `.Contains(x)`, `.Take(n)`, `.Skip(n)`, `.Slice(a, b)`, `.Count` | Pure mathematical `Seq<T>` predicates and slices in contracts, backed by standard-library lemmas and discharged in the finite-sequence refinement/domain tier instead of raw `forall`/`exists` index quantifiers |
 
 Receiver signature help shows the selected mode and named view. A conflict names
 both accesses and may offer a preceding immutable snapshot only when evaluation,
@@ -304,7 +315,7 @@ emits a term or returns an unconstrained theorem has not met this predicate.
 | Interpretation and concrete resources | Checked elaboration-image laws, an inhabited carrier state, read/write/initialization/frame and loan restoration, with wrong-offset, alias, premature-restoration and partial-initialization neighbors rejected at the intended obligations. Missing laws remain missing; no axiom or source judgment substitutes for them. |
 | Scalar and text behavior | Independent boundary fixtures for every supported type and operation, signed division/remainder signs, zero and minimum/-1, shift zero/width-1/width, exact/wrapping/saturating arithmetic, target versus host width, invalid conversions, embedded NUL, malformed UTF-8/escapes, scalar boundaries and byte slicing. Static and runtime meanings agree under the same target. Generate finite boundary classes from an independently reviewed oracle; a shared implementation is not an independent expectation. |
 | Package composition | Two independently authored packages compose with fixed instances; reordered imports preserve meaning; overlap, cycles and conflicting nominal identities are diagnosed. Locked builds reproduce their source/input closure. Contract, representation, proof assumption and tool changes invalidate affected evidence before reuse. |
-| Everyday ownership | Bounded collection/iterator, receiver-snapshot, fallible-builder and error-propagation clients compile under their actual representations and the [borrow-analysis promotion contract](core-design.md#borrow-analysis-promotion); escaped views, duplicated tokens, reads of unwritten fields, stale current-content facts and lost mandatory outcomes fail at the responsible resource rule. |
+| Everyday ownership | Bounded collection/iterator, `.Model` sequence-predicate/slice, receiver-snapshot, fallible-builder and error-propagation clients compile under their actual representations and the [borrow-analysis promotion contract](core-design.md#borrow-analysis-promotion); escaped views, duplicated tokens, reads of unwritten fields, stale current-content facts and lost mandatory outcomes fail at the responsible resource rule. |
 | Complete software path | Authored source and independent contract reach one retained backend with checked correspondence, representation and lowering; applicable final-byte, resource, observation and admission duties meet their existing owners. Report source, artifact and production evidence separately. |
 | Developer usefulness | Record annotation burden, first useful diagnostic, checking latency, code/stack/storage consequences and repair after a semantic-preserving refactor, a representation change and a real contract change on both clients. A held-out client cannot be redesigned to fit the candidate unnoticed. |
 

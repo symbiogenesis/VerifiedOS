@@ -646,7 +646,7 @@ implicit conversion, ownership transfer, effect, disposal or proof authority.
   binding or type expression at the root of a clause is parenthesized:
   `requires (forall (Nat n) => Valid(n))` or
   `requires (let n = Limit(x) in n > 0)`. Nested lambdas need no extra grouping,
-  as in `requires All(items, item => Valid(item))`. The shared operator grammar
+  as in `requires items.Model.All(x => x > 0)`. The shared operator grammar
   and explicit grouping delimit contracts from a function body's arrow without
   symbol lookup or precedence guesses. The same clause expression rules apply
   to block-bodied functions and other declarations.
@@ -853,6 +853,20 @@ or loan binders over ranges parse as collection syntax; their eligibility is a
 checking question. This distinction depends only on syntax, never resolution.
 The type, collection, contracts and body all contribute to depth accounting.
 Loop contracts retain the range-loop placement before the braced body.
+
+**Sequence model vocabulary in contracts.** In `requires`, `ensures`, `restores`
+and `invariant`, a container's logical `.Model` (`Seq<T>`) exposes the
+C#/Kotlin-style pure sequence vocabulary `.All(x => ...)`, `.Any(x => ...)`,
+`.Contains(x)`, `.Take(n)`, `.Skip(n)`, `.Slice(a, b)` and `.Count` alongside
+`.At(i)`, `.Update(i, v)`, `.Append(x)` and `Seq.Repeat(v, n)`. Authors write
+`requires items.Model.All(x => x > 0)` instead of raw quantifier and index
+arithmetic `requires (forall (Nat i) => i < items.Length ==> items.Model.At(i) > 0)`.
+In the surface grammar these are ordinary member projections, calls and inferred
+lambdas inside `s_contract_expression`, requiring no outer quantifier
+parentheses and adding no new reserved words or parser productions. Their
+standard-library definitions and pre-proved finite-sequence lemmas belong to the
+[ownership library](first-release.md#ownership-libraries) and
+[refinement/domain tier](core-design.md#refinement-effects-and-staging).
 
 **Pure typed locals and binding guidance.** Both pure syntax routes accept
 `let Nat count = value;`, `let bool ready = value;` and the immutable bare forms

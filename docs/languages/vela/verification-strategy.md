@@ -868,10 +868,10 @@ Routine checking has a defined order:
 1. Kernel-compatible definitional computation and normalization.
 2. Flow-sensitive capture and ownership checking with a sound resource interpretation.
 3. A declared decidable refinement fragment, with reconstructable or certificate-producing automation.
-4. Domain procedures for sequence updates, arrays, frames and finite arithmetic.
+4. Domain procedures and standard-library lemmas for finite sequences (`.All`, `.Any`, `.Contains`, `.Take`, `.Skip`, `.Slice`, `.Count`, `.Update`, `.Append`), arrays, frames and finite arithmetic.
 5. Explicit Rocq lemmas and proofs for residual obligations.
 
-The refinement tier targets bounded integer ranges, capacity relationships, alignment, discriminants, initialization and simple typestate, with nullity checks only for types that admit a null state. Specify the logic and supported arithmetic before calling it decidable: arbitrary quantified mathematics and arbitrary nonlinear arithmetic are not included by implication. Flux, LiquidHaskell and RefinedC supply design comparisons, not accepted solver encodings. Reconstruction follows R-05-017 where SMT contributes facts; failure or timeout leaves a goal, never an assumed refinement or an extended conversion rule. A qualification of this tier reports the obligation population, discharge rate, latency, stability after edits and manual proof burden without a predicted percentage.
+The refinement tier targets bounded integer ranges, capacity relationships, alignment, discriminants, initialization, bounded predicates and subrange projections over finite sequences on `.Model`, and simple typestate, with nullity checks only for types that admit a null state. Bounded sequence predicates such as `items.Model.All(x => x > 0)`, `.Any(x => ...)`, `.Contains(x)`, `.Take(n)`, `.Skip(n)`, `.Slice(a, b)` and `.Count` whose element bodies stay in the supported fragment discharge through pre-proved standard-library lemmas in the decidable/domain refinement tier rather than open `forall`/`exists` quantifier instantiation. Specify the logic and supported arithmetic before calling it decidable: arbitrary open quantified mathematics and arbitrary nonlinear arithmetic are not included by implication. Flux, LiquidHaskell and RefinedC supply design comparisons, not accepted solver encodings. Reconstruction follows R-05-017 where SMT contributes facts; failure or timeout leaves a goal, never an assumed refinement or an extended conversion rule. A qualification of this tier reports the obligation population, discharge rate, latency, stability after edits and manual proof burden without a predicted percentage.
 
 Equality ergonomics first use canonical indices, normalization, bidirectional insertion of checked transports and derived decidable equality with locally proved uniqueness where applicable. Logical proof irrelevance is used only where proved for the particular proposition. Runtime proof erasure needs its own preservation theorem and confers no additional equality principle. Cubical or observational equality is a separately scoped kernel or translation research question, outside this core's CIC authority.
 
@@ -1000,6 +1000,7 @@ retain their qualified parser/frontend prerequisites.
 | `view Tail = ...`, `ref this.Tail` | A named part of a record, which a public signature can lend while other parts stay borrowed elsewhere. |
 | `ghost T`, `tracked T` | Erased data. A ghost value is duplicable specification data with no computation use; tracked evidence is an erased resource that cannot be copied. |
 | `requires`, `ensures`, `old(e)` | Entry and exit contracts; `old` evaluates its argument at entry. |
+| `x.Model.All(e => ...)`, `.Any(e => ...)`, `.Contains(v)`, `.Take(n)`, `.Skip(n)`, `.Slice(a, b)`, `.Count` | C#/LINQ-style pure sequence predicates, subranges and length on a logical `Seq<T>` model in `requires`, `ensures` and `invariant`, backed by pre-proved standard-library lemmas so bounded finite-sequence contracts avoid raw `forall`/`exists` index arithmetic and fall into the decidable/domain refinement tier. |
 | `restores P`, `final(x)` | A contract holding of the lender when a returned loan ends, with `final(x)` the value the loan leaves behind. |
 | `effects ...` | A closed upper bound on reads, writes, calls and effect operations, including transitive callees and captures. The bounded profile's allocation bound is none, so signatures omit `allocates(none)`. |
 | `Fn`, `FnMut`, `FnOnce`, `captures C` | Shared-call, exclusive-call and consuming-call function types, and the transitive capture set a closure retains. A function type without its own `effects` is total and does nothing beyond reading its captures. |
@@ -1198,7 +1199,13 @@ unchecked-memory escape.
 
 #### Contracts, Loops and Proof Mode
 
-`Span<byte, count>` views initialized storage with a runtime `Length` and an erased logical `Model`. `Span<byte>` hides `count` existentially while keeping `Length` and its relationship to the model.
+`Span<byte, count>` views initialized storage with a runtime `Length` and an erased logical `Model` of pure mathematical sequence type `Seq<byte>`. `Span<byte>` hides `count` existentially while keeping `Length` and its relationship to `Model.Count`. Because novices struggle with raw `forall`/`exists` quantifiers and index arithmetic in `requires`, `ensures` and `invariant`, `Seq<T>` is equipped with familiar C#/Kotlin collection predicates and combinators—`.All(x => ...)`, `.Any(x => ...)`, `.Contains(x)`, `.Take(n)`, `.Skip(n)`, `.Slice(a, b)` and `.Count`—backed by pre-proved standard-library lemmas. An author writes
+
+```text
+requires items.Model.All(x => x > 0)
+```
+
+instead of `requires (forall (Nat i) => i < items.Length ==> items.Model.At(i) > 0)`. Bounded predicates and slice combinators over finite sequences fall directly into the decidable/domain refinement tier rather than open quantifier instantiation, while explicit `forall`/`exists` quantifiers remain available for general mathematical theorems.
 
 ```text
 module Buffers;
@@ -1215,7 +1222,7 @@ public void Fill<ghost Nat count>(ref Span<byte, count> target, byte value)
 }
 ```
 
-The caller writes `Fill(target: ref target, value: value)`, and `count` is inferred from the view; it never serves as the executable bound. The `foreach` range supplies what a `while` loop would make the author write: `index < target.Length`, a representable increment under the instance's length and index laws, and the decreasing measure. Only the functional invariant is authored. The exclusive loan returns on exit with an inferred frame, so storage outside `target` is unchanged. `Take` and `Repeat` compute in specifications, never on the target. Filling initialized public data establishes no secure erasure, device-memory semantics or resistance to dead-store elimination.
+The caller writes `Fill(target: ref target, value: value)`, and `count` is inferred from the view; it never serves as the executable bound. The `foreach` range supplies what a `while` loop would make the author write: `index < target.Length`, a representable increment under the instance's length and index laws, and the decreasing measure. Only the functional invariant is authored. The exclusive loan returns on exit with an inferred frame, so storage outside `target` is unchanged. `Take`, `Skip`, `Slice`, `All`, `Any`, `Contains`, `Count` and `Repeat` compute in specifications through standard-library sequence lemmas, never on the target. Filling initialized public data establishes no secure erasure, device-memory semantics or resistance to dead-store elimination.
 
 When a step fails, the editor shows the local store, the live loans, the arithmetic facts and the remaining goal. Adding `proof { Seq.RepeatSnoc(value, Nat(index)); }` to the loop body invokes a named lemma with inferred arguments, and its unresolved premises stay goals. Writing `proof { ?extend; }` instead leaves a named typed hole that keeps its expected proposition, locals, loans and exit state. The build reports the hole, and nothing containing it enters an accepted package. One module system resolves executable definitions, specifications, lemmas and source locations.
 
@@ -1764,7 +1771,7 @@ The following are proposed module names within one package, not existing files o
 
 | Module | Public surface | Proof responsibility |
 | --- | --- | --- |
-| `Models` | Pure sequence updates, bounded indices, initialized-prefix views, protocol transition functions | Target-independent functional facts; no new memory model |
+| `Models` | Pure `Seq<T>` predicates and combinators (`.All`, `.Any`, `.Contains`, `.Take`, `.Skip`, `.Slice`, `.Count`, `.Update`, `.Append`), bounded indices, initialized-prefix views, protocol transition functions | Target-independent functional facts and pre-proved finite-sequence lemmas; no new memory model |
 | `Interfaces` | Coherent program/logic signatures, primitive laws, representability and required guarantee judgments | State all generic theorem premises without treating them as discharged axioms |
 | `Representation` | Buffer ownership, readable initialized cells, disjoint slices, model snapshots | Parameterized views and laws connected to concrete predicates by each instance |
 | `Build` | `sequence`, `branch`, `bounded_loop`, `store`, `with_element` | Construct the instance's program terms while composing its proved rules |
@@ -1773,7 +1780,7 @@ The following are proposed module names within one package, not existing files o
 | `Grades` | Optional fixed-domain accounting and checked arithmetic evidence | Interpret the chosen grade in an actual trace or resource predicate; no universal grade engine initially |
 | `Instances.Cheri` | Selected CHERI program/logic interpretation, primitive implementations, concrete representations | Discharge the generic laws and connect to existing source/transport anchors; no second ISA semantics |
 | `Evidence` | Theorem subject, semantic instance, required guarantees, representation, assumptions, source/build bindings | Integrate with existing artifact evidence; a metadata wrapper cannot establish correspondence |
-| `Automation` | Bounds, sequence updates, frame reconstruction, named lemma hints | Produce ordinary Rocq terms and preserve useful unresolved goals |
+| `Automation` | Bounds, finite-sequence predicates/slices and updates, frame reconstruction, named lemma hints | Produce ordinary Rocq terms and preserve useful unresolved goals |
 
 The public component package can have this schematic Rocq module shape:
 

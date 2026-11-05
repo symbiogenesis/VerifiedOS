@@ -52,7 +52,11 @@ void Calls() {
       "member", "computed_type", "type_argument", "lifetime")),
     Fixture("bounded-collection-iteration", """// café: modes, type annotations and range compatibility are syntax facts.
 module Iteration;
-void Visit(ref Span<byte> target, in Span<byte> source) {
+void Visit(ref Span<byte> target, in Span<byte> source)
+    requires source.Model.All(x => x > 0)
+    requires source.Model.Any(x => x == 1) && source.Model.Contains(1)
+    ensures target.Model.Take(1).Skip(0).Slice(0, 1).Count == 1
+{
     foreach (let copied in source) { Inspect(copied); }
     foreach (let byte typed in source) invariant Valid(source) { continue; }
     foreach (in borrowed in source) { Inspect(in borrowed); break; }
@@ -4170,6 +4174,18 @@ def _familiar_call_roles(source: bytes, result: dict[str, Json]) -> None:
 
 
 def _collection_iteration_roles(source: bytes, result: dict[str, Json]) -> None:
+    visit = _named(result.get("ast"), "function", "Visit")
+    contracts = _contract_roles(visit, ["requires", "requires", "ensures"])
+    all_call = _object(contracts[0].get("value"), "sequence All contract")
+    all_member = _object(all_call.get("callee"), "sequence All member")
+    all_lambda = _object(_sequence(all_call.get("arguments"), "sequence All arguments")[0], "sequence All predicate")
+    if (all_call.get("kind") != "call" or all_member.get("kind") != "member"
+            or _texts(all_member.get("name")) != ["All"] or all_lambda.get("kind") != "lambda"):
+        raise ValueError("sequence .Model.All contract lost its member call or lambda predicate role")
+    members = {text for clause in contracts for node in nodes(clause)
+               if node.get("kind") == "member" for text in _texts(node.get("name"))}
+    if not {"Model", "All", "Any", "Contains", "Take", "Skip", "Slice", "Count"} <= members:
+        raise ValueError("sequence .Model contract vocabulary lost a predicate or slice projection")
     loops = [node for node in nodes(result.get("ast")) if node.get("kind") in {"foreach", "foreach_collection"}]
     expected = {
         "copied": ("value", False), "typed": ("value", True), "borrowed": ("in", False),
