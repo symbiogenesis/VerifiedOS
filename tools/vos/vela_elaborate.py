@@ -31,6 +31,7 @@ MAX_OUTPUT_BYTES = 1_048_576
 MAX_UNIVERSE = 8
 MAX_NAT_BITS = 4096
 MAX_CONSTANT_NAT = 10 ** MAX_LITERAL_DIGITS - 1
+MAX_PATTERN_NAT = 64
 
 
 @dataclass(frozen=True)
@@ -68,9 +69,21 @@ _FIELDS: dict[str, set[str]] = {
     "block": {"statements"}, "return": {"value"}, "expression_body": {"value"},
     "let": {"name", "type", "grade", "value"},
     "typed_local": {"name", "type", "grade", "value"},
+    "let_pattern": {"pattern", "value"},
     "if": {"condition", "then", "else"},
+    "match": {"value", "motive", "cases"}, "case": {"pattern", "statements"},
+    "match_expression": {"value", "motive", "cases"},
+    "expression_case": {"pattern", "value"}, "match_motive": {"name", "type"},
+    "wildcard_pattern": set(), "binding_pattern": {"name"},
+    "unit_pattern": set(), "group_pattern": {"pattern"},
+    "tuple_pattern": {"patterns"}, "bool_pattern": {"value"},
+    "nat_pattern": {"value", "suffix"}, "constructor_pattern": {"name", "arguments"},
     "quantifier": {"quantifier", "parameters", "value"},
     "hole": {"name"},
+}
+_PATTERN_KINDS = {
+    "wildcard_pattern", "binding_pattern", "unit_pattern", "group_pattern",
+    "tuple_pattern", "bool_pattern", "nat_pattern", "constructor_pattern",
 }
 _IDENTIFIER = re.compile(r"[A-Za-z_][A-Za-z_0-9]*(?:\.[A-Za-z_][A-Za-z_0-9]*)*")
 _OPERATORS = {"+", "*", "-", "/", "%", "==", "!=", "<", "<=", ">", ">=", "&&", "||", "!", "==>", "<==>"}
@@ -166,7 +179,7 @@ class _Protocol:
         return child_span[1]
 
     def _list(self, node: Node, span: tuple[int, int], cursor: int, raw: object,
-              opening: bytes = b"(", closing: bytes = b")") -> int:
+              opening: bytes = b"(", closing: bytes = b")", *, trailing: bool = True) -> int:
         if not isinstance(raw, list):
             raise self.error("protocol", "syntax envelope requires a child list", node)
         cursor = self._token(node, cursor, opening)
@@ -174,7 +187,7 @@ class _Protocol:
             if index:
                 cursor = self._token(node, cursor, b",")
             cursor = self._child(node, span, cursor, value)
-        if raw:
+        if raw and trailing:
             after = trivia_end(self.source, cursor, block_comments=True)
             if self.source[after:after + 1] == b",":
                 cursor = after + 1
@@ -248,6 +261,17 @@ class _Protocol:
                     cursor = self._child(node, span, cursor, node["value"])
                     if cursor < span[1]:
                         cursor = self._token(node, cursor, b";")
+        elif kind == "let_pattern":
+            pattern = node["pattern"]
+            if (not isinstance(pattern, dict)
+                    or pattern.get("kind") not in {"unit_pattern", "group_pattern", "tuple_pattern", "constructor_pattern"}):
+                raise self.error("protocol", "let_pattern requires a parenthesized or constructor pattern", node)
+            cursor = self._token(node, cursor, b"let")
+            cursor = self._child(node, span, cursor, pattern)
+            cursor = self._token(node, cursor, b"=")
+            cursor = self._child(node, span, cursor, node["value"])
+            if cursor < span[1]:
+                cursor = self._token(node, cursor, b";")
         elif kind == "return":
             cursor = self._token(node, cursor, b"return")
             if node["value"] is not None:
@@ -262,6 +286,62 @@ class _Protocol:
             if node["else"] is not None:
                 cursor = self._token(node, cursor, b"else")
                 cursor = self._child(node, span, cursor, node["else"])
+        elif kind in {"match", "match_expression"}:
+            cursor = self._token(node, cursor, b"match")
+            cursor = self._token(node, cursor, b"(")
+            cursor = self._child(node, span, cursor, node["value"])
+            cursor = self._token(node, cursor, b")")
+            if node["motive"] is not None:
+                if not isinstance(node["motive"], dict) or node["motive"].get("kind") != "match_motive":
+                    raise self.error("protocol", "match motive must be a match_motive node", node)
+                cursor = self._child(node, span, cursor, node["motive"])
+            cases = node["cases"]
+            expected_case = "expression_case" if kind == "match_expression" else "case"
+            if (not isinstance(cases, list)
+                    or any(not isinstance(item, dict) or item.get("kind") != expected_case for item in cases)):
+                raise self.error("protocol", f"{kind} requires {expected_case} children", node)
+            if kind == "match_expression":
+                cursor = self._list(node, span, cursor, cases, b"{", b"}")
+            else:
+                cursor = self._token(node, cursor, b"{")
+                self._sequence_envelope(node, span, "cases", cursor, b"}")
+                return
+        elif kind == "match_motive":
+            cursor = self._token(node, cursor, b"as")
+            cursor = self._child(node, span, cursor, node["name"])
+            cursor = self._token(node, cursor, b":")
+            cursor = self._child(node, span, cursor, node["type"])
+        elif kind == "case":
+            if not isinstance(node["pattern"], dict) or node["pattern"].get("kind") not in _PATTERN_KINDS:
+                raise self.error("protocol", "match arm requires a pattern node", node)
+            cursor = self._token(node, cursor, b"case")
+            cursor = self._child(node, span, cursor, node["pattern"])
+            cursor = self._token(node, cursor, b":")
+            self._sequence_envelope(node, span, "statements", cursor)
+            return
+        elif kind == "expression_case":
+            if not isinstance(node["pattern"], dict) or node["pattern"].get("kind") not in _PATTERN_KINDS:
+                raise self.error("protocol", "match arm requires a pattern node", node)
+            cursor = self._child(node, span, cursor, node["pattern"])
+            cursor = self._token(node, cursor, b"=>")
+            cursor = self._child(node, span, cursor, node["value"])
+        elif kind == "wildcard_pattern":
+            if self._word(self.source[span[0] - 1:span[0]]):
+                raise self.error("protocol", "wildcard pattern splits a source token", node)
+            cursor = self._token(node, cursor, b"_")
+        elif kind == "binding_pattern":
+            name = node["name"]
+            if (not isinstance(name, dict) or not isinstance(name.get("text"), str)
+                    or name["text"] == "_" or "." in name["text"]):
+                raise self.error("protocol", "binding_pattern requires a non-wildcard unqualified name", node)
+            cursor = self._child(node, span, cursor, name)
+        elif kind == "constructor_pattern":
+            arguments = node["arguments"]
+            if (not isinstance(arguments, list)
+                    or any(not isinstance(item, dict) or item.get("kind") not in _PATTERN_KINDS for item in arguments)):
+                raise self.error("protocol", "constructor_pattern arguments must be pattern nodes", node)
+            cursor = self._child(node, span, cursor, node["name"])
+            cursor = self._list(node, span, cursor, arguments)
         elif kind in {"name", "hole"}:
             cursor = self._child(node, span, cursor, node["name"])
         elif kind == "binary":
@@ -270,13 +350,21 @@ class _Protocol:
         elif kind == "unary":
             cursor = self._child(node, span, cursor, node["operator"])
             cursor = self._child(node, span, cursor, node["value"])
-        elif kind in {"group", "group_type", "operator"}:
+        elif kind in {"group", "group_type", "group_pattern", "operator"}:
             cursor = self._token(node, cursor, b"(")
-            field = {"group": "value", "group_type": "type", "operator": "name"}[cast("str", kind)]
+            field = {"group": "value", "group_type": "type", "group_pattern": "pattern", "operator": "name"}[cast("str", kind)]
+            if kind == "group_pattern" and (not isinstance(node["pattern"], dict) or node["pattern"].get("kind") not in _PATTERN_KINDS):
+                raise self.error("protocol", "group_pattern requires a pattern child", node)
             cursor = self._child(node, span, cursor, node[field])
             cursor = self._token(node, cursor, b")")
-        elif kind in {"tuple", "tuple_type"}:
-            cursor = self._list(node, span, cursor, node["values"] if kind == "tuple" else node["types"])
+        elif kind in {"tuple", "tuple_type", "tuple_pattern"}:
+            field = {"tuple": "values", "tuple_type": "types", "tuple_pattern": "patterns"}[cast("str", kind)]
+            if kind == "tuple_pattern":
+                patterns = node["patterns"]
+                if (not isinstance(patterns, list) or len(patterns) < 2
+                        or any(not isinstance(item, dict) or item.get("kind") not in _PATTERN_KINDS for item in patterns)):
+                    raise self.error("protocol", "tuple_pattern requires at least two pattern children", node)
+            cursor = self._list(node, span, cursor, node[field], trailing=False)
         elif kind in {"type_expression", "type_argument", "computed_type"}:
             cursor = self._token(node, cursor, b"type")
             if kind == "computed_type":
@@ -315,7 +403,12 @@ class _Protocol:
             cursor = self._token(node, cursor, b"=>")
             cursor = self._child(node, span, cursor, node["body"])
         elif kind == "let_expression":
-            cursor = self._child(node, span, cursor, node["binding"])
+            binding = node["binding"]
+            if not isinstance(binding, dict) or binding.get("kind") not in {"let", "typed_local", "let_pattern"}:
+                raise self.error("protocol", "let_expression requires a local binding", node)
+            cursor = self._child(node, span, cursor, binding)
+            if self.source[cursor - 1:cursor] == b";":
+                raise self.error("protocol", "let_expression binding cannot carry a statement semicolon", node)
             cursor = self._token(node, cursor, b"in")
             cursor = self._child(node, span, cursor, node["body"])
         elif kind == "quantifier":
@@ -490,7 +583,7 @@ class _Protocol:
                 raise self.error("protocol", "optional grade must be null or a located syntax node", node)
             self._span(grade.get("span"), span)
         self._ordinary_envelope(node, span)
-        if kind == "nat":
+        if kind in {"nat", "nat_pattern"}:
             value, suffix = node["value"], node["suffix"]
             if not isinstance(value, str) or not isinstance(suffix, str):
                 raise self.error("protocol", "invalid numeric literal payload", node)
@@ -500,15 +593,23 @@ class _Protocol:
                 raise self.error("protocol", "numeric literal differs from its source", node)
             if suffix or not DECIMAL.fullmatch(value):
                 raise self.error("unsupported", "only unsuffixed decimal Nat literals are supported", node)
-        if kind == "bool":
+        if kind in {"bool", "bool_pattern"}:
             value = node["value"]
             if type(value) is not bool or self.source[span[0]:span[1]] != (b"true" if value else b"false"):
                 raise self.error("protocol", "Boolean literal differs from its source", node)
-        if kind == "unit":
+        if kind in {"unit", "unit_pattern"}:
             cursor = trivia_end(self.source, span[0] + 1, block_comments=True)
             if (self.source[span[0]:span[0] + 1] != b"("
                     or self.source[cursor:cursor + 1] != b")" or cursor + 1 != span[1]):
                 raise self.error("protocol", "unit value differs from its source", node)
+        if kind in {"block", "case"}:
+            statements = node["statements"]
+            if isinstance(statements, list):
+                for statement in statements:
+                    if isinstance(statement, dict) and statement.get("kind") in {"let", "typed_local", "let_pattern"}:
+                        statement_span = self._span(statement.get("span"), span)
+                        if self.source[statement_span[1] - 1:statement_span[1]] != b";":
+                            raise self.error("protocol", "statement local binding lacks its semicolon", statement)
         if kind == "expression_body":
             if (self.source[span[0]:span[0] + 2] != b"=>"
                     or self.source[span[1] - 1:span[1]] != b";"):
@@ -636,6 +737,22 @@ class _Binding:
     type: _Term
     generics: int = 0
     constant: bool = False
+
+
+@dataclass(frozen=True)
+class _Pat:
+    kind: str
+    node: Node
+    names: tuple[str, ...] = ()
+    value: bool = False
+    args: tuple[_Pat, ...] = ()
+
+
+@dataclass(frozen=True)
+class _Row:
+    patterns: tuple[_Pat, ...]
+    bindings: tuple[tuple[str, _Binding], ...]
+    arm: Node
 
 
 class _Elaborator:
@@ -802,11 +919,40 @@ class _Elaborator:
                 self.static_forbidden = previous
         if term.kind == "nat" and not 0 <= cast("int", term.value) <= self.natural_limit():
             raise self.fail("limit", "computed natural exceeds representation bound")
-        if term.kind == "if":
+        if term.kind in {"if", "bool_match"}:
             condition = self.whnf(term.args[1])
             if condition.kind == "bool":
                 self.tick(True)
                 return self.whnf(term.args[2] if condition.value else term.args[3])
+            return term
+        if term.kind == "unit_match":
+            scrutinee = self.whnf(term.args[1])
+            if scrutinee.kind == "unit":
+                self.tick(True)
+                return self.whnf(term.args[2])
+            return term
+        if term.kind == "pair_match":
+            scrutinee = self.whnf(term.args[1])
+            if scrutinee.kind == "pair":
+                self.tick(True)
+                branch = term.args[2]
+                inner = self.substitute(branch.args[1], cast("int", branch.value), scrutinee.args[2])
+                return self.whnf(self.substitute(inner.args[1], cast("int", inner.value), scrutinee.args[3]))
+            return term
+        if term.kind == "nat_match":
+            scrutinee = self.whnf(term.args[1])
+            if scrutinee.kind == "nat":
+                self.tick(True)
+                amount = cast("int", scrutinee.value)
+                if amount == 0:
+                    return self.whnf(term.args[2])
+                succ_branch = term.args[3]
+                pred = _term("nat", value=amount - 1)
+                return self.whnf(self.substitute(succ_branch.args[1], cast("int", succ_branch.value), pred))
+            if scrutinee.kind == "app" and scrutinee.args[0] == _constant("Succ"):
+                self.tick(True)
+                succ_branch = term.args[3]
+                return self.whnf(self.substitute(succ_branch.args[1], cast("int", succ_branch.value), scrutinee.args[1]))
             return term
         if term.kind == "const" and term.value in self.definitions:
             self.tick(True)
@@ -992,6 +1138,8 @@ class _Elaborator:
             return _term("prod", term.args[0], term.args[1])
         if kind == "if":
             return term.args[0]
+        if kind in {"bool_match", "unit_match", "pair_match", "nat_match"}:
+            return self.substitute(term.args[0].args[1], cast("int", term.args[0].value), term.args[1])
         raise self.fail("type", "cannot infer internal term")
 
     def sort(self, term: _Term) -> int:
@@ -1125,7 +1273,11 @@ class _Elaborator:
             result = _app(function, argument)
             reduced = self.whnf(result)
             return result if reduced == result else self.specialize(reduced, depth + 1)
-        return _Term(term.kind, term.value, tuple(self.specialize(child, depth + 1) for child in term.args))
+        specialized = _Term(term.kind, term.value, tuple(self.specialize(child, depth + 1) for child in term.args))
+        if term.kind in {"if", "bool_match", "unit_match", "pair_match", "nat_match"}:
+            reduced = self.whnf(specialized)
+            return specialized if reduced == specialized else self.specialize(reduced, depth + 1)
+        return specialized
 
     def apply(self, binding: _Binding, arguments: list[Node], environment: dict[str, _Binding]) -> _Binding:
         term, value_type = binding.term, binding.type
@@ -1297,6 +1449,10 @@ class _Elaborator:
             return self.lambda_(node, environment, expected).term
         if node["kind"] == "block":
             return self.block(node, environment, expected).term
+        if node["kind"] == "let_expression":
+            return self.check(self.node(node["body"]), expected, self.local(self.node(node["binding"]), environment))
+        if node["kind"] == "match_expression":
+            return self.match(node, environment, expected, expression_arms=True).term
         if node["kind"] == "expression_body":
             return self.check(self.node(node["value"]), expected, environment)
         if node["kind"] == "tuple":
@@ -1385,8 +1541,112 @@ class _Elaborator:
             body = _Binding(self.check(body_node, current, extended), current)
         return _Binding(self.wrap("lam", variables, body.term), self.wrap("pi", variables, body.type))
 
+    def _parse_pattern(self, node: Node, seen: set[str]) -> _Pat:
+        self.tick()
+        self.site = node
+        kind = node["kind"]
+        if kind == "wildcard_pattern":
+            return _Pat("wild", node)
+        if kind == "binding_pattern":
+            name = self.name(node["name"])
+            if "." in name or name == "_" or name in seen:
+                raise self.fail("name", f"duplicate or invalid pattern binding '{name}'", node)
+            seen.add(name)
+            return _Pat("wild", node, names=(name,))
+        if kind == "group_pattern":
+            return self._parse_pattern(self.node(node["pattern"]), seen)
+        if kind == "unit_pattern":
+            return _Pat("unit", node)
+        if kind == "bool_pattern":
+            return _Pat("bool", node, value=cast("bool", node["value"]))
+        if kind == "tuple_pattern":
+            items = [self._parse_pattern(item, seen) for item in self.nodes(node["patterns"])]
+            if len(items) < 2:
+                raise self.fail("protocol", "a tuple pattern requires at least two components", node)
+            result = items[-1]
+            for item in reversed(items[:-1]):
+                result = _Pat("pair", node, args=(item, result))
+            return result
+        if kind == "nat_pattern":
+            amount = int(cast("str", node["value"]).replace("_", ""))
+            if amount > MAX_PATTERN_NAT:
+                raise self.fail("limit", f"natural pattern literal exceeds structural bound ({MAX_PATTERN_NAT})", node)
+            result = _Pat("zero", node)
+            for _ in range(amount):
+                result = _Pat("succ", node, args=(result,))
+            return result
+        if kind == "constructor_pattern":
+            cname = self.name(node["name"])
+            arguments = self.nodes(node["arguments"])
+            if cname == "Succ":
+                if len(arguments) != 1:
+                    raise self.fail("type", "constructor 'Succ' expects 1 pattern argument", node)
+                return _Pat("succ", node, args=(self._parse_pattern(arguments[0], seen),))
+            if cname not in self.globals:
+                raise self.fail("name", f"unknown constructor '{cname}'", node)
+            if cname in {"VNil", "VCons", "FZero", "FSucc", "Refl", "Symm", "Trans", "Congr"}:
+                raise self.fail("unsupported", f"indexed elimination over '{cname}' requires the full frontend", node)
+            raise self.fail("type", f"'{cname}' is not a pattern constructor", node)
+        raise self.fail("protocol", f"unexpected pattern node '{kind}'", node)
+
+    def _typecheck_pattern(self, pat: _Pat, expected_type: _Term, environment: dict[str, _Binding]) -> None:
+        self.tick()
+        self.site = pat.node
+        if pat.kind == "wild":
+            return
+        if pat.kind == "unit":
+            self.unify(expected_type, _UNIT)
+            return
+        if pat.kind == "bool":
+            self.unify(expected_type, _BOOL)
+            return
+        if pat.kind in {"zero", "succ"}:
+            self.unify(expected_type, _NAT)
+            if pat.kind == "succ":
+                self._typecheck_pattern(pat.args[0], _NAT, environment)
+            return
+        if pat.kind == "pair":
+            resolved = self.whnf(expected_type)
+            if resolved.kind == "meta":
+                left_type = self.meta(_SORT, environment)
+                right_type = self.meta(_SORT, environment)
+                self.unify(resolved, _term("prod", left_type, right_type))
+                resolved = self.whnf(expected_type)
+            if resolved.kind != "prod":
+                raise self.fail("type", "tuple pattern requires a product scrutinee", pat.node)
+            self._typecheck_pattern(pat.args[0], resolved.args[0], environment)
+            self._typecheck_pattern(pat.args[1], resolved.args[1], environment)
+            return
+        raise self.fail("protocol", f"unexpected internal pattern '{pat.kind}'", pat.node)
+
+    def _require_irrefutable(self, pat: _Pat) -> None:
+        if pat.kind in {"bool", "zero", "succ"}:
+            raise self.fail("type", "local pattern binding requires an irrefutable pattern; use match", pat.node)
+        for child in pat.args:
+            self._require_irrefutable(child)
+
+    def _bind_irrefutable(self, pat: _Pat, current: _Binding, extended: dict[str, _Binding]) -> None:
+        self.site = pat.node
+        for name in pat.names:
+            self.bind_local(extended, name, current)
+        if pat.kind == "pair":
+            prod_type = self.whnf(current.type)
+            left_type, right_type = prod_type.args
+            left_term = _apps(_constant("Fst"), left_type, right_type, current.term)
+            right_term = _apps(_constant("Snd"), left_type, right_type, current.term)
+            self._bind_irrefutable(pat.args[0], _Binding(left_term, left_type), extended)
+            self._bind_irrefutable(pat.args[1], _Binding(right_term, right_type), extended)
+
     def local(self, node: Node, environment: dict[str, _Binding]) -> dict[str, _Binding]:
         self.site = node
+        if node["kind"] == "let_pattern":
+            binding = self.expression(self.node(node["value"]), environment)
+            pat = self._parse_pattern(self.node(node["pattern"]), set())
+            self._require_irrefutable(pat)
+            self._typecheck_pattern(pat, binding.type, environment)
+            extended = dict(environment)
+            self._bind_irrefutable(pat, binding, extended)
+            return extended
         if node["kind"] == "constant_local":
             binding = self.constant_value(node, environment)
         elif node["kind"] not in {"let", "typed_local"}:
@@ -1401,6 +1661,170 @@ class _Elaborator:
         extended = dict(environment)
         self.bind_local(extended, self.name(node["name"]), binding)
         return extended
+
+    def match(self, node: Node, environment: dict[str, _Binding], expected: _Term | None = None,
+              *, expression_arms: bool = True) -> _Binding:
+        self.site = node
+        scrutinee = self.expression(self.node(node["value"]), environment)
+        root_var = self.fresh(scrutinee.type)
+        root_var_id = cast("int", root_var.value)
+        motive_node = node["motive"]
+        motive_body: _Term | None = None
+        if motive_node is not None:
+            motive = self.node(motive_node, "match_motive")
+            motive_env = dict(environment)
+            self.bind_local(motive_env, self.name(motive["name"]), _Binding(root_var, scrutinee.type))
+            motive_body = self.type(self.node(motive["type"]), motive_env)
+            match_type = self.substitute(motive_body, root_var_id, scrutinee.term)
+            if expected is not None:
+                self.unify(match_type, expected)
+        cases = self.nodes(node["cases"])
+        rows: list[_Row] = []
+        for arm in cases:
+            self.node(arm, "expression_case" if expression_arms else "case")
+            pat = self._parse_pattern(self.node(arm["pattern"]), set())
+            self._typecheck_pattern(pat, scrutinee.type, environment)
+            rows.append(_Row((pat,), (), arm))
+        scrutinee_type = self.whnf(scrutinee.type)
+        if scrutinee_type not in {_UNIT, _BOOL, _NAT} and scrutinee_type.kind != "prod":
+            raise self.fail("type", "match scrutinee must have type Nat, bool, Unit or a product", self.node(node["value"]))
+        inferred_result: list[_Term | None] = [expected]
+
+        def specialize_rows(active_rows: list[_Row], index: int, ctor_kind: str, ctor_term: _Term,
+                            col_type: _Term, sub_count: int, *, bool_value: bool = False) -> list[_Row]:
+            specialized: list[_Row] = []
+            for row in active_rows:
+                pat = row.patterns[index]
+                if pat.kind == "wild":
+                    extra = tuple((name, _Binding(ctor_term, col_type)) for name in pat.names)
+                    wilds = tuple(_Pat("wild", pat.node) for _ in range(sub_count))
+                    specialized.append(_Row(
+                        row.patterns[:index] + wilds + row.patterns[index + 1:],
+                        row.bindings + extra,
+                        row.arm,
+                    ))
+                elif pat.kind == ctor_kind and (ctor_kind != "bool" or pat.value == bool_value):
+                    specialized.append(_Row(
+                        row.patterns[:index] + pat.args + row.patterns[index + 1:],
+                        row.bindings,
+                        row.arm,
+                    ))
+            return specialized
+
+        def compile_matrix(columns: list[tuple[_Term, _Term, _Term]], active_rows: list[_Row],
+                           pattern_term: _Term) -> _Term:
+            self.tick()
+            if not active_rows:
+                raise self.fail("type", "non-exhaustive match: missing pattern case", node)
+            first = active_rows[0]
+            if all(pat.kind == "wild" for pat in first.patterns):
+                arm_env = dict(environment)
+                for name, bound in first.bindings:
+                    self.bind_local(arm_env, name, bound)
+                for pat, (_, col_scrutinee, col_type) in zip(first.patterns, columns, strict=True):
+                    for name in pat.names:
+                        self.bind_local(arm_env, name, _Binding(col_scrutinee, col_type))
+                arm = first.arm
+                self.site = arm
+                leaf_pattern = pattern_term
+                for col_var, col_scrutinee, _ in columns:
+                    if col_var != col_scrutinee:
+                        leaf_pattern = self.substitute(leaf_pattern, cast("int", col_var.value), col_scrutinee)
+                leaf_expected = (self.substitute(motive_body, root_var_id, leaf_pattern)
+                                 if motive_body is not None else inferred_result[0])
+                if expression_arms:
+                    value_node = self.node(arm["value"])
+                    if leaf_expected is None:
+                        evaluated = self.expression(value_node, arm_env)
+                        inferred_result[0] = evaluated.type
+                        return evaluated.term
+                    return self.check(value_node, leaf_expected, arm_env)
+                block_node = {"kind": "block", "span": arm["span"], "statements": arm["statements"]}
+                evaluated = self.block(block_node, arm_env, leaf_expected)
+                if motive_body is None and inferred_result[0] is None:
+                    inferred_result[0] = evaluated.type
+                return evaluated.term
+
+            index = next(i for i, pat in enumerate(first.patterns) if pat.kind != "wild")
+            col_var, col_scrutinee, col_type = columns[index]
+            col_var_id = cast("int", col_var.value)
+            col_type = self.whnf(col_type)
+            without_index = columns[:index] + columns[index + 1:]
+
+            if col_type == _UNIT:
+                unit_term = _term("unit")
+                body = compile_matrix(
+                    without_index,
+                    specialize_rows(active_rows, index, "unit", unit_term, _UNIT, 0),
+                    self.substitute(pattern_term, col_var_id, unit_term),
+                )
+                if motive_body is None:
+                    return body
+                motive_lam = _term("lam", _UNIT, self.substitute(motive_body, root_var_id, pattern_term), value=col_var_id)
+                return _term("unit_match", motive_lam, col_scrutinee, body)
+
+            if col_type == _BOOL:
+                true_term = _term("bool", value=1)
+                false_term = _term("bool", value=0)
+                yes = compile_matrix(
+                    without_index,
+                    specialize_rows(active_rows, index, "bool", true_term, _BOOL, 0, bool_value=True),
+                    self.substitute(pattern_term, col_var_id, true_term),
+                )
+                no = compile_matrix(
+                    without_index,
+                    specialize_rows(active_rows, index, "bool", false_term, _BOOL, 0, bool_value=False),
+                    self.substitute(pattern_term, col_var_id, false_term),
+                )
+                if motive_body is None:
+                    return _term("if", cast("_Term", inferred_result[0]), col_scrutinee, yes, no)
+                motive_lam = _term("lam", _BOOL, self.substitute(motive_body, root_var_id, pattern_term), value=col_var_id)
+                return _term("bool_match", motive_lam, col_scrutinee, yes, no)
+
+            if col_type.kind == "prod":
+                left_type, right_type = col_type.args
+                left_var = self.fresh(left_type)
+                right_var = self.fresh(right_type)
+                pair_term = _term("pair", left_type, right_type, left_var, right_var)
+                sub_columns = [(left_var, left_var, left_type), (right_var, right_var, right_type)]
+                body = compile_matrix(
+                    columns[:index] + sub_columns + columns[index + 1:],
+                    specialize_rows(active_rows, index, "pair", pair_term, col_type, 2),
+                    self.substitute(pattern_term, col_var_id, pair_term),
+                )
+                motive_return = (self.substitute(motive_body, root_var_id, pattern_term)
+                                 if motive_body is not None else cast("_Term", inferred_result[0]))
+                motive_lam = _term("lam", col_type, motive_return, value=col_var_id)
+                branch_lam = _term("lam", left_type, _term("lam", right_type, body, value=right_var.value), value=left_var.value)
+                return _term("pair_match", motive_lam, col_scrutinee, branch_lam)
+
+            if col_type == _NAT:
+                zero_term = _term("nat", value=0)
+                zero_body = compile_matrix(
+                    without_index,
+                    specialize_rows(active_rows, index, "zero", zero_term, _NAT, 0),
+                    self.substitute(pattern_term, col_var_id, zero_term),
+                )
+                pred_var = self.fresh(_NAT)
+                succ_term = _app(_constant("Succ"), pred_var)
+                sub_columns = [(pred_var, pred_var, _NAT)]
+                succ_body = compile_matrix(
+                    columns[:index] + sub_columns + columns[index + 1:],
+                    specialize_rows(active_rows, index, "succ", succ_term, _NAT, 1),
+                    self.substitute(pattern_term, col_var_id, succ_term),
+                )
+                motive_return = (self.substitute(motive_body, root_var_id, pattern_term)
+                                 if motive_body is not None else cast("_Term", inferred_result[0]))
+                motive_lam = _term("lam", _NAT, motive_return, value=col_var_id)
+                succ_lam = _term("lam", _NAT, succ_body, value=pred_var.value)
+                return _term("nat_match", motive_lam, col_scrutinee, zero_body, succ_lam)
+
+            raise self.fail("type", "match column must have type Nat, bool, Unit or a product", node)
+
+        term = compile_matrix([(root_var, scrutinee.term, scrutinee_type)], rows, root_var)
+        result_type = (self.substitute(motive_body, root_var_id, scrutinee.term)
+                       if motive_body is not None else cast("_Term", inferred_result[0]))
+        return _Binding(term, result_type)
 
     def constant_value(self, node: Node, environment: dict[str, _Binding]) -> _Binding:
         previous = self.static_forbidden
@@ -1439,7 +1863,7 @@ class _Elaborator:
         for index, statement in enumerate(statements):
             self.site = statement
             kind = statement["kind"]
-            if kind in {"let", "typed_local", "constant_local"}:
+            if kind in {"let", "typed_local", "let_pattern", "constant_local"}:
                 extended = self.local(statement, extended)
                 continue
             if index != len(statements) - 1:
@@ -1460,6 +1884,8 @@ class _Elaborator:
                 yes = self.branch(self.node(statement["then"]), extended, expected)
                 no = self.branch(self.node(statement["else"]), extended, yes.type)
                 return _Binding(_term("if", yes.type, condition, yes.term, no.term), yes.type)
+            if kind == "match":
+                return self.match(statement, extended, expected, expression_arms=False)
             if kind == "block":
                 return self.block(statement, extended, expected)
             raise self.fail("unsupported", f"statement '{kind}' requires the full frontend")
@@ -1517,6 +1943,8 @@ class _Elaborator:
             return self.lambda_(node, environment)
         if kind == "let_expression":
             return self.expression(self.node(node["body"]), self.local(self.node(node["binding"]), environment))
+        if kind == "match_expression":
+            return self.match(node, environment, expression_arms=True)
         if kind == "block":
             return self.block(node, environment)
         if kind == "binary":
@@ -1672,6 +2100,32 @@ class _Elaborator:
         if kind == "if":
             _, condition, yes, no = term.args
             return f"(if {self.render(condition)} then {self.render(yes)} else {self.render(no)})"
+        if kind == "bool_match":
+            motive, scrutinee, yes, no = term.args
+            binder = f"vela_v{motive.value}"
+            return (f"(match {self.render(scrutinee)} as {binder} return {self.render(motive.args[1])} with "
+                    f"| Corelib.Init.Datatypes.true => {self.render(yes)} "
+                    f"| Corelib.Init.Datatypes.false => {self.render(no)} end)")
+        if kind == "unit_match":
+            motive, scrutinee, body = term.args
+            binder = f"vela_v{motive.value}"
+            return (f"(match {self.render(scrutinee)} as {binder} return {self.render(motive.args[1])} with "
+                    f"| Corelib.Init.Datatypes.tt => {self.render(body)} end)")
+        if kind == "pair_match":
+            motive, scrutinee, branch = term.args
+            inner = branch.args[1]
+            binder = f"vela_v{motive.value}"
+            left_binder = f"vela_v{branch.value}"
+            right_binder = f"vela_v{inner.value}"
+            return (f"(match {self.render(scrutinee)} as {binder} return {self.render(motive.args[1])} with "
+                    f"| @Corelib.Init.Datatypes.pair _ _ {left_binder} {right_binder} => {self.render(inner.args[1])} end)")
+        if kind == "nat_match":
+            motive, scrutinee, zero_branch, succ_branch = term.args
+            binder = f"vela_v{motive.value}"
+            pred_binder = f"vela_v{succ_branch.value}"
+            return (f"(match {self.render(scrutinee)} as {binder} return {self.render(motive.args[1])} with "
+                    f"| Corelib.Init.Datatypes.O => {self.render(zero_branch)} "
+                    f"| Corelib.Init.Datatypes.S {pred_binder} => {self.render(succ_branch.args[1])} end)")
         raise self.fail("inference", "cannot emit an unresolved term")
 
 

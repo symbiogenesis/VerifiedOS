@@ -187,7 +187,7 @@ def _syntax_and_locations() -> None:
                    "module M; public Nat F() { return -1; }",
                    'module M; public Nat F() { return "Axiom injected"; }',
                    "module M; public Nat F() { return 1; } (* arbitrary *)",
-                   "module M; public Nat F() { return 1 / 2; }",
+                   "module M; public Nat F() { return 1 ^ 2; }",
                    "module M; public Nat F() { if (true) { return 0; } }",
                    "module M; public Nat F() { return 1, 2; }"):
         _refuses(source, "syntax")
