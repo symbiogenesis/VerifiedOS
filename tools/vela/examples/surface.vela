@@ -40,6 +40,7 @@ public void Fill<ghost Nat count>(ref Span<byte, count> target, byte value)
 
 // Collection loops preserve explicit value and element-loan modes.
 public void Visit(ref Span<byte> target, in Span<byte> source)
+    where ISequenceModel(source) && IBoundedIterable(target)
     requires source.Model.All(x => x > 0)
     requires source.Model.Any(x => x == 1) && source.Model.Contains(1)
     ensures target.Model.Take(1).Skip(0).Slice(0, 1).Count <= target.Model.Count

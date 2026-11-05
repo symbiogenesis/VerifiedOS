@@ -1199,13 +1199,13 @@ unchecked-memory escape.
 
 #### Contracts, Loops and Proof Mode
 
-`Span<byte, count>` views initialized storage with a runtime `Length` and an erased logical `Model` of pure mathematical sequence type `Seq<byte>`. `Span<byte>` hides `count` existentially while keeping `Length` and its relationship to `Model.Count`. Because novices struggle with raw `forall`/`exists` quantifiers and index arithmetic in `requires`, `ensures` and `invariant`, `Seq<T>` is equipped with familiar C#/Kotlin collection predicates and combinators—`.All(x => ...)`, `.Any(x => ...)`, `.Contains(x)`, `.Take(n)`, `.Skip(n)`, `.Slice(a, b)` and `.Count`—backed by pre-proved standard-library lemmas. An author writes
+`Span<byte, count>` views initialized storage with a runtime `Length` and an erased logical `Model` of pure mathematical sequence type `Seq<byte>`. `Span<byte>` hides `count` existentially while keeping `Length` and its relationship to `Model.Count`. Sequence-modeled views and buffers implement the law-carrying `ISequenceModel<T>` interface to project to that canonical `Seq<T>` carrier (`Nat(Length) == Model.Count`), and runtime collection iteration uses a law-carrying `IBoundedIterable<T>` interface refining `ISequenceModel<T>` rather than C#'s stateful `IEnumerable<T>` / `IEnumerator<T>` (`MoveNext`/`Current`/`IDisposable`) or reflection-based `IQueryable<T>`. Because novices struggle with raw `forall`/`exists` quantifiers and index arithmetic in `requires`, `ensures` and `invariant`, `Seq<T>` itself is equipped with familiar C#/Kotlin collection predicates and combinators—`.All(x => ...)`, `.Any(x => ...)`, `.Contains(x)`, `.Take(n)`, `.Skip(n)`, `.Slice(a, b)` and `.Count`—backed by pre-proved standard-library lemmas. An author writes
 
 ```text
 requires items.Model.All(x => x > 0)
 ```
 
-instead of `requires (forall (Nat i) => i < items.Length ==> items.Model.At(i) > 0)`. Bounded predicates and slice combinators over finite sequences fall directly into the decidable/domain refinement tier rather than open quantifier instantiation, while explicit `forall`/`exists` quantifiers remain available for general mathematical theorems.
+instead of `requires (forall (Nat i) => i < items.Length ==> items.Model.At(i) > 0)`. Keeping the LINQ vocabulary monomorphic on `Seq<T>` while `ISequenceModel<T>` supplies the `.Model` projection and `IBoundedIterable<T>` ties step `k` of `foreach` directly to `Model.At(k)`, `Model.Take(k)` and `Model.Skip(k)` lets bounded predicates and slice combinators over finite sequences fall directly into the decidable/domain refinement tier rather than open quantifier instantiation, polymorphic LINQ dispatch or runtime expression-tree reflection, while explicit `forall`/`exists` quantifiers remain available for general mathematical theorems.
 
 ```text
 module Buffers;

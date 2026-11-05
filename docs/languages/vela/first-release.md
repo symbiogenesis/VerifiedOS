@@ -221,30 +221,40 @@ invalidates the reachable component closure conservatively.
 The initial client needs a small, proved library of buffers, immutable/mutable
 spans, bounded iteration, records/sums, initialization and typed errors. Public
 operations state capacity, bounds, overlap, initialization, retained loans and
-resource states on every exit. Every sequence-modeled view or buffer exposes its
-erased pure `Model : Seq<T>` with C#/Kotlin-style collection predicates and slice
-combinators—`.All(x => ...)`, `.Any(x => ...)`, `.Contains(x)`, `.Take(n)`,
-`.Skip(n)`, `.Slice(a, b)` and `.Count` alongside `.At(i)`, `.Update(i, v)`,
-`.Append(x)` and `Seq.Repeat(v, n)`—backed by pre-proved standard-library lemmas.
-Contracts write `requires items.Model.All(x => x > 0)` instead of raw
+resource states on every exit. Every sequence-modeled view or buffer implements
+the law-carrying `ISequenceModel<T>` interface, projecting the container to its
+canonical erased pure `Model : Seq<T>` (`Nat(Length) == Model.Count`) while
+keeping the C#/Kotlin-style collection predicates and slice combinators—`.All(x => ...)`,
+`.Any(x => ...)`, `.Contains(x)`, `.Take(n)`, `.Skip(n)`, `.Slice(a, b)` and
+`.Count` alongside `.At(i)`, `.Update(i, v)`, `.Append(x)` and
+`Seq.Repeat(v, n)`—as concrete operations on `Seq<T>` backed by pre-proved
+standard-library lemmas. Contracts on concrete or `ISequenceModel<T>`-bounded
+containers write `requires items.Model.All(x => x > 0)` instead of raw
 `forall`/`exists` quantifiers and index arithmetic
 `requires (forall (Nat i) => i < items.Length ==> items.Model.At(i) > 0)`, and
 bounded predicates over finite sequences with decidable element bodies discharge
 in the [decidable/domain refinement tier](core-design.md#refinement-effects-and-staging)
-rather than open quantifier instantiation. Iterators carry their bounds and loan contracts;
-they do not require ordinary users to reconstruct a separation-logic proof at
-each element. Codecs retain the platform's required format-description and
+rather than open quantifier instantiation or polymorphic LINQ dispatch. No
+runtime `IQueryable<T>` or reflection-based expression-tree interface is
+introduced; contract checking inspects `Seq<T>` predicate lambdas statically, and
+compile-time query specialization belongs to [bounded staging](metaprogramming.md#evaluation-and-phase-boundaries).
+Iterators carry their bounds and loan contracts; they do not require ordinary
+users to reconstruct a separation-logic proof at each element. Codecs retain the
+platform's required format-description and
 [boundary initialization obligations](../../spec.md#r-05-124).
 
 The [collection-loop surface](surface-grammar.md#ergonomic-authoring-and-bounded-collection-iteration)
-uses those same proved bounded iterators. Value iteration requires copy
-permission; shared/exclusive iteration selects an explicit element loan. The
-source is evaluated once, and a declared bound and stable footprint determine
-iteration. All exhaustion and early-exit paths restore or explicitly return the
-resources promised by the iterator contract. No enumerator allocation, implicit
-disposal, owned-element copy, escaping element loan or invalidating mutation is
-introduced. Parser support is syntax-only until a real iterator library and
-represented checker discharge those duties.
+uses a law-carrying `IBoundedIterable<T>` interface refining `ISequenceModel<T>`
+rather than C#'s stateful `IEnumerable<T>` / `IEnumerator<T>` (`MoveNext`/`Current`/`IDisposable`).
+Value iteration requires copy permission; shared/exclusive iteration selects an
+explicit element loan. The source is evaluated once, a declared `Model.Count`
+bound and stable footprint determine iteration, and step `k` connects directly to
+`Model.At(k)`, `Model.Take(k)` and `Model.Skip(k)`. All exhaustion and early-exit
+paths restore or explicitly return the resources promised by the iterator
+contract. No enumerator allocation, implicit disposal, owned-element copy,
+escaping element loan or invalidating mutation is introduced. Parser support is
+syntax-only until a real iterator library and represented checker discharge those
+duties.
 
 `out T` retains its simple rule: no reads before initialization and a fully
 initialized `T` on every normal return, including an error return. Fallible
@@ -293,6 +303,7 @@ the type is inferred or explicit. These familiar spellings retain Vela's rules:
 | `int` and ordinary arithmetic | Explicitly imported exact alias; representability obligations and checked-result alternatives retain the primitive contract |
 | `Option<T>` and propagation | Absence is an explicit case; every reachable exit accounts for retained loans and required resources |
 | `.Model.All(x => ...)`, `.Any(x => ...)`, `.Contains(x)`, `.Take(n)`, `.Skip(n)`, `.Slice(a, b)`, `.Count` | Pure mathematical `Seq<T>` predicates and slices in contracts, backed by standard-library lemmas and discharged in the finite-sequence refinement/domain tier instead of raw `forall`/`exists` index quantifiers |
+| `ISequenceModel<T>`, `IBoundedIterable<T>` (instead of `IEnumerable<T>` / `IQueryable<T>`) | Law-carrying interfaces projecting containers to canonical `Model : Seq<T>` and linking bounded `foreach` steps to `Model.At(k)`, `Model.Take(k)` and `Model.Skip(k)` with explicit element loans, zero enumerator allocation and static contract-lambda inspection instead of runtime expression-tree reflection |
 
 Receiver signature help shows the selected mode and named view. A conflict names
 both accesses and may offer a preceding immutable snapshot only when evaluation,
