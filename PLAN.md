@@ -452,19 +452,19 @@ These figures cover the priced reference-build, assessment and named hardening b
 | Measure | Value |
 | --- | --- |
 | Total estimate midpoint h | 4,919.8 |
-| Total estimate range h | 3,222.2–6,617.4 |
-| Completed scope h | 934.8 |
-| Complete by estimate % | 19.0 |
-| Remaining h | 3,985 |
-| Committed remaining h | 2,506.5 |
+| Total estimate range h | 3,230.2–6,609.4 |
+| Completed scope h | 958.8 |
+| Complete by estimate % | 19.5 |
+| Remaining h | 3,961 |
+| Committed remaining h | 2,482.5 |
 | Open class I h | 971.5 |
-| Open class X h | 3,013.5 |
-| Retained completion estimate h | 329.5 |
-| Unmeasured completed items | 34 |
-| Calibrated total h | 5,903.7 |
+| Open class X h | 2,989.5 |
+| Retained completion estimate h | 353.5 |
+| Unmeasured completed items | 35 |
+| Calibrated total h | 5,893.7 |
 | Committed M8a open h | 74 |
 | Committed M8b open h | 105.5 |
-| Other committed open h | 2,327 |
+| Other committed open h | 2,303 |
 | Conditional open h | 1,064.5 |
 | Unfunded option open h | 414 |
 | Committed M8a open class X h | 0 |
@@ -1029,10 +1029,8 @@ The [first-release delivery sequence](#vela-first-release-delivery) governs new 
   * **Prototype checkpoint:** the language server offers compiler-checked canonical formatting as a proposed whole-document edit and full identifier semantic tokens from resolved facts. Independent controls cover exact edits and token streams, Unicode/newlines, refusal/recovery, worker isolation and a real stdio session with unsaved edits. Complete formatting and token replies also refuse oversized frames with correlated errors, preserve the current overlay and version, and recover with exact bounded results. Focused editor controls pass locally. The `lowfruit-20261103` journal records the local handoff and recommended hosted validation, whose verdicts remain pending. Two pinned editor clients and retained transcripts remain outstanding; this item stays open and grants no wider-language or production qualification.
 * [x] **Q25v · Settle the bounded Vela release and practical language contracts** · 0.7 h actual · agent-parallel
   * Selects a synchronous release, checked interpretation and concrete primitive/package contracts, with practical ownership, assurance, tooling and staged-delivery acceptance. ([note](docs/implementation/completion-log.md#q25v-settle-the-bounded-vela-release-and-practical-language-contracts))
-* [ ] **Q25w · Investigate the concrete Vela buffer foundation within a fixed budget** · 24 h, range 16–32 · X · agent-parallel
-  * **Start:** Q25v, the [first-release contract](docs/languages/vela/first-release.md#qualification), R-05-020a, Q2b's actual decoder destination and the [existing foundation ledger](docs/hardware/cheri-foundation-map.md). **Owns:** one pinned Sail carrier for bounded initialize/copy, an inhabited byte case, concrete read/write/frame/disjoint-sharing and returned-view restoration laws, and resource accounting on failure. Freeze an actual packet format and independently expected bytes/status before using parser success as evidence. **Check:** a successful candidate supplies an explicit checked law/assumption/dependency inventory and inhabited concrete representation. It follows the portable proof workflow, including cold hosted acceptance for repairs, and passes empty/full/error cases and wrong-byte, alias, stale-input and restoration controls that fail for the intended semantic reason. Abstract token records or an uninhabited representation are not concrete evidence. Alternatively, a blocked/refused outcome records the inspected missing dependency or exhausted budget, the attempted candidate and evidence, the next owner, and every check that could not run. That outcome supplies no candidate acceptance; missing or pending hosted checks supply no passing verdict. **Join:** independently review the inhabitant, theorem subjects, invalid neighbors and foundation reuse; retain compiler, contextual-security and exact-byte duties at their existing owners without duplicate costs.
-  * **Execute:** stop after at most 32 summed active agent-session hours, including review and repair. Record consumed budget and the precise candidate or blocking result. Do not automatically extend the budget, build a general logic/backend or reopen Q2c/Q19/Q20. A blocked result completes only this investigation; successful evidence permits pricing the [next delivery stage](#vela-first-release-delivery), not its automatic implementation.
-  * **Investigation checkpoint:** the [first-slice qualification](docs/languages/vela/first-release.md#first-slice-qualification) (`python tools/run.py vela-parser first-slice`) defines the concrete `Span<byte>` carrier (`vela_Span` over `vela_ByteStore` with `Base`, `Length`, `Tag`, `PermRead` and `PermWrite`), `in`/`ref` loan modes, and `requires`/`ensures`/`restores` contract elaboration in [tools/vos/vela/elaborate.py](tools/vos/vela/elaborate.py), and authors the bounded packet/manifest validator `PrepareAndValidatePacket` in [tools/vela/examples/first_slice.vela](tools/vela/examples/first_slice.vela). All 50 elaborated declarations (10 carrier laws including `LawInhabitedByteCase`, 5 `restores dst` and 3 `ensures` obligations, and 7 empty/full/partial/error scenario theorems) pass `rocq c`, `Print Assumptions` (`Closed under the global context`) and `rocqchk` with a fail-closed proof-corruption control; the capacity-invariance gate ($N = 8$ vs $N = 10^9$) produces identical obligation counts (`9`), inference work steps (`2524`), reduction steps (`103`) and Gallina bytes (`45789`); 12 schema-2 semantic negative controls fail with `category == "type"`; purecap CHERI hardware capability controls (`pass`, `bounds-trap`, `perm-trap`, `tag-trap`) execute on `sail_riscv_sim`; and CompCert Clight/C lowering (`-fverifiedos-typed -dclight`) passes both `ccomp -interp` and purecap `sail_riscv_sim` across all 7 scenarios plus 4 perturbed C negative controls. The `vela-first-slice-20261106` fanout journal records the local handoff and full recommended hosted selection; mechanized Sail-to-Clight/CompCert refinement (`Q35d`, `M1.2g`) and user-managed Host CI and Guest CI verdicts remain pending, so this item stays open.
+* [x] **Q25w · Investigate the concrete Vela buffer foundation within a fixed budget** · 24 h retained estimate, actual n/a · agent-parallel
+  * Qualifies the concrete `Span<byte>` carrier, inhabited byte case, restoration/frame laws and bounded packet validator across Rocq, purecap CHERI Sail execution and CompCert Clight/C while recording the upstream Sail and machine-logic blockers that keep full machine refinement and subsequent delivery stages closed. ([note](docs/implementation/completion-log.md#q25w-investigate-the-concrete-vela-buffer-foundation-within-a-fixed-budget))
 * [ ] **Q25x · Qualify generated tests for existing Vela development tools** · 6 h, range 4–8 · X · agent-parallel
   * **Start:** the [generated-development-test contract](docs/languages/vela/tooling-protocols.md#generated-development-tests), existing pure source/LSP/formatter implementations and their independent controls, and the locked Python environment. **Owns:** a bounded Hypothesis candidate trial over that supported behavior, an independent state/coordinate oracle, shrinkable and replayable cases, meaningful fault controls and an adopt-or-decline record. **Check:** every contract predicate, exact selected dependency/licence and host-tuple qualification, focused host feedback and the user-managed hosted acceptance handoff. Missing hosted evidence remains pending. **Join:** independent oracle and fault review, unchanged existing fixtures and acceptance boundaries, and a measured comparison with the current test-authoring/replay work. **Execute:** cap establishment, review and repair at eight summed active agent-session hours; preserve the existing runner and qualify an isolated development candidate before adding a permanent dependency. A tested refusal records the inspected blocker and remaining owner without claiming a passing candidate. QCheck is an alternative for an actual OCaml consumer, not a second installation in this trial; wider language, async and protocol features remain outside its scope.
   * **Estimate basis:** source/closure and licence selection, independent model and generation, fault/replay controls, host integration and adoption review. The range is a planning judgment, not measured savings. This development-tool trial does not gate Q25w or the first executable component and does not reopen Q19/Q20.
@@ -1420,7 +1418,7 @@ Q6's conventional-memory simulators are conditional on a topology comparison nee
 
 No assessment completion automatically increases a performance estimate. For an optimization affecting fraction `f` of runtime by factor `s`, the unchanged-cost bound is `1 / ((1 - f) + f / s)`; added transfers or changed scheduling require a fresh whole-workload comparison. Better packing is not more fabricated capacity, and host performance is not target throughput.
 
-**Q subtotal:** 3,090.3 h · 63% · 322.8 h complete · open range 1,617–3,918 h.
+**Q subtotal:** 3,090.3 h · 63% · 346.8 h complete · open range 1,601–3,886 h.
 
 ### M0 · Hardware reference
 
@@ -2504,6 +2502,7 @@ One row per completed item marked `agent-parallel`, using the [calibration recor
 | Q25s | n/a | n/a |
 | Q25t | n/a | n/a |
 | Q25v | I | 4 |
+| Q25w | n/a | n/a |
 | Q25aa | n/a | n/a |
 | Q25ab | n/a | n/a |
 | Q26 | X-read | 12 |
@@ -3399,8 +3398,9 @@ its upper range; existing owners supply those joins once.
 Existing parser, mathematical and basic editor qualification may finish within
 its frozen scope. Q25x and conditional Q25y qualify generated tests for those
 existing implementations under finite adoption decisions; neither adds a release
-prerequisite, language feature or adapter. Q25w remains the concrete foundation
-priority. Q25z records the selected [familiar authoring surface](docs/languages/vela/surface-grammar.md#familiar-authoring-migration)
+prerequisite, language feature or adapter. Q25w records the concrete foundation
+investigation and blocking machine-refinement owners; subsequent delivery stages
+remain unpriced until those prerequisites close. Q25z records the selected [familiar authoring surface](docs/languages/vela/surface-grammar.md#familiar-authoring-migration)
 with bounded syntax and existing-consumer preparation permitted independently;
 represented-library, ownership and production qualification follow the accepted
 first slice. Its [ergonomic refinement](docs/languages/vela/surface-grammar.md#ergonomic-authoring-and-bounded-collection-iteration)

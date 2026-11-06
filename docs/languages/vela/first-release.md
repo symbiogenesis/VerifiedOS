@@ -452,13 +452,21 @@ CompCert Clight/C and purecap CHERI-RISC-V target harness in
   4. Executes the purecap CHERI-RISC-V hardware capability slice (`csetbounds`,
      `candperm`, capability round-trip and byte checks) and three hardware fault
      controls (`bounds-trap`, `perm-trap`, `tag-trap`) on `sail_riscv_sim`.
-  5. Lowers the executable validator and its seven scenarios to CompCert Clight/C
-     (`-fverifiedos-typed -dclight`), executes the C harness under both
-     `ccomp -interp` and purecap `sail_riscv_sim`, and verifies four perturbed C
-     negative controls (`wrong-expected-byte`, `stale-trailing-leak`,
-     `checksum-scrub-omitted`, `restores-length-corrupted`).
+  5. Lowers the executable union, record and function AST declarations
+     (`ValidationError`, `ValidationOutcome`, `MakePacket8`, `CopyPacketToDst`,
+     `ComputePacketChecksum`, `PrepareAndValidatePacket`) and their seven scenario
+     drivers to CompCert Clight/C (`-fverifiedos-typed -dclight`), executes the C
+     harness under both `ccomp -interp` and purecap `sail_riscv_sim`, and verifies
+     four perturbed C negative controls (`wrong-expected-byte`,
+     `stale-trailing-leak`, `checksum-scrub-omitted`,
+     `restores-length-corrupted`).
 - **Remaining full-chain boundaries:** this slice connects exact Vela source to
-  kernel-checked Gallina obligations, CompCert Clight/C lowering and purecap
-  `sail_riscv_sim` execution; mechanized Sail-to-Clight/CompCert refinement
-  (`Q35d`, `M1.2g`), broader frontend/admission closure and user-managed Host CI
-  and Guest CI verdicts remain separate open obligations.
+  kernel-checked Gallina obligations, AST-lowered CompCert Clight/C and purecap
+  `sail_riscv_sim` execution, and emits an explicit law, assumption and
+  blocking-dependency inventory (`inventory` in `vela-parser first-slice`).
+  Whole-term canonical Sail machine-term compilation (`rv64d.v` at Rocq 9.3.0;
+  `Q35b`/`Q35o`/`Q35p`), machine-logic `byte-instance` laws over `rv64d.v`
+  (`Q35c`/`Q35m`/`Q35k`/`Q35l` and [cheri-foundation-map.md](../../hardware/cheri-foundation-map.md)),
+  `Q2b`'s flat `BasicC64Semantics` decoder scope, mechanized Sail-to-Clight/CompCert
+  refinement (`Q35d`, `M1.2g`, `Q35j`), broader frontend/admission closure and
+  user-managed Host CI and Guest CI verdicts remain separate open obligations.

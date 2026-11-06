@@ -1318,6 +1318,106 @@ coverage relation, examples and implementation predicates. Corpus and Markdown
 validation retain their local handoff; they establish document consistency,
 not source metatheory or executable acceptance.
 
+<a id="q25w-investigate-the-concrete-vela-buffer-foundation-within-a-fixed-budget"></a>
+
+### Q25w · Investigate the concrete Vela buffer foundation within a fixed budget
+
+Completed on 2026-11-06 under the finite foundation-investigation contract in
+[first-release.md](../languages/vela/first-release.md#first-slice-qualification),
+supplying the kernel-checked concrete `Span<byte>` candidate and target-execution
+slice while recording the inspected upstream Sail and machine-logic blockers that
+keep full machine-refinement closure and subsequent delivery stages closed:
+
+1. **Concrete `Span<byte>` carrier, inhabited byte case and contract elaboration
+   ([tools/vos/vela/elaborate.py](../../tools/vos/vela/elaborate.py),
+   [tools/vela/examples/first_slice.vela](../../tools/vela/examples/first_slice.vela)):**
+   `Span<byte>` elaborates to `vela_Span` over `vela_ByteStore` (`nat -> vela_u8`)
+   paired with `Base`, `Length`, `Tag`, `PermRead`, `PermWrite` and derived
+   `CanRead`/`CanWrite` predicates. Bounded operations `Span.AllocZeroed`,
+   `Span.Read`, `Span.Write`, `Span.Fill`, `Span.Slice`, `Span.ReadOnly`,
+   `Span.Invalidate`, `Span.Disjoint`, `Span.CopyPrefix` and `Span.Restore`
+   enforce bounds, capability permissions, loan modes (`in Span<byte>` read-only vs
+   `ref Span<byte>` read-write) and disjointness before emitting terms. Function
+   contracts elaborate `requires` into typing premises, `restores dst` into five
+   metadata-preservation obligations (`Base`, `Length`, `Tag`, `PermRead`,
+   `PermWrite`), and `ensures` into postcondition obligations over exit states.
+2. **Checked law, obligation and scenario inventory (`51` declarations in
+   `Vela_Vela_FirstSlice`):** `python tools/run.py vela-parser first-slice` parses
+   `first_slice.vela` (`SHA256: 840dd34b2e2a03ed45dd8124d5fdf7369dda64090786b677c5cd9b7974f895b3`)
+   through the native Menhir `--surface` parser, elaborates all `51` declarations
+   into `FirstSlice.v` (`SHA256: 275d9c200c488b3cd1569cc629bbc8f73bdf0ad063745d45cc53c8c001426110`),
+   compiles under Rocq 9.3.0 (`rocq c`), verifies `Closed under the global context`
+   (`0` axioms) via `Print Assumptions`, and audits with `rocqchk`, plus a
+   fail-closed proof-corruption control. The `51` declarations comprise the union
+   `ValidationError`, the record `ValidationOutcome`, `MakePacket8`,
+   `CopyPacketToDst`, `ComputePacketChecksum`, `PrepareAndValidatePacket` with its
+   `5` `restores dst` and `3` `ensures` obligations, `11` carrier laws
+   (`LawInhabitedByteCase`, `LawAllocZeroedRead`, `LawReadOverWriteSame`,
+   `LawReadOverWriteOther`, `LawLoopFramePreservesDisjointSuffix`,
+   `LawFillAndFrame`, `LawSliceMetadataAndRead`, `LawReadOnlyAndInvalidate`,
+   `LawDisjointCopyAndFrame`, `LawCapacityInvarianceSmall`,
+   `LawCapacityInvarianceLarge`), and `7` universal scenario theorems
+   (`ValidateEmptyPacketOk`, `ValidateFullPacketOk`,
+   `ValidatePartialPacketScrubsStaleAndTrailingBytes`, `RejectFramingShort`,
+   `RejectBadMagic`, `RejectLengthOutOfBounds`,
+   `RejectChecksumScrubsDestinationAndRestores`) with separation-logic framing
+   (`dst[frameIdx] == old(dst[frameIdx])`) over loops and slices.
+3. **Capacity-invariance gate, semantic negative controls and target execution
+   ([tools/vos/vela/first_slice.py](../../tools/vos/vela/first_slice.py)):**
+   checking at static capacity $N = 8$ (`8usize`) and $N = 10^9$
+   (`1_000_000_000usize`) produces identical obligation counts (`9`), inference
+   work steps (`11765`), reduction steps (`79`) and emitted Gallina size (`86299`
+   bytes). All `13` schema-2 semantic negative controls (`oob-read`, `oob-write`,
+   `oob-slice`, `oob-fill`, `mutate-in-borrow`, `mutate-readonly-view`,
+   `read-invalidated-view`, `overlapping-copyprefix`, `foreign-restore`,
+   `broken-restores-contract`, `wrong-expected-byte`, `stale-input-leak`,
+   `loop-frame-overlap`) fail in the native parser/elaborator with
+   `category == "type"`. On `sail_riscv_sim`, the purecap CHERI-RISC-V capability
+   slice (`csetbounds`, `candperm`, `ccleartag`, capability round-trip) passes
+   (`189` trace records, digest `fcb117788b0f47b9`) and the three hardware fault
+   controls (`bounds-trap`, `perm-trap`, `tag-trap`) trap with `mcause == 28`
+   (HTIF exit `284`). AST-driven lowering of `ValidationError`,
+   `ValidationOutcome`, `MakePacket8`, `CopyPacketToDst`, `ComputePacketChecksum`
+   and `PrepareAndValidatePacket` to `verifiedos-scalar-source-v1` C (`SHA256: da24af2e11f1ccecd38d2e3a767cacce4349253950352f05483e8558b666fd09`)
+   compiles through contained CompCert (`-fverifiedos-typed -dclight`, Clight
+   `SHA256: 0d9b465864195bf59e8441f8408f0ab06f44e07c21de0f589f2d5a480301180a`),
+   passes `ccomp -interp` (`0`) and purecap `sail_riscv_sim` (`36835` records,
+   digest `f2abfa9a149d18da`), and rejects all `4` perturbed C controls (`7`,
+   `12`, `16`, `17`).
+4. **Inspected blocking dependencies and unrun/pending checks:** full
+   machine-refinement closure over the canonical Sail machine term (`rv64d.v`) and
+   Q2b's decoder destination remains blocked by existing upstream/foundation
+   owners:
+   - `Q35b`/`Q35o`/`Q35p`: `rv64d.v` refuses Rocq 9.3.0 compilation at
+     `__WriteRAM_Meta` / `write_tag_bool` (`Prompt_monad.monad bool ?E0` vs
+     outcome `M unit`; [canonical-machine-term.md](../assurance/canonical-machine-term.md#9-the-whole-term-compile-refusal))
+     and `rocq-sail-stdpp` is not carried in the shared proof switch (`F-778`).
+   - `Q35c`/`Q35m`/`Q35k`/`Q35l`: the machine-logic dependency chain
+     (`Islaris`/`Lithium`/`Katamaran`) reached its bounded refusal endpoint at
+     Rocq 9.3.0 (`Q35m`, `F-785`, `F-786`), leaving `Q35k` (unary safety over
+     `rv64d.v`) and `Q35l` (`byte-instance` laws over `rv64d.v`) blocked and
+     `byte-instance` / `scoped-resources` uncommissioned in
+     [cheri-foundation-map.md](../hardware/cheri-foundation-map.md).
+   - `Q2b` ([tools/bedrock2-lowering/DescriptorCheck.v](../../tools/bedrock2-lowering/DescriptorCheck.v)):
+     targets `BasicC64Semantics` (flat byte-array read-only check without
+     destination initialization, byte copy or CHERI capability tags).
+   - `Q35d`/`M1.2g`/`Q35j`: mechanized Sail-to-Clight/CompCert refinement and the
+     stock-to-contained Clight bridge remain open.
+   Whole-term `rv64d.v` compilation, `Q35l` `byte-instance` refinement over
+   `rv64d.v`, mechanized Sail-to-Clight/CompCert refinement for `first_slice.c`,
+   and user-managed Host CI and Guest CI runs could not run or remain pending and
+   supply no passing verdict. Subsequent stages in
+   [Vela first-release delivery](../../PLAN.md#vela-first-release-delivery) remain
+   unpriced until those owners land.
+
+The original 24 h estimate, range 16–32, is retained because earlier authoring
+intervals across `fdddff26` and `eafb9e8f` were not captured as an exclusive
+cumulative actual; both calibration columns remain `n/a`.
+
+Landed: Tier A. Full source, contract, theorem-subject, invalid-neighbor and
+foundation-reuse review, plus local `test_vela_first_slice`, `vela-parser first-slice`,
+`typecheck` and corpus validation.
+
 <a id="q25aa-build-a-local-vela-browser-playground"></a>
 
 #### Q25aa · Build a local Vela browser playground

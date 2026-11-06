@@ -357,17 +357,457 @@ proof {{
     return text.encode("utf-8")
 
 
-def _extract_decl_names(parsed: object) -> dict[str, str]:
+def build_foundation_inventory() -> dict[str, object]:
+    """Return the explicit checked law, assumption, and blocking-dependency inventory for Q25w."""
+    return {
+        "carrier_representation": (
+            "vela_Span (vela_ByteStore = nat -> vela_u8, Base, Length, Tag, PermRead, PermWrite)"
+        ),
+        "carrier_laws": [
+            "LawInhabitedByteCase",
+            "LawAllocZeroedRead",
+            "LawReadOverWriteSame",
+            "LawReadOverWriteOther",
+            "LawLoopFramePreservesDisjointSuffix",
+            "LawFillAndFrame",
+            "LawSliceMetadataAndRead",
+            "LawReadOnlyAndInvalidate",
+            "LawDisjointCopyAndFrame",
+            "LawCapacityInvarianceSmall",
+            "LawCapacityInvarianceLarge",
+        ],
+        "validator_contract_obligations": [
+            "restores_0_Base",
+            "restores_0_Length",
+            "restores_0_Tag",
+            "restores_0_PermRead",
+            "restores_0_PermWrite",
+            "ensures_0",
+            "ensures_1",
+            "ensures_2",
+        ],
+        "scenario_theorems": [
+            "ValidateEmptyPacketOk",
+            "ValidateFullPacketOk",
+            "ValidatePartialPacketScrubsStaleAndTrailingBytes",
+            "RejectFramingShort",
+            "RejectBadMagic",
+            "RejectLengthOutOfBounds",
+            "RejectChecksumScrubsDestinationAndRestores",
+        ],
+        "global_assumptions": "Closed under the global context (0 axioms)",
+        "blocking_dependencies": {
+            "Q35b / Q35o / Q35p": (
+                "Canonical Sail machine term rv64d.v refuses Rocq 9.3.0 compilation at "
+                "__WriteRAM_Meta / write_tag_bool (Prompt_monad.monad bool ?E0 vs outcome M unit; "
+                "docs/assurance/canonical-machine-term.md#9-the-whole-term-compile-refusal) and "
+                "rocq-sail-stdpp is not carried in the shared proof switch (F-778)."
+            ),
+            "Q35c / Q35m / Q35k / Q35l": (
+                "Machine-logic dependency chain (Islaris / Lithium / Katamaran) reached its bounded "
+                "refusal endpoint at Rocq 9.3.0 (Q35m, F-785, F-786), leaving Q35k (unary safety "
+                "over rv64d.v) and Q35l (byte-instance laws over rv64d.v) blocked and byte-instance / "
+                "scoped-resources uncommissioned in docs/hardware/cheri-foundation-map.md."
+            ),
+            "Q2b": (
+                "tools/bedrock2-lowering/DescriptorCheck.v targets BasicC64Semantics (flat byte-array "
+                "read-only check without destination initialization, byte copy or CHERI capability tags)."
+            ),
+            "Q35d / M1.2g / Q35j": (
+                "Mechanized Sail-to-Clight/CompCert refinement and the stock-to-contained Clight "
+                "bridge remain open."
+            ),
+        },
+        "unrun_or_pending_checks": [
+            "Whole-term rv64d.v Rocq 9.3.0 compilation and Q35l byte-instance refinement proof over rv64d.v (blocked by Q35o / Q35p / Q35m)",
+            "Mechanized Sail-to-Clight/CompCert refinement theorem for first_slice.c (owned by Q35d / M1.2g)",
+            "User-managed Host CI and Guest CI runs (deferred to user handoff)",
+        ],
+    }
+
+
+def _extract_decl_map(parsed: object) -> dict[str, dict[str, object]]:
     envelope = cast("dict[str, object]", parsed)
     ast_root = cast("dict[str, object]", envelope.get("ast", envelope))
     decls = cast("list[dict[str, object]]", ast_root.get("declarations", []))
-    found: dict[str, str] = {}
+    found: dict[str, dict[str, object]] = {}
     for decl in decls:
-        kind = str(decl.get("kind", ""))
         name_node = decl.get("name")
         if isinstance(name_node, dict) and isinstance(name_node.get("text"), str):
-            found[str(name_node["text"])] = kind
+            found[str(name_node["text"])] = decl
     return found
+
+
+def _node_text(node: object) -> str:
+    if isinstance(node, str):
+        return node
+    if isinstance(node, dict):
+        if isinstance(node.get("text"), str):
+            return str(node["text"])
+        if isinstance(node.get("name"), dict):
+            return _node_text(node["name"])
+    raise ValueError(f"expected named AST node, got {node!r}")
+
+
+def _type_info(type_node: object) -> tuple[str | None, str]:
+    if not isinstance(type_node, dict):
+        raise TypeError(f"expected type AST node, got {type_node!r}")
+    kind = str(type_node.get("kind", ""))
+    if kind == "modified_type":
+        mod = _node_text(type_node.get("modifier"))
+        inner_node = type_node.get("type") if type_node.get("type") is not None else type_node.get("value")
+        _, inner = _type_info(inner_node)
+        return mod, inner
+    if kind == "type":
+        return None, _node_text(type_node.get("name"))
+    raise ValueError(f"unsupported type AST node kind {kind!r}")
+
+
+def _c_scalar_type(type_name: str) -> str:
+    if type_name in ("u8", "byte"):
+        return "unsigned char"
+    if type_name == "usize":
+        return "unsigned long"
+    if type_name in ("bool", "ValidationError"):
+        return "int"
+    if type_name == "Span":
+        return "struct vos_span_byte"
+    if type_name == "ValidationOutcome":
+        return "struct vos_ValidationOutcome"
+    if type_name in ("unit", "Unit"):
+        return "void"
+    raise ValueError(f"unsupported C lowering type {type_name!r}")
+
+
+def _unwrap_arg(node: object) -> dict[str, object]:
+    if not isinstance(node, dict):
+        raise TypeError(f"expected AST argument node, got {node!r}")
+    if node.get("kind") == "argument":
+        val = node.get("value")
+        if isinstance(val, dict):
+            return cast("dict[str, object]", val)
+    return cast("dict[str, object]", node)
+
+
+def _lower_union_to_c(decl: dict[str, object]) -> tuple[str, dict[str, int]]:
+    uname = _node_text(decl.get("name"))
+    ctors = cast("list[dict[str, object]]", decl.get("constructors", []))
+    if not ctors:
+        raise ValueError(f"union {uname} missing AST constructors")
+    lines: list[str] = []
+    ctor_map: dict[str, int] = {}
+    for idx, ctor in enumerate(ctors):
+        cname = _node_text(ctor.get("name"))
+        ctor_map[cname] = idx
+        lines.append(f"#define VOS_ERR_{cname} {idx}")
+    return "\n".join(lines), ctor_map
+
+
+def _lower_record_to_c(decl: dict[str, object]) -> tuple[str, list[tuple[str, str]]]:
+    rname = _node_text(decl.get("name"))
+    params = cast("list[dict[str, object]]", decl.get("parameters", []))
+    if not params:
+        raise ValueError(f"record {rname} missing AST parameters")
+    lines = [f"struct vos_{rname} {{"]
+    fields: list[tuple[str, str]] = []
+    for param in params:
+        pname = _node_text(param.get("name"))
+        _, ptype = _type_info(param.get("type"))
+        fields.append((pname, ptype))
+        lines.append(f"    {_c_scalar_type(ptype)} {pname};")
+    lines.append("};")
+    return "\n".join(lines), fields
+
+
+def _is_span_call(expr: dict[str, object], *methods: str) -> str | None:
+    if expr.get("kind") != "call":
+        return None
+    callee = expr.get("callee")
+    if not isinstance(callee, dict) or callee.get("kind") != "member":
+        return None
+    recv = callee.get("value")
+    if not isinstance(recv, dict) or recv.get("kind") != "name" or _node_text(recv) != "Span":
+        return None
+    mname = _node_text(callee.get("name"))
+    if not methods or mname in methods:
+        return mname
+    return None
+
+
+def _lower_function_to_c(
+    decl: dict[str, object],
+    ctor_map: dict[str, int],
+    record_fields: dict[str, list[tuple[str, str]]],
+) -> str:
+    fname = _node_text(decl.get("name"))
+    params = cast("list[dict[str, object]]", decl.get("parameters", []))
+    _, ret_type = _type_info(decl.get("result"))
+    body = decl.get("body")
+    if not isinstance(body, dict) or body.get("kind") != "block":
+        raise ValueError(f"function {fname} missing executable AST block body")
+
+    ptr_spans: set[str] = set()
+    c_params: list[str] = []
+    if ret_type == "Span":
+        c_ret = "void"
+        c_params.extend(["struct vos_span_byte *out", "unsigned char *backing"])
+    elif ret_type in record_fields:
+        c_ret = "void"
+        c_params.append(f"struct vos_{ret_type} *out")
+    else:
+        c_ret = _c_scalar_type(ret_type)
+
+    for param in params:
+        pname = _node_text(param.get("name"))
+        _, ptype = _type_info(param.get("type"))
+        if ptype == "Span":
+            ptr_spans.add(pname)
+            c_params.append(f"struct vos_span_byte *{pname}")
+        else:
+            c_params.append(f"{_c_scalar_type(ptype)} {pname}")
+
+    local_spans: list[str] = []
+    local_scalars: list[tuple[str, str]] = []
+
+    def add_local_span(vname: str) -> None:
+        if vname not in local_spans and vname not in ptr_spans:
+            local_spans.append(vname)
+
+    def add_local_scalar(c_ty: str, vname: str) -> None:
+        if all(existing != vname for _, existing in local_scalars):
+            local_scalars.append((c_ty, vname))
+
+    def infer_local_type(stmt: dict[str, object]) -> tuple[bool, str]:
+        ty_node = stmt.get("type")
+        if isinstance(ty_node, dict):
+            _, tname = _type_info(ty_node)
+            return (tname == "Span"), _c_scalar_type(tname)
+        val = cast("dict[str, object]", stmt.get("value", {}))
+        if _is_span_call(val) is not None:
+            return True, "struct vos_span_byte"
+        vkind = str(val.get("kind", ""))
+        if vkind == "index":
+            return False, "unsigned char"
+        if vkind == "call":
+            callee = val.get("callee")
+            if (
+                isinstance(callee, dict)
+                and callee.get("kind") == "member"
+                and _node_text(callee.get("value")) == "usize"
+                and _node_text(callee.get("name")) == "From"
+            ):
+                return False, "unsigned long"
+            if isinstance(callee, dict) and callee.get("kind") == "name" and _node_text(callee) == "ComputePacketChecksum":
+                return False, "unsigned char"
+        if vkind == "binary" and _node_text(val.get("operator")) == "^":
+            return False, "unsigned char"
+        raise ValueError(f"cannot infer local C type for statement in {fname}: {stmt!r}")
+
+    def collect_locals(stmts: list[dict[str, object]]) -> None:
+        for st in stmts:
+            skind = str(st.get("kind", ""))
+            if skind in ("var", "let"):
+                vname = _node_text(st.get("name"))
+                is_span, c_ty = infer_local_type(st)
+                if is_span:
+                    add_local_span(vname)
+                else:
+                    add_local_scalar(c_ty, vname)
+            elif skind == "foreach":
+                iname = _node_text(st.get("name"))
+                add_local_scalar("unsigned long", iname)
+                fbody = st.get("body")
+                if isinstance(fbody, dict):
+                    collect_locals(cast("list[dict[str, object]]", fbody.get("statements", [])))
+            elif skind == "if":
+                then_b = st.get("then")
+                if isinstance(then_b, dict):
+                    collect_locals(cast("list[dict[str, object]]", then_b.get("statements", [])))
+                else_b = st.get("else")
+                if isinstance(else_b, dict):
+                    collect_locals(cast("list[dict[str, object]]", else_b.get("statements", [])))
+
+    body_stmts = cast("list[dict[str, object]]", body.get("statements", []))
+    collect_locals(body_stmts)
+
+    def span_ptr_expr(expr: dict[str, object]) -> str:
+        node = _unwrap_arg(expr)
+        if node.get("kind") == "unary" and _node_text(node.get("operator")) in ("ref", "in"):
+            node = _unwrap_arg(node.get("value"))
+        if node.get("kind") == "name":
+            vname = _node_text(node)
+            if vname in ptr_spans:
+                return vname
+            if vname in local_spans:
+                return f"&{vname}"
+        raise ValueError(f"expected Span variable in {fname}, got {expr!r}")
+
+    def lower_expr(expr: object) -> str:
+        node = _unwrap_arg(expr)
+        ekind = str(node.get("kind", ""))
+        if ekind == "nat":
+            raw_val = str(node.get("value", "0")).replace("_", "")
+            suffix = str(node.get("suffix") or "")
+            return f"{raw_val}UL" if suffix == "usize" else f"{raw_val}U"
+        if ekind == "bool":
+            return "1" if node.get("value") is True else "0"
+        if ekind == "name":
+            return _node_text(node)
+        if ekind == "unary":
+            op = _node_text(node.get("operator"))
+            if op in ("ref", "in"):
+                return span_ptr_expr(node)
+            return f"{op}{lower_expr(node.get('value'))}"
+        if ekind == "member":
+            mname = _node_text(node.get("name"))
+            rname = _node_text(node.get("value"))
+            c_field = {"Length": "length", "Base": "base", "Tag": "tag"}.get(mname)
+            if c_field is None:
+                raise ValueError(f"unsupported member {mname!r} in {fname}")
+            return f"{rname}->{c_field}" if rname in ptr_spans else f"{rname}.{c_field}"
+        if ekind == "index":
+            s_ptr = span_ptr_expr(cast("dict[str, object]", node.get("value")))
+            idx_c = lower_expr(node.get("index"))
+            return f"vos_span_read({s_ptr}, {idx_c})"
+        if ekind == "binary":
+            op = _node_text(node.get("operator"))
+            lhs = lower_expr(node.get("left"))
+            rhs = lower_expr(node.get("right"))
+            if op == "^":
+                return f"(unsigned char)((unsigned int){lhs} ^ (unsigned int){rhs})"
+            if op in ("&&", "||"):
+                return f"{lhs} {op} {rhs}"
+            return f"({lhs} {op} {rhs})"
+        if ekind == "call":
+            callee = cast("dict[str, object]", node.get("callee", {}))
+            args = [_unwrap_arg(a) for a in cast("list[object]", node.get("arguments", []))]
+            if callee.get("kind") == "member":
+                rname = _node_text(callee.get("value"))
+                mname = _node_text(callee.get("name"))
+                if rname == "Span" and mname == "Disjoint":
+                    return f"vos_span_disjoint({span_ptr_expr(args[0])}, {span_ptr_expr(args[1])})"
+                if rname == "usize" and mname == "From":
+                    return f"(unsigned long){lower_expr(args[0])}"
+            if callee.get("kind") == "name":
+                cname = _node_text(callee)
+                if cname in ctor_map:
+                    return f"VOS_ERR_{cname}"
+                c_args: list[str] = []
+                for arg in args:
+                    if (
+                        arg.get("kind") == "unary" and _node_text(arg.get("operator")) in ("ref", "in")
+                    ) or (arg.get("kind") == "name" and (_node_text(arg) in ptr_spans or _node_text(arg) in local_spans)):
+                        c_args.append(span_ptr_expr(arg))
+                    else:
+                        c_args.append(lower_expr(arg))
+                return f"{cname}({', '.join(c_args)})"
+        raise ValueError(f"unsupported expression in {fname}: {node!r}")
+
+    def lower_span_init(dst_ptr: str, expr: dict[str, object]) -> list[str]:
+        mname = _is_span_call(expr)
+        args = [_unwrap_arg(a) for a in cast("list[object]", expr.get("arguments", []))]
+        if mname == "AllocZeroed":
+            return [f"vos_span_alloc_zeroed({dst_ptr}, backing, {lower_expr(args[0])}, {lower_expr(args[1])});"]
+        if mname == "Slice":
+            return [f"vos_span_slice({dst_ptr}, {span_ptr_expr(args[0])}, {lower_expr(args[1])}, {lower_expr(args[2])});"]
+        if mname in ("Invalidate", "ReadOnly"):
+            c_fn = "vos_span_invalidate" if mname == "Invalidate" else "vos_span_readonly"
+            inner = args[0]
+            if _is_span_call(inner) is not None:
+                return [*lower_span_init(dst_ptr, inner), f"{c_fn}({dst_ptr}, {dst_ptr});"]
+            return [f"{c_fn}({dst_ptr}, {span_ptr_expr(inner)});"]
+        raise ValueError(f"unsupported Span initializer {mname!r} in {fname}")
+
+    def lower_stmts(stmts: list[dict[str, object]], indent: str) -> list[str]:
+        out_lines: list[str] = []
+        for st in stmts:
+            skind = str(st.get("kind", ""))
+            if skind in ("var", "let"):
+                vname = _node_text(st.get("name"))
+                val = cast("dict[str, object]", st.get("value", {}))
+                if vname in local_spans:
+                    out_lines.extend(f"{indent}{line}" for line in lower_span_init(f"&{vname}", val))
+                else:
+                    out_lines.append(f"{indent}{vname} = {lower_expr(val)};")
+            elif skind == "assignment":
+                target = cast("dict[str, object]", st.get("target", {}))
+                val = cast("dict[str, object]", st.get("value", {}))
+                if target.get("kind") == "index":
+                    s_ptr = span_ptr_expr(cast("dict[str, object]", target.get("value")))
+                    idx_c = lower_expr(target.get("index"))
+                    out_lines.append(f"{indent}vos_span_write({s_ptr}, {s_ptr}, {idx_c}, {lower_expr(val)});")
+                else:
+                    tname = _node_text(target)
+                    out_lines.append(f"{indent}{tname} = {lower_expr(val)};")
+            elif skind == "expression_statement":
+                val = cast("dict[str, object]", st.get("value", {}))
+                mname = _is_span_call(val)
+                args = [_unwrap_arg(a) for a in cast("list[object]", val.get("arguments", []))]
+                if mname == "Fill":
+                    s_ptr = span_ptr_expr(args[0])
+                    out_lines.append(
+                        f"{indent}vos_span_fill({s_ptr}, {s_ptr}, {lower_expr(args[1])}, {lower_expr(args[2])}, {lower_expr(args[3])});"
+                    )
+                elif mname == "CopyPrefix":
+                    d_ptr = span_ptr_expr(args[0])
+                    s_ptr = span_ptr_expr(args[1])
+                    out_lines.append(f"{indent}vos_span_copy_prefix({d_ptr}, {d_ptr}, {s_ptr}, {lower_expr(args[2])});")
+                elif mname == "Restore":
+                    p_ptr = span_ptr_expr(args[0])
+                    v_ptr = span_ptr_expr(args[1])
+                    out_lines.append(f"{indent}vos_span_restore({p_ptr}, {p_ptr}, {v_ptr});")
+                else:
+                    out_lines.append(f"{indent}{lower_expr(val)};")
+            elif skind == "foreach":
+                iname = _node_text(st.get("name"))
+                rng = cast("dict[str, object]", st.get("range", {}))
+                start_c = lower_expr(rng.get("start"))
+                end_c = lower_expr(rng.get("end"))
+                fbody = cast("dict[str, object]", st.get("body", {}))
+                out_lines.append(f"{indent}for ({iname} = {start_c}; {iname} < {end_c}; {iname}++) {{")
+                out_lines.extend(lower_stmts(cast("list[dict[str, object]]", fbody.get("statements", [])), indent + "    "))
+                out_lines.append(f"{indent}}}")
+            elif skind == "if":
+                cond_c = lower_expr(st.get("condition"))
+                then_b = cast("dict[str, object]", st.get("then", {}))
+                out_lines.append(f"{indent}if ({cond_c}) {{")
+                out_lines.extend(lower_stmts(cast("list[dict[str, object]]", then_b.get("statements", [])), indent + "    "))
+                else_b = st.get("else")
+                if isinstance(else_b, dict):
+                    out_lines.append(f"{indent}}} else {{")
+                    out_lines.extend(lower_stmts(cast("list[dict[str, object]]", else_b.get("statements", [])), indent + "    "))
+                out_lines.append(f"{indent}}}")
+            elif skind == "return":
+                val = _unwrap_arg(st.get("value"))
+                if ret_type == "Span":
+                    out_lines.append(f"{indent}vos_span_copy_meta(out, {span_ptr_expr(val)});")
+                    out_lines.append(f"{indent}return;")
+                elif ret_type in record_fields:
+                    fields = record_fields[ret_type]
+                    args = [_unwrap_arg(a) for a in cast("list[object]", val.get("arguments", []))]
+                    if len(args) != len(fields):
+                        raise ValueError(f"record return in {fname} expected {len(fields)} fields, got {len(args)}")
+                    for (f_name, f_type), arg_val in zip(fields, args, strict=True):
+                        if f_type == "Span":
+                            out_lines.append(f"{indent}vos_span_copy_meta(&out->{f_name}, {span_ptr_expr(arg_val)});")
+                        else:
+                            out_lines.append(f"{indent}out->{f_name} = {lower_expr(arg_val)};")
+                    out_lines.append(f"{indent}return;")
+                else:
+                    out_lines.append(f"{indent}return {lower_expr(val)};")
+            else:
+                raise ValueError(f"unsupported statement kind {skind!r} in {fname}")
+        return out_lines
+
+    param_sig = ",\n    ".join(c_params) if c_params else "void"
+    header = f"static {c_ret} {fname}(\n    {param_sig})\n{{"
+    decl_lines = [
+        *(f"    struct vos_span_byte {s_name};" for s_name in local_spans),
+        *(f"    {c_ty} {v_name};" for c_ty, v_name in local_scalars),
+    ]
+    stmt_lines = lower_stmts(body_stmts, "    ")
+    all_body = [*decl_lines, *([""] if decl_lines and stmt_lines else []), *stmt_lines]
+    return "\n".join([header, *all_body, "}"])
 
 
 def lower_to_c(source: bytes, parsed: object, *, perturb_check: int = 0) -> tuple[str, int]:
@@ -375,11 +815,12 @@ def lower_to_c(source: bytes, parsed: object, *, perturb_check: int = 0) -> tupl
 
     Verifies that the parsed AST carries the expected executable type and callable
     declarations (`ValidationError`, `ValidationOutcome`, `MakePacket8`,
-    `CopyPacketToDst`, `ComputePacketChecksum`, `PrepareAndValidatePacket`) and the
-    seven scenario definitions before emitting a self-contained C translation unit in
-    the `verifiedos-scalar-source-v1` subset.
+    `CopyPacketToDst`, `ComputePacketChecksum`, `PrepareAndValidatePacket`), the
+    eleven carrier laws, and the seven scenario theorems before lowering the
+    executable union, record, and function AST nodes into a self-contained C
+    translation unit in the `verifiedos-scalar-source-v1` subset.
     """
-    decls = _extract_decl_names(parsed)
+    decl_map = _extract_decl_map(parsed)
     required_callables = (
         ("ValidationError", "union"),
         ("ValidationOutcome", "record"),
@@ -387,7 +828,17 @@ def lower_to_c(source: bytes, parsed: object, *, perturb_check: int = 0) -> tupl
         ("CopyPacketToDst", "function"),
         ("ComputePacketChecksum", "function"),
         ("PrepareAndValidatePacket", "function"),
+        ("LawInhabitedByteCase", "theorem"),
+        ("LawAllocZeroedRead", "theorem"),
+        ("LawReadOverWriteSame", "theorem"),
+        ("LawReadOverWriteOther", "theorem"),
         ("LawLoopFramePreservesDisjointSuffix", "theorem"),
+        ("LawFillAndFrame", "theorem"),
+        ("LawSliceMetadataAndRead", "theorem"),
+        ("LawReadOnlyAndInvalidate", "theorem"),
+        ("LawDisjointCopyAndFrame", "theorem"),
+        ("LawCapacityInvarianceSmall", "theorem"),
+        ("LawCapacityInvarianceLarge", "theorem"),
         ("ValidateEmptyPacketOk", "theorem"),
         ("ValidateFullPacketOk", "theorem"),
         ("ValidatePartialPacketScrubsStaleAndTrailingBytes", "theorem"),
@@ -397,9 +848,24 @@ def lower_to_c(source: bytes, parsed: object, *, perturb_check: int = 0) -> tupl
         ("RejectChecksumScrubsDestinationAndRestores", "theorem"),
     )
     for name, expected_kind in required_callables:
-        actual = decls.get(name)
+        decl_node = decl_map.get(name)
+        actual = str(decl_node.get("kind", "")) if isinstance(decl_node, dict) else None
         if actual != expected_kind:
             raise ValueError(f"first_slice AST missing executable declaration {name} ({expected_kind}), got {actual}")
+
+    union_c, ctor_map = _lower_union_to_c(decl_map["ValidationError"])
+    record_c, outcome_fields = _lower_record_to_c(decl_map["ValidationOutcome"])
+    record_fields = {"ValidationOutcome": outcome_fields}
+    fn_c_blocks = [
+        _lower_function_to_c(decl_map[fn_name], ctor_map, record_fields)
+        for fn_name in (
+            "MakePacket8",
+            "CopyPacketToDst",
+            "ComputePacketChecksum",
+            "PrepareAndValidatePacket",
+        )
+    ]
+    lowered_functions_c = "\n\n".join(fn_c_blocks)
 
     def exp(check_num: int, val: int) -> int:
         return val + (1 if check_num == perturb_check else 0)
@@ -408,11 +874,7 @@ def lower_to_c(source: bytes, parsed: object, *, perturb_check: int = 0) -> tupl
 /* Lowered from tools/vela/examples/first_slice.vela (SHA256: {_sha256(source)}) */
 /* Source profile: verifiedos-scalar-source-v1 */
 
-#define VOS_ERR_ValidatedOk 0
-#define VOS_ERR_FramingShort 1
-#define VOS_ERR_BadMagicOrFlags 2
-#define VOS_ERR_LengthOutOfBounds 3
-#define VOS_ERR_ChecksumRejected 4
+{union_c}
 
 struct vos_span_byte {{
     unsigned char *ptr;
@@ -423,12 +885,7 @@ struct vos_span_byte {{
     int perm_write;
 }};
 
-struct vos_ValidationOutcome {{
-    int Ok;
-    int Error;
-    unsigned long CopiedBytes;
-    struct vos_span_byte PayloadView;
-}};
+{record_c}
 
 static void vos_span_copy_meta(struct vos_span_byte *dst, struct vos_span_byte *src)
 {{
@@ -548,125 +1005,7 @@ static void vos_span_restore(
     vos_span_copy_meta(out, parent);
 }}
 
-static void MakePacket8(
-    struct vos_span_byte *out,
-    unsigned char *backing,
-    unsigned long baseAddr,
-    unsigned char b0,
-    unsigned char b1,
-    unsigned char b2,
-    unsigned char b3,
-    unsigned char b4,
-    unsigned char b5,
-    unsigned char b6,
-    unsigned char b7)
-{{
-    vos_span_alloc_zeroed(out, backing, baseAddr, 8UL);
-    vos_span_write(out, out, 0UL, b0);
-    vos_span_write(out, out, 1UL, b1);
-    vos_span_write(out, out, 2UL, b2);
-    vos_span_write(out, out, 3UL, b3);
-    vos_span_write(out, out, 4UL, b4);
-    vos_span_write(out, out, 5UL, b5);
-    vos_span_write(out, out, 6UL, b6);
-    vos_span_write(out, out, 7UL, b7);
-}}
-
-static void CopyPacketToDst(
-    struct vos_span_byte *dst,
-    struct vos_span_byte *pkt,
-    unsigned long payloadLen)
-{{
-    unsigned long i;
-    struct vos_span_byte payloadView;
-    struct vos_span_byte pktPayload;
-    for (i = 0UL; i < 4UL; i++) {{
-        vos_span_write(dst, dst, i, vos_span_read(pkt, i));
-    }}
-    vos_span_slice(&payloadView, dst, 4UL, payloadLen);
-    vos_span_slice(&pktPayload, pkt, 4UL, payloadLen);
-    vos_span_copy_prefix(&payloadView, &payloadView, &pktPayload, payloadLen);
-    vos_span_restore(dst, dst, &payloadView);
-}}
-
-static unsigned char ComputePacketChecksum(
-    struct vos_span_byte *pkt,
-    unsigned char rawLen,
-    unsigned long payloadLen)
-{{
-    unsigned long i;
-    unsigned int acc;
-    acc = 0x5AU ^ (unsigned int)rawLen;
-    for (i = 0UL; i < 4UL; i++) {{
-        if (i < payloadLen) {{
-            acc = acc ^ (unsigned int)vos_span_read(pkt, 4UL + i);
-        }}
-    }}
-    return (unsigned char)(acc & 0xFFU);
-}}
-
-static void PrepareAndValidatePacket(
-    struct vos_ValidationOutcome *out,
-    struct vos_span_byte *dst,
-    struct vos_span_byte *pkt)
-{{
-    struct vos_span_byte emptySlice;
-    struct vos_span_byte rawView;
-    unsigned char magic;
-    unsigned char rawLen;
-    unsigned char expectedChecksum;
-    unsigned char flags;
-    unsigned char actualChecksum;
-    unsigned long payloadLen;
-
-    if (dst->length < 8UL || pkt->length < 4UL || !vos_span_disjoint(dst, pkt)) {{
-        vos_span_slice(&emptySlice, dst, 0UL, 0UL);
-        out->Ok = 0;
-        out->Error = VOS_ERR_FramingShort;
-        out->CopiedBytes = 0UL;
-        vos_span_invalidate(&out->PayloadView, &emptySlice);
-        return;
-    }}
-    vos_span_fill(dst, dst, 0UL, 8UL, 0U);
-    magic = vos_span_read(pkt, 0UL);
-    rawLen = vos_span_read(pkt, 1UL);
-    expectedChecksum = vos_span_read(pkt, 2UL);
-    flags = vos_span_read(pkt, 3UL);
-    payloadLen = (unsigned long)rawLen;
-    if (magic != 0x56U || flags != 0x01U) {{
-        vos_span_slice(&emptySlice, dst, 0UL, 0UL);
-        out->Ok = 0;
-        out->Error = VOS_ERR_BadMagicOrFlags;
-        out->CopiedBytes = 0UL;
-        vos_span_invalidate(&out->PayloadView, &emptySlice);
-        return;
-    }}
-    if (payloadLen > 4UL || 4UL + payloadLen > pkt->length || 4UL + payloadLen > dst->length) {{
-        vos_span_slice(&emptySlice, dst, 0UL, 0UL);
-        out->Ok = 0;
-        out->Error = VOS_ERR_LengthOutOfBounds;
-        out->CopiedBytes = 0UL;
-        vos_span_invalidate(&out->PayloadView, &emptySlice);
-        return;
-    }}
-    CopyPacketToDst(dst, pkt, payloadLen);
-    actualChecksum = ComputePacketChecksum(pkt, rawLen, payloadLen);
-    if (actualChecksum != expectedChecksum) {{
-        vos_span_fill(dst, dst, 0UL, 8UL, 0U);
-        vos_span_slice(&emptySlice, dst, 0UL, 0UL);
-        out->Ok = 0;
-        out->Error = VOS_ERR_ChecksumRejected;
-        out->CopiedBytes = 0UL;
-        vos_span_invalidate(&out->PayloadView, &emptySlice);
-        return;
-    }}
-    vos_span_slice(&rawView, dst, 4UL, payloadLen);
-    out->Ok = 1;
-    out->Error = VOS_ERR_ValidatedOk;
-    out->CopiedBytes = payloadLen;
-    vos_span_readonly(&out->PayloadView, &rawView);
-    vos_span_restore(dst, dst, &out->PayloadView);
-}}
+{lowered_functions_c}
 
 int main(void)
 {{
@@ -1178,6 +1517,7 @@ def _qualify_attempt(
         "lowered_c_sha256": _sha256(c_path.read_bytes()),
         "purecap_cheri_runs": purecap_runs,
         "compcert_sail": ccomp_evidence,
+        "inventory": build_foundation_inventory(),
     }
 
 
@@ -1196,7 +1536,8 @@ def qualify(root: Path, *, ccomp_path: Path | None = None) -> dict[str, object]:
             "directory": str(directory),
             "steps": steps,
             "full_machine_refinement_closed": False,
-            "remaining_chain_owners": ["Q35d", "M1.2g"],
+            "remaining_chain_owners": ["Q35o", "Q35p", "Q35k", "Q35l", "Q35d", "M1.2g"],
+            "inventory": build_foundation_inventory(),
         }
         _write(directory / "attempt.json", attempt)
         try:
