@@ -49,6 +49,18 @@ def _warnings_and_allow() -> None:
                    and inspect.call_args.args == (SOURCE, TREE), "naming inspection lost exact source/tree identity")
             code, out, err = _invoke(["elaborate", str(source), "--allow", "VELA105", "--allow", "VELA105"])
             ensure(code == 0 and out == GALLINA and not err, "explicit allow failed to suppress advisory naming")
+        pattern_finding = Finding("VELA106", "bare pattern 'None' binds a new variable and shadows constructor 'None'; write 'None()' to match the constructor", 2, 12)
+        with (patch.object(cli.vela_parser, "build", return_value=object()),
+              patch.object(cli.vela_parser, "parse_source", return_value=TREE),
+              patch.object(cli.vela_mathematical, "inspect_source", return_value=Compilation("Named", GALLINA, (pattern_finding,)))):
+            code, out, err = _invoke(["elaborate", str(source)])
+            ensure(code == 0 and out == GALLINA and f"{source}:2:12: warning VELA106: {pattern_finding.message}\n" == err,
+                   "VELA106 warning lost its stable identity or original pattern position")
+            code, out, err = _invoke(["elaborate", str(source), "--allow", "VELA106"])
+            ensure(code == 0 and out == GALLINA and not err, "explicit allow failed to suppress VELA106")
+            code, out, err = _invoke(["elaborate", str(source), "--deny", "VELA106"])
+            ensure(code == 1 and not out and f"{source}:2:12: error VELA106: {pattern_finding.message}\n" == err,
+                   "explicit deny failed to reject VELA106")
         ensure(source.read_bytes() == SOURCE, "naming warning or allow rewrote authored source")
 
 
@@ -91,8 +103,8 @@ def _options_before_compilation() -> None:
         ensure(not read.called and not build.called and not inspect.called,
                "refused naming options consumed source or ran the native compiler")
     code, out, err = _invoke(["elaborate", "--help"])
-    ensure(code == 0 and not err and "--allow" in out and "--deny" in out and "VELA105" in out,
-           "mathematical elaboration help omits explicit naming enforcement")
+    ensure(code == 0 and not err and "--allow" in out and "--deny" in out and "VELA105" in out and "VELA106" in out,
+           "mathematical elaboration help omits explicit naming/pattern enforcement")
 
 
 def _semantic_failure_and_recovery() -> None:

@@ -1014,7 +1014,7 @@ retain their qualified parser/frontend prerequisites.
 
 Two spellings deliberately differ from C#. The borrow modifiers are C#'s, but their exclusive-storage interpretation is Vela's proposed rule. `union` does not have C#'s meaning either: C# 15, in preview with .NET 11 for a November 2026 release, makes `union` a [type union over existing case types](https://devblogs.microsoft.com/dotnet/csharp-15-union-types/), `union Pet(Cat, Dog, Bird)`, whose generated struct holds the value as one `object?` and so boxes value-type cases, and its other exhaustive sum, the [`closed` class hierarchy](https://devblogs.microsoft.com/dotnet/explore-csharp-15), is reference-typed. Neither representation fits the allocation-free subset, so what carries over is exhaustive matching without a default branch. The loan split has a shipped precedent. [Swift 6.2](https://www.swift.org/blog/swift-6.2-released/), released in September 2025, divides views the way `in` and `ref` do: [`MutableSpan`](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0467-MutableSpan.md) is noncopyable because "exclusive access cannot be modeled with a copyable type", while `Span` stays copyable for shared reads, and both are non-escaping. Swift writes lifetime dependence against the source parameter, in a spelling the proposal itself calls a placeholder, and Rust's roadmap plans [lifetimes named by the borrowed place](#research-that-changes-the-experiments). Vela's `'input` takes that shape.
 
-Every public operation exposes its effects and contract. An implementation may infer them locally, but the inferred result becomes a reviewed signature. Every bounded operation terminates on its stated entry conditions, including on every error result; a service loop carries a progress contract instead. `Nat(i)` embeds a machine value into the mathematical naturals. Executable failure takes an explicit `Result` or `union` branch, never an implicit assertion or an assumption.
+Every public operation exposes its effects and contract. An implementation may infer them locally, and the [compiler-verified assist tooling](authoring-tools.md#compiler-verified-assist-dont-coerce-tooling) can compute a body's closed read/write/call footprint to offer a checked source-preserving `effects(...)` preview, but the result becomes an explicit reviewed signature in source. Every bounded operation terminates on its stated entry conditions, including on every error result; a service loop carries a progress contract instead. `Nat(i)` embeds a machine value into the mathematical naturals. Executable failure takes an explicit `Result` or `union` branch, never an implicit assertion or an assumption.
 
 For a C# reader, type inference, binding mutability and required-static
 availability are separate choices:
@@ -1123,7 +1123,13 @@ acceptance. The development parser does not implement a type or borrow checker.
   dereferencing or ownership transfer. Ordinary loan arguments require explicit
   `in`, `ref` or `out`; member-call syntax supplies only the declared receiver loan
   under the rule below. Convert with an explicit named
-  operation whose contract accounts for failure, representation and effects.
+  operation (`T.From(x)` when infallibly wider or `T.TryFrom(x)` when range-checked)
+  whose contract accounts for failure, representation and effects. Whenever Vela
+  refuses a C# shortcut, the [assist-don't-coerce tooling](authoring-tools.md#compiler-verified-assist-dont-coerce-tooling)
+  offers a verified, source-preserving edit or diagnostic suggestion (inserting explicit
+  `in`/`ref`/`out` loan modifiers, suggesting `T.From(x)` or `T.TryFrom(x)`, warning
+  with `VELA106` when a bare pattern binder shadows a constructor or is unreachable,
+  and offering `(Read()?).Value` or a `match` skeleton instead of `?.`).
   Inferring a literal's type, a generic argument or a proof does not convert an
   already typed value. Kernel definitional equality remains equality; checked
   dependent transport retains its existing evidence obligations.

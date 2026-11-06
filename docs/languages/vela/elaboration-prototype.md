@@ -71,7 +71,9 @@ The supported increment includes:
   optional declaration-order `label: pattern` arguments), optional dependent
   `as name : Type` motives, and irrefutable `let (a, b) = ...` or
   `let RecordName(...) = ...` destructuring in blocks and `let ... in ...`
-  expressions.
+  expressions. Advisory `VELA106` warns when a bare pattern binder shadows an
+  in-scope constructor or when a match arm is unreachable, while unreachable
+  arms are still typechecked against the match result type.
 - Conditional `if (cond) a else b` expressions (`if_expression`), Boolean
   `expr is Pattern` tests, flow-refined `if (expr is Pattern)` statements and
   expressions (binding `Pattern`'s variables in the `then` branch), and scoped

@@ -9,7 +9,7 @@ from typing import cast
 from vos import vela_elaborate, vela_parser
 from vos.vela import StaticEvaluation, ValueType
 from vos.vela_ast import Name, position
-from vos.vela_authoring import Finding, generic_type_findings
+from vos.vela_authoring import Finding, generic_type_findings, pattern_constructor_findings
 from vos.vela_elaborate import Elaboration
 
 
@@ -30,7 +30,8 @@ def inspect_source(source: bytes, parsed: object) -> Compilation:
     keeps this advisory inspection separate from mathematical acceptance.
     """
     translation = vela_elaborate.elaborate(source, parsed)
-    pending: list[object] = [cast("dict[str, object]", parsed)["ast"]]
+    ast = cast("dict[str, object]", parsed)["ast"]
+    pending: list[object] = [ast]
     names: list[tuple[int, Name]] = []
     while pending:
         item = pending.pop()
@@ -44,8 +45,12 @@ def inspect_source(source: bytes, parsed: object) -> Compilation:
         elif isinstance(item, list):
             pending.extend(item)
     names.sort(key=lambda item: item[0])
-    return Compilation(translation.module, translation.gallina,
-                       generic_type_findings(tuple(name for _, name in names)))
+    findings = sorted(
+        (*generic_type_findings(tuple(name for _, name in names)),
+         *pattern_constructor_findings(source, cast("dict[str, object]", ast))),
+        key=lambda item: (item.line, item.column, item.code),
+    )
+    return Compilation(translation.module, translation.gallina, tuple(findings))
 
 
 def compile_source(source: bytes, parser: Path) -> Compilation:

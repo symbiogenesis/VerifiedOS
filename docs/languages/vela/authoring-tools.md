@@ -8,7 +8,7 @@ checking and emission read-only with respect to source; formatting writes requir
 an explicit command or option. The formatter and original lints cover
 the pure subset, following the
 [source-preserving command policy](#compiler-commands-and-publication).
-Q25ae's [generic type naming lint](#generic-type-parameter-naming) also covers the
+Q25ae's [generic type naming and pattern lints](#generic-type-parameter-naming) also cover the
 mathematical development fragment. Wider formatting
 and semantic lints consume qualified parser/frontend producers through
 [compiler services](tooling-protocols.md#compiler-inspection-api).
@@ -171,6 +171,7 @@ The initial rule identities are defined here:
 | `VELA103` | An equality comparison has a Boolean literal operand |
 | `VELA104` | An immutable typed local omits an explicit `let` binding keyword |
 | `VELA105` | A generic type parameter name does not use a capital initial and ASCII alphanumeric words |
+| `VELA106` | A bare pattern binder shadows an in-scope constructor or a match arm is unreachable |
 
 `VELA104` points to the original type token and explains that an unmarked typed
 local is immutable. The pure implementation covers its checked `Nat`/`bool`
@@ -189,6 +190,24 @@ still applies; a denied finding prevents publication. This explicit command
 preview adds no LSP code-action capability. Qualification covers nested and
 shadowed locals, comments, mixed newlines/Unicode, source identity, annotation
 mismatch, suppressed/denied findings and unchanged input bytes.
+
+### Compiler-verified "assist, don't coerce" tooling <a id="compiler-verified-assist-dont-coerce-tooling"></a>
+
+Whenever Vela refuses a C# shortcut to preserve soundness, the compiler already
+has the semantic facts needed to offer a verified, source-preserving code action
+or diagnostic suggestion extending the `vela lint --preview-bindings` architecture:
+
+| C# / novice habit | Why Vela refuses it | Friendliness bridge (diagnostic + checked edit) |
+| --- | --- | --- |
+| Calling `Fill(buffer, 0)` without `ref` | Ordinary loan arguments require explicit `in`/`ref`/`out` ([verification-strategy.md](verification-strategy.md#permanent-language-exclusions)) | Resolve the target parameter's mode and offer a checked insertion of `ref buffer` (`assist_loan_argument`, or an inlay hint while typing). |
+| Writing `case None:` instead of `case None():` | Bare names in patterns bind variables; constructors require `()` ([surface-grammar.md](surface-grammar.md#concise-authoring-syntax)) | Warn when a bare pattern binder shadows an in-scope union or record constructor or when a match arm is unreachable (`VELA106`), suggesting `None()` (`preview_pattern_constructors`). |
+| Writing `Read()?.Value` | `?` is early-return propagation, not C#'s null-conditional `?.` ([surface-grammar.md](surface-grammar.md#explicit-values-loans-and-absence)) | Explain the difference from C# `?.` and offer `(Read()?).Value` (to propagate) or a `match` skeleton (to handle locally, via `assist_null_conditional`). |
+| Omitting or under-specifying `effects` on a function | Public signatures require explicit closed `effects` ([verification-strategy.md](verification-strategy.md#surface-conventions)) | Compute the body's closed read/write/call footprint and offer a checked preview that writes or updates the explicit `effects(...)` clause in source (`assist_effects_clause`). |
+| Passing `int` where `long` or `usize` is expected | No implicit numeric widening ([first-release.md](first-release.md#primitive-semantics)) | Suggest the exact named conversion (`long.From(x)` when infallibly wider, or `usize.TryFrom(x)` when range- or sign-checked, via `suggest_numeric_conversion`). |
+
+Every source-rewriting helper validates its one-based compiler coordinates and token
+boundaries against the original UTF-8 snapshot without mutating files in place or
+silently coercing types during checking.
 
 Repeatable `--allow ID` suppresses optional findings; `--deny ID` makes them
 errors. The same ID cannot be both allowed and denied. Unknown IDs are command
@@ -216,8 +235,9 @@ Use exact original identifier coordinates, preserve source and Gallina, and emit
 no naming findings for invalid or incomplete source. This is an optional style
 rule, not a type-system restriction or a naming-based resolution rule.
 
-`vela-parser elaborate SOURCE` reports warnings by default; `--allow VELA105`
-suppresses them and `--deny VELA105` makes them errors before stdout emission or
+`vela-parser elaborate SOURCE` reports `VELA105` and `VELA106` warnings by default;
+`--allow VELA105` or `--allow VELA106` suppresses the selected rule and
+`--deny VELA105` or `--deny VELA106` makes it an error before stdout emission or
 atomic output publication. Conflicting options refuse before compilation.
 The mathematical playground displays successful compilation's bounded findings
 as warning markers and Problems entries; pure responses and mathematical

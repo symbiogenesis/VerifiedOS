@@ -97,7 +97,7 @@ def _validate_findings(findings: object, source: str, *, mathematical: bool = Fa
     snapshot = SourceSnapshot("vela:playground-findings", 0, source, 1)
     lines = source.replace("\r\n", "\n").replace("\r", "\n").split("\n")
     previous = (0, 0)
-    allowed = {"VELA105"} if mathematical else LINT_CODES - {"VELA105"}
+    allowed = {"VELA105", "VELA106"} if mathematical else LINT_CODES - {"VELA105", "VELA106"}
     for finding in findings:
         if (not isinstance(finding, dict) or set(finding) != {"code", "message", "line", "column"}
                 or not isinstance(finding["code"], str) or finding["code"] not in allowed
@@ -108,11 +108,29 @@ def _validate_findings(findings: object, source: str, *, mathematical: bool = Fa
         if mathematical:
             site = (finding["line"], finding["column"])
             line, column = lines[site[0] - 1], site[1] - 1
-            name = IDENTIFIER.match(line, column)
-            if (site <= previous or name is None or is_pascal_case(name.group())
-                    or (column and (line[column - 1].isascii()
-                                    and (line[column - 1].isalnum() or line[column - 1] == "_")))):
-                raise ValueError("mathematical naming finding does not identify a source name")
+            if finding["code"] == "VELA105":
+                name = IDENTIFIER.match(line, column)
+                if (site <= previous or name is None or is_pascal_case(name.group())
+                        or (column and (line[column - 1].isascii()
+                                        and (line[column - 1].isalnum() or line[column - 1] == "_")))):
+                    raise ValueError("mathematical naming finding does not identify a source name")
+            else:
+                if site <= previous or column >= len(line) or line[column].isspace():
+                    raise ValueError("mathematical pattern finding does not identify a source pattern")
+                if "shadows constructor" in finding["message"]:
+                    name = IDENTIFIER.match(line, column)
+                    if (name is None
+                            or f"'{name.group()}'" not in finding["message"]
+                            or (column and line[column - 1].isascii()
+                                and (line[column - 1].isalnum() or line[column - 1] == "_"))):
+                        raise ValueError("mathematical constructor-shadowing finding does not match source binder")
+                elif "unreachable" in finding["message"]:
+                    if (column and line[column - 1].isascii()
+                            and (line[column - 1].isalnum() or line[column - 1] == "_")
+                            and (line[column].isalnum() or line[column] == "_")):
+                        raise ValueError("mathematical unreachable-arm finding starts inside an identifier")
+                else:
+                    raise ValueError("mathematical pattern finding has unrecognized message")
             previous = site
 
 

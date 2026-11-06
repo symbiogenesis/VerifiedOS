@@ -6,7 +6,16 @@ from unittest.mock import patch
 from tests.harness import Case, ensure
 from vos import vela, vela_authoring
 from vos.vela import Translation, VelaError, translate
-from vos.vela_authoring import Finding, format_source, lint_source, preview_bindings
+from vos.vela_authoring import (
+    Finding,
+    assist_effects_clause,
+    assist_loan_argument,
+    assist_null_conditional,
+    format_source,
+    lint_source,
+    preview_bindings,
+    suggest_numeric_conversion,
+)
 
 INDEPENDENT_CASES = True
 
@@ -118,9 +127,47 @@ def _preview_rejects_forged_sites_and_terms() -> None:
             raise AssertionError("preview published changed interpreted terms")
 
 
+def _assist_dont_coerce_bridges() -> None:
+    loan_source = b"module M;\npublic unit Use(TextBuilder<8> b) => Format.Write(b, \"ok\");\n"
+    rewritten_loan = assist_loan_argument(loan_source, 2, 51, "ref")
+    ensure(rewritten_loan == b"module M;\npublic unit Use(TextBuilder<8> b) => Format.Write(ref b, \"ok\");\n",
+           "loan assist did not insert explicit ref at the checked argument boundary")
+    ensure(assist_loan_argument(rewritten_loan, 2, 51, "ref") == rewritten_loan,
+           "loan assist was not idempotent on an already explicit ref argument")
+    try:
+        assist_loan_argument(loan_source, 2, 50, "ref")
+    except VelaError as error:
+        ensure(error.kind == "lint-preview", "non-token loan insertion lost its lint-preview refusal")
+    else:
+        raise AssertionError("loan assist accepted a non-identifier boundary")
+    propagate, local_match = assist_null_conditional("Read()", "Value")
+    ensure(propagate == "(Read()?).Value"
+           and local_match == "match (Read()) { Some(value) => value.Value, None() => todo }",
+           "null-conditional assist did not offer explicit propagation and local match forms")
+    effects_source = b"module M;\npublic Nat ReadCount() { return 0; }\n"
+    with_effects = assist_effects_clause(effects_source, 2, 24, ("Write(log)", "Read(counter)", "Read(counter)"))
+    ensure(with_effects == b"module M;\npublic Nat ReadCount() effects(Read(counter), Write(log)) { return 0; }\n",
+           "effects assist did not insert a closed, deduplicated effects(...) clause before the body")
+    arrow_source = b"module M;\npublic Nat ReadCount() => 0;\n"
+    ensure(assist_effects_clause(arrow_source, 2, 24, ())
+           == b"module M;\npublic Nat ReadCount() effects() => 0;\n",
+           "effects assist did not support empty effects() before =>")
+    ensure(suggest_numeric_conversion("int", "long", "x") == "long.From(x)",
+           "infallibly wider signed conversion did not suggest long.From(x)")
+    ensure(suggest_numeric_conversion("byte", "uint", "b") == "uint.From(b)",
+           "infallibly wider unsigned conversion did not suggest uint.From(b)")
+    ensure(suggest_numeric_conversion("int", "usize", "x") == "usize.TryFrom(x)",
+           "signed-to-unsigned conversion did not suggest range-checked usize.TryFrom(x)")
+    ensure(suggest_numeric_conversion("long", "int", "wide") == "int.TryFrom(wide)",
+           "narrowing conversion did not suggest range-checked int.TryFrom(wide)")
+    ensure(suggest_numeric_conversion("uint", "usize", "count") == "usize.TryFrom(count)",
+           "target-dependent usize conversion did not suggest range-checked usize.TryFrom(count)")
+
+
 def cases() -> list[Case]:
     return [Case("vela-binding-typed-immutable-semantics", _typed_local_semantics),
             Case("vela-binding-type-and-mutation-refusals", _typed_local_refusals),
             Case("vela-binding-lint-sites-and-format-preservation", _lint_sites_and_formatter_preservation),
             Case("vela-binding-preview-exact-source-and-terms", _preview_preserves_exact_bytes),
-            Case("vela-binding-preview-source-and-term-controls", _preview_rejects_forged_sites_and_terms)]
+            Case("vela-binding-preview-source-and-term-controls", _preview_rejects_forged_sites_and_terms),
+            Case("vela-assist-dont-coerce-bridges", _assist_dont_coerce_bridges)]

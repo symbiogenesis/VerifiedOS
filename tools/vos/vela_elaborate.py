@@ -1903,9 +1903,18 @@ class _Elaborator:
             result = self.substitute(result, cast("int", gv.value), arg)
         return result
 
-    def _typecheck_pattern(self, pat: _Pat, expected_type: _Term, environment: dict[str, _Binding]) -> None:
+    def _typecheck_pattern(
+        self,
+        pat: _Pat,
+        expected_type: _Term,
+        environment: dict[str, _Binding],
+        pattern_bindings: dict[str, _Binding] | None = None,
+    ) -> None:
         self.tick()
         self.site = pat.node
+        if pattern_bindings is not None:
+            for name in pat.names:
+                pattern_bindings[name] = _Binding(self.fresh(expected_type), expected_type)
         if pat.kind == "wild":
             return
         if pat.kind == "unit":
@@ -1917,7 +1926,7 @@ class _Elaborator:
         if pat.kind in {"zero", "succ"}:
             self.unify(expected_type, _NAT)
             if pat.kind == "succ":
-                self._typecheck_pattern(pat.args[0], _NAT, environment)
+                self._typecheck_pattern(pat.args[0], _NAT, environment, pattern_bindings)
             return
         if pat.kind == "record":
             record_info = self.records[cast("str", pat.value)]
@@ -1926,7 +1935,7 @@ class _Elaborator:
             self.unify(expected_type, expected_rec_type)
             for sub_pat, rf in zip(pat.args, record_info.fields, strict=True):
                 ftype = self._instantiate_record_type(record_info, type_args, rf.type)
-                self._typecheck_pattern(sub_pat, ftype, environment)
+                self._typecheck_pattern(sub_pat, ftype, environment, pattern_bindings)
             return
         if pat.kind == "pair":
             resolved = self.whnf(expected_type)
@@ -1937,8 +1946,8 @@ class _Elaborator:
                 resolved = self.whnf(expected_type)
             if resolved.kind != "prod":
                 raise self.fail("type", "tuple pattern requires a product scrutinee", pat.node)
-            self._typecheck_pattern(pat.args[0], resolved.args[0], environment)
-            self._typecheck_pattern(pat.args[1], resolved.args[1], environment)
+            self._typecheck_pattern(pat.args[0], resolved.args[0], environment, pattern_bindings)
+            self._typecheck_pattern(pat.args[1], resolved.args[1], environment, pattern_bindings)
             return
         raise self.fail("protocol", f"unexpected internal pattern '{pat.kind}'", pat.node)
 
@@ -1996,7 +2005,7 @@ class _Elaborator:
     def match(self, node: Node, environment: dict[str, _Binding], expected: _Term | None = None,
               *, expression_arms: bool = True, facts: tuple[_Binding, ...] = (),
               refine_scrutinee: bool = False, expected_scrutinee_type: _Term | None = None,
-              visited_arms: set[int] | None = None) -> _Binding:
+              visited_arms: set[int] | None = None, synthetic: bool = False) -> _Binding:
         self.site = node
         value_node = self.node(node["value"])
         if expected_scrutinee_type is not None:
@@ -2020,10 +2029,13 @@ class _Elaborator:
             motive_body = self.substitute(expected, cast("int", scrutinee.term.value), root_var)
         cases = self.nodes(node["cases"])
         rows: list[_Row] = []
+        arm_pattern_bindings: list[dict[str, _Binding]] = []
         for arm_index, arm in enumerate(cases):
             self.node(arm, "expression_case" if expression_arms else "case")
             pat = self._parse_pattern(self.node(arm["pattern"]), set())
-            self._typecheck_pattern(pat, scrutinee.type, environment)
+            bindings_for_arm: dict[str, _Binding] = {}
+            self._typecheck_pattern(pat, scrutinee.type, environment, bindings_for_arm)
+            arm_pattern_bindings.append(bindings_for_arm)
             rows.append(_Row((pat,), (), arm, arm_index))
         scrutinee_type = self.whnf(scrutinee.type)
         scrutinee_head, _ = self.spine(scrutinee_type)
@@ -2036,6 +2048,7 @@ class _Elaborator:
                 value_node,
             )
         inferred_result: list[_Term | None] = [expected]
+        local_visited: set[int] = set()
 
         def specialize_rows(active_rows: list[_Row], index: int, ctor_kind: str, ctor_term: _Term,
                             col_var_id: int, col_type: _Term, sub_count: int, *, bool_value: bool = False) -> list[_Row]:
@@ -2071,6 +2084,7 @@ class _Elaborator:
                 raise self.fail("type", "non-exhaustive match: missing pattern case", node)
             first = active_rows[0]
             if all(pat.kind == "wild" for pat in first.patterns):
+                local_visited.add(first.arm_index)
                 if visited_arms is not None:
                     visited_arms.add(first.arm_index)
                 arm_env = dict(environment)
@@ -2287,6 +2301,19 @@ class _Elaborator:
         term = compile_matrix([(root_var, scrutinee.term, scrutinee_type)], rows, root_var)
         result_type = (self.substitute(motive_body, root_var_id, scrutinee.term)
                        if motive_body is not None else cast("_Term", inferred_result[0]))
+        if not synthetic:
+            for arm_index, arm in enumerate(cases):
+                if arm_index in local_visited:
+                    continue
+                arm_env = dict(environment)
+                for bname, bval in arm_pattern_bindings[arm_index].items():
+                    self.bind_local(arm_env, bname, bval)
+                self.site = arm
+                if expression_arms:
+                    self.check(self.node(arm["value"]), result_type, arm_env)
+                else:
+                    block_node = {"kind": "block", "span": arm["span"], "statements": arm["statements"]}
+                    self.block(block_node, arm_env, result_type, facts=facts)
         return _Binding(term, result_type)
 
     def constant_value(self, node: Node, environment: dict[str, _Binding]) -> _Binding:
@@ -2944,6 +2971,7 @@ class _Elaborator:
                     facts=combined_facts,
                     refine_scrutinee=True,
                     visited_arms=visited_arms,
+                    synthetic=True,
                 )
                 if 1 not in visited_arms:
                     self.block(else_block, extended, result.type, facts=combined_facts)
@@ -3056,6 +3084,7 @@ class _Elaborator:
                 facts=facts,
                 refine_scrutinee=True,
                 visited_arms=visited_arms,
+                synthetic=True,
             )
             if 1 not in visited_arms:
                 self.check(else_node, result.type, environment)
@@ -3090,6 +3119,7 @@ class _Elaborator:
             facts=facts,
             refine_scrutinee=True,
             visited_arms=visited_arms,
+            synthetic=True,
         )
         if 1 not in visited_arms:
             self.branch(else_node, environment, result.type, facts=facts)
@@ -3140,6 +3170,7 @@ class _Elaborator:
             expression_arms=True,
             refine_scrutinee=True,
             expected_scrutinee_type=_BOOL,
+            synthetic=True,
         )
 
     def _is_expression(self, node: Node, environment: dict[str, _Binding]) -> _Binding:
@@ -3165,7 +3196,7 @@ class _Elaborator:
                 },
             ],
         }
-        return self.match(synthetic, environment, _BOOL, expression_arms=True)
+        return self.match(synthetic, environment, _BOOL, expression_arms=True, synthetic=True)
 
     def _project_member(self, receiver: _Binding, member_name: str, node: Node) -> _Binding:
         self.site = node
@@ -3386,9 +3417,14 @@ class _Elaborator:
         if (target_arg["kind"] != "unary"
                 or not isinstance(target_arg["operator"], dict)
                 or target_arg["operator"].get("text") != "ref"):
+            hint = (
+                f"; write 'ref {self.name(target_arg['name'])}'"
+                if target_arg["kind"] == "name"
+                else ""
+            )
             raise self.fail(
                 "type",
-                "Format.Write requires an explicit ref TextBuilder<capacity> target",
+                f"Format.Write requires an explicit ref TextBuilder<capacity> target{hint}",
                 arguments[0],
             )
         target_inner = self.node(target_arg["value"])

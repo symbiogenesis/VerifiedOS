@@ -597,9 +597,17 @@ rule token state = parse
   | '{' { opening state lexbuf LBRACE } | '}' { closing state RBRACE }
   | '[' { opening state lexbuf LBRACKET } | ']' { closing state RBRACKET }
   | ';' { SEMICOLON } | ',' { COMMA } | '.' { DOT } | ':' { COLON }
-  | "??" | "?." {
+  | "??" {
       if state.surface then refuse "syntax" lexbuf "implicit optional operators are not supported";
       (* Preserve the pure entry's original one-character tokenization. *)
+      lexbuf.Lexing.lex_curr_pos <- lexbuf.Lexing.lex_start_pos + 1;
+      lexbuf.Lexing.lex_curr_p <- { lexbuf.Lexing.lex_curr_p with
+        Lexing.pos_cnum = lexbuf.Lexing.lex_start_p.Lexing.pos_cnum + 1 };
+      QUESTION }
+  | "?." {
+      if state.surface then
+        refuse "syntax" lexbuf
+          "'?' is early-return propagation, not C# null-conditional '?.'; write '(expr?).Member' to propagate or 'match' to handle locally";
       lexbuf.Lexing.lex_curr_pos <- lexbuf.Lexing.lex_start_pos + 1;
       lexbuf.Lexing.lex_curr_p <- { lexbuf.Lexing.lex_curr_p with
         Lexing.pos_cnum = lexbuf.Lexing.lex_start_p.Lexing.pos_cnum + 1 };

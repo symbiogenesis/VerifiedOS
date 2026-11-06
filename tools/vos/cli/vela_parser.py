@@ -56,10 +56,10 @@ def main(argv: list[str] | None = None) -> int:
     elaborate.add_argument("source", type=Path)
     elaborate.add_argument("--output", type=Path,
                            help="atomically replace a file in an existing directory")
-    elaborate.add_argument("--allow", action="append", choices=("VELA105",), default=[],
-                           help="suppress the generic type naming lint (repeatable)")
-    elaborate.add_argument("--deny", action="append", choices=("VELA105",), default=[],
-                           help="make the generic type naming lint an error (repeatable)")
+    elaborate.add_argument("--allow", action="append", choices=("VELA105", "VELA106"), default=[],
+                           help="suppress an advisory mathematical lint (repeatable)")
+    elaborate.add_argument("--deny", action="append", choices=("VELA105", "VELA106"), default=[],
+                           help="make an advisory mathematical lint an error (repeatable)")
     support = commands.add_parser("support", help="build and kernel-check the pinned Rocq support library")
     support.add_argument("--archive", type=Path, help="use an already downloaded authenticated release archive")
     parse = commands.add_parser("parse", help="emit a complete located syntax tree as JSON")

@@ -11,11 +11,17 @@ from tests.test_vela_elaborate import (
     Node,
     _assert,
     _binary,
+    _boolean,
     _Fixture,
+    _match_expr,
     _natural,
+    _pat_bind,
+    _pat_bool,
+    _pat_wild,
     _type,
     _variable,
 )
+from vos import vela_authoring as authoring
 from vos import vela_elaborate as language
 from vos import vela_mathematical as adapter
 from vos.vela import VelaError
@@ -126,9 +132,70 @@ def _invalid_source_and_protocol_never_report_partial_warnings() -> None:
     _refuses(lambda: adapter.inspect_source(source, forged), "protocol")
 
 
+def _pattern_constructors_and_unreachable_arms() -> None:
+    fixture = _Fixture("PatternLint")
+    fixture.record("Token", ())
+    fixture.definition(
+        "ShadowAndUnreachable",
+        _type("Nat"),
+        (("flag", _type("bool")),),
+        _match_expr(
+            _variable("flag"),
+            (
+                (_pat_bind("None"), _natural(1)),
+                (_pat_bind("Token"), _natural(2)),
+                (_pat_wild(), _natural(3)),
+            ),
+        ),
+    )
+    fixture.definition(
+        "BoolExhaustive",
+        _type("Nat"),
+        (("flag", _type("bool")),),
+        _match_expr(
+            _variable("flag"),
+            (
+                (_pat_bool(True), _natural(1)),
+                (_pat_bool(False), _natural(2)),
+                (_pat_wild(), _natural(3)),
+            ),
+        ),
+    )
+    source, parsed = fixture.response()
+    result = adapter.inspect_source(source, parsed)
+    ensure([item.code for item in result.findings] == ["VELA106", "VELA106", "VELA106", "VELA106"],
+           f"expected four VELA106 pattern warnings, got {result.findings!r}")
+    ensure("shadows constructor 'None'; write 'None()'" in result.findings[0].message,
+           "first VELA106 omitted constructor-shadowing guidance for None")
+    ensure("shadows constructor 'Token'; write 'Token()'" in result.findings[1].message,
+           "second VELA106 omitted constructor-shadowing guidance for declared record")
+    ensure("unreachable match arm after bare pattern binder 'None'" in result.findings[2].message
+           and "unreachable match arm; earlier patterns already cover this case" in result.findings[3].message,
+           "unreachable match arms did not emit VELA106")
+    previewed = authoring.preview_pattern_constructors(source, parsed)
+    ensure(b"None() => 1, Token() => 2, _ => 3" in previewed,
+           "constructor-pattern preview did not rewrite bare nullary constructor binders")
+    wrong = _Fixture("IllTypedUnreachable")
+    wrong.definition(
+        "BadUnreachable",
+        _type("Nat"),
+        (("flag", _type("bool")),),
+        _match_expr(
+            _variable("flag"),
+            (
+                (_pat_bool(True), _natural(1)),
+                (_pat_bool(False), _natural(2)),
+                (_pat_wild(), _boolean(True)),
+            ),
+        ),
+    )
+    _refuses(lambda: adapter.inspect_source(*wrong.response()), "type")
+
+
 def cases() -> list[Case]:
     return [Case("generic-type-capitals-and-value-index-role-distinction", _type_names_and_value_indices),
             Case("generic-type-lowercase-underscore-source-order-and-unmodified-terms", _lowercase_underscore_names_and_source_order),
             Case("generic-type-nested-callable-and-alias-binders", _nested_callable_and_alias_binders),
             Case("generic-type-unicode-and-mixed-newline-source-coordinates", _unicode_and_mixed_newline_coordinates),
-            Case("generic-type-invalid-proof-source-and-protocol-refusals", _invalid_source_and_protocol_never_report_partial_warnings)]
+            Case("generic-type-invalid-proof-source-and-protocol-refusals", _invalid_source_and_protocol_never_report_partial_warnings),
+            Case("pattern-constructor-shadowing-and-unreachable-arms", _pattern_constructors_and_unreachable_arms)]

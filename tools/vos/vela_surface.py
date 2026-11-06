@@ -4697,6 +4697,8 @@ def qualify(parse: Callable[[bytes], dict[str, Json]]) -> list[str]:
         except VelaError as error:
             if error.kind != kind:
                 raise ValueError(f"surface refusal {name}: expected {kind}, got {error.kind}") from error
+            if name == "null-conditional" and ("(expr?).Member" not in error.message or "match" not in error.message):
+                raise ValueError(f"surface refusal {name} omitted propagation/match assist guidance: {error.message}") from error
         else:
             raise ValueError(f"surface refusal {name} unexpectedly parsed")
         passed.append(f"surface:refusal:{name}:{kind}")

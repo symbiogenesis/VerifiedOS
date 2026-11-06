@@ -547,7 +547,10 @@ the surface lexer and refuse it as syntax, without changing pure tokenization.
 Refuse `T?` annotations, null-forgiving postfix `!`, `??` and `?.`. Existing
 postfix `?` denotes explicit propagation; prefix `?name` remains a named hole.
 Propagation followed by member access uses `(Read()?).Value`.
-The contiguous spelling `Read()?.Value` is refused.
+The contiguous spelling `Read()?.Value` is refused with a diagnostic explaining
+that `?` is early-return propagation rather than C# null-conditional `?.` and
+offering `(Read()?).Value` (to propagate) or a `match` skeleton (to handle
+locally) under the [assist-don't-coerce tooling](authoring-tools.md#compiler-verified-assist-dont-coerce-tooling).
 The parser still accepts incomplete option matches, immutable writes, mistyped
 arithmetic, missing/mismatched loan modifiers and forbidden sharing as located
 syntax so the future semantic consumer can report the appropriate obligation.
@@ -663,7 +666,11 @@ implicit conversion, ownership transfer, effect, disposal or proof authority.
   `Ok(value) => value,` in an expression match or `case Ok(value):` in a statement
   match. The outer local keyword selects binding mutability.
   Located binding/constructor/product nodes have distinct roles.
-  No capitalization, symbol-table or import-dependent interpretation is allowed.
+  No capitalization, symbol-table or import-dependent interpretation is allowed;
+  when a bare pattern binder shadows an in-scope union or record constructor (such
+  as `case None:` instead of `case None():`) or leaves a later match arm
+  unreachable, the [assist-don't-coerce lint `VELA106`](authoring-tools.md#compiler-verified-assist-dont-coerce-tooling)
+  warns and offers `None()`.
 
 Acceptance requires independently expected AST roles, original UTF-8 spans,
 precedence, nesting/resource boundaries and malformed neighbors for every form.

@@ -44,7 +44,7 @@ All examples share one selector and one source buffer. Debounced source checks
 automatically update diagnostics and editor-service availability. Dependent source
 disables pure-only LSP, formatting, lint and binding preview services explicitly;
 its diagnostics come from mathematical compilation, including the
-[generic type naming lint](authoring-tools.md#generic-type-parameter-naming).
+[generic type naming and pattern lints](authoring-tools.md#generic-type-parameter-naming).
 Returning to supported pure source restores those services automatically. Edits
 clear old diagnostics and results, including in plain-text fallback; late analysis
 must never restore services or output for an obsolete source or connection.
@@ -142,9 +142,9 @@ authoring requests remain limited to supported pure source. Mathematical refusal
 also include the elaborator's `protocol` and `inference` categories.
 
 Successful compilation returns `findings`, a list of
-`{ "code": "VELA105", "message": "text", "line": 1, "column": 1 }` naming
-warnings in source order. Require at most 8,192 findings, exact keys, known code,
-nonempty text and original identifier positions. Duplicate, unordered, malformed
+`{ "code": "VELA105" or "VELA106", "message": "text", "line": 1, "column": 1 }`
+naming and pattern warnings in source order. Require at most 8,192 findings, exact keys, known code,
+nonempty text and original source positions. Duplicate, unordered, malformed
 or oversized findings refuse the result. Warnings do not prevent Gallina output;
 failed compilation returns no findings. Pure compilation returns an empty list;
 both evaluation routes retain the response shape above.
