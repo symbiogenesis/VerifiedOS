@@ -53,18 +53,24 @@ The supported increment includes:
   argument reordering, omission or defaults are inferred. Dependent later
   parameters are instantiated in declaration order before their arguments are
   checked, preserving complete telescope substitution.
-- Mathematical `Nat`, `bool`, `Unit`, products, equality and existential
+- Mathematical `Nat`, `bool`, `char`, `Unit`, products, decidable structural
+  Boolean equality (`==`, `!=`) over `Nat`, `bool`, `char`, `Unit`, fixed-width
+  integers, tuples, `Vec<T, n>`, `Seq<T>` and non-dependent nominal `record` and
+  `union` types, propositional equality and existential
   (`exists (T x, ...) => P(x)`) propositions, and proof blocks with `assert`
-  statements, inductive `match` case analysis, and `by` expression or block
-  justifications (supporting WHNF-aware congruence, symmetry and transitivity
-  equational rewriting as well as existential witness introduction via
-  `@Corelib.Init.Logic.ex_intro`). Indexed vectors and finite indices provide a
+  statements, calculational `calc { ... }` transitive equality chains, inductive
+  `match` case analysis, and `by` expression or block justifications (supporting
+  WHNF-aware congruence, symmetry and transitivity equational rewriting as well
+  as existential witness introduction via `@Corelib.Init.Logic.ex_intro`), plus
+  `where` precontracts and multiple `ensures` clauses on `theorem` and `lemma`
+  declarations. Indexed vectors and finite indices provide a
   concrete dependent collection boundary, including length preservation and safe
   lookup. Regular and multi-quote raw string literals (`"""..."""`) elaborate to
   UTF-8 byte vectors `Vec<Nat, n>` (bounded by 256 bytes) with `ByteLength`
   and `At` lookup, and `TextBuilder<capacity>` / `EmptyBuilder` /
   `Format.Write(ref builder, $"...")` / `Fits` / `Written` model allocation-free
-  checked formatting with AST-checked hole expressions (`Nat`, `bool`, `Vec<Nat, n>`,
+  checked formatting with AST-checked hole expressions (`Nat`, `bool`, `char`
+  when proved ASCII `<= '\u{7F}'`, `Vec<Nat, n>`,
   and `:x2`/`:x4`/`:x8`/`:d`/`:b` specifiers), structural target-buffer aliasing
   refusal and fail-closed capacity bounds.
 - Structural recursion over `Nat` parameters on `definition`, `function`,
@@ -75,8 +81,9 @@ The supported increment includes:
   decreasing parameter; non-decreasing, polymorphic-recursive or unapplied
   self-references are rejected.
 - Exhaustive `match` expressions and returning statement `match` over `Nat`,
-  `bool`, `Unit`, products and nominal `record` and `union` types, with wildcard (`_`),
-  variable, `()`, Boolean literal, nested tuple, decimal natural (bounded by
+  `bool`, `char`, `Unit`, `Vec<Nat, n>`, products and nominal `record` and `union`
+  types, with wildcard (`_`), variable, `()`, Boolean literal, character literal
+  (`'a'`), string literal (`"..."`), nested tuple, decimal natural (bounded by
   structural unrolling), `Succ(...)`, record and union constructor patterns (supporting
   optional declaration-order `label: pattern` arguments), optional dependent
   `as name : Type` motives, and irrefutable `let (a, b) = ...` or
@@ -97,12 +104,19 @@ The supported increment includes:
   field telescopes where later field types depend on earlier fields to
   `@Corelib.Init.Specif.sigT` / `existT` / `projT1` / `projT2`), total
   read-only expression properties (`public T Prop => expr;`) on records and at
-  module scope, `.Field` and `.Property` member projections (including record
-  field paths in dependent type arguments), and postfix
-  `base with { Field = expr, ... }` record updates evaluated in declaration order
-  (refusing partial updates to an index field when a dependent field is not also
-  updated).
-- Fixed-width represented integer types (`u8`, `u16`, `u32`, `u64`, `usize`,
+  module scope, record member methods (`definition` and `function` declarations
+  inside `record { ... }` with implicit `this` receiver, field/property scope, and
+  `requires` / `where` / `ensures` contracts), `.Field`, `.Property` and
+  `.Method(...)` member access (including record field paths in dependent type
+  arguments), and postfix `base with { Field = expr, ... }` record updates
+  evaluated in declaration order (refusing partial updates to an index field when
+  a dependent field is not also updated).
+- Unicode scalar values (`char` in `[0, 0x10FFFF]` excluding surrogates
+  `[0xD800, 0xDFFF]`, character literals `'a'` with `\n`, `\r`, `\t`, `\0`, `\\`,
+  `\'`, `\"`, `\xNN` and `\u{...}` escapes, relational comparisons `<`, `<=`, `>`,
+  `>=`, and explicit conversions `Nat(c)`, `u32.From(c)`, `char.From(b)` from
+  `u8`/`byte` and `char.TryFrom(x)` returning `Result<char, ConversionError>`),
+  fixed-width represented integer types (`u8`, `u16`, `u32`, `u64`, `usize`,
   `i8`, `i16`, `i32`, `i64` and `byte = u8`) and `import Vela.Numerics;`
   aliases (`int = i32`, `uint = u32`, `long = i64`, `ulong = u64`, also
   available qualified as `Vela.Numerics.int`), with associated constants
@@ -112,7 +126,7 @@ The supported increment includes:
   `*`, `/`, `%`, unary `-`, `ShiftLeft`, `ShiftRight` and `WrappingShiftLeft`
   enforce explicit range, nonzero-divisor and shift-count (`usize < T.Bits`)
   preconditions discharged from concrete bounds, bitwise masks (`&`), widening
-  conversions, branch conditions and parameterized `requires` contracts; total
+  conversions, branch conditions and parameterized `requires` / `where` contracts; total
   modular (`WrappingAdd`, `WrappingSub`, `WrappingMul`, `WrappingNeg`,
   `WrappingShiftLeft`), saturating (`SaturatingAdd`, `SaturatingSub`,
   `SaturatingMul`, `SaturatingNeg`) and checked (`CheckedAdd`, `CheckedSub`,
@@ -148,20 +162,23 @@ The supported increment includes:
   `.PermWrite`, `.CanRead` and `.CanWrite` metadata, and `Span.AllocZeroed`,
   `Span.Read`, `Span.Write`, `Span.Fill`, `Span.Slice`, `Span.ReadOnly`,
   `Span.Invalidate`, `Span.Disjoint`, `Span.CopyPrefix` and `Span.Restore`),
-  together with `requires`, `ensures` (with `result` bound to the body) and
+  together with `requires`, `where`, `ensures` (with `result` bound to the body) and
   `restores param` contract obligations on `definition` and `function`
   declarations for the [first-slice qualification](first-release.md#first-slice-qualification).
 - Pure sequence vocabulary (`Seq<T>`, `Seq.Empty`, `Seq.Singleton`, `.Count`,
-  `.At`, `.Update`, `.Append`, `.Take`, `.Skip`, `.Slice`, `.Contains`, `.All`
-  and `.Any`), `.Model` domain views on `Vec<T, n>`, `Span<byte>`,
-  `Slots<T, capacity>` and `Seq<T>`, and pre-state `old(...)` expressions inside
-  callable contracts.
+  `.At`, `.Update`, `.Append`, `.Take`, `.Skip`, `.Slice`, `.Contains` over
+  structurally equatable element types, `.All` and `.Any`), `.Model` domain views on
+  `Vec<T, n>`, `Span<byte>`, `Slots<T, capacity>` and `Seq<T>`, postfix indexing
+  `expr[idx]` on `Span<byte>`, `Slots<T, capacity>`, `Seq<T>` and `Vec<T, n>`, and
+  pre-state `old(...)` expressions inside callable contracts.
 - Mutable local bindings (`var`, `var` pattern bindings and `var ... else`),
-  assignments (`=`, `+=`, `-=`, `*=`, `/=`, `%=`) to mutable variables and
-  record fields, non-terminal `if` state threading, and bounded range
-  (`foreach (let i in start..end)`) and collection
-  (`foreach (let | in | ref x in coll)`) loops with `invariant` verification,
-  `break`, `continue` and collection-freeze checks.
+  assignments (`=`, `+=`, `-=`, `*=`, `/=`, `%=`) to mutable variables, record
+  fields and indexed collections (`target[idx] = val` on `Span<byte>`,
+  `Slots<T, capacity>`, `Seq<T>` and `Vec<T, n>`), non-terminal `if` state
+  threading, and bounded range (`foreach (let i in start..end)`), collection
+  (`foreach (let | in | ref x in coll)`) and `while (cond)` loops with `invariant`
+  verification, `decreases` termination measures, `break`, `continue` and
+  collection-freeze checks.
 - Named and unnamed `record` invariants (`invariant [Clause:] expr`), verified
   on construction, `with` updates and field mutations, together with selective
   invariant lifting (`scope (ref target, ...) lifts Clause, ... { ... }`) that
@@ -186,7 +203,29 @@ modifier, grade, contract or unfinished proof is refused explicitly. This
 increment supplies theorem authorship and proof parameters; automatic discharge
 of `requires`/`ensures` and the full proof language remain frontend work.
 
-The implementation owns explicit finite source, syntax-depth, inference-work,
+The implementation is decomposed across the public entry point
+([`vela_elaborate.py`](../../../tools/vos/vela_elaborate.py)) and cohesive
+submodules for CIC terms and carrier metadata
+([`vela_elaborate_types.py`](../../../tools/vos/vela_elaborate_types.py)),
+schema-2 AST validation
+([`vela_elaborate_protocol.py`](../../../tools/vos/vela_elaborate_protocol.py)),
+strings, characters and formatting
+([`vela_elaborate_strings.py`](../../../tools/vos/vela_elaborate_strings.py)),
+definitional WHNF reduction and structural equality
+([`vela_elaborate_whnf.py`](../../../tools/vos/vela_elaborate_whnf.py)),
+carrier and sequence intrinsics
+([`vela_elaborate_intrinsics.py`](../../../tools/vos/vela_elaborate_intrinsics.py)),
+interval/algebraic precondition discharge
+([`vela_elaborate_solver.py`](../../../tools/vos/vela_elaborate_solver.py)),
+proof terms and calculational chains
+([`vela_elaborate_proofs.py`](../../../tools/vos/vela_elaborate_proofs.py)),
+pattern matching and exhaustiveness
+([`vela_elaborate_patterns.py`](../../../tools/vos/vela_elaborate_patterns.py)),
+statements, indexing and bounded loops
+([`vela_elaborate_statements.py`](../../../tools/vos/vela_elaborate_statements.py)),
+and module declarations, records, unions and contracts
+([`vela_elaborate_declarations.py`](../../../tools/vos/vela_elaborate_declarations.py)).
+It owns explicit finite source, syntax-depth, inference-work,
 reduction and output limits. Diagnostics retain source positions and distinguish
 unsupported syntax, names, typing, unresolved inference, protocol and limits.
 The consumer validates schema, source digest, fields, spans and identifier

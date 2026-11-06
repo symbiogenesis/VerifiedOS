@@ -782,9 +782,28 @@ def _run(arguments: list[str], directory: Path, log: Path,
 
 
 def _inputs(root: Path) -> dict[str, str]:
-    paths = (EXAMPLE, "tools/opam/rocq.lock", "tools/vos/proofenv.py", "tools/vos/env.py",
-             "tools/vos/vela_elaborate.py", "tools/vos/vela_authoring.py", "tools/vos/vela_ast.py",
-             "tools/vos/vela.py", "tools/vos/vela_elaboration_check.py", "tools/vos/atomic.py")
+    paths = (
+        EXAMPLE,
+        "tools/opam/rocq.lock",
+        "tools/vos/proofenv.py",
+        "tools/vos/env.py",
+        "tools/vos/vela_elaborate.py",
+        "tools/vos/vela_elaborate_types.py",
+        "tools/vos/vela_elaborate_protocol.py",
+        "tools/vos/vela_elaborate_whnf.py",
+        "tools/vos/vela_elaborate_patterns.py",
+        "tools/vos/vela_elaborate_proofs.py",
+        "tools/vos/vela_elaborate_statements.py",
+        "tools/vos/vela_elaborate_strings.py",
+        "tools/vos/vela_elaborate_solver.py",
+        "tools/vos/vela_elaborate_intrinsics.py",
+        "tools/vos/vela_elaborate_declarations.py",
+        "tools/vos/vela_authoring.py",
+        "tools/vos/vela_ast.py",
+        "tools/vos/vela.py",
+        "tools/vos/vela_elaboration_check.py",
+        "tools/vos/atomic.py",
+    )
     return {**vela_parser._inputs(root),
             **{name: _sha256((root / name).read_bytes()) for name in paths}}
 

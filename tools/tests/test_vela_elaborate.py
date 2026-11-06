@@ -4212,6 +4212,654 @@ def _vacant_slots_and_two_step_relocation() -> None:
     _refuses(transfer_without_copy, "type", "CopyRepresentation")
 
 
+def _char_lit(spelling: str) -> Form:
+    def form(fixture: _Fixture) -> Node:
+        start = fixture.offset
+        fixture.write(spelling)
+        return fixture.node("character", start, value=spelling)
+    return form
+
+
+def _pat_char(spelling: str) -> Form:
+    def form(fixture: _Fixture) -> Node:
+        start = fixture.offset
+        fixture.write(spelling)
+        return fixture.node("character_pattern", start, value=spelling)
+    return form
+
+
+def _pat_string(spelling: str) -> Form:
+    def form(fixture: _Fixture) -> Node:
+        start = fixture.offset
+        fixture.write(spelling)
+        return fixture.node("string_pattern", start, value=spelling)
+    return form
+
+
+def _index_expr(receiver: Form, index: Form) -> Form:
+    def form(fixture: _Fixture) -> Node:
+        start = fixture.offset
+        val_node = receiver(fixture)
+        fixture.write("[")
+        idx_node = index(fixture)
+        fixture.write("]")
+        return fixture.node("index", start, value=val_node, index=idx_node)
+    return form
+
+
+def _while_stmt(
+    condition: Form,
+    body_stmts: tuple[Form, ...],
+    contracts: tuple[Form, ...] = (),
+) -> Form:
+    def form(fixture: _Fixture) -> Node:
+        start = fixture.offset
+        fixture.write("while (")
+        cond_node = condition(fixture)
+        fixture.write(")")
+        contract_nodes: list[Node] = []
+        for contract in contracts:
+            fixture.write(" ")
+            contract_nodes.append(contract(fixture))
+        fixture.write(" ")
+        body_node = _block_stmts(*body_stmts)(fixture)
+        return fixture.node(
+            "while",
+            start,
+            condition=cond_node,
+            contracts=contract_nodes,
+            body=body_node,
+        )
+    return form
+
+
+def _calc_stmt(*steps: Form) -> Form:
+    def form(fixture: _Fixture) -> Node:
+        start = fixture.offset
+        fixture.write("calc ")
+        body_node = _block_stmts(*steps)(fixture)
+        return fixture.node("calc", start, body=body_node)
+    return form
+
+
+def _record_def_member(
+    name: str,
+    result: Form,
+    parameters: tuple[Parameter, ...],
+    value: Form,
+    *,
+    generics: tuple[Generic, ...] = (),
+    contracts: tuple[Form, ...] = (),
+) -> Form:
+    def form(fixture: _Fixture) -> Node:
+        start = fixture.offset
+        fixture.write("public definition ")
+        annotation = result(fixture)
+        fixture.write(" ")
+        binding = fixture.name(name)
+        generic_nodes = fixture.generics(generics)
+        parameter_nodes = fixture.parameters(parameters)
+        obligations: list[Node] = []
+        for contract in contracts:
+            fixture.write(" ")
+            obligations.append(contract(fixture))
+        fixture.write(" => ")
+        body = value(fixture)
+        fixture.write(";")
+        return fixture.node(
+            "definition",
+            start,
+            name=binding,
+            result=annotation,
+            generics=generic_nodes,
+            parameters=parameter_nodes,
+            contracts=obligations,
+            value=body,
+            modifiers=["public"],
+        )
+    return form
+
+
+def _record_fn_member(
+    name: str,
+    result: Form,
+    parameters: tuple[Parameter, ...],
+    value: Form,
+    *,
+    block: bool = False,
+    generics: tuple[Generic, ...] = (),
+    contracts: tuple[Form, ...] = (),
+) -> Form:
+    def form(fixture: _Fixture) -> Node:
+        start = fixture.offset
+        fixture.write("public ")
+        annotation = result(fixture)
+        fixture.write(" ")
+        binding = fixture.name(name)
+        generic_nodes = fixture.generics(generics)
+        parameter_nodes = fixture.parameters(parameters)
+        obligations: list[Node] = []
+        for contract in contracts:
+            fixture.write(" ")
+            obligations.append(contract(fixture))
+        fixture.write(" ")
+        if block:
+            body = value(fixture)
+        else:
+            bstart = fixture.offset
+            fixture.write("=> ")
+            ret_val = value(fixture)
+            fixture.write(";")
+            body = fixture.node("expression_body", bstart, value=ret_val)
+        return fixture.node(
+            "function",
+            start,
+            name=binding,
+            result=annotation,
+            generics=generic_nodes,
+            parameters=parameter_nodes,
+            contracts=obligations,
+            body=body,
+            cancel=None,
+            modifiers=["public"],
+        )
+    return form
+
+
+def _record_with_members(
+    fixture: _Fixture,
+    name: str,
+    parameters: tuple[Parameter, ...],
+    members: tuple[Form, ...],
+    *,
+    generics: tuple[Generic, ...] = (),
+    contracts: tuple[Form, ...] = (),
+) -> None:
+    fixture.write("\n")
+    start = fixture.offset
+    fixture.write("public record ")
+    binding = fixture.name(name)
+    generic_nodes = fixture.generics(generics)
+    parameter_nodes = fixture.parameters(parameters)
+    obligations: list[Node] = []
+    for contract in contracts:
+        fixture.write(" ")
+        obligations.append(contract(fixture))
+    fixture.write(" {")
+    member_nodes: list[Node] = []
+    for member in members:
+        fixture.write(" ")
+        member_nodes.append(member(fixture))
+    fixture.write(" }")
+    fixture.declarations.append(
+        fixture.node(
+            "record",
+            start,
+            name=binding,
+            generics=generic_nodes,
+            parameters=parameter_nodes,
+            contracts=obligations,
+            declarations=member_nodes,
+            modifiers=["public"],
+        )
+    )
+
+
+def _characters_conversions_patterns_and_formatting() -> None:
+    fixture = _Fixture("Characters")
+    fixture.constant("AsciiA", _type("char"), _char_lit("'A'"))
+    fixture.constant("Newline", _type("char"), _char_lit(r"'\n'"))
+    fixture.constant("HexA", _type("char"), _char_lit(r"'\u{41}'"))
+    fixture.constant("GreekAlpha", _type("char"), _char_lit(r"'\u{03B1}'"))
+    fixture.definition(
+        "IsAsciiUpper",
+        _BOOL,
+        (("c", _type("char")),),
+        _binary(
+            "&&",
+            _binary(">=", _variable("c"), _char_lit("'A'")),
+            _binary("<=", _variable("c"), _char_lit("'Z'")),
+        ),
+    )
+    fixture.definition(
+        "ClassifyPunct",
+        _NAT,
+        (("c", _type("char")),),
+        _match_expr(
+            _variable("c"),
+            (
+                (_pat_char("':'"), _natural(1)),
+                (_pat_char("'/'"), _natural(2)),
+                (_pat_wild(), _natural(0)),
+            ),
+        ),
+    )
+    fixture.definition(
+        "ClassifyTag",
+        _NAT,
+        (("tag", _type("Vec", _NAT, _natural(2))),),
+        _match_expr(
+            _variable("tag"),
+            (
+                (_pat_string('"ok"'), _natural(1)),
+                (_pat_string('"no"'), _natural(2)),
+                (_pat_wild(), _natural(0)),
+            ),
+        ),
+    )
+    fixture.definition(
+        "FormatSep",
+        _type("TextBuilder", _natural(8)),
+        (("b", _type("TextBuilder", _natural(8))), ("c", _type("char"))),
+        _call(
+            _member(_variable("Format"), "Write"),
+            _ref_arg(_variable("b")),
+            _interpolated_literal('$"[{c}]"'),
+        ),
+        contracts=(_contract("requires", _binary("<=", _variable("c"), _char_lit("'Z'"))),),
+    )
+    char_conj = _binary(
+        "&&",
+        _binary("==", _variable("AsciiA"), _variable("HexA")),
+        _binary(
+            "&&",
+            _binary("==", _call("Nat", _variable("AsciiA")), _natural(65)),
+            _binary(
+                "&&",
+                _binary(
+                    "==",
+                    _call(_member(_variable("u32"), "From"), _variable("GreekAlpha")),
+                    _int_lit("0x03B1", "u32"),
+                ),
+                _binary(
+                    "&&",
+                    _binary(
+                        "==",
+                        _call(_member(_variable("char"), "From"), _int_lit("65", "u8")),
+                        _char_lit("'A'"),
+                    ),
+                    _binary(
+                        "&&",
+                        _binary(
+                            "==",
+                            _call(_member(_variable("char"), "TryFrom"), _int_lit("0xD800", "u32")),
+                            _call("Err", _call("OutOfRange"), generics=(_type("char"), _type("ConversionError"))),
+                        ),
+                        _binary(
+                            "&&",
+                            _binary("==", _call("ClassifyPunct", _char_lit("':'")), _natural(1)),
+                            _binary("==", _call("ClassifyTag", _string_literal('"ok"')), _natural(1)),
+                        ),
+                    ),
+                ),
+            ),
+        ),
+    )
+    fixture.theorem(
+        "CharEscapeAndConversions",
+        (),
+        _binary("==", char_conj, _boolean(True)),
+        _assert(_binary("==", char_conj, _boolean(True))),
+    )
+    source, response = fixture.response()
+    emitted = elaborate(source, response).gallina
+    ensure("Inductive vela_char" in emitted, "elaborated Gallina omitted vela_char")
+
+    bad_surrogate = _Fixture("BadSurrogateChar")
+    bad_surrogate.constant("Bad", _type("char"), _char_lit(r"'\u{D800}'"))
+    _refuses(bad_surrogate, "syntax", "surrogate")
+
+    non_exhaustive_char = _Fixture("NonExhaustiveChar")
+    non_exhaustive_char.definition(
+        "Bad",
+        _NAT,
+        (("c", _type("char")),),
+        _match_expr(_variable("c"), ((_pat_char("'a'"), _natural(1)),)),
+    )
+    _refuses(non_exhaustive_char, "type", "non-exhaustive")
+
+
+def _structural_equality_and_seq_contains() -> None:
+    fixture = _Fixture("StructuralEquality")
+    fixture.record("Point", (("X", _type("u32")), ("Y", _type("u32"))))
+    fixture.union("Tag", (("Empty", ()), ("Val", (("Code", _type("u32")),))))
+    eq_conj = _binary(
+        "&&",
+        _binary("==", _unit(), _unit()),
+        _binary(
+            "&&",
+            _binary(
+                "==",
+                _tuple(_int_lit("1", "u32"), _boolean(True)),
+                _tuple(_int_lit("1", "u32"), _boolean(True)),
+            ),
+            _binary(
+                "&&",
+                _binary("!=", _string_literal('"ok"'), _string_literal('"no"')),
+                _binary(
+                    "&&",
+                    _binary(
+                        "==",
+                        _call("Point", _int_lit("3", "u32"), _int_lit("4", "u32")),
+                        _call("Point", _int_lit("3", "u32"), _int_lit("4", "u32")),
+                    ),
+                    _binary(
+                        "&&",
+                        _binary(
+                            "!=",
+                            _call("Empty"),
+                            _call("Val", _int_lit("7", "u32")),
+                        ),
+                        _call(
+                            _member(
+                                _call(
+                                    _member(_variable("Seq"), "Singleton"),
+                                    _call("Point", _int_lit("1", "u32"), _int_lit("2", "u32")),
+                                ),
+                                "Contains",
+                            ),
+                            _call("Point", _int_lit("1", "u32"), _int_lit("2", "u32")),
+                        ),
+                    ),
+                ),
+            ),
+        ),
+    )
+    fixture.theorem(
+        "StructuralEqChecks",
+        (),
+        _binary("==", eq_conj, _boolean(True)),
+        _assert(_binary("==", eq_conj, _boolean(True))),
+    )
+    source, response = fixture.response()
+    elaborate(source, response)
+
+    dep_rec_eq = _Fixture("DepRecEq")
+    dep_rec_eq.record("Dep", (("N", _NAT), ("Items", _type("Vec", _NAT, _variable("N")))))
+    dep_rec_eq.definition(
+        "BadEq",
+        _BOOL,
+        (("a", _type("Dep")), ("b", _type("Dep"))),
+        _binary("==", _variable("a"), _variable("b")),
+    )
+    _refuses(dep_rec_eq, "unsupported", "dependent record")
+
+
+def _postfix_indexing_and_indexed_assignment() -> None:
+    fixture = _Fixture("Indexing")
+    fixture.function(
+        "ReadAndMutateAll",
+        _type("u32"),
+        (),
+        _block_stmts(
+            _var_stmt("buf", _call(_member(_variable("Span"), "AllocZeroed"), _int_lit("2", "usize"))),
+            _assign_stmt(_index_expr(_variable("buf"), _int_lit("0", "usize")), "=", _int_lit("10", "byte")),
+            _assign_stmt(_index_expr(_variable("buf"), _int_lit("0", "usize")), "+=", _int_lit("5", "byte")),
+            _var_stmt("seq", _call(_member(_variable("Seq"), "Singleton"), _int_lit("20", "u32"))),
+            _assign_stmt(_index_expr(_variable("seq"), _natural(0)), "+=", _int_lit("7", "u32")),
+            _var_stmt(
+                "vec",
+                _call(
+                    "VCons",
+                    _int_lit("3", "u32"),
+                    _call("VNil", generics=(_type("u32"),)),
+                ),
+            ),
+            _assign_stmt(_index_expr(_variable("vec"), _natural(0)), "=", _int_lit("9", "u32")),
+            _var_stmt(
+                "slots",
+                _call(_member(_variable("Slots"), "AllocVacant"), generics=(_type("u32"), _natural(2))),
+            ),
+            _assign_stmt(_index_expr(_variable("slots"), _int_lit("0", "usize")), "=", _int_lit("4", "u32")),
+            _return_stmt(
+                _binary(
+                    "+",
+                    _call(_member(_variable("u32"), "From"), _index_expr(_variable("buf"), _int_lit("0", "usize"))),
+                    _binary(
+                        "+",
+                        _index_expr(_variable("seq"), _natural(0)),
+                        _binary(
+                            "+",
+                            _index_expr(_variable("vec"), _natural(0)),
+                            _index_expr(_variable("slots"), _int_lit("0", "usize")),
+                        ),
+                    ),
+                )
+            ),
+        ),
+        block=True,
+        contracts=(_contract("ensures", _binary("==", _variable("result"), _int_lit("55", "u32"))),),
+    )
+    source, response = fixture.response()
+    elaborate(source, response)
+
+    oob_span = _Fixture("OobSpanIndex")
+    oob_span.definition(
+        "Bad",
+        _type("byte"),
+        (("s", _type("Span", _type("byte"))),),
+        _index_expr(_variable("s"), _int_lit("0", "usize")),
+        contracts=(_contract("requires", _member(_variable("s"), "CanRead")),),
+    )
+    _refuses(oob_span, "type", "Span.Length bounds")
+
+    oob_vec_write = _Fixture("OobVecWrite")
+    oob_vec_write.function(
+        "Bad",
+        _type("Vec", _type("u32"), _natural(1)),
+        (("v", _type("Vec", _type("u32"), _natural(1))),),
+        _block_stmts(
+            _var_stmt("m", _variable("v")),
+            _assign_stmt(_index_expr(_variable("m"), _natural(2)), "=", _int_lit("1", "u32")),
+            _return_stmt(_variable("m")),
+        ),
+        block=True,
+    )
+    _refuses(oob_vec_write, "type", "in bounds")
+
+
+def _bounded_while_loops_and_decreases_contracts() -> None:
+    fixture = _Fixture("BoundedWhile")
+    fixture.function(
+        "CountWhile",
+        _type("usize"),
+        (),
+        _block_stmts(
+            _var_stmt("i", _int_lit("0", "usize")),
+            _var_stmt("acc", _int_lit("0", "usize")),
+            _while_stmt(
+                _binary("<", _variable("i"), _int_lit("4", "usize")),
+                (
+                    _assign_stmt(_variable("i"), "+=", _int_lit("1", "usize")),
+                    _if_stmt(
+                        _binary("==", _variable("i"), _int_lit("2", "usize")),
+                        _block_stmts(_continue_stmt()),
+                    ),
+                    _assign_stmt(_variable("acc"), "+=", _int_lit("1", "usize")),
+                ),
+                contracts=(
+                    _contract("invariant", _binary("<=", _variable("i"), _int_lit("4", "usize"))),
+                    _contract("decreases", _binary("-", _int_lit("4", "usize"), _variable("i"))),
+                ),
+            ),
+            _return_stmt(_variable("acc")),
+        ),
+        block=True,
+        contracts=(_contract("ensures", _binary("==", _variable("result"), _int_lit("3", "usize"))),),
+    )
+    fixture.function(
+        "SymbolicWhileInvariant",
+        _type("usize"),
+        (("n", _type("usize")),),
+        _block_stmts(
+            _var_stmt("i", _int_lit("0", "usize")),
+            _while_stmt(
+                _binary("<", _variable("i"), _variable("n")),
+                (_assign_stmt(_variable("i"), "+=", _int_lit("1", "usize")),),
+                contracts=(
+                    _contract("invariant", _binary("<=", _variable("i"), _variable("n"))),
+                    _contract("decreases", _binary("-", _variable("n"), _variable("i"))),
+                ),
+            ),
+            _return_stmt(_variable("i")),
+        ),
+        block=True,
+        contracts=(
+            _contract("requires", _binary("<=", _variable("n"), _int_lit("10", "usize"))),
+            _contract("ensures", _binary("==", _variable("result"), _variable("n"))),
+        ),
+    )
+    source, response = fixture.response()
+    elaborate(source, response)
+
+    non_decreasing = _Fixture("WhileNonDecreasing")
+    non_decreasing.function(
+        "Bad",
+        _type("usize"),
+        (),
+        _block_stmts(
+            _var_stmt("i", _int_lit("0", "usize")),
+            _while_stmt(
+                _binary("<", _variable("i"), _int_lit("2", "usize")),
+                (_assign_stmt(_variable("i"), "+=", _int_lit("1", "usize")),),
+                contracts=(_contract("decreases", _variable("i")),),
+            ),
+            _return_stmt(_variable("i")),
+        ),
+        block=True,
+    )
+    _refuses(non_decreasing, "type", "strictly decrease")
+
+
+def _calculational_proofs_where_and_multi_ensures() -> None:
+    fixture = _Fixture("CalcAndMultiEnsures")
+    fixture.definition(
+        "Double",
+        _NAT,
+        (("x", _NAT),),
+        _binary("+", _variable("x"), _variable("x")),
+        contracts=(_contract("where", _binary("<=", _variable("x"), _natural(100))),),
+    )
+    fixture.theorem(
+        "ChainCalcAndMultiEnsures",
+        (("a", _NAT), ("b", _NAT), ("c", _NAT)),
+        _binary("==", _variable("a"), _variable("c")),
+        _block_stmts(
+            _calc_stmt(
+                _assert(_binary("==", _variable("a"), _variable("b"))),
+                _assert(_binary("==", _variable("b"), _variable("c"))),
+            ),
+            _assert(_binary("==", _variable("c"), _variable("a"))),
+        ),
+        contracts=(
+            _contract("where", _binary("==", _variable("a"), _variable("b"))),
+            _contract("requires", _binary("==", _variable("b"), _variable("c"))),
+            _contract("ensures", _binary("==", _variable("c"), _variable("a"))),
+        ),
+    )
+    source, response = fixture.response()
+    emitted = elaborate(source, response).gallina
+    ensure("_ensures_1" in emitted, "multiple ensures clauses on theorem did not emit _ensures_1")
+
+    bad_calc = _Fixture("BadCalcStep")
+    bad_calc.theorem(
+        "BrokenChain",
+        (("a", _NAT), ("b", _NAT), ("c", _NAT)),
+        _binary("==", _variable("a"), _variable("c")),
+        _block_stmts(
+            _calc_stmt(
+                _assert(_binary("==", _variable("a"), _variable("b"))),
+                _assert(_binary("==", _variable("c"), _variable("c"))),
+            ),
+        ),
+        contracts=(
+            _contract("requires", _binary("==", _variable("a"), _variable("b"))),
+            _contract("requires", _binary("==", _variable("b"), _variable("c"))),
+        ),
+    )
+    _refuses(bad_calc, "type", "left-hand side does not match previous right-hand side")
+
+
+def _record_member_methods_and_contracts() -> None:
+    fixture = _Fixture("RecordMethods")
+    _record_with_members(
+        fixture,
+        "BoundedCounter",
+        (("Value", _type("u32")), ("Limit", _type("u32"))),
+        (
+            _record_def_member(
+                "Remaining",
+                _type("u32"),
+                (),
+                _binary("-", _variable("Limit"), _variable("Value")),
+            ),
+            _record_fn_member(
+                "Add",
+                _type("BoundedCounter"),
+                (("delta", _type("u32")),),
+                _with_expr(_variable("this"), (("Value", _binary("+", _variable("Value"), _variable("delta"))),)),
+                contracts=(
+                    _contract("where", _binary("<=", _variable("delta"), _call(_member(_variable("this"), "Remaining")))),
+                    _contract(
+                        "ensures",
+                        _binary(
+                            "==",
+                            _member(_variable("result"), "Value"),
+                            _binary("+", _variable("Value"), _variable("delta")),
+                        ),
+                    ),
+                ),
+            ),
+        ),
+        contracts=(_contract("invariant", _binary("<=", _variable("Value"), _variable("Limit"))),),
+    )
+    fixture.definition(
+        "UseCounter",
+        _type("u32"),
+        (),
+        _call(
+            _member(
+                _call(
+                    _member(_call("BoundedCounter", _int_lit("3", "u32"), _int_lit("10", "u32")), "Add"),
+                    _int_lit("4", "u32"),
+                ),
+                "Remaining",
+            )
+        ),
+    )
+    fixture.theorem(
+        "UseCounterCheck",
+        (),
+        _binary("==", _call("UseCounter"), _int_lit("3", "u32")),
+        _assert(_binary("==", _call("UseCounter"), _int_lit("3", "u32"))),
+    )
+    source, response = fixture.response()
+    elaborate(source, response)
+
+    violate_method_pre = _Fixture("ViolateRecordMethodPre")
+    _record_with_members(
+        violate_method_pre,
+        "Counter",
+        (("Value", _type("u32")),),
+        (
+            _record_def_member(
+                "Dec",
+                _type("u32"),
+                (("step", _type("u32")),),
+                _binary("-", _variable("Value"), _variable("step")),
+                contracts=(_contract("requires", _binary("<=", _variable("step"), _variable("Value"))),),
+            ),
+        ),
+    )
+    violate_method_pre.definition(
+        "BadCall",
+        _type("u32"),
+        (),
+        _call(_member(_call("Counter", _int_lit("2", "u32")), "Dec"), _int_lit("5", "u32")),
+    )
+    _refuses(violate_method_pre, "type", "precondition")
+
+
 def cases() -> list[Case]:
     return [Case("fresh-polymorphism-and-higher-order-inference", _polymorphism_and_higher_order),
             Case("familiar-generic-markers-and-mathematical-body-source-binding", _familiar_generic_spellings),
@@ -4249,4 +4897,10 @@ def cases() -> list[Case]:
             Case("pure-sequences-and-model-reasoning", _pure_sequences_and_model_reasoning),
             Case("mutable-locals-assignments-and-bounded-loops", _mutable_locals_assignments_and_bounded_loops),
             Case("record-invariants-and-selective-lifting", _record_invariants_and_selective_lifting),
-            Case("vacant-slots-and-two-step-relocation", _vacant_slots_and_two_step_relocation)]
+            Case("vacant-slots-and-two-step-relocation", _vacant_slots_and_two_step_relocation),
+            Case("characters-conversions-patterns-and-formatting", _characters_conversions_patterns_and_formatting),
+            Case("structural-equality-and-seq-contains", _structural_equality_and_seq_contains),
+            Case("postfix-indexing-and-indexed-assignment", _postfix_indexing_and_indexed_assignment),
+            Case("bounded-while-loops-and-decreases-contracts", _bounded_while_loops_and_decreases_contracts),
+            Case("calculational-proofs-where-and-multi-ensures", _calculational_proofs_where_and_multi_ensures),
+            Case("record-member-methods-and-contracts", _record_member_methods_and_contracts)]
