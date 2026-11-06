@@ -103,7 +103,26 @@ The supported increment includes:
   `base with { Field = expr, ... }` record updates evaluated in declaration order
   (refusing partial updates to an index field when a dependent field is not also
   updated).
-- Typed `const` values of `Nat`, `bool` or `Unit`, at module or local scope,
+- Fixed-width represented integer types (`u8`, `u16`, `u32`, `u64`, `usize`,
+  `i8`, `i16`, `i32`, `i64` and `byte = u8`) and `import Vela.Numerics;`
+  aliases (`int = i32`, `uint = u32`, `long = i64`, `ulong = u64`, also
+  available qualified as `Vela.Numerics.int`), with associated constants
+  `T.Min`, `T.Max` and `T.Bits`, decimal/hexadecimal (`0x...`)/binary (`0b...`)
+  literals with `_` separators, suffixed or expected-type contextual literals,
+  and syntactic negative signed literals (admitting `T.Min`). Ordinary `+`, `-`,
+  `*`, `/`, `%`, unary `-`, `ShiftLeft`, `ShiftRight` and `WrappingShiftLeft`
+  enforce explicit range, nonzero-divisor and shift-count (`usize < T.Bits`)
+  preconditions discharged from concrete bounds, bitwise masks (`&`), widening
+  conversions, branch conditions and parameterized `requires` contracts; total
+  modular (`WrappingAdd`, `WrappingSub`, `WrappingMul`, `WrappingNeg`,
+  `WrappingShiftLeft`), saturating (`SaturatingAdd`, `SaturatingSub`,
+  `SaturatingMul`, `SaturatingNeg`) and checked (`CheckedAdd`, `CheckedSub`,
+  `CheckedMul`, `CheckedDiv`, `CheckedRem`, `CheckedNeg`, `CheckedShiftLeft`,
+  `CheckedShiftRight` returning `Result<T, ArithmeticError>`) operations and
+  explicit conversions (`Nat(x)` for unsigned types, `T.From(x)` for lossless
+  widening and `T.TryFrom(x)` returning `Result<T, ConversionError>`) reduce on
+  closed values.
+- Typed `const` values of `Nat`, `bool`, `Unit` or fixed-width integers, at module or local scope,
   under the [required-static contract](surface-grammar.md#required-static-constants).
   Initializers use earlier constants and admitted total pure calls with static
   arguments and explicit static parameters; unmarked outer runtime parameters,

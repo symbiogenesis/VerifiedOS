@@ -46,6 +46,7 @@ type Node = dict[str, object]
 
 _FIELDS: dict[str, set[str]] = {
     "surface_file": {"name", "declarations"},
+    "import": {"name"},
     "alias": {"name", "generics", "contracts", "type", "modifiers"},
     "constant": {"name", "type", "value", "modifiers"},
     "constant_local": {"name", "type", "value"},
@@ -102,7 +103,13 @@ _PATTERN_KINDS = {
 }
 _PATTERN_ARGUMENT_KINDS = _PATTERN_KINDS | {"labeled_pattern"}
 _IDENTIFIER = re.compile(r"[A-Za-z_][A-Za-z_0-9]*(?:\.[A-Za-z_][A-Za-z_0-9]*)*")
-_OPERATORS = {"+", "*", "-", "/", "%", "==", "!=", "<", "<=", ">", ">=", "&&", "||", "!", "==>", "<==>"}
+_HEX_LITERAL = re.compile(r"0[xX][0-9a-fA-F](?:_?[0-9a-fA-F])*")
+_BIN_LITERAL = re.compile(r"0[bB][01](?:_?[01])*")
+_INT_SUFFIXES = {"", "u8", "u16", "u32", "u64", "usize", "i8", "i16", "i32", "i64", "byte"}
+_OPERATORS = {
+    "+", "*", "-", "/", "%", "&", "|", "^", "~",
+    "==", "!=", "<", "<=", ">", ">=", "&&", "||", "!", "==>", "<==>",
+}
 _SYNTAX_WORDS = {
     "function_type": ("mode", {"Fn", "FnMut", "FnOnce"}),
     "generic_parameter": ("mode", {"type", "ghost", "region", "effect", "captures", "grade"}),
@@ -163,7 +170,7 @@ class _Protocol:
                 if level:
                     raise self.error("protocol", "unterminated trivia in syntax name")
             else:
-                token = re.match(r"\?[A-Za-z_][A-Za-z_0-9]*|[A-Za-z_][A-Za-z_0-9]*|<==>|==>|&&|\|\||==|!=|<=|>=|[.+*\-/%<>!]", value[offset:])
+                token = re.match(r"\?[A-Za-z_][A-Za-z_0-9]*|[A-Za-z_][A-Za-z_0-9]*|<==>|==>|&&|\|\||==|!=|<=|>=|[.+*\-/%<>!&|^~]", value[offset:])
                 if token is None:
                     return "\x00"
                 result.append(token.group())
@@ -229,7 +236,7 @@ class _Protocol:
                 or any(
                     not isinstance(item, dict)
                     or item.get("kind") != "contract"
-                    or item.get("role") != "decreases"
+                    or item.get("role") not in {"decreases", "requires"}
                     for item in contracts
                 )
             ):
@@ -540,10 +547,14 @@ class _Protocol:
             cursor = self._token(node, cursor, b"=>")
             cursor = self._child(node, span, cursor, node["value"])
         elif kind == "contract":
-            if node["role"] != "decreases":
+            if node["role"] not in {"decreases", "requires"}:
                 return
-            cursor = self._token(node, cursor, b"decreases")
+            cursor = self._token(node, cursor, cast("str", node["role"]).encode())
             cursor = self._child(node, span, cursor, node["value"])
+        elif kind == "import":
+            cursor = self._token(node, cursor, b"import")
+            cursor = self._child(node, span, cursor, node["name"])
+            cursor = self._token(node, cursor, b";")
         elif kind == "propagate":
             cursor = self._child(node, span, cursor, node["value"])
             cursor = self._token(node, cursor, b"?")
@@ -722,12 +733,15 @@ class _Protocol:
             value, suffix = node["value"], node["suffix"]
             if not isinstance(value, str) or not isinstance(suffix, str):
                 raise self.error("protocol", "invalid numeric literal payload", node)
-            if len(value.replace("_", "")) > MAX_LITERAL_DIGITS:
+            digits = value[2:] if value.startswith(("0x", "0X", "0b", "0B")) else value
+            if len(digits.replace("_", "")) > MAX_LITERAL_DIGITS:
                 raise self.error("limit", "numeric literal exceeds digit bound", node)
             if self.source[span[0]:span[1]] != (value + suffix).encode():
                 raise self.error("protocol", "numeric literal differs from its source", node)
-            if suffix or not DECIMAL.fullmatch(value):
-                raise self.error("unsupported", "only unsuffixed decimal Nat literals are supported", node)
+            if suffix not in _INT_SUFFIXES or not (
+                DECIMAL.fullmatch(value) or _HEX_LITERAL.fullmatch(value) or _BIN_LITERAL.fullmatch(value)
+            ):
+                raise self.error("unsupported", "unsupported numeric literal format or suffix", node)
         if kind in {"bool", "bool_pattern"}:
             value = node["value"]
             if type(value) is not bool or self.source[span[0]:span[1]] != (b"true" if value else b"false"):
@@ -867,6 +881,99 @@ _SORT = _term("sort", value=0)
 _PROP = _term("sort", value=-1)
 
 
+@dataclass(frozen=True)
+class _IntSpec:
+    name: str
+    tag: int
+    bits: int
+    signed: bool
+    min_val: int
+    max_val: int
+    const: _Term
+
+
+_INT_SPECS: dict[str, _IntSpec] = {
+    "u8": _IntSpec("u8", 0, 8, False, 0, (1 << 8) - 1, _constant("u8")),
+    "u16": _IntSpec("u16", 1, 16, False, 0, (1 << 16) - 1, _constant("u16")),
+    "u32": _IntSpec("u32", 2, 32, False, 0, (1 << 32) - 1, _constant("u32")),
+    "u64": _IntSpec("u64", 3, 64, False, 0, (1 << 64) - 1, _constant("u64")),
+    "usize": _IntSpec("usize", 4, 64, False, 0, (1 << 64) - 1, _constant("usize")),
+    "i8": _IntSpec("i8", 5, 8, True, -(1 << 7), (1 << 7) - 1, _constant("i8")),
+    "i16": _IntSpec("i16", 6, 16, True, -(1 << 15), (1 << 15) - 1, _constant("i16")),
+    "i32": _IntSpec("i32", 7, 32, True, -(1 << 31), (1 << 31) - 1, _constant("i32")),
+    "i64": _IntSpec("i64", 8, 64, True, -(1 << 63), (1 << 63) - 1, _constant("i64")),
+}
+_USIZE = _INT_SPECS["usize"].const
+_NUMERICS_ALIASES: dict[str, str] = {
+    "int": "i32",
+    "uint": "u32",
+    "long": "i64",
+    "ulong": "u64",
+}
+_INT_INTRINSICS = {
+    "ShiftLeft",
+    "ShiftRight",
+    "WrappingAdd",
+    "WrappingSub",
+    "WrappingMul",
+    "WrappingNeg",
+    "WrappingShiftLeft",
+    "SaturatingAdd",
+    "SaturatingSub",
+    "SaturatingMul",
+    "SaturatingNeg",
+    "CheckedAdd",
+    "CheckedSub",
+    "CheckedMul",
+    "CheckedNeg",
+    "CheckedDiv",
+    "CheckedRem",
+    "CheckedShiftLeft",
+    "CheckedShiftRight",
+}
+
+
+def _parse_numeric_magnitude(value: str) -> int:
+    cleaned = value.replace("_", "")
+    if cleaned.startswith(("0x", "0X")):
+        return int(cleaned, 16)
+    if cleaned.startswith(("0b", "0B")):
+        return int(cleaned, 2)
+    return int(cleaned, 10)
+
+
+def _allows_from_conversion(src: _IntSpec, dst: _IntSpec) -> bool:
+    if src.name == dst.name:
+        return True
+    if src.name == "usize" or dst.name == "usize":
+        return dst.name == "usize" and src.name in {"u8", "u16", "u32"}
+    return src.min_val >= dst.min_val and src.max_val <= dst.max_val
+
+
+def _wrap_int(spec: _IntSpec, val: int) -> int:
+    u = val & ((1 << spec.bits) - 1)
+    if spec.signed and (u & (1 << (spec.bits - 1))):
+        return u - (1 << spec.bits)
+    return u
+
+
+def _clamp_int(spec: _IntSpec, val: int) -> int:
+    return min(spec.max_val, max(spec.min_val, val))
+
+
+def _trunc_div(a: int, b: int) -> int:
+    q = abs(a) // abs(b)
+    return -q if (a < 0) != (b < 0) else q
+
+
+def _trunc_rem(a: int, b: int) -> int:
+    return a - _trunc_div(a, b) * b
+
+
+def _int_term(spec: _IntSpec, value: int) -> _Term:
+    return _term("int", spec.const, value=value)
+
+
 @dataclass
 class _Meta:
     type: _Term
@@ -975,6 +1082,12 @@ class _Elaborator:
         self.unions_by_type: dict[str, _UnionInfo] = {}
         self.union_ctors: dict[str, tuple[_UnionInfo, _UnionCtor]] = {}
         self.unions_by_ctor: dict[str, tuple[_UnionInfo, _UnionCtor]] = {}
+        self.builtin_unions: set[str] = {"Result", "ArithmeticError", "ConversionError"}
+        self.builtin_union_ctors: set[str] = {
+            "Err", "Ok", "Overflow", "ZeroDivisor", "InvalidShift", "OutOfRange",
+        }
+        self.active_facts: list[_Term] = []
+        self.callable_preconditions: dict[str, list[tuple[tuple[int, ...], _Term]]] = {}
         self.fix_names: dict[int, str] = {}
         self.current_rec_var: _Term | None = None
         self.current_rec_name: str | None = None
@@ -1017,6 +1130,11 @@ class _Elaborator:
 
         for name in ("Nat", "bool", "Unit"):
             bind(name, _SORT)
+        for spec in _INT_SPECS.values():
+            bind(spec.name, _SORT)
+        self.globals["byte"] = self.globals["u8"]
+        for alias_name, target_name in _NUMERICS_ALIASES.items():
+            self.globals[f"Vela.Numerics.{alias_name}"] = self.globals[target_name]
         bind("Prop", _SORT)
         bind("Succ", self.pi(_NAT, _NAT))
         a = self.fresh(_SORT)
@@ -1081,6 +1199,160 @@ class _Elaborator:
         bind("!", self.pi(_BOOL, _BOOL))
         for name, domain in (("eq_nat", _NAT), ("ne_nat", _NAT), ("eq_bool", _BOOL), ("ne_bool", _BOOL)):
             bind(name, self.pi(domain, self.pi(domain, _BOOL)))
+        self._register_builtin_unions()
+        self._register_int_constants()
+
+    def _register_builtin_unions(self) -> None:
+        # ArithmeticError { Overflow(); ZeroDivisor(); InvalidShift(); }
+        ae_type_const = "vela_ArithmeticError"
+        ae_rep_type = _term("sum", _UNIT, _term("sum", _UNIT, _UNIT))
+        ae_type_binding = _Binding(_constant(ae_type_const), _SORT, 0)
+        self.globals["ArithmeticError"] = ae_type_binding
+        self.constants[ae_type_const] = ae_type_binding
+        ae_ctors: list[_UnionCtor] = []
+        for idx, cname in enumerate(("Overflow", "ZeroDivisor", "InvalidShift")):
+            c_const = f"vela_ArithmeticError_{cname}"
+            u_var = self.fresh(_UNIT)
+            self.nullary_parameters.add(cast("int", u_var.value))
+            c_sig = _term("pi", _UNIT, _constant(ae_type_const), value=u_var.value)
+            c_binding = _Binding(_constant(c_const), c_sig, 0)
+            self.globals[cname] = c_binding
+            self.constants[c_const] = c_binding
+            ae_ctors.append(_UnionCtor(cname, c_const, c_binding, (), _UNIT, idx))
+        ae_info = _UnionInfo(
+            "ArithmeticError",
+            ae_type_const,
+            ae_type_binding,
+            (),
+            tuple(ae_ctors),
+            (ae_rep_type, _term("sum", _UNIT, _UNIT), _UNIT),
+        )
+        self.unions["ArithmeticError"] = ae_info
+        self.unions_by_type[ae_type_const] = ae_info
+        for uc in ae_ctors:
+            self.union_ctors[uc.name] = (ae_info, uc)
+            self.unions_by_ctor[uc.ctor_const] = (ae_info, uc)
+
+        # ConversionError { OutOfRange(); }
+        ce_type_const = "vela_ConversionError"
+        ce_type_binding = _Binding(_constant(ce_type_const), _SORT, 0)
+        self.globals["ConversionError"] = ce_type_binding
+        self.constants[ce_type_const] = ce_type_binding
+        oor_const = "vela_ConversionError_OutOfRange"
+        oor_u = self.fresh(_UNIT)
+        self.nullary_parameters.add(cast("int", oor_u.value))
+        oor_sig = _term("pi", _UNIT, _constant(ce_type_const), value=oor_u.value)
+        oor_binding = _Binding(_constant(oor_const), oor_sig, 0)
+        self.globals["OutOfRange"] = oor_binding
+        self.constants[oor_const] = oor_binding
+        oor_ctor = _UnionCtor("OutOfRange", oor_const, oor_binding, (), _UNIT, 0)
+        ce_info = _UnionInfo(
+            "ConversionError",
+            ce_type_const,
+            ce_type_binding,
+            (),
+            (oor_ctor,),
+            (_UNIT,),
+        )
+        self.unions["ConversionError"] = ce_info
+        self.unions_by_type[ce_type_const] = ce_info
+        self.union_ctors["OutOfRange"] = (ce_info, oor_ctor)
+        self.unions_by_ctor[oor_const] = (ce_info, oor_ctor)
+
+        # Result<TValue, TError> { Err(TError Error); Ok(TValue Value); }
+        res_type_const = "vela_Result"
+        tv_var = self.fresh(_SORT)
+        te_var = self.fresh(_SORT)
+        res_rep = _term("sum", te_var, tv_var)
+        res_sig = self.wrap("pi", [tv_var, te_var], _SORT)
+        res_type_binding = _Binding(_constant(res_type_const), res_sig, 2)
+        self.globals["Result"] = res_type_binding
+        self.constants[res_type_const] = res_type_binding
+        res_app = _apps(_constant(res_type_const), tv_var, te_var)
+
+        err_fvar = self.fresh(te_var)
+        self.parameter_names[cast("int", err_fvar.value)] = "Error"
+        err_const = "vela_Result_Err"
+        err_sig = self.wrap("pi", [tv_var, te_var, err_fvar], res_app)
+        err_binding = _Binding(_constant(err_const), err_sig, 2)
+        self.globals["Err"] = err_binding
+        self.constants[err_const] = err_binding
+        err_ctor = _UnionCtor(
+            "Err", err_const, err_binding, (_RecordField("Error", err_fvar, te_var, ""),), te_var, 0
+        )
+
+        ok_fvar = self.fresh(tv_var)
+        self.parameter_names[cast("int", ok_fvar.value)] = "Value"
+        ok_const = "vela_Result_Ok"
+        ok_sig = self.wrap("pi", [tv_var, te_var, ok_fvar], res_app)
+        ok_binding = _Binding(_constant(ok_const), ok_sig, 2)
+        self.globals["Ok"] = ok_binding
+        self.constants[ok_const] = ok_binding
+        ok_ctor = _UnionCtor(
+            "Ok", ok_const, ok_binding, (_RecordField("Value", ok_fvar, tv_var, ""),), tv_var, 1
+        )
+
+        res_info = _UnionInfo(
+            "Result",
+            res_type_const,
+            res_type_binding,
+            (tv_var, te_var),
+            (err_ctor, ok_ctor),
+            (res_rep, tv_var),
+        )
+        self.unions["Result"] = res_info
+        self.unions_by_type[res_type_const] = res_info
+        self.union_ctors["Err"] = (res_info, err_ctor)
+        self.union_ctors["Ok"] = (res_info, ok_ctor)
+        self.unions_by_ctor[err_const] = (res_info, err_ctor)
+        self.unions_by_ctor[ok_const] = (res_info, ok_ctor)
+
+    def _register_int_constants(self) -> None:
+        ae_const = _constant(self.unions["ArithmeticError"].type_const)
+        ce_const = _constant(self.unions["ConversionError"].type_const)
+        res_const = _constant(self.unions["Result"].type_const)
+        for spec in _INT_SPECS.values():
+            t = spec.const
+            res_arith = _apps(res_const, t, ae_const)
+            res_conv = _apps(res_const, t, ce_const)
+            for op in (
+                "add", "sub", "mul", "div", "rem", "and", "or", "xor",
+                "wrap_add", "wrap_sub", "wrap_mul", "sat_add", "sat_sub", "sat_mul",
+            ):
+                cname = f"int_{op}_{spec.name}"
+                self.constants[cname] = _Binding(_constant(cname), self.pi(t, self.pi(t, t)))
+            for op in ("neg", "not", "wrap_neg", "sat_neg"):
+                cname = f"int_{op}_{spec.name}"
+                self.constants[cname] = _Binding(_constant(cname), self.pi(t, t))
+            for op in ("eq", "ne", "lt", "le", "gt", "ge"):
+                cname = f"int_{op}_{spec.name}"
+                self.constants[cname] = _Binding(_constant(cname), self.pi(t, self.pi(t, _BOOL)))
+            for op in ("shl", "shr", "wrap_shl"):
+                cname = f"int_{op}_{spec.name}"
+                self.constants[cname] = _Binding(_constant(cname), self.pi(t, self.pi(_USIZE, t)))
+            for op in ("chk_add", "chk_sub", "chk_mul", "chk_div", "chk_rem"):
+                cname = f"int_{op}_{spec.name}"
+                self.constants[cname] = _Binding(_constant(cname), self.pi(t, self.pi(t, res_arith)))
+            cname_cneg = f"int_chk_neg_{spec.name}"
+            self.constants[cname_cneg] = _Binding(_constant(cname_cneg), self.pi(t, res_arith))
+            for op in ("chk_shl", "chk_shr"):
+                cname = f"int_{op}_{spec.name}"
+                self.constants[cname] = _Binding(_constant(cname), self.pi(t, self.pi(_USIZE, res_arith)))
+            cname_nat = f"int_to_nat_{spec.name}"
+            self.constants[cname_nat] = _Binding(_constant(cname_nat), self.pi(t, _NAT))
+            cname_tf_nat = f"int_try_from_Nat_{spec.name}"
+            self.constants[cname_tf_nat] = _Binding(_constant(cname_tf_nat), self.pi(_NAT, res_conv))
+            for src in _INT_SPECS.values():
+                cname_from = f"int_from_{src.name}_{spec.name}"
+                self.constants[cname_from] = _Binding(_constant(cname_from), self.pi(src.const, t))
+                cname_tf = f"int_try_from_{src.name}_{spec.name}"
+                self.constants[cname_tf] = _Binding(_constant(cname_tf), self.pi(src.const, res_conv))
+
+    def _int_spec(self, type_term: _Term) -> _IntSpec | None:
+        resolved = self.whnf(type_term)
+        if resolved.kind == "const" and isinstance(resolved.value, str):
+            return _INT_SPECS.get(resolved.value)
+        return None
 
     def meta(self, value_type: _Term, environment: dict[str, _Binding]) -> _Term:
         index = len(self.metas)
@@ -1132,7 +1404,7 @@ class _Elaborator:
         return result
 
     def _is_whnf_constructor(self, term: _Term) -> bool:
-        if term.kind in {"nat", "bool", "unit", "pair", "inl", "inr", "existT"}:
+        if term.kind in {"nat", "int", "bool", "unit", "pair", "inl", "inr", "existT"}:
             return True
         if term.kind == "app" and term.args[0] == _constant("Succ"):
             return True
@@ -1189,7 +1461,12 @@ class _Elaborator:
             self.static_forbidden = set() if previous is None else previous
             try:
                 normalized = self.whnf(term.args[1])
-                kind = {_NAT: "nat", _BOOL: "bool", _UNIT: "unit"}[self.whnf(term.args[0])]
+                expected_whnf = self.whnf(term.args[0])
+                kind = (
+                    "int"
+                    if self._int_spec(expected_whnf) is not None
+                    else {_NAT: "nat", _BOOL: "bool", _UNIT: "unit"}[expected_whnf]
+                )
                 if normalized.kind != kind:
                     raise self.fail("inference", "constant initializer did not evaluate to an admitted static value")
                 return normalized
@@ -1504,12 +1781,179 @@ class _Elaborator:
                 if l_kind == "succ" and r_kind == "succ" and l_pred is not None and r_pred is not None:
                     self.tick(True)
                     return self.whnf(_apps(_constant(name), l_pred, r_pred))
+        if isinstance(name, str) and name.startswith("int_"):
+            reduced_int = self._whnf_int_op(name, arguments)
+            if reduced_int is not None:
+                return reduced_int
         if head.value == "if" and len(arguments) == 4:
             condition = self.whnf(arguments[1])
             if condition.kind == "bool":
                 self.tick(True)
                 return self.whnf(arguments[2] if condition.value else arguments[3])
         return term
+
+    def _make_result_ok(self, val_type: _Term, err_type: _Term, val_term: _Term) -> _Term:
+        res_union = self.unions["Result"]
+        ok_ctor = next(c for c in res_union.constructors if c.name == "Ok")
+        return _apps(_constant(ok_ctor.ctor_const), val_type, err_type, val_term)
+
+    def _make_result_err(self, val_type: _Term, err_type: _Term, err_term: _Term) -> _Term:
+        res_union = self.unions["Result"]
+        err_ctor = next(c for c in res_union.constructors if c.name == "Err")
+        return _apps(_constant(err_ctor.ctor_const), val_type, err_type, err_term)
+
+    def _make_arith_err(self, ctor_name: str) -> _Term:
+        ae_union = self.unions["ArithmeticError"]
+        ctor = next(c for c in ae_union.constructors if c.name == ctor_name)
+        return _app(_constant(ctor.ctor_const), _term("unit"))
+
+    def _make_conv_err(self) -> _Term:
+        ce_union = self.unions["ConversionError"]
+        ctor = ce_union.constructors[0]
+        return _app(_constant(ctor.ctor_const), _term("unit"))
+
+    def _whnf_int_op(self, name: str, arguments: list[_Term]) -> _Term | None:
+        ae_const = _constant(self.unions["ArithmeticError"].type_const)
+        ce_const = _constant(self.unions["ConversionError"].type_const)
+        if name.startswith("int_to_nat_") and len(arguments) == 1:
+            arg = self.whnf(arguments[0])
+            if arg.kind == "int":
+                self.tick(True)
+                return _term("nat", value=max(0, cast("int", arg.value)))
+            return None
+        if name.startswith("int_from_") and len(arguments) == 1:
+            parts = name.split("_")
+            dst_spec = _INT_SPECS[parts[3]]
+            arg = self.whnf(arguments[0])
+            if arg.kind == "int":
+                self.tick(True)
+                return _int_term(dst_spec, cast("int", arg.value))
+            return None
+        if name.startswith("int_try_from_") and len(arguments) == 1:
+            parts = name.split("_")
+            dst_spec = _INT_SPECS[parts[4]]
+            arg = self.whnf(arguments[0])
+            if arg.kind in {"int", "nat"}:
+                self.tick(True)
+                val = cast("int", arg.value)
+                if dst_spec.min_val <= val <= dst_spec.max_val:
+                    return self._make_result_ok(dst_spec.const, ce_const, _int_term(dst_spec, val))
+                return self._make_result_err(dst_spec.const, ce_const, self._make_conv_err())
+            return None
+        prefix, spec_name = name.rsplit("_", 1)
+        spec = _INT_SPECS.get(spec_name)
+        if spec is None:
+            return None
+        op = prefix[4:]  # strip "int_"
+        if len(arguments) == 1 and op in {"neg", "not", "wrap_neg", "sat_neg", "chk_neg"}:
+            arg = self.whnf(arguments[0])
+            if arg.kind != "int":
+                return None
+            self.tick(True)
+            a = cast("int", arg.value)
+            if op in {"neg", "wrap_neg"}:
+                return _int_term(spec, _wrap_int(spec, -a))
+            if op == "not":
+                return _int_term(spec, _wrap_int(spec, ~a))
+            if op == "sat_neg":
+                return _int_term(spec, _clamp_int(spec, -a))
+            if spec.min_val <= -a <= spec.max_val:
+                return self._make_result_ok(spec.const, ae_const, _int_term(spec, -a))
+            return self._make_result_err(spec.const, ae_const, self._make_arith_err("Overflow"))
+        if len(arguments) == 2:
+            left = self.whnf(arguments[0])
+            right = self.whnf(arguments[1])
+            if left.kind != "int" or right.kind != "int":
+                return None
+            self.tick(True)
+            a = cast("int", left.value)
+            b = cast("int", right.value)
+            if op in {"add", "wrap_add"}:
+                return _int_term(spec, _wrap_int(spec, a + b))
+            if op in {"sub", "wrap_sub"}:
+                return _int_term(spec, _wrap_int(spec, a - b))
+            if op in {"mul", "wrap_mul"}:
+                return _int_term(spec, _wrap_int(spec, a * b))
+            if op == "div":
+                if b == 0:
+                    return _int_term(spec, 0)
+                return _int_term(spec, _wrap_int(spec, _trunc_div(a, b)))
+            if op == "rem":
+                if b == 0:
+                    return _int_term(spec, a)
+                if spec.signed and a == spec.min_val and b == -1:
+                    return _int_term(spec, 0)
+                return _int_term(spec, _wrap_int(spec, _trunc_rem(a, b)))
+            if op == "and":
+                return _int_term(spec, _wrap_int(spec, a & b))
+            if op == "or":
+                return _int_term(spec, _wrap_int(spec, a | b))
+            if op == "xor":
+                return _int_term(spec, _wrap_int(spec, a ^ b))
+            if op == "sat_add":
+                return _int_term(spec, _clamp_int(spec, a + b))
+            if op == "sat_sub":
+                return _int_term(spec, _clamp_int(spec, a - b))
+            if op == "sat_mul":
+                return _int_term(spec, _clamp_int(spec, a * b))
+            if op == "eq":
+                return _term("bool", value=int(a == b))
+            if op == "ne":
+                return _term("bool", value=int(a != b))
+            if op == "lt":
+                return _term("bool", value=int(a < b))
+            if op == "le":
+                return _term("bool", value=int(a <= b))
+            if op == "gt":
+                return _term("bool", value=int(a > b))
+            if op == "ge":
+                return _term("bool", value=int(a >= b))
+            if op in {"shl", "wrap_shl"}:
+                if not 0 <= b < spec.bits:
+                    return _int_term(spec, 0)
+                return _int_term(spec, _wrap_int(spec, a << b))
+            if op == "shr":
+                if not 0 <= b < spec.bits:
+                    return _int_term(spec, -1 if (spec.signed and a < 0) else 0)
+                if spec.signed:
+                    return _int_term(spec, a >> b)
+                return _int_term(spec, (a & ((1 << spec.bits) - 1)) >> b)
+            if op == "chk_add":
+                if spec.min_val <= a + b <= spec.max_val:
+                    return self._make_result_ok(spec.const, ae_const, _int_term(spec, a + b))
+                return self._make_result_err(spec.const, ae_const, self._make_arith_err("Overflow"))
+            if op == "chk_sub":
+                if spec.min_val <= a - b <= spec.max_val:
+                    return self._make_result_ok(spec.const, ae_const, _int_term(spec, a - b))
+                return self._make_result_err(spec.const, ae_const, self._make_arith_err("Overflow"))
+            if op == "chk_mul":
+                if spec.min_val <= a * b <= spec.max_val:
+                    return self._make_result_ok(spec.const, ae_const, _int_term(spec, a * b))
+                return self._make_result_err(spec.const, ae_const, self._make_arith_err("Overflow"))
+            if op == "chk_div":
+                if b == 0:
+                    return self._make_result_err(spec.const, ae_const, self._make_arith_err("ZeroDivisor"))
+                if spec.signed and a == spec.min_val and b == -1:
+                    return self._make_result_err(spec.const, ae_const, self._make_arith_err("Overflow"))
+                return self._make_result_ok(spec.const, ae_const, _int_term(spec, _trunc_div(a, b)))
+            if op == "chk_rem":
+                if b == 0:
+                    return self._make_result_err(spec.const, ae_const, self._make_arith_err("ZeroDivisor"))
+                if spec.signed and a == spec.min_val and b == -1:
+                    return self._make_result_err(spec.const, ae_const, self._make_arith_err("Overflow"))
+                return self._make_result_ok(spec.const, ae_const, _int_term(spec, _trunc_rem(a, b)))
+            if op == "chk_shl":
+                if not 0 <= b < spec.bits:
+                    return self._make_result_err(spec.const, ae_const, self._make_arith_err("InvalidShift"))
+                if not spec.min_val <= (a << b) <= spec.max_val:
+                    return self._make_result_err(spec.const, ae_const, self._make_arith_err("Overflow"))
+                return self._make_result_ok(spec.const, ae_const, _int_term(spec, a << b))
+            if op == "chk_shr":
+                if not 0 <= b < spec.bits:
+                    return self._make_result_err(spec.const, ae_const, self._make_arith_err("InvalidShift"))
+                shifted = (a >> b) if spec.signed else ((a & ((1 << spec.bits) - 1)) >> b)
+                return self._make_result_ok(spec.const, ae_const, _int_term(spec, shifted))
+        return None
 
     @staticmethod
     def _peel_nat(term: _Term) -> tuple[str, _Term | None]:
@@ -1598,6 +2042,8 @@ class _Elaborator:
             return self.constants[cast("str", term.value)].type
         if kind == "nat":
             return _NAT
+        if kind == "int":
+            return term.args[0]
         if kind == "bool":
             return _BOOL
         if kind == "unit":
@@ -1747,7 +2193,8 @@ class _Elaborator:
             dependencies = self.free(value)
             if not dependencies <= available:
                 raise self.fail("type", "constant parameter requires a static argument", node)
-            if self.whnf(expected) in {_NAT, _BOOL, _UNIT}:
+            expected_whnf = self.whnf(expected)
+            if expected_whnf in {_NAT, _BOOL, _UNIT} or self._int_spec(expected_whnf) is not None:
                 marked = _term("static", expected, value)
                 return marked if dependencies else self.whnf(marked)
             return value
@@ -1790,6 +2237,7 @@ class _Elaborator:
         return specialized
 
     def apply(self, binding: _Binding, arguments: list[Node], environment: dict[str, _Binding]) -> _Binding:
+        call_site = self.site
         term, value_type = binding.term, binding.type
         callee_head, callee_gen_args = self.spine(self.resolve(term))
         is_rec_call = (
@@ -1854,6 +2302,14 @@ class _Elaborator:
                 specialized_term = _app(specialized_term, argument)
             term = _app(term, argument)
             value_type = self.substitute(value_type.args[1], cast("int", value_type.value), argument)
+        if callee_head.kind == "const" and callee_head.value in self.callable_preconditions:
+            full_args = callee_gen_args + val_args
+            for param_ids, req_term in self.callable_preconditions[callee_head.value]:
+                if len(full_args) >= len(param_ids):
+                    inst_req = req_term
+                    for pid, arg_val in zip(param_ids, full_args, strict=False):
+                        inst_req = self.substitute(inst_req, pid, arg_val)
+                    self._check_precondition_term(inst_req, environment, call_site)
         if is_rec_call:
             self.current_rec_used = True
             if len(callee_gen_args) != len(self.current_rec_generics):
@@ -2012,6 +2468,8 @@ class _Elaborator:
         self.site = node
         if node["kind"] == "expression_body":
             return self.check(self.node(node["value"]), expected, environment)
+        if node["kind"] == "group":
+            return self.check(self.node(node["value"]), expected, environment)
         if node["kind"] not in {"lambda", "typed_lambda", "block"} and (
             self._is_propagatable_union(expected)
             or (self.current_return_type is not None and expected == self.current_return_type)
@@ -2060,6 +2518,27 @@ class _Elaborator:
                     rest = {"kind": "tuple", "span": node["span"], "values": values[1:]}
                     second = self.check(rest, expected_normal.args[1], environment)
                 return _term("pair", expected_normal.args[0], expected_normal.args[1], first, second)
+        if node["kind"] == "nat" and node["suffix"] == "":
+            spec = self._int_spec(expected)
+            if spec is not None:
+                mag = _parse_numeric_magnitude(cast("str", node["value"]))
+                if not spec.min_val <= mag <= spec.max_val:
+                    raise self.fail(
+                        "type",
+                        f"integer literal {mag} is out of range for '{spec.name}' ({spec.min_val}..{spec.max_val})",
+                        node,
+                    )
+                return _int_term(spec, mag)
+        if node["kind"] == "unary" and self._int_spec(expected) is not None:
+            res_u = self._elaborate_unary(node, environment, expected_int=expected)
+            self.site = node
+            self.unify(res_u.type, expected)
+            return res_u.term
+        if node["kind"] == "binary" and self._int_spec(expected) is not None:
+            res_b = self._elaborate_binary(node, environment, expected_int=expected)
+            self.site = node
+            self.unify(res_b.type, expected)
+            return res_b.term
         value = self.expression(node, environment)
         self.site = node
         self.unify(value.type, expected)
@@ -2160,12 +2639,13 @@ class _Elaborator:
                 result = _Pat("pair", node, args=(item, result))
             return result
         if kind == "nat_pattern":
-            amount = int(cast("str", node["value"]).replace("_", ""))
-            if amount > MAX_PATTERN_NAT:
-                raise self.fail("limit", f"natural pattern literal exceeds structural bound ({MAX_PATTERN_NAT})", node)
-            result = _Pat("zero", node)
+            amount = _parse_numeric_magnitude(cast("str", node["value"]))
+            suffix = cast("str", node["suffix"])
+            if suffix or amount > MAX_PATTERN_NAT:
+                return _Pat("int_lit", node, value=f"{amount}:{suffix}")
+            result = _Pat("zero", node, value=f"{amount}:")
             for _ in range(amount):
-                result = _Pat("succ", node, args=(result,))
+                result = _Pat("succ", node, value=f"{amount}:", args=(result,))
             return result
         if kind == "constructor_pattern":
             cname = self.name(node["name"])
@@ -2365,6 +2845,41 @@ class _Elaborator:
         if pat.kind == "bool":
             self.unify(expected_type, _BOOL)
             return _term("bool", value=1 if pat.value else 0)
+        spec = self._int_spec(expected_type)
+        if spec is not None and pat.kind in {"zero", "succ", "int_lit"}:
+            if pat.node["kind"] != "nat_pattern":
+                raise self.fail("type", "constructor 'Succ' requires a Nat scrutinee", pat.node)
+            amount = _parse_numeric_magnitude(cast("str", pat.node["value"]))
+            suffix = cast("str", pat.node["suffix"])
+            if suffix:
+                canonical = "u8" if suffix == "byte" else _NUMERICS_ALIASES.get(suffix, suffix)
+                if canonical != spec.name:
+                    raise self.fail(
+                        "type",
+                        f"integer pattern suffix '{suffix}' does not match scrutinee type '{spec.name}'",
+                        pat.node,
+                    )
+            if not spec.min_val <= amount <= spec.max_val:
+                raise self.fail(
+                    "type",
+                    f"integer pattern {amount} is out of range for '{spec.name}' ({spec.min_val}..{spec.max_val})",
+                    pat.node,
+                )
+            return _int_term(spec, amount)
+        if pat.kind == "int_lit":
+            self.unify(expected_type, _NAT)
+            _, suffix = cast("str", pat.value).split(":", 1)
+            if suffix:
+                raise self.fail(
+                    "type",
+                    f"integer pattern with suffix '{suffix}' requires type '{suffix}', not Nat",
+                    pat.node,
+                )
+            raise self.fail(
+                "limit",
+                f"natural pattern literal exceeds structural bound ({MAX_PATTERN_NAT})",
+                pat.node,
+            )
         if pat.kind in {"zero", "succ"}:
             self.unify(expected_type, _NAT)
             if pat.kind == "zero":
@@ -2425,7 +2940,7 @@ class _Elaborator:
         raise self.fail("protocol", f"unexpected internal pattern '{pat.kind}'", pat.node)
 
     def _require_irrefutable(self, pat: _Pat) -> None:
-        if pat.kind in {"bool", "zero", "succ", "union"}:
+        if pat.kind in {"bool", "zero", "succ", "int_lit", "union"}:
             raise self.fail("type", "local pattern binding requires an irrefutable pattern; use match", pat.node)
         for child in pat.args:
             self._require_irrefutable(child)
@@ -2536,6 +3051,7 @@ class _Elaborator:
         scrutinee_type = self.whnf(scrutinee.type)
         scrutinee_head, _ = self.spine(scrutinee_type)
         if (scrutinee_type not in {_UNIT, _BOOL, _NAT}
+                and self._int_spec(scrutinee_type) is None
                 and scrutinee_type.kind != "prod"
                 and not (
                     scrutinee_head.kind == "const"
@@ -2543,7 +3059,7 @@ class _Elaborator:
                 )):
             raise self.fail(
                 "type",
-                "match scrutinee must have type Nat, bool, Unit, a product, a record or a union",
+                "match scrutinee must have type Nat, bool, Unit, a fixed-width integer, a product, a record or a union",
                 value_node,
             )
         inferred_result: list[_Term | None] = [expected]
@@ -2684,20 +3200,94 @@ class _Elaborator:
             if col_type == _BOOL:
                 true_term = _term("bool", value=1)
                 false_term = _term("bool", value=0)
-                yes = compile_matrix(
-                    subst_cols(without_index, col_var_id, true_term),
-                    specialize_rows(active_rows, index, "bool", true_term, col_var_id, _BOOL, 0, bool_value=True),
-                    self.substitute(pattern_term, col_var_id, true_term),
-                )
-                no = compile_matrix(
-                    subst_cols(without_index, col_var_id, false_term),
-                    specialize_rows(active_rows, index, "bool", false_term, col_var_id, _BOOL, 0, bool_value=False),
-                    self.substitute(pattern_term, col_var_id, false_term),
-                )
+                self.active_facts.append(col_scrutinee)
+                try:
+                    yes = compile_matrix(
+                        subst_cols(without_index, col_var_id, true_term),
+                        specialize_rows(active_rows, index, "bool", true_term, col_var_id, _BOOL, 0, bool_value=True),
+                        self.substitute(pattern_term, col_var_id, true_term),
+                    )
+                finally:
+                    self.active_facts.pop()
+                self.active_facts.append(_app(_constant("!"), col_scrutinee))
+                try:
+                    no = compile_matrix(
+                        subst_cols(without_index, col_var_id, false_term),
+                        specialize_rows(active_rows, index, "bool", false_term, col_var_id, _BOOL, 0, bool_value=False),
+                        self.substitute(pattern_term, col_var_id, false_term),
+                    )
+                finally:
+                    self.active_facts.pop()
                 if motive_body is None:
                     return _term("if", cast("_Term", inferred_result[0]), col_scrutinee, yes, no)
                 motive_lam = _term("lam", _BOOL, self.substitute(motive_body, root_var_id, pattern_term), value=col_var_id)
                 return _term("bool_match", motive_lam, col_scrutinee, yes, no)
+
+            col_int_spec = self._int_spec(col_type)
+            if col_int_spec is not None:
+                target_pat = first.patterns[index]
+                target_val = _parse_numeric_magnitude(cast("str", target_pat.node["value"]))
+                lit_term = _int_term(col_int_spec, target_val)
+                yes_rows: list[_Row] = []
+                no_rows: list[_Row] = []
+                for row in active_rows:
+                    pat = row.patterns[index]
+                    updated_bindings = tuple(
+                        (
+                            bname,
+                            _Binding(
+                                self.substitute(bval.term, col_var_id, lit_term),
+                                self.substitute(bval.type, col_var_id, lit_term),
+                            ),
+                        )
+                        for bname, bval in row.bindings
+                    )
+                    if pat.kind == "wild":
+                        extra = tuple((name, _Binding(lit_term, col_type)) for name in pat.names)
+                        yes_rows.append(
+                            _Row(
+                                row.patterns[:index] + row.patterns[index + 1:],
+                                updated_bindings + extra,
+                                row.arm,
+                                row.arm_index,
+                            )
+                        )
+                        no_rows.append(row)
+                    else:
+                        row_val = _parse_numeric_magnitude(cast("str", pat.node["value"]))
+                        if row_val == target_val:
+                            yes_rows.append(
+                                _Row(
+                                    row.patterns[:index] + row.patterns[index + 1:],
+                                    updated_bindings,
+                                    row.arm,
+                                    row.arm_index,
+                                )
+                            )
+                        else:
+                            no_rows.append(row)
+                eq_cond = _apps(_constant(f"int_eq_{col_int_spec.name}"), col_scrutinee, lit_term)
+                ne_cond = _apps(_constant(f"int_ne_{col_int_spec.name}"), col_scrutinee, lit_term)
+                self.active_facts.append(eq_cond)
+                try:
+                    yes_branch = compile_matrix(
+                        subst_cols(without_index, col_var_id, lit_term),
+                        yes_rows,
+                        self.substitute(pattern_term, col_var_id, lit_term),
+                    )
+                finally:
+                    self.active_facts.pop()
+                self.active_facts.append(ne_cond)
+                try:
+                    no_branch = compile_matrix(columns, no_rows, pattern_term)
+                finally:
+                    self.active_facts.pop()
+                ret_ty = (
+                    self.substitute(motive_body, root_var_id, pattern_term)
+                    if motive_body is not None
+                    else cast("_Term", inferred_result[0])
+                )
+                return _term("if", ret_ty, eq_cond, yes_branch, no_branch)
 
             if col_type.kind == "prod":
                 left_type, right_type = col_type.args
@@ -3252,7 +3842,8 @@ class _Elaborator:
         try:
             value_type = self.type(self.node(node["type"]), environment)
             expected = self.whnf(value_type)
-            if expected not in {_NAT, _BOOL, _UNIT}:
+            int_spec = self._int_spec(expected)
+            if expected not in {_NAT, _BOOL, _UNIT} and int_spec is None:
                 raise self.fail("unsupported", "mathematical constants require Nat, bool or Unit", node)
             value = self.check(self.node(node["value"]), value_type, environment)
             self.complete(value)
@@ -3264,6 +3855,10 @@ class _Elaborator:
             if dependencies:
                 return _Binding(_term("static", value_type, value), value_type, constant=True)
             normalized = self.whnf(value)
+            if int_spec is not None:
+                if normalized.kind != "int":
+                    raise self.fail("inference", "constant initializer did not evaluate to an admitted static value", node)
+                return _Binding(normalized, value_type, constant=True)
             kind = {_NAT: "nat", _BOOL: "bool", _UNIT: "unit"}[expected]
             if normalized.kind != kind:
                 raise self.fail("inference", "constant initializer did not evaluate to an admitted static value", node)
@@ -4088,6 +4683,10 @@ class _Elaborator:
     def _split_first_propagate(self, node: Node) -> tuple[Node, Callable[[Node], Node]] | None:
         kind = node["kind"]
         if kind == "propagate":
+            res_inner = self._split_first_propagate(self.node(node["value"]))
+            if res_inner is not None:
+                prop, inner_rebuild = res_inner
+                return prop, lambda repl: self._with_node_field(node, "value", inner_rebuild(repl))
             return node, lambda repl: repl
         if kind in {"group", "unary", "member", "is", "generic_application", "expression_body"}:
             res = self._split_first_propagate(self.node(node["value"]))
@@ -4349,158 +4948,174 @@ class _Elaborator:
             )
             return finish(_Binding(term, target_ret))
 
-        for index, statement in enumerate(statements):
-            self.site = statement
-            kind = statement["kind"]
-            if kind in {"let", "typed_local", "let_pattern", "constant_local"}:
-                if kind != "constant_local":
+        saved_active_len = len(self.active_facts)
+        self.active_facts.extend(self._fact_bool_terms(active_facts, extended))
+        try:
+            for index, statement in enumerate(statements):
+                self.site = statement
+                kind = statement["kind"]
+                if kind in {"let", "typed_local", "let_pattern", "constant_local"}:
+                    if kind != "constant_local":
+                        lifted = lift_stmt_propagate(statement, "value", index)
+                        if lifted is not None:
+                            return lifted
+                    previous_keys = set(extended)
+                    extended = self.local(statement, extended)
+                    for new_key in set(extended) - previous_keys:
+                        bound = extended[new_key]
+                        if self._is_prop_type(bound.type):
+                            statement_facts.append(bound)
+                            self.active_facts.extend(self._fact_bool_terms((bound,), extended))
+                    continue
+                if kind == "assert":
+                    fact = self._elaborate_assert(statement, extended, (*active_facts, *statement_facts))
+                    statement_facts.append(fact)
+                    self.active_facts.extend(self._fact_bool_terms((fact,), extended))
+                    if index == len(statements) - 1 and expected is not None and self._is_prop_type(expected):
+                        term = self._prove_proposition(
+                            expected,
+                            extended,
+                            tuple(statement_facts),
+                            statement,
+                            allow_refl=False,
+                            include_env=False,
+                        )
+                        return finish(_Binding(term, expected))
+                    continue
+                if kind == "proof":
+                    sub_facts = self._elaborate_proof_statement(
+                        self.node(statement["body"], "block"), extended, (*active_facts, *statement_facts)
+                    )
+                    statement_facts.extend(sub_facts)
+                    self.active_facts.extend(self._fact_bool_terms(sub_facts, extended))
+                    if index == len(statements) - 1 and expected is not None and self._is_prop_type(expected):
+                        term = self._prove_proposition(
+                            expected,
+                            extended,
+                            tuple(statement_facts),
+                            statement,
+                            allow_refl=False,
+                            include_env=False,
+                        )
+                        return finish(_Binding(term, expected))
+                    continue
+                if kind == "let_else":
+                    if index == len(statements) - 1:
+                        raise self.fail("type", "a pure block requires an explicit terminal return after let-else", statement)
                     lifted = lift_stmt_propagate(statement, "value", index)
                     if lifted is not None:
                         return lifted
-                previous_keys = set(extended)
-                extended = self.local(statement, extended)
-                for new_key in set(extended) - previous_keys:
-                    bound = extended[new_key]
-                    if self._is_prop_type(bound.type):
-                        statement_facts.append(bound)
-                continue
-            if kind == "assert":
-                fact = self._elaborate_assert(statement, extended, (*active_facts, *statement_facts))
-                statement_facts.append(fact)
-                if index == len(statements) - 1 and expected is not None and self._is_prop_type(expected):
-                    term = self._prove_proposition(
-                        expected,
-                        extended,
-                        tuple(statement_facts),
-                        statement,
-                        allow_refl=False,
-                        include_env=False,
-                    )
-                    return finish(_Binding(term, expected))
-                continue
-            if kind == "proof":
-                sub_facts = self._elaborate_proof_statement(
-                    self.node(statement["body"], "block"), extended, (*active_facts, *statement_facts)
-                )
-                statement_facts.extend(sub_facts)
-                if index == len(statements) - 1 and expected is not None and self._is_prop_type(expected):
-                    term = self._prove_proposition(
-                        expected,
-                        extended,
-                        tuple(statement_facts),
-                        statement,
-                        allow_refl=False,
-                        include_env=False,
-                    )
-                    return finish(_Binding(term, expected))
-                continue
-            if kind == "let_else":
-                if index == len(statements) - 1:
-                    raise self.fail("type", "a pure block requires an explicit terminal return after let-else", statement)
-                lifted = lift_stmt_propagate(statement, "value", index)
-                if lifted is not None:
-                    return lifted
-                else_block = self.node(statement["else"], "block")
-                else_statements = self.nodes(else_block["statements"])
-                rest_statements = statements[index + 1:]
-                combined_facts = (*active_facts, *statement_facts)
-                visited_arms: set[int] = set()
-                synthetic_match: Node = {
-                    "kind": "match",
-                    "span": node["span"],
-                    "value": statement["value"],
-                    "motive": None,
-                    "cases": [
-                        {
-                            "kind": "case",
-                            "span": node["span"],
-                            "pattern": statement["pattern"],
-                            "statements": rest_statements,
-                        },
-                        {
-                            "kind": "case",
-                            "span": else_block["span"],
-                            "pattern": {"kind": "wildcard_pattern", "span": else_block["span"]},
-                            "statements": else_statements,
-                        },
-                    ],
-                }
-                result = self.match(
-                    synthetic_match,
-                    extended,
-                    expected,
-                    expression_arms=False,
-                    facts=combined_facts,
-                    refine_scrutinee=True,
-                    visited_arms=visited_arms,
-                    synthetic=True,
-                )
-                if 1 not in visited_arms:
-                    self.block(else_block, extended, result.type, facts=combined_facts)
-                return finish(result)
-            if index != len(statements) - 1:
-                raise self.fail("unsupported", "a returning terminal must be the final statement")
-            if kind == "return":
-                if statement["value"] is None:
-                    value = _Binding(_term("unit"), _UNIT)
-                    if expected is not None:
-                        self.unify(value.type, expected)
-                    return finish(value)
-                lifted = lift_stmt_propagate(statement, "value", index)
-                if lifted is not None:
-                    return lifted
-                value_node = self.node(statement["value"])
-                result = (
-                    self.expression(value_node, extended)
-                    if expected is None
-                    else _Binding(self.check(value_node, expected, extended), expected)
-                )
-                return finish(result)
-            if kind == "if":
-                if statement["else"] is None:
-                    raise self.fail("type", "every conditional branch must return")
-                lifted = lift_stmt_propagate(statement, "condition", index)
-                if lifted is not None:
-                    return lifted
-                combined_facts = (*active_facts, *statement_facts)
-                cond_raw = self.node(statement["condition"])
-                cond_unwrapped = self._unwrap_group(cond_raw)
-                if cond_unwrapped["kind"] == "is":
-                    return finish(
-                        self._if_is(
-                            cond_unwrapped,
-                            self.node(statement["then"]),
-                            self.node(statement["else"]),
-                            extended,
-                            expected,
-                            expression_branches=False,
-                            facts=combined_facts,
-                            site_node=statement,
-                        )
-                    )
-                condition = self.check(cond_raw, _BOOL, extended)
-                yes = self.branch(self.node(statement["then"]), extended, expected, facts=combined_facts)
-                no = self.branch(self.node(statement["else"]), extended, yes.type, facts=combined_facts)
-                return finish(_Binding(_term("if", yes.type, condition, yes.term, no.term), yes.type))
-            if kind == "match":
-                lifted = lift_stmt_propagate(statement, "value", index)
-                if lifted is not None:
-                    return lifted
-                return finish(
-                    self.match(
-                        statement,
+                    else_block = self.node(statement["else"], "block")
+                    else_statements = self.nodes(else_block["statements"])
+                    rest_statements = statements[index + 1:]
+                    combined_facts = (*active_facts, *statement_facts)
+                    visited_arms: set[int] = set()
+                    synthetic_match: Node = {
+                        "kind": "match",
+                        "span": node["span"],
+                        "value": statement["value"],
+                        "motive": None,
+                        "cases": [
+                            {
+                                "kind": "case",
+                                "span": node["span"],
+                                "pattern": statement["pattern"],
+                                "statements": rest_statements,
+                            },
+                            {
+                                "kind": "case",
+                                "span": else_block["span"],
+                                "pattern": {"kind": "wildcard_pattern", "span": else_block["span"]},
+                                "statements": else_statements,
+                            },
+                        ],
+                    }
+                    result = self.match(
+                        synthetic_match,
                         extended,
                         expected,
                         expression_arms=False,
-                        facts=(*active_facts, *statement_facts),
+                        facts=combined_facts,
+                        refine_scrutinee=True,
+                        visited_arms=visited_arms,
+                        synthetic=True,
                     )
-                )
-            if kind == "block":
-                return finish(
-                    self.block(statement, extended, expected, facts=(*active_facts, *statement_facts))
-                )
-            raise self.fail("unsupported", f"statement '{kind}' requires the full frontend")
-        raise self.fail("type", "a pure block requires an explicit terminal return", node)
+                    if 1 not in visited_arms:
+                        self.block(else_block, extended, result.type, facts=combined_facts)
+                    return finish(result)
+                if index != len(statements) - 1:
+                    raise self.fail("unsupported", "a returning terminal must be the final statement")
+                if kind == "return":
+                    if statement["value"] is None:
+                        value = _Binding(_term("unit"), _UNIT)
+                        if expected is not None:
+                            self.unify(value.type, expected)
+                        return finish(value)
+                    lifted = lift_stmt_propagate(statement, "value", index)
+                    if lifted is not None:
+                        return lifted
+                    value_node = self.node(statement["value"])
+                    result = (
+                        self.expression(value_node, extended)
+                        if expected is None
+                        else _Binding(self.check(value_node, expected, extended), expected)
+                    )
+                    return finish(result)
+                if kind == "if":
+                    if statement["else"] is None:
+                        raise self.fail("type", "every conditional branch must return")
+                    lifted = lift_stmt_propagate(statement, "condition", index)
+                    if lifted is not None:
+                        return lifted
+                    combined_facts = (*active_facts, *statement_facts)
+                    cond_raw = self.node(statement["condition"])
+                    cond_unwrapped = self._unwrap_group(cond_raw)
+                    if cond_unwrapped["kind"] == "is":
+                        return finish(
+                            self._if_is(
+                                cond_unwrapped,
+                                self.node(statement["then"]),
+                                self.node(statement["else"]),
+                                extended,
+                                expected,
+                                expression_branches=False,
+                                facts=combined_facts,
+                                site_node=statement,
+                            )
+                        )
+                    condition = self.check(cond_raw, _BOOL, extended)
+                    self.active_facts.append(condition)
+                    try:
+                        yes = self.branch(self.node(statement["then"]), extended, expected, facts=combined_facts)
+                    finally:
+                        self.active_facts.pop()
+                    self.active_facts.append(_app(_constant("!"), condition))
+                    try:
+                        no = self.branch(self.node(statement["else"]), extended, yes.type, facts=combined_facts)
+                    finally:
+                        self.active_facts.pop()
+                    return finish(_Binding(_term("if", yes.type, condition, yes.term, no.term), yes.type))
+                if kind == "match":
+                    lifted = lift_stmt_propagate(statement, "value", index)
+                    if lifted is not None:
+                        return lifted
+                    return finish(
+                        self.match(
+                            statement,
+                            extended,
+                            expected,
+                            expression_arms=False,
+                            facts=(*active_facts, *statement_facts),
+                        )
+                    )
+                if kind == "block":
+                    return finish(
+                        self.block(statement, extended, expected, facts=(*active_facts, *statement_facts))
+                    )
+                raise self.fail("unsupported", f"statement '{kind}' requires the full frontend")
+            raise self.fail("type", "a pure block requires an explicit terminal return", node)
+        finally:
+            del self.active_facts[saved_active_len:]
 
     def branch(self, node: Node, environment: dict[str, _Binding], expected: _Term | None,
                *, facts: tuple[_Binding, ...] = ()) -> _Binding:
@@ -4841,7 +5456,7 @@ class _Elaborator:
         tokens: list[tuple[str, str, int, int]] = []
         cursor = trivia_end(src, start_byte, block_comments=True)
         multi_ops = (b"<==>", b"==>", b"::<", b"==", b"!=", b"<=", b">=", b"&&", b"||")
-        single_ops = set(b"(){}[].,:=+-*/%<>!")
+        single_ops = set(b"(){}[].,:=+-*/%<>!&|^~?")
         while cursor < end_byte:
             matched_multi = False
             for op in multi_ops:
@@ -4853,7 +5468,15 @@ class _Elaborator:
             if matched_multi:
                 continue
             byte0 = src[cursor]
-            if byte0 in single_ops:
+            if byte0 in single_ops and not (
+                byte0 == ord("?")
+                and cursor + 1 < end_byte
+                and (
+                    ord("A") <= src[cursor + 1] <= ord("Z")
+                    or ord("a") <= src[cursor + 1] <= ord("z")
+                    or src[cursor + 1] == ord("_")
+                )
+            ):
                 tokens.append(("punct", chr(byte0), cursor, cursor + 1))
                 cursor = trivia_end(src, cursor + 1, block_comments=True)
                 continue
@@ -4881,10 +5504,25 @@ class _Elaborator:
                     end += 1
                 token_str = src[cursor:end].decode("ascii")
                 split_at = len(token_str)
-                for idx_ch, ch in enumerate(token_str):
-                    if not (ch.isdigit() or ch == "_"):
-                        split_at = idx_ch
-                        break
+                for sfx in ("usize", "byte", "u16", "u32", "u64", "i16", "i32", "i64", "u8", "i8"):
+                    if token_str.endswith(sfx) and len(token_str) > len(sfx):
+                        candidate_mag = token_str[:-len(sfx)]
+                        if (
+                            DECIMAL.fullmatch(candidate_mag)
+                            or _HEX_LITERAL.fullmatch(candidate_mag)
+                            or _BIN_LITERAL.fullmatch(candidate_mag)
+                        ):
+                            split_at = len(candidate_mag)
+                            break
+                else:
+                    if not (
+                        _HEX_LITERAL.fullmatch(token_str)
+                        or _BIN_LITERAL.fullmatch(token_str)
+                    ):
+                        for idx_ch, ch in enumerate(token_str):
+                            if not (ch.isdigit() or ch == "_"):
+                                split_at = idx_ch
+                                break
                 tokens.append(("nat", f"{token_str[:split_at]}:{token_str[split_at:]}", cursor, end))
                 cursor = trivia_end(src, end, block_comments=True)
                 continue
@@ -5211,13 +5849,18 @@ class _Elaborator:
                     pat_end = cast("list[int]", pat_node["span"])[1]
                     node = {"kind": "is", "span": [node_start, pat_end], "value": node, "pattern": pat_node}
                     continue
+                if nk == "punct" and nv == "?":
+                    qtok = consume("punct", "?")
+                    node = {"kind": "try", "span": [node_start, qtok[3]], "value": node}
+                    continue
                 break
             return node
 
         def parse_unary() -> Node:
             tok = peek()
             if tok is not None and (
-                (tok[0] == "punct" and tok[1] == "!") or (tok[0] == "ident" and tok[1] == "ref")
+                (tok[0] == "punct" and tok[1] in {"!", "-", "~"})
+                or (tok[0] == "ident" and tok[1] == "ref")
             ):
                 consume()
                 operand = parse_unary()
@@ -5261,8 +5904,17 @@ class _Elaborator:
         def parse_eq() -> Node:
             return parse_bin(parse_cmp, {"==", "!="})
 
+        def parse_bitand() -> Node:
+            return parse_bin(parse_eq, {"&"})
+
+        def parse_bitxor() -> Node:
+            return parse_bin(parse_bitand, {"^"})
+
+        def parse_bitor() -> Node:
+            return parse_bin(parse_bitxor, {"|"})
+
         def parse_and() -> Node:
-            return parse_bin(parse_eq, {"&&"})
+            return parse_bin(parse_bitor, {"&&"})
 
         def parse_or() -> Node:
             return parse_bin(parse_and, {"||"})
@@ -5441,16 +6093,23 @@ class _Elaborator:
                     )
                 hole_type = self.whnf(hole_binding.type)
                 head, type_args = self.spine(hole_type)
-                if hole_type == _NAT:
+                hole_int_spec = self._int_spec(hole_type)
+                if hole_type == _NAT or hole_int_spec is not None:
                     if spec not in {"", "d", "x", "x2", "x4", "x8", "X", "X2", "X4", "X8", "b"}:
                         raise self.fail(
                             "type", f"unsupported format specifier '{spec}' for Nat hole", template_arg
                         )
                     val = self.whnf(hole_binding.term)
-                    if val.kind == "nat":
+                    if val.kind in {"nat", "int"}:
                         n_val = cast("int", val.value)
                         if spec in {"", "d"}:
                             concrete_bytes += len(str(n_val))
+                        elif n_val < 0:
+                            raise self.fail(
+                                "type",
+                                f"format specifier '{spec}' requires a non-negative integer value",
+                                template_arg,
+                            )
                         elif spec in {"x", "X"}:
                             concrete_bytes += len(format(n_val, "x"))
                         elif spec in {"x2", "X2"}:
@@ -5461,7 +6120,9 @@ class _Elaborator:
                             concrete_bytes += max(8, len(format(n_val, "x")))
                         else:
                             concrete_bytes += len(format(n_val, "b"))
-                    elif spec in {"x2", "X2", "x4", "X4", "x8", "X8"}:
+                    elif spec in {"x2", "X2", "x4", "X4", "x8", "X8"} and (
+                        hole_int_spec is None or not hole_int_spec.signed
+                    ):
                         concrete_bytes += int(spec[1:])
                     else:
                         raise self.fail(
@@ -5523,12 +6184,857 @@ class _Elaborator:
             _app(_constant("TextBuilder"), capacity),
         )
 
+    def _fact_bool_terms(self, facts: tuple[_Binding, ...] | list[_Binding], environment: dict[str, _Binding]) -> list[_Term]:
+        terms: list[_Term] = []
+        all_bindings = [
+            *facts,
+            *(
+                b
+                for b in environment.values()
+                if (self.current_rec_var is None or b.term != self.current_rec_var)
+                and self._is_prop_type(b.type)
+            ),
+        ]
+        for fact in all_bindings:
+            extracted = self._extract_equality(fact.type)
+            if extracted is not None:
+                eq_type, u, v = extracted
+                eq_type_w = self.whnf(eq_type)
+                if eq_type_w == _BOOL:
+                    u_w = self.whnf(u)
+                    v_w = self.whnf(v)
+                    if v_w == _term("bool", value=1):
+                        terms.append(u)
+                    elif u_w == _term("bool", value=1):
+                        terms.append(v)
+                    elif v_w == _term("bool", value=0):
+                        terms.append(_app(_constant("!"), u))
+                    elif u_w == _term("bool", value=0):
+                        terms.append(_app(_constant("!"), v))
+                elif self._int_spec(eq_type_w) is not None or eq_type_w == _NAT:
+                    spec = self._int_spec(eq_type_w)
+                    eq_const = f"int_eq_{spec.name}" if spec is not None else "eq_nat"
+                    terms.append(_apps(_constant(eq_const), u, v))
+        return terms
+
+    def _negate_bool_term(self, term: _Term) -> _Term:
+        w = self.whnf(term)
+        head, args = self.spine(w)
+        if head == _constant("!") and len(args) == 1:
+            return args[0]
+        if head.kind == "const" and isinstance(head.value, str) and len(args) == 2:
+            cname = head.value
+            flip_nat = {"<": ">=", "<=": ">", ">": "<=", ">=": "<", "eq_nat": "ne_nat", "ne_nat": "eq_nat"}
+            if cname in flip_nat:
+                return _apps(_constant(flip_nat[cname]), args[0], args[1])
+            if cname.startswith("int_"):
+                prefix, spec_name = cname.rsplit("_", 1)
+                if spec_name in _INT_SPECS:
+                    op = prefix[4:]
+                    flip_int = {"lt": "ge", "le": "gt", "gt": "le", "ge": "lt", "eq": "ne", "ne": "eq"}
+                    if op in flip_int:
+                        return _apps(_constant(f"int_{flip_int[op]}_{spec_name}"), args[0], args[1])
+        return _app(_constant("!"), w)
+
+    def _expand_bool_facts(self, raw_facts: list[_Term]) -> list[_Term]:
+        expanded: list[_Term] = []
+        queue = list(raw_facts)
+        while queue:
+            item = self.whnf(queue.pop(0))
+            head, args = self.spine(item)
+            if head == _constant("&&") and len(args) == 2:
+                queue.append(args[0])
+                queue.append(args[1])
+                continue
+            if head == _constant("!") and len(args) == 1:
+                inner = self.whnf(args[0])
+                i_head, i_args = self.spine(inner)
+                if i_head == _constant("||") and len(i_args) == 2:
+                    queue.append(self._negate_bool_term(i_args[0]))
+                    queue.append(self._negate_bool_term(i_args[1]))
+                    continue
+                neg = self._negate_bool_term(inner)
+                if neg != item:
+                    queue.append(neg)
+                    continue
+            if item not in expanded:
+                expanded.append(item)
+        return expanded
+
+    def _parse_cmp_fact(self, fact: _Term) -> tuple[str, _IntSpec | None, _Term, _Term] | None:
+        w = self.whnf(fact)
+        head, args = self.spine(w)
+        if head.kind != "const" or not isinstance(head.value, str) or len(args) != 2:
+            return None
+        cname = head.value
+        nat_map = {"<": "lt", "<=": "le", ">": "gt", ">=": "ge", "eq_nat": "eq", "ne_nat": "ne"}
+        if cname in nat_map:
+            return nat_map[cname], None, args[0], args[1]
+        if cname.startswith("int_"):
+            prefix, spec_name = cname.rsplit("_", 1)
+            spec = _INT_SPECS.get(spec_name)
+            op = prefix[4:]
+            if spec is not None and op in {"lt", "le", "gt", "ge", "eq", "ne"}:
+                return op, spec, args[0], args[1]
+        return None
+
+    def _term_bounds(
+        self, term: _Term, spec: _IntSpec | None, facts: list[_Term], depth: int = 0
+    ) -> tuple[int, int, set[int]]:
+        lo = spec.min_val if spec is not None else 0
+        hi = spec.max_val if spec is not None else (1 << MAX_NAT_BITS) - 1
+        ne_set: set[int] = set()
+        w = self.whnf(term)
+        if w.kind in {"int", "nat"}:
+            val = cast("int", w.value)
+            return val, val, set()
+        if depth > 4:
+            return lo, hi, ne_set
+        head, args = self.spine(w)
+        if head.kind == "const" and isinstance(head.value, str):
+            cname = head.value
+            if cname == "Succ" and len(args) == 1:
+                s_lo, s_hi, _ = self._term_bounds(args[0], None, facts, depth + 1)
+                lo = max(lo, s_lo + 1)
+                hi = min(hi, s_hi + 1)
+            elif cname.startswith("int_from_") and len(args) == 1:
+                src_spec = _INT_SPECS[cname.split("_")[2]]
+                s_lo, s_hi, s_ne = self._term_bounds(args[0], src_spec, facts, depth + 1)
+                lo = max(lo, s_lo)
+                hi = min(hi, s_hi)
+                ne_set.update(s_ne)
+            elif cname.startswith("int_to_nat_") and len(args) == 1:
+                src_spec = _INT_SPECS[cname.split("_")[3]]
+                s_lo, s_hi, s_ne = self._term_bounds(args[0], src_spec, facts, depth + 1)
+                lo = max(lo, s_lo)
+                hi = min(hi, s_hi)
+                ne_set.update(s_ne)
+            elif spec is not None and len(args) == 2:
+                if cname == f"int_and_{spec.name}":
+                    l_lo, l_hi, _ = self._term_bounds(args[0], spec, facts, depth + 1)
+                    r_lo, r_hi, _ = self._term_bounds(args[1], spec, facts, depth + 1)
+                    if r_lo == r_hi and r_lo >= 0:
+                        lo = max(lo, 0)
+                        hi = min(hi, r_lo)
+                    if l_lo == l_hi and l_lo >= 0:
+                        lo = max(lo, 0)
+                        hi = min(hi, l_lo)
+                elif cname == f"int_rem_{spec.name}" and not spec.signed:
+                    _, r_hi, _ = self._term_bounds(args[1], spec, facts, depth + 1)
+                    if r_hi > 0:
+                        lo = max(lo, 0)
+                        hi = min(hi, r_hi - 1)
+                elif cname == f"int_shr_{spec.name}":
+                    l_lo, l_hi, _ = self._term_bounds(args[0], spec, facts, depth + 1)
+                    r_lo, r_hi, _ = self._term_bounds(args[1], _INT_SPECS["usize"], facts, depth + 1)
+                    if 0 <= r_lo <= r_hi < spec.bits and (not spec.signed or l_lo >= 0):
+                        lo = max(lo, max(0, l_lo) >> r_hi)
+                        hi = min(hi, l_hi >> r_lo)
+                elif cname == f"int_shl_{spec.name}":
+                    l_lo, l_hi, _ = self._term_bounds(args[0], spec, facts, depth + 1)
+                    r_lo, r_hi, _ = self._term_bounds(args[1], _INT_SPECS["usize"], facts, depth + 1)
+                    if 0 <= r_lo <= r_hi < spec.bits and l_lo >= 0:
+                        lo = max(lo, l_lo << r_lo)
+                        hi = min(hi, l_hi << r_hi)
+                elif cname == f"int_add_{spec.name}":
+                    l_lo, l_hi, _ = self._term_bounds(args[0], spec, facts, depth + 1)
+                    r_lo, r_hi, _ = self._term_bounds(args[1], spec, facts, depth + 1)
+                    lo = max(lo, l_lo + r_lo)
+                    hi = min(hi, l_hi + r_hi)
+                elif cname == f"int_sub_{spec.name}":
+                    l_lo, l_hi, _ = self._term_bounds(args[0], spec, facts, depth + 1)
+                    r_lo, r_hi, _ = self._term_bounds(args[1], spec, facts, depth + 1)
+                    lo = max(lo, l_lo - r_hi)
+                    hi = min(hi, l_hi - r_lo)
+                elif cname == f"int_mul_{spec.name}":
+                    l_lo, l_hi, _ = self._term_bounds(args[0], spec, facts, depth + 1)
+                    r_lo, r_hi, _ = self._term_bounds(args[1], spec, facts, depth + 1)
+                    prods = (l_lo * r_lo, l_lo * r_hi, l_hi * r_lo, l_hi * r_hi)
+                    lo = max(lo, min(prods))
+                    hi = min(hi, max(prods))
+            elif spec is None and len(args) == 2:
+                if cname == "+":
+                    l_lo, l_hi, _ = self._term_bounds(args[0], None, facts, depth + 1)
+                    r_lo, r_hi, _ = self._term_bounds(args[1], None, facts, depth + 1)
+                    lo = max(lo, l_lo + r_lo)
+                    hi = min(hi, l_hi + r_hi)
+                elif cname == "-":
+                    l_lo, l_hi, _ = self._term_bounds(args[0], None, facts, depth + 1)
+                    r_lo, r_hi, _ = self._term_bounds(args[1], None, facts, depth + 1)
+                    lo = max(0, l_lo - r_hi)
+                    hi = min(hi, max(0, l_hi - r_lo))
+                elif cname == "*":
+                    l_lo, l_hi, _ = self._term_bounds(args[0], None, facts, depth + 1)
+                    r_lo, r_hi, _ = self._term_bounds(args[1], None, facts, depth + 1)
+                    lo = max(lo, l_lo * r_lo)
+                    hi = min(hi, l_hi * r_hi)
+        for fact in facts:
+            parsed = self._parse_cmp_fact(fact)
+            if parsed is None:
+                continue
+            f_op, f_spec, f_l, f_r = parsed
+            fl = self.whnf(f_l)
+            fr = self.whnf(f_r)
+            if self._same_numeric_subject(fl, w):
+                r_lo, r_hi, _ = self._term_bounds(fr, f_spec, facts, depth + 1)
+                if f_op == "lt":
+                    hi = min(hi, r_hi - 1)
+                elif f_op == "le":
+                    hi = min(hi, r_hi)
+                elif f_op == "gt":
+                    lo = max(lo, r_lo + 1)
+                elif f_op == "ge":
+                    lo = max(lo, r_lo)
+                elif f_op == "eq":
+                    lo = max(lo, r_lo)
+                    hi = min(hi, r_hi)
+                elif f_op == "ne" and r_lo == r_hi:
+                    ne_set.add(r_lo)
+            elif self._same_numeric_subject(fr, w):
+                l_lo, l_hi, _ = self._term_bounds(fl, f_spec, facts, depth + 1)
+                if f_op == "lt":
+                    lo = max(lo, l_lo + 1)
+                elif f_op == "le":
+                    lo = max(lo, l_lo)
+                elif f_op == "gt":
+                    hi = min(hi, l_hi - 1)
+                elif f_op == "ge":
+                    hi = min(hi, l_hi)
+                elif f_op == "eq":
+                    lo = max(lo, l_lo)
+                    hi = min(hi, l_hi)
+                elif f_op == "ne" and l_lo == l_hi:
+                    ne_set.add(l_lo)
+        while lo in ne_set and lo <= hi:
+            lo += 1
+        while hi in ne_set and hi >= lo:
+            hi -= 1
+        return lo, hi, ne_set
+
+    def _unwrap_numeric_subject(self, term: _Term) -> _Term:
+        curr = self.whnf(term)
+        while curr.kind == "app":
+            head, args = self.spine(curr)
+            if (
+                head.kind == "const"
+                and isinstance(head.value, str)
+                and len(args) == 1
+                and (head.value.startswith("int_to_nat_") or head.value.startswith("int_from_"))
+            ):
+                curr = self.whnf(args[0])
+            else:
+                break
+        return curr
+
+    def _same_numeric_subject(self, a: _Term, b: _Term) -> bool:
+        return self._unwrap_numeric_subject(a) == self._unwrap_numeric_subject(b)
+
+    def _prove_comparison(
+        self, op_kind: str, spec: _IntSpec | None, lhs: _Term, rhs: _Term, facts: list[_Term]
+    ) -> bool:
+        wl = self.whnf(lhs)
+        wr = self.whnf(rhs)
+        if self._same_numeric_subject(wl, wr) and op_kind in {"le", "ge", "eq"}:
+            return True
+        l_lo, l_hi, l_ne = self._term_bounds(wl, spec, facts)
+        r_lo, r_hi, r_ne = self._term_bounds(wr, spec, facts)
+        if l_lo > l_hi or r_lo > r_hi:
+            # Contradictory active facts (unreachable branch)
+            return True
+        if op_kind == "lt" and l_hi < r_lo:
+            return True
+        if op_kind == "le" and l_hi <= r_lo:
+            return True
+        if op_kind == "gt" and l_lo > r_hi:
+            return True
+        if op_kind == "ge" and l_lo >= r_hi:
+            return True
+        if op_kind == "eq" and l_lo == l_hi == r_lo == r_hi:
+            return True
+        if op_kind == "ne":
+            if l_hi < r_lo or r_hi < l_lo:
+                return True
+            if r_lo == r_hi and r_lo in l_ne:
+                return True
+            if l_lo == l_hi and l_lo in r_ne:
+                return True
+        for fact in facts:
+            parsed = self._parse_cmp_fact(fact)
+            if parsed is None:
+                continue
+            f_op, _, f_l, f_r = parsed
+            if self._same_numeric_subject(f_l, wl) and self._same_numeric_subject(f_r, wr):
+                if op_kind == f_op:
+                    return True
+                if op_kind == "le" and f_op in {"lt", "eq"}:
+                    return True
+                if op_kind == "ge" and f_op in {"gt", "eq"}:
+                    return True
+                if op_kind == "ne" and f_op in {"lt", "gt"}:
+                    return True
+            if self._same_numeric_subject(f_l, wr) and self._same_numeric_subject(f_r, wl):
+                if op_kind == "lt" and f_op == "gt":
+                    return True
+                if op_kind == "le" and f_op in {"ge", "eq"}:
+                    return True
+                if op_kind == "gt" and f_op == "lt":
+                    return True
+                if op_kind == "ge" and f_op in {"le", "eq"}:
+                    return True
+                if op_kind == "eq" and f_op == "eq":
+                    return True
+                if op_kind == "ne" and f_op in {"ne", "lt", "gt"}:
+                    return True
+        return False
+
+    def _prove_bool_precondition(self, cond: _Term, environment: dict[str, _Binding]) -> bool:
+        w = self.whnf(cond)
+        if w == _term("bool", value=1):
+            return True
+        if w == _term("bool", value=0):
+            return False
+        facts = self._expand_bool_facts([*self.active_facts, *self._fact_bool_terms((), environment)])
+        if w in facts or cond in facts:
+            return True
+        head, args = self.spine(w)
+        if head == _constant("&&") and len(args) == 2:
+            return self._prove_bool_precondition(args[0], environment) and self._prove_bool_precondition(
+                args[1], environment
+            )
+        if head == _constant("||") and len(args) == 2:
+            return self._prove_bool_precondition(args[0], environment) or self._prove_bool_precondition(
+                args[1], environment
+            )
+        if head == _constant("!") and len(args) == 1:
+            neg = self._negate_bool_term(args[0])
+            if neg != w:
+                return self._prove_bool_precondition(neg, environment)
+        parsed = self._parse_cmp_fact(w)
+        if parsed is not None:
+            op_kind, spec, lhs, rhs = parsed
+            return self._prove_comparison(op_kind, spec, lhs, rhs, facts)
+        return False
+
+    def _check_precondition_term(
+        self, req: _Term, environment: dict[str, _Binding], site: Node | None
+    ) -> None:
+        req_type = self.whnf(self.infer(req))
+        if req_type == _BOOL:
+            if not self._prove_bool_precondition(req, environment):
+                raise self.fail(
+                    "type",
+                    "call precondition ('requires' clause) could not be established from active facts",
+                    site,
+                )
+            return
+        self._prove_proposition(req, environment, (), site if site is not None else cast("Node", self.site))
+
+    @staticmethod
+    def _dotted_member_path(node: Node) -> str | None:
+        if node["kind"] == "name" and isinstance(node.get("name"), dict):
+            text = cast("Node", node["name"]).get("text")
+            return text if isinstance(text, str) else None
+        if node["kind"] == "member" and isinstance(node.get("name"), dict) and isinstance(node.get("value"), dict):
+            prefix = _Elaborator._dotted_member_path(cast("Node", node["value"]))
+            suffix = cast("Node", node["name"]).get("text")
+            if prefix is not None and isinstance(suffix, str):
+                return f"{prefix}.{suffix}"
+        return None
+
+    def _resolve_int_type_receiver(self, node: Node, environment: dict[str, _Binding]) -> _IntSpec | None:
+        path = self._dotted_member_path(node)
+        if path is None:
+            return None
+        if "." not in path:
+            if path in environment:
+                return None
+            binding = self.globals.get(path)
+            if binding is not None and binding.type == _SORT:
+                return self._int_spec(binding.term)
+            return None
+        if path.startswith("Vela.Numerics.") and "Vela" not in environment:
+            binding = self.globals.get(path)
+            if binding is not None and binding.type == _SORT:
+                return self._int_spec(binding.term)
+        return None
+
+    def _is_unsuffixed_int_expr(self, node: Node) -> bool:
+        kind = node["kind"]
+        if kind == "nat":
+            return cast("str", node.get("suffix", "")) == ""
+        if kind == "group":
+            return self._is_unsuffixed_int_expr(self.node(node["value"]))
+        if kind == "unary" and isinstance(node.get("operator"), dict):
+            op = cast("Node", node["operator"]).get("text")
+            if op in {"-", "~"}:
+                return self._is_unsuffixed_int_expr(self.node(node["value"]))
+        if kind == "binary" and isinstance(node.get("operator"), dict):
+            op = cast("Node", node["operator"]).get("text")
+            if op in {"+", "-", "*", "/", "%", "&", "|", "^"}:
+                return self._is_unsuffixed_int_expr(self.node(node["left"])) and self._is_unsuffixed_int_expr(
+                    self.node(node["right"])
+                )
+        return False
+
+    def _check_int_arith_precondition(
+        self,
+        operator: str,
+        spec: _IntSpec,
+        left: _Term,
+        right: _Term,
+        environment: dict[str, _Binding],
+        node: Node,
+    ) -> None:
+        facts = self._expand_bool_facts([*self.active_facts, *self._fact_bool_terms((), environment)])
+        l_lo, l_hi, l_ne = self._term_bounds(left, spec, facts)
+        r_lo, r_hi, r_ne = self._term_bounds(right, spec, facts)
+        if l_lo > l_hi or r_lo > r_hi:
+            return
+        if operator == "+":
+            lo = l_lo + r_lo
+            hi = l_hi + r_hi
+            for fact in facts:
+                parsed = self._parse_cmp_fact(fact)
+                if parsed is None:
+                    continue
+                f_op, f_spec, f_l, f_r = parsed
+                fl_head, fl_args = self.spine(self.whnf(f_l))
+                fr_head, fr_args = self.spine(self.whnf(f_r))
+                # Recognize Nat(a) + Nat(b) <= K or a <= K - b
+                if (
+                    fl_head.kind == "const"
+                    and fl_head.value in {"+", f"int_add_{spec.name}"}
+                    and len(fl_args) == 2
+                    and (
+                        (self._same_numeric_subject(fl_args[0], left) and self._same_numeric_subject(fl_args[1], right))
+                        or (self._same_numeric_subject(fl_args[0], right) and self._same_numeric_subject(fl_args[1], left))
+                    )
+                ):
+                    _, k_hi, _ = self._term_bounds(f_r, f_spec, facts)
+                    if f_op == "le":
+                        hi = min(hi, k_hi)
+                    elif f_op == "lt":
+                        hi = min(hi, k_hi - 1)
+                if (
+                    fr_head.kind == "const"
+                    and fr_head.value in {"-", f"int_sub_{spec.name}"}
+                    and len(fr_args) == 2
+                    and (
+                        (self._same_numeric_subject(f_l, left) and self._same_numeric_subject(fr_args[1], right))
+                        or (self._same_numeric_subject(f_l, right) and self._same_numeric_subject(fr_args[1], left))
+                    )
+                ):
+                    _, k_hi, _ = self._term_bounds(fr_args[0], f_spec, facts)
+                    if f_op == "le":
+                        hi = min(hi, k_hi)
+                    elif f_op == "lt":
+                        hi = min(hi, k_hi - 1)
+            if not (spec.min_val <= lo and hi <= spec.max_val):
+                raise self.fail(
+                    "type",
+                    f"integer addition on '{spec.name}' may overflow ({lo}..{hi} is not within {spec.min_val}..{spec.max_val}); "
+                    "prove the range or use WrappingAdd, SaturatingAdd or CheckedAdd",
+                    node,
+                )
+            return
+        if operator == "-":
+            lo = l_lo - r_hi
+            hi = l_hi - r_lo
+            if self._same_numeric_subject(left, right):
+                lo, hi = 0, 0
+            else:
+                if self._prove_comparison("ge", spec, left, right, facts):
+                    lo = max(lo, 0)
+                if self._prove_comparison("gt", spec, left, right, facts):
+                    lo = max(lo, 1)
+                if self._prove_comparison("le", spec, left, right, facts):
+                    hi = min(hi, 0)
+            if not (spec.min_val <= lo and hi <= spec.max_val):
+                raise self.fail(
+                    "type",
+                    f"integer subtraction on '{spec.name}' may overflow ({lo}..{hi} is not within {spec.min_val}..{spec.max_val}); "
+                    "prove the range or use WrappingSub, SaturatingSub or CheckedSub",
+                    node,
+                )
+            return
+        if operator == "*":
+            prods = (l_lo * r_lo, l_lo * r_hi, l_hi * r_lo, l_hi * r_hi)
+            lo = min(prods)
+            hi = max(prods)
+            for fact in facts:
+                parsed = self._parse_cmp_fact(fact)
+                if parsed is None:
+                    continue
+                f_op, f_spec, f_l, f_r = parsed
+                fl_head, fl_args = self.spine(self.whnf(f_l))
+                if (
+                    fl_head.kind == "const"
+                    and fl_head.value in {"*", f"int_mul_{spec.name}"}
+                    and len(fl_args) == 2
+                    and (
+                        (self._same_numeric_subject(fl_args[0], left) and self._same_numeric_subject(fl_args[1], right))
+                        or (self._same_numeric_subject(fl_args[0], right) and self._same_numeric_subject(fl_args[1], left))
+                    )
+                ):
+                    _, k_hi, _ = self._term_bounds(f_r, f_spec, facts)
+                    if f_op == "le":
+                        hi = min(hi, k_hi)
+                    elif f_op == "lt":
+                        hi = min(hi, k_hi - 1)
+            if not (spec.min_val <= lo and hi <= spec.max_val):
+                raise self.fail(
+                    "type",
+                    f"integer multiplication on '{spec.name}' may overflow ({lo}..{hi} is not within {spec.min_val}..{spec.max_val}); "
+                    "prove the range or use WrappingMul, SaturatingMul or CheckedMul",
+                    node,
+                )
+            return
+        if operator in {"/", "%"}:
+            nonzero = (
+                r_lo > 0
+                or r_hi < 0
+                or 0 in r_ne
+                or self._prove_comparison("ne", spec, right, _int_term(spec, 0), facts)
+            )
+            if not nonzero:
+                raise self.fail(
+                    "type",
+                    f"integer {'division' if operator == '/' else 'remainder'} on '{spec.name}' requires a proved nonzero divisor; "
+                    f"prove divisor != 0 or use {'CheckedDiv' if operator == '/' else 'CheckedRem'}",
+                    node,
+                )
+            if operator == "/" and spec.signed:
+                can_be_min = (
+                    l_lo <= spec.min_val <= l_hi
+                    and spec.min_val not in l_ne
+                    and not self._prove_comparison("ne", spec, left, _int_term(spec, spec.min_val), facts)
+                )
+                can_be_neg1 = (
+                    r_lo <= -1 <= r_hi
+                    and -1 not in r_ne
+                    and not self._prove_comparison("ne", spec, right, _int_term(spec, -1), facts)
+                )
+                if can_be_min and can_be_neg1:
+                    raise self.fail(
+                        "type",
+                        f"signed integer division on '{spec.name}' may overflow at {spec.name}.Min / -1; "
+                        f"prove dividend != {spec.name}.Min or divisor != -1, or use CheckedDiv",
+                        node,
+                    )
+
+    def _elaborate_unary(
+        self, node: Node, environment: dict[str, _Binding], *, expected_int: _Term | None = None
+    ) -> _Binding:
+        if isinstance(node["operator"], dict) and node["operator"].get("text") == "ref":
+            raise self.fail("type", "ref argument is only supported as the target of Format.Write", node)
+        operator = self.operator(node["operator"])
+        operand_node = self.node(node["value"])
+        if operator == "!":
+            value = self.check(operand_node, _BOOL, environment)
+            return _Binding(_app(_constant("!"), value), _BOOL)
+        if operator == "-" and operand_node["kind"] == "nat":
+            suffix = cast("str", operand_node["suffix"])
+            mag = _parse_numeric_magnitude(cast("str", operand_node["value"]))
+            val = -mag
+            if suffix:
+                canonical = "u8" if suffix == "byte" else _NUMERICS_ALIASES.get(suffix, suffix)
+                spec = _INT_SPECS.get(canonical)
+            else:
+                spec = self._int_spec(expected_int) if expected_int is not None else None
+            if spec is None:
+                raise self.fail(
+                    "type",
+                    "negative integer literal requires a signed integer type annotation or suffix",
+                    node,
+                )
+            if not spec.signed:
+                raise self.fail("type", f"unsigned integer type '{spec.name}' does not support negation", node)
+            if not spec.min_val <= val <= spec.max_val:
+                raise self.fail(
+                    "type",
+                    f"integer literal {val} is out of range for '{spec.name}' ({spec.min_val}..{spec.max_val})",
+                    node,
+                )
+            return _Binding(_int_term(spec, val), spec.const)
+        if operator in {"-", "~"}:
+            if expected_int is not None and self._int_spec(expected_int) is not None:
+                operand = _Binding(self.check(operand_node, expected_int, environment), expected_int)
+            else:
+                operand = self.expression(operand_node, environment)
+            spec = self._int_spec(operand.type)
+            if spec is None:
+                raise self.fail(
+                    "type",
+                    f"unary operator '{operator}' requires a fixed-width integer operand",
+                    node,
+                )
+            if operator == "~":
+                return _Binding(_app(_constant(f"int_not_{spec.name}"), operand.term), spec.const)
+            if not spec.signed:
+                raise self.fail(
+                    "type",
+                    f"unsigned integer type '{spec.name}' does not support unary negation; use WrappingNeg if modular negation is intended",
+                    node,
+                )
+            facts = self._expand_bool_facts([*self.active_facts, *self._fact_bool_terms((), environment)])
+            o_lo, o_hi, o_ne = self._term_bounds(operand.term, spec, facts)
+            if (
+                o_lo <= o_hi
+                and o_lo <= spec.min_val <= o_hi
+                and spec.min_val not in o_ne
+                and not self._prove_comparison("ne", spec, operand.term, _int_term(spec, spec.min_val), facts)
+            ):
+                raise self.fail(
+                    "type",
+                    f"signed negation on '{spec.name}' may overflow at {spec.name}.Min; "
+                    f"prove operand != {spec.name}.Min or use WrappingNeg, SaturatingNeg or CheckedNeg",
+                    node,
+                )
+            return _Binding(_app(_constant(f"int_neg_{spec.name}"), operand.term), spec.const)
+        raise self.fail("unsupported", f"prefix '{operator}' is unsupported")
+
+    def _elaborate_binary(
+        self, node: Node, environment: dict[str, _Binding], *, expected_int: _Term | None = None
+    ) -> _Binding:
+        operator = self.operator(node["operator"])
+        left_node = self.node(node["left"])
+        right_node = self.node(node["right"])
+        if operator in {"&&", "||", "==>", "<==>"}:
+            left_b = _Binding(self.check(left_node, _BOOL, environment), _BOOL)
+            if operator in {"&&", "==>"}:
+                self.active_facts.append(left_b.term)
+                try:
+                    right_b = _Binding(self.check(right_node, _BOOL, environment), _BOOL)
+                finally:
+                    self.active_facts.pop()
+            else:
+                right_b = _Binding(self.check(right_node, _BOOL, environment), _BOOL)
+            return _Binding(_apps(_constant(operator), left_b.term, right_b.term), _BOOL)
+        expected_spec = self._int_spec(expected_int) if expected_int is not None else None
+        if expected_spec is not None and operator in {"+", "-", "*", "/", "%", "&", "|", "^"}:
+            left = _Binding(self.check(left_node, expected_spec.const, environment), expected_spec.const)
+            right = _Binding(self.check(right_node, expected_spec.const, environment), expected_spec.const)
+        elif self._is_unsuffixed_int_expr(left_node) and not self._is_unsuffixed_int_expr(right_node):
+            right = self.expression(right_node, environment)
+            if self._int_spec(right.type) is not None:
+                left = _Binding(self.check(left_node, right.type, environment), right.type)
+            else:
+                left = self.expression(left_node, environment)
+        elif self._is_unsuffixed_int_expr(right_node) and not self._is_unsuffixed_int_expr(left_node):
+            left = self.expression(left_node, environment)
+            if self._int_spec(left.type) is not None:
+                right = _Binding(self.check(right_node, left.type, environment), left.type)
+            else:
+                right = self.expression(right_node, environment)
+        else:
+            left = self.expression(left_node, environment)
+            right = self.expression(right_node, environment)
+        if operator in {"==", "!="}:
+            self.unify(left.type, right.type)
+            operand_type = self.whnf(left.type)
+            int_spec = self._int_spec(operand_type)
+            if int_spec is not None:
+                op_name = f"int_{'eq' if operator == '==' else 'ne'}_{int_spec.name}"
+                return _Binding(_apps(_constant(op_name), left.term, right.term), _BOOL)
+            if operand_type not in {_NAT, _BOOL}:
+                raise self.fail("unsupported", "Boolean equality is defined only on Nat, bool and fixed-width integers")
+            operation = ("eq_" if operator == "==" else "ne_") + ("nat" if operand_type == _NAT else "bool")
+            return _Binding(_apps(_constant(operation), left.term, right.term), _BOOL)
+        if self._int_spec(left.type) is not None or self._int_spec(right.type) is not None:
+            self.unify(left.type, right.type)
+            spec = cast("_IntSpec", self._int_spec(left.type))
+            if operator in {"<", "<=", ">", ">="}:
+                cmp_map = {"<": "lt", "<=": "le", ">": "gt", ">=": "ge"}
+                return _Binding(_apps(_constant(f"int_{cmp_map[operator]}_{spec.name}"), left.term, right.term), _BOOL)
+            if operator in {"&", "|", "^"}:
+                bit_map = {"&": "and", "|": "or", "^": "xor"}
+                return _Binding(
+                    _apps(_constant(f"int_{bit_map[operator]}_{spec.name}"), left.term, right.term), spec.const
+                )
+            if operator in {"+", "-", "*", "/", "%"}:
+                self._check_int_arith_precondition(operator, spec, left.term, right.term, environment, node)
+                arith_map = {"+": "add", "-": "sub", "*": "mul", "/": "div", "%": "rem"}
+                return _Binding(
+                    _apps(_constant(f"int_{arith_map[operator]}_{spec.name}"), left.term, right.term), spec.const
+                )
+            raise self.fail("type", f"operator '{operator}' is not defined on integer type '{spec.name}'", node)
+        if operator in {"&", "|", "^"}:
+            raise self.fail(
+                "type",
+                f"bitwise operator '{operator}' requires a fixed-width integer operand; Nat does not support bitwise operations",
+                node,
+            )
+        binding = self.globals.get(operator)
+        if binding is None:
+            raise self.fail("unsupported", f"operator '{operator}' is unsupported")
+        signature = self.whnf(binding.type)
+        self.unify(left.type, signature.args[0])
+        signature = self.whnf(signature.args[1])
+        self.unify(right.type, signature.args[0])
+        return _Binding(_apps(binding.term, left.term, right.term), signature.args[1])
+
+    def _elaborate_int_intrinsic(
+        self,
+        name: str,
+        arg_nodes: list[Node],
+        environment: dict[str, _Binding],
+        node: Node,
+        *,
+        receiver: _Binding | None = None,
+        expected_spec: _IntSpec | None = None,
+    ) -> _Binding:
+        for arg_n in arg_nodes:
+            self.node(arg_n, "argument")
+        val_nodes = [self.node(a["value"]) for a in arg_nodes]
+        unary_ops = {"WrappingNeg": "wrap_neg", "SaturatingNeg": "sat_neg", "CheckedNeg": "chk_neg"}
+        shift_ops = {
+            "ShiftLeft": "shl",
+            "ShiftRight": "shr",
+            "WrappingShiftLeft": "wrap_shl",
+            "CheckedShiftLeft": "chk_shl",
+            "CheckedShiftRight": "chk_shr",
+        }
+        binary_ops = {
+            "WrappingAdd": "wrap_add",
+            "WrappingSub": "wrap_sub",
+            "WrappingMul": "wrap_mul",
+            "SaturatingAdd": "sat_add",
+            "SaturatingSub": "sat_sub",
+            "SaturatingMul": "sat_mul",
+            "CheckedAdd": "chk_add",
+            "CheckedSub": "chk_sub",
+            "CheckedMul": "chk_mul",
+            "CheckedDiv": "chk_div",
+            "CheckedRem": "chk_rem",
+        }
+        is_checked = name.startswith("Checked")
+        ae_const = _constant(self.unions["ArithmeticError"].type_const)
+        res_const = _constant(self.unions["Result"].type_const)
+        if name in unary_ops:
+            if receiver is not None:
+                if val_nodes:
+                    raise self.fail("type", f"'{name}' expects no additional arguments when called on a receiver", node)
+                op_binding = receiver
+            else:
+                if len(val_nodes) != 1:
+                    raise self.fail("type", f"'{name}' expects 1 integer argument, got {len(val_nodes)}", node)
+                if expected_spec is not None:
+                    op_binding = _Binding(
+                        self.check(val_nodes[0], expected_spec.const, environment), expected_spec.const
+                    )
+                else:
+                    op_binding = self.expression(val_nodes[0], environment)
+            spec = self._int_spec(op_binding.type)
+            if spec is None or (expected_spec is not None and spec.name != expected_spec.name):
+                raise self.fail("type", f"'{name}' requires a fixed-width integer operand", node)
+            ret_type = _apps(res_const, spec.const, ae_const) if is_checked else spec.const
+            return _Binding(_app(_constant(f"int_{unary_ops[name]}_{spec.name}"), op_binding.term), ret_type)
+        if name in shift_ops:
+            if receiver is not None:
+                if len(val_nodes) != 1:
+                    raise self.fail("type", f"'{name}' expects 1 shift-count argument when called on a receiver", node)
+                lhs_binding = receiver
+                count_node = val_nodes[0]
+            else:
+                if len(val_nodes) != 2:
+                    raise self.fail("type", f"'{name}' expects (value, count) arguments, got {len(val_nodes)}", node)
+                if expected_spec is not None:
+                    lhs_binding = _Binding(
+                        self.check(val_nodes[0], expected_spec.const, environment), expected_spec.const
+                    )
+                else:
+                    lhs_binding = self.expression(val_nodes[0], environment)
+                count_node = val_nodes[1]
+            spec = self._int_spec(lhs_binding.type)
+            if spec is None or (expected_spec is not None and spec.name != expected_spec.name):
+                raise self.fail("type", f"'{name}' requires a fixed-width integer value operand", node)
+            count_term = self.check(count_node, _USIZE, environment)
+            if not is_checked:
+                facts = self._expand_bool_facts([*self.active_facts, *self._fact_bool_terms((), environment)])
+                c_lo, c_hi, _ = self._term_bounds(count_term, _INT_SPECS["usize"], facts)
+                if c_lo <= c_hi:
+                    count_ok = c_lo >= 0 and (
+                        c_hi < spec.bits
+                        or self._prove_comparison(
+                            "lt",
+                            _INT_SPECS["usize"],
+                            count_term,
+                            _int_term(_INT_SPECS["usize"], spec.bits),
+                            facts,
+                        )
+                    )
+                    if not count_ok:
+                        raise self.fail(
+                            "type",
+                            f"'{name}' on '{spec.name}' requires shift count < {spec.bits}; "
+                            f"prove count < {spec.bits} or use Checked{name.removeprefix('Wrapping')}",
+                            node,
+                        )
+                    if name == "ShiftLeft":
+                        v_lo, v_hi, _ = self._term_bounds(lhs_binding.term, spec, facts)
+                        eff_lo = max(0, c_lo)
+                        eff_hi = min(c_hi, spec.bits - 1)
+                        shifted = (v_lo << eff_lo, v_lo << eff_hi, v_hi << eff_lo, v_hi << eff_hi)
+                        s_lo, s_hi = min(shifted), max(shifted)
+                        if not (spec.min_val <= s_lo and s_hi <= spec.max_val):
+                            raise self.fail(
+                                "type",
+                                f"ShiftLeft on '{spec.name}' may overflow ({s_lo}..{s_hi} is not within {spec.min_val}..{spec.max_val}); "
+                                "prove the range or use WrappingShiftLeft or CheckedShiftLeft",
+                                node,
+                            )
+            ret_type = _apps(res_const, spec.const, ae_const) if is_checked else spec.const
+            return _Binding(
+                _apps(_constant(f"int_{shift_ops[name]}_{spec.name}"), lhs_binding.term, count_term), ret_type
+            )
+        # Binary total/checked arithmetic
+        if receiver is not None:
+            if len(val_nodes) != 1:
+                raise self.fail("type", f"'{name}' expects 1 right-hand argument when called on a receiver", node)
+            lhs_b = receiver
+            rhs_b = _Binding(self.check(val_nodes[0], lhs_b.type, environment), lhs_b.type)
+        else:
+            if len(val_nodes) != 2:
+                raise self.fail("type", f"'{name}' expects 2 integer arguments, got {len(val_nodes)}", node)
+            if expected_spec is not None:
+                lhs_b = _Binding(self.check(val_nodes[0], expected_spec.const, environment), expected_spec.const)
+                rhs_b = _Binding(self.check(val_nodes[1], expected_spec.const, environment), expected_spec.const)
+            elif self._is_unsuffixed_int_expr(val_nodes[0]) and not self._is_unsuffixed_int_expr(val_nodes[1]):
+                rhs_b = self.expression(val_nodes[1], environment)
+                lhs_b = _Binding(self.check(val_nodes[0], rhs_b.type, environment), rhs_b.type)
+            elif self._is_unsuffixed_int_expr(val_nodes[1]) and not self._is_unsuffixed_int_expr(val_nodes[0]):
+                lhs_b = self.expression(val_nodes[0], environment)
+                rhs_b = _Binding(self.check(val_nodes[1], lhs_b.type, environment), lhs_b.type)
+            else:
+                lhs_b = self.expression(val_nodes[0], environment)
+                rhs_b = self.expression(val_nodes[1], environment)
+        self.unify(lhs_b.type, rhs_b.type)
+        spec = self._int_spec(lhs_b.type)
+        if spec is None or (expected_spec is not None and spec.name != expected_spec.name):
+            raise self.fail("type", f"'{name}' requires fixed-width integer operands", node)
+        ret_type = _apps(res_const, spec.const, ae_const) if is_checked else spec.const
+        return _Binding(
+            _apps(_constant(f"int_{binary_ops[name]}_{spec.name}"), lhs_b.term, rhs_b.term), ret_type
+        )
+
     def expression(self, node: Node, environment: dict[str, _Binding]) -> _Binding:
         self.tick()
         self.site = node
         kind = node["kind"]
         if kind == "nat":
-            return _Binding(_term("nat", value=int(cast("str", node["value"]).replace("_", ""))), _NAT)
+            mag = _parse_numeric_magnitude(cast("str", node["value"]))
+            suffix = cast("str", node["suffix"])
+            if suffix:
+                canonical = "u8" if suffix == "byte" else _NUMERICS_ALIASES.get(suffix, suffix)
+                spec = _INT_SPECS[canonical]
+                if not spec.min_val <= mag <= spec.max_val:
+                    raise self.fail(
+                        "type",
+                        f"integer literal {mag} is out of range for '{spec.name}' ({spec.min_val}..{spec.max_val})",
+                        node,
+                    )
+                return _Binding(_int_term(spec, mag), spec.const)
+            return _Binding(_term("nat", value=mag), _NAT)
         if kind == "hole":
             raise self.fail("inference", "unfinished named proof hole; provide an explicit term")
         if kind == "bool":
@@ -5544,9 +7050,30 @@ class _Elaborator:
                 node,
             )
         if kind == "member":
+            recv_node = self.node(node["value"])
+            member_name = self.name(node["name"])
+            type_spec = self._resolve_int_type_receiver(recv_node, environment)
+            if type_spec is not None:
+                if member_name == "Min":
+                    return _Binding(_int_term(type_spec, type_spec.min_val), type_spec.const)
+                if member_name == "Max":
+                    return _Binding(_int_term(type_spec, type_spec.max_val), type_spec.const)
+                if member_name == "Bits":
+                    return _Binding(_term("nat", value=type_spec.bits), _NAT)
+                raise self.fail(
+                    "name", f"integer type '{type_spec.name}' has no associated member '{member_name}'", node
+                )
+            full_path = self._dotted_member_path(node)
+            if (
+                full_path is not None
+                and full_path.startswith("Vela.Numerics.")
+                and "Vela" not in environment
+                and full_path in self.globals
+            ):
+                return self.lookup(full_path, environment)
             return self._project_member(
-                self.expression(self.node(node["value"]), environment),
-                self.name(node["name"]),
+                self.expression(recv_node, environment),
+                member_name,
                 node,
             )
         if kind in {"name", "operator"}:
@@ -5588,13 +7115,105 @@ class _Elaborator:
             return self.instantiate(binding, environment, self.nodes(node["arguments"]))
         if kind == "call":
             callee = self.node(node["callee"])
+            call_args = self.nodes(node["arguments"])
             if callee["kind"] == "member":
                 receiver = self.node(callee["value"])
+                member_name = self.name(callee["name"])
                 if (receiver["kind"] == "name"
                         and self.name(receiver["name"]) == "Format"
-                        and self.name(callee["name"]) == "Write"):
-                    return self._format_write(node, self.nodes(node["arguments"]), environment)
-            return self.apply(self.expression(callee, environment), self.nodes(node["arguments"]), environment)
+                        and member_name == "Write"):
+                    return self._format_write(node, call_args, environment)
+                dst_spec = self._resolve_int_type_receiver(receiver, environment)
+                if dst_spec is not None:
+                    if member_name in {"From", "TryFrom"}:
+                        if len(call_args) != 1:
+                            raise self.fail(
+                                "type",
+                                f"'{dst_spec.name}.{member_name}' expects 1 argument, got {len(call_args)}",
+                                node,
+                            )
+                        self.node(call_args[0], "argument")
+                        src_b = self.expression(self.node(call_args[0]["value"]), environment)
+                        src_spec = self._int_spec(src_b.type)
+                        if member_name == "From":
+                            if src_spec is None:
+                                raise self.fail(
+                                    "type",
+                                    f"'{dst_spec.name}.From' requires a fixed-width integer operand; use '{dst_spec.name}.TryFrom' for Nat",
+                                    node,
+                                )
+                            if not _allows_from_conversion(src_spec, dst_spec):
+                                raise self.fail(
+                                    "type",
+                                    f"'{dst_spec.name}.From' does not accept '{src_spec.name}' because the conversion may narrow or change sign; "
+                                    f"use '{dst_spec.name}.TryFrom'",
+                                    node,
+                                )
+                            if src_spec.name == dst_spec.name:
+                                return _Binding(src_b.term, dst_spec.const)
+                            return _Binding(
+                                _app(_constant(f"int_from_{src_spec.name}_{dst_spec.name}"), src_b.term),
+                                dst_spec.const,
+                            )
+                        res_const = _constant(self.unions["Result"].type_const)
+                        ce_const = _constant(self.unions["ConversionError"].type_const)
+                        ret_type = _apps(res_const, dst_spec.const, ce_const)
+                        if src_spec is not None:
+                            return _Binding(
+                                _app(_constant(f"int_try_from_{src_spec.name}_{dst_spec.name}"), src_b.term),
+                                ret_type,
+                            )
+                        if self.whnf(src_b.type) == _NAT:
+                            return _Binding(
+                                _app(_constant(f"int_try_from_Nat_{dst_spec.name}"), src_b.term),
+                                ret_type,
+                            )
+                        raise self.fail(
+                            "type",
+                            f"'{dst_spec.name}.TryFrom' requires a fixed-width integer or Nat operand",
+                            node,
+                        )
+                    if member_name in _INT_INTRINSICS:
+                        return self._elaborate_int_intrinsic(
+                            member_name, call_args, environment, node, expected_spec=dst_spec
+                        )
+                    raise self.fail(
+                        "name",
+                        f"integer type '{dst_spec.name}' has no associated function '{member_name}'",
+                        node,
+                    )
+                if self._dotted_member_path(receiver) == "Vela.Numerics" and member_name in _INT_INTRINSICS:
+                    return self._elaborate_int_intrinsic(member_name, call_args, environment, node)
+                if member_name in _INT_INTRINSICS:
+                    recv_b = self.expression(receiver, environment)
+                    if self._int_spec(recv_b.type) is not None:
+                        return self._elaborate_int_intrinsic(
+                            member_name, call_args, environment, node, receiver=recv_b
+                        )
+            if callee["kind"] == "name":
+                cname = self.name(callee["name"])
+                if cname == "Nat" and "Nat" not in environment:
+                    if len(call_args) != 1:
+                        raise self.fail("type", f"'Nat(...)' expects 1 argument, got {len(call_args)}", node)
+                    self.node(call_args[0], "argument")
+                    arg_b = self.expression(self.node(call_args[0]["value"]), environment)
+                    src_spec = self._int_spec(arg_b.type)
+                    if src_spec is not None:
+                        if src_spec.signed:
+                            raise self.fail(
+                                "type",
+                                f"'Nat(...)' total injection requires an unsigned integer operand, got signed '{src_spec.name}'",
+                                node,
+                            )
+                        return _Binding(_app(_constant(f"int_to_nat_{src_spec.name}"), arg_b.term), _NAT)
+                    if self.whnf(arg_b.type) == _NAT:
+                        return arg_b
+                    raise self.fail(
+                        "type", "'Nat(...)' conversion requires an unsigned fixed-width integer operand", node
+                    )
+                if cname in _INT_INTRINSICS and cname not in environment and cname not in self.globals:
+                    return self._elaborate_int_intrinsic(cname, call_args, environment, node)
+            return self.apply(self.expression(callee, environment), call_args, environment)
         if kind in {"lambda", "typed_lambda"}:
             return self.lambda_(node, environment)
         if kind == "let_expression":
@@ -5610,32 +7229,9 @@ class _Elaborator:
         if kind == "block":
             return self.block(node, environment)
         if kind == "binary":
-            operator = self.operator(node["operator"])
-            left = self.expression(self.node(node["left"]), environment)
-            right = self.expression(self.node(node["right"]), environment)
-            if operator in {"==", "!="}:
-                self.unify(left.type, right.type)
-                operand_type = self.whnf(left.type)
-                if operand_type not in {_NAT, _BOOL}:
-                    raise self.fail("unsupported", "Boolean equality is defined only on Nat and bool")
-                operation = ("eq_" if operator == "==" else "ne_") + ("nat" if operand_type == _NAT else "bool")
-                return _Binding(_apps(_constant(operation), left.term, right.term), _BOOL)
-            binding = self.globals.get(operator)
-            if binding is None:
-                raise self.fail("unsupported", f"operator '{operator}' is unsupported")
-            signature = self.whnf(binding.type)
-            self.unify(left.type, signature.args[0])
-            signature = self.whnf(signature.args[1])
-            self.unify(right.type, signature.args[0])
-            return _Binding(_apps(binding.term, left.term, right.term), signature.args[1])
+            return self._elaborate_binary(node, environment)
         if kind == "unary":
-            if isinstance(node["operator"], dict) and node["operator"].get("text") == "ref":
-                raise self.fail("type", "ref argument is only supported as the target of Format.Write", node)
-            operator = self.operator(node["operator"])
-            if operator != "!":
-                raise self.fail("unsupported", f"prefix '{operator}' is unsupported")
-            value = self.check(self.node(node["value"]), _BOOL, environment)
-            return _Binding(_app(_constant("!"), value), _BOOL)
+            return self._elaborate_unary(node, environment)
         if kind == "propagate":
             ret_type = self.current_return_type if self.current_return_type is not None else _UNIT
             return _Binding(
@@ -5651,8 +7247,15 @@ class _Elaborator:
         if node["kind"] == "binary":
             operator = self.operator(node["operator"])
             if operator == "==":
-                left = self.expression(self.node(node["left"]), environment)
-                right = self.check(self.node(node["right"]), left.type, environment)
+                left_node = self.node(node["left"])
+                right_node = self.node(node["right"])
+                if self._is_unsuffixed_int_expr(left_node) and not self._is_unsuffixed_int_expr(right_node):
+                    right_b = self.expression(right_node, environment)
+                    left_t = self.check(left_node, right_b.type, environment)
+                    self.unify(self.infer(right_b.type), _SORT)
+                    return _apps(_constant("Eq"), right_b.type, left_t, right_b.term)
+                left = self.expression(left_node, environment)
+                right = self.check(right_node, left.type, environment)
                 self.unify(self.infer(left.type), _SORT)
                 return _apps(_constant("Eq"), left.type, left.term, right)
             if operator == "==>":
@@ -5683,6 +7286,22 @@ class _Elaborator:
         for child in term.args:
             self.complete(child)
 
+    def _evict_builtin_if_shadowed(self, name: str) -> None:
+        if name in self.builtin_unions:
+            self.builtin_unions.discard(name)
+            uinfo = self.unions.pop(name, None)
+            self.globals.pop(name, None)
+            if uinfo is not None:
+                for uc in uinfo.constructors:
+                    if uc.name in self.builtin_union_ctors:
+                        self.builtin_union_ctors.discard(uc.name)
+                        self.union_ctors.pop(uc.name, None)
+                        self.globals.pop(uc.name, None)
+        elif name in self.builtin_union_ctors:
+            self.builtin_union_ctors.discard(name)
+            self.union_ctors.pop(name, None)
+            self.globals.pop(name, None)
+
     def _record_declaration(self, node: Node, first_meta: int) -> None:
         modifiers = node["modifiers"]
         allowed_modifiers = {"public", "private", "internal"}
@@ -5692,6 +7311,7 @@ class _Elaborator:
             raise self.fail("unsupported", "unsupported or repeated declaration modifiers", node)
         self.no_roles(node, "contracts")
         name = self.name(node["name"])
+        self._evict_builtin_if_shadowed(name)
         if (name in self.globals or name in self.records or name in self.unions
                 or name in self.union_ctors or name in {"Type", "_", "this"} or "." in name):
             raise self.fail("name", f"duplicate or reserved declaration '{name}'", node)
@@ -5901,6 +7521,7 @@ class _Elaborator:
             raise self.fail("unsupported", "unsupported or repeated declaration modifiers", node)
         self.no_roles(node, "contracts")
         name = self.name(node["name"])
+        self._evict_builtin_if_shadowed(name)
         if (name in self.globals or name in self.records or name in self.unions
                 or name in self.union_ctors or name in {"Type", "_", "this"} or "." in name):
             raise self.fail("name", f"duplicate or reserved declaration '{name}'", node)
@@ -5921,6 +7542,7 @@ class _Elaborator:
                     ctor_node,
                 )
             cname = self.name(ctor_node["name"])
+            self._evict_builtin_if_shadowed(cname)
             if (cname in self.globals or cname in self.records or cname in self.unions
                     or cname in self.union_ctors or cname == name or cname in seen_ctors
                     or cname in {"Type", "_", "this"} or "." in cname):
@@ -6094,6 +7716,17 @@ class _Elaborator:
         self.site = node
         first_meta = len(self.metas)
         kind = node["kind"]
+        if kind == "import":
+            imp_name = self.name(node["name"])
+            if imp_name != "Vela.Numerics":
+                raise self.fail("unsupported", f"import '{imp_name}' requires the full frontend", node)
+            for alias_name, target_name in _NUMERICS_ALIASES.items():
+                if (alias_name in self.globals and self.globals[alias_name] != self.globals[target_name]) or (
+                    alias_name in self.records or alias_name in self.unions or alias_name in self.union_ctors
+                ):
+                    raise self.fail("name", f"import alias '{alias_name}' conflicts with an existing declaration", node)
+                self.globals[alias_name] = self.globals[target_name]
+            return
         if kind == "record":
             self._record_declaration(node, first_meta)
             return
@@ -6108,22 +7741,29 @@ class _Elaborator:
                 or len(modifiers) != len(set(modifiers))):
             raise self.fail("unsupported", "unsupported or repeated declaration modifiers")
         decreases_clauses: list[Node] = []
+        requires_clauses: list[Node] = []
         if kind in {"definition", "function"}:
             self.no_roles(node, "cancel")
+            has_params_or_generics = bool(self.nodes(node["parameters"]) or self.nodes(node["generics"]))
             for contract in self.nodes(node["contracts"]):
                 self.node(contract, "contract")
-                if contract["role"] != "decreases":
+                role = contract["role"]
+                if role == "decreases":
+                    decreases_clauses.append(contract)
+                elif role == "requires" and has_params_or_generics:
+                    requires_clauses.append(contract)
+                else:
                     raise self.fail(
                         "unsupported",
-                        f"contract '{contract['role']}' requires the full frontend",
+                        f"contract '{role}' requires the full frontend",
                         contract,
                     )
-                decreases_clauses.append(contract)
             if len(decreases_clauses) > 1:
                 raise self.fail("type", "at most one decreases clause is permitted", decreases_clauses[1])
         else:
             self.no_roles(node, "contracts", "cancel")
         name = self.name(node["name"])
+        self._evict_builtin_if_shadowed(name)
         if (name in self.globals or name in self.records or name in self.unions
                 or name in self.union_ctors or name in {"Type", "_", "this"} or "." in name):
             raise self.fail("name", f"duplicate or reserved declaration '{name}'")
@@ -6135,6 +7775,7 @@ class _Elaborator:
         is_recursive = False
         self_var: _Term | None = None
         candidates: list[tuple[int, int]] = []
+        req_bool_terms: list[_Term] = []
         if kind == "constant":
             evaluated = self.constant_value(node, environment)
             body, result = evaluated.term, evaluated.type
@@ -6153,6 +7794,29 @@ class _Elaborator:
             result = self.infer(body)
             signature = self.wrap("pi", variables, result)
         else:
+            for req_idx, req_contract in enumerate(requires_clauses):
+                req_val_node = self.node(req_contract["value"])
+                req_val = self.expression(req_val_node, environment)
+                if self.whnf(req_val.type) == _BOOL:
+                    req_bool_terms.append(req_val.term)
+                    eq_prop = _apps(_constant("Eq"), _BOOL, req_val.term, _term("bool", value=1))
+                    req_var = self.fresh(eq_prop)
+                    environment[f"__vela_req_{req_idx}"] = _Binding(req_var, eq_prop)
+                else:
+                    req_prop = self.proposition(req_val_node, environment)
+                    req_var = self.fresh(req_prop)
+                    environment[f"__vela_req_{req_idx}"] = _Binding(req_var, req_prop)
+                    if req_prop.kind == "app":
+                        head_p, args_p = self.spine(req_prop)
+                        if (
+                            head_p.kind == "const"
+                            and head_p.value == "Eq"
+                            and len(args_p) == 3
+                            and self.whnf(args_p[0]) == _BOOL
+                        ):
+                            rhs_w = self.whnf(args_p[2])
+                            if rhs_w.kind == "bool" and rhs_w.value == 1:
+                                req_bool_terms.append(args_p[1])
             if kind in {"theorem", "lemma"}:
                 result = self.proposition(self.node(node["proposition"]), environment)
                 if node["body"] is None:
@@ -6212,6 +7876,7 @@ class _Elaborator:
             self.current_rec_candidates = candidates
             self.smaller_vars = {p_var_id: set() for _, p_var_id in candidates}
             self.current_return_type = result
+            self.active_facts.extend(req_bool_terms)
             try:
                 body = self.check(body_node, result, body_env)
                 if self._has_unapplied_rec_var(body, cast("int", self_var.value)):
@@ -6220,6 +7885,8 @@ class _Elaborator:
                 if is_recursive:
                     candidates = list(self.current_rec_candidates)
             finally:
+                for _ in req_bool_terms:
+                    self.active_facts.pop()
                 self.current_rec_var = None
                 self.current_rec_name = None
                 self.current_rec_generics = []
@@ -6257,6 +7924,9 @@ class _Elaborator:
         # Generated references never become names in the source namespace.
         self.constants[emitted] = binding
         self.definitions[emitted] = definition
+        if req_bool_terms:
+            param_ids = tuple(cast("int", v.value) for v in variables)
+            self.callable_preconditions[emitted] = [(param_ids, req_t) for req_t in req_bool_terms]
 
     def render(self, term: _Term) -> str:
         self.tick()
@@ -6275,6 +7945,19 @@ class _Elaborator:
             raise self.fail("protocol", "unmapped internal constant")
         if kind == "nat":
             return f"({term.value} : Corelib.Init.Datatypes.nat)"
+        if kind == "int":
+            spec = cast("_IntSpec", self._int_spec(term.args[0]))
+            int_val = cast("int", term.value)
+            unsigned = int_val & ((1 << spec.bits) - 1)
+            bits_term = "vela_bnil"
+            for bit_idx in range(spec.bits):
+                bit_bool = (
+                    "Corelib.Init.Datatypes.true"
+                    if ((unsigned >> bit_idx) & 1)
+                    else "Corelib.Init.Datatypes.false"
+                )
+                bits_term = f"(vela_bcons {bit_bool} {bits_term})"
+            return f"(@vela_mk_int ({spec.tag} : Corelib.Init.Datatypes.nat) {bits_term})"
         if kind == "bool":
             return "Corelib.Init.Datatypes.true" if term.value else "Corelib.Init.Datatypes.false"
         if kind == "unit":
@@ -6309,8 +7992,9 @@ class _Elaborator:
                     else f"(fun ({binder}) => {self.render(body)})")
         if kind == "app":
             head, arguments = self.spine(term)
-            prefix = "(@" if head.kind == "const" else "("
-            return prefix + self.render(head) + " " + " ".join(self.render(value) for value in arguments) + ")"
+            rendered_head = self.render(head)
+            prefix = "(@" if (head.kind == "const" and not rendered_head.startswith("(")) else "("
+            return prefix + rendered_head + " " + " ".join(self.render(value) for value in arguments) + ")"
         if kind == "prod":
             return f"(@Corelib.Init.Datatypes.prod {self.render(term.args[0])} {self.render(term.args[1])})"
         if kind == "pair":
@@ -6380,6 +8064,24 @@ class _Elaborator:
 _GALLINA = {
     "Nat": "Corelib.Init.Datatypes.nat", "bool": "Corelib.Init.Datatypes.bool",
     "Unit": "Corelib.Init.Datatypes.unit", "Prop": "Prop",
+    "u8": "(vela_int (0 : Corelib.Init.Datatypes.nat))",
+    "u16": "(vela_int (1 : Corelib.Init.Datatypes.nat))",
+    "u32": "(vela_int (2 : Corelib.Init.Datatypes.nat))",
+    "u64": "(vela_int (3 : Corelib.Init.Datatypes.nat))",
+    "usize": "(vela_int (4 : Corelib.Init.Datatypes.nat))",
+    "i8": "(vela_int (5 : Corelib.Init.Datatypes.nat))",
+    "i16": "(vela_int (6 : Corelib.Init.Datatypes.nat))",
+    "i32": "(vela_int (7 : Corelib.Init.Datatypes.nat))",
+    "i64": "(vela_int (8 : Corelib.Init.Datatypes.nat))",
+    "vela_ArithmeticError": "vela_ArithmeticError",
+    "vela_ArithmeticError_Overflow": "vela_ArithmeticError_Overflow",
+    "vela_ArithmeticError_ZeroDivisor": "vela_ArithmeticError_ZeroDivisor",
+    "vela_ArithmeticError_InvalidShift": "vela_ArithmeticError_InvalidShift",
+    "vela_ConversionError": "vela_ConversionError",
+    "vela_ConversionError_OutOfRange": "vela_ConversionError_OutOfRange",
+    "vela_Result": "vela_Result",
+    "vela_Result_Ok": "vela_Result_Ok",
+    "vela_Result_Err": "vela_Result_Err",
     "Succ": "Corelib.Init.Datatypes.S", "Eq": "Corelib.Init.Logic.eq",
     "Refl": "Corelib.Init.Logic.eq_refl", "Symm": "Corelib.Init.Logic.eq_sym",
     "Trans": "Corelib.Init.Logic.eq_trans", "Congr": "vela_Congr",
@@ -6395,6 +8097,34 @@ _GALLINA = {
     "eq_nat": "Corelib.Init.Nat.eqb", "ne_nat": "vela_ne_nat",
     "eq_bool": "vela_eq_bool", "ne_bool": "vela_ne_bool",
     "&&": "vela_and", "||": "vela_or", "!": "vela_not", "==>": "vela_implies", "<==>": "vela_eq_bool",
+    **{
+        f"int_{op}_{spec.name}": f"(vela_int_{op} ({spec.tag} : Corelib.Init.Datatypes.nat))"
+        for spec in _INT_SPECS.values()
+        for op in (
+            "add", "sub", "mul", "div", "rem", "neg",
+            "and", "or", "xor", "not",
+            "shl", "shr", "eq", "ne", "lt", "le", "gt", "ge",
+            "wrap_add", "wrap_sub", "wrap_mul", "wrap_neg", "wrap_shl",
+            "sat_add", "sat_sub", "sat_mul", "sat_neg",
+            "chk_add", "chk_sub", "chk_mul", "chk_div",
+            "chk_rem", "chk_neg", "chk_shl", "chk_shr",
+            "to_nat", "try_from_Nat",
+        )
+    },
+    **{
+        f"int_from_{src.name}_{dst.name}": (
+            f"(vela_int_from ({src.tag} : Corelib.Init.Datatypes.nat) ({dst.tag} : Corelib.Init.Datatypes.nat))"
+        )
+        for src in _INT_SPECS.values()
+        for dst in _INT_SPECS.values()
+    },
+    **{
+        f"int_try_from_{src.name}_{dst.name}": (
+            f"(vela_int_try_from ({src.tag} : Corelib.Init.Datatypes.nat) ({dst.tag} : Corelib.Init.Datatypes.nat))"
+        )
+        for src in _INT_SPECS.values()
+        for dst in _INT_SPECS.values()
+    },
 }
 
 _PRELUDE = """From Corelib Require Import Init.Datatypes Init.Nat Init.Logic Init.Specif.
@@ -6419,6 +8149,107 @@ Definition vela_ne_bool (a b : bool) : bool := vela_not (vela_eq_bool a b).
 Definition vela_ne_nat (a b : nat) : bool := vela_not (Corelib.Init.Nat.eqb a b).
 Definition vela_ge (a b : nat) : bool := Corelib.Init.Nat.leb b a.
 Definition vela_gt (a b : nat) : bool := Corelib.Init.Nat.ltb b a.
+
+Inductive vela_bits : Type@{vela_u0} :=
+| vela_bnil : vela_bits
+| vela_bcons : bool -> vela_bits -> vela_bits.
+
+Inductive vela_int (tag : nat) : Type@{vela_u0} :=
+| vela_mk_int : vela_bits -> vela_int tag.
+
+Fixpoint vela_bits_eqb (a b : vela_bits) : bool :=
+  match a, b with
+  | vela_bnil, vela_bnil => true
+  | vela_bcons x xs, vela_bcons y ys => vela_and (vela_eq_bool x y) (vela_bits_eqb xs ys)
+  | _, _ => false
+  end.
+
+Definition vela_int_bits (tag : nat) (x : vela_int tag) : vela_bits :=
+  match x with
+  | vela_mk_int _ bs => bs
+  end.
+
+Definition vela_ArithmeticError : Type@{vela_u0} :=
+  @sum unit (@sum unit unit).
+Definition vela_ArithmeticError_Overflow (_ : unit) : vela_ArithmeticError :=
+  @inl unit (@sum unit unit) tt.
+Definition vela_ArithmeticError_ZeroDivisor (_ : unit) : vela_ArithmeticError :=
+  @inr unit (@sum unit unit) (@inl unit unit tt).
+Definition vela_ArithmeticError_InvalidShift (_ : unit) : vela_ArithmeticError :=
+  @inr unit (@sum unit unit) (@inr unit unit tt).
+
+Definition vela_ConversionError : Type@{vela_u0} := unit.
+Definition vela_ConversionError_OutOfRange (_ : unit) : vela_ConversionError := tt.
+
+Definition vela_Result (TValue TError : Type@{vela_u0}) : Type@{vela_u0} :=
+  @sum TError TValue.
+Definition vela_Result_Err (TValue TError : Type@{vela_u0}) (e : TError) : vela_Result TValue TError :=
+  @inl TError TValue e.
+Definition vela_Result_Ok (TValue TError : Type@{vela_u0}) (v : TValue) : vela_Result TValue TError :=
+  @inr TError TValue v.
+
+Definition vela_int_add (tag : nat) (a _ : vela_int tag) : vela_int tag := a.
+Definition vela_int_sub (tag : nat) (a _ : vela_int tag) : vela_int tag := a.
+Definition vela_int_mul (tag : nat) (a _ : vela_int tag) : vela_int tag := a.
+Definition vela_int_div (tag : nat) (a _ : vela_int tag) : vela_int tag := a.
+Definition vela_int_rem (tag : nat) (a _ : vela_int tag) : vela_int tag := a.
+Definition vela_int_neg (tag : nat) (a : vela_int tag) : vela_int tag := a.
+Definition vela_int_and (tag : nat) (a _ : vela_int tag) : vela_int tag := a.
+Definition vela_int_or (tag : nat) (a _ : vela_int tag) : vela_int tag := a.
+Definition vela_int_xor (tag : nat) (a _ : vela_int tag) : vela_int tag := a.
+Definition vela_int_not (tag : nat) (a : vela_int tag) : vela_int tag := a.
+Definition vela_int_shl (tag : nat) (a : vela_int tag) (_ : vela_int (4 : nat)) : vela_int tag := a.
+Definition vela_int_shr (tag : nat) (a : vela_int tag) (_ : vela_int (4 : nat)) : vela_int tag := a.
+Definition vela_int_eq (tag : nat) (a b : vela_int tag) : bool :=
+  vela_bits_eqb (vela_int_bits tag a) (vela_int_bits tag b).
+Definition vela_int_ne (tag : nat) (a b : vela_int tag) : bool :=
+  vela_not (vela_int_eq tag a b).
+Definition vela_int_lt (tag : nat) (a b : vela_int tag) : bool := vela_int_ne tag a b.
+Definition vela_int_le (tag : nat) (a b : vela_int tag) : bool := vela_int_eq tag a b.
+Definition vela_int_gt (tag : nat) (a b : vela_int tag) : bool := vela_int_ne tag a b.
+Definition vela_int_ge (tag : nat) (a b : vela_int tag) : bool := vela_int_eq tag a b.
+Definition vela_int_wrap_add (tag : nat) (a _ : vela_int tag) : vela_int tag := a.
+Definition vela_int_wrap_sub (tag : nat) (a _ : vela_int tag) : vela_int tag := a.
+Definition vela_int_wrap_mul (tag : nat) (a _ : vela_int tag) : vela_int tag := a.
+Definition vela_int_wrap_neg (tag : nat) (a : vela_int tag) : vela_int tag := a.
+Definition vela_int_wrap_shl (tag : nat) (a : vela_int tag) (_ : vela_int (4 : nat)) : vela_int tag := a.
+Definition vela_int_sat_add (tag : nat) (a _ : vela_int tag) : vela_int tag := a.
+Definition vela_int_sat_sub (tag : nat) (a _ : vela_int tag) : vela_int tag := a.
+Definition vela_int_sat_mul (tag : nat) (a _ : vela_int tag) : vela_int tag := a.
+Definition vela_int_sat_neg (tag : nat) (a : vela_int tag) : vela_int tag := a.
+Definition vela_int_chk_add (tag : nat) (a _ : vela_int tag)
+    : vela_Result (vela_int tag) vela_ArithmeticError :=
+  vela_Result_Ok (vela_int tag) vela_ArithmeticError a.
+Definition vela_int_chk_sub (tag : nat) (a _ : vela_int tag)
+    : vela_Result (vela_int tag) vela_ArithmeticError :=
+  vela_Result_Ok (vela_int tag) vela_ArithmeticError a.
+Definition vela_int_chk_mul (tag : nat) (a _ : vela_int tag)
+    : vela_Result (vela_int tag) vela_ArithmeticError :=
+  vela_Result_Ok (vela_int tag) vela_ArithmeticError a.
+Definition vela_int_chk_div (tag : nat) (a _ : vela_int tag)
+    : vela_Result (vela_int tag) vela_ArithmeticError :=
+  vela_Result_Ok (vela_int tag) vela_ArithmeticError a.
+Definition vela_int_chk_rem (tag : nat) (a _ : vela_int tag)
+    : vela_Result (vela_int tag) vela_ArithmeticError :=
+  vela_Result_Ok (vela_int tag) vela_ArithmeticError a.
+Definition vela_int_chk_neg (tag : nat) (a : vela_int tag)
+    : vela_Result (vela_int tag) vela_ArithmeticError :=
+  vela_Result_Ok (vela_int tag) vela_ArithmeticError a.
+Definition vela_int_chk_shl (tag : nat) (a : vela_int tag) (_ : vela_int (4 : nat))
+    : vela_Result (vela_int tag) vela_ArithmeticError :=
+  vela_Result_Ok (vela_int tag) vela_ArithmeticError a.
+Definition vela_int_chk_shr (tag : nat) (a : vela_int tag) (_ : vela_int (4 : nat))
+    : vela_Result (vela_int tag) vela_ArithmeticError :=
+  vela_Result_Ok (vela_int tag) vela_ArithmeticError a.
+Definition vela_int_to_nat (tag : nat) (_ : vela_int tag) : nat := O.
+Definition vela_int_from (src dst : nat) (x : vela_int src) : vela_int dst :=
+  vela_mk_int dst (vela_int_bits src x).
+Definition vela_int_try_from (src dst : nat) (x : vela_int src)
+    : vela_Result (vela_int dst) vela_ConversionError :=
+  vela_Result_Ok (vela_int dst) vela_ConversionError (vela_mk_int dst (vela_int_bits src x)).
+Definition vela_int_try_from_Nat (dst : nat) (_ : nat)
+    : vela_Result (vela_int dst) vela_ConversionError :=
+  vela_Result_Ok (vela_int dst) vela_ConversionError (vela_mk_int dst vela_bnil).
 
 Definition vela_Congr (A B : Type@{vela_u0}) (x y : A) (f : A -> B)
     (p : @Corelib.Init.Logic.eq A x y) : @Corelib.Init.Logic.eq B (f x) (f y) :=

@@ -2927,6 +2927,317 @@ def _early_return_propagation() -> None:
     _refuses(bad_ret, "type", "enclosing callable")
 
 
+def _int_lit(value: str, suffix: str = "") -> Form:
+    def form(fixture: _Fixture) -> Node:
+        start = fixture.offset
+        fixture.write(value + suffix)
+        return fixture.node("nat", start, value=value, suffix=suffix)
+    return form
+
+
+def _unary_op(operator: str, inner: Form) -> Form:
+    def form(fixture: _Fixture) -> Node:
+        start = fixture.offset
+        op_node = fixture.name(operator)
+        val_node = inner(fixture)
+        return fixture.node("unary", start, operator=op_node, value=val_node)
+    return form
+
+
+def _import_decl(fixture: _Fixture, module_name: str) -> None:
+    fixture.write("\n")
+    start = fixture.offset
+    fixture.write("import ")
+    name_node = fixture.name(module_name)
+    fixture.write(";")
+    fixture.declarations.append(
+        fixture.node("import", start, name=name_node)
+    )
+
+
+def _represented_integers_and_conversions() -> None:
+    fixture = _Fixture("Numerics")
+    _import_decl(fixture, "Vela.Numerics")
+
+    # Constants and literal forms (decimal, hex, binary, _ separators, contextual, negative min)
+    fixture.constant("ByteMax", _type("byte"), _member(_variable("byte"), "Max"))
+    fixture.constant("U8Bits", _NAT, _member(_variable("u8"), "Bits"))
+    fixture.constant("I32Min", _type("int"), _member(_variable("i32"), "Min"))
+    fixture.constant("I32MinLit", _type("i32"), _unary_op("-", _int_lit("2147483648", "i32")))
+    fixture.constant("I8MinContextual", _type("i8"), _unary_op("-", _int_lit("128")))
+    fixture.constant("HexMask", _type("u16"), _int_lit("0xFF_00", "u16"))
+    fixture.constant("BinFlags", _type("u8"), _int_lit("0b1010_0101", "u8"))
+    fixture.constant("QualifiedIntMax", _type("Vela.Numerics.int"), _member(_member(_variable("Vela"), "Numerics"), "int.Max") if False else _member(_member(_member(_variable("Vela"), "Numerics"), "int"), "Max"))
+
+    # Precondition-checked arithmetic and bitwise operations
+    fixture.definition(
+        "AddBounded",
+        _type("u32"),
+        (("a", _type("u32")), ("b", _type("u32"))),
+        _binary("+", _variable("a"), _variable("b")),
+        contracts=(
+            _contract("requires", _binary("<=", _variable("a"), _int_lit("1000", "u32"))),
+            _contract("requires", _binary("<=", _variable("b"), _int_lit("2000", "u32"))),
+        ),
+    )
+    fixture.definition(
+        "CallAddBounded",
+        _type("u32"),
+        (("x", _type("u32")),),
+        _call("AddBounded", _variable("x"), _int_lit("500", "u32")),
+        contracts=(_contract("requires", _binary("<=", _variable("x"), _int_lit("400", "u32"))),),
+    )
+    fixture.definition(
+        "SafeSignedDiv",
+        _type("i32"),
+        (("a", _type("i32")), ("d", _type("i32"))),
+        _binary("/", _variable("a"), _variable("d")),
+        contracts=(
+            _contract("requires", _binary(">", _variable("a"), _member(_variable("i32"), "Min"))),
+            _contract("requires", _binary(">", _variable("d"), _int_lit("0", "i32"))),
+        ),
+    )
+    fixture.definition(
+        "BranchCheckedInc",
+        _type("u8"),
+        (("x", _type("u8")),),
+        _if_expr(
+            _binary("<", _variable("x"), _int_lit("255", "u8")),
+            _binary("+", _variable("x"), _int_lit("1", "u8")),
+            _variable("x"),
+        ),
+    )
+    fixture.definition(
+        "MaskedAddAndShift",
+        _type("u8"),
+        (("x", _type("u8")), ("s", _type("usize"))),
+        _call(
+            _member(
+                _binary("+", _binary("&", _variable("x"), _int_lit("0x0F", "u8")), _int_lit("1", "u8")),
+                "ShiftLeft",
+            ),
+            _binary("&", _variable("s"), _int_lit("3", "usize")),
+        ),
+    )
+    fixture.definition(
+        "WidenedBytePlusOne",
+        _type("u16"),
+        (("b", _type("byte")),),
+        _binary("+", _call(_member(_variable("u16"), "From"), _variable("b")), _int_lit("1", "u16")),
+    )
+
+    # Total Wrapping*, Saturating*, Checked* operations and ? propagation
+    fixture.function(
+        "CheckedLinear",
+        _type("Result", _type("u8"), _type("ArithmeticError")),
+        (("x", _type("u8")), ("scale", _type("u8")), ("offset", _type("u8"))),
+        _call(
+            "Ok",
+            _propagate(
+                _call(
+                    _member(
+                        _propagate(_call(_member(_variable("x"), "CheckedMul"), _variable("scale"))),
+                        "CheckedAdd",
+                    ),
+                    _variable("offset"),
+                )
+            ),
+            generics=(_type("u8"), _type("ArithmeticError")),
+        ),
+        arrow=False,
+    )
+
+    # Theorems verifying reduction of concrete operations, conversions, and error variants
+    fixture.theorem(
+        "MinLiteralAgreement",
+        (),
+        _binary("==", _variable("I32Min"), _variable("I32MinLit")),
+        _assert(_binary("==", _variable("I32Min"), _variable("I32MinLit"))),
+    )
+    fixture.theorem(
+        "WrappingAddCheck",
+        (),
+        _binary(
+            "==",
+            _call(_member(_int_lit("255", "u8"), "WrappingAdd"), _int_lit("1", "u8")),
+            _int_lit("0", "u8"),
+        ),
+        _assert(
+            _binary(
+                "==",
+                _call(_member(_int_lit("255", "u8"), "WrappingAdd"), _int_lit("1", "u8")),
+                _int_lit("0", "u8"),
+            )
+        ),
+    )
+    fixture.theorem(
+        "SaturatingAddCheck",
+        (),
+        _binary(
+            "==",
+            _call(_member(_int_lit("250", "u8"), "SaturatingAdd"), _int_lit("10", "u8")),
+            _int_lit("255", "u8"),
+        ),
+        _assert(
+            _binary(
+                "==",
+                _call(_member(_int_lit("250", "u8"), "SaturatingAdd"), _int_lit("10", "u8")),
+                _int_lit("255", "u8"),
+            )
+        ),
+    )
+    fixture.theorem(
+        "SaturatingNegCheck",
+        (),
+        _binary(
+            "==",
+            _call(_member(_variable("I8MinContextual"), "SaturatingNeg")),
+            _int_lit("127", "i8"),
+        ),
+        _assert(
+            _binary(
+                "==",
+                _call(_member(_variable("I8MinContextual"), "SaturatingNeg")),
+                _int_lit("127", "i8"),
+            )
+        ),
+    )
+    fixture.theorem(
+        "CheckedLinearOkCheck",
+        (),
+        _binary(
+            "==",
+            _call("CheckedLinear", _int_lit("10", "u8"), _int_lit("20", "u8"), _int_lit("5", "u8")),
+            _call("Ok", _int_lit("205", "u8"), generics=(_type("u8"), _type("ArithmeticError"))),
+        ),
+        _assert(
+            _binary(
+                "==",
+                _call("CheckedLinear", _int_lit("10", "u8"), _int_lit("20", "u8"), _int_lit("5", "u8")),
+                _call("Ok", _int_lit("205", "u8"), generics=(_type("u8"), _type("ArithmeticError"))),
+            )
+        ),
+    )
+    fixture.theorem(
+        "CheckedLinearOverflowCheck",
+        (),
+        _binary(
+            "==",
+            _call("CheckedLinear", _int_lit("20", "u8"), _int_lit("20", "u8"), _int_lit("5", "u8")),
+            _call("Err", _call("Overflow"), generics=(_type("u8"), _type("ArithmeticError"))),
+        ),
+        _assert(
+            _binary(
+                "==",
+                _call("CheckedLinear", _int_lit("20", "u8"), _int_lit("20", "u8"), _int_lit("5", "u8")),
+                _call("Err", _call("Overflow"), generics=(_type("u8"), _type("ArithmeticError"))),
+            )
+        ),
+    )
+    fixture.theorem(
+        "CheckedDivZeroCheck",
+        (),
+        _binary(
+            "==",
+            _call(_member(_int_lit("10", "u8"), "CheckedDiv"), _int_lit("0", "u8")),
+            _call("Err", _call("ZeroDivisor"), generics=(_type("u8"), _type("ArithmeticError"))),
+        ),
+        _assert(
+            _binary(
+                "==",
+                _call(_member(_int_lit("10", "u8"), "CheckedDiv"), _int_lit("0", "u8")),
+                _call("Err", _call("ZeroDivisor"), generics=(_type("u8"), _type("ArithmeticError"))),
+            )
+        ),
+    )
+    fixture.theorem(
+        "NatConversionCheck",
+        (),
+        _binary("==", _call("Nat", _int_lit("42", "u8")), _natural(42)),
+        _assert(_binary("==", _call("Nat", _int_lit("42", "u8")), _natural(42))),
+    )
+    fixture.theorem(
+        "FromConversionCheck",
+        (),
+        _binary(
+            "==",
+            _call(_member(_variable("i32"), "From"), _int_lit("200", "u8")),
+            _int_lit("200", "i32"),
+        ),
+        _assert(
+            _binary(
+                "==",
+                _call(_member(_variable("i32"), "From"), _int_lit("200", "u8")),
+                _int_lit("200", "i32"),
+            )
+        ),
+    )
+    fixture.theorem(
+        "TryFromOkCheck",
+        (),
+        _binary(
+            "==",
+            _call(_member(_variable("u8"), "TryFrom"), _int_lit("200", "u16")),
+            _call("Ok", _int_lit("200", "u8"), generics=(_type("u8"), _type("ConversionError"))),
+        ),
+        _assert(
+            _binary(
+                "==",
+                _call(_member(_variable("u8"), "TryFrom"), _int_lit("200", "u16")),
+                _call("Ok", _int_lit("200", "u8"), generics=(_type("u8"), _type("ConversionError"))),
+            )
+        ),
+    )
+    fixture.theorem(
+        "TryFromErrCheck",
+        (),
+        _binary(
+            "==",
+            _call(_member(_variable("u8"), "TryFrom"), _int_lit("300", "u16")),
+            _call("Err", _call("OutOfRange"), generics=(_type("u8"), _type("ConversionError"))),
+        ),
+        _assert(
+            _binary(
+                "==",
+                _call(_member(_variable("u8"), "TryFrom"), _int_lit("300", "u16")),
+                _call("Err", _call("OutOfRange"), generics=(_type("u8"), _type("ConversionError"))),
+            )
+        ),
+    )
+    source, response = fixture.response()
+    emitted = elaborate(source, response).gallina
+    ensure("Inductive vela_int" in emitted and "vela_int_chk_mul" in emitted,
+           "elaborated Gallina omitted fixed-width integer definitions")
+
+    # Negative tests: out-of-range literals, unproved preconditions, and invalid conversions
+    for name, param_types, ret_type, body, kind, fragment in (
+        ("LiteralOutOfRange", (), _type("u8"), _int_lit("256", "u8"), "type", "out of range"),
+        ("ContextualOutOfRange", (), _type("u8"), _int_lit("256"), "type", "out of range"),
+        ("NegativeUnsigned", (), _type("u8"), _unary_op("-", _int_lit("1", "u8")), "type", "unsigned"),
+        ("SignedNegMinOverflow", (), _type("i8"), _unary_op("-", _member(_variable("i8"), "Min")), "type", "overflow"),
+        ("ConcreteAddOverflow", (), _type("u8"), _binary("+", _int_lit("255", "u8"), _int_lit("1", "u8")), "type", "overflow"),
+        ("ConcreteSubUnderflow", (), _type("u8"), _binary("-", _int_lit("0", "u8"), _int_lit("1", "u8")), "type", "overflow"),
+        ("ConcreteDivZero", (), _type("u8"), _binary("/", _int_lit("10", "u8"), _int_lit("0", "u8")), "type", "nonzero divisor"),
+        ("ConcreteSignedDivOverflow", (), _type("i8"), _binary("/", _member(_variable("i8"), "Min"), _unary_op("-", _int_lit("1", "i8"))), "type", "overflow"),
+        ("ConcreteShiftOutOfRange", (), _type("u8"), _call(_member(_int_lit("1", "u8"), "ShiftLeft"), _int_lit("8", "usize")), "type", "shift count"),
+        ("ConcreteWrappingShiftOutOfRange", (), _type("u8"), _call(_member(_int_lit("1", "u8"), "WrappingShiftLeft"), _int_lit("8", "usize")), "type", "shift count"),
+        ("UnprovedSymbolicAdd", (("a", _type("u8")), ("b", _type("u8"))), _type("u8"), _binary("+", _variable("a"), _variable("b")), "type", "overflow"),
+        ("UnprovedSymbolicDiv", (("a", _type("u8")), ("d", _type("u8"))), _type("u8"), _binary("/", _variable("a"), _variable("d")), "type", "nonzero divisor"),
+        ("SignedToNat", (("x", _type("i32")),), _NAT, _call("Nat", _variable("x")), "type", "unsigned"),
+        ("NarrowingFrom", (("x", _type("u16")),), _type("u8"), _call(_member(_variable("u8"), "From"), _variable("x")), "type", "TryFrom"),
+        ("SignChangingFrom", (("x", _type("i32")),), _type("u32"), _call(_member(_variable("u32"), "From"), _variable("x")), "type", "TryFrom"),
+        ("UsizeToU32From", (("x", _type("usize")),), _type("u32"), _call(_member(_variable("u32"), "From"), _variable("x")), "type", "TryFrom"),
+        ("BitwiseOnNat", (("a", _NAT), ("b", _NAT)), _NAT, _binary("&", _variable("a"), _variable("b")), "type", "fixed-width integer"),
+    ):
+        wrong = _Fixture(f"NumericsRefusal_{name}")
+        wrong.definition(name, ret_type, param_types, body)
+        _refuses(wrong, kind, fragment)
+
+    no_import = _Fixture("UnimportedAlias")
+    no_import.definition("UseInt", _type("int"), (("x", _type("int")),), _variable("x"))
+    _refuses(no_import, "name", "int")
+
+
 def cases() -> list[Case]:
     return [Case("fresh-polymorphism-and-higher-order-inference", _polymorphism_and_higher_order),
             Case("familiar-generic-markers-and-mathematical-body-source-binding", _familiar_generic_spellings),
@@ -2959,4 +3270,5 @@ def cases() -> list[Case]:
             Case("structural-recursion-and-decreases-contracts", _structural_recursion_and_decreases),
             Case("inductive-proofs-and-equational-rewriting", _inductive_proofs_and_equational_rewriting),
             Case("dependent-records-and-existential-propositions", _dependent_records_and_existential_propositions),
-            Case("early-return-propagation-for-option-and-result", _early_return_propagation)]
+            Case("early-return-propagation-for-option-and-result", _early_return_propagation),
+            Case("represented-integers-preconditions-and-conversions", _represented_integers_and_conversions)]
