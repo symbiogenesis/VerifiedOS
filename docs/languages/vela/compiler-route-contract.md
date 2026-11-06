@@ -4,7 +4,7 @@
 
 Compare CHERI-C/Clight and direct capability-aware lowering at the same endpoint: capability-correct final bytes, required TAL/CIC evidence and exact operational-source correspondence. This contract implements neither route and selects neither.
 
-The separate [native compiler and verified-bootstrap goal](unified-source-contract.md#native-verified-compiler-and-self-hosting) retains its [unpriced establishment and maintenance](../../../PLAN.md#vela-whole-system-authoring-proposal). Composed transformation proofs and integrated certificate checking are possible replacement evidence, subject to amendments preserving the final-validation and named-producer duties below.
+The separate [native compiler and verified-bootstrap goal](extensions/unified-source-contract.md#native-verified-compiler-and-self-hosting) retains its [unpriced establishment and maintenance](../../../PLAN.md#vela-whole-system-authoring-proposal). Composed transformation proofs and integrated certificate checking are possible replacement evidence, subject to amendments preserving the final-validation and named-producer duties below.
 
 **Decision: do not commission the paired trial on current evidence.** Neither route has a defensible establishment and maintenance estimate for the full endpoint. Bounded emission still needs the shared logic and arbitrary-context proofs. The [review decision](#review-decision) assesses readiness without selecting a winner. Re-entry requires [Q21a's source interface](core-design.md), [Q2c's foundations](../../hardware/cheri-foundation-map.md) and [Q20a's accounting/target protocol](workflow-contract.md).
 

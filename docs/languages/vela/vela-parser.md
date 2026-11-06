@@ -138,7 +138,7 @@ held-out source edits. Compare accepted translations and diagnostic categories,
 disposition every difference, and exercise malformed input without output or
 unbounded failure. Once these predicates pass, remove Python lexing/parsing and
 its fallback, retaining Python orchestration only where useful. The full-language
-frontend remains subject to [Q25d's interpretation and admission prerequisites](full-language-review.md#r-05-009-r-05-020-and-what-holds-the-frontend-rows).
+frontend remains subject to [Q25d's interpretation and admission prerequisites](extensions/full-language-review.md#r-05-009-r-05-020-and-what-holds-the-frontend-rows).
 
 ### Executable migration preparation
 

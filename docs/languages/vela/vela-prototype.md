@@ -15,7 +15,7 @@ semantic anchor. `Nat` and `bool` denote mathematical naturals and booleans, not
 machine words, layouts or CHERI permissions.
 
 The [narrower-fixture rule](core-design.md#decision-and-reopening-evidence) keeps
-this separate from the returned-loan trial and [held full-frontend rows](full-language-review.md#r-05-009-r-05-020-and-what-holds-the-frontend-rows).
+this separate from the returned-loan trial and [held full-frontend rows](extensions/full-language-review.md#r-05-009-r-05-020-and-what-holds-the-frontend-rows).
 The full calculus retains its interpretation/register duties. Untrusted Python
 parsing/checking supplies no kernel acceptance, checked source correspondence,
 `SourcePackage`, metatheory, compiler qualification or binary admission.
@@ -305,7 +305,7 @@ every Guest CI lane for the same settled revision and finish without waiting.
 The translation tests do not establish that a kernel has accepted emitted terms;
 a generated-term kernel replay is a separately identified follow-up unless hosted
 evidence explicitly supplies it. Production language and whole-system migration
-retain the [unified-source acceptance contract](unified-source-contract.md).
+retain the [unified-source acceptance contract](extensions/unified-source-contract.md).
 
 ## Try the prototype
 

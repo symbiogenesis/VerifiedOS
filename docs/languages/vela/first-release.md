@@ -60,13 +60,14 @@ general reflection/generation, concurrent interior mutation, native self-hosting
 ISA replacement or hardware authorship. Async and one-shot control capture need
 a separately accepted consumer and their own resource/lowering slice.
 
-The [extended grade dossier](graded-foundation.md),
-[control dossier](handlers-async.md), [mutation dossier](interior-mutability.md),
-[metaprogramming design](metaprogramming.md) and
-[whole-system contract](unified-source-contract.md) retain their extension
-obligations. Selecting an extension requires a named client, a comparison with
+The [extension designs](extensions/README.md), including the
+[extended grade dossier](extensions/graded-foundation.md),
+[control dossier](extensions/handlers-async.md), [mutation dossier](extensions/interior-mutability.md),
+[metaprogramming design](extensions/metaprogramming.md) and
+[whole-system contract](extensions/unified-source-contract.md), retain their extension
+obligations and define no part of this release. Selecting an extension requires a named client, a comparison with
 the supported subset, a bounded implementation/qualification budget and a
-decision predicate. Grading follows the [incremental selection protocol](graded-foundation.md#extension-selection-and-qualification),
+decision predicate. Grading follows the [incremental selection protocol](extensions/graded-foundation.md#extension-selection-and-qualification),
 with type-use accounting and generated usability tools justified separately.
 A proposal's syntax or a demonstration assembled to exercise
 the proposal is insufficient evidence of product need. Its omission changes no
@@ -203,8 +204,12 @@ operation; missing locked inputs produce an incomplete-build result.
 
 The initial import graph is acyclic and imports are explicit. Cycles report the
 cycle rather than depending on traversal order. Modules have no runtime
-initializers; required-static initialization uses the
-[bounded staging rules](metaprogramming.md#evaluation-and-phase-boundaries).
+initializers. Required-static initialization evaluates ordinary total pure
+definitions: each required-static input must resolve to an admissible closed
+value when its use is specialized, or the build reports a located obligation or
+refusal with no runtime fallback. [`const` declarations](surface-grammar.md#required-static-constants)
+spell the interface, and [the core's staging rules](core-design.md#refinement-effects-and-staging)
+bound conversion and erasure.
 Qualified names resolve independently of import order. Duplicate local/imported
 bindings are errors unless an explicit alias distinguishes them. A public nominal
 identity comprises the resolved package instance, module path and declaration
@@ -256,7 +261,7 @@ element bodies discharge in the
 rather than open quantifier instantiation or polymorphic LINQ dispatch. No
 runtime `IQueryable<T>` or reflection-based expression-tree interface is
 introduced; contract checking inspects `Seq<T>` predicate lambdas statically, and
-compile-time query specialization belongs to [bounded staging](metaprogramming.md#evaluation-and-phase-boundaries).
+compile-time query specialization is an extension under the [staging design](extensions/metaprogramming.md#evaluation-and-phase-boundaries).
 Iterators carry their bounds and loan contracts; they do not require ordinary
 users to reconstruct a separation-logic proof at each element. Codecs retain the
 platform's required format-description and
