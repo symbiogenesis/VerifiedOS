@@ -10,7 +10,12 @@ from unittest.mock import patch
 from tests.harness import Case, ensure
 from vos.cli import vela_parser as cli
 from vos.vela import VelaError
-from vos.vela_authoring import Finding
+from vos.vela_authoring import (
+    Finding,
+    assist_refusal,
+    pattern_constructor_findings,
+    preview_pattern_constructors,
+)
 from vos.vela_mathematical import Compilation
 
 SOURCE = b"module Named;\npublic definition element Identity<element>(element value) => value;\n"
@@ -145,9 +150,151 @@ def _warning_file_output() -> None:
         ensure(source.read_bytes() == SOURCE, "naming inspection modified the source file")
 
 
+def _union_reachability_preview_and_refusal_assists() -> None:
+    union_src = (
+        b"module M;\n"
+        b"public union Signal { On(); Off(Nat Code); }\n"
+        b"public definition Nat Check(Signal s) => match (s) { On => 1, Off(c) => c, _ => 0 };\n"
+    )
+    on_ctor_pos = union_src.index(b"On();")
+    off_ctor_pos = union_src.index(b"Off(Nat Code);")
+    on_pat_pos = union_src.index(b"On => 1")
+    off_pat_pos = union_src.index(b"Off(c)")
+    wild_pat_pos = union_src.index(b"_ => 0")
+    union_tree: dict[str, object] = {
+        "schema": 2,
+        "ast": {
+            "kind": "surface_file",
+            "span": [0, len(union_src)],
+            "declarations": [
+                {
+                    "kind": "union",
+                    "name": {"text": "Signal", "span": [23, 29]},
+                    "constructors": [
+                        {"kind": "constructor", "name": {"text": "On", "span": [on_ctor_pos, on_ctor_pos + 2]}, "parameters": []},
+                        {"kind": "constructor", "name": {"text": "Off", "span": [off_ctor_pos, off_ctor_pos + 3]}, "parameters": [{"kind": "parameter"}]},
+                    ],
+                },
+                {
+                    "kind": "definition",
+                    "value": {
+                        "kind": "match_expression",
+                        "cases": [
+                            {
+                                "kind": "expression_case",
+                                "pattern": {"kind": "binding_pattern", "span": [on_pat_pos, on_pat_pos + 2], "name": {"text": "On", "span": [on_pat_pos, on_pat_pos + 2]}},
+                            },
+                            {
+                                "kind": "expression_case",
+                                "pattern": {
+                                    "kind": "constructor_pattern",
+                                    "span": [off_pat_pos, off_pat_pos + 6],
+                                    "name": {"text": "Off", "span": [off_pat_pos, off_pat_pos + 3]},
+                                    "arguments": [{"kind": "binding_pattern", "span": [off_pat_pos + 4, off_pat_pos + 5], "name": {"text": "c", "span": [off_pat_pos + 4, off_pat_pos + 5]}}],
+                                },
+                            },
+                            {
+                                "kind": "expression_case",
+                                "pattern": {"kind": "wildcard_pattern", "span": [wild_pat_pos, wild_pat_pos + 1]},
+                            },
+                        ],
+                    },
+                },
+            ],
+        },
+    }
+    findings = pattern_constructor_findings(union_src, union_tree)
+    ensure(
+        len(findings) == 3
+        and any("shadows constructor 'On'" in f.message for f in findings)
+        and any("unreachable" in f.message for f in findings),
+        f"union constructors were not scanned for both shadowing and exhaustiveness reachability: {findings}",
+    )
+    previewed = preview_pattern_constructors(union_src, union_tree)
+    ensure(b"On() => 1" in previewed, "preview_pattern_constructors did not rewrite bare union constructor 'On'")
+    exhausted_tree: dict[str, object] = {
+        "schema": 2,
+        "ast": {
+            "kind": "surface_file",
+            "span": [0, len(previewed)],
+            "declarations": [
+                {
+                    "kind": "union",
+                    "name": {"text": "Signal", "span": [23, 29]},
+                    "constructors": [
+                        {"kind": "constructor", "name": {"text": "On", "span": [on_ctor_pos, on_ctor_pos + 2]}, "parameters": []},
+                        {"kind": "constructor", "name": {"text": "Off", "span": [off_ctor_pos, off_ctor_pos + 3]}, "parameters": [{"kind": "parameter"}]},
+                    ],
+                },
+                {
+                    "kind": "definition",
+                    "value": {
+                        "kind": "match_expression",
+                        "cases": [
+                            {
+                                "kind": "expression_case",
+                                "pattern": {"kind": "constructor_pattern", "span": [on_pat_pos, on_pat_pos + 4], "name": {"text": "On", "span": [on_pat_pos, on_pat_pos + 2]}, "arguments": []},
+                            },
+                            {
+                                "kind": "expression_case",
+                                "pattern": {
+                                    "kind": "constructor_pattern",
+                                    "span": [off_pat_pos + 2, off_pat_pos + 8],
+                                    "name": {"text": "Off", "span": [off_pat_pos + 2, off_pat_pos + 5]},
+                                    "arguments": [{"kind": "binding_pattern", "span": [off_pat_pos + 6, off_pat_pos + 7], "name": {"text": "c", "span": [off_pat_pos + 6, off_pat_pos + 7]}}],
+                                },
+                            },
+                            {
+                                "kind": "expression_case",
+                                "pattern": {"kind": "wildcard_pattern", "span": [wild_pat_pos + 2, wild_pat_pos + 3]},
+                            },
+                        ],
+                    },
+                },
+            ],
+        },
+    }
+    exhausted_findings = pattern_constructor_findings(previewed, exhausted_tree)
+    ensure(
+        len(exhausted_findings) == 1
+        and "earlier patterns already cover this case" in exhausted_findings[0].message,
+        f"complete union constructor set did not flag trailing wildcard as unreachable: {exhausted_findings}",
+    )
+
+    with tempfile.TemporaryDirectory(prefix="vela-preview-cli-") as temporary:
+        root = Path(temporary)
+        source_file = root / "signal.vela"
+        source_file.write_bytes(union_src)
+        with (patch.object(cli.vela_parser, "build", return_value=object()),
+              patch.object(cli.vela_parser, "parse_source", return_value=union_tree) as parse_mock,
+              patch.object(cli.vela_mathematical, "inspect_source", return_value=Compilation("M", GALLINA, ()))):
+            code, out, err = _invoke(["elaborate", str(source_file), "--preview-patterns"])
+            ensure(code == 0 and out == previewed.decode("utf-8") and not err,
+                   "elaborate --preview-patterns did not emit the validated candidate source to stdout")
+            ensure(parse_mock.call_count == 2,
+                   "elaborate --preview-patterns did not re-parse the rewritten candidate before emission")
+            code, out, err = _invoke(["elaborate", str(source_file), "--preview-patterns", "--output", str(root / "out.v")])
+            ensure(code == 2 and not out and "cannot be combined" in err,
+                   "elaborate --preview-patterns did not refuse --output")
+        ensure(source_file.read_bytes() == union_src, "--preview-patterns modified the authored file in place")
+
+    nc_src = b"module M;\npublic Nat Read() => pkt?.Header;\n"
+    nc_err = VelaError("syntax", 2, 25, "null-conditional '?.' is not part of Vela")
+    nc_repairs = assist_refusal(nc_src, nc_err)
+    ensure(nc_repairs == ("(pkt?).Header", "match (pkt) { Some(value) => value.Header, None() => todo }"),
+           f"assist_refusal did not return explicit Option repairs for '?.': {nc_repairs}")
+
+    loan_src = b'module M;\npublic TextBuilder<16> Write(TextBuilder<16> b) => Format.Write(b, $"ok");\n'
+    loan_err = VelaError("type", 2, 65, "Format.Write requires an explicit ref TextBuilder<capacity> target; write 'ref b'")
+    loan_repairs = assist_refusal(loan_src, loan_err)
+    ensure(len(loan_repairs) == 1 and "Format.Write(ref b," in loan_repairs[0],
+           f"assist_refusal did not return explicit loan repair for Format.Write: {loan_repairs}")
+
+
 def cases() -> list[Case]:
     return [Case("mathematical naming warnings and repeated explicit allow", _warnings_and_allow),
             Case("strict naming prevents stdout and destination publication", _strict_publication),
             Case("conflicting unsupported and scoped naming options", _options_before_compilation),
             Case("semantic failure preserves diagnostics output and strict recovery", _semantic_failure_and_recovery),
-            Case("advisory naming preserves atomic file emission", _warning_file_output)]
+            Case("advisory naming preserves atomic file emission", _warning_file_output),
+            Case("union reachability pattern preview and refusal assists", _union_reachability_preview_and_refusal_assists)]

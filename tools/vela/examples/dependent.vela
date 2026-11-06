@@ -165,4 +165,45 @@ public lemma StepIfPositiveProof():
         assert StepIfPositive(2, Counter(Value: 10, Limit: 5)) == 15;
     }
 
+public union Option<TValue>
+{
+    None();
+    Some(TValue Value);
+}
+
+public definition TValue UnwrapOr<TValue>(Option<TValue> item, TValue fallback) =>
+    match (item) {
+        None() => fallback,
+        Some(Value: inner) => inner,
+    };
+
+public lemma UnwrapSome(Nat value, Nat fallback):
+    UnwrapOr(Some(Value: value), fallback) == value
+    proof
+    {
+        assert UnwrapOr(Some(Value: value), fallback) == value;
+    }
+
+public lemma OptionRoundTrip(Option<Nat> item):
+    (match (item) {
+        None() => None<Nat>(),
+        Some(value) => Some<Nat>(value),
+    }) == item
+    proof
+    {
+        match (item)
+        {
+            case None():
+                assert (match (None<Nat>()) {
+                    None() => None<Nat>(),
+                    Some(value) => Some<Nat>(value),
+                }) == None<Nat>();
+            case Some(value):
+                assert (match (Some<Nat>(value)) {
+                    None() => None<Nat>(),
+                    Some(inner) => Some<Nat>(inner),
+                }) == Some<Nat>(value);
+        }
+    }
+
 public definition Type<1> SmallUniverse() => type Type;

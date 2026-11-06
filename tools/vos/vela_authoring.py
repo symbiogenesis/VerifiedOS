@@ -397,6 +397,7 @@ def _is_pattern_row_useful(
     matrix: list[tuple[_NormPat, ...]],
     row: tuple[_NormPat, ...],
     record_arities: dict[str, int],
+    union_signatures: tuple[tuple[tuple[str, str, int], ...], ...] = (),
 ) -> bool:
     if not row:
         return len(matrix) == 0
@@ -406,6 +407,7 @@ def _is_pattern_row_useful(
             _specialize_norm(matrix, first.kind, first.value, len(first.args)),
             first.args + rest,
             record_arities,
+            union_signatures,
         )
     heads = {(r[0].kind, r[0].value, len(r[0].args)) for r in matrix if r[0].kind != "wild"}
     complete_sig: list[tuple[str, bool | str, int]] | None = None
@@ -422,24 +424,37 @@ def _is_pattern_row_useful(
             if hk == "ctor" and isinstance(hv, str) and record_arities.get(hv) == harity:
                 complete_sig = [(hk, hv, harity)]
                 break
+        if complete_sig is None:
+            for sig in union_signatures:
+                if sig and set(sig) <= heads:
+                    complete_sig = list(sig)
+                    break
     if complete_sig is not None:
         return any(
             _is_pattern_row_useful(
                 _specialize_norm(matrix, hk, hv, harity),
                 (_NormPat("wild"),) * harity + rest,
                 record_arities,
+                union_signatures,
             )
             for hk, hv, harity in complete_sig
         )
     wild_matrix = [r[1:] for r in matrix if r[0].kind == "wild"]
-    return _is_pattern_row_useful(wild_matrix, rest, record_arities)
+    return _is_pattern_row_useful(wild_matrix, rest, record_arities, union_signatures)
 
 
-def _in_scope_constructors(ast: dict[str, object]) -> tuple[set[str], set[str], dict[str, int]]:
+def _in_scope_constructors(
+    ast: dict[str, object],
+) -> tuple[set[str], set[str], dict[str, int], tuple[tuple[tuple[str, str, int], ...], ...]]:
     nullary = set(_NULLARY_CONSTRUCTORS)
     all_ctors = set(_NULLARY_CONSTRUCTORS | _ARITY_CONSTRUCTORS)
     record_arities: dict[str, int] = {}
-    declarations = ast.get("declarations", [])
+    union_signatures: list[tuple[tuple[str, str, int], ...]] = [
+        (("ctor", "None", 0), ("ctor", "Some", 1)),
+        (("ctor", "Ok", 1), ("ctor", "Err", 1)),
+    ]
+    root = cast("dict[str, object]", ast["ast"]) if isinstance(ast.get("ast"), dict) else ast
+    declarations = root.get("declarations", [])
     if isinstance(declarations, list):
         for decl in declarations:
             if not isinstance(decl, dict):
@@ -455,8 +470,10 @@ def _in_scope_constructors(ast: dict[str, object]) -> tuple[set[str], set[str], 
                     if arity == 0:
                         nullary.add(rname)
             elif decl.get("kind") == "union":
-                cases = decl.get("cases", [])
+                raw_ctors = decl.get("constructors")
+                cases = raw_ctors if isinstance(raw_ctors, list) else decl.get("cases", [])
                 if isinstance(cases, list):
+                    sig_entries: list[tuple[str, str, int]] = []
                     for case_node in cases:
                         if not isinstance(case_node, dict):
                             continue
@@ -464,15 +481,21 @@ def _in_scope_constructors(ast: dict[str, object]) -> tuple[set[str], set[str], 
                         if isinstance(cname_node, dict) and isinstance(cname_node.get("text"), str):
                             cname = cname_node["text"]
                             cparams = case_node.get("parameters", [])
+                            carity = len(cparams) if isinstance(cparams, list) else 0
                             all_ctors.add(cname)
-                            if isinstance(cparams, list) and not cparams:
+                            sig_entries.append(("ctor", cname, carity))
+                            if carity == 0:
                                 nullary.add(cname)
-    return nullary, all_ctors, record_arities
+                            else:
+                                nullary.discard(cname)
+                    if sig_entries:
+                        union_signatures.append(tuple(sig_entries))
+    return nullary, all_ctors, record_arities, tuple(union_signatures)
 
 
 def pattern_constructor_findings(source: bytes, ast: dict[str, object]) -> tuple[Finding, ...]:
     """Warn on bare pattern binders shadowing constructors or unreachable match arms."""
-    _, all_ctors, record_arities = _in_scope_constructors(ast)
+    _, all_ctors, record_arities, union_signatures = _in_scope_constructors(ast)
     by_offset: dict[int, Finding] = {}
     pending: list[object] = [ast]
     while pending:
@@ -502,7 +525,7 @@ def pattern_constructor_findings(source: bytes, ast: dict[str, object]) -> tuple
                             continue
                         pat_node = cast("dict[str, object]", arm["pattern"])
                         norm = _normalize_pattern(pat_node)
-                        if not _is_pattern_row_useful(prior_rows, (norm,), record_arities):
+                        if not _is_pattern_row_useful(prior_rows, (norm,), record_arities, union_signatures):
                             offset = cast("list[int]", pat_node["span"])[0]
                             if offset not in by_offset:
                                 site = syntax.position(source[:offset].decode("utf-8"))
@@ -531,7 +554,7 @@ def preview_pattern_constructors(source: bytes, parsed: object) -> bytes:
     if not isinstance(parsed, dict) or not isinstance(parsed.get("ast"), dict):
         raise syntax.VelaError("lint-preview", 1, 1, "pattern preview requires a validated syntax tree")
     ast = cast("dict[str, object]", parsed["ast"])
-    nullary, _, _ = _in_scope_constructors(ast)
+    nullary, _, _, _ = _in_scope_constructors(ast)
     insertions: list[tuple[int, int, str]] = []
     pending: list[object] = [ast]
     while pending:
@@ -639,3 +662,34 @@ def suggest_numeric_conversion(source_type: str, target_type: str, expression: s
         infallible = src_width < dst_width
     method = "From" if infallible else "TryFrom"
     return f"{target_type}.{method}({expr})"
+
+
+def assist_refusal(source: bytes, error: syntax.VelaError) -> tuple[str, ...]:
+    """Produce source-bound 'assist, don't coerce' repairs for a compiler refusal."""
+    text = syntax.source_text(source)
+    lines = text.replace("\r\n", "\n").replace("\r", "\n").split("\n")
+    line_text = lines[error.line - 1] if 1 <= error.line <= len(lines) else ""
+    col0 = max(0, error.column - 1)
+    if "null-conditional '?.'" in error.message and line_text[col0:col0 + 2] == "?.":
+        before = line_text[:col0].rstrip()
+        after = line_text[col0 + 2:].lstrip()
+        rec_start = len(before)
+        while rec_start > 0 and (before[rec_start - 1].isalnum() or before[rec_start - 1] in "_.)"):
+            rec_start -= 1
+        receiver = before[rec_start:].strip()
+        mem_match = _IDENT.match(after)
+        if receiver and mem_match is not None:
+            return assist_null_conditional(receiver, mem_match.group(0))
+    if "Format.Write requires an explicit ref" in error.message:
+        target_col = error.column
+        colon_pos = line_text.find(":", col0)
+        if colon_pos != -1 and colon_pos < line_text.find(",", col0 if "," in line_text[col0:] else len(line_text)):
+            after_colon = line_text[colon_pos + 1:]
+            stripped = after_colon.lstrip()
+            target_col = colon_pos + 2 + (len(after_colon) - len(stripped))
+        try:
+            repaired = assist_loan_argument(source, error.line, target_col, "ref")
+        except syntax.VelaError:
+            return ()
+        return (repaired.decode("utf-8"),)
+    return ()

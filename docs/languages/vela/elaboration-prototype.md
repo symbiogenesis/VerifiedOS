@@ -62,12 +62,13 @@ The supported increment includes:
   UTF-8 byte vectors `Vec<Nat, n>` (bounded by 256 bytes) with `ByteLength`
   and `At` lookup, and `TextBuilder<capacity>` / `EmptyBuilder` /
   `Format.Write(ref builder, $"...")` / `Fits` / `Written` model allocation-free
-  checked formatting with static hole formatting (`Nat`, `bool`, `Vec<Nat, n>`,
-  and `:x2`/`:x4`/`:x8`/`:d`/`:b` specifiers) and fail-closed capacity bounds.
+  checked formatting with AST-checked hole expressions (`Nat`, `bool`, `Vec<Nat, n>`,
+  and `:x2`/`:x4`/`:x8`/`:d`/`:b` specifiers), structural target-buffer aliasing
+  refusal and fail-closed capacity bounds.
 - Exhaustive `match` expressions and returning statement `match` over `Nat`,
-  `bool`, `Unit`, products and nominal `record` types, with wildcard (`_`),
+  `bool`, `Unit`, products and nominal `record` and `union` types, with wildcard (`_`),
   variable, `()`, Boolean literal, nested tuple, decimal natural (bounded by
-  structural unrolling), `Succ(...)` and record constructor patterns (supporting
+  structural unrolling), `Succ(...)`, record and union constructor patterns (supporting
   optional declaration-order `label: pattern` arguments), optional dependent
   `as name : Type` motives, and irrefutable `let (a, b) = ...` or
   `let RecordName(...) = ...` destructuring in blocks and `let ... in ...`
@@ -79,11 +80,11 @@ The supported increment includes:
   expressions (binding `Pattern`'s variables in the `then` branch), and scoped
   early-exit `let Pattern = expr else { return ...; }` (`let_else`) guards in
   blocks and `assert ... by { ... }` proof blocks.
-- Nominal `record Name(T1 Field1, ...)` declarations with primary-constructor
-  fields, total read-only expression properties (`public T Prop => expr;`) on
-  records and at module scope, `.Field` and `.Property` member projections, and
-  postfix `base with { Field = expr, ... }` record updates evaluated in
-  declaration order.
+- Nominal `record Name(T1 Field1, ...)` and `union Name { Case1(...); ... }`
+  declarations with primary-constructor fields and tagged sum variants, total
+  read-only expression properties (`public T Prop => expr;`) on records and at
+  module scope, `.Field` and `.Property` member projections, and postfix
+  `base with { Field = expr, ... }` record updates evaluated in declaration order.
 - Typed `const` values of `Nat`, `bool` or `Unit`, at module or local scope,
   under the [required-static contract](surface-grammar.md#required-static-constants).
   Initializers use earlier constants and admitted total pure calls with static

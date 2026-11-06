@@ -23,6 +23,7 @@ from vos.vela_ast import (
     source_text,
     trivia_end,
 )
+from vos.vela_authoring import assist_loan_argument
 
 MAX_DEPTH = 128
 MAX_WORK = 200_000
@@ -51,6 +52,8 @@ _FIELDS: dict[str, set[str]] = {
     "definition": {"name", "result", "generics", "parameters", "contracts", "value", "modifiers"},
     "function": {"name", "result", "generics", "parameters", "contracts", "body", "cancel", "modifiers"},
     "record": {"name", "generics", "parameters", "contracts", "declarations", "modifiers"},
+    "union": {"name", "generics", "contracts", "constructors", "modifiers"},
+    "constructor": {"name", "parameters", "result", "contracts"},
     "property": {"name", "type", "contracts", "value", "modifiers"},
     "theorem": {"name", "generics", "parameters", "proposition", "body", "modifiers"},
     "lemma": {"name", "generics", "parameters", "proposition", "body", "modifiers"},
@@ -213,7 +216,7 @@ class _Protocol:
     def _ordinary_envelope(self, node: Node, span: tuple[int, int]) -> None:
         kind = node["kind"]
         cursor = span[0]
-        if kind in {"definition", "function", "alias", "theorem", "lemma", "record", "property"}:
+        if kind in {"definition", "function", "alias", "theorem", "lemma", "record", "union", "property"}:
             if node.get("contracts") or node.get("cancel"):
                 return  # These roles are refused by the mathematical consumer.
             modifiers = node["modifiers"]
@@ -228,7 +231,7 @@ class _Protocol:
             cursor = self._child(node, span, cursor, node["name"])
             if kind != "property":
                 cursor = self._generics(node, span, cursor)
-            if kind not in {"alias", "property"}:
+            if kind not in {"alias", "property", "union"}:
                 cursor = self._list(node, span, cursor, node["parameters"])
             if kind in {"theorem", "lemma"}:
                 cursor = self._token(node, cursor, b":")
@@ -246,6 +249,14 @@ class _Protocol:
                 if node["declarations"]:
                     raise self.error("protocol", "semicolon record tail cannot carry member declarations", node)
                 cursor = self._token(node, cursor, b";")
+            elif kind == "union":
+                constructors = node["constructors"]
+                if (not isinstance(constructors, list)
+                        or any(not isinstance(item, dict) or item.get("kind") != "constructor" for item in constructors)):
+                    raise self.error("protocol", "union requires constructor children", node)
+                cursor = self._token(node, cursor, b"{")
+                self._sequence_envelope(node, span, "constructors", cursor, b"}")
+                return
             elif kind in {"alias", "definition", "property"}:
                 cursor = self._token(node, cursor, b"=" if kind == "alias" else b"=>")
                 cursor = self._child(node, span, cursor, node["type"] if kind == "alias" else node["value"])
@@ -254,6 +265,22 @@ class _Protocol:
                 cursor = self._token(node, cursor, b";")
             else:
                 cursor = self._child(node, span, cursor, node["body"])
+        elif kind == "constructor":
+            if node.get("contracts"):
+                return
+            cursor = self._child(node, span, cursor, node["name"])
+            parameters = node["parameters"]
+            if not isinstance(parameters, list):
+                raise self.error("protocol", "constructor parameters must be a child list", node)
+            after_name = trivia_end(self.source, cursor, block_comments=True)
+            if self.source[after_name:after_name + 1] == b"(":
+                cursor = self._list(node, span, cursor, parameters)
+            elif parameters:
+                raise self.error("protocol", "constructor parameters require parentheses", node)
+            if node["result"] is not None:
+                cursor = self._token(node, cursor, b":")
+                cursor = self._child(node, span, cursor, node["result"])
+            cursor = self._token(node, cursor, b";")
         elif kind in {"let", "typed_local", "parameter", "lambda_parameter", "generic_parameter"}:
             if node.get("grade") is not None:
                 return
@@ -870,6 +897,26 @@ class _RecordInfo:
     properties: dict[str, _RecordProperty]
 
 
+@dataclass(frozen=True)
+class _UnionCtor:
+    name: str
+    ctor_const: str
+    ctor_binding: _Binding
+    fields: tuple[_RecordField, ...]
+    payload_type: _Term
+    index: int
+
+
+@dataclass(frozen=True)
+class _UnionInfo:
+    name: str
+    type_const: str
+    type_binding: _Binding
+    generic_vars: tuple[_Term, ...]
+    constructors: tuple[_UnionCtor, ...]
+    suffix_types: tuple[_Term, ...]
+
+
 class _Elaborator:
     def __init__(self, protocol: _Protocol) -> None:
         self.protocol = protocol
@@ -890,6 +937,10 @@ class _Elaborator:
         self.records_by_type: dict[str, _RecordInfo] = {}
         self.records_by_ctor: dict[str, _RecordInfo] = {}
         self.record_projections: dict[str, tuple[_RecordInfo, int]] = {}
+        self.unions: dict[str, _UnionInfo] = {}
+        self.unions_by_type: dict[str, _UnionInfo] = {}
+        self.union_ctors: dict[str, tuple[_UnionInfo, _UnionCtor]] = {}
+        self.unions_by_ctor: dict[str, tuple[_UnionInfo, _UnionCtor]] = {}
         self.output: list[str] = []
         self.site: Node | None = None
         self._builtins()
@@ -1064,7 +1115,7 @@ class _Elaborator:
                 return self.whnf(term.args[2] if condition.value else term.args[3])
             return term
         if term.kind == "unit_match":
-            scrutinee = self.whnf(term.args[1])
+            scrutinee = self._expand_union_ctor(self.whnf(term.args[1]))
             if scrutinee.kind == "unit":
                 self.tick(True)
                 return self.whnf(term.args[2])
@@ -1076,7 +1127,7 @@ class _Elaborator:
                     return self.whnf(term.args[2])
             return term
         if term.kind == "pair_match":
-            scrutinee = self.whnf(term.args[1])
+            scrutinee = self._expand_union_ctor(self.whnf(term.args[1]))
             if scrutinee.kind == "pair":
                 self.tick(True)
                 branch = term.args[2]
@@ -1105,6 +1156,17 @@ class _Elaborator:
                     branch = term.args[2]
                     inner = self.substitute(branch.args[1], cast("int", branch.value), left_val)
                     return self.whnf(self.substitute(inner.args[1], cast("int", inner.value), right_val))
+            return term
+        if term.kind == "sum_match":
+            scrutinee = self._expand_union_ctor(self.whnf(term.args[1]))
+            if scrutinee.kind == "inl":
+                self.tick(True)
+                left_branch = term.args[2]
+                return self.whnf(self.substitute(left_branch.args[1], cast("int", left_branch.value), scrutinee.args[2]))
+            if scrutinee.kind == "inr":
+                self.tick(True)
+                right_branch = term.args[3]
+                return self.whnf(self.substitute(right_branch.args[1], cast("int", right_branch.value), scrutinee.args[2]))
             return term
         if term.kind == "nat_match":
             scrutinee = self.whnf(term.args[1])
@@ -1401,13 +1463,15 @@ class _Elaborator:
                 raise self.fail("type", "application requires a function")
             self.unify(self.infer(term.args[1]), function_type.args[0])
             return self.substitute(function_type.args[1], cast("int", function_type.value), term.args[1])
-        if kind == "prod":
+        if kind in {"prod", "sum"}:
             return _term("sort", value=max(self.sort(term.args[0]), self.sort(term.args[1]), 0))
         if kind == "pair":
             return _term("prod", term.args[0], term.args[1])
+        if kind in {"inl", "inr"}:
+            return _term("sum", term.args[0], term.args[1])
         if kind == "if":
             return term.args[0]
-        if kind in {"bool_match", "unit_match", "pair_match", "nat_match"}:
+        if kind in {"bool_match", "unit_match", "pair_match", "nat_match", "sum_match"}:
             return self.substitute(term.args[0].args[1], cast("int", term.args[0].value), term.args[1])
         raise self.fail("type", "cannot infer internal term")
 
@@ -1543,7 +1607,7 @@ class _Elaborator:
             reduced = self.whnf(result)
             return result if reduced == result else self.specialize(reduced, depth + 1)
         specialized = _Term(term.kind, term.value, tuple(self.specialize(child, depth + 1) for child in term.args))
-        if term.kind in {"if", "bool_match", "unit_match", "pair_match", "nat_match"}:
+        if term.kind in {"if", "bool_match", "unit_match", "pair_match", "nat_match", "sum_match"}:
             reduced = self.whnf(specialized)
             return specialized if reduced == specialized else self.specialize(reduced, depth + 1)
         return specialized
@@ -1888,6 +1952,37 @@ class _Elaborator:
                             )
                         sub_patterns.append(self._parse_pattern(arg_node, seen))
                 return _Pat("record", node, value=cname, args=tuple(sub_patterns))
+            if cname in self.union_ctors:
+                _, ctor_info = self.union_ctors[cname]
+                if len(arguments) != len(ctor_info.fields):
+                    raise self.fail(
+                        "type",
+                        f"constructor '{cname}' expects {len(ctor_info.fields)} pattern arguments, got {len(arguments)}",
+                        node,
+                    )
+                labeled = False
+                sub_patterns = []
+                for idx, arg_node in enumerate(arguments):
+                    expected_field = ctor_info.fields[idx]
+                    if arg_node["kind"] == "labeled_pattern":
+                        labeled = True
+                        spelling = self.name(arg_node["label"])
+                        if spelling != expected_field.name:
+                            raise self.fail(
+                                "name",
+                                f"expected pattern field label '{expected_field.name}', got '{spelling}'",
+                                arg_node,
+                            )
+                        sub_patterns.append(self._parse_pattern(self.node(arg_node["pattern"]), seen))
+                    else:
+                        if labeled:
+                            raise self.fail(
+                                "name",
+                                "positional pattern arguments cannot follow a labeled pattern argument",
+                                arg_node,
+                            )
+                        sub_patterns.append(self._parse_pattern(arg_node, seen))
+                return _Pat("union", node, value=cname, args=tuple(sub_patterns))
             if cname not in self.globals:
                 raise self.fail("name", f"unknown constructor '{cname}'", node)
             if cname in {"VNil", "VCons", "FZero", "FSucc"}:
@@ -1895,12 +1990,63 @@ class _Elaborator:
             raise self.fail("type", f"'{cname}' is not a pattern constructor", node)
         raise self.fail("protocol", f"unexpected pattern node '{kind}'", node)
 
+    def _instantiate_generic_type(
+        self, generic_vars: tuple[_Term, ...], type_args: list[_Term], target_type: _Term
+    ) -> _Term:
+        result = target_type
+        for gv, arg in zip(generic_vars, type_args, strict=True):
+            result = self.substitute(result, cast("int", gv.value), arg)
+        return result
+
     def _instantiate_record_type(
         self, record_info: _RecordInfo, type_args: list[_Term], target_type: _Term
     ) -> _Term:
-        result = target_type
-        for gv, arg in zip(record_info.generic_vars, type_args, strict=True):
-            result = self.substitute(result, cast("int", gv.value), arg)
+        return self._instantiate_generic_type(record_info.generic_vars, type_args, target_type)
+
+    def _expand_union_ctor(self, term: _Term) -> _Term:
+        head, args = self.spine(term)
+        if head.kind != "const" or not isinstance(head.value, str) or head.value not in self.unions_by_ctor:
+            return term
+        union_info, ctor_info = self.unions_by_ctor[head.value]
+        expected_val_arity = len(ctor_info.fields) if ctor_info.fields else 1
+        if len(args) != len(union_info.generic_vars) + expected_val_arity:
+            return term
+        type_args = args[:len(union_info.generic_vars)]
+        field_vals = args[len(union_info.generic_vars):]
+        field_types = [
+            self._instantiate_generic_type(union_info.generic_vars, type_args, rf.type)
+            for rf in ctor_info.fields
+        ]
+        if not ctor_info.fields:
+            payload_val = _term("unit")
+        elif len(ctor_info.fields) == 1:
+            if len(union_info.constructors) == 1:
+                payload_val = _term("pair", field_types[0], _UNIT, field_vals[0], _term("unit"))
+            else:
+                payload_val = field_vals[0]
+        else:
+            payload_val = field_vals[-1]
+            acc_type = field_types[-1]
+            for fv, ft in reversed(list(zip(field_vals[:-1], field_types[:-1], strict=True))):
+                payload_val = _term("pair", ft, acc_type, fv, payload_val)
+                acc_type = _term("prod", ft, acc_type)
+        if len(union_info.constructors) == 1:
+            return payload_val
+        inst_payload_types = [
+            self._instantiate_generic_type(union_info.generic_vars, type_args, c.payload_type)
+            for c in union_info.constructors
+        ]
+        inst_suffix_types = [
+            self._instantiate_generic_type(union_info.generic_vars, type_args, st)
+            for st in union_info.suffix_types
+        ]
+        idx = ctor_info.index
+        if idx < len(union_info.constructors) - 1:
+            result = _term("inl", inst_payload_types[idx], inst_suffix_types[idx + 1], payload_val)
+        else:
+            result = payload_val
+        for j in range(idx - 1, -1, -1):
+            result = _term("inr", inst_payload_types[j], inst_suffix_types[j + 1], result)
         return result
 
     def _typecheck_pattern(
@@ -1937,6 +2083,15 @@ class _Elaborator:
                 ftype = self._instantiate_record_type(record_info, type_args, rf.type)
                 self._typecheck_pattern(sub_pat, ftype, environment, pattern_bindings)
             return
+        if pat.kind == "union":
+            union_info, ctor_info = self.union_ctors[cast("str", pat.value)]
+            type_args = [self.meta(self.types[cast("int", gv.value)], environment) for gv in union_info.generic_vars]
+            expected_union_type = _apps(_constant(union_info.type_const), *type_args)
+            self.unify(expected_type, expected_union_type)
+            for sub_pat, rf in zip(pat.args, ctor_info.fields, strict=True):
+                ftype = self._instantiate_generic_type(union_info.generic_vars, type_args, rf.type)
+                self._typecheck_pattern(sub_pat, ftype, environment, pattern_bindings)
+            return
         if pat.kind == "pair":
             resolved = self.whnf(expected_type)
             if resolved.kind == "meta":
@@ -1952,7 +2107,7 @@ class _Elaborator:
         raise self.fail("protocol", f"unexpected internal pattern '{pat.kind}'", pat.node)
 
     def _require_irrefutable(self, pat: _Pat) -> None:
-        if pat.kind in {"bool", "zero", "succ"}:
+        if pat.kind in {"bool", "zero", "succ", "union"}:
             raise self.fail("type", "local pattern binding requires an irrefutable pattern; use match", pat.node)
         for child in pat.args:
             self._require_irrefutable(child)
@@ -2041,17 +2196,21 @@ class _Elaborator:
         scrutinee_head, _ = self.spine(scrutinee_type)
         if (scrutinee_type not in {_UNIT, _BOOL, _NAT}
                 and scrutinee_type.kind != "prod"
-                and not (scrutinee_head.kind == "const" and scrutinee_head.value in self.records_by_type)):
+                and not (
+                    scrutinee_head.kind == "const"
+                    and (scrutinee_head.value in self.records_by_type or scrutinee_head.value in self.unions_by_type)
+                )):
             raise self.fail(
                 "type",
-                "match scrutinee must have type Nat, bool, Unit, a product or a record",
+                "match scrutinee must have type Nat, bool, Unit, a product, a record or a union",
                 value_node,
             )
         inferred_result: list[_Term | None] = [expected]
         local_visited: set[int] = set()
 
         def specialize_rows(active_rows: list[_Row], index: int, ctor_kind: str, ctor_term: _Term,
-                            col_var_id: int, col_type: _Term, sub_count: int, *, bool_value: bool = False) -> list[_Row]:
+                            col_var_id: int, col_type: _Term, sub_count: int, *,
+                            bool_value: bool = False, ctor_name: str = "") -> list[_Row]:
             specialized: list[_Row] = []
             for row in active_rows:
                 pat = row.patterns[index]
@@ -2068,7 +2227,11 @@ class _Elaborator:
                         row.arm,
                         row.arm_index,
                     ))
-                elif pat.kind == ctor_kind and (ctor_kind != "bool" or pat.value == bool_value):
+                elif (
+                    pat.kind == ctor_kind
+                    and (ctor_kind != "bool" or pat.value == bool_value)
+                    and (ctor_kind != "union" or pat.value == ctor_name)
+                ):
                     specialized.append(_Row(
                         row.patterns[:index] + pat.args + row.patterns[index + 1:],
                         updated_bindings,
@@ -2274,6 +2437,304 @@ class _Elaborator:
                     )
                     curr_body = _term("pair_match", motive_lam, scrut, branch_lam)
                 return curr_body
+
+            if col_head.kind == "const" and isinstance(col_head.value, str) and col_head.value in self.unions_by_type:
+                union_info = self.unions_by_type[col_head.value]
+                if len(union_info.constructors) == 1:
+                    ctor_info = union_info.constructors[0]
+                    field_types = [
+                        self._instantiate_generic_type(union_info.generic_vars, col_type_args, rf.type)
+                        for rf in ctor_info.fields
+                    ]
+                    if not field_types:
+                        ctor_term = _apps(_constant(ctor_info.ctor_const), *col_type_args, _term("unit"))
+                        body = compile_matrix(
+                            without_index,
+                            specialize_rows(
+                                active_rows, index, "union", ctor_term, col_var_id, col_type, 0, ctor_name=ctor_info.name
+                            ),
+                            self.substitute(pattern_term, col_var_id, ctor_term),
+                        )
+                        if motive_body is None:
+                            return body
+                        motive_lam = _term(
+                            "lam", col_type, self.substitute(motive_body, root_var_id, pattern_term), value=col_var_id
+                        )
+                        return _term("unit_match", motive_lam, col_scrutinee, body)
+                    if len(field_types) == 1:
+                        fvar_0 = self.fresh(field_types[0])
+                        dummy_unit_var = self.fresh(_UNIT)
+                        ctor_term = _apps(_constant(ctor_info.ctor_const), *col_type_args, fvar_0)
+                        sub_columns = [(fvar_0, fvar_0, field_types[0])]
+                        body = compile_matrix(
+                            columns[:index] + sub_columns + columns[index + 1:],
+                            specialize_rows(
+                                active_rows, index, "union", ctor_term, col_var_id, col_type, 1, ctor_name=ctor_info.name
+                            ),
+                            self.substitute(pattern_term, col_var_id, ctor_term),
+                        )
+                        if motive_body is not None:
+                            unit_motive_ret = self.substitute(
+                                motive_body,
+                                root_var_id,
+                                self.substitute(
+                                    pattern_term,
+                                    col_var_id,
+                                    _term("pair", field_types[0], _UNIT, fvar_0, dummy_unit_var),
+                                ),
+                            )
+                            body = _term(
+                                "unit_match",
+                                _term("lam", _UNIT, unit_motive_ret, value=dummy_unit_var.value),
+                                dummy_unit_var,
+                                body,
+                            )
+                        motive_return = (
+                            self.substitute(motive_body, root_var_id, pattern_term)
+                            if motive_body is not None
+                            else cast("_Term", inferred_result[0])
+                        )
+                        motive_lam = _term("lam", col_type, motive_return, value=col_var_id)
+                        branch_lam = _term(
+                            "lam",
+                            field_types[0],
+                            _term("lam", _UNIT, body, value=dummy_unit_var.value),
+                            value=fvar_0.value,
+                        )
+                        return _term("pair_match", motive_lam, col_scrutinee, branch_lam)
+                    field_vars = [self.fresh(ft) for ft in field_types]
+                    ctor_term = _apps(_constant(ctor_info.ctor_const), *col_type_args, *field_vars)
+                    sub_columns = [(fv, fv, ft) for fv, ft in zip(field_vars, field_types, strict=True)]
+                    body = compile_matrix(
+                        columns[:index] + sub_columns + columns[index + 1:],
+                        specialize_rows(
+                            active_rows,
+                            index,
+                            "union",
+                            ctor_term,
+                            col_var_id,
+                            col_type,
+                            len(field_vars),
+                            ctor_name=ctor_info.name,
+                        ),
+                        self.substitute(pattern_term, col_var_id, ctor_term),
+                    )
+                    tail_types = [field_types[-1]]
+                    for ft in reversed(field_types[1:-1]):
+                        tail_types.append(_term("prod", ft, tail_types[-1]))
+                    tail_types.reverse()
+                    tail_vars = [
+                        self.fresh(tail_types[k]) for k in range(len(field_types) - 2)
+                    ] + [field_vars[-1]]
+                    curr_body = body
+                    for k in range(len(field_types) - 2, -1, -1):
+                        left_var = field_vars[k]
+                        left_type = field_types[k]
+                        right_var = tail_vars[k]
+                        right_type = tail_types[k]
+                        if k == 0:
+                            scrut = col_scrutinee
+                            scrut_var_id = col_var_id
+                            scrut_type = col_type
+                            motive_return = (
+                                self.substitute(motive_body, root_var_id, pattern_term)
+                                if motive_body is not None
+                                else cast("_Term", inferred_result[0])
+                            )
+                        else:
+                            scrut = tail_vars[k - 1]
+                            scrut_var_id = cast("int", scrut.value)
+                            scrut_type = tail_types[k - 1]
+                            if motive_body is not None:
+                                partial = scrut
+                                p_type = scrut_type
+                                for j in range(k - 1, -1, -1):
+                                    partial = _term("pair", field_types[j], p_type, field_vars[j], partial)
+                                    p_type = _term("prod", field_types[j], p_type)
+                                motive_return = self.substitute(
+                                    motive_body,
+                                    root_var_id,
+                                    self.substitute(pattern_term, col_var_id, partial),
+                                )
+                            else:
+                                motive_return = cast("_Term", inferred_result[0])
+                        motive_lam = _term("lam", scrut_type, motive_return, value=scrut_var_id)
+                        branch_lam = _term(
+                            "lam",
+                            left_type,
+                            _term("lam", right_type, curr_body, value=right_var.value),
+                            value=left_var.value,
+                        )
+                        curr_body = _term("pair_match", motive_lam, scrut, branch_lam)
+                    return curr_body
+
+                inst_payload_types = [
+                    self._instantiate_generic_type(union_info.generic_vars, col_type_args, c.payload_type)
+                    for c in union_info.constructors
+                ]
+                inst_suffix_types = [
+                    self._instantiate_generic_type(union_info.generic_vars, col_type_args, st)
+                    for st in union_info.suffix_types
+                ]
+                num_ctors = len(union_info.constructors)
+
+                def suffix_inj(from_idx: int, inner_term: _Term) -> _Term:
+                    acc = inner_term
+                    for j in range(from_idx - 1, -1, -1):
+                        acc = _term("inr", inst_payload_types[j], inst_suffix_types[j + 1], acc)
+                    return acc
+
+                def ctor_inj(ctor_idx: int, payload_term: _Term) -> _Term:
+                    base = (
+                        _term("inl", inst_payload_types[ctor_idx], inst_suffix_types[ctor_idx + 1], payload_term)
+                        if ctor_idx < num_ctors - 1
+                        else payload_term
+                    )
+                    return suffix_inj(ctor_idx, base)
+
+                payload_vars: list[_Term] = []
+                payload_branches: list[_Term] = []
+                for ctor_idx, ctor_info in enumerate(union_info.constructors):
+                    field_types = [
+                        self._instantiate_generic_type(union_info.generic_vars, col_type_args, rf.type)
+                        for rf in ctor_info.fields
+                    ]
+                    if not field_types:
+                        pvar = self.fresh(_UNIT)
+                        ctor_term = _apps(_constant(ctor_info.ctor_const), *col_type_args, _term("unit"))
+                        leaf_body = compile_matrix(
+                            without_index,
+                            specialize_rows(
+                                active_rows, index, "union", ctor_term, col_var_id, col_type, 0, ctor_name=ctor_info.name
+                            ),
+                            self.substitute(pattern_term, col_var_id, ctor_term),
+                        )
+                        if motive_body is None:
+                            pbranch = leaf_body
+                        else:
+                            motive_ret = self.substitute(
+                                motive_body,
+                                root_var_id,
+                                self.substitute(pattern_term, col_var_id, ctor_inj(ctor_idx, pvar)),
+                            )
+                            pbranch = _term(
+                                "unit_match",
+                                _term("lam", _UNIT, motive_ret, value=pvar.value),
+                                pvar,
+                                leaf_body,
+                            )
+                        payload_vars.append(pvar)
+                        payload_branches.append(pbranch)
+                    elif len(field_types) == 1:
+                        pvar = self.fresh(field_types[0])
+                        ctor_term = _apps(_constant(ctor_info.ctor_const), *col_type_args, pvar)
+                        sub_columns = [(pvar, pvar, field_types[0])]
+                        pbranch = compile_matrix(
+                            columns[:index] + sub_columns + columns[index + 1:],
+                            specialize_rows(
+                                active_rows, index, "union", ctor_term, col_var_id, col_type, 1, ctor_name=ctor_info.name
+                            ),
+                            self.substitute(pattern_term, col_var_id, ctor_term),
+                        )
+                        payload_vars.append(pvar)
+                        payload_branches.append(pbranch)
+                    else:
+                        pvar = self.fresh(inst_payload_types[ctor_idx])
+                        field_vars = [self.fresh(ft) for ft in field_types]
+                        ctor_term = _apps(_constant(ctor_info.ctor_const), *col_type_args, *field_vars)
+                        sub_columns = [(fv, fv, ft) for fv, ft in zip(field_vars, field_types, strict=True)]
+                        leaf_body = compile_matrix(
+                            columns[:index] + sub_columns + columns[index + 1:],
+                            specialize_rows(
+                                active_rows,
+                                index,
+                                "union",
+                                ctor_term,
+                                col_var_id,
+                                col_type,
+                                len(field_vars),
+                                ctor_name=ctor_info.name,
+                            ),
+                            self.substitute(pattern_term, col_var_id, ctor_term),
+                        )
+                        tail_types = [field_types[-1]]
+                        for ft in reversed(field_types[1:-1]):
+                            tail_types.append(_term("prod", ft, tail_types[-1]))
+                        tail_types.reverse()
+                        tail_vars = [
+                            self.fresh(tail_types[k]) for k in range(len(field_types) - 2)
+                        ] + [field_vars[-1]]
+                        curr_body = leaf_body
+                        for k in range(len(field_types) - 2, -1, -1):
+                            left_var = field_vars[k]
+                            left_type = field_types[k]
+                            right_var = tail_vars[k]
+                            right_type = tail_types[k]
+                            if k == 0:
+                                scrut = pvar
+                                scrut_var_id = cast("int", pvar.value)
+                                scrut_type = inst_payload_types[ctor_idx]
+                            else:
+                                scrut = tail_vars[k - 1]
+                                scrut_var_id = cast("int", scrut.value)
+                                scrut_type = tail_types[k - 1]
+                            if motive_body is not None:
+                                partial = scrut
+                                p_type = scrut_type
+                                for j in range(k - 1, -1, -1):
+                                    partial = _term("pair", field_types[j], p_type, field_vars[j], partial)
+                                    p_type = _term("prod", field_types[j], p_type)
+                                motive_return = self.substitute(
+                                    motive_body,
+                                    root_var_id,
+                                    self.substitute(pattern_term, col_var_id, ctor_inj(ctor_idx, partial)),
+                                )
+                            else:
+                                motive_return = cast("_Term", inferred_result[0])
+                            motive_lam = _term("lam", scrut_type, motive_return, value=scrut_var_id)
+                            branch_lam = _term(
+                                "lam",
+                                left_type,
+                                _term("lam", right_type, curr_body, value=right_var.value),
+                                value=left_var.value,
+                            )
+                            curr_body = _term("pair_match", motive_lam, scrut, branch_lam)
+                        payload_vars.append(pvar)
+                        payload_branches.append(curr_body)
+
+                sum_vars = [self.fresh(inst_suffix_types[i]) for i in range(1, num_ctors - 1)]
+                acc_body = payload_branches[-1]
+                acc_var = payload_vars[-1]
+                for i in range(num_ctors - 2, -1, -1):
+                    left_lam = _term("lam", inst_payload_types[i], payload_branches[i], value=payload_vars[i].value)
+                    right_lam = _term("lam", inst_suffix_types[i + 1], acc_body, value=acc_var.value)
+                    if i == 0:
+                        scrut = col_scrutinee
+                        scrut_var_id = col_var_id
+                        scrut_type = col_type
+                        motive_return = (
+                            self.substitute(motive_body, root_var_id, pattern_term)
+                            if motive_body is not None
+                            else cast("_Term", inferred_result[0])
+                        )
+                    else:
+                        scrut = sum_vars[i - 1]
+                        scrut_var_id = cast("int", scrut.value)
+                        scrut_type = inst_suffix_types[i]
+                        motive_return = (
+                            self.substitute(
+                                motive_body,
+                                root_var_id,
+                                self.substitute(pattern_term, col_var_id, suffix_inj(i, scrut)),
+                            )
+                            if motive_body is not None
+                            else cast("_Term", inferred_result[0])
+                        )
+                    motive_lam = _term("lam", scrut_type, motive_return, value=scrut_var_id)
+                    acc_body = _term("sum_match", motive_lam, scrut, left_lam, right_lam)
+                    if i > 0:
+                        acc_var = sum_vars[i - 1]
+                return acc_body
 
             if col_type == _NAT:
                 zero_term = _term("nat", value=0)
@@ -3355,44 +3816,483 @@ class _Elaborator:
             )
         return _Binding(term, _apps(_constant("Vec"), _NAT, _term("nat", value=len(raw_bytes))))
 
-    def _elaborate_hole_expression(
-        self, expr_text: str, node: Node, environment: dict[str, _Binding]
-    ) -> _Binding:
-        text = expr_text.strip()
-        if not text:
-            raise self.fail("syntax", "empty interpolation hole in format template", node)
-        if text in {"true", "false"}:
-            return _Binding(_term("bool", value=1 if text == "true" else 0), _BOOL)
-        if DECIMAL.fullmatch(text):
-            if len(text.replace("_", "")) > MAX_LITERAL_DIGITS:
-                raise self.fail("limit", "numeric literal exceeds digit bound", node)
-            return _Binding(_term("nat", value=int(text.replace("_", ""))), _NAT)
-        if text.startswith('"') and text.endswith('"') and len(text) >= 2:
-            return self._bytes_binding(self._decode_string_literal(text, node))
-        if _IDENTIFIER.fullmatch(text):
-            if "." in text and text not in environment and text not in self.globals:
-                parts = text.split(".")
-                current = self.lookup(parts[0], environment)
-                for member_name in parts[1:]:
-                    current = self._project_member(current, member_name, node)
-                return current
-            return self.lookup(text, environment)
-        call_match = re.fullmatch(r"([A-Za-z_][A-Za-z_0-9]*)\((.*)\)", text, re.DOTALL)
-        if call_match is not None:
-            callee_name, raw_args = call_match.group(1), call_match.group(2).strip()
-            callee = self.lookup(callee_name, environment)
-            if not raw_args:
-                return self.apply(callee, [], environment)
-            arg_binding = self._elaborate_hole_expression(raw_args, node, environment)
-            fn_type = self.whnf(callee.type)
-            if fn_type.kind != "pi" or cast("int", fn_type.value) in self.nullary_parameters:
-                raise self.fail("type", f"invalid call to '{callee_name}' in interpolation hole", node)
-            self.unify(arg_binding.type, fn_type.args[0])
-            return _Binding(
-                _app(callee.term, arg_binding.term),
-                self.substitute(fn_type.args[1], cast("int", fn_type.value), arg_binding.term),
-            )
-        raise self.fail("unsupported", f"unsupported interpolation hole expression '{text}'", node)
+    def _parse_hole_ast(self, start_byte: int, end_byte: int, container: Node) -> Node:
+        src = self.protocol.source
+        raw_expr = src[start_byte:end_byte].decode("utf-8", errors="replace").strip()
+        tokens: list[tuple[str, str, int, int]] = []
+        cursor = trivia_end(src, start_byte, block_comments=True)
+        multi_ops = (b"<==>", b"==>", b"::<", b"==", b"!=", b"<=", b">=", b"&&", b"||")
+        single_ops = set(b"(){}[].,:=+-*/%<>!")
+        while cursor < end_byte:
+            matched_multi = False
+            for op in multi_ops:
+                if src[cursor:cursor + len(op)] == op and cursor + len(op) <= end_byte:
+                    tokens.append(("punct", op.decode("ascii"), cursor, cursor + len(op)))
+                    cursor = trivia_end(src, cursor + len(op), block_comments=True)
+                    matched_multi = True
+                    break
+            if matched_multi:
+                continue
+            byte0 = src[cursor]
+            if byte0 in single_ops:
+                tokens.append(("punct", chr(byte0), cursor, cursor + 1))
+                cursor = trivia_end(src, cursor + 1, block_comments=True)
+                continue
+            if byte0 == ord('"'):
+                end = cursor + 1
+                while end < end_byte and src[end] != ord('"'):
+                    if src[end] == ord("\\"):
+                        end += 2
+                    else:
+                        end += 1
+                if end >= end_byte or src[end] != ord('"'):
+                    raise self.fail("syntax", "unterminated string literal in interpolation hole", container)
+                end += 1
+                tokens.append(("string", src[cursor:end].decode("utf-8"), cursor, end))
+                cursor = trivia_end(src, end, block_comments=True)
+                continue
+            if ord("0") <= byte0 <= ord("9"):
+                end = cursor + 1
+                while end < end_byte and (
+                    ord("0") <= src[end] <= ord("9")
+                    or ord("A") <= src[end] <= ord("Z")
+                    or ord("a") <= src[end] <= ord("z")
+                    or src[end] == ord("_")
+                ):
+                    end += 1
+                token_str = src[cursor:end].decode("ascii")
+                split_at = len(token_str)
+                for idx_ch, ch in enumerate(token_str):
+                    if not (ch.isdigit() or ch == "_"):
+                        split_at = idx_ch
+                        break
+                tokens.append(("nat", f"{token_str[:split_at]}:{token_str[split_at:]}", cursor, end))
+                cursor = trivia_end(src, end, block_comments=True)
+                continue
+            if (
+                ord("A") <= byte0 <= ord("Z")
+                or ord("a") <= byte0 <= ord("z")
+                or byte0 in {ord("_"), ord("?")}
+            ):
+                end = cursor + 1
+                if byte0 == ord("?") and (
+                    end >= end_byte
+                    or not (
+                        ord("A") <= src[end] <= ord("Z")
+                        or ord("a") <= src[end] <= ord("z")
+                        or src[end] == ord("_")
+                    )
+                ):
+                    raise self.fail("unsupported", f"unsupported interpolation hole expression '{raw_expr}'", container)
+                while end < end_byte and (
+                    ord("0") <= src[end] <= ord("9")
+                    or ord("A") <= src[end] <= ord("Z")
+                    or ord("a") <= src[end] <= ord("z")
+                    or src[end] == ord("_")
+                ):
+                    end += 1
+                tokens.append(("ident", src[cursor:end].decode("ascii"), cursor, end))
+                cursor = trivia_end(src, end, block_comments=True)
+                continue
+            raise self.fail("unsupported", f"unsupported interpolation hole expression '{raw_expr}'", container)
+
+        if not tokens:
+            raise self.fail("syntax", "empty interpolation hole in format template", container)
+
+        pos = 0
+
+        def peek() -> tuple[str, str, int, int] | None:
+            return tokens[pos] if pos < len(tokens) else None
+
+        def consume(expected_kind: str | None = None, expected_text: str | None = None) -> tuple[str, str, int, int]:
+            nonlocal pos
+            tok = peek()
+            if tok is None or (expected_kind is not None and tok[0] != expected_kind) or (
+                expected_text is not None and tok[1] != expected_text
+            ):
+                raise self.fail("unsupported", f"unsupported interpolation hole expression '{raw_expr}'", container)
+            pos += 1
+            return tok
+
+        def has_generic_call_ahead(start_idx: int) -> bool:
+            depth = 0
+            idx = start_idx
+            while idx < len(tokens):
+                tk, tv, _, _ = tokens[idx]
+                if tk == "punct" and tv in {"<", ":: <", "::<"}:
+                    depth += 1
+                elif tk == "punct" and tv == ">":
+                    depth -= 1
+                    if depth == 0:
+                        return idx + 1 < len(tokens) and tokens[idx + 1][0] == "punct" and tokens[idx + 1][1] == "("
+                elif tk == "punct" and tv in {";", "{", "}"}:
+                    return False
+                idx += 1
+            return False
+
+        def is_tok(kind: str, val: str | None = None) -> bool:
+            t = peek()
+            return t is not None and t[0] == kind and (val is None or t[1] == val)
+
+        def parse_type_node() -> Node:
+            t_tok = consume("ident")
+            name_node: Node = {"text": t_tok[1], "span": [t_tok[2], t_tok[3]]}
+            args: list[Node] = []
+            end_b = t_tok[3]
+            if is_tok("punct", "<"):
+                consume("punct", "<")
+                while True:
+                    if is_tok("nat"):
+                        ntok = consume("nat")
+                        v_str, s_str = ntok[1].split(":", 1)
+                        args.append({"kind": "nat", "span": [ntok[2], ntok[3]], "value": v_str, "suffix": s_str})
+                    else:
+                        args.append(parse_type_node())
+                    if is_tok("punct", ","):
+                        consume("punct", ",")
+                        if is_tok("punct", ">"):
+                            break
+                    else:
+                        break
+                gt_tok = consume("punct", ">")
+                end_b = gt_tok[3]
+            return {"kind": "type", "span": [t_tok[2], end_b], "name": name_node, "arguments": args}
+
+        def parse_pattern_node() -> Node:
+            ptok = peek()
+            if ptok is None:
+                raise self.fail("unsupported", f"unsupported interpolation hole expression '{raw_expr}'", container)
+            if ptok[0] == "ident" and ptok[1] == "_":
+                consume("ident", "_")
+                return {"kind": "wildcard_pattern", "span": [ptok[2], ptok[3]]}
+            if ptok[0] == "ident" and ptok[1] in {"true", "false"}:
+                consume("ident")
+                return {"kind": "bool_pattern", "span": [ptok[2], ptok[3]], "value": ptok[1] == "true"}
+            if ptok[0] == "nat":
+                consume("nat")
+                v_str, s_str = ptok[1].split(":", 1)
+                return {"kind": "nat_pattern", "span": [ptok[2], ptok[3]], "value": v_str, "suffix": s_str}
+            if ptok[0] == "ident":
+                consume("ident")
+                ident_node: Node = {"text": ptok[1], "span": [ptok[2], ptok[3]]}
+                if is_tok("punct", "("):
+                    consume("punct", "(")
+                    pargs: list[Node] = []
+                    if peek() is not None and not is_tok("punct", ")"):
+                        while True:
+                            if (
+                                pos + 1 < len(tokens)
+                                and tokens[pos][0] == "ident"
+                                and tokens[pos + 1][0] == "punct"
+                                and tokens[pos + 1][1] == ":"
+                            ):
+                                ltok = consume("ident")
+                                consume("punct", ":")
+                                inner_p = parse_pattern_node()
+                                inner_end = cast("list[int]", inner_p["span"])[1]
+                                pargs.append(
+                                    {
+                                        "kind": "labeled_pattern",
+                                        "span": [ltok[2], inner_end],
+                                        "label": {"text": ltok[1], "span": [ltok[2], ltok[3]]},
+                                        "pattern": inner_p,
+                                    }
+                                )
+                            else:
+                                pargs.append(parse_pattern_node())
+                            if is_tok("punct", ","):
+                                consume("punct", ",")
+                                if is_tok("punct", ")"):
+                                    break
+                            else:
+                                break
+                    rp = consume("punct", ")")
+                    return {
+                        "kind": "constructor_pattern",
+                        "span": [ptok[2], rp[3]],
+                        "name": ident_node,
+                        "arguments": pargs,
+                    }
+                return {"kind": "binding_pattern", "span": [ptok[2], ptok[3]], "name": ident_node}
+            raise self.fail("unsupported", f"unsupported interpolation hole expression '{raw_expr}'", container)
+
+        def parse_primary() -> Node:
+            tok = peek()
+            if tok is None:
+                raise self.fail("unsupported", f"unsupported interpolation hole expression '{raw_expr}'", container)
+            tk, tv, ts, te = tok
+            if tk == "ident" and tv == "if":
+                consume("ident", "if")
+                consume("punct", "(")
+                cond = parse_expr()
+                consume("punct", ")")
+                yes = parse_expr()
+                consume("ident", "else")
+                no = parse_expr()
+                no_end = cast("list[int]", no["span"])[1]
+                return {
+                    "kind": "if_expression",
+                    "span": [ts, no_end],
+                    "condition": cond,
+                    "then": yes,
+                    "else": no,
+                }
+            if tk == "ident" and tv in {"true", "false"}:
+                consume("ident")
+                return {"kind": "bool", "span": [ts, te], "value": tv == "true"}
+            if tk == "nat":
+                consume("nat")
+                v_str, s_str = tv.split(":", 1)
+                return {"kind": "nat", "span": [ts, te], "value": v_str, "suffix": s_str}
+            if tk == "string":
+                consume("string")
+                return {"kind": "string", "span": [ts, te], "value": tv}
+            if tk == "punct" and tv == "(":
+                consume("punct", "(")
+                if is_tok("punct", ")"):
+                    rp = consume("punct", ")")
+                    return {"kind": "unit", "span": [ts, rp[3]]}
+                first = parse_expr()
+                if is_tok("punct", ","):
+                    items = [first]
+                    while is_tok("punct", ","):
+                        consume("punct", ",")
+                        items.append(parse_expr())
+                    rp = consume("punct", ")")
+                    return {"kind": "tuple", "span": [ts, rp[3]], "values": items}
+                rp = consume("punct", ")")
+                return {"kind": "group", "span": [ts, rp[3]], "value": first}
+            if tk == "ident":
+                consume("ident")
+                kind_name = "hole" if tv.startswith("?") else "name"
+                return {"kind": kind_name, "span": [ts, te], "name": {"text": tv, "span": [ts, te]}}
+            raise self.fail("unsupported", f"unsupported interpolation hole expression '{raw_expr}'", container)
+
+        def parse_postfix() -> Node:
+            node: Node = parse_primary()
+            while True:
+                nxt = peek()
+                if nxt is None:
+                    break
+                nk, nv, _, _ = nxt
+                node_start = cast("list[int]", node["span"])[0]
+                if nk == "punct" and nv == ".":
+                    consume("punct", ".")
+                    mtok = consume("ident")
+                    node = {
+                        "kind": "member",
+                        "span": [node_start, mtok[3]],
+                        "value": node,
+                        "name": {"text": mtok[1], "span": [mtok[2], mtok[3]]},
+                    }
+                    continue
+                if nk == "punct" and (
+                    nv == "::<" or (nv == "<" and node["kind"] == "name" and has_generic_call_ahead(pos))
+                ):
+                    consume("punct")
+                    gargs: list[Node] = []
+                    while True:
+                        if is_tok("nat"):
+                            ntok = consume("nat")
+                            v_str, s_str = ntok[1].split(":", 1)
+                            gargs.append(
+                                {"kind": "nat", "span": [ntok[2], ntok[3]], "value": v_str, "suffix": s_str}
+                            )
+                        else:
+                            gargs.append(parse_type_node())
+                        if is_tok("punct", ","):
+                            consume("punct", ",")
+                            if is_tok("punct", ">"):
+                                break
+                        else:
+                            break
+                    gt_tok = consume("punct", ">")
+                    node = {
+                        "kind": "generic_application",
+                        "span": [node_start, gt_tok[3]],
+                        "value": node,
+                        "arguments": gargs,
+                    }
+                    continue
+                if nk == "punct" and nv == "(":
+                    consume("punct", "(")
+                    cargs: list[Node] = []
+                    if peek() is not None and not is_tok("punct", ")"):
+                        while True:
+                            if (
+                                pos + 1 < len(tokens)
+                                and tokens[pos][0] == "ident"
+                                and tokens[pos + 1][0] == "punct"
+                                and tokens[pos + 1][1] == ":"
+                            ):
+                                ltok = consume("ident")
+                                consume("punct", ":")
+                                val_node = parse_expr()
+                                val_end = cast("list[int]", val_node["span"])[1]
+                                cargs.append(
+                                    {
+                                        "kind": "argument",
+                                        "span": [ltok[2], val_end],
+                                        "label": {"text": ltok[1], "span": [ltok[2], ltok[3]]},
+                                        "value": val_node,
+                                    }
+                                )
+                            else:
+                                val_node = parse_expr()
+                                val_span = cast("list[int]", val_node["span"])
+                                cargs.append(
+                                    {
+                                        "kind": "argument",
+                                        "span": [val_span[0], val_span[1]],
+                                        "label": None,
+                                        "value": val_node,
+                                    }
+                                )
+                            if is_tok("punct", ","):
+                                consume("punct", ",")
+                                if is_tok("punct", ")"):
+                                    break
+                            else:
+                                break
+                    rp = consume("punct", ")")
+                    node = {"kind": "call", "span": [node_start, rp[3]], "callee": node, "arguments": cargs}
+                    continue
+                if nk == "ident" and nv == "with":
+                    consume("ident", "with")
+                    consume("punct", "{")
+                    updates: list[Node] = []
+                    while peek() is not None and not is_tok("punct", "}"):
+                        ftok = consume("ident")
+                        consume("punct", "=")
+                        fval = parse_expr()
+                        fval_end = cast("list[int]", fval["span"])[1]
+                        updates.append(
+                            {
+                                "kind": "field_update",
+                                "span": [ftok[2], fval_end],
+                                "name": {"text": ftok[1], "span": [ftok[2], ftok[3]]},
+                                "value": fval,
+                            }
+                        )
+                        if is_tok("punct", ","):
+                            consume("punct", ",")
+                        else:
+                            break
+                    rb = consume("punct", "}")
+                    node = {
+                        "kind": "with_expression",
+                        "span": [node_start, rb[3]],
+                        "value": node,
+                        "updates": updates,
+                    }
+                    continue
+                if nk == "ident" and nv == "is":
+                    consume("ident", "is")
+                    pat_node = parse_pattern_node()
+                    pat_end = cast("list[int]", pat_node["span"])[1]
+                    node = {"kind": "is", "span": [node_start, pat_end], "value": node, "pattern": pat_node}
+                    continue
+                break
+            return node
+
+        def parse_unary() -> Node:
+            tok = peek()
+            if tok is not None and (
+                (tok[0] == "punct" and tok[1] == "!") or (tok[0] == "ident" and tok[1] == "ref")
+            ):
+                consume()
+                operand = parse_unary()
+                op_end = cast("list[int]", operand["span"])[1]
+                return {
+                    "kind": "unary",
+                    "span": [tok[2], op_end],
+                    "operator": {"text": tok[1], "span": [tok[2], tok[3]]},
+                    "value": operand,
+                }
+            return parse_postfix()
+
+        def parse_bin(next_fn: Callable[[], Node], ops: set[str], *, right_assoc: bool = False) -> Node:
+            left: Node = next_fn()
+            while True:
+                cur_op = peek()
+                if cur_op is None or cur_op[0] != "punct" or cur_op[1] not in ops:
+                    break
+                op_tok = consume("punct")
+                right = parse_bin(next_fn, ops, right_assoc=True) if right_assoc else next_fn()
+                left_start = cast("list[int]", left["span"])[0]
+                right_end = cast("list[int]", right["span"])[1]
+                left = {
+                    "kind": "binary",
+                    "span": [left_start, right_end],
+                    "operator": {"text": op_tok[1], "span": [op_tok[2], op_tok[3]]},
+                    "left": left,
+                    "right": right,
+                }
+            return left
+
+        def parse_mul() -> Node:
+            return parse_bin(parse_unary, {"*", "/", "%"})
+
+        def parse_add() -> Node:
+            return parse_bin(parse_mul, {"+", "-"})
+
+        def parse_cmp() -> Node:
+            return parse_bin(parse_add, {"<", "<=", ">", ">="})
+
+        def parse_eq() -> Node:
+            return parse_bin(parse_cmp, {"==", "!="})
+
+        def parse_and() -> Node:
+            return parse_bin(parse_eq, {"&&"})
+
+        def parse_or() -> Node:
+            return parse_bin(parse_and, {"||"})
+
+        def parse_expr() -> Node:
+            return parse_bin(parse_or, {"==>", "<==>"}, right_assoc=True)
+
+        ast_node = parse_expr()
+        if pos != len(tokens):
+            raise self.fail("unsupported", f"unsupported interpolation hole expression '{raw_expr}'", container)
+        self.protocol.visit(ast_node, (start_byte, end_byte))
+        return ast_node
+
+    def _check_hole_target_alias(self, node: Node, target_name: str) -> None:
+        kind = node["kind"]
+        if kind == "name":
+            if self.name(node["name"]) == target_name:
+                raise self.fail(
+                    "type",
+                    f"Format.Write hole cannot alias or read target buffer '{target_name}'",
+                    node,
+                )
+            return
+        if kind in {"group", "unary", "member", "is", "generic_application"}:
+            self._check_hole_target_alias(self.node(node["value"]), target_name)
+            return
+        if kind == "binary":
+            self._check_hole_target_alias(self.node(node["left"]), target_name)
+            self._check_hole_target_alias(self.node(node["right"]), target_name)
+            return
+        if kind == "if_expression":
+            self._check_hole_target_alias(self.node(node["condition"]), target_name)
+            self._check_hole_target_alias(self.node(node["then"]), target_name)
+            self._check_hole_target_alias(self.node(node["else"]), target_name)
+            return
+        if kind == "tuple":
+            for item in self.nodes(node["values"]):
+                self._check_hole_target_alias(item, target_name)
+            return
+        if kind == "call":
+            self._check_hole_target_alias(self.node(node["callee"]), target_name)
+            for arg_node in self.nodes(node["arguments"]):
+                self._check_hole_target_alias(self.node(arg_node["value"]), target_name)
+            return
+        if kind == "with_expression":
+            self._check_hole_target_alias(self.node(node["value"]), target_name)
+            for upd_node in self.nodes(node["updates"]):
+                self._check_hole_target_alias(self.node(upd_node["value"]), target_name)
+            return
 
     def _format_write(
         self, node: Node, arguments: list[Node], environment: dict[str, _Binding]
@@ -3417,11 +4317,12 @@ class _Elaborator:
         if (target_arg["kind"] != "unary"
                 or not isinstance(target_arg["operator"], dict)
                 or target_arg["operator"].get("text") != "ref"):
-            hint = (
-                f"; write 'ref {self.name(target_arg['name'])}'"
-                if target_arg["kind"] == "name"
-                else ""
-            )
+            hint = ""
+            if target_arg["kind"] == "name":
+                tname = self.name(target_arg["name"])
+                t_err = self.protocol.error("type", "", target_arg)
+                assist_loan_argument(self.protocol.source, t_err.line, t_err.column, "ref")
+                hint = f"; write 'ref {tname}'"
             raise self.fail(
                 "type",
                 f"Format.Write requires an explicit ref TextBuilder<capacity> target{hint}",
@@ -3442,6 +4343,7 @@ class _Elaborator:
             )
         spelling = cast("str", template_arg["value"])
         body = spelling[2:-1]
+        body_start_byte = cast("list[int]", template_arg["span"])[0] + 2
         literal_chars: list[str] = []
         chunk_terms: list[_Term] = []
         concrete_bytes = 0
@@ -3458,22 +4360,66 @@ class _Elaborator:
                         self._decode_escaped_segment("".join(literal_chars), template_arg)
                     )
                     literal_chars.clear()
-                end = body.find("}", index + 1)
-                if end == -1:
+                scan = index + 1
+                brace_depth = 1
+                paren_depth = 0
+                bracket_depth = 0
+                in_quote = False
+                colon_index: int | None = None
+                while scan < len(body) and brace_depth > 0:
+                    c_scan = body[scan]
+                    if in_quote:
+                        if c_scan == "\\":
+                            scan += 2
+                            continue
+                        if c_scan == '"':
+                            in_quote = False
+                        scan += 1
+                        continue
+                    if c_scan == '"':
+                        in_quote = True
+                    elif c_scan == "{":
+                        brace_depth += 1
+                    elif c_scan == "}":
+                        brace_depth -= 1
+                        if brace_depth == 0:
+                            break
+                    elif c_scan == "(":
+                        paren_depth += 1
+                    elif c_scan == ")":
+                        paren_depth = max(0, paren_depth - 1)
+                    elif c_scan == "[":
+                        bracket_depth += 1
+                    elif c_scan == "]":
+                        bracket_depth = max(0, bracket_depth - 1)
+                    elif (
+                        c_scan == ":"
+                        and brace_depth == 1
+                        and paren_depth == 0
+                        and bracket_depth == 0
+                        and not (scan + 1 < len(body) and body[scan + 1] == ":")
+                        and not (scan > index + 1 and body[scan - 1] == ":")
+                    ):
+                        colon_index = scan
+                    scan += 1
+                if brace_depth != 0:
                     raise self.fail("syntax", "unterminated interpolation hole in format template", template_arg)
-                hole_content = body[index + 1:end]
-                if ":" in hole_content:
-                    expr_part, spec_part = hole_content.rsplit(":", 1)
-                    expr_text, spec = expr_part.strip(), spec_part.strip()
-                else:
-                    expr_text, spec = hole_content.strip(), ""
-                if target_name is not None and re.search(rf"\b{re.escape(target_name)}\b", expr_text):
+                end = scan
+                raw_start = index + 1
+                raw_end = colon_index if colon_index is not None else end
+                spec = body[colon_index + 1:end].strip() if colon_index is not None else ""
+                expr_byte_start = body_start_byte + len(body[:raw_start].encode("utf-8"))
+                expr_byte_end = body_start_byte + len(body[:raw_end].encode("utf-8"))
+                hole_ast = self._parse_hole_ast(expr_byte_start, expr_byte_end, template_arg)
+                if target_name is not None:
+                    self._check_hole_target_alias(hole_ast, target_name)
+                hole_binding = self.expression(hole_ast, environment)
+                if builder.term.kind == "var" and cast("int", builder.term.value) in self.free(hole_binding.term):
                     raise self.fail(
                         "type",
-                        f"Format.Write hole cannot alias or read target buffer '{target_name}'",
-                        template_arg,
+                        f"Format.Write hole cannot alias or read target buffer '{target_name or 'target'}'",
+                        hole_ast,
                     )
-                hole_binding = self._elaborate_hole_expression(expr_text, template_arg, environment)
                 hole_type = self.whnf(hole_binding.type)
                 head, type_args = self.spine(hole_type)
                 if hole_type == _NAT:
@@ -3713,7 +4659,8 @@ class _Elaborator:
             raise self.fail("unsupported", "unsupported or repeated declaration modifiers", node)
         self.no_roles(node, "contracts")
         name = self.name(node["name"])
-        if name in self.globals or name in self.records or name in {"Type", "_", "this"} or "." in name:
+        if (name in self.globals or name in self.records or name in self.unions
+                or name in self.union_ctors or name in {"Type", "_", "this"} or "." in name):
             raise self.fail("name", f"duplicate or reserved declaration '{name}'", node)
         generics = self.nodes(node["generics"])
         parameters = self.nodes(node["parameters"])
@@ -3878,12 +4825,178 @@ class _Elaborator:
             self.definitions[prop_emitted] = prop_def
             record_info.properties[prop_name] = _RecordProperty(prop_name, self_var, prop_type, prop_emitted)
 
+    def _union_declaration(self, node: Node, first_meta: int) -> None:
+        modifiers = node["modifiers"]
+        allowed_modifiers = {"public", "private", "internal"}
+        if (not isinstance(modifiers, list)
+                or any(not isinstance(value, str) or value not in allowed_modifiers for value in modifiers)
+                or len(modifiers) != len(set(modifiers))):
+            raise self.fail("unsupported", "unsupported or repeated declaration modifiers", node)
+        self.no_roles(node, "contracts")
+        name = self.name(node["name"])
+        if (name in self.globals or name in self.records or name in self.unions
+                or name in self.union_ctors or name in {"Type", "_", "this"} or "." in name):
+            raise self.fail("name", f"duplicate or reserved declaration '{name}'", node)
+        generics = self.nodes(node["generics"])
+        constructors = self.nodes(node["constructors"])
+        if not constructors:
+            raise self.fail("unsupported", "empty union declarations require the full frontend", node)
+        generic_vars, generic_env = self.telescope(generics, [], {}, unit=False)
+        seen_ctors: set[str] = set()
+        ctor_specs: list[tuple[Node, str, list[str], list[_Term], _Term]] = []
+        for ctor_node in constructors:
+            self.node(ctor_node, "constructor")
+            self.no_roles(ctor_node, "contracts")
+            if ctor_node["result"] is not None:
+                raise self.fail(
+                    "unsupported",
+                    "indexed union constructor result clauses require the full frontend",
+                    ctor_node,
+                )
+            cname = self.name(ctor_node["name"])
+            if (cname in self.globals or cname in self.records or cname in self.unions
+                    or cname in self.union_ctors or cname == name or cname in seen_ctors
+                    or cname in {"Type", "_", "this"} or "." in cname):
+                raise self.fail("name", f"duplicate or reserved union constructor '{cname}'", ctor_node)
+            seen_ctors.add(cname)
+            cparams = self.nodes(ctor_node["parameters"])
+            for param_node in cparams:
+                self.node(param_node, "parameter")
+                if param_node["name"] is None:
+                    raise self.fail("protocol", "union constructor field requires an explicit name", param_node)
+                fname = self.name(param_node["name"])
+                if fname in {"Type", "_", "this"} or "." in fname:
+                    raise self.fail("name", f"invalid or reserved union constructor field name '{fname}'", param_node)
+                if param_node.get("const", False):
+                    raise self.fail("unsupported", "union constructor fields cannot be marked const", param_node)
+            field_vars, _ = self.telescope([], cparams, generic_env, unit=False)
+            field_names = [self.name(p["name"]) for p in cparams]
+            for idx, fv in enumerate(field_vars):
+                ftype = self.types[cast("int", fv.value)]
+                if any(cast("int", earlier.value) in self.free(ftype) for earlier in field_vars[:idx]):
+                    raise self.fail(
+                        "unsupported",
+                        "dependent union constructor field telescopes require sigT lowering in the full frontend",
+                        cparams[idx],
+                    )
+            if not field_vars:
+                payload_type = _UNIT
+            elif len(field_vars) == 1:
+                f0_type = self.types[cast("int", field_vars[0].value)]
+                payload_type = _term("prod", f0_type, _UNIT) if len(constructors) == 1 else f0_type
+            else:
+                payload_type = self.types[cast("int", field_vars[-1].value)]
+                for fv in reversed(field_vars[:-1]):
+                    payload_type = _term("prod", self.types[cast("int", fv.value)], payload_type)
+            ctor_specs.append((ctor_node, cname, field_names, field_vars, payload_type))
+
+        payload_types = [spec[4] for spec in ctor_specs]
+        if len(constructors) == 1:
+            suffix_types = [payload_types[0]]
+            rep_type = payload_types[0]
+        else:
+            suffix_types = [payload_types[-1]]
+            for pt in reversed(payload_types[:-1]):
+                suffix_types.append(_term("sum", pt, suffix_types[-1]))
+            suffix_types.reverse()
+            rep_type = suffix_types[0]
+        rep_sort = _term("sort", value=max(self.sort(rep_type), 0))
+        type_sig = self.wrap("pi", generic_vars, rep_sort)
+        type_def = self.wrap("lam", generic_vars, rep_type)
+        self.site = node
+        self.complete(type_sig)
+        self.complete(type_def)
+        for index in range(first_meta, len(self.metas)):
+            self.complete(_term("meta", value=index))
+            self.complete(self.metas[index].type)
+        type_emitted = f"vela_d{len(self.output)}_{name}"
+        self.output.append(f"Definition {type_emitted} : {self.render(type_sig)} :=\n  {self.render(type_def)}.")
+        type_binding = _Binding(_constant(type_emitted), type_sig, len(generics))
+        self.globals[name] = type_binding
+        self.constants[type_emitted] = type_binding
+
+        union_type_app = _apps(_constant(type_emitted), *generic_vars)
+        union_ctors: list[_UnionCtor] = []
+        for idx, (ctor_node, cname, field_names, field_vars, payload_type) in enumerate(ctor_specs):
+            self.site = ctor_node
+            if not field_vars:
+                unit_var = self.fresh(_UNIT)
+                self.nullary_parameters.add(cast("int", unit_var.value))
+                ctor_vars = [*generic_vars, unit_var]
+                payload_val = _term("unit")
+            elif len(field_vars) == 1:
+                ctor_vars = [*generic_vars, field_vars[0]]
+                f0_type = self.types[cast("int", field_vars[0].value)]
+                payload_val = (
+                    _term("pair", f0_type, _UNIT, field_vars[0], _term("unit"))
+                    if len(constructors) == 1
+                    else field_vars[0]
+                )
+            else:
+                ctor_vars = [*generic_vars, *field_vars]
+                payload_val = field_vars[-1]
+                acc_type = self.types[cast("int", field_vars[-1].value)]
+                for fv in reversed(field_vars[:-1]):
+                    fv_type = self.types[cast("int", fv.value)]
+                    payload_val = _term("pair", fv_type, acc_type, fv, payload_val)
+                    acc_type = _term("prod", fv_type, acc_type)
+            if len(constructors) == 1:
+                ctor_body = payload_val
+            else:
+                ctor_body = (
+                    _term("inl", payload_types[idx], suffix_types[idx + 1], payload_val)
+                    if idx < len(constructors) - 1
+                    else payload_val
+                )
+                for j in range(idx - 1, -1, -1):
+                    ctor_body = _term("inr", payload_types[j], suffix_types[j + 1], ctor_body)
+            ctor_sig = self.wrap("pi", ctor_vars, union_type_app)
+            ctor_def = self.wrap("lam", ctor_vars, ctor_body)
+            self.complete(ctor_sig)
+            self.complete(ctor_def)
+            ctor_emitted = f"vela_d{len(self.output)}_{name}_{cname}"
+            self.output.append(f"Definition {ctor_emitted} : {self.render(ctor_sig)} :=\n  {self.render(ctor_def)}.")
+            ctor_binding = _Binding(_constant(ctor_emitted), ctor_sig, len(generics))
+            self.globals[cname] = ctor_binding
+            self.constants[ctor_emitted] = ctor_binding
+            ctor_fields = tuple(
+                _RecordField(fname, fvar, self.types[cast("int", fvar.value)], "")
+                for fname, fvar in zip(field_names, field_vars, strict=True)
+            )
+            union_ctors.append(
+                _UnionCtor(
+                    name=cname,
+                    ctor_const=ctor_emitted,
+                    ctor_binding=ctor_binding,
+                    fields=ctor_fields,
+                    payload_type=payload_type,
+                    index=idx,
+                )
+            )
+
+        union_info = _UnionInfo(
+            name=name,
+            type_const=type_emitted,
+            type_binding=type_binding,
+            generic_vars=tuple(generic_vars),
+            constructors=tuple(union_ctors),
+            suffix_types=tuple(suffix_types),
+        )
+        self.unions[name] = union_info
+        self.unions_by_type[type_emitted] = union_info
+        for uc in union_ctors:
+            self.union_ctors[uc.name] = (union_info, uc)
+            self.unions_by_ctor[uc.ctor_const] = (union_info, uc)
+
     def declaration(self, node: Node) -> None:
         self.site = node
         first_meta = len(self.metas)
         kind = node["kind"]
         if kind == "record":
             self._record_declaration(node, first_meta)
+            return
+        if kind == "union":
+            self._union_declaration(node, first_meta)
             return
         if kind not in {"alias", "definition", "function", "property", "theorem", "lemma", "constant"}:
             raise self.fail("unsupported", f"declaration '{kind}' requires the full frontend")
@@ -3894,7 +5007,8 @@ class _Elaborator:
             raise self.fail("unsupported", "unsupported or repeated declaration modifiers")
         self.no_roles(node, "contracts", "cancel")
         name = self.name(node["name"])
-        if name in self.globals or name in self.records or name in {"Type", "_", "this"} or "." in name:
+        if (name in self.globals or name in self.records or name in self.unions
+                or name in self.union_ctors or name in {"Type", "_", "this"} or "." in name):
             raise self.fail("name", f"duplicate or reserved declaration '{name}'")
         generics = [] if kind in {"constant", "property"} else self.nodes(node["generics"])
         parameters = [] if kind in {"alias", "constant", "property"} else self.nodes(node["parameters"])
@@ -3978,6 +5092,10 @@ class _Elaborator:
             return f"(@Corelib.Init.Datatypes.prod {self.render(term.args[0])} {self.render(term.args[1])})"
         if kind == "pair":
             return "(@Corelib.Init.Datatypes.pair " + " ".join(self.render(value) for value in term.args) + ")"
+        if kind == "sum":
+            return f"(@Corelib.Init.Datatypes.sum {self.render(term.args[0])} {self.render(term.args[1])})"
+        if kind in {"inl", "inr"}:
+            return f"(@Corelib.Init.Datatypes.{kind} " + " ".join(self.render(value) for value in term.args) + ")"
         if kind == "if":
             _, condition, yes, no = term.args
             return f"(if {self.render(condition)} then {self.render(yes)} else {self.render(no)})"
@@ -4000,6 +5118,14 @@ class _Elaborator:
             right_binder = f"vela_v{inner.value}"
             return (f"(match {self.render(scrutinee)} as {binder} return {self.render(motive.args[1])} with "
                     f"| @Corelib.Init.Datatypes.pair _ _ {left_binder} {right_binder} => {self.render(inner.args[1])} end)")
+        if kind == "sum_match":
+            motive, scrutinee, left_branch, right_branch = term.args
+            binder = f"vela_v{motive.value}"
+            left_binder = f"vela_v{left_branch.value}"
+            right_binder = f"vela_v{right_branch.value}"
+            return (f"(match {self.render(scrutinee)} as {binder} return {self.render(motive.args[1])} with "
+                    f"| @Corelib.Init.Datatypes.inl _ _ {left_binder} => {self.render(left_branch.args[1])} "
+                    f"| @Corelib.Init.Datatypes.inr _ _ {right_binder} => {self.render(right_branch.args[1])} end)")
         if kind == "nat_match":
             motive, scrutinee, zero_branch, succ_branch = term.args
             binder = f"vela_v{motive.value}"

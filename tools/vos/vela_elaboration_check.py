@@ -219,6 +219,12 @@ public theorem PacketFitsForEveryId(): forall (Nat id) => Fits(FormatPacket(id, 
     proof { assert Fits(FormatPacket(id, true)); }
 public lemma PacketWrites32Bytes(): Written(FormatPacket(42, true)) == 32 proof { assert Written(FormatPacket(42, true)) == 32; }
 public lemma SmallBufferFailsClosed(): Fits(OverflowPacket(42)) == false proof { assert Fits(OverflowPacket(42)) == false; }
+public definition Nat Scale(Nat factor, Nat value) => factor * value;
+public TextBuilder<48> FormatComputed(Nat id) {
+    let TextBuilder<48> b = EmptyBuilder();
+    return Format.Write(ref b, $"next=0x{id + 1:x4} scaled=0x{Scale(factor: 2, value: id):x4}");
+}
+public lemma ComputedWrites25Bytes(): Written(FormatComputed(5)) == 25 proof { assert Written(FormatComputed(5)) == 25; }
 '''),
         ("ergonomic-expressions-patterns-updates-guards-and-properties", '''module ErgonomicsReplay;
 public record Counter(Nat Value, Nat Limit) {
@@ -275,6 +281,62 @@ public lemma ExprIfIsCheck():
 public lemma FormatCounterLength():
     Written(FormatCounter(Counter(Value: 2, Limit: 5))) == 17
     proof { assert Written(FormatCounter(Counter(Value: 2, Limit: 5))) == 17; }
+'''),
+        ("tagged-union-declarations-and-elimination", '''module UnionReplay;
+public union Option<TValue> {
+    None();
+    Some(TValue Value);
+}
+public union Status {
+    Idle();
+    Busy(Nat Step);
+    Split(Nat Left, Nat Right);
+}
+public definition TValue UnwrapOr<TValue>(Option<TValue> item, TValue fallback) =>
+    match (item) {
+        None() => fallback,
+        Some(Value: inner) => inner,
+    };
+public definition Nat MeasureStatus(Status status) =>
+    match (status) {
+        Idle() => 0,
+        Busy(Step: current) => current,
+        Split(Left: left, Right: right) => left + right,
+    };
+public Nat UnwrapGuarded(Option<Nat> item, Nat fallback) {
+    let Some(Value: current) = item else {
+        return fallback;
+    }
+    return if (item is Some(inner)) current + inner else fallback;
+}
+public lemma UnwrapSome(Nat value, Nat fallback):
+    UnwrapOr(Some(Value: value), fallback) == value
+    proof { assert UnwrapOr(Some(Value: value), fallback) == value; }
+public lemma MeasureSplit():
+    MeasureStatus(Split(Left: 3, Right: 4)) == 7
+    proof { assert MeasureStatus(Split(Left: 3, Right: 4)) == 7; }
+public lemma GuardedSome():
+    UnwrapGuarded(Some(5), 0) == 10
+    proof { assert UnwrapGuarded(Some(5), 0) == 10; }
+public lemma OptionRoundTrip(Option<Nat> item):
+    (match (item) {
+        None() => None<Nat>(),
+        Some(value) => Some<Nat>(value),
+    }) == item
+    proof {
+        match (item) {
+            case None():
+                assert (match (None<Nat>()) {
+                    None() => None<Nat>(),
+                    Some(value) => Some<Nat>(value),
+                }) == None<Nat>();
+            case Some(value):
+                assert (match (Some<Nat>(value)) {
+                    None() => None<Nat>(),
+                    Some(inner) => Some<Nat>(inner),
+                }) == Some<Nat>(value);
+        }
+    }
 '''),
     )
     negatives = (
@@ -399,6 +461,19 @@ public lemma FormatCounterLength():
          "definition Nat Wrong(Counter c) => c.Missing;", "name"),
         ("record-duplicate-member",
          "public record Counter(Nat Value) { public Nat Value => 0; }", "name"),
+        ("union-non-exhaustive-match",
+         "public union Option<T> { None(); Some(T Value); } "
+         "definition Nat Wrong(Option<Nat> x) => match (x) { None() => 0 };", "type"),
+        ("union-refutable-local-let",
+         "public union Option<T> { None(); Some(T Value); } "
+         "definition Nat Wrong(Option<Nat> x) => let Some(v) = x in v;", "type"),
+        ("union-duplicate-constructor",
+         "public union Bad { Case(); Case(Nat Value); }", "name"),
+        ("union-pattern-unknown-label",
+         "public union Option<T> { None(); Some(T Value); } "
+         "definition Nat Wrong(Option<Nat> x) => match (x) { None() => 0, Some(Missing: v) => v };", "name"),
+        ("format-write-target-alias-in-binary-hole",
+         'definition TextBuilder<16> Wrong(TextBuilder<16> b) => Format.Write(ref b, $"n={Written(b) + 1:x4}");', "type"),
     )
     pure = Fixture("pure-expression-operators", b"""module PureExpressions;
 public Nat Difference(Nat left, Nat right) => left - right;
@@ -585,8 +660,8 @@ def _run(arguments: list[str], directory: Path, log: Path,
 
 def _inputs(root: Path) -> dict[str, str]:
     paths = (EXAMPLE, "tools/opam/rocq.lock", "tools/vos/proofenv.py", "tools/vos/env.py",
-             "tools/vos/vela_elaborate.py", "tools/vos/vela_ast.py", "tools/vos/vela.py",
-             "tools/vos/vela_elaboration_check.py", "tools/vos/atomic.py")
+             "tools/vos/vela_elaborate.py", "tools/vos/vela_authoring.py", "tools/vos/vela_ast.py",
+             "tools/vos/vela.py", "tools/vos/vela_elaboration_check.py", "tools/vos/atomic.py")
     return {**vela_parser._inputs(root),
             **{name: _sha256((root / name).read_bytes()) for name in paths}}
 

@@ -256,6 +256,33 @@ class _Fixture:
                       modifiers=["public"])
         )
 
+    def union(self, name: str, constructors: tuple[tuple[str, tuple[Parameter, ...]], ...],
+              generics: tuple[Generic, ...] = ()) -> None:
+        self.write("\n")
+        start = self.offset
+        self.write("public union ")
+        binding = self.name(name)
+        generic_nodes = self.generics(generics)
+        self.write(" {")
+        ctor_nodes: list[Node] = []
+        for ctor_name, ctor_params in constructors:
+            self.write(" ")
+            cstart = self.offset
+            c_binding = self.name(ctor_name)
+            p_nodes = self.parameters(ctor_params)
+            self.write(";")
+            ctor_nodes.append(
+                self.node("constructor", cstart, name=c_binding, parameters=p_nodes,
+                          result=None, contracts=[])
+            )
+        if constructors:
+            self.write(" ")
+        self.write("}")
+        self.declarations.append(
+            self.node("union", start, name=binding, generics=generic_nodes,
+                      contracts=[], constructors=ctor_nodes, modifiers=["public"])
+        )
+
     def property_decl(self, name: str, value_type: Form, value: Form) -> None:
         self.write("\n")
         start = self.offset
@@ -2008,6 +2035,25 @@ def _raw_strings_and_checked_formatting() -> None:
         _binary("==", _call("Written", _call("FormatPacket", _natural(42), _boolean(True))), _natural(32)),
         _assert(_binary("==", _call("Written", _call("FormatPacket", _natural(42), _boolean(True))), _natural(32))),
     )
+    fixture.definition(
+        "Scale",
+        _NAT,
+        (("factor", _NAT), ("value", _NAT)),
+        _binary("*", _variable("factor"), _variable("value")),
+    )
+    fixture.record("Holder", (("b", _NAT),))
+    fixture.definition(
+        "FormatComputed",
+        _type("TextBuilder", _natural(48)),
+        (("b", _type("TextBuilder", _natural(48))), ("holder", _type("Holder")), ("id", _NAT), ("ok", _BOOL)),
+        _call(
+            _member(_variable("Format"), "Write"),
+            _ref_arg(_variable("b")),
+            _interpolated_literal(
+                '$"next=0x{id + 1:x4} scaled=0x{Scale(factor: 2, value: holder.b):x4} cond={if (ok) true else false}"'
+            ),
+        ),
+    )
     source, response = fixture.response()
     emitted = elaborate(source, response).gallina
     ensure("vela_TextBuilder" in emitted and "vela_FormatStep" in emitted,
@@ -2034,10 +2080,23 @@ def _raw_strings_and_checked_formatting() -> None:
         _call(
             _member(_variable("Format"), "Write"),
             _ref_arg(_variable("b")),
-            _interpolated_literal('$"n={Written(b):x4}"'),
+            _interpolated_literal('$"n={Written(b) + 1:x4}"'),
         ),
     )
     _refuses(alias_read, "type", "alias")
+
+    bad_hole_syntax = _Fixture("BadHoleSyntax")
+    bad_hole_syntax.definition(
+        "Wrong",
+        _type("TextBuilder", _natural(16)),
+        (("b", _type("TextBuilder", _natural(16))), ("id", _NAT)),
+        _call(
+            _member(_variable("Format"), "Write"),
+            _ref_arg(_variable("b")),
+            _interpolated_literal('$"n={id + :x4}"'),
+        ),
+    )
+    _refuses(bad_hole_syntax, "unsupported", "hole")
 
 
 def _if_expr(condition: Form, yes: Form, no: Form) -> Form:
@@ -2269,6 +2328,184 @@ def _records_properties_updates_guards_and_expressions() -> None:
         _refuses(wrong, kind, fragment)
 
 
+def _union_declarations_and_elimination() -> None:
+    fixture = _Fixture("Unions")
+    fixture.union(
+        "Option",
+        (("None", ()), ("Some", (("Value", _T),))),
+        generics=_POLY,
+    )
+    fixture.union(
+        "Status",
+        (
+            ("Idle", ()),
+            ("Busy", (("Step", _NAT),)),
+            ("Split", (("Left", _NAT), ("Right", _NAT))),
+        ),
+    )
+    fixture.union("Single", (("Only", (("Item", _NAT),)),))
+    fixture.definition(
+        "UnwrapOr",
+        _T,
+        (("item", _type("Option", _T)), ("fallback", _T)),
+        _match_expr(
+            _variable("item"),
+            (
+                (_pat_ctor("None"), _variable("fallback")),
+                (_pat_ctor("Some", _pat_labeled("Value", _pat_bind("inner"))), _variable("inner")),
+            ),
+        ),
+        generics=_POLY,
+    )
+    fixture.definition(
+        "MeasureStatus",
+        _NAT,
+        (("status", _type("Status")),),
+        _match_expr(
+            _variable("status"),
+            (
+                (_pat_ctor("Idle"), _natural(0)),
+                (_pat_ctor("Busy", _pat_labeled("Step", _pat_bind("step"))), _variable("step")),
+                (
+                    _pat_ctor(
+                        "Split",
+                        _pat_labeled("Left", _pat_bind("left")),
+                        _pat_labeled("Right", _pat_bind("right")),
+                    ),
+                    _binary("+", _variable("left"), _variable("right")),
+                ),
+            ),
+        ),
+    )
+    fixture.definition(
+        "UnwrapSingle",
+        _NAT,
+        (("single", _type("Single")),),
+        _match_expr(_variable("single"), ((_pat_ctor("Only", _pat_bind("v")), _variable("v")),)),
+    )
+    fixture.function(
+        "UnwrapGuarded",
+        _NAT,
+        (("item", _type("Option", _NAT)), ("fallback", _NAT)),
+        _let_else_block(
+            _pat_ctor("Some", _pat_labeled("Value", _pat_bind("current"))),
+            _variable("item"),
+            _variable("fallback"),
+            _if_expr(
+                _is_expr(_variable("item"), _pat_ctor("Some", _pat_bind("inner"))),
+                _binary("+", _variable("current"), _variable("inner")),
+                _variable("fallback"),
+            ),
+        ),
+        block=True,
+    )
+    fixture.constant(
+        "StaticSplit",
+        _NAT,
+        _call("MeasureStatus", _call("Split", _natural(3), _natural(4), labels=("Left", "Right"))),
+    )
+    fixture.theorem(
+        "UnwrapSome",
+        (("value", _NAT), ("fallback", _NAT)),
+        _binary("==", _call("UnwrapOr", _call("Some", _variable("value"), labels=("Value",)), _variable("fallback")), _variable("value")),
+        _assert(_binary("==", _call("UnwrapOr", _call("Some", _variable("value"), labels=("Value",)), _variable("fallback")), _variable("value"))),
+    )
+    fixture.theorem(
+        "SplitProof",
+        (),
+        _binary("==", _variable("StaticSplit"), _natural(7)),
+        _assert(_binary("==", _variable("StaticSplit"), _natural(7))),
+    )
+    fixture.theorem(
+        "SingleProof",
+        (("n", _NAT),),
+        _binary("==", _call("UnwrapSingle", _call("Only", _variable("n"))), _variable("n")),
+        _assert(_binary("==", _call("UnwrapSingle", _call("Only", _variable("n"))), _variable("n"))),
+    )
+    fixture.theorem(
+        "OptionRoundTrip",
+        (("item", _type("Option", _NAT)),),
+        _binary(
+            "==",
+            _match_expr(
+                _variable("item"),
+                (
+                    (_pat_ctor("None"), _call("None", generics=(_NAT,))),
+                    (_pat_ctor("Some", _pat_bind("v")), _call("Some", _variable("v"), generics=(_NAT,))),
+                ),
+            ),
+            _variable("item"),
+        ),
+        _match_stmt(
+            _variable("item"),
+            (
+                (
+                    _pat_ctor("None"),
+                    _assert(
+                        _binary(
+                            "==",
+                            _match_expr(
+                                _call("None", generics=(_NAT,)),
+                                (
+                                    (_pat_ctor("None"), _call("None", generics=(_NAT,))),
+                                    (_pat_ctor("Some", _pat_bind("v")), _call("Some", _variable("v"), generics=(_NAT,))),
+                                ),
+                            ),
+                            _call("None", generics=(_NAT,)),
+                        )
+                    ),
+                ),
+                (
+                    _pat_ctor("Some", _pat_bind("v")),
+                    _assert(
+                        _binary(
+                            "==",
+                            _match_expr(
+                                _call("Some", _variable("v"), generics=(_NAT,)),
+                                (
+                                    (_pat_ctor("None"), _call("None", generics=(_NAT,))),
+                                    (_pat_ctor("Some", _pat_bind("inner")), _call("Some", _variable("inner"), generics=(_NAT,))),
+                                ),
+                            ),
+                            _call("Some", _variable("v"), generics=(_NAT,)),
+                        )
+                    ),
+                ),
+            ),
+            assert_arms=True,
+        ),
+    )
+    source, response = fixture.response()
+    emitted = elaborate(source, response).gallina
+    ensure("@Corelib.Init.Datatypes.sum" in emitted and "@Corelib.Init.Datatypes.inl" in emitted
+           and "@Corelib.Init.Datatypes.inr" in emitted,
+           "elaborated Gallina omitted sum type or injection constructors for union")
+
+    for name, body, kind, fragment in (
+        ("NonExhaustiveUnion", _match_expr(_variable("item"), ((_pat_ctor("None"), _natural(0)),)), "type", "non-exhaustive"),
+        ("RefutableUnionLet", _let_pattern(_pat_ctor("Some", _pat_bind("v")), _variable("item"), _variable("v")), "type", "irrefutable"),
+        ("WrongUnionArity", _match_expr(
+            _variable("item"),
+            ((_pat_ctor("None"), _natural(0)),
+             (_pat_ctor("Some", _pat_bind("a"), _pat_bind("b")), _variable("a"))),
+        ), "type", "expects 1"),
+        ("UnknownUnionLabel", _match_expr(
+            _variable("item"),
+            ((_pat_ctor("None"), _natural(0)),
+             (_pat_ctor("Some", _pat_labeled("Missing", _pat_bind("a"))), _variable("a"))),
+        ), "name", "expected pattern field label"),
+        ("UnionWithUpdate", _with_expr(_variable("item"), (("Value", _natural(1)),)), "type", "record"),
+    ):
+        wrong = _Fixture("UnionRefusals")
+        wrong.union("Option", (("None", ()), ("Some", (("Value", _T),))), generics=_POLY)
+        wrong.definition(name, _NAT, (("item", _type("Option", _NAT)),), body)
+        _refuses(wrong, kind, fragment)
+
+    dup_ctor = _Fixture("DupCtor")
+    dup_ctor.union("Bad", (("Case", ()), ("Case", (("Value", _NAT),))))
+    _refuses(dup_ctor, "name", "duplicate")
+
+
 def cases() -> list[Case]:
     return [Case("fresh-polymorphism-and-higher-order-inference", _polymorphism_and_higher_order),
             Case("familiar-generic-markers-and-mathematical-body-source-binding", _familiar_generic_spellings),
@@ -2280,7 +2517,7 @@ def cases() -> list[Case]:
             Case("lexical-edges-and-hidden-runtime-binding-refusals", _lexical_boundaries_and_hidden_bindings),
             Case("named-call-interface-order-and-semantic-refusals", _named_call_refusals),
             Case("named-argument-complete-source-protocol", _named_argument_source_protocol),
-            Case("concise-lambdas-and-expression-body-terms", _concise_lambdas_and_expression_bodies),
+            Case("concise-lambdas-and-expression-bodies", _concise_lambdas_and_expression_bodies),
             Case("ergonomic-source-token-coverage", _ergonomic_source_token_coverage),
             Case("dependent-vectors-and-finite-indices", _dependent_vectors_and_indices),
             Case("first-class-proofs-and-false-neighbors", _proof_values_and_false_neighbors),
@@ -2296,4 +2533,5 @@ def cases() -> list[Case]:
             Case("pattern-matching-and-product-destructuring", _pattern_matching_and_destructuring),
             Case("pattern-matching-refusals-and-protocol", _pattern_matching_refusals_and_protocol),
             Case("raw-strings-and-checked-formatting", _raw_strings_and_checked_formatting),
-            Case("records-properties-updates-guards-and-expressions", _records_properties_updates_guards_and_expressions)]
+            Case("records-properties-updates-guards-and-expressions", _records_properties_updates_guards_and_expressions),
+            Case("tagged-union-declarations-and-elimination", _union_declarations_and_elimination)]
