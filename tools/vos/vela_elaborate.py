@@ -91,6 +91,8 @@ _FIELDS: dict[str, set[str]] = {
     "nat_pattern": {"value", "suffix"}, "constructor_pattern": {"name", "arguments"},
     "labeled_pattern": {"label", "pattern"},
     "quantifier": {"quantifier", "parameters", "value"},
+    "contract": {"role", "value"},
+    "propagate": {"value"},
     "assert": {"value", "by"}, "proof": {"body"},
     "hole": {"name"},
 }
@@ -105,6 +107,7 @@ _SYNTAX_WORDS = {
     "function_type": ("mode", {"Fn", "FnMut", "FnOnce"}),
     "generic_parameter": ("mode", {"type", "ghost", "region", "effect", "captures", "grade"}),
     "quantifier": ("quantifier", {"forall", "exists"}),
+    "contract": ("role", {"requires", "ensures", "restores", "where", "decreases", "progress", "invariant"}),
 }
 
 
@@ -217,8 +220,20 @@ class _Protocol:
         kind = node["kind"]
         cursor = span[0]
         if kind in {"definition", "function", "alias", "theorem", "lemma", "record", "union", "property"}:
-            if node.get("contracts") or node.get("cancel"):
+            contracts = node.get("contracts")
+            if node.get("cancel"):
                 return  # These roles are refused by the mathematical consumer.
+            if contracts and (
+                kind not in {"definition", "function"}
+                or not isinstance(contracts, list)
+                or any(
+                    not isinstance(item, dict)
+                    or item.get("kind") != "contract"
+                    or item.get("role") != "decreases"
+                    for item in contracts
+                )
+            ):
+                return
             modifiers = node["modifiers"]
             if not isinstance(modifiers, list) or any(not isinstance(item, str) for item in modifiers):
                 raise self.error("protocol", "declaration modifiers must be a name list", node)
@@ -233,6 +248,9 @@ class _Protocol:
                 cursor = self._generics(node, span, cursor)
             if kind not in {"alias", "property", "union"}:
                 cursor = self._list(node, span, cursor, node["parameters"])
+            if contracts and isinstance(contracts, list):
+                for contract_item in contracts:
+                    cursor = self._child(node, span, cursor, contract_item)
             if kind in {"theorem", "lemma"}:
                 cursor = self._token(node, cursor, b":")
                 cursor = self._child(node, span, cursor, node["proposition"])
@@ -521,6 +539,14 @@ class _Protocol:
             cursor = self._list(node, span, cursor, node["parameters"])
             cursor = self._token(node, cursor, b"=>")
             cursor = self._child(node, span, cursor, node["value"])
+        elif kind == "contract":
+            if node["role"] != "decreases":
+                return
+            cursor = self._token(node, cursor, b"decreases")
+            cursor = self._child(node, span, cursor, node["value"])
+        elif kind == "propagate":
+            cursor = self._child(node, span, cursor, node["value"])
+            cursor = self._token(node, cursor, b"?")
         else:
             return
         if cursor != span[1]:
@@ -671,7 +697,11 @@ class _Protocol:
         fields = _FIELDS.get(kind)
         if fields is None:
             raise self.error("unsupported", f"'{kind}' is outside mathematical elaboration", node)
-        optional = {"const"} if kind in {"parameter", "lambda_parameter"} else set()
+        optional = (
+            {"const"}
+            if kind in {"parameter", "lambda_parameter"}
+            else ({"name"} if kind == "contract" else set())
+        )
         if (set(node) - optional != {"kind", "span", *fields}
                 or ("const" in node and type(node["const"]) is not bool)):
             raise self.error("protocol", f"invalid fields for '{kind}'", node)
@@ -895,6 +925,8 @@ class _RecordInfo:
     generic_vars: tuple[_Term, ...]
     fields: tuple[_RecordField, ...]
     properties: dict[str, _RecordProperty]
+    is_dependent: bool = False
+    tail_sig_types: tuple[_Term, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -905,6 +937,8 @@ class _UnionCtor:
     fields: tuple[_RecordField, ...]
     payload_type: _Term
     index: int
+    is_dependent: bool = False
+    tail_sig_types: tuple[_Term, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -941,6 +975,15 @@ class _Elaborator:
         self.unions_by_type: dict[str, _UnionInfo] = {}
         self.union_ctors: dict[str, tuple[_UnionInfo, _UnionCtor]] = {}
         self.unions_by_ctor: dict[str, tuple[_UnionInfo, _UnionCtor]] = {}
+        self.fix_names: dict[int, str] = {}
+        self.current_rec_var: _Term | None = None
+        self.current_rec_name: str | None = None
+        self.current_rec_generics: list[_Term] = []
+        self.current_rec_params: list[_Term] = []
+        self.current_rec_candidates: list[tuple[int, int]] = []
+        self.current_rec_used: bool = False
+        self.smaller_vars: dict[int, set[int]] = {}
+        self.current_return_type: _Term | None = None
         self.output: list[str] = []
         self.site: Node | None = None
         self._builtins()
@@ -1065,6 +1108,15 @@ class _Elaborator:
         if term.kind == "let" and term.value == variable:
             return _term("let", self.substitute(term.args[0], variable, replacement),
                          self.substitute(term.args[1], variable, replacement), term.args[2], value=term.value)
+        if term.kind == "fix" and term.value == variable:
+            return _term(
+                "fix",
+                self.substitute(term.args[0], variable, replacement),
+                term.args[1],
+                term.args[2],
+                term.args[3],
+                value=term.value,
+            )
         return _Term(term.kind, term.value, tuple(self.substitute(value, variable, replacement) for value in term.args))
 
     def free(self, term: _Term) -> set[int]:
@@ -1075,9 +1127,46 @@ class _Elaborator:
         result: set[int] = set()
         for argument in term.args:
             result.update(self.free(argument))
-        if term.kind in {"pi", "lam", "let"}:
+        if term.kind in {"pi", "lam", "let", "fix"}:
             result.discard(cast("int", term.value))
         return result
+
+    def _is_whnf_constructor(self, term: _Term) -> bool:
+        if term.kind in {"nat", "bool", "unit", "pair", "inl", "inr", "existT"}:
+            return True
+        if term.kind == "app" and term.args[0] == _constant("Succ"):
+            return True
+        head, _ = self.spine(term)
+        return (
+            head.kind == "const"
+            and isinstance(head.value, str)
+            and (head.value in self.records_by_ctor or head.value in self.unions_by_ctor)
+        )
+
+    def _lam_arity(self, term: _Term) -> int:
+        count = 0
+        curr = self.resolve(term)
+        while curr.kind == "lam":
+            count += 1
+            curr = self.resolve(curr.args[1])
+        return count
+
+    def _build_dependent_record_tail(
+        self, record_info: _RecordInfo, type_args: list[_Term], field_vals: list[_Term]
+    ) -> _Term:
+        right_val = field_vals[-1]
+        for k in range(len(field_vals) - 2, 0, -1):
+            fv = field_vals[k]
+            fvar_id = cast("int", record_info.fields[k].var.value)
+            ftype = self._instantiate_record_type(record_info, type_args, record_info.fields[k].type)
+            tail_type = self._instantiate_record_type(record_info, type_args, record_info.tail_sig_types[k + 1])
+            for j in range(k):
+                earlier_id = cast("int", record_info.fields[j].var.value)
+                ftype = self.substitute(ftype, earlier_id, field_vals[j])
+                tail_type = self.substitute(tail_type, earlier_id, field_vals[j])
+            fam_lam = _term("lam", ftype, tail_type, value=fvar_id)
+            right_val = _term("existT", ftype, fam_lam, fv, right_val)
+        return right_val
 
     def occurs(self, index: int, term: _Term) -> bool:
         term = self.resolve(term)
@@ -1136,7 +1225,11 @@ class _Elaborator:
             rec_head, rec_args = self.spine(scrutinee)
             if rec_head.kind == "const" and isinstance(rec_head.value, str) and rec_head.value in self.records_by_ctor:
                 record_info = self.records_by_ctor[rec_head.value]
-                if record_info.fields and len(rec_args) == len(record_info.generic_vars) + len(record_info.fields):
+                if (
+                    not record_info.is_dependent
+                    and record_info.fields
+                    and len(rec_args) == len(record_info.generic_vars) + len(record_info.fields)
+                ):
                     self.tick(True)
                     type_args = rec_args[:len(record_info.generic_vars)]
                     field_vals = rec_args[len(record_info.generic_vars):]
@@ -1156,6 +1249,48 @@ class _Elaborator:
                     branch = term.args[2]
                     inner = self.substitute(branch.args[1], cast("int", branch.value), left_val)
                     return self.whnf(self.substitute(inner.args[1], cast("int", inner.value), right_val))
+            return term
+        if term.kind == "sigT_match":
+            scrutinee = self._expand_union_ctor(self.whnf(term.args[1]))
+            if scrutinee.kind == "existT":
+                self.tick(True)
+                branch = term.args[2]
+                inner = self.substitute(branch.args[1], cast("int", branch.value), scrutinee.args[2])
+                return self.whnf(self.substitute(inner.args[1], cast("int", inner.value), scrutinee.args[3]))
+            rec_head, rec_args = self.spine(scrutinee)
+            if rec_head.kind == "const" and isinstance(rec_head.value, str) and rec_head.value in self.records_by_ctor:
+                record_info = self.records_by_ctor[rec_head.value]
+                if (
+                    record_info.is_dependent
+                    and len(rec_args) == len(record_info.generic_vars) + len(record_info.fields)
+                ):
+                    self.tick(True)
+                    type_args = rec_args[:len(record_info.generic_vars)]
+                    field_vals = rec_args[len(record_info.generic_vars):]
+                    left_val = field_vals[0]
+                    right_val = self._build_dependent_record_tail(record_info, type_args, field_vals)
+                    branch = term.args[2]
+                    inner = self.substitute(branch.args[1], cast("int", branch.value), left_val)
+                    return self.whnf(self.substitute(inner.args[1], cast("int", inner.value), right_val))
+            return term
+        if term.kind in {"projT1", "projT2"}:
+            pair_val = self._expand_union_ctor(self.whnf(term.args[2]))
+            if pair_val.kind == "existT":
+                self.tick(True)
+                return self.whnf(pair_val.args[2] if term.kind == "projT1" else pair_val.args[3])
+            rec_head, rec_args = self.spine(pair_val)
+            if rec_head.kind == "const" and isinstance(rec_head.value, str) and rec_head.value in self.records_by_ctor:
+                record_info = self.records_by_ctor[rec_head.value]
+                if (
+                    record_info.is_dependent
+                    and len(rec_args) == len(record_info.generic_vars) + len(record_info.fields)
+                ):
+                    self.tick(True)
+                    type_args = rec_args[:len(record_info.generic_vars)]
+                    field_vals = rec_args[len(record_info.generic_vars):]
+                    if term.kind == "projT1":
+                        return self.whnf(field_vals[0])
+                    return self.whnf(self._build_dependent_record_tail(record_info, type_args, field_vals))
             return term
         if term.kind == "sum_match":
             scrutinee = self._expand_union_ctor(self.whnf(term.args[1]))
@@ -1184,6 +1319,8 @@ class _Elaborator:
                 return self.whnf(self.substitute(succ_branch.args[1], cast("int", succ_branch.value), scrutinee.args[1]))
             return term
         if term.kind == "const" and term.value in self.definitions:
+            if self.definitions[term.value].kind == "fix":
+                return term
             self.tick(True)
             return self.whnf(self.definitions[term.value])
         if term.kind != "app":
@@ -1195,9 +1332,27 @@ class _Elaborator:
             return self.whnf(self.substitute(function.args[1], cast("int", function.value), argument))
         term = _app(function, argument)
         head, arguments = self.spine(term)
+        if head.kind == "fix":
+            struct_idx = cast("int", head.args[3].value)
+            total_arity = self._lam_arity(head.args[1])
+            if len(arguments) >= total_arity and self._is_whnf_constructor(self.whnf(arguments[struct_idx])):
+                self.tick(True)
+                fix_id = cast("int", head.value)
+                self_rep = _constant(self.fix_names[fix_id]) if fix_id in self.fix_names else head
+                unfolded = self.substitute(head.args[1], fix_id, self_rep)
+                return self.whnf(_apps(unfolded, *arguments))
+            return term
         if head.kind != "const":
             return term
         name = head.value
+        if isinstance(name, str) and name in self.definitions and self.definitions[name].kind == "fix":
+            fix_term = self.definitions[name]
+            struct_idx = cast("int", fix_term.args[3].value)
+            total_arity = self._lam_arity(fix_term.args[1])
+            if len(arguments) >= total_arity and self._is_whnf_constructor(self.whnf(arguments[struct_idx])):
+                self.tick(True)
+                unfolded = self.substitute(fix_term.args[1], cast("int", fix_term.value), _constant(name))
+                return self.whnf(_apps(unfolded, *arguments))
         if isinstance(name, str) and name in self.record_projections:
             record_info, field_index = self.record_projections[name]
             if len(arguments) == len(record_info.generic_vars) + 1:
@@ -1463,15 +1618,33 @@ class _Elaborator:
                 raise self.fail("type", "application requires a function")
             self.unify(self.infer(term.args[1]), function_type.args[0])
             return self.substitute(function_type.args[1], cast("int", function_type.value), term.args[1])
+        if kind == "fix":
+            return term.args[0]
         if kind in {"prod", "sum"}:
             return _term("sort", value=max(self.sort(term.args[0]), self.sort(term.args[1]), 0))
+        if kind == "sigT":
+            return _term("sort", value=max(self.sort(term.args[0]), self.sort(term.args[1].args[1]), 0))
         if kind == "pair":
             return _term("prod", term.args[0], term.args[1])
+        if kind == "existT":
+            return _term("sigT", term.args[0], term.args[1])
+        if kind == "projT1":
+            return term.args[0]
+        if kind == "projT2":
+            p1 = _term("projT1", term.args[0], term.args[1], term.args[2])
+            return self.substitute(term.args[1].args[1], cast("int", term.args[1].value), p1)
+        if kind == "ex":
+            self.sort(term.args[0])
+            if self.whnf(self.infer(term.args[1].args[1])) != _PROP:
+                raise self.fail("type", "existential quantifier body must be a proposition")
+            return _PROP
+        if kind == "ex_intro":
+            return _term("ex", term.args[0], term.args[1])
         if kind in {"inl", "inr"}:
             return _term("sum", term.args[0], term.args[1])
         if kind == "if":
             return term.args[0]
-        if kind in {"bool_match", "unit_match", "pair_match", "nat_match", "sum_match"}:
+        if kind in {"bool_match", "unit_match", "pair_match", "sigT_match", "nat_match", "sum_match"}:
             return self.substitute(term.args[0].args[1], cast("int", term.args[0].value), term.args[1])
         raise self.fail("type", "cannot infer internal term")
 
@@ -1587,6 +1760,8 @@ class _Elaborator:
         if depth > MAX_DEPTH:
             raise self.fail("limit", "static specialization exceeds its nesting budget")
         term = self.resolve(term)
+        if term.kind == "fix":
+            return term
         if term.kind == "let":
             return _term("let", term.args[0], term.args[1], self.specialize(term.args[2], depth + 1), value=term.value)
         if term.kind == "static":
@@ -1594,6 +1769,8 @@ class _Elaborator:
             marked = _term("static", term.args[0], value)
             return marked if self.free(value) else self.whnf(marked)
         if term.kind == "const" and term.value in self.definitions:
+            if self.definitions[term.value].kind == "fix":
+                return term
             return self.specialize(self.definitions[term.value], depth + 1)
         if term.kind == "app":
             function = self.specialize(term.args[0], depth + 1)
@@ -1607,13 +1784,18 @@ class _Elaborator:
             reduced = self.whnf(result)
             return result if reduced == result else self.specialize(reduced, depth + 1)
         specialized = _Term(term.kind, term.value, tuple(self.specialize(child, depth + 1) for child in term.args))
-        if term.kind in {"if", "bool_match", "unit_match", "pair_match", "nat_match", "sum_match"}:
+        if term.kind in {"if", "bool_match", "unit_match", "pair_match", "sigT_match", "nat_match", "sum_match", "projT1", "projT2"}:
             reduced = self.whnf(specialized)
             return specialized if reduced == specialized else self.specialize(reduced, depth + 1)
         return specialized
 
     def apply(self, binding: _Binding, arguments: list[Node], environment: dict[str, _Binding]) -> _Binding:
         term, value_type = binding.term, binding.type
+        callee_head, callee_gen_args = self.spine(self.resolve(term))
+        is_rec_call = (
+            self.current_rec_var is not None
+            and callee_head == self.current_rec_var
+        )
         specializing = False
         specialized_term = term
         runtime_arguments: list[tuple[_Term, _Term]] = []
@@ -1623,6 +1805,8 @@ class _Elaborator:
             protects_runtime = protects_runtime or cast("int", future.value) in self.constant_parameters
             future = self.whnf(future.args[1])
         if not arguments:
+            if is_rec_call:
+                raise self.fail("type", f"zero-parameter declaration '{self.current_rec_name}' cannot be structurally recursive")
             value_type = self.whnf(value_type)
             if value_type.kind != "pi" or cast("int", value_type.value) not in self.nullary_parameters:
                 raise self.fail("type", "zero-argument call requires a zero-parameter source callable")
@@ -1630,6 +1814,7 @@ class _Elaborator:
             argument = _term("unit")
             return _Binding(_app(term, argument), self.substitute(value_type.args[1], cast("int", value_type.value), argument))
         labeled = False
+        val_args: list[_Term] = []
         for node in arguments:
             self.node(node, "argument")
             label = node["label"]
@@ -1657,6 +1842,7 @@ class _Elaborator:
             required_static = cast("int", value_type.value) in self.constant_parameters
             checker = self.static_argument if required_static else self.check
             argument = checker(self.node(node["value"]), value_type.args[0], environment)
+            val_args.append(argument)
             specializing = specializing or required_static
             if required_static:
                 specialized_term = _app(specialized_term, argument)
@@ -1668,6 +1854,34 @@ class _Elaborator:
                 specialized_term = _app(specialized_term, argument)
             term = _app(term, argument)
             value_type = self.substitute(value_type.args[1], cast("int", value_type.value), argument)
+        if is_rec_call:
+            self.current_rec_used = True
+            if len(callee_gen_args) != len(self.current_rec_generics):
+                raise self.fail("type", "recursive call requires full generic instantiation")
+            for g_arg, g_param in zip(callee_gen_args, self.current_rec_generics, strict=True):
+                if not self._try_unify(g_arg, g_param):
+                    raise self.fail("type", "polymorphic recursion with varying generic arguments is not supported")
+            if len(val_args) != len(self.current_rec_params) or not self.current_rec_params:
+                raise self.fail("type", f"recursive call to '{self.current_rec_name}' must supply all parameters")
+            decreasing_indices = {
+                i
+                for i, pv in enumerate(self.current_rec_params)
+                if (
+                    self.resolve(val_args[i]).kind == "var"
+                    and cast("int", self.resolve(val_args[i]).value)
+                    in self.smaller_vars.get(cast("int", pv.value), set())
+                )
+            }
+            self.current_rec_candidates = [
+                (p_idx, p_var_id)
+                for p_idx, p_var_id in self.current_rec_candidates
+                if p_idx in decreasing_indices
+            ]
+            if not self.current_rec_candidates:
+                raise self.fail(
+                    "type",
+                    f"recursive call to '{self.current_rec_name}' must pass a structurally smaller pattern binder for its decreasing parameter",
+                )
         if protects_runtime:
             term = self.specialize(specialized_term) if specializing else specialized_term
             for variable, argument in reversed(runtime_arguments):
@@ -1742,17 +1956,35 @@ class _Elaborator:
                     raise self.fail("type", "Prop takes no type arguments")
                 result = _PROP
             else:
-                binding = self.lookup(name, environment, raw=True)
-                result, value_type = binding.term, binding.type
-                for argument in arguments:
-                    value_type = self.whnf(value_type)
-                    if value_type.kind != "pi":
-                        raise self.fail("type", f"too many arguments to '{name}'")
-                    value = (self.static_argument(argument, value_type.args[0], environment, type_syntax=True)
-                             if cast("int", value_type.value) in self.constant_parameters else
-                             self.argument(argument, value_type.args[0], environment))
-                    result = _app(result, value)
-                    value_type = self.substitute(value_type.args[1], cast("int", value_type.value), value)
+                parts = name.split(".")
+                if (
+                    len(parts) > 1
+                    and not arguments
+                    and name not in environment
+                    and name not in self.globals
+                    and (parts[0] in environment or parts[0] in self.globals)
+                ):
+                    curr = self.lookup(parts[0], environment)
+                    curr_head, _ = self.spine(self.whnf(curr.type))
+                    if curr_head.kind == "const" and isinstance(curr_head.value, str) and curr_head.value in self.records_by_type:
+                        for seg in parts[1:]:
+                            curr = self._project_member(curr, seg, node)
+                        result = curr.term
+                    else:
+                        binding = self.lookup(name, environment, raw=True)
+                        result = binding.term
+                else:
+                    binding = self.lookup(name, environment, raw=True)
+                    result, value_type = binding.term, binding.type
+                    for argument in arguments:
+                        value_type = self.whnf(value_type)
+                        if value_type.kind != "pi":
+                            raise self.fail("type", f"too many arguments to '{name}'")
+                        value = (self.static_argument(argument, value_type.args[0], environment, type_syntax=True)
+                                 if cast("int", value_type.value) in self.constant_parameters else
+                                 self.argument(argument, value_type.args[0], environment))
+                        result = _app(result, value)
+                        value_type = self.substitute(value_type.args[1], cast("int", value_type.value), value)
         elif kind in {"group_type", "type_argument"}:
             result = self.type(self.node(node["type"]), environment, require_sort=require_sort)
         elif kind == "tuple_type":
@@ -1778,6 +2010,31 @@ class _Elaborator:
 
     def check(self, node: Node, expected: _Term, environment: dict[str, _Binding]) -> _Term:
         self.site = node
+        if node["kind"] == "expression_body":
+            return self.check(self.node(node["value"]), expected, environment)
+        if node["kind"] not in {"lambda", "typed_lambda", "block"} and (
+            self._is_propagatable_union(expected)
+            or (self.current_return_type is not None and expected == self.current_return_type)
+        ):
+            split_prop = self._split_first_propagate(node)
+            if split_prop is not None:
+                prop_node, rebuild = split_prop
+                return self._elaborate_propagate(
+                    prop_node,
+                    environment,
+                    expected,
+                    lambda temp_name, _ok_b, ok_env: self.check(
+                        rebuild(
+                            {
+                                "kind": "name",
+                                "span": prop_node["span"],
+                                "name": {"text": temp_name, "span": prop_node["span"]},
+                            }
+                        ),
+                        expected,
+                        ok_env,
+                    ),
+                )
         if node["kind"] in {"lambda", "typed_lambda"}:
             return self.lambda_(node, environment, expected).term
         if node["kind"] == "block":
@@ -1790,8 +2047,6 @@ class _Elaborator:
             return self.with_expression(node, environment, expected).term
         if node["kind"] == "match_expression":
             return self.match(node, environment, expected, expression_arms=True).term
-        if node["kind"] == "expression_body":
-            return self.check(self.node(node["value"]), expected, environment)
         if node["kind"] == "tuple":
             expected_normal = self.whnf(expected)
             if expected_normal.kind == "prod":
@@ -2003,6 +2258,16 @@ class _Elaborator:
     ) -> _Term:
         return self._instantiate_generic_type(record_info.generic_vars, type_args, target_type)
 
+    def _instantiate_record_field_type(
+        self, record_info: _RecordInfo, type_args: list[_Term], field_idx: int, receiver_term: _Term
+    ) -> _Term:
+        ftype = self._instantiate_record_type(record_info, type_args, record_info.fields[field_idx].type)
+        for j in range(field_idx):
+            earlier_rf = record_info.fields[j]
+            proj_term = _apps(_constant(earlier_rf.proj_const), *type_args, receiver_term)
+            ftype = self.substitute(ftype, cast("int", earlier_rf.var.value), proj_term)
+        return ftype
+
     def _expand_union_ctor(self, term: _Term) -> _Term:
         head, args = self.spine(term)
         if head.kind != "const" or not isinstance(head.value, str) or head.value not in self.unions_by_ctor:
@@ -2024,6 +2289,21 @@ class _Elaborator:
                 payload_val = _term("pair", field_types[0], _UNIT, field_vals[0], _term("unit"))
             else:
                 payload_val = field_vals[0]
+        elif ctor_info.is_dependent:
+            payload_val = field_vals[-1]
+            for k in range(len(field_vals) - 2, -1, -1):
+                fv = field_vals[k]
+                fvar_id = cast("int", ctor_info.fields[k].var.value)
+                ftype = field_types[k]
+                tail_type = self._instantiate_generic_type(
+                    union_info.generic_vars, type_args, ctor_info.tail_sig_types[k + 1]
+                )
+                for j in range(k):
+                    earlier_id = cast("int", ctor_info.fields[j].var.value)
+                    ftype = self.substitute(ftype, earlier_id, field_vals[j])
+                    tail_type = self.substitute(tail_type, earlier_id, field_vals[j])
+                fam_lam = _term("lam", ftype, tail_type, value=fvar_id)
+                payload_val = _term("existT", ftype, fam_lam, fv, payload_val)
         else:
             payload_val = field_vals[-1]
             acc_type = field_types[-1]
@@ -2055,43 +2335,81 @@ class _Elaborator:
         expected_type: _Term,
         environment: dict[str, _Binding],
         pattern_bindings: dict[str, _Binding] | None = None,
-    ) -> None:
+        *,
+        smaller_roots: frozenset[int] = frozenset(),
+        destruct_roots: frozenset[int] = frozenset(),
+    ) -> _Term:
         self.tick()
         self.site = pat.node
+        bound_var: _Term | None = None
         if pattern_bindings is not None:
             for name in pat.names:
-                pattern_bindings[name] = _Binding(self.fresh(expected_type), expected_type)
+                fresh_v = self.fresh(expected_type)
+                for r_id in smaller_roots:
+                    if r_id in self.smaller_vars:
+                        self.smaller_vars[r_id].add(cast("int", fresh_v.value))
+                pattern_bindings[name] = _Binding(fresh_v, expected_type)
+                if bound_var is None:
+                    bound_var = fresh_v
         if pat.kind == "wild":
-            return
+            if bound_var is not None:
+                return bound_var
+            fresh_w = self.fresh(expected_type)
+            for r_id in smaller_roots:
+                if r_id in self.smaller_vars:
+                    self.smaller_vars[r_id].add(cast("int", fresh_w.value))
+            return fresh_w
         if pat.kind == "unit":
             self.unify(expected_type, _UNIT)
-            return
+            return _term("unit")
         if pat.kind == "bool":
             self.unify(expected_type, _BOOL)
-            return
+            return _term("bool", value=1 if pat.value else 0)
         if pat.kind in {"zero", "succ"}:
             self.unify(expected_type, _NAT)
-            if pat.kind == "succ":
-                self._typecheck_pattern(pat.args[0], _NAT, environment, pattern_bindings)
-            return
+            if pat.kind == "zero":
+                return _term("nat", value=0)
+            pred_term = self._typecheck_pattern(
+                pat.args[0],
+                _NAT,
+                environment,
+                pattern_bindings,
+                smaller_roots=smaller_roots | destruct_roots,
+                destruct_roots=destruct_roots,
+            )
+            return _app(_constant("Succ"), pred_term)
         if pat.kind == "record":
             record_info = self.records[cast("str", pat.value)]
             type_args = [self.meta(self.types[cast("int", gv.value)], environment) for gv in record_info.generic_vars]
             expected_rec_type = _apps(_constant(record_info.type_const), *type_args)
             self.unify(expected_type, expected_rec_type)
-            for sub_pat, rf in zip(pat.args, record_info.fields, strict=True):
+            sub_terms: list[_Term] = []
+            for idx, (sub_pat, rf) in enumerate(zip(pat.args, record_info.fields, strict=True)):
                 ftype = self._instantiate_record_type(record_info, type_args, rf.type)
-                self._typecheck_pattern(sub_pat, ftype, environment, pattern_bindings)
-            return
+                for j in range(idx):
+                    ftype = self.substitute(ftype, cast("int", record_info.fields[j].var.value), sub_terms[j])
+                sub_terms.append(
+                    self._typecheck_pattern(sub_pat, ftype, environment, pattern_bindings)
+                )
+            if not sub_terms:
+                return _apps(_constant(record_info.ctor_const), *type_args, _term("unit"))
+            return _apps(_constant(record_info.ctor_const), *type_args, *sub_terms)
         if pat.kind == "union":
             union_info, ctor_info = self.union_ctors[cast("str", pat.value)]
             type_args = [self.meta(self.types[cast("int", gv.value)], environment) for gv in union_info.generic_vars]
             expected_union_type = _apps(_constant(union_info.type_const), *type_args)
             self.unify(expected_type, expected_union_type)
-            for sub_pat, rf in zip(pat.args, ctor_info.fields, strict=True):
+            sub_terms = []
+            for idx, (sub_pat, rf) in enumerate(zip(pat.args, ctor_info.fields, strict=True)):
                 ftype = self._instantiate_generic_type(union_info.generic_vars, type_args, rf.type)
-                self._typecheck_pattern(sub_pat, ftype, environment, pattern_bindings)
-            return
+                for j in range(idx):
+                    ftype = self.substitute(ftype, cast("int", ctor_info.fields[j].var.value), sub_terms[j])
+                sub_terms.append(
+                    self._typecheck_pattern(sub_pat, ftype, environment, pattern_bindings)
+                )
+            if not sub_terms:
+                return _apps(_constant(ctor_info.ctor_const), *type_args, _term("unit"))
+            return _apps(_constant(ctor_info.ctor_const), *type_args, *sub_terms)
         if pat.kind == "pair":
             resolved = self.whnf(expected_type)
             if resolved.kind == "meta":
@@ -2101,9 +2419,9 @@ class _Elaborator:
                 resolved = self.whnf(expected_type)
             if resolved.kind != "prod":
                 raise self.fail("type", "tuple pattern requires a product scrutinee", pat.node)
-            self._typecheck_pattern(pat.args[0], resolved.args[0], environment, pattern_bindings)
-            self._typecheck_pattern(pat.args[1], resolved.args[1], environment, pattern_bindings)
-            return
+            left_t = self._typecheck_pattern(pat.args[0], resolved.args[0], environment, pattern_bindings)
+            right_t = self._typecheck_pattern(pat.args[1], resolved.args[1], environment, pattern_bindings)
+            return _term("pair", resolved.args[0], resolved.args[1], left_t, right_t)
         raise self.fail("protocol", f"unexpected internal pattern '{pat.kind}'", pat.node)
 
     def _require_irrefutable(self, pat: _Pat) -> None:
@@ -2120,8 +2438,8 @@ class _Elaborator:
             rec_type = self.whnf(current.type)
             _, type_args = self.spine(rec_type)
             record_info = self.records[cast("str", pat.value)]
-            for sub_pat, rf in zip(pat.args, record_info.fields, strict=True):
-                ftype = self._instantiate_record_type(record_info, type_args, rf.type)
+            for idx, (sub_pat, rf) in enumerate(zip(pat.args, record_info.fields, strict=True)):
+                ftype = self._instantiate_record_field_type(record_info, type_args, idx, current.term)
                 fterm = _apps(_constant(rf.proj_const), *type_args, current.term)
                 self._bind_irrefutable(sub_pat, _Binding(fterm, ftype), extended)
         elif pat.kind == "pair":
@@ -2182,6 +2500,22 @@ class _Elaborator:
         elif (expected is not None and scrutinee.term.kind == "var"
               and cast("int", scrutinee.term.value) in self.free(expected)):
             motive_body = self.substitute(expected, cast("int", scrutinee.term.value), root_var)
+        if expected is not None and self._is_prop_type(expected):
+            refine_scrutinee = True
+        scrut_smaller_roots: frozenset[int] = frozenset[int]()
+        scrut_destruct_roots: frozenset[int] = frozenset[int]()
+        if scrutinee.term.kind == "var":
+            scrut_var_id_0 = cast("int", scrutinee.term.value)
+            scrut_smaller_roots = frozenset(
+                [r_id for r_id, s_set in self.smaller_vars.items() if scrut_var_id_0 in s_set]
+            )
+            scrut_destruct_roots = frozenset(
+                [
+                    r_id
+                    for r_id, s_set in self.smaller_vars.items()
+                    if scrut_var_id_0 == r_id or scrut_var_id_0 in s_set
+                ]
+            )
         cases = self.nodes(node["cases"])
         rows: list[_Row] = []
         arm_pattern_bindings: list[dict[str, _Binding]] = []
@@ -2189,7 +2523,14 @@ class _Elaborator:
             self.node(arm, "expression_case" if expression_arms else "case")
             pat = self._parse_pattern(self.node(arm["pattern"]), set())
             bindings_for_arm: dict[str, _Binding] = {}
-            self._typecheck_pattern(pat, scrutinee.type, environment, bindings_for_arm)
+            self._typecheck_pattern(
+                pat,
+                scrutinee.type,
+                environment,
+                bindings_for_arm,
+                smaller_roots=scrut_smaller_roots,
+                destruct_roots=scrut_destruct_roots,
+            )
             arm_pattern_bindings.append(bindings_for_arm)
             rows.append(_Row((pat,), (), arm, arm_index))
         scrutinee_type = self.whnf(scrutinee.type)
@@ -2208,6 +2549,11 @@ class _Elaborator:
         inferred_result: list[_Term | None] = [expected]
         local_visited: set[int] = set()
 
+        def subst_cols(
+            cols: list[tuple[_Term, _Term, _Term]], var_id: int, replacement: _Term
+        ) -> list[tuple[_Term, _Term, _Term]]:
+            return [(cv, cs, self.substitute(ct, var_id, replacement)) for cv, cs, ct in cols]
+
         def specialize_rows(active_rows: list[_Row], index: int, ctor_kind: str, ctor_term: _Term,
                             col_var_id: int, col_type: _Term, sub_count: int, *,
                             bool_value: bool = False, ctor_name: str = "") -> list[_Row]:
@@ -2215,7 +2561,13 @@ class _Elaborator:
             for row in active_rows:
                 pat = row.patterns[index]
                 updated_bindings = tuple(
-                    (bname, _Binding(self.substitute(bval.term, col_var_id, ctor_term), bval.type))
+                    (
+                        bname,
+                        _Binding(
+                            self.substitute(bval.term, col_var_id, ctor_term),
+                            self.substitute(bval.type, col_var_id, ctor_term),
+                        ),
+                    )
                     for bname, bval in row.bindings
                 )
                 if pat.kind == "wild":
@@ -2255,6 +2607,7 @@ class _Elaborator:
                 for col_var, col_scrutinee, _ in columns:
                     if col_var != col_scrutinee:
                         leaf_pattern = self.substitute(leaf_pattern, cast("int", col_var.value), col_scrutinee)
+                arm_facts = facts
                 if refine_scrutinee:
                     for env_name, env_binding in list(arm_env.items()):
                         if env_binding.term == scrutinee.term:
@@ -2271,12 +2624,25 @@ class _Elaborator:
                                 env_binding.generics,
                                 env_binding.constant,
                             )
+                    if scrutinee.term.kind == "var":
+                        scrut_id = cast("int", scrutinee.term.value)
+                        arm_facts = tuple(
+                            _Binding(
+                                f.term,
+                                self.substitute(f.type, scrut_id, leaf_pattern),
+                                f.generics,
+                                f.constant,
+                            )
+                            for f in facts
+                        )
                 for name, bound in first.bindings:
                     bound_term = bound.term
+                    bound_type = bound.type
                     for col_var, col_scrutinee, _ in columns:
                         if col_var != col_scrutinee:
                             bound_term = self.substitute(bound_term, cast("int", col_var.value), col_scrutinee)
-                    self.bind_local(arm_env, name, _Binding(bound_term, bound.type))
+                            bound_type = self.substitute(bound_type, cast("int", col_var.value), col_scrutinee)
+                    self.bind_local(arm_env, name, _Binding(bound_term, bound_type))
                 for pat, (_, col_scrutinee, col_type) in zip(first.patterns, columns, strict=True):
                     for name in pat.names:
                         self.bind_local(arm_env, name, _Binding(col_scrutinee, col_type))
@@ -2292,7 +2658,7 @@ class _Elaborator:
                         return evaluated.term
                     return self.check(value_node, leaf_expected, arm_env)
                 block_node = {"kind": "block", "span": arm["span"], "statements": arm["statements"]}
-                evaluated = self.block(block_node, arm_env, leaf_expected, facts=facts)
+                evaluated = self.block(block_node, arm_env, leaf_expected, facts=arm_facts)
                 if motive_body is None and inferred_result[0] is None:
                     inferred_result[0] = evaluated.type
                 return evaluated.term
@@ -2306,7 +2672,7 @@ class _Elaborator:
             if col_type == _UNIT:
                 unit_term = _term("unit")
                 body = compile_matrix(
-                    without_index,
+                    subst_cols(without_index, col_var_id, unit_term),
                     specialize_rows(active_rows, index, "unit", unit_term, col_var_id, _UNIT, 0),
                     self.substitute(pattern_term, col_var_id, unit_term),
                 )
@@ -2319,12 +2685,12 @@ class _Elaborator:
                 true_term = _term("bool", value=1)
                 false_term = _term("bool", value=0)
                 yes = compile_matrix(
-                    without_index,
+                    subst_cols(without_index, col_var_id, true_term),
                     specialize_rows(active_rows, index, "bool", true_term, col_var_id, _BOOL, 0, bool_value=True),
                     self.substitute(pattern_term, col_var_id, true_term),
                 )
                 no = compile_matrix(
-                    without_index,
+                    subst_cols(without_index, col_var_id, false_term),
                     specialize_rows(active_rows, index, "bool", false_term, col_var_id, _BOOL, 0, bool_value=False),
                     self.substitute(pattern_term, col_var_id, false_term),
                 )
@@ -2340,7 +2706,9 @@ class _Elaborator:
                 pair_term = _term("pair", left_type, right_type, left_var, right_var)
                 sub_columns = [(left_var, left_var, left_type), (right_var, right_var, right_type)]
                 body = compile_matrix(
-                    columns[:index] + sub_columns + columns[index + 1:],
+                    subst_cols(columns[:index], col_var_id, pair_term)
+                    + sub_columns
+                    + subst_cols(columns[index + 1:], col_var_id, pair_term),
                     specialize_rows(active_rows, index, "pair", pair_term, col_var_id, col_type, 2),
                     self.substitute(pattern_term, col_var_id, pair_term),
                 )
@@ -2353,14 +2721,10 @@ class _Elaborator:
             col_head, col_type_args = self.spine(col_type)
             if col_head.kind == "const" and isinstance(col_head.value, str) and col_head.value in self.records_by_type:
                 record_info = self.records_by_type[col_head.value]
-                field_types = [
-                    self._instantiate_record_type(record_info, col_type_args, rf.type)
-                    for rf in record_info.fields
-                ]
-                if not field_types:
+                if not record_info.fields:
                     ctor_term = _apps(_constant(record_info.ctor_const), *col_type_args, _term("unit"))
                     body = compile_matrix(
-                        without_index,
+                        subst_cols(without_index, col_var_id, ctor_term),
                         specialize_rows(active_rows, index, "record", ctor_term, col_var_id, col_type, 0),
                         self.substitute(pattern_term, col_var_id, ctor_term),
                     )
@@ -2370,13 +2734,16 @@ class _Elaborator:
                         "lam", col_type, self.substitute(motive_body, root_var_id, pattern_term), value=col_var_id
                     )
                     return _term("unit_match", motive_lam, col_scrutinee, body)
-                if len(field_types) == 1:
-                    fvar_0 = self.fresh(field_types[0])
+                if len(record_info.fields) == 1:
+                    ft_0 = self._instantiate_record_type(record_info, col_type_args, record_info.fields[0].type)
+                    fvar_0 = self.fresh(ft_0)
                     dummy_unit_var = self.fresh(_UNIT)
                     ctor_term = _apps(_constant(record_info.ctor_const), *col_type_args, fvar_0)
-                    sub_columns = [(fvar_0, fvar_0, field_types[0])]
+                    sub_columns = [(fvar_0, fvar_0, ft_0)]
                     body = compile_matrix(
-                        columns[:index] + sub_columns + columns[index + 1:],
+                        subst_cols(columns[:index], col_var_id, ctor_term)
+                        + sub_columns
+                        + subst_cols(columns[index + 1:], col_var_id, ctor_term),
                         specialize_rows(active_rows, index, "record", ctor_term, col_var_id, col_type, 1),
                         self.substitute(pattern_term, col_var_id, ctor_term),
                     )
@@ -2388,23 +2755,43 @@ class _Elaborator:
                     motive_lam = _term("lam", col_type, motive_return, value=col_var_id)
                     branch_lam = _term(
                         "lam",
-                        field_types[0],
+                        ft_0,
                         _term("lam", _UNIT, body, value=dummy_unit_var.value),
                         value=fvar_0.value,
                     )
                     return _term("pair_match", motive_lam, col_scrutinee, branch_lam)
-                field_vars = [self.fresh(ft) for ft in field_types]
+                field_types: list[_Term] = []
+                field_vars: list[_Term] = []
+                for idx_f, rf in enumerate(record_info.fields):
+                    ft = self._instantiate_record_type(record_info, col_type_args, rf.type)
+                    for j in range(idx_f):
+                        ft = self.substitute(ft, cast("int", record_info.fields[j].var.value), field_vars[j])
+                    fv = self.fresh(ft)
+                    field_types.append(ft)
+                    field_vars.append(fv)
                 ctor_term = _apps(_constant(record_info.ctor_const), *col_type_args, *field_vars)
                 sub_columns = [(fv, fv, ft) for fv, ft in zip(field_vars, field_types, strict=True)]
                 body = compile_matrix(
-                    columns[:index] + sub_columns + columns[index + 1:],
+                    subst_cols(columns[:index], col_var_id, ctor_term)
+                    + sub_columns
+                    + subst_cols(columns[index + 1:], col_var_id, ctor_term),
                     specialize_rows(active_rows, index, "record", ctor_term, col_var_id, col_type, len(field_vars)),
                     self.substitute(pattern_term, col_var_id, ctor_term),
                 )
-                tail_types: list[_Term] = [field_types[-1]]
-                for ft in reversed(field_types[1:-1]):
-                    tail_types.append(_term("prod", ft, tail_types[-1]))
-                tail_types.reverse()
+                if record_info.is_dependent:
+                    tail_types: list[_Term] = []
+                    for k in range(len(field_types) - 1):
+                        tt = self._instantiate_record_type(
+                            record_info, col_type_args, record_info.tail_sig_types[k + 1]
+                        )
+                        for j in range(k + 1):
+                            tt = self.substitute(tt, cast("int", record_info.fields[j].var.value), field_vars[j])
+                        tail_types.append(tt)
+                else:
+                    tail_types = [field_types[-1]]
+                    for ft in reversed(field_types[1:-1]):
+                        tail_types.append(_term("prod", ft, tail_types[-1]))
+                    tail_types.reverse()
                 tail_vars: list[_Term] = [
                     self.fresh(tail_types[k]) for k in range(len(field_types) - 2)
                 ] + [field_vars[-1]]
@@ -2428,6 +2815,12 @@ class _Elaborator:
                         scrut_var_id = cast("int", scrut.value)
                         scrut_type = tail_types[k - 1]
                         motive_return = cast("_Term", inferred_result[0])
+                    if record_info.is_dependent and cast("int", left_var.value) in self.free(motive_return):
+                        fam_lam = _term("lam", left_type, right_type, value=left_var.value)
+                        proj1_var = _term("projT1", left_type, fam_lam, _term("var", value=scrut_var_id))
+                        motive_return = self.substitute(motive_return, cast("int", left_var.value), proj1_var)
+                        if motive_body is None and inferred_result[0] is not None:
+                            inferred_result[0] = self.substitute(motive_return, scrut_var_id, scrut)
                     motive_lam = _term("lam", scrut_type, motive_return, value=scrut_var_id)
                     branch_lam = _term(
                         "lam",
@@ -2435,21 +2828,18 @@ class _Elaborator:
                         _term("lam", right_type, curr_body, value=right_var.value),
                         value=left_var.value,
                     )
-                    curr_body = _term("pair_match", motive_lam, scrut, branch_lam)
+                    match_kind = "sigT_match" if record_info.is_dependent else "pair_match"
+                    curr_body = _term(match_kind, motive_lam, scrut, branch_lam)
                 return curr_body
 
             if col_head.kind == "const" and isinstance(col_head.value, str) and col_head.value in self.unions_by_type:
                 union_info = self.unions_by_type[col_head.value]
                 if len(union_info.constructors) == 1:
                     ctor_info = union_info.constructors[0]
-                    field_types = [
-                        self._instantiate_generic_type(union_info.generic_vars, col_type_args, rf.type)
-                        for rf in ctor_info.fields
-                    ]
-                    if not field_types:
+                    if not ctor_info.fields:
                         ctor_term = _apps(_constant(ctor_info.ctor_const), *col_type_args, _term("unit"))
                         body = compile_matrix(
-                            without_index,
+                            subst_cols(without_index, col_var_id, ctor_term),
                             specialize_rows(
                                 active_rows, index, "union", ctor_term, col_var_id, col_type, 0, ctor_name=ctor_info.name
                             ),
@@ -2461,13 +2851,18 @@ class _Elaborator:
                             "lam", col_type, self.substitute(motive_body, root_var_id, pattern_term), value=col_var_id
                         )
                         return _term("unit_match", motive_lam, col_scrutinee, body)
-                    if len(field_types) == 1:
-                        fvar_0 = self.fresh(field_types[0])
+                    if len(ctor_info.fields) == 1:
+                        ft_0 = self._instantiate_generic_type(
+                            union_info.generic_vars, col_type_args, ctor_info.fields[0].type
+                        )
+                        fvar_0 = self.fresh(ft_0)
                         dummy_unit_var = self.fresh(_UNIT)
                         ctor_term = _apps(_constant(ctor_info.ctor_const), *col_type_args, fvar_0)
-                        sub_columns = [(fvar_0, fvar_0, field_types[0])]
+                        sub_columns = [(fvar_0, fvar_0, ft_0)]
                         body = compile_matrix(
-                            columns[:index] + sub_columns + columns[index + 1:],
+                            subst_cols(columns[:index], col_var_id, ctor_term)
+                            + sub_columns
+                            + subst_cols(columns[index + 1:], col_var_id, ctor_term),
                             specialize_rows(
                                 active_rows, index, "union", ctor_term, col_var_id, col_type, 1, ctor_name=ctor_info.name
                             ),
@@ -2480,7 +2875,7 @@ class _Elaborator:
                                 self.substitute(
                                     pattern_term,
                                     col_var_id,
-                                    _term("pair", field_types[0], _UNIT, fvar_0, dummy_unit_var),
+                                    _term("pair", ft_0, _UNIT, fvar_0, dummy_unit_var),
                                 ),
                             )
                             body = _term(
@@ -2497,16 +2892,26 @@ class _Elaborator:
                         motive_lam = _term("lam", col_type, motive_return, value=col_var_id)
                         branch_lam = _term(
                             "lam",
-                            field_types[0],
+                            ft_0,
                             _term("lam", _UNIT, body, value=dummy_unit_var.value),
                             value=fvar_0.value,
                         )
                         return _term("pair_match", motive_lam, col_scrutinee, branch_lam)
-                    field_vars = [self.fresh(ft) for ft in field_types]
+                    field_types = []
+                    field_vars = []
+                    for idx_f, rf in enumerate(ctor_info.fields):
+                        ft = self._instantiate_generic_type(union_info.generic_vars, col_type_args, rf.type)
+                        for j in range(idx_f):
+                            ft = self.substitute(ft, cast("int", ctor_info.fields[j].var.value), field_vars[j])
+                        fv = self.fresh(ft)
+                        field_types.append(ft)
+                        field_vars.append(fv)
                     ctor_term = _apps(_constant(ctor_info.ctor_const), *col_type_args, *field_vars)
                     sub_columns = [(fv, fv, ft) for fv, ft in zip(field_vars, field_types, strict=True)]
                     body = compile_matrix(
-                        columns[:index] + sub_columns + columns[index + 1:],
+                        subst_cols(columns[:index], col_var_id, ctor_term)
+                        + sub_columns
+                        + subst_cols(columns[index + 1:], col_var_id, ctor_term),
                         specialize_rows(
                             active_rows,
                             index,
@@ -2519,10 +2924,20 @@ class _Elaborator:
                         ),
                         self.substitute(pattern_term, col_var_id, ctor_term),
                     )
-                    tail_types = [field_types[-1]]
-                    for ft in reversed(field_types[1:-1]):
-                        tail_types.append(_term("prod", ft, tail_types[-1]))
-                    tail_types.reverse()
+                    if ctor_info.is_dependent:
+                        tail_types = []
+                        for k in range(len(field_types) - 1):
+                            tt = self._instantiate_generic_type(
+                                union_info.generic_vars, col_type_args, ctor_info.tail_sig_types[k + 1]
+                            )
+                            for j in range(k + 1):
+                                tt = self.substitute(tt, cast("int", ctor_info.fields[j].var.value), field_vars[j])
+                            tail_types.append(tt)
+                    else:
+                        tail_types = [field_types[-1]]
+                        for ft in reversed(field_types[1:-1]):
+                            tail_types.append(_term("prod", ft, tail_types[-1]))
+                        tail_types.reverse()
                     tail_vars = [
                         self.fresh(tail_types[k]) for k in range(len(field_types) - 2)
                     ] + [field_vars[-1]]
@@ -2545,7 +2960,7 @@ class _Elaborator:
                             scrut = tail_vars[k - 1]
                             scrut_var_id = cast("int", scrut.value)
                             scrut_type = tail_types[k - 1]
-                            if motive_body is not None:
+                            if motive_body is not None and not ctor_info.is_dependent:
                                 partial = scrut
                                 p_type = scrut_type
                                 for j in range(k - 1, -1, -1):
@@ -2558,6 +2973,12 @@ class _Elaborator:
                                 )
                             else:
                                 motive_return = cast("_Term", inferred_result[0])
+                        if ctor_info.is_dependent and cast("int", left_var.value) in self.free(motive_return):
+                            fam_lam = _term("lam", left_type, right_type, value=left_var.value)
+                            proj1_var = _term("projT1", left_type, fam_lam, _term("var", value=scrut_var_id))
+                            motive_return = self.substitute(motive_return, cast("int", left_var.value), proj1_var)
+                            if motive_body is None and inferred_result[0] is not None:
+                                inferred_result[0] = self.substitute(motive_return, scrut_var_id, scrut)
                         motive_lam = _term("lam", scrut_type, motive_return, value=scrut_var_id)
                         branch_lam = _term(
                             "lam",
@@ -2565,7 +2986,8 @@ class _Elaborator:
                             _term("lam", right_type, curr_body, value=right_var.value),
                             value=left_var.value,
                         )
-                        curr_body = _term("pair_match", motive_lam, scrut, branch_lam)
+                        match_kind = "sigT_match" if ctor_info.is_dependent else "pair_match"
+                        curr_body = _term(match_kind, motive_lam, scrut, branch_lam)
                     return curr_body
 
                 inst_payload_types = [
@@ -2595,15 +3017,11 @@ class _Elaborator:
                 payload_vars: list[_Term] = []
                 payload_branches: list[_Term] = []
                 for ctor_idx, ctor_info in enumerate(union_info.constructors):
-                    field_types = [
-                        self._instantiate_generic_type(union_info.generic_vars, col_type_args, rf.type)
-                        for rf in ctor_info.fields
-                    ]
-                    if not field_types:
+                    if not ctor_info.fields:
                         pvar = self.fresh(_UNIT)
                         ctor_term = _apps(_constant(ctor_info.ctor_const), *col_type_args, _term("unit"))
                         leaf_body = compile_matrix(
-                            without_index,
+                            subst_cols(without_index, col_var_id, ctor_term),
                             specialize_rows(
                                 active_rows, index, "union", ctor_term, col_var_id, col_type, 0, ctor_name=ctor_info.name
                             ),
@@ -2625,12 +3043,17 @@ class _Elaborator:
                             )
                         payload_vars.append(pvar)
                         payload_branches.append(pbranch)
-                    elif len(field_types) == 1:
-                        pvar = self.fresh(field_types[0])
+                    elif len(ctor_info.fields) == 1:
+                        ft_0 = self._instantiate_generic_type(
+                            union_info.generic_vars, col_type_args, ctor_info.fields[0].type
+                        )
+                        pvar = self.fresh(ft_0)
                         ctor_term = _apps(_constant(ctor_info.ctor_const), *col_type_args, pvar)
-                        sub_columns = [(pvar, pvar, field_types[0])]
+                        sub_columns = [(pvar, pvar, ft_0)]
                         pbranch = compile_matrix(
-                            columns[:index] + sub_columns + columns[index + 1:],
+                            subst_cols(columns[:index], col_var_id, ctor_term)
+                            + sub_columns
+                            + subst_cols(columns[index + 1:], col_var_id, ctor_term),
                             specialize_rows(
                                 active_rows, index, "union", ctor_term, col_var_id, col_type, 1, ctor_name=ctor_info.name
                             ),
@@ -2640,11 +3063,21 @@ class _Elaborator:
                         payload_branches.append(pbranch)
                     else:
                         pvar = self.fresh(inst_payload_types[ctor_idx])
-                        field_vars = [self.fresh(ft) for ft in field_types]
+                        field_types = []
+                        field_vars = []
+                        for idx_f, rf in enumerate(ctor_info.fields):
+                            ft = self._instantiate_generic_type(union_info.generic_vars, col_type_args, rf.type)
+                            for j in range(idx_f):
+                                ft = self.substitute(ft, cast("int", ctor_info.fields[j].var.value), field_vars[j])
+                            fv = self.fresh(ft)
+                            field_types.append(ft)
+                            field_vars.append(fv)
                         ctor_term = _apps(_constant(ctor_info.ctor_const), *col_type_args, *field_vars)
                         sub_columns = [(fv, fv, ft) for fv, ft in zip(field_vars, field_types, strict=True)]
                         leaf_body = compile_matrix(
-                            columns[:index] + sub_columns + columns[index + 1:],
+                            subst_cols(columns[:index], col_var_id, ctor_term)
+                            + sub_columns
+                            + subst_cols(columns[index + 1:], col_var_id, ctor_term),
                             specialize_rows(
                                 active_rows,
                                 index,
@@ -2657,10 +3090,20 @@ class _Elaborator:
                             ),
                             self.substitute(pattern_term, col_var_id, ctor_term),
                         )
-                        tail_types = [field_types[-1]]
-                        for ft in reversed(field_types[1:-1]):
-                            tail_types.append(_term("prod", ft, tail_types[-1]))
-                        tail_types.reverse()
+                        if ctor_info.is_dependent:
+                            tail_types = []
+                            for k in range(len(field_types) - 1):
+                                tt = self._instantiate_generic_type(
+                                    union_info.generic_vars, col_type_args, ctor_info.tail_sig_types[k + 1]
+                                )
+                                for j in range(k + 1):
+                                    tt = self.substitute(tt, cast("int", ctor_info.fields[j].var.value), field_vars[j])
+                                tail_types.append(tt)
+                        else:
+                            tail_types = [field_types[-1]]
+                            for ft in reversed(field_types[1:-1]):
+                                tail_types.append(_term("prod", ft, tail_types[-1]))
+                            tail_types.reverse()
                         tail_vars = [
                             self.fresh(tail_types[k]) for k in range(len(field_types) - 2)
                         ] + [field_vars[-1]]
@@ -2678,7 +3121,7 @@ class _Elaborator:
                                 scrut = tail_vars[k - 1]
                                 scrut_var_id = cast("int", scrut.value)
                                 scrut_type = tail_types[k - 1]
-                            if motive_body is not None:
+                            if motive_body is not None and not ctor_info.is_dependent:
                                 partial = scrut
                                 p_type = scrut_type
                                 for j in range(k - 1, -1, -1):
@@ -2691,6 +3134,12 @@ class _Elaborator:
                                 )
                             else:
                                 motive_return = cast("_Term", inferred_result[0])
+                            if ctor_info.is_dependent and cast("int", left_var.value) in self.free(motive_return):
+                                fam_lam = _term("lam", left_type, right_type, value=left_var.value)
+                                proj1_var = _term("projT1", left_type, fam_lam, _term("var", value=scrut_var_id))
+                                motive_return = self.substitute(motive_return, cast("int", left_var.value), proj1_var)
+                                if motive_body is None and inferred_result[0] is not None:
+                                    inferred_result[0] = self.substitute(motive_return, scrut_var_id, scrut)
                             motive_lam = _term("lam", scrut_type, motive_return, value=scrut_var_id)
                             branch_lam = _term(
                                 "lam",
@@ -2698,7 +3147,8 @@ class _Elaborator:
                                 _term("lam", right_type, curr_body, value=right_var.value),
                                 value=left_var.value,
                             )
-                            curr_body = _term("pair_match", motive_lam, scrut, branch_lam)
+                            match_kind = "sigT_match" if ctor_info.is_dependent else "pair_match"
+                            curr_body = _term(match_kind, motive_lam, scrut, branch_lam)
                         payload_vars.append(pvar)
                         payload_branches.append(curr_body)
 
@@ -2739,15 +3189,31 @@ class _Elaborator:
             if col_type == _NAT:
                 zero_term = _term("nat", value=0)
                 zero_body = compile_matrix(
-                    without_index,
+                    subst_cols(without_index, col_var_id, zero_term),
                     specialize_rows(active_rows, index, "zero", zero_term, col_var_id, _NAT, 0),
                     self.substitute(pattern_term, col_var_id, zero_term),
                 )
                 pred_var = self.fresh(_NAT)
+                pred_var_id = cast("int", pred_var.value)
+                for r_id, s_set in self.smaller_vars.items():
+                    if (
+                        col_var_id == r_id
+                        or col_var_id in s_set
+                        or (
+                            col_scrutinee.kind == "var"
+                            and (
+                                cast("int", col_scrutinee.value) == r_id
+                                or cast("int", col_scrutinee.value) in s_set
+                            )
+                        )
+                    ):
+                        s_set.add(pred_var_id)
                 succ_term = _app(_constant("Succ"), pred_var)
                 sub_columns = [(pred_var, pred_var, _NAT)]
                 succ_body = compile_matrix(
-                    columns[:index] + sub_columns + columns[index + 1:],
+                    subst_cols(columns[:index], col_var_id, succ_term)
+                    + sub_columns
+                    + subst_cols(columns[index + 1:], col_var_id, succ_term),
                     specialize_rows(active_rows, index, "succ", succ_term, col_var_id, _NAT, 1),
                     self.substitute(pattern_term, col_var_id, succ_term),
                 )
@@ -2819,6 +3285,25 @@ class _Elaborator:
         else:
             return True
 
+    def _match_meta_pattern(self, pattern: _Term, target: _Term) -> bool:
+        p = self.resolve(pattern)
+        t = self.resolve(target)
+        if p == t:
+            return True
+        if p.kind == "meta" or t.kind == "meta":
+            return self._try_unify(p, t)
+        if (
+            p.kind == t.kind
+            and p.value == t.value
+            and len(p.args) == len(t.args)
+            and p.kind not in {"pi", "lam", "let"}
+        ):
+            saved = [_Meta(m.type, m.scope, m.solution) for m in self.metas]
+            if all(self._match_meta_pattern(pa, ta) for pa, ta in zip(p.args, t.args, strict=True)):
+                return True
+            self.metas = saved
+        return self._try_unify(p, t)
+
     def _is_prop_type(self, value_type: _Term) -> bool:
         return self.whnf(self.infer(value_type)) == _PROP
 
@@ -2830,6 +3315,26 @@ class _Elaborator:
         if head == _constant("Eq") and len(args) == 3:
             return args[0], args[1], args[2]
         return None
+
+    def _replace_subterm(self, term: _Term, eq_type: _Term, u: _Term, z: _Term) -> tuple[_Term, bool]:
+        term = self.resolve(term)
+        if term == u or (
+            self._try_unify(self.infer(term), eq_type) and self._try_unify(term, u)
+        ):
+            return z, True
+        if term.kind not in {"pi", "lam", "let"} and term.args:
+            new_args: list[_Term] = []
+            any_rep = False
+            for arg in term.args:
+                n_arg, rep = self._replace_subterm(arg, eq_type, u, z)
+                new_args.append(n_arg)
+                any_rep = any_rep or rep
+            if any_rep:
+                return _Term(term.kind, term.value, tuple(new_args)), True
+        whnf_term = self.whnf(term)
+        if whnf_term != term:
+            return self._replace_subterm(whnf_term, eq_type, u, z)
+        return term, False
 
     def _try_congruence(
         self,
@@ -2847,6 +3352,7 @@ class _Elaborator:
             self.metas = saved
             return None
         z = self.fresh(eq_type)
+        z_id = cast("int", z.value)
 
         def build_ctx(sub_l: _Term, sub_r: _Term) -> tuple[_Term | None, bool]:
             sub_l = self.resolve(sub_l)
@@ -2875,16 +3381,108 @@ class _Elaborator:
                     any_replaced = any_replaced or c_rep
                 if ok and any_replaced:
                     return _Term(sub_l.kind, sub_l.value, tuple(child_ctxs)), True
+            whnf_l = self.whnf(sub_l)
+            whnf_r = self.whnf(sub_r)
+            if (whnf_l != sub_l or whnf_r != sub_r) and (
+                whnf_l.kind == whnf_r.kind
+                and whnf_l.value == whnf_r.value
+                and len(whnf_l.args) == len(whnf_r.args)
+                and whnf_l.kind not in {"pi", "lam", "let"}
+            ):
+                child_ctxs = []
+                any_replaced = False
+                ok = True
+                for c_l, c_r in zip(whnf_l.args, whnf_r.args, strict=True):
+                    c_ctx, c_rep = build_ctx(c_l, c_r)
+                    if c_ctx is None:
+                        ok = False
+                        break
+                    child_ctxs.append(c_ctx)
+                    any_replaced = any_replaced or c_rep
+                if ok and any_replaced:
+                    return _Term(whnf_l.kind, whnf_l.value, tuple(child_ctxs)), True
             if self._try_unify(sub_l, sub_r):
                 return sub_l, False
             return None, False
 
         ctx, replaced = build_ctx(lhs, rhs)
-        if not replaced or ctx is None or ctx == z:
+        if replaced and ctx is not None and ctx != z:
+            fn = _term("lam", eq_type, ctx, value=z.value)
+            return _apps(_constant("Congr"), eq_type, goal_type, u, v, fn, proof_term)
+        self.metas = [_Meta(m.type, m.scope, m.solution) for m in saved]
+        if not (self._try_unify(self.infer(goal_type), _SORT)
+                and self._try_unify(self.infer(eq_type), _SORT)):
             self.metas = saved
             return None
-        fn = _term("lam", eq_type, ctx, value=z.value)
-        return _apps(_constant("Congr"), eq_type, goal_type, u, v, fn, proof_term)
+        ctx_l, rep_l = self._replace_subterm(lhs, eq_type, u, z)
+        if rep_l and ctx_l != z and self._try_unify(self.substitute(ctx_l, z_id, v), rhs):
+            fn = _term("lam", eq_type, ctx_l, value=z.value)
+            return _apps(_constant("Congr"), eq_type, goal_type, u, v, fn, proof_term)
+        self.metas = [_Meta(m.type, m.scope, m.solution) for m in saved]
+        if not (self._try_unify(self.infer(goal_type), _SORT)
+                and self._try_unify(self.infer(eq_type), _SORT)):
+            self.metas = saved
+            return None
+        ctx_r, rep_r = self._replace_subterm(rhs, eq_type, v, z)
+        if rep_r and ctx_r != z and self._try_unify(self.substitute(ctx_r, z_id, u), lhs):
+            fn = _term("lam", eq_type, ctx_r, value=z.value)
+            return _apps(_constant("Congr"), eq_type, goal_type, u, v, fn, proof_term)
+        self.metas = saved
+        return None
+
+    def _try_congruence_trans(
+        self,
+        goal_type: _Term,
+        lhs: _Term,
+        rhs: _Term,
+        eq_type: _Term,
+        u: _Term,
+        v: _Term,
+        proof_term: _Term,
+        edges: list[tuple[int, _Term, _Term, _Term]],
+    ) -> _Term | None:
+        if not edges:
+            return None
+        saved = [_Meta(m.type, m.scope, m.solution) for m in self.metas]
+        if not (self._try_unify(self.infer(goal_type), _SORT)
+                and self._try_unify(self.infer(eq_type), _SORT)):
+            self.metas = saved
+            return None
+        z = self.fresh(eq_type)
+        z_id = cast("int", z.value)
+        ctx_l, rep_l = self._replace_subterm(lhs, eq_type, u, z)
+        if rep_l and ctx_l != z:
+            mid = self.substitute(ctx_l, z_id, v)
+            fn = _term("lam", eq_type, ctx_l, value=z.value)
+            congr_p = _apps(_constant("Congr"), eq_type, goal_type, u, v, fn, proof_term)
+            for _, eu, ev, ep in edges:
+                step_saved = [_Meta(m.type, m.scope, m.solution) for m in self.metas]
+                if self._try_unify(eu, mid) and self._try_unify(ev, rhs):
+                    return _apps(_constant("Trans"), goal_type, lhs, mid, rhs, congr_p, ep)
+                self.metas = step_saved
+                congr2 = self._try_congruence(goal_type, mid, rhs, goal_type, eu, ev, ep)
+                if congr2 is not None:
+                    return _apps(_constant("Trans"), goal_type, lhs, mid, rhs, congr_p, congr2)
+        self.metas = [_Meta(m.type, m.scope, m.solution) for m in saved]
+        if not (self._try_unify(self.infer(goal_type), _SORT)
+                and self._try_unify(self.infer(eq_type), _SORT)):
+            self.metas = saved
+            return None
+        ctx_r, rep_r = self._replace_subterm(rhs, eq_type, v, z)
+        if rep_r and ctx_r != z:
+            mid = self.substitute(ctx_r, z_id, u)
+            fn = _term("lam", eq_type, ctx_r, value=z.value)
+            congr_p = _apps(_constant("Congr"), eq_type, goal_type, u, v, fn, proof_term)
+            for _, eu, ev, ep in edges:
+                step_saved = [_Meta(m.type, m.scope, m.solution) for m in self.metas]
+                if self._try_unify(eu, lhs) and self._try_unify(ev, mid):
+                    return _apps(_constant("Trans"), goal_type, lhs, mid, rhs, ep, congr_p)
+                self.metas = step_saved
+                congr1 = self._try_congruence(goal_type, lhs, mid, goal_type, eu, ev, ep)
+                if congr1 is not None:
+                    return _apps(_constant("Trans"), goal_type, lhs, mid, rhs, congr1, congr_p)
+        self.metas = saved
+        return None
 
     def _equality_edges(
         self, goal_type: _Term, facts: tuple[_Binding, ...]
@@ -2932,8 +3530,36 @@ class _Elaborator:
                 steps.append((current, u, _apps(_constant("Symm"), goal_type, u, v, fact.term)))
                 current = u
             else:
-                self.metas = saved
-                return None
+                congr = None
+                if self._try_unify(self.infer(eq_type), _SORT) and self._try_unify(self.infer(goal_type), _SORT):
+                    z = self.fresh(eq_type)
+                    z_id = cast("int", z.value)
+                    ctx_u, rep_u = self._replace_subterm(current, eq_type, u, z)
+                    if rep_u and ctx_u != z:
+                        next_t = self.substitute(ctx_u, z_id, v)
+                        fn = _term("lam", eq_type, ctx_u, value=z.value)
+                        congr = (
+                            current,
+                            next_t,
+                            _apps(_constant("Congr"), eq_type, goal_type, u, v, fn, fact.term),
+                        )
+                    elif u != v:
+                        ctx_v, rep_v = self._replace_subterm(current, eq_type, v, z)
+                        if rep_v and ctx_v != z:
+                            next_t = self.substitute(ctx_v, z_id, u)
+                            fn = _term("lam", eq_type, ctx_v, value=z.value)
+                            sym_p = _apps(_constant("Symm"), eq_type, u, v, fact.term)
+                            congr = (
+                                current,
+                                next_t,
+                                _apps(_constant("Congr"), eq_type, goal_type, v, u, fn, sym_p),
+                            )
+                if congr is not None:
+                    steps.append(congr)
+                    current = congr[1]
+                else:
+                    self.metas = saved
+                    return None
         if current != rhs and not self._try_unify(current, rhs):
             self.metas = saved
             return None
@@ -2958,7 +3584,8 @@ class _Elaborator:
         env_facts = (
             tuple(
                 binding for binding in environment.values()
-                if self._is_prop_type(binding.type)
+                if (self.current_rec_var is None or binding.term != self.current_rec_var)
+                and self._is_prop_type(binding.type)
                 and not any(binding.term == existing.term for existing in facts)
             )
             if include_env
@@ -2994,6 +3621,37 @@ class _Elaborator:
                 include_env=include_env,
             )
             return _term("lam", domain, body_term, value=var.value)
+
+        if goal_whnf.kind == "ex":
+            for fact in reversed(all_facts):
+                if self._try_unify(fact.type, goal):
+                    return fact.term
+            saved_ex = [_Meta(m.type, m.scope, m.solution) for m in self.metas]
+            ex_layers: list[tuple[_Term, _Term, _Term]] = []
+            curr_ex = goal_whnf
+            while curr_ex.kind == "ex":
+                ex_dom = curr_ex.args[0]
+                ex_lam = curr_ex.args[1]
+                w_meta = self.meta(ex_dom, environment)
+                ex_layers.append((ex_dom, ex_lam, w_meta))
+                curr_ex = self.whnf(self.substitute(ex_lam.args[1], cast("int", ex_lam.value), w_meta))
+            for fact in reversed(all_facts):
+                attempt_saved = [_Meta(m.type, m.scope, m.solution) for m in self.metas]
+                if self._match_meta_pattern(curr_ex, fact.type) and all(
+                    self.resolve(wm).kind != "meta" for _, _, wm in ex_layers
+                ):
+                    acc_proof = fact.term
+                    for k_ex in range(len(ex_layers) - 1, -1, -1):
+                        dom_k, lam_k, wm_k = ex_layers[k_ex]
+                        for j_ex in range(k_ex):
+                            prev_var_id = cast("int", ex_layers[j_ex][1].value)
+                            prev_val = self.resolve(ex_layers[j_ex][2])
+                            dom_k = self.substitute(dom_k, prev_var_id, prev_val)
+                            lam_k = self.substitute(lam_k, prev_var_id, prev_val)
+                        acc_proof = _term("ex_intro", dom_k, lam_k, self.resolve(wm_k), acc_proof)
+                    return acc_proof
+                self.metas = attempt_saved
+            self.metas = saved_ex
 
         goal_eq = self._extract_equality(goal)
         if goal_eq is not None:
@@ -3032,6 +3690,19 @@ class _Elaborator:
                         congr_sym = self._try_congruence(goal_type, lhs, rhs, eq_type, v, u, sym_p)
                         if congr_sym is not None:
                             return congr_sym
+            for fact in reversed(all_facts):
+                extracted = self._extract_equality(fact.type)
+                if extracted is None:
+                    continue
+                eq_type, u, v = extracted
+                ct = self._try_congruence_trans(goal_type, lhs, rhs, eq_type, u, v, fact.term, edges)
+                if ct is not None:
+                    return ct
+                if u != v:
+                    sym_p = _apps(_constant("Symm"), eq_type, u, v, fact.term)
+                    ct_sym = self._try_congruence_trans(goal_type, lhs, rhs, eq_type, v, u, sym_p, edges)
+                    if ct_sym is not None:
+                        return ct_sym
             for _, u, v, p in reversed(edges):
                 saved = [_Meta(m.type, m.scope, m.solution) for m in self.metas]
                 if self._try_unify(u, lhs) and self._try_unify(v, rhs):
@@ -3075,10 +3746,18 @@ class _Elaborator:
                 domain = self.asserted_proposition(self.node(node["left"]), environment)
                 return self.pi(domain, self.asserted_proposition(self.node(node["right"]), environment))
         if node["kind"] == "quantifier":
-            if node["quantifier"] != "forall":
-                raise self.fail("unsupported", "only universal propositions are supported", node)
+            quantifier = node["quantifier"]
+            if quantifier not in {"forall", "exists"}:
+                raise self.fail("unsupported", f"quantifier '{quantifier}' is not supported", node)
             variables, extended = self.telescope([], self.nodes(node["parameters"]), environment)
-            return self.wrap("pi", variables, self.asserted_proposition(self.node(node["value"]), extended))
+            body = self.asserted_proposition(self.node(node["value"]), extended)
+            if quantifier == "forall":
+                return self.wrap("pi", variables, body)
+            result = body
+            for variable in reversed(variables):
+                domain = self.types[cast("int", variable.value)]
+                result = _term("ex", domain, _term("lam", domain, result, value=variable.value))
+            return result
         value = self.expression(node, environment)
         value_type = self.whnf(value.type)
         if value_type == _PROP:
@@ -3099,8 +3778,37 @@ class _Elaborator:
         self.site = by_node
         if by_node["kind"] in {"lambda", "typed_lambda", "match_expression", "if_expression"}:
             return self.check(by_node, goal, environment)
-        justification = self.expression(by_node, environment)
         goal_whnf = self.whnf(goal)
+        justification = self.expression(by_node, environment)
+        if goal_whnf.kind == "ex" and not self._is_prop_type(justification.type):
+            ex_domains: list[tuple[_Term, _Term]] = []
+            curr_ex = goal_whnf
+            while curr_ex.kind == "ex":
+                ex_domains.append((curr_ex.args[0], curr_ex.args[1]))
+                curr_ex = self.whnf(curr_ex.args[1].args[1])
+            unwrapped_by = self._unwrap_group(by_node)
+            if len(ex_domains) > 1 and unwrapped_by["kind"] == "tuple":
+                tuple_nodes = self.nodes(unwrapped_by["values"])
+                if len(tuple_nodes) == len(ex_domains):
+                    witnesses: list[tuple[_Term, _Term, _Term]] = []
+                    inst_goal = goal_whnf
+                    for t_node in tuple_nodes:
+                        inst_ex = self.whnf(inst_goal)
+                        dom = inst_ex.args[0]
+                        lam = inst_ex.args[1]
+                        w_term = self.check(t_node, dom, environment)
+                        witnesses.append((dom, lam, w_term))
+                        inst_goal = self.substitute(lam.args[1], cast("int", lam.value), w_term)
+                    acc_proof = self._prove_proposition(inst_goal, environment, facts, assert_node)
+                    for dom, lam, w_term in reversed(witnesses):
+                        acc_proof = _term("ex_intro", dom, lam, w_term, acc_proof)
+                    return acc_proof
+            ex_dom_0 = goal_whnf.args[0]
+            ex_lam_0 = goal_whnf.args[1]
+            w_term_0 = self.check(by_node, ex_dom_0, environment)
+            inst_goal_0 = self.substitute(ex_lam_0.args[1], cast("int", ex_lam_0.value), w_term_0)
+            sub_proof = self._prove_proposition(inst_goal_0, environment, facts, assert_node)
+            return _term("ex_intro", ex_dom_0, ex_lam_0, w_term_0, sub_proof)
         while self.whnf(justification.type).kind == "pi" and goal_whnf.kind != "pi":
             pi_type = self.whnf(justification.type)
             if cast("int", pi_type.value) in self.nullary_parameters:
@@ -3116,6 +3824,32 @@ class _Elaborator:
             )
         if not self._is_prop_type(justification.type):
             raise self.fail("type", "assert 'by' justification must be a proof of a proposition", by_node)
+        if goal_whnf.kind == "ex":
+            if self._try_unify(justification.type, goal):
+                return justification.term
+            saved_ex = [_Meta(m.type, m.scope, m.solution) for m in self.metas]
+            ex_layers: list[tuple[_Term, _Term, _Term]] = []
+            curr_ex = goal_whnf
+            while curr_ex.kind == "ex":
+                ex_dom = curr_ex.args[0]
+                ex_lam = curr_ex.args[1]
+                w_meta = self.meta(ex_dom, environment)
+                ex_layers.append((ex_dom, ex_lam, w_meta))
+                curr_ex = self.whnf(self.substitute(ex_lam.args[1], cast("int", ex_lam.value), w_meta))
+            if self._match_meta_pattern(curr_ex, justification.type) and all(
+                self.resolve(wm).kind != "meta" for _, _, wm in ex_layers
+            ):
+                acc_proof = justification.term
+                for k_ex in range(len(ex_layers) - 1, -1, -1):
+                    dom_k, lam_k, wm_k = ex_layers[k_ex]
+                    for j_ex in range(k_ex):
+                        prev_var_id = cast("int", ex_layers[j_ex][1].value)
+                        prev_val = self.resolve(ex_layers[j_ex][2])
+                        dom_k = self.substitute(dom_k, prev_var_id, prev_val)
+                        lam_k = self.substitute(lam_k, prev_var_id, prev_val)
+                    acc_proof = _term("ex_intro", dom_k, lam_k, self.resolve(wm_k), acc_proof)
+                return acc_proof
+            self.metas = saved_ex
         goal_eq = self._extract_equality(goal)
         just_eq = self._extract_equality(justification.type)
         if goal_eq is not None and just_eq is not None:
@@ -3142,6 +3876,14 @@ class _Elaborator:
                 return _apps(_constant("Symm"), goal_type, u, v, justification.term)
             self.metas = saved
             edges = self._equality_edges(goal_type, facts)
+            ct = self._try_congruence_trans(goal_type, lhs, rhs, eq_type, u, v, justification.term, edges)
+            if ct is not None:
+                return ct
+            if u != v:
+                sym_p = _apps(_constant("Symm"), eq_type, u, v, justification.term)
+                ct_sym = self._try_congruence_trans(goal_type, lhs, rhs, eq_type, v, u, sym_p, edges)
+                if ct_sym is not None:
+                    return ct_sym
             if self._try_unify(eq_type, goal_type):
                 just_orientations = [(u, v, justification.term)]
                 if u != v:
@@ -3301,6 +4043,211 @@ class _Elaborator:
             node = cast("Node", node["value"])
         return node
 
+    def _is_propagatable_union(self, value_type: _Term) -> bool:
+        resolved = self.whnf(value_type)
+        head, _ = self.spine(resolved)
+        if head.kind != "const" or not isinstance(head.value, str) or head.value not in self.unions_by_type:
+            return False
+        union_info = self.unions_by_type[head.value]
+        if len(union_info.constructors) != 2:
+            return False
+        names = {c.name for c in union_info.constructors}
+        return names in ({"None", "Some"}, {"Err", "Ok"})
+
+    @staticmethod
+    def _with_node_field(node: Node, key: str, value: object) -> Node:
+        copied = dict(node)
+        copied[key] = value
+        return copied
+
+    @classmethod
+    def _make_list_rebuilder(
+        cls, node: Node, key: str, items: list[Node], idx: int, inner_rebuild: Callable[[Node], Node]
+    ) -> Callable[[Node], Node]:
+        return lambda repl: cls._with_node_field(
+            node, key, [*items[:idx], inner_rebuild(repl), *items[idx + 1:]]
+        )
+
+    @classmethod
+    def _make_nested_list_rebuilder(
+        cls,
+        node: Node,
+        key: str,
+        items: list[Node],
+        idx: int,
+        item_node: Node,
+        child_key: str,
+        inner_rebuild: Callable[[Node], Node],
+    ) -> Callable[[Node], Node]:
+        return lambda repl: cls._with_node_field(
+            node,
+            key,
+            [*items[:idx], cls._with_node_field(item_node, child_key, inner_rebuild(repl)), *items[idx + 1:]],
+        )
+
+    def _split_first_propagate(self, node: Node) -> tuple[Node, Callable[[Node], Node]] | None:
+        kind = node["kind"]
+        if kind == "propagate":
+            return node, lambda repl: repl
+        if kind in {"group", "unary", "member", "is", "generic_application", "expression_body"}:
+            res = self._split_first_propagate(self.node(node["value"]))
+            if res is not None:
+                prop, inner_rebuild = res
+                return prop, lambda repl: self._with_node_field(node, "value", inner_rebuild(repl))
+            return None
+        if kind == "binary":
+            res_l = self._split_first_propagate(self.node(node["left"]))
+            if res_l is not None:
+                prop, inner_rebuild = res_l
+                return prop, lambda repl: self._with_node_field(node, "left", inner_rebuild(repl))
+            res_r = self._split_first_propagate(self.node(node["right"]))
+            if res_r is not None:
+                prop, inner_rebuild = res_r
+                return prop, lambda repl: self._with_node_field(node, "right", inner_rebuild(repl))
+            return None
+        if kind == "tuple":
+            vals = self.nodes(node["values"])
+            for i, v in enumerate(vals):
+                res = self._split_first_propagate(v)
+                if res is not None:
+                    prop, inner_rebuild = res
+                    return prop, self._make_list_rebuilder(node, "values", vals, i, inner_rebuild)
+            return None
+        if kind == "call":
+            res_c = self._split_first_propagate(self.node(node["callee"]))
+            if res_c is not None:
+                prop, inner_rebuild = res_c
+                return prop, lambda repl: self._with_node_field(node, "callee", inner_rebuild(repl))
+            args = self.nodes(node["arguments"])
+            for i, a in enumerate(args):
+                res_a = self._split_first_propagate(self.node(a["value"]))
+                if res_a is not None:
+                    prop, inner_rebuild = res_a
+                    return prop, self._make_nested_list_rebuilder(node, "arguments", args, i, a, "value", inner_rebuild)
+            return None
+        if kind == "with_expression":
+            res_v = self._split_first_propagate(self.node(node["value"]))
+            if res_v is not None:
+                prop, inner_rebuild = res_v
+                return prop, lambda repl: self._with_node_field(node, "value", inner_rebuild(repl))
+            upds = self.nodes(node["updates"])
+            for i, u in enumerate(upds):
+                res_u = self._split_first_propagate(self.node(u["value"]))
+                if res_u is not None:
+                    prop, inner_rebuild = res_u
+                    return prop, self._make_nested_list_rebuilder(node, "updates", upds, i, u, "value", inner_rebuild)
+            return None
+        if kind == "if_expression":
+            res_cond = self._split_first_propagate(self.node(node["condition"]))
+            if res_cond is not None:
+                prop, inner_rebuild = res_cond
+                return prop, lambda repl: self._with_node_field(node, "condition", inner_rebuild(repl))
+            return None
+        if kind == "match_expression":
+            res_val = self._split_first_propagate(self.node(node["value"]))
+            if res_val is not None:
+                prop, inner_rebuild = res_val
+                return prop, lambda repl: self._with_node_field(node, "value", inner_rebuild(repl))
+            return None
+        if kind == "let_expression":
+            bnode = self.node(node["binding"])
+            if bnode.get("value") is not None:
+                res_b = self._split_first_propagate(self.node(bnode["value"]))
+                if res_b is not None:
+                    prop, inner_rebuild = res_b
+                    return prop, lambda repl: self._with_node_field(
+                        node, "binding", self._with_node_field(bnode, "value", inner_rebuild(repl))
+                    )
+            return None
+        return None
+
+    def _elaborate_propagate(
+        self,
+        prop_node: Node,
+        environment: dict[str, _Binding],
+        target_return_type: _Term,
+        continuation: Callable[[str, _Binding, dict[str, _Binding]], _Term],
+    ) -> _Term:
+        self.site = prop_node
+        scrutinee = self.expression(self.node(prop_node["value"]), environment)
+        scrut_type = self.whnf(scrutinee.type)
+        scrut_head, scrut_type_args = self.spine(scrut_type)
+        if (
+            scrut_head.kind != "const"
+            or not isinstance(scrut_head.value, str)
+            or scrut_head.value not in self.unions_by_type
+        ):
+            raise self.fail(
+                "type",
+                "'?' operator requires an Option (None/Some) or Result (Err/Ok) union operand",
+                prop_node,
+            )
+        union_info = self.unions_by_type[scrut_head.value]
+        if len(union_info.constructors) != 2:
+            raise self.fail(
+                "type",
+                "'?' operator requires a 2-variant Option (None/Some) or Result (Err/Ok) union operand",
+                prop_node,
+            )
+        ok_idx: int | None = None
+        err_idx: int | None = None
+        for idx, ctor in enumerate(union_info.constructors):
+            if ctor.name in {"Some", "Ok"} and len(ctor.fields) == 1:
+                ok_idx = idx
+            elif (ctor.name == "None" and len(ctor.fields) == 0) or (
+                ctor.name == "Err" and len(ctor.fields) == 1
+            ):
+                err_idx = idx
+        if ok_idx is None or err_idx is None:
+            raise self.fail(
+                "type",
+                "'?' operator requires an Option (None/Some) or Result (Err/Ok) union operand",
+                prop_node,
+            )
+        ret_type = self.whnf(target_return_type)
+        ret_head, ret_type_args = self.spine(ret_type)
+        if (
+            ret_head.kind != "const"
+            or not isinstance(ret_head.value, str)
+            or ret_head.value != scrut_head.value
+            or not self._is_propagatable_union(ret_type)
+        ):
+            raise self.fail(
+                "type",
+                "'?' propagation requires an enclosing callable or block returning a compatible Option or Result union",
+                prop_node,
+            )
+        inst_payload_types = [
+            self._instantiate_generic_type(union_info.generic_vars, scrut_type_args, c.payload_type)
+            for c in union_info.constructors
+        ]
+        err_ctor = union_info.constructors[err_idx]
+        err_var = self.fresh(inst_payload_types[err_idx])
+        if not err_ctor.fields:
+            early_return_term = _apps(_constant(err_ctor.ctor_const), *ret_type_args, _term("unit"))
+        else:
+            ret_err_type = self._instantiate_generic_type(
+                union_info.generic_vars, ret_type_args, err_ctor.payload_type
+            )
+            self.unify(inst_payload_types[err_idx], ret_err_type)
+            early_return_term = _apps(_constant(err_ctor.ctor_const), *ret_type_args, err_var)
+        ok_type = inst_payload_types[ok_idx]
+        ok_var = self.fresh(ok_type)
+        temp_name = f"__vela_prop_{ok_var.value}"
+        ok_binding = _Binding(ok_var, ok_type)
+        ok_env = dict(environment)
+        ok_env[temp_name] = ok_binding
+        ok_branch_term = continuation(temp_name, ok_binding, ok_env)
+        scrut_var = self.fresh(scrut_type)
+        motive_lam = _term("lam", scrut_type, target_return_type, value=scrut_var.value)
+        if ok_idx == 0:
+            left_lam = _term("lam", ok_type, ok_branch_term, value=ok_var.value)
+            right_lam = _term("lam", inst_payload_types[1], early_return_term, value=err_var.value)
+        else:
+            left_lam = _term("lam", inst_payload_types[0], early_return_term, value=err_var.value)
+            right_lam = _term("lam", ok_type, ok_branch_term, value=ok_var.value)
+        return _term("sum_match", motive_lam, scrutinee.term, left_lam, right_lam)
+
     def block(self, node: Node, environment: dict[str, _Binding], expected: _Term | None = None,
               *, facts: tuple[_Binding, ...] = ()) -> _Binding:
         self.node(node, "block")
@@ -3355,10 +4302,61 @@ class _Elaborator:
                 self.wrap("pi", peeled_vars, result.type),
             )
 
+        def lift_stmt_propagate(
+            stmt: Node, field_key: str, idx_stmt: int
+        ) -> _Binding | None:
+            raw_field = stmt.get(field_key)
+            if raw_field is None:
+                return None
+            split_res = self._split_first_propagate(self.node(raw_field))
+            if split_res is None:
+                return None
+            prop_node, rebuild = split_res
+            target_ret = expected if expected is not None else self.current_return_type
+            if target_ret is None:
+                raise self.fail(
+                    "type",
+                    "'?' propagation requires an enclosing callable or block returning an Option or Result union",
+                    prop_node,
+                )
+            combined_f = (*active_facts, *statement_facts)
+            term = self._elaborate_propagate(
+                prop_node,
+                extended,
+                target_ret,
+                lambda temp_name, _ok_b, ok_env: self.block(
+                    {
+                        "kind": "block",
+                        "span": node["span"],
+                        "statements": [
+                            {
+                                **stmt,
+                                field_key: rebuild(
+                                    {
+                                        "kind": "name",
+                                        "span": prop_node["span"],
+                                        "name": {"text": temp_name, "span": prop_node["span"]},
+                                    }
+                                ),
+                            },
+                            *statements[idx_stmt + 1:],
+                        ],
+                    },
+                    ok_env,
+                    target_ret,
+                    facts=combined_f,
+                ).term,
+            )
+            return finish(_Binding(term, target_ret))
+
         for index, statement in enumerate(statements):
             self.site = statement
             kind = statement["kind"]
             if kind in {"let", "typed_local", "let_pattern", "constant_local"}:
+                if kind != "constant_local":
+                    lifted = lift_stmt_propagate(statement, "value", index)
+                    if lifted is not None:
+                        return lifted
                 previous_keys = set(extended)
                 extended = self.local(statement, extended)
                 for new_key in set(extended) - previous_keys:
@@ -3399,6 +4397,9 @@ class _Elaborator:
             if kind == "let_else":
                 if index == len(statements) - 1:
                     raise self.fail("type", "a pure block requires an explicit terminal return after let-else", statement)
+                lifted = lift_stmt_propagate(statement, "value", index)
+                if lifted is not None:
+                    return lifted
                 else_block = self.node(statement["else"], "block")
                 else_statements = self.nodes(else_block["statements"])
                 rest_statements = statements[index + 1:]
@@ -3445,6 +4446,9 @@ class _Elaborator:
                     if expected is not None:
                         self.unify(value.type, expected)
                     return finish(value)
+                lifted = lift_stmt_propagate(statement, "value", index)
+                if lifted is not None:
+                    return lifted
                 value_node = self.node(statement["value"])
                 result = (
                     self.expression(value_node, extended)
@@ -3455,6 +4459,9 @@ class _Elaborator:
             if kind == "if":
                 if statement["else"] is None:
                     raise self.fail("type", "every conditional branch must return")
+                lifted = lift_stmt_propagate(statement, "condition", index)
+                if lifted is not None:
+                    return lifted
                 combined_facts = (*active_facts, *statement_facts)
                 cond_raw = self.node(statement["condition"])
                 cond_unwrapped = self._unwrap_group(cond_raw)
@@ -3476,6 +4483,9 @@ class _Elaborator:
                 no = self.branch(self.node(statement["else"]), extended, yes.type, facts=combined_facts)
                 return finish(_Binding(_term("if", yes.type, condition, yes.term, no.term), yes.type))
             if kind == "match":
+                lifted = lift_stmt_propagate(statement, "value", index)
+                if lifted is not None:
+                    return lifted
                 return finish(
                     self.match(
                         statement,
@@ -3670,9 +4680,9 @@ class _Elaborator:
                 node,
             )
         record_info = self.records_by_type[head.value]
-        for rf in record_info.fields:
+        for idx, rf in enumerate(record_info.fields):
             if rf.name == member_name:
-                ftype = self._instantiate_record_type(record_info, type_args, rf.type)
+                ftype = self._instantiate_record_field_type(record_info, type_args, idx, receiver.term)
                 fterm = _apps(_constant(rf.proj_const), *type_args, receiver.term)
                 return _Binding(fterm, ftype)
         if member_name in record_info.properties:
@@ -3731,10 +4741,19 @@ class _Elaborator:
         final_fields: list[_Term] = []
         for idx, rf in enumerate(record_info.fields):
             ftype = self._instantiate_record_type(record_info, type_args, rf.type)
+            for j in range(idx):
+                ftype = self.substitute(ftype, cast("int", record_info.fields[j].var.value), final_fields[j])
             if idx in update_by_index:
                 u_node = update_by_index[idx]
                 final_fields.append(self.check(self.node(u_node["value"]), ftype, environment))
             else:
+                old_ftype = self._instantiate_record_field_type(record_info, type_args, idx, base.term)
+                if not self._try_unify(old_ftype, ftype):
+                    raise self.fail(
+                        "type",
+                        f"record update changes an index that field '{rf.name}' depends on; update '{rf.name}' as well",
+                        node,
+                    )
                 final_fields.append(_apps(_constant(rf.proj_const), *type_args, base.term))
         result_term = _apps(_constant(record_info.ctor_const), *type_args, *final_fields)
         result_type = _apps(_constant(record_info.type_const), *type_args)
@@ -4617,6 +5636,12 @@ class _Elaborator:
                 raise self.fail("unsupported", f"prefix '{operator}' is unsupported")
             value = self.check(self.node(node["value"]), _BOOL, environment)
             return _Binding(_app(_constant("!"), value), _BOOL)
+        if kind == "propagate":
+            ret_type = self.current_return_type if self.current_return_type is not None else _UNIT
+            return _Binding(
+                self._elaborate_propagate(node, environment, ret_type, lambda _name, val, _env: val.term),
+                ret_type,
+            )
         raise self.fail("unsupported", f"expression '{kind}' requires the full frontend")
 
     def proposition(self, node: Node, environment: dict[str, _Binding]) -> _Term:
@@ -4634,10 +5659,18 @@ class _Elaborator:
                 domain = self.proposition(self.node(node["left"]), environment)
                 return self.pi(domain, self.proposition(self.node(node["right"]), environment))
         if node["kind"] == "quantifier":
-            if node["quantifier"] != "forall":
-                raise self.fail("unsupported", "only universal propositions are supported")
+            quant = node["quantifier"]
+            if quant not in {"forall", "exists"}:
+                raise self.fail("unsupported", "only universal and existential propositions are supported")
             variables, extended = self.telescope([], self.nodes(node["parameters"]), environment)
-            return self.wrap("pi", variables, self.proposition(self.node(node["value"]), extended))
+            body = self.proposition(self.node(node["value"]), extended)
+            if quant == "forall":
+                return self.wrap("pi", variables, body)
+            result = body
+            for variable in reversed(variables):
+                domain = self.types[cast("int", variable.value)]
+                result = _term("ex", domain, _term("lam", domain, result, value=variable.value))
+            return result
         value = self.expression(node, environment)
         self.unify(value.type, _PROP)
         return value.term
@@ -4677,18 +5710,28 @@ class _Elaborator:
         generic_vars = variables[:len(generics)]
         field_vars = variables[len(generics):]
         field_names = [self.name(p["name"]) for p in parameters]
+        is_dependent = False
         for idx, fv in enumerate(field_vars):
             ftype = self.types[cast("int", fv.value)]
             if any(cast("int", earlier.value) in self.free(ftype) for earlier in field_vars[:idx]):
-                raise self.fail(
-                    "unsupported",
-                    "dependent record field telescopes require sigT lowering in the full frontend",
-                    parameters[idx],
-                )
+                is_dependent = True
+                break
+        tail_sig_types: tuple[_Term, ...] = ()
         if not field_vars:
             rep_type = _UNIT
         elif len(field_vars) == 1:
             rep_type = _term("prod", self.types[cast("int", field_vars[0].value)], _UNIT)
+        elif is_dependent:
+            curr_type = self.types[cast("int", field_vars[-1].value)]
+            tail_sigs_rev: list[_Term] = [curr_type]
+            for fv in reversed(field_vars[:-1]):
+                fv_id = cast("int", fv.value)
+                fv_type = self.types[fv_id]
+                curr_type = _term("sigT", fv_type, _term("lam", fv_type, curr_type, value=fv_id))
+                tail_sigs_rev.append(curr_type)
+            tail_sigs_rev.reverse()
+            tail_sig_types = tuple(tail_sigs_rev)
+            rep_type = tail_sig_types[0]
         else:
             rep_type = self.types[cast("int", field_vars[-1].value)]
             for fv in reversed(field_vars[:-1]):
@@ -4718,6 +5761,13 @@ class _Elaborator:
             ctor_vars = [*generic_vars, field_vars[0]]
             f0_type = self.types[cast("int", field_vars[0].value)]
             ctor_body = _term("pair", f0_type, _UNIT, field_vars[0], _term("unit"))
+        elif is_dependent:
+            ctor_vars = [*generic_vars, *field_vars]
+            ctor_body = field_vars[-1]
+            for idx in range(len(field_vars) - 2, -1, -1):
+                fv = field_vars[idx]
+                sig_ty = tail_sig_types[idx]
+                ctor_body = _term("existT", sig_ty.args[0], sig_ty.args[1], fv, ctor_body)
         else:
             ctor_vars = [*generic_vars, *field_vars]
             ctor_body = field_vars[-1]
@@ -4740,8 +5790,22 @@ class _Elaborator:
             ftype = self.types[cast("int", fvar.value)]
             self_var = self.fresh(record_type_app)
             proj_vars = [*generic_vars, self_var]
+            proj_ret_type = ftype
             if len(field_vars) == 1:
                 proj_body = _apps(_constant("Fst"), ftype, _UNIT, self_var)
+            elif is_dependent:
+                curr_term = self_var
+                curr_sig = rep_type
+                for step in range(idx):
+                    step_val = _term("projT1", curr_sig.args[0], curr_sig.args[1], curr_term)
+                    curr_term = _term("projT2", curr_sig.args[0], curr_sig.args[1], curr_term)
+                    curr_sig = self.substitute(curr_sig.args[1].args[1], cast("int", curr_sig.args[1].value), step_val)
+                    earlier_rf = record_fields[step]
+                    proj_call = _apps(_constant(earlier_rf.proj_const), *generic_vars, self_var)
+                    proj_ret_type = self.substitute(proj_ret_type, cast("int", earlier_rf.var.value), proj_call)
+                if idx < len(field_vars) - 1:
+                    curr_term = _term("projT1", curr_sig.args[0], curr_sig.args[1], curr_term)
+                proj_body = curr_term
             else:
                 curr_term = self_var
                 curr_type = rep_type
@@ -4751,7 +5815,7 @@ class _Elaborator:
                 if idx < len(field_vars) - 1:
                     curr_term = _apps(_constant("Fst"), curr_type.args[0], curr_type.args[1], curr_term)
                 proj_body = curr_term
-            proj_sig = self.wrap("pi", proj_vars, ftype)
+            proj_sig = self.wrap("pi", proj_vars, proj_ret_type)
             proj_def = self.wrap("lam", proj_vars, proj_body)
             self.complete(proj_sig)
             self.complete(proj_def)
@@ -4770,6 +5834,8 @@ class _Elaborator:
             generic_vars=tuple(generic_vars),
             fields=tuple(record_fields),
             properties={},
+            is_dependent=is_dependent,
+            tail_sig_types=tail_sig_types,
         )
         self.records[name] = record_info
         self.records_by_type[type_emitted] = record_info
@@ -4804,9 +5870,10 @@ class _Elaborator:
             self_var = self.fresh(record_type_app)
             prop_env = dict(generic_env)
             prop_env["this"] = _Binding(self_var, record_type_app)
-            for rf in record_fields:
+            for idx, rf in enumerate(record_fields):
                 if rf.name not in generic_env:
-                    prop_env[rf.name] = _Binding(_apps(_constant(rf.proj_const), *generic_vars, self_var), rf.type)
+                    rf_type = self._instantiate_record_field_type(record_info, list(generic_vars), idx, self_var)
+                    prop_env[rf.name] = _Binding(_apps(_constant(rf.proj_const), *generic_vars, self_var), rf_type)
             prop_type = self.type(self.node(member_node["type"]), prop_env)
             prop_body = self.check(self.node(member_node["value"]), prop_type, prop_env)
             prop_vars = [*generic_vars, self_var]
@@ -4843,7 +5910,7 @@ class _Elaborator:
             raise self.fail("unsupported", "empty union declarations require the full frontend", node)
         generic_vars, generic_env = self.telescope(generics, [], {}, unit=False)
         seen_ctors: set[str] = set()
-        ctor_specs: list[tuple[Node, str, list[str], list[_Term], _Term]] = []
+        ctor_specs: list[tuple[Node, str, list[str], list[_Term], _Term, bool, tuple[_Term, ...]]] = []
         for ctor_node in constructors:
             self.node(ctor_node, "constructor")
             self.no_roles(ctor_node, "contracts")
@@ -4871,24 +5938,34 @@ class _Elaborator:
                     raise self.fail("unsupported", "union constructor fields cannot be marked const", param_node)
             field_vars, _ = self.telescope([], cparams, generic_env, unit=False)
             field_names = [self.name(p["name"]) for p in cparams]
+            is_dep = False
             for idx, fv in enumerate(field_vars):
                 ftype = self.types[cast("int", fv.value)]
                 if any(cast("int", earlier.value) in self.free(ftype) for earlier in field_vars[:idx]):
-                    raise self.fail(
-                        "unsupported",
-                        "dependent union constructor field telescopes require sigT lowering in the full frontend",
-                        cparams[idx],
-                    )
+                    is_dep = True
+                    break
+            tail_sig_types: tuple[_Term, ...] = ()
             if not field_vars:
                 payload_type = _UNIT
             elif len(field_vars) == 1:
                 f0_type = self.types[cast("int", field_vars[0].value)]
                 payload_type = _term("prod", f0_type, _UNIT) if len(constructors) == 1 else f0_type
+            elif is_dep:
+                curr_type = self.types[cast("int", field_vars[-1].value)]
+                tail_sigs_rev: list[_Term] = [curr_type]
+                for fv in reversed(field_vars[:-1]):
+                    fv_id = cast("int", fv.value)
+                    fv_type = self.types[fv_id]
+                    curr_type = _term("sigT", fv_type, _term("lam", fv_type, curr_type, value=fv_id))
+                    tail_sigs_rev.append(curr_type)
+                tail_sigs_rev.reverse()
+                tail_sig_types = tuple(tail_sigs_rev)
+                payload_type = tail_sig_types[0]
             else:
                 payload_type = self.types[cast("int", field_vars[-1].value)]
                 for fv in reversed(field_vars[:-1]):
                     payload_type = _term("prod", self.types[cast("int", fv.value)], payload_type)
-            ctor_specs.append((ctor_node, cname, field_names, field_vars, payload_type))
+            ctor_specs.append((ctor_node, cname, field_names, field_vars, payload_type, is_dep, tail_sig_types))
 
         payload_types = [spec[4] for spec in ctor_specs]
         if len(constructors) == 1:
@@ -4917,7 +5994,7 @@ class _Elaborator:
 
         union_type_app = _apps(_constant(type_emitted), *generic_vars)
         union_ctors: list[_UnionCtor] = []
-        for idx, (ctor_node, cname, field_names, field_vars, payload_type) in enumerate(ctor_specs):
+        for idx, (ctor_node, cname, field_names, field_vars, payload_type, is_dep, tail_sig_types) in enumerate(ctor_specs):
             self.site = ctor_node
             if not field_vars:
                 unit_var = self.fresh(_UNIT)
@@ -4932,6 +6009,13 @@ class _Elaborator:
                     if len(constructors) == 1
                     else field_vars[0]
                 )
+            elif is_dep:
+                ctor_vars = [*generic_vars, *field_vars]
+                payload_val = field_vars[-1]
+                for f_idx in range(len(field_vars) - 2, -1, -1):
+                    fv = field_vars[f_idx]
+                    sig_ty = tail_sig_types[f_idx]
+                    payload_val = _term("existT", sig_ty.args[0], sig_ty.args[1], fv, payload_val)
             else:
                 ctor_vars = [*generic_vars, *field_vars]
                 payload_val = field_vars[-1]
@@ -4971,6 +6055,8 @@ class _Elaborator:
                     fields=ctor_fields,
                     payload_type=payload_type,
                     index=idx,
+                    is_dependent=is_dep,
+                    tail_sig_types=tail_sig_types,
                 )
             )
 
@@ -4987,6 +6073,22 @@ class _Elaborator:
         for uc in union_ctors:
             self.union_ctors[uc.name] = (union_info, uc)
             self.unions_by_ctor[uc.ctor_const] = (union_info, uc)
+
+    def _has_unapplied_rec_var(self, term: _Term, rec_var_id: int) -> bool:
+        term = self.resolve(term)
+        if term.kind == "var":
+            return cast("int", term.value) == rec_var_id
+        if term.kind == "app":
+            head, arguments = self.spine(term)
+            if head.kind == "var" and cast("int", head.value) == rec_var_id:
+                expected_arity = len(self.current_rec_generics) + len(self.current_rec_params)
+                if len(arguments) < expected_arity:
+                    return True
+                return any(self._has_unapplied_rec_var(arg, rec_var_id) for arg in arguments)
+            return self._has_unapplied_rec_var(head, rec_var_id) or any(
+                self._has_unapplied_rec_var(arg, rec_var_id) for arg in arguments
+            )
+        return any(self._has_unapplied_rec_var(child, rec_var_id) for child in term.args)
 
     def declaration(self, node: Node) -> None:
         self.site = node
@@ -5005,7 +6107,22 @@ class _Elaborator:
         if (not isinstance(modifiers, list) or any(not isinstance(value, str) or value not in allowed_modifiers for value in modifiers)
                 or len(modifiers) != len(set(modifiers))):
             raise self.fail("unsupported", "unsupported or repeated declaration modifiers")
-        self.no_roles(node, "contracts", "cancel")
+        decreases_clauses: list[Node] = []
+        if kind in {"definition", "function"}:
+            self.no_roles(node, "cancel")
+            for contract in self.nodes(node["contracts"]):
+                self.node(contract, "contract")
+                if contract["role"] != "decreases":
+                    raise self.fail(
+                        "unsupported",
+                        f"contract '{contract['role']}' requires the full frontend",
+                        contract,
+                    )
+                decreases_clauses.append(contract)
+            if len(decreases_clauses) > 1:
+                raise self.fail("type", "at most one decreases clause is permitted", decreases_clauses[1])
+        else:
+            self.no_roles(node, "contracts", "cancel")
         name = self.name(node["name"])
         if (name in self.globals or name in self.records or name in self.unions
                 or name in self.union_ctors or name in {"Type", "_", "this"} or "." in name):
@@ -5015,28 +6132,116 @@ class _Elaborator:
         variables, environment = self.telescope(
             generics, parameters, {}, unit=kind not in {"alias", "constant", "property"}
         )
+        is_recursive = False
+        self_var: _Term | None = None
+        candidates: list[tuple[int, int]] = []
         if kind == "constant":
             evaluated = self.constant_value(node, environment)
             body, result = evaluated.term, evaluated.type
+            signature = self.wrap("pi", variables, result)
         elif kind == "property":
             result = self.type(self.node(node["type"]), environment)
-            body = self.check(self.node(node["value"]), result, environment)
+            prev_ret = self.current_return_type
+            self.current_return_type = result
+            try:
+                body = self.check(self.node(node["value"]), result, environment)
+            finally:
+                self.current_return_type = prev_ret
+            signature = self.wrap("pi", variables, result)
         elif kind == "alias":
             body = self.type(self.node(node["type"]), environment)
             result = self.infer(body)
-        elif kind in {"theorem", "lemma"}:
-            result = self.proposition(self.node(node["proposition"]), environment)
-            if node["body"] is None:
-                raise self.fail("unsupported", "a theorem requires a complete explicit proof body", node)
-            body = self.check(self.node(node["body"]), result, environment)
+            signature = self.wrap("pi", variables, result)
         else:
-            result = self.type(self.node(node["result"]), environment)
-            body_node = node["value"] if kind == "definition" else node["body"]
-            if body_node is None:
-                raise self.fail("unsupported", "abstract callable signatures have no emitted implementation", node)
-            body = self.check(self.node(body_node), result, environment)
-        signature = self.wrap("pi", variables, result)
-        definition = self.wrap("lam", variables, body)
+            if kind in {"theorem", "lemma"}:
+                result = self.proposition(self.node(node["proposition"]), environment)
+                if node["body"] is None:
+                    raise self.fail("unsupported", "a theorem requires a complete explicit proof body", node)
+                body_node = self.node(node["body"])
+            else:
+                result = self.type(self.node(node["result"]), environment)
+                raw_body = node["value"] if kind == "definition" else node["body"]
+                if raw_body is None:
+                    raise self.fail("unsupported", "abstract callable signatures have no emitted implementation", node)
+                body_node = self.node(raw_body)
+            generic_vars = variables[:len(generics)]
+            param_vars = variables[len(generics):]
+            if decreases_clauses:
+                dec_contract = decreases_clauses[0]
+                dec_val = self.node(dec_contract["value"])
+                if dec_val["kind"] != "name":
+                    raise self.fail("type", "decreases clause must name a structural parameter", dec_val)
+                dec_param_name = self.name(dec_val["name"])
+                matched_idx: int | None = None
+                for p_idx, p_node in enumerate(parameters):
+                    if p_node["name"] is not None and self.name(p_node["name"]) == dec_param_name:
+                        matched_idx = p_idx
+                        break
+                if matched_idx is None:
+                    if dec_param_name in environment or dec_param_name in self.globals:
+                        raise self.fail(
+                            "type",
+                            f"decreases clause '{dec_param_name}' must name a value parameter",
+                            dec_val,
+                        )
+                    raise self.fail("name", f"unknown parameter '{dec_param_name}' in decreases clause", dec_val)
+                p_var = param_vars[matched_idx]
+                if self.whnf(self.types[cast("int", p_var.value)]) != _NAT:
+                    raise self.fail(
+                        "type",
+                        f"decreases parameter '{dec_param_name}' must have type Nat",
+                        dec_val,
+                    )
+                candidates = [(matched_idx, cast("int", p_var.value))]
+            else:
+                candidates = [
+                    (p_idx, cast("int", param_vars[p_idx].value))
+                    for p_idx in range(len(parameters))
+                    if self.whnf(self.types[cast("int", param_vars[p_idx].value)]) == _NAT
+                ]
+            signature = self.wrap("pi", variables, result)
+            self_var = self.fresh(signature)
+            self_binding = _Binding(self_var, signature, len(generics))
+            body_env = dict(environment)
+            if name not in body_env:
+                body_env[name] = self_binding
+            self.current_rec_var = self_var
+            self.current_rec_name = name
+            self.current_rec_generics = list(generic_vars)
+            self.current_rec_params = list(param_vars)
+            self.current_rec_candidates = candidates
+            self.smaller_vars = {p_var_id: set() for _, p_var_id in candidates}
+            self.current_return_type = result
+            try:
+                body = self.check(body_node, result, body_env)
+                if self._has_unapplied_rec_var(body, cast("int", self_var.value)):
+                    raise self.fail("type", f"recursive reference to '{name}' must be a direct call", body_node)
+                is_recursive = self.current_rec_used
+                if is_recursive:
+                    candidates = list(self.current_rec_candidates)
+            finally:
+                self.current_rec_var = None
+                self.current_rec_name = None
+                self.current_rec_generics = []
+                self.current_rec_params = []
+                self.current_rec_candidates = []
+                self.current_rec_used = False
+                self.smaller_vars = {}
+                self.current_return_type = None
+        lam_body = self.wrap("lam", variables, body)
+        if is_recursive and self_var is not None:
+            struct_p_idx, struct_var_id = candidates[0]
+            struct_arity_index = len(generics) + struct_p_idx
+            definition = _term(
+                "fix",
+                signature,
+                lam_body,
+                _term("nat", value=struct_var_id),
+                _term("nat", value=struct_arity_index),
+                value=self_var.value,
+            )
+        else:
+            definition = lam_body
         self.site = node
         self.complete(signature)
         self.complete(definition)
@@ -5044,6 +6249,8 @@ class _Elaborator:
             self.complete(_term("meta", value=index))
             self.complete(self.metas[index].type)
         emitted = f"vela_d{len(self.output)}_{name}"
+        if is_recursive and self_var is not None:
+            self.fix_names[cast("int", self_var.value)] = emitted
         self.output.append(f"Definition {emitted} : {self.render(signature)} :=\n  {self.render(definition)}.")
         binding = _Binding(_constant(emitted), signature, len(generics), constant=kind == "constant")
         self.globals[name] = binding
@@ -5079,6 +6286,22 @@ class _Elaborator:
             domain, value, body = term.args
             return (f"(let vela_v{term.value} : {self.render(domain)} := {self.render(value)} "
                     f"in {self.render(body)})")
+        if kind == "fix":
+            sig, lam_body, struct_var_term, _ = term.args
+            binders: list[str] = []
+            curr_lam = self.resolve(lam_body)
+            curr_sig = self.resolve(sig)
+            while curr_lam.kind == "lam" and curr_sig.kind == "pi":
+                domain = curr_lam.args[0]
+                binders.append(f"(vela_v{curr_lam.value} : {self.render(domain)})")
+                curr_lam = self.resolve(curr_lam.args[1])
+                curr_sig = self.resolve(curr_sig.args[1])
+            binder_str = " ".join(binders)
+            struct_name = f"vela_v{struct_var_term.value}"
+            return (
+                f"(fix vela_v{term.value} {binder_str} {{struct {struct_name}}} : "
+                f"{self.render(curr_sig)} := {self.render(curr_lam)})"
+            )
         if kind in {"pi", "lam"}:
             domain, body = term.args
             binder = f"vela_v{term.value} : {self.render(domain)}"
@@ -5092,6 +6315,16 @@ class _Elaborator:
             return f"(@Corelib.Init.Datatypes.prod {self.render(term.args[0])} {self.render(term.args[1])})"
         if kind == "pair":
             return "(@Corelib.Init.Datatypes.pair " + " ".join(self.render(value) for value in term.args) + ")"
+        if kind == "sigT":
+            return f"(@Corelib.Init.Specif.sigT {self.render(term.args[0])} {self.render(term.args[1])})"
+        if kind == "existT":
+            return "(@Corelib.Init.Specif.existT " + " ".join(self.render(value) for value in term.args) + ")"
+        if kind in {"projT1", "projT2"}:
+            return f"(@Corelib.Init.Specif.{kind} " + " ".join(self.render(value) for value in term.args) + ")"
+        if kind == "ex":
+            return f"(@Corelib.Init.Logic.ex {self.render(term.args[0])} {self.render(term.args[1])})"
+        if kind == "ex_intro":
+            return "(@Corelib.Init.Logic.ex_intro " + " ".join(self.render(value) for value in term.args) + ")"
         if kind == "sum":
             return f"(@Corelib.Init.Datatypes.sum {self.render(term.args[0])} {self.render(term.args[1])})"
         if kind in {"inl", "inr"}:
@@ -5118,6 +6351,14 @@ class _Elaborator:
             right_binder = f"vela_v{inner.value}"
             return (f"(match {self.render(scrutinee)} as {binder} return {self.render(motive.args[1])} with "
                     f"| @Corelib.Init.Datatypes.pair _ _ {left_binder} {right_binder} => {self.render(inner.args[1])} end)")
+        if kind == "sigT_match":
+            motive, scrutinee, branch = term.args
+            inner = branch.args[1]
+            binder = f"vela_v{motive.value}"
+            fst_binder = f"vela_v{branch.value}"
+            snd_binder = f"vela_v{inner.value}"
+            return (f"(match {self.render(scrutinee)} as {binder} return {self.render(motive.args[1])} with "
+                    f"| @Corelib.Init.Specif.existT _ _ {fst_binder} {snd_binder} => {self.render(inner.args[1])} end)")
         if kind == "sum_match":
             motive, scrutinee, left_branch, right_branch = term.args
             binder = f"vela_v{motive.value}"
@@ -5156,7 +6397,7 @@ _GALLINA = {
     "&&": "vela_and", "||": "vela_or", "!": "vela_not", "==>": "vela_implies", "<==>": "vela_eq_bool",
 }
 
-_PRELUDE = """From Corelib Require Import Init.Datatypes Init.Nat Init.Logic.
+_PRELUDE = """From Corelib Require Import Init.Datatypes Init.Nat Init.Logic Init.Specif.
 
 Universe vela_u0 vela_u1 vela_u2 vela_u3 vela_u4 vela_u5 vela_u6 vela_u7 vela_u8 vela_u9.
 Constraint vela_u0 < vela_u1.

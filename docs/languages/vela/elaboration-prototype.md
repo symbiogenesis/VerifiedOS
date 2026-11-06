@@ -54,17 +54,27 @@ The supported increment includes:
   argument reordering, omission or defaults are inferred. Dependent later
   parameters are instantiated in declaration order before their arguments are
   checked, preserving complete telescope substitution.
-- Mathematical `Nat`, `bool`, `Unit`, products, equality propositions and proof
-  blocks with `assert` statements and lightweight `by` expression or block
-  justifications. Indexed vectors and finite indices provide a concrete
-  dependent collection boundary, including length preservation and safe lookup.
-  Regular and multi-quote raw string literals (`"""..."""`) elaborate to
+- Mathematical `Nat`, `bool`, `Unit`, products, equality and existential
+  (`exists (T x, ...) => P(x)`) propositions, and proof blocks with `assert`
+  statements, inductive `match` case analysis, and `by` expression or block
+  justifications (supporting WHNF-aware congruence, symmetry and transitivity
+  equational rewriting as well as existential witness introduction via
+  `@Corelib.Init.Logic.ex_intro`). Indexed vectors and finite indices provide a
+  concrete dependent collection boundary, including length preservation and safe
+  lookup. Regular and multi-quote raw string literals (`"""..."""`) elaborate to
   UTF-8 byte vectors `Vec<Nat, n>` (bounded by 256 bytes) with `ByteLength`
   and `At` lookup, and `TextBuilder<capacity>` / `EmptyBuilder` /
   `Format.Write(ref builder, $"...")` / `Fits` / `Written` model allocation-free
   checked formatting with AST-checked hole expressions (`Nat`, `bool`, `Vec<Nat, n>`,
   and `:x2`/`:x4`/`:x8`/`:d`/`:b` specifiers), structural target-buffer aliasing
   refusal and fail-closed capacity bounds.
+- Structural recursion over `Nat` parameters on `definition`, `function`,
+  `lemma` and `theorem` declarations, elaborated to Gallina `fix` terms with
+  optional explicit `decreases parameter` contracts on `definition` and
+  `function` declarations. Recursive calls must supply invariant generic
+  arguments and pass a structurally smaller `Succ(...)` pattern binder for the
+  decreasing parameter; non-decreasing, polymorphic-recursive or unapplied
+  self-references are rejected.
 - Exhaustive `match` expressions and returning statement `match` over `Nat`,
   `bool`, `Unit`, products and nominal `record` and `union` types, with wildcard (`_`),
   variable, `()`, Boolean literal, nested tuple, decimal natural (bounded by
@@ -77,14 +87,22 @@ The supported increment includes:
   arms are still typechecked against the match result type.
 - Conditional `if (cond) a else b` expressions (`if_expression`), Boolean
   `expr is Pattern` tests, flow-refined `if (expr is Pattern)` statements and
-  expressions (binding `Pattern`'s variables in the `then` branch), and scoped
+  expressions (binding `Pattern`'s variables in the `then` branch), scoped
   early-exit `let Pattern = expr else { return ...; }` (`let_else`) guards in
-  blocks and `assert ... by { ... }` proof blocks.
+  blocks and `assert ... by { ... }` proof blocks, and postfix `expr?`
+  early-return propagation over 2-variant `Option<T>` (`None()`, `Some(v)`) and
+  `Result<T, E>` (`Err(e)`, `Ok(v)`) unions.
 - Nominal `record Name(T1 Field1, ...)` and `union Name { Case1(...); ... }`
-  declarations with primary-constructor fields and tagged sum variants, total
+  declarations with primary-constructor fields and tagged sum variants (lowering
+  non-dependent field telescopes to `@Corelib.Init.Datatypes.prod` and dependent
+  field telescopes where later field types depend on earlier fields to
+  `@Corelib.Init.Specif.sigT` / `existT` / `projT1` / `projT2`), total
   read-only expression properties (`public T Prop => expr;`) on records and at
-  module scope, `.Field` and `.Property` member projections, and postfix
-  `base with { Field = expr, ... }` record updates evaluated in declaration order.
+  module scope, `.Field` and `.Property` member projections (including record
+  field paths in dependent type arguments), and postfix
+  `base with { Field = expr, ... }` record updates evaluated in declaration order
+  (refusing partial updates to an index field when a dependent field is not also
+  updated).
 - Typed `const` values of `Nat`, `bool` or `Unit`, at module or local scope,
   under the [required-static contract](surface-grammar.md#required-static-constants).
   Initializers use earlier constants and admitted total pure calls with static

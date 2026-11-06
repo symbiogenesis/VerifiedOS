@@ -2506,6 +2506,427 @@ def _union_declarations_and_elimination() -> None:
     _refuses(dup_ctor, "name", "duplicate")
 
 
+def _propagate(value: Form) -> Form:
+    def form(fixture: _Fixture) -> Node:
+        start = fixture.offset
+        val_node = value(fixture)
+        fixture.write("?")
+        return fixture.node("propagate", start, value=val_node)
+    return form
+
+
+def _exists(parameters: tuple[Parameter, ...], body: Form) -> Form:
+    def form(fixture: _Fixture) -> Node:
+        start = fixture.offset
+        fixture.write("exists ")
+        param_nodes = fixture.parameters(parameters)
+        fixture.write(" => ")
+        val_node = body(fixture)
+        return fixture.node("quantifier", start, quantifier="exists", parameters=param_nodes, value=val_node)
+    return form
+
+
+def _structural_recursion_and_decreases() -> None:
+    fixture = _Fixture("Recursion")
+    fixture.definition(
+        "AddRec",
+        _NAT,
+        (("left", _NAT), ("right", _NAT)),
+        _match_expr(
+            _variable("left"),
+            (
+                (_pat_nat(0), _variable("right")),
+                (_pat_ctor("Succ", _pat_bind("k")), _call("Succ", _call("AddRec", _variable("k"), _variable("right")))),
+            ),
+        ),
+        contracts=(_contract("decreases", _variable("left")),),
+    )
+    fixture.definition(
+        "DoubleRec",
+        _NAT,
+        (("n", _NAT),),
+        _match_expr(
+            _variable("n"),
+            (
+                (_pat_nat(0), _natural(0)),
+                (_pat_ctor("Succ", _pat_bind("k")), _call("Succ", _call("Succ", _call("DoubleRec", _variable("k"))))),
+            ),
+        ),
+    )
+    fixture.theorem(
+        "AddRecCheck",
+        (),
+        _binary("==", _call("AddRec", _natural(2), _natural(3)), _natural(5)),
+        _assert(_binary("==", _call("AddRec", _natural(2), _natural(3)), _natural(5))),
+    )
+    fixture.theorem(
+        "DoubleRecCheck",
+        (),
+        _binary("==", _call("DoubleRec", _natural(3)), _natural(6)),
+        _assert(_binary("==", _call("DoubleRec", _natural(3)), _natural(6))),
+    )
+    source, response = fixture.response()
+    emitted = elaborate(source, response).gallina
+    ensure("(fix vela_v" in emitted and "{struct vela_v" in emitted,
+           "elaborated Gallina omitted structural fixpoint for recursive definition")
+
+    non_dec = _Fixture("NonDecreasing")
+    non_dec.definition("Bad", _NAT, (("n", _NAT),), _call("Bad", _variable("n")))
+    _refuses(non_dec, "type", "structurally smaller")
+
+    wrong_dec = _Fixture("WrongDecreases")
+    wrong_dec.definition(
+        "Bad",
+        _NAT,
+        (("a", _NAT), ("b", _NAT)),
+        _match_expr(
+            _variable("b"),
+            (
+                (_pat_nat(0), _natural(0)),
+                (_pat_ctor("Succ", _pat_bind("k")), _call("Bad", _variable("a"), _variable("k"))),
+            ),
+        ),
+        contracts=(_contract("decreases", _variable("a")),),
+    )
+    _refuses(wrong_dec, "type", "structurally smaller")
+
+    non_nat_dec = _Fixture("NonNatDecreases")
+    non_nat_dec.definition(
+        "Bad",
+        _NAT,
+        (("flag", _BOOL),),
+        _natural(0),
+        contracts=(_contract("decreases", _variable("flag")),),
+    )
+    _refuses(non_nat_dec, "type", "must have type Nat")
+
+    unk_dec = _Fixture("UnknownDecreases")
+    unk_dec.definition(
+        "Bad",
+        _NAT,
+        (("n", _NAT),),
+        _natural(0),
+        contracts=(_contract("decreases", _variable("missing")),),
+    )
+    _refuses(unk_dec, "name", "unknown parameter")
+
+    unapplied = _Fixture("UnappliedSelf")
+    unapplied.definition("Use", _NAT, (("f", _function_type(((None, _NAT),), _NAT)),), _call("f", _natural(0)))
+    unapplied.definition(
+        "Bad",
+        _NAT,
+        (("n", _NAT),),
+        _match_expr(
+            _variable("n"),
+            (
+                (_pat_nat(0), _natural(0)),
+                (_pat_ctor("Succ", _pat_bind("k")), _call("Use", _variable("Bad"))),
+            ),
+        ),
+    )
+    _refuses(unapplied, "type", "direct call")
+
+
+def _inductive_proofs_and_equational_rewriting() -> None:
+    fixture = _Fixture("InductiveProofs")
+    fixture.theorem(
+        "AddZeroRight",
+        (("n", _NAT),),
+        _binary("==", _binary("+", _variable("n"), _natural(0)), _variable("n")),
+        _match_stmt(
+            _variable("n"),
+            (
+                (_pat_nat(0), _assert(_binary("==", _binary("+", _natural(0), _natural(0)), _natural(0)))),
+                (
+                    _pat_ctor("Succ", _pat_bind("k")),
+                    _assert(
+                        _binary("==", _binary("+", _call("Succ", _variable("k")), _natural(0)), _call("Succ", _variable("k"))),
+                        by=_call("AddZeroRight", _variable("k")),
+                    ),
+                ),
+            ),
+            assert_arms=True,
+        ),
+    )
+    fixture.theorem(
+        "AddSuccRight",
+        (("a", _NAT), ("b", _NAT)),
+        _binary("==", _binary("+", _variable("a"), _call("Succ", _variable("b"))), _call("Succ", _binary("+", _variable("a"), _variable("b")))),
+        _match_stmt(
+            _variable("a"),
+            (
+                (
+                    _pat_nat(0),
+                    _assert(
+                        _binary(
+                            "==",
+                            _binary("+", _natural(0), _call("Succ", _variable("b"))),
+                            _call("Succ", _binary("+", _natural(0), _variable("b"))),
+                        )
+                    ),
+                ),
+                (
+                    _pat_ctor("Succ", _pat_bind("k")),
+                    _assert(
+                        _binary(
+                            "==",
+                            _binary("+", _call("Succ", _variable("k")), _call("Succ", _variable("b"))),
+                            _call("Succ", _binary("+", _call("Succ", _variable("k")), _variable("b"))),
+                        ),
+                        by=_call("AddSuccRight", _variable("k"), _variable("b")),
+                    ),
+                ),
+            ),
+            assert_arms=True,
+        ),
+    )
+    fixture.theorem(
+        "AddComm",
+        (("a", _NAT), ("b", _NAT)),
+        _binary("==", _binary("+", _variable("a"), _variable("b")), _binary("+", _variable("b"), _variable("a"))),
+        _match_stmt(
+            _variable("a"),
+            (
+                (
+                    _pat_nat(0),
+                    _assert(
+                        _binary("==", _binary("+", _natural(0), _variable("b")), _binary("+", _variable("b"), _natural(0))),
+                        by=_call("AddZeroRight", _variable("b")),
+                    ),
+                ),
+                (
+                    _pat_ctor("Succ", _pat_bind("k")),
+                    _assert(
+                        _binary(
+                            "==",
+                            _binary("+", _call("Succ", _variable("k")), _variable("b")),
+                            _binary("+", _variable("b"), _call("Succ", _variable("k"))),
+                        ),
+                        by_block=(
+                            _assert(
+                                _binary(
+                                    "==",
+                                    _call("Succ", _binary("+", _variable("k"), _variable("b"))),
+                                    _call("Succ", _binary("+", _variable("b"), _variable("k"))),
+                                ),
+                                by=_call("AddComm", _variable("k"), _variable("b")),
+                            ),
+                            _assert(
+                                _binary(
+                                    "==",
+                                    _binary("+", _variable("b"), _call("Succ", _variable("k"))),
+                                    _call("Succ", _binary("+", _variable("b"), _variable("k"))),
+                                ),
+                                by=_call("AddSuccRight", _variable("b"), _variable("k")),
+                            ),
+                        ),
+                    ),
+                ),
+            ),
+            assert_arms=True,
+        ),
+    )
+    source, response = fixture.response()
+    emitted = elaborate(source, response).gallina
+    ensure("Definition vela_d0_AddZeroRight" in emitted and "Definition vela_d2_AddComm" in emitted
+           and "@vela_Congr" in emitted and "@Corelib.Init.Logic.eq_sym" in emitted,
+           "elaborated inductive proofs omitted congruence or symmetry combinators")
+
+    circular = _Fixture("CircularProof")
+    circular.theorem(
+        "Bad",
+        (("n", _NAT),),
+        _binary("==", _variable("n"), _natural(0)),
+        _assert(_binary("==", _variable("n"), _natural(0)), by=_call("Bad", _variable("n"))),
+    )
+    _refuses(circular, "type", "structurally smaller")
+
+
+def _dependent_records_and_existential_propositions() -> None:
+    fixture = _Fixture("DependentRecordsAndExistentials")
+    fixture.record(
+        "BoundedIndex",
+        (("Limit", _NAT), ("Index", _type("Fin", _variable("Limit")))),
+        properties=(("Capacity", _NAT, _member(_variable("this"), "Limit")),),
+    )
+    fixture.union(
+        "PackedVec",
+        (
+            ("Empty", ()),
+            ("NonEmpty", (("Length", _NAT), ("Items", _type("Vec", _T, _variable("Length"))))),
+        ),
+        generics=_POLY,
+    )
+    fixture.definition(
+        "ZeroBounded",
+        _type("BoundedIndex"),
+        (),
+        _call("BoundedIndex", _natural(1), _call("FZero", generics=(_natural(0),)), labels=("Limit", "Index")),
+    )
+    fixture.definition(
+        "ReadBounded",
+        _NAT,
+        (("b", _type("BoundedIndex")), ("values", _type("Vec", _NAT, _member(_variable("b"), "Limit")))),
+        _call("At", _variable("values"), _member(_variable("b"), "Index")),
+    )
+    fixture.definition(
+        "RebindBounded",
+        _type("BoundedIndex"),
+        (("b", _type("BoundedIndex")),),
+        _with_expr(_variable("b"), (("Limit", _natural(1)), ("Index", _call("FZero", generics=(_natural(0),))))),
+    )
+    fixture.definition(
+        "PackedLength",
+        _NAT,
+        (("packed", _type("PackedVec", _NAT)),),
+        _match_expr(
+            _variable("packed"),
+            (
+                (_pat_ctor("Empty"), _natural(0)),
+                (_pat_ctor("NonEmpty", _pat_labeled("Length", _pat_bind("n")), _pat_labeled("Items", _pat_wild())), _variable("n")),
+            ),
+        ),
+    )
+    fixture.theorem(
+        "ZeroBoundedCapacity",
+        (),
+        _binary("==", _member(_call("ZeroBounded"), "Capacity"), _natural(1)),
+        _assert(_binary("==", _member(_call("ZeroBounded"), "Capacity"), _natural(1))),
+    )
+    fixture.theorem(
+        "PackedNonEmptyLength",
+        (),
+        _binary(
+            "==",
+            _call("PackedLength", _call("NonEmpty", _natural(1), _call("VCons", _natural(9), _call("VNil", generics=(_NAT,))))),
+            _natural(1),
+        ),
+        _assert(
+            _binary(
+                "==",
+                _call("PackedLength", _call("NonEmpty", _natural(1), _call("VCons", _natural(9), _call("VNil", generics=(_NAT,))))),
+                _natural(1),
+            )
+        ),
+    )
+    fixture.theorem(
+        "ExistsEqual",
+        (("n", _NAT),),
+        _exists((("m", _NAT),), _binary("==", _variable("m"), _variable("n"))),
+        _assert(_exists((("m", _NAT),), _binary("==", _variable("m"), _variable("n"))), by=_variable("n")),
+    )
+    source, response = fixture.response()
+    emitted = elaborate(source, response).gallina
+    ensure("@Corelib.Init.Specif.sigT" in emitted and "@Corelib.Init.Specif.existT" in emitted
+           and "@Corelib.Init.Specif.projT1" in emitted and "@Corelib.Init.Specif.projT2" in emitted
+           and "@Corelib.Init.Logic.ex" in emitted and "@Corelib.Init.Logic.ex_intro" in emitted,
+           "elaborated Gallina omitted sigT/existT/projT or ex/ex_intro combinators")
+
+    partial_upd = _Fixture("PartialDependentUpdate")
+    partial_upd.record("BoundedIndex", (("Limit", _NAT), ("Index", _type("Fin", _variable("Limit")))))
+    partial_upd.definition(
+        "Wrong",
+        _type("BoundedIndex"),
+        (("b", _type("BoundedIndex")),),
+        _with_expr(_variable("b"), (("Limit", _natural(2)),)),
+    )
+    _refuses(partial_upd, "type", "depends on")
+
+    bad_ex = _Fixture("BadExistentialWitness")
+    bad_ex.theorem(
+        "Wrong",
+        (),
+        _exists((("m", _NAT),), _binary("==", _variable("m"), _natural(1))),
+        _assert(_exists((("m", _NAT),), _binary("==", _variable("m"), _natural(1))), by=_natural(0)),
+    )
+    _refuses(bad_ex, "type")
+
+
+def _early_return_propagation() -> None:
+    fixture = _Fixture("Propagation")
+    fixture.union("Option", (("None", ()), ("Some", (("Value", _T),))), generics=_POLY)
+    fixture.union(
+        "Result",
+        (("Err", (("Error", _type("E")),)), ("Ok", (("Value", _T),))),
+        generics=(*_POLY, ("type", "E", None)),
+    )
+    fixture.definition(
+        "AddOptions",
+        _type("Option", _NAT),
+        (("left", _type("Option", _NAT)), ("right", _type("Option", _NAT))),
+        _call("Some", _binary("+", _propagate(_variable("left")), _propagate(_variable("right")))),
+    )
+    fixture.function(
+        "AddResults",
+        _type("Result", _NAT, _BOOL),
+        (("left", _type("Result", _NAT, _BOOL)), ("right", _type("Result", _NAT, _BOOL))),
+        _call("Ok", _binary("+", _propagate(_variable("left")), _propagate(_variable("right")))),
+        arrow=False,
+    )
+    fixture.theorem(
+        "AddOptionsSome",
+        (),
+        _binary(
+            "==",
+            _call("AddOptions", _call("Some", _natural(3)), _call("Some", _natural(4))),
+            _call("Some", _natural(7)),
+        ),
+        _assert(
+            _binary(
+                "==",
+                _call("AddOptions", _call("Some", _natural(3)), _call("Some", _natural(4))),
+                _call("Some", _natural(7)),
+            )
+        ),
+    )
+    fixture.theorem(
+        "AddOptionsNone",
+        (),
+        _binary(
+            "==",
+            _call("AddOptions", _call("None", generics=(_NAT,)), _call("Some", _natural(4))),
+            _call("None", generics=(_NAT,)),
+        ),
+        _assert(
+            _binary(
+                "==",
+                _call("AddOptions", _call("None", generics=(_NAT,)), _call("Some", _natural(4))),
+                _call("None", generics=(_NAT,)),
+            )
+        ),
+    )
+    fixture.theorem(
+        "AddResultsErr",
+        (),
+        _binary(
+            "==",
+            _call("AddResults", _call("Err", _boolean(True), generics=(_NAT, _BOOL)), _call("Ok", _natural(4), generics=(_NAT, _BOOL))),
+            _call("Err", _boolean(True), generics=(_NAT, _BOOL)),
+        ),
+        _assert(
+            _binary(
+                "==",
+                _call("AddResults", _call("Err", _boolean(True), generics=(_NAT, _BOOL)), _call("Ok", _natural(4), generics=(_NAT, _BOOL))),
+                _call("Err", _boolean(True), generics=(_NAT, _BOOL)),
+            )
+        ),
+    )
+    source, response = fixture.response()
+    emitted = elaborate(source, response).gallina
+    ensure("Definition vela_d6_AddOptions" in emitted and "Definition vela_d7_AddResults" in emitted,
+           "elaborated Gallina omitted propagated callable definitions")
+
+    bad_op = _Fixture("PropagateNonUnion")
+    bad_op.union("Option", (("None", ()), ("Some", (("Value", _T),))), generics=_POLY)
+    bad_op.definition("Wrong", _type("Option", _NAT), (("n", _NAT),), _call("Some", _propagate(_variable("n"))))
+    _refuses(bad_op, "type", "Option")
+
+    bad_ret = _Fixture("PropagateIncompatibleReturn")
+    bad_ret.union("Option", (("None", ()), ("Some", (("Value", _T),))), generics=_POLY)
+    bad_ret.definition("Wrong", _NAT, (("x", _type("Option", _NAT)),), _propagate(_variable("x")))
+    _refuses(bad_ret, "type", "enclosing callable")
+
+
 def cases() -> list[Case]:
     return [Case("fresh-polymorphism-and-higher-order-inference", _polymorphism_and_higher_order),
             Case("familiar-generic-markers-and-mathematical-body-source-binding", _familiar_generic_spellings),
@@ -2534,4 +2955,8 @@ def cases() -> list[Case]:
             Case("pattern-matching-refusals-and-protocol", _pattern_matching_refusals_and_protocol),
             Case("raw-strings-and-checked-formatting", _raw_strings_and_checked_formatting),
             Case("records-properties-updates-guards-and-expressions", _records_properties_updates_guards_and_expressions),
-            Case("tagged-union-declarations-and-elimination", _union_declarations_and_elimination)]
+            Case("tagged-union-declarations-and-elimination", _union_declarations_and_elimination),
+            Case("structural-recursion-and-decreases-contracts", _structural_recursion_and_decreases),
+            Case("inductive-proofs-and-equational-rewriting", _inductive_proofs_and_equational_rewriting),
+            Case("dependent-records-and-existential-propositions", _dependent_records_and_existential_propositions),
+            Case("early-return-propagation-for-option-and-result", _early_return_propagation)]

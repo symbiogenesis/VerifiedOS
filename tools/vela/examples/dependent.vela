@@ -206,4 +206,88 @@ public lemma OptionRoundTrip(Option<Nat> item):
         }
     }
 
+public definition Option<Nat> AddOptions(Option<Nat> left, Option<Nat> right) =>
+    Some(left? + right?);
+
+public lemma PropagateSome(): AddOptions(Some(3), Some(4)) == Some(7)
+    proof
+    {
+        assert AddOptions(Some(3), Some(4)) == Some(7);
+    }
+
+public lemma PropagateNone(): AddOptions(None<Nat>(), Some(4)) == None<Nat>()
+    proof
+    {
+        assert AddOptions(None<Nat>(), Some(4)) == None<Nat>();
+    }
+
+public definition Nat AddRec(Nat left, Nat right) decreases left =>
+    match (left) {
+        0 => right,
+        Succ(previous) => Succ(AddRec(previous, right)),
+    };
+
+public lemma AddZeroRight(Nat value): value + 0 == value
+    proof
+    {
+        match (value)
+        {
+            case 0:
+                assert 0 + 0 == 0;
+            case Succ(previous):
+                assert Succ(previous) + 0 == Succ(previous) by AddZeroRight(previous);
+        }
+    }
+
+public lemma AddSuccRight(Nat left, Nat right): left + Succ(right) == Succ(left + right)
+    proof
+    {
+        match (left)
+        {
+            case 0:
+                assert 0 + Succ(right) == Succ(0 + right);
+            case Succ(previous):
+                assert Succ(previous) + Succ(right) == Succ(Succ(previous) + right) by AddSuccRight(previous, right);
+        }
+    }
+
+public theorem AddComm(Nat left, Nat right): left + right == right + left
+    proof
+    {
+        match (left)
+        {
+            case 0:
+                assert 0 + right == right + 0 by AddZeroRight(right);
+            case Succ(previous):
+                assert Succ(previous) + right == right + Succ(previous) by
+                {
+                    assert Succ(previous + right) == Succ(right + previous) by AddComm(previous, right);
+                    assert right + Succ(previous) == Succ(right + previous) by AddSuccRight(right, previous);
+                }
+        }
+    }
+
+public record BoundedIndex(Nat Limit, Fin<Limit> Index)
+{
+    public Nat Capacity => this.Limit;
+}
+
+public definition BoundedIndex ZeroBoundedIndex() =>
+    BoundedIndex(Limit: 1, Index: FZero<0>());
+
+public lemma ZeroBoundedCapacity(): ZeroBoundedIndex().Capacity == 1
+    proof
+    {
+        assert ZeroBoundedIndex().Capacity == 1;
+    }
+
+public lemma ExistsRightIdentity(Nat value): exists (Nat neutral) => value + neutral == value
+    proof
+    {
+        assert exists (Nat neutral) => value + neutral == value by
+        {
+            assert value + 0 == value by AddZeroRight(value);
+        }
+    }
+
 public definition Type<1> SmallUniverse() => type Type;

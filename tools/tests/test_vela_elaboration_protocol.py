@@ -14,6 +14,7 @@ from tests.test_vela_elaborate import (
     _Fixture,
     _function_type,
     _lambda,
+    _natural,
     _type,
     _variable,
 )
@@ -29,6 +30,18 @@ def _quantifier(word: str) -> Form:
         fixture.write(" => ")
         value = _binary("==", _variable("value"), _variable("value"))(fixture)
         return fixture.node("quantifier", start, quantifier=word, parameters=parameters, value=value)
+    return form
+
+
+def _callable_mode_type(mode: str) -> Form:
+    def form(fixture: _Fixture) -> Node:
+        start = fixture.offset
+        fixture.write(mode)
+        params = fixture.parameters((("value", _NAT),))
+        fixture.write(" -> ")
+        output = _NAT(fixture)
+        return fixture.node("function_type", start, mode=mode, generics=[], parameters=params,
+                            result=output, captures=None, effects=[], contracts=[])
     return form
 
 
@@ -76,10 +89,26 @@ def _supported_and_unsupported_words() -> None:
     try:
         elaborate(*_fixture("exists").response())
     except VelaError as error:
-        ensure(error.kind == "unsupported" and "universal" in error.message,
-               "a source-bound existential failed before its semantic boundary")
+        ensure(error.kind == "name",
+               "an unwitnessed existential assertion did not reject the unbound quantifier variable")
     else:
-        raise AssertionError("existential syntax acquired a mathematical interpretation")
+        raise AssertionError("existential binder was treated as universally introduced")
+    ex_fixture = _Fixture("ExistentialWitness")
+    ex_fixture.theorem("HasWitness", (), _quantifier("exists"),
+                       _assert(_quantifier("exists"), by=_natural(0)))
+    ex_output = elaborate(*ex_fixture.response()).gallina
+    ensure("@Corelib.Init.Logic.ex " in ex_output and "@Corelib.Init.Logic.ex_intro " in ex_output,
+           "existential proof failed to emit ex and ex_intro")
+    fnonce_fixture = _Fixture("UnsupportedCallableMode")
+    fnonce_fixture.definition("Once", _callable_mode_type("FnOnce"), (),
+                              _lambda((("value", _NAT),), _variable("value")))
+    try:
+        elaborate(*fnonce_fixture.response())
+    except VelaError as error:
+        ensure(error.kind == "unsupported" and "pure Fn" in error.message,
+               "a source-bound FnOnce callable failed before its semantic boundary")
+    else:
+        raise AssertionError("FnOnce callable mode acquired a mathematical interpretation")
     source, response = fixture.response()
     declarations = cast("list[Node]", cast("Node", response["ast"])["declarations"])
     cast("Node", declarations[0]["result"])["mode"] = "FnOnce"

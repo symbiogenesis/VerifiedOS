@@ -338,6 +338,110 @@ public lemma OptionRoundTrip(Option<Nat> item):
         }
     }
 '''),
+        ("structural-recursion-inductive-proofs-dependent-records-existentials-and-propagation", '''module Phase2Replay;
+public definition Nat AddRec(Nat a, Nat b) decreases a =>
+    match (a) {
+        0 => b,
+        Succ(k) => Succ(AddRec(k, b)),
+    };
+public Nat DoubleRec(Nat n) decreases n {
+    match (n) {
+        case 0:
+            return 0;
+        case Succ(k):
+            return Succ(Succ(DoubleRec(k)));
+    }
+}
+public lemma AddZeroRight(Nat n): n + 0 == n
+    proof {
+        match (n) {
+            case 0:
+                assert 0 + 0 == 0;
+            case Succ(k):
+                assert Succ(k) + 0 == Succ(k) by AddZeroRight(k);
+        }
+    }
+public lemma AddSuccRight(Nat a, Nat b): a + Succ(b) == Succ(a + b)
+    proof {
+        match (a) {
+            case 0:
+                assert 0 + Succ(b) == Succ(0 + b);
+            case Succ(k):
+                assert Succ(k) + Succ(b) == Succ(Succ(k) + b) by AddSuccRight(k, b);
+        }
+    }
+public theorem AddComm(Nat a, Nat b): a + b == b + a
+    proof {
+        match (a) {
+            case 0:
+                assert 0 + b == b + 0 by AddZeroRight(b);
+            case Succ(k):
+                assert Succ(k) + b == b + Succ(k) by {
+                    assert Succ(k + b) == Succ(b + k) by AddComm(k, b);
+                    assert b + Succ(k) == Succ(b + k) by AddSuccRight(b, k);
+                }
+        }
+    }
+public lemma DoubleIsAddSelf(Nat n): DoubleRec(n) == n + n
+    proof {
+        match (n) {
+            case 0:
+                assert DoubleRec(0) == 0 + 0;
+            case Succ(k):
+                assert DoubleRec(Succ(k)) == Succ(k) + Succ(k) by {
+                    assert Succ(Succ(DoubleRec(k))) == Succ(Succ(k + k)) by DoubleIsAddSelf(k);
+                    assert k + Succ(k) == Succ(k + k) by AddSuccRight(k, k);
+                }
+        }
+    }
+public record BoundedVec<TElement>(Nat Length, Vec<TElement, Length> Items) {
+    public Nat Size => this.Length;
+}
+public record BoundedIndex(Nat Limit, Fin<Limit> Index);
+public definition BoundedVec<Nat> SingletonBounded() =>
+    BoundedVec(Length: 1, Items: VCons(7, VNil<Nat>()));
+public definition Nat BoundedHead(BoundedIndex b, Vec<Nat, b.Limit> values) =>
+    At(values, b.Index);
+public definition BoundedIndex ResetBounded(BoundedIndex b) =>
+    b with { Limit = 1, Index = FZero<0>() };
+public definition Nat UnpackBoundedSize<TElement>(BoundedVec<TElement> packed) =>
+    match (packed) {
+        BoundedVec(Length: n, Items: _) => n,
+    };
+public lemma SingletonBoundedSize(): SingletonBounded().Size == 1
+    proof { assert SingletonBounded().Size == 1; }
+public lemma UnpackSingletonBounded(): UnpackBoundedSize(SingletonBounded()) == 1
+    proof { assert UnpackBoundedSize(SingletonBounded()) == 1; }
+public lemma ExistsWitness(Nat n): exists (Nat m) => m + 0 == n
+    proof {
+        assert exists (Nat m) => m + 0 == n by {
+            assert n + 0 == n by AddZeroRight(n);
+        }
+    }
+public union Option<TValue> {
+    None();
+    Some(TValue Value);
+}
+public union Result<TValue, TError> {
+    Err(TError Error);
+    Ok(TValue Value);
+}
+public definition Option<Nat> AddOptions(Option<Nat> left, Option<Nat> right) =>
+    Some(left? + right?);
+public Result<Nat, bool> AddResults(Result<Nat, bool> left, Result<Nat, bool> right) {
+    let a = left?;
+    let b = right?;
+    return Ok(a + b);
+}
+public lemma PropagateSome(): AddOptions(Some(3), Some(4)) == Some(7)
+    proof { assert AddOptions(Some(3), Some(4)) == Some(7); }
+public lemma PropagateNone(): AddOptions(None<Nat>(), Some(4)) == None<Nat>()
+    proof { assert AddOptions(None<Nat>(), Some(4)) == None<Nat>(); }
+public lemma PropagateOk(): AddResults(Ok<Nat, bool>(2), Ok<Nat, bool>(5)) == Ok<Nat, bool>(7)
+    proof { assert AddResults(Ok<Nat, bool>(2), Ok<Nat, bool>(5)) == Ok<Nat, bool>(7); }
+public lemma PropagateErr(): AddResults(Err<Nat, bool>(true), Ok<Nat, bool>(5)) == Err<Nat, bool>(true)
+    proof { assert AddResults(Err<Nat, bool>(true), Ok<Nat, bool>(5)) == Err<Nat, bool>(true); }
+'''),
     )
     negatives = (
         ("static-parameter-runtime-input", "Nat F(const Nat value) => value; Nat Wrong(Nat runtime) => F(runtime);", "type"),
@@ -358,8 +462,27 @@ public lemma OptionRoundTrip(Option<Nat> item):
         ("unrelated-by-block", "lemma Wrong(Nat n): n == n proof { assert n == n by { assert 1 == 1; } }", "type"),
         ("obsolete-refl-combinator", "lemma Wrong(): 1 == 1 proof { return Refl(1); }", "name"),
         ("non-proposition", "lemma Wrong(): 3 proof { return 3; }", "type"),
-        ("unsupported-existential", "lemma Wrong(): exists (Nat value) => value == value "
-         "proof { assert value == value; }", "unsupported"),
+        ("unwitnessed-existential-binder", "lemma Wrong(): exists (Nat value) => value == value "
+         "proof { assert value == value; }", "name"),
+        ("existential-invalid-witness", "lemma Wrong(): exists (Nat value) => value == 1 "
+         "proof { assert exists (Nat value) => value == 1 by 0; }", "type"),
+        ("recursion-non-decreasing", "definition Nat Bad(Nat n) => Bad(n);", "type"),
+        ("recursion-wrong-decreases-parameter",
+         "definition Nat Bad(Nat a, Nat b) decreases a => match (b) { 0 => 0, Succ(k) => Bad(a, k) };", "type"),
+        ("recursion-non-nat-decreases", "definition Nat Bad(bool flag) decreases flag => 0;", "type"),
+        ("recursion-unknown-decreases", "definition Nat Bad(Nat n) decreases missing => 0;", "name"),
+        ("recursion-unapplied-self",
+         "definition Nat Use(Fn(Nat) -> Nat f) => f(0); "
+         "definition Nat Bad(Nat n) => match (n) { 0 => 0, Succ(k) => Use(Bad) };", "type"),
+        ("dependent-record-partial-index-update",
+         "public record Bounded(Nat Limit, Fin<Limit> Index); "
+         "definition Bounded Wrong(Bounded b) => b with { Limit = 5 };", "type"),
+        ("propagate-non-union-operand",
+         "public union Option<T> { None(); Some(T Value); } "
+         "Option<Nat> Wrong(Nat n) { return Some(n?); }", "type"),
+        ("propagate-incompatible-return",
+         "public union Option<T> { None(); Some(T Value); } "
+         "Nat Wrong(Option<Nat> x) { return x?; }", "type"),
         ("universe-self-typing", "definition Type Wrong() => type Type;", "type"),
         ("unresolved-inference", "definition _ Unknown() => VNil();", "inference"),
         ("unfinished-proof", "lemma Missing(): 1 == 1;", "unsupported"),
