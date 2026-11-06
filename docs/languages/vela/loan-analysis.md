@@ -10,10 +10,13 @@ acceptance, checked interpretation, memory-safety theorem or machine law.
 
 ## Input and composition
 
-The Python API consumes an explicit finite acyclic control-flow graph with named
-owners, declared field projections, shared/exclusive loans and parent links.
+The Python API consumes an explicit finite control-flow graph with named
+owners, declared field projections, named invariant clauses, shared/exclusive
+loans and parent links, and also provides a schema-2 surface AST lowering pass
+(`lower_function`, `lower_module`, `analyze_function`, `analyze_module`).
 Events describe borrowing, access, resource moves, binding capture environments,
-uses, outcome-specific returns and unsupported suspension boundaries. Each
+uses, per-conjunct invariant opening and closing (`scope ... lifts`),
+outcome-specific returns and unsupported suspension boundaries. Each
 operation's facts are explicit inputs: a library call does not obtain authority
 from its name. Boxes, optional values, cells, callbacks and protocol wrappers use
 the same capture and loan facts, without dedicated cases for their type names.
@@ -22,15 +25,16 @@ from source spelling or pointer inequality. Unknown overlap remains unresolved.
 
 Names must be unambiguous within a path. A child loan must stay within its parent
 footprint; a shared parent cannot produce an exclusive child. Missing references,
-duplicate graph identities, malformed edges, cycles and exhausted node/path/work
-budgets refuse analysis. No partial exploration may produce a complete result.
-Loops need a separately checked invariant/back-edge interpretation; unrolling
-supplied finite paths does not establish termination or loop-carried borrowing.
+duplicate graph identities, malformed edges, irreducible or non-terminating
+cycles and exhausted node/path/work budgets refuse analysis. No partial
+exploration may produce a complete result. Reducible natural loops with an exit
+edge are analyzed by Kleene fixpoint iteration over the loop header.
 
-The current [implementation](../../../tools/vos/vela_loans.py) materializes every
-complete path and analyzes each separately. Independent branches can therefore
-produce exponentially many paths as the graph grows; this follows from the
-algorithm and is not a measured latency result. `Limits` owns the bounded node,
+The current [implementation](../../../tools/vos/vela_loans.py) computes backward
+demand over the control-flow graph and performs forward abstract interpretation
+with join-point state merging at join nodes and loop headers. Compatible branch
+states merge at join points rather than enumerating $2^k$ paths across sequential
+conditionals. `Limits` owns the bounded node,
 path, capture and work budgets. Exhaustion refuses the complete analysis without
 returning partial success. This diagnostic establishes neither production
 scalability nor a choice of production algorithm; the

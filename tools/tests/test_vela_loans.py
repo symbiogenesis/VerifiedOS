@@ -28,6 +28,9 @@ from vos.vela_loans import (
     Return,
     Use,
     analyze,
+    analyze_function,
+    analyze_module,
+    lower_module,
 )
 
 INDEPENDENT_CASES = True
@@ -517,6 +520,508 @@ def _malformed_records_and_edges() -> None:
     _refuses(lambda: analyze(_OWNERS, _graph(Return()), cast("Limits", supplied({}))), "Limits record")
 
 
+def _selective_invariant_lifting() -> None:
+    buffer_owners = (
+        Owner(
+            "this",
+            borrowed=True,
+            fields=(("length",), ("slots",)),
+            invariants=("LengthBound", "InitializedPrefix", "VacantSuffix"),
+        ),
+    )
+    slots = Place("this", ("slots",))
+    length = Place("this", ("length",))
+    graph = _graph(
+        OpenInvariant("this", ("InitializedPrefix", "VacantSuffix")),
+        Access(slots, "write"),
+        Access(length, "write"),
+        CloseInvariant("this", ("InitializedPrefix", "VacantSuffix")),
+        Return("done"),
+    )
+    path = analyze(buffer_owners, graph).paths[0]
+    ensure(not path.issues, f"selective invariant lifting reported unexpected issues: {path.issues}")
+    ensure(
+        ("n0", "invariant-active", ("this", "LengthBound"))
+        in {(item.node, item.kind, item.resources) for item in path.obligations},
+        "unlifted invariant clause was not kept active when sibling clauses were lifted",
+    )
+    ensure(
+        path.active_invariants
+        == (
+            ("this", "InitializedPrefix"),
+            ("this", "LengthBound"),
+            ("this", "VacantSuffix"),
+        )
+        and not path.open_invariants,
+        "closing lifted clauses did not restore full active invariant set",
+    )
+
+    early_return = analyze(
+        buffer_owners,
+        _graph(
+            OpenInvariant("this", ("InitializedPrefix", "VacantSuffix")),
+            Access(slots, "write"),
+            Return("early"),
+        ),
+    ).paths[0]
+    ensure(
+        [(issue.kind, issue.resources) for issue in early_return.issues]
+        == [
+            ("unclosed-invariant", ("this", "InitializedPrefix")),
+            ("unclosed-invariant", ("this", "VacantSuffix")),
+        ],
+        "early return while clauses were lifted did not report per-conjunct unclosed-invariant debt",
+    )
+    ensure(
+        early_return.active_invariants == (("this", "LengthBound"),)
+        and early_return.open_invariants
+        == (("this", "InitializedPrefix"), ("this", "VacantSuffix")),
+        "early return lost active vs lifted conjunct partition",
+    )
+
+    boundary = analyze(
+        buffer_owners,
+        _graph(
+            OpenInvariant("this", ("InitializedPrefix", "VacantSuffix")),
+            Checkpoint("await"),
+            CloseInvariant("this", ("InitializedPrefix", "VacantSuffix")),
+        ),
+    ).paths[0]
+    ensure(
+        ("open-invariant-at-boundary", ("this", "InitializedPrefix"))
+        in {(issue.kind, issue.resources) for issue in boundary.issues}
+        and ("open-invariant-at-boundary", ("this", "VacantSuffix"))
+        in {(issue.kind, issue.resources) for issue in boundary.issues},
+        "checkpoint while clauses were lifted missed per-conjunct boundary issue",
+    )
+
+    whole_receiver = analyze(
+        buffer_owners,
+        _graph(
+            OpenInvariant("this", ("InitializedPrefix",)),
+            Access(Place("this"), "read"),
+            CloseInvariant("this", ("InitializedPrefix",)),
+        ),
+    ).paths[0]
+    ensure(
+        ("open-invariant-whole-receiver", ("this", "InitializedPrefix"))
+        in {(issue.kind, issue.resources) for issue in whole_receiver.issues},
+        "whole-receiver access while a clause was lifted did not report an issue",
+    )
+
+    _refuses(
+        lambda: analyze(
+            buffer_owners,
+            _graph(OpenInvariant("this", ("UnknownClause",)), CloseInvariant("this", ("UnknownClause",))),
+        ),
+        "missing invariant",
+    )
+
+
+def _cfg_join_merging_and_bounded_loops() -> None:
+    # 12 sequential if-diamonds would require 2^12 = 4096 paths under full path enumeration
+    # (exceeding Limits.paths = 128), but merge at each join point in linear time.
+    nodes: list[Node] = []
+    for idx in range(12):
+        split = f"split_{idx}"
+        then_borrow = f"then_b_{idx}"
+        then_use = f"then_u_{idx}"
+        else_borrow = f"else_b_{idx}"
+        else_use = f"else_u_{idx}"
+        join = f"join_{idx}"
+        next_node = f"split_{idx + 1}" if idx + 1 < 12 else "done"
+        nodes.extend(
+            (
+                Node(split, Nop(), (then_borrow, else_borrow)),
+                Node(
+                    then_borrow,
+                    Borrow(Loan(f"tloan_{idx}", "workspace", _BYTES)),
+                    (then_use,),
+                ),
+                Node(then_use, Use(f"tloan_{idx}"), (join,)),
+                Node(
+                    else_borrow,
+                    Borrow(Loan(f"eloan_{idx}", "workspace", _AUDIT, "exclusive")),
+                    (else_use,),
+                ),
+                Node(else_use, Access(_AUDIT, "write", f"eloan_{idx}"), (join,)),
+                Node(join, Access(_BYTES, "write"), (next_node,)),
+            )
+        )
+    nodes.append(Node("done", Return("ok")))
+    report = analyze(_OWNERS, Graph("split_0", tuple(nodes)))
+    ensure(len(report.paths) == 1, "join-point merging did not coalesce compatible branch states")
+    merged = report.paths[0]
+    ensure(not merged.issues, f"merged 12-diamond CFG reported unexpected issues: {merged.issues}")
+    ensure(len(merged.restorations) == 24, "merged 12-diamond CFG lost branch loan restorations")
+
+    # Bounded foreach loop over the CFG: header -> (body_borrow, exit), body_drop -> header.
+    loop_graph = Graph(
+        "entry",
+        (
+            Node("entry", Nop(), ("header",)),
+            Node("header", Nop(), ("body_borrow", "exit")),
+            Node(
+                "body_borrow",
+                Borrow(Loan("elem", "workspace", Place("workspace", ("bytes", "*")), scoped=True)),
+                ("body_use",),
+            ),
+            Node("body_use", Use("elem"), ("body_drop",)),
+            Node("body_drop", Drop("elem"), ("header",)),
+            Node("exit", Access(_BYTES, "write"), ("done",)),
+            Node("done", Return("ok")),
+        ),
+    )
+    loop_report = analyze(_OWNERS, loop_graph)
+    ensure(len(loop_report.paths) == 1 and not loop_report.paths[0].issues, "bounded loop failed")
+    ensure(
+        _ends(loop_report.paths[0]) == [("body_use", "elem", "workspace")],
+        "bounded loop did not restore scoped element loan at body_use",
+    )
+
+    # Loop-carried owner move must be detected on the second iteration at fixpoint.
+    move_in_loop = Graph(
+        "entry",
+        (
+            Node("entry", Nop(), ("header",)),
+            Node("header", Nop(), ("body_move", "exit")),
+            Node("body_move", Access(_ROOT, "move"), ("header",)),
+            Node("exit", Return("done")),
+        ),
+    )
+    move_path = analyze(_OWNERS, move_in_loop).paths[0]
+    ensure(
+        "use-after-owner-move" in _kinds(move_path),
+        "kleene fixpoint over loop header missed loop-carried use-after-owner-move",
+    )
+
+
+def _surface_ast_to_loan_graph_lowering() -> None:
+    def id_node(text: str) -> dict[str, object]:
+        return {"text": text, "span": [0, len(text)]}
+
+    def ident(name: str) -> dict[str, object]:
+        return {"kind": "identifier", "name": id_node(name), "span": [0, 1]}
+
+    def member(recv: dict[str, object], field_name: str) -> dict[str, object]:
+        return {"kind": "member", "receiver": recv, "member": id_node(field_name), "span": [0, 1]}
+
+    def borrow_expr(mode: str, value: dict[str, object]) -> dict[str, object]:
+        return {"kind": "borrow", "mode": mode, "value": value, "span": [0, 1]}
+
+    def call_arg(mode: str, value: dict[str, object]) -> dict[str, object]:
+        return {"kind": "call_argument", "mode": mode, "value": value, "span": [0, 1]}
+
+    def call_expr(name: str, *args: dict[str, object]) -> dict[str, object]:
+        return {
+            "kind": "call",
+            "callee": ident(name),
+            "type_arguments": [],
+            "arguments": list(args),
+            "span": [0, 1],
+        }
+
+    # Module with BoundedBuffer struct (fields, views, invariants) and functions:
+    # 1. RelocateInto: selective `scope (ref this, ref destination) lifts InitializedPrefix, VacantSuffix`
+    # 2. DisjointViews: borrows `in this.Entries` and `ref this.Tail` simultaneously (no conflict)
+    # 3. ConflictingViewWrite: borrows `in this.Entries` then mutates `this.slots` (suspended-parent)
+    # 4. EarlyExitInScope: `let ... else { return; }` inside `scope (ref this) lifts InitializedPrefix`
+    # 5. ManyBranchesAndLoop: 9 sequential `if` statements + `foreach_collection` loop
+    # 6. ReceiverAliasCall: `Format.Write(ref builder, $"len={builder.Length}")` (suspended-parent)
+    if_chain = [
+        {
+            "kind": "if",
+            "condition": ident("cond"),
+            "then_body": [
+                {
+                    "kind": "let",
+                    "name": id_node(f"r_{idx}"),
+                    "value": borrow_expr("in", member(ident("this"), "slots")),
+                },
+                {"kind": "expression", "expression": call_expr("Inspect", call_arg("in", ident(f"r_{idx}")))},
+            ],
+            "else_body": [
+                {
+                    "kind": "assign",
+                    "operator": "=",
+                    "target": member(ident("this"), "length"),
+                    "value": {"kind": "nat", "value": "0", "span": [0, 1]},
+                }
+            ],
+        }
+        for idx in range(9)
+    ]
+
+    module_ast: dict[str, object] = {
+        "schema": 2,
+        "ast": {
+            "kind": "surface_file",
+            "name": id_node("BorrowCheckModule"),
+            "declarations": [
+                {
+                    "kind": "struct",
+                    "name": id_node("BoundedBuffer"),
+                    "contracts": [
+                        {"kind": "invariant", "label": id_node("LengthBound"), "expression": ident("true")},
+                        {"kind": "invariant", "label": id_node("InitializedPrefix"), "expression": ident("true")},
+                        {"kind": "invariant", "label": id_node("VacantSuffix"), "expression": ident("true")},
+                    ],
+                    "members": [
+                        {"kind": "field", "name": id_node("length"), "field_type": {"kind": "type", "name": id_node("usize"), "arguments": []}},
+                        {"kind": "field", "name": id_node("slots"), "field_type": {"kind": "type", "name": id_node("Slots"), "arguments": []}},
+                        {
+                            "kind": "view",
+                            "name": id_node("Entries"),
+                            "clauses": [{"kind": "view_range", "name": id_node("slots"), "start": ident("zero"), "end": ident("length")}],
+                        },
+                        {
+                            "kind": "view",
+                            "name": id_node("Tail"),
+                            "clauses": [{"kind": "view_index", "name": id_node("slots"), "index": ident("length")}],
+                        },
+                        {
+                            "kind": "method",
+                            "name": id_node("RelocateInto"),
+                            "parameters": [
+                                {
+                                    "kind": "parameter",
+                                    "mode": "ref",
+                                    "name": id_node("destination"),
+                                    "parameter_type": {"kind": "type", "name": id_node("BoundedBuffer"), "arguments": []},
+                                }
+                            ],
+                            "contracts": [],
+                            "body": [
+                                {
+                                    "kind": "scope",
+                                    "target": {
+                                        "kind": "tuple",
+                                        "elements": [borrow_expr("ref", ident("this")), borrow_expr("ref", ident("destination"))],
+                                    },
+                                    "lifts": [id_node("InitializedPrefix"), id_node("VacantSuffix")],
+                                    "body": [
+                                        {
+                                            "kind": "expression",
+                                            "expression": call_expr(
+                                                "CopyRepresentation",
+                                                call_arg("in", member(ident("this"), "slots")),
+                                                call_arg("ref", member(ident("destination"), "slots")),
+                                                call_arg("value", member(ident("this"), "length")),
+                                            ),
+                                        },
+                                        {
+                                            "kind": "expression",
+                                            "expression": call_expr(
+                                                "TransferType",
+                                                call_arg("ref", member(ident("this"), "slots")),
+                                                call_arg("ref", member(ident("destination"), "slots")),
+                                                call_arg("value", member(ident("this"), "length")),
+                                            ),
+                                        },
+                                        {
+                                            "kind": "assign",
+                                            "operator": "=",
+                                            "target": member(ident("destination"), "length"),
+                                            "value": member(ident("this"), "length"),
+                                        },
+                                        {
+                                            "kind": "assign",
+                                            "operator": "=",
+                                            "target": member(ident("this"), "length"),
+                                            "value": {"kind": "nat", "value": "0", "span": [0, 1]},
+                                        },
+                                    ],
+                                }
+                            ],
+                        },
+                        {
+                            "kind": "method",
+                            "name": id_node("DisjointViews"),
+                            "parameters": [],
+                            "contracts": [],
+                            "body": [
+                                {
+                                    "kind": "let",
+                                    "name": id_node("entries"),
+                                    "value": borrow_expr("in", member(ident("this"), "Entries")),
+                                },
+                                {
+                                    "kind": "var",
+                                    "name": id_node("tail"),
+                                    "value": borrow_expr("ref", member(ident("this"), "Tail")),
+                                },
+                                {
+                                    "kind": "expression",
+                                    "expression": call_expr("WriteSlot", call_arg("ref", ident("tail"))),
+                                },
+                                {
+                                    "kind": "expression",
+                                    "expression": call_expr("ReadEntries", call_arg("in", ident("entries"))),
+                                },
+                            ],
+                        },
+                        {
+                            "kind": "method",
+                            "name": id_node("ConflictingViewWrite"),
+                            "parameters": [],
+                            "contracts": [],
+                            "body": [
+                                {
+                                    "kind": "let",
+                                    "name": id_node("entries"),
+                                    "value": borrow_expr("in", member(ident("this"), "Entries")),
+                                },
+                                {
+                                    "kind": "assign",
+                                    "operator": "=",
+                                    "target": member(ident("this"), "slots"),
+                                    "value": ident("emptySlots"),
+                                },
+                                {
+                                    "kind": "expression",
+                                    "expression": call_expr("ReadEntries", call_arg("in", ident("entries"))),
+                                },
+                            ],
+                        },
+                        {
+                            "kind": "method",
+                            "name": id_node("EarlyExitInScope"),
+                            "parameters": [{"kind": "parameter", "mode": "value", "name": id_node("candidate"), "parameter_type": None}],
+                            "contracts": [],
+                            "body": [
+                                {
+                                    "kind": "scope",
+                                    "target": borrow_expr("ref", ident("this")),
+                                    "lifts": [id_node("InitializedPrefix")],
+                                    "body": [
+                                        {
+                                            "kind": "let_else",
+                                            "pattern": {
+                                                "kind": "constructor_pattern",
+                                                "name": id_node("Some"),
+                                                "arguments": [{"kind": "binding_pattern", "name": id_node("val")}],
+                                            },
+                                            "value": ident("candidate"),
+                                            "else_body": [{"kind": "return", "value": None}],
+                                        },
+                                        {
+                                            "kind": "assign",
+                                            "operator": "=",
+                                            "target": member(ident("this"), "length"),
+                                            "value": ident("val"),
+                                        },
+                                    ],
+                                }
+                            ],
+                        },
+                        {
+                            "kind": "method",
+                            "name": id_node("ManyBranchesAndLoop"),
+                            "parameters": [{"kind": "parameter", "mode": "value", "name": id_node("cond"), "parameter_type": None}],
+                            "contracts": [],
+                            "body": [
+                                *if_chain,
+                                {
+                                    "kind": "foreach_collection",
+                                    "mode": "in",
+                                    "name": id_node("item"),
+                                    "collection": member(ident("this"), "slots"),
+                                    "contracts": [],
+                                    "body": [
+                                        {
+                                            "kind": "expression",
+                                            "expression": call_expr("Inspect", call_arg("in", ident("item"))),
+                                        }
+                                    ],
+                                },
+                            ],
+                        },
+                    ],
+                },
+                {
+                    "kind": "function",
+                    "name": id_node("ReceiverAliasCall"),
+                    "parameters": [
+                        {
+                            "kind": "parameter",
+                            "mode": "ref",
+                            "name": id_node("builder"),
+                            "parameter_type": {"kind": "type", "name": id_node("TextBuilder"), "arguments": []},
+                        }
+                    ],
+                    "contracts": [],
+                    "body": [
+                        {
+                            "kind": "expression",
+                            "expression": call_expr(
+                                "FormatWrite",
+                                call_arg("ref", ident("builder")),
+                                call_arg(
+                                    "value",
+                                    {
+                                        "kind": "interpolated_string",
+                                        "parts": [
+                                            {"kind": "text", "value": "len="},
+                                            {"kind": "interpolation", "expression": member(ident("builder"), "Length"), "format": None},
+                                        ],
+                                    },
+                                ),
+                            ),
+                        }
+                    ],
+                },
+            ],
+        },
+    }
+
+    lowered_all = lower_module(module_ast)
+    ensure(len(lowered_all) == 6, f"expected 6 lowered functions, got {len(lowered_all)}")
+    reports = analyze_module(module_ast)
+
+    relocate = reports["BoundedBuffer.RelocateInto"].paths[0]
+    ensure(not relocate.issues, f"RelocateInto reported unexpected issues: {relocate.issues}")
+    ensure(
+        ("this", "LengthBound") in relocate.active_invariants
+        and ("destination", "LengthBound") in relocate.active_invariants
+        and not relocate.open_invariants,
+        "RelocateInto did not keep LengthBound active or close lifted clauses",
+    )
+
+    disjoint_views = reports["BoundedBuffer.DisjointViews"].paths[0]
+    ensure(
+        not disjoint_views.issues,
+        f"disjoint named views Entries and Tail conflicted: {disjoint_views.issues}",
+    )
+
+    conflict_view = reports["BoundedBuffer.ConflictingViewWrite"].paths[0]
+    ensure(
+        "suspended-parent" in _kinds(conflict_view),
+        "writing backing field `slots` while `Entries` view loan was live did not conflict",
+    )
+
+    early_scope = reports["BoundedBuffer.EarlyExitInScope"]
+    ensure(
+        any(
+            ("unclosed-invariant", ("this", "InitializedPrefix"))
+            in {(issue.kind, issue.resources) for issue in path.issues}
+            for path in early_scope.paths
+        ),
+        "let-else early return inside `scope ... lifts` did not report unclosed-invariant",
+    )
+
+    many_branches = reports["BoundedBuffer.ManyBranchesAndLoop"]
+    ensure(
+        len(many_branches.paths) == 1 and not many_branches.paths[0].issues,
+        f"9-branch + foreach function failed or did not merge: {many_branches.paths}",
+    )
+
+    alias_call = analyze_function(module_ast, "ReceiverAliasCall").paths[0]
+    ensure(
+        "suspended-parent" in _kinds(alias_call),
+        "reading builder.Length inside interpolated string under active `ref builder` loan did not conflict",
+    )
+
+
 def cases() -> list[Case]:
     return [Case("last-use restoration and unresolved facts", _last_use_and_residuals),
             Case("nested restoration and suspended ancestors", _nested_restoration_and_suspension),
@@ -536,4 +1041,7 @@ def cases() -> list[Case]:
             Case("malformed graphs and absent references", _structural_refusals),
             Case("malformed records and edge identities refuse completely", _malformed_records_and_edges),
             Case("generated independent branch-demand and restoration oracle", _generated_branch_demand_oracle),
-            Case("complete deterministic exploration and bounded refusal", _complete_exploration_and_budgets)]
+            Case("complete deterministic exploration and bounded refusal", _complete_exploration_and_budgets),
+            Case("selective per-conjunct invariant lifting and unlifted active clauses", _selective_invariant_lifting),
+            Case("cfg join-point state merging and bounded loop fixpoint", _cfg_join_merging_and_bounded_loops),
+            Case("schema-2 surface ast to loan graph lowering pass", _surface_ast_to_loan_graph_lowering)]

@@ -11,6 +11,26 @@ from typing import TYPE_CHECKING, cast
 
 from vos.vela import MAX_SOURCE_BYTES, VelaError
 from vos.vela_ast import trivia_end
+from vos.vela_loans import (
+    LoweredFunction,
+    analyze_function,
+    analyze_module,
+    lower_function,
+    lower_module,
+)
+
+__all__ = (
+    "NEGATIVE",
+    "POSITIVE",
+    "Fixture",
+    "LoweredFunction",
+    "analyze_function",
+    "analyze_module",
+    "lower_function",
+    "lower_module",
+    "nodes",
+    "qualify",
+)
 
 if TYPE_CHECKING:
     from vos.vela_parser import Json
