@@ -79,9 +79,19 @@ _FIELDS: dict[str, set[str]] = {
     "if_expression": {"condition", "then", "else"},
     "block": {"statements"}, "return": {"value"}, "expression_body": {"value"},
     "let": {"name", "type", "grade", "value"},
+    "var": {"name", "type", "grade", "value"},
     "typed_local": {"name", "type", "grade", "value"},
     "let_pattern": {"pattern", "value"},
+    "var_pattern": {"pattern", "value"},
     "let_else": {"pattern", "value", "else"},
+    "var_else": {"pattern", "value", "else"},
+    "assignment": {"target", "operator", "value"},
+    "expression_statement": {"value"},
+    "range": {"start", "end"},
+    "foreach": {"name", "range", "contracts", "body"},
+    "foreach_collection": {"name", "type", "mode", "collection", "contracts", "body"},
+    "break": set(), "continue": set(),
+    "scope": {"resources", "body"},
     "if": {"condition", "then", "else"},
     "match": {"value", "motive", "cases"}, "case": {"pattern", "statements"},
     "match_expression": {"value", "motive", "cases"},
@@ -110,12 +120,14 @@ _OPERATORS = {
     "+", "*", "-", "/", "%", "&", "|", "^", "~",
     "==", "!=", "<", "<=", ">", ">=", "&&", "||", "!", "==>", "<==>",
 }
+_ASSIGN_OPERATORS = {"=", "+=", "-=", "*=", "/=", "%="}
 _SYNTAX_WORDS = {
     "function_type": ("mode", {"Fn", "FnMut", "FnOnce"}),
     "generic_parameter": ("mode", {"type", "ghost", "region", "effect", "captures", "grade"}),
     "quantifier": ("quantifier", {"forall", "exists"}),
     "contract": ("role", {"requires", "ensures", "restores", "where", "decreases", "progress", "invariant"}),
     "modified_type": ("modifier", {"owned", "in", "ref", "out", "ghost", "tracked", "scoped"}),
+    "foreach_collection": ("mode", {"value", "in", "ref"}),
 }
 
 
@@ -171,7 +183,10 @@ class _Protocol:
                 if level:
                     raise self.error("protocol", "unterminated trivia in syntax name")
             else:
-                token = re.match(r"\?[A-Za-z_][A-Za-z_0-9]*|[A-Za-z_][A-Za-z_0-9]*|<==>|==>|&&|\|\||==|!=|<=|>=|[.+*\-/%<>!&|^~]", value[offset:])
+                token = re.match(
+                    r"\?[A-Za-z_][A-Za-z_0-9]*|[A-Za-z_][A-Za-z_0-9]*|<==>|==>|&&|\|\||==|!=|<=|>=|\+=|-=|\*=|/=|%=|[.+*\-/%<>!&|^~=]",
+                    value[offset:],
+                )
                 if token is None:
                     return "\x00"
                 result.append(token.group())
@@ -251,6 +266,14 @@ class _Protocol:
                     raise self.error("protocol", "theorem requires at least one ensures clause", node)
                 if any(item.get("role") == "where" for item in contracts):
                     return
+            elif kind == "record" and contracts:
+                if not isinstance(contracts, list) or any(
+                    not isinstance(item, dict) or item.get("kind") != "contract"
+                    for item in contracts
+                ):
+                    raise self.error("protocol", "record contracts must be contract nodes", node)
+                if any(item.get("role") != "invariant" for item in contracts):
+                    return
             elif contracts and (
                 kind not in {"definition", "function"}
                 or not isinstance(contracts, list)
@@ -325,7 +348,7 @@ class _Protocol:
                 cursor = self._token(node, cursor, b":")
                 cursor = self._child(node, span, cursor, node["result"])
             cursor = self._token(node, cursor, b";")
-        elif kind in {"let", "typed_local", "parameter", "lambda_parameter", "generic_parameter"}:
+        elif kind in {"let", "var", "typed_local", "parameter", "lambda_parameter", "generic_parameter"}:
             if node.get("grade") is not None:
                 return
             if kind == "generic_parameter":
@@ -339,43 +362,128 @@ class _Protocol:
                     cursor = self._token(node, cursor, b":")
                     cursor = self._child(node, span, cursor, node["type"])
             else:
-                if kind == "let":
-                    cursor = self._token(node, cursor, b"let")
+                if kind in {"let", "var"}:
+                    cursor = self._token(node, cursor, cast("str", kind).encode())
                 if kind in {"parameter", "lambda_parameter"} and node.get("const", False):
                     cursor = self._token(node, cursor, b"const")
                 if node["type"] is not None:
                     cursor = self._child(node, span, cursor, node["type"])
                 if node["name"] is not None:
                     cursor = self._child(node, span, cursor, node["name"])
-                if kind in {"let", "typed_local"}:
+                if kind in {"let", "var", "typed_local"}:
                     cursor = self._token(node, cursor, b"=")
                     cursor = self._child(node, span, cursor, node["value"])
                     if cursor < span[1]:
                         cursor = self._token(node, cursor, b";")
-        elif kind == "let_pattern":
+        elif kind in {"let_pattern", "var_pattern"}:
             pattern = node["pattern"]
             if (not isinstance(pattern, dict)
                     or pattern.get("kind") not in {"unit_pattern", "group_pattern", "tuple_pattern", "constructor_pattern"}):
-                raise self.error("protocol", "let_pattern requires a parenthesized or constructor pattern", node)
-            cursor = self._token(node, cursor, b"let")
+                raise self.error("protocol", f"{kind} requires a parenthesized or constructor pattern", node)
+            cursor = self._token(node, cursor, b"var" if kind == "var_pattern" else b"let")
             cursor = self._child(node, span, cursor, pattern)
             cursor = self._token(node, cursor, b"=")
             cursor = self._child(node, span, cursor, node["value"])
             if cursor < span[1]:
                 cursor = self._token(node, cursor, b";")
-        elif kind == "let_else":
+        elif kind in {"let_else", "var_else"}:
             pattern = node["pattern"]
             if (not isinstance(pattern, dict)
                     or pattern.get("kind") not in {"unit_pattern", "group_pattern", "tuple_pattern", "constructor_pattern"}):
-                raise self.error("protocol", "let_else requires a parenthesized or constructor pattern", node)
+                raise self.error("protocol", f"{kind} requires a parenthesized or constructor pattern", node)
             if not isinstance(node["else"], dict) or node["else"].get("kind") != "block":
-                raise self.error("protocol", "let_else requires a block else branch", node)
-            cursor = self._token(node, cursor, b"let")
+                raise self.error("protocol", f"{kind} requires a block else branch", node)
+            cursor = self._token(node, cursor, b"var" if kind == "var_else" else b"let")
             cursor = self._child(node, span, cursor, pattern)
             cursor = self._token(node, cursor, b"=")
             cursor = self._child(node, span, cursor, node["value"])
             cursor = self._token(node, cursor, b"else")
             cursor = self._child(node, span, cursor, node["else"])
+        elif kind == "assignment":
+            op = node["operator"]
+            if not isinstance(op, dict) or op.get("text") not in _ASSIGN_OPERATORS:
+                raise self.error("protocol", "assignment operator differs from source", node)
+            for field in ("target", "operator", "value"):
+                cursor = self._child(node, span, cursor, node[field])
+            cursor = self._token(node, cursor, b";")
+        elif kind == "expression_statement":
+            cursor = self._child(node, span, cursor, node["value"])
+            cursor = self._token(node, cursor, b";")
+        elif kind == "range":
+            cursor = self._child(node, span, cursor, node["start"])
+            cursor = self._token(node, cursor, b"..")
+            cursor = self._child(node, span, cursor, node["end"])
+        elif kind == "foreach":
+            if not isinstance(node["range"], dict) or node["range"].get("kind") != "range":
+                raise self.error("protocol", "foreach requires a range node", node)
+            contracts = node["contracts"]
+            if (not isinstance(contracts, list)
+                    or any(not isinstance(item, dict) or item.get("kind") != "contract" for item in contracts)):
+                raise self.error("protocol", "foreach contracts must be contract nodes", node)
+            if not isinstance(node["body"], dict) or node["body"].get("kind") != "block":
+                raise self.error("protocol", "foreach requires a block body", node)
+            cursor = self._token(node, cursor, b"foreach")
+            cursor = self._token(node, cursor, b"(")
+            cursor = self._token(node, cursor, b"let")
+            cursor = self._child(node, span, cursor, node["name"])
+            cursor = self._token(node, cursor, b"in")
+            cursor = self._child(node, span, cursor, node["range"])
+            cursor = self._token(node, cursor, b")")
+            for contract_item in contracts:
+                cursor = self._child(node, span, cursor, contract_item)
+            cursor = self._child(node, span, cursor, node["body"])
+        elif kind == "foreach_collection":
+            contracts = node["contracts"]
+            if (not isinstance(contracts, list)
+                    or any(not isinstance(item, dict) or item.get("kind") != "contract" for item in contracts)):
+                raise self.error("protocol", "foreach_collection contracts must be contract nodes", node)
+            if not isinstance(node["body"], dict) or node["body"].get("kind") != "block":
+                raise self.error("protocol", "foreach_collection requires a block body", node)
+            cursor = self._token(node, cursor, b"foreach")
+            cursor = self._token(node, cursor, b"(")
+            mode = cast("str", node["mode"])
+            if mode == "value":
+                after = trivia_end(self.source, cursor, block_comments=True)
+                if node["type"] is None or (
+                    self.source[after:after + 3] == b"let"
+                    and not self._word(self.source[after + 3:after + 4])
+                ):
+                    cursor = self._token(node, cursor, b"let")
+            else:
+                cursor = self._token(node, cursor, mode.encode())
+            if node["type"] is not None:
+                cursor = self._child(node, span, cursor, node["type"])
+            cursor = self._child(node, span, cursor, node["name"])
+            cursor = self._token(node, cursor, b"in")
+            cursor = self._child(node, span, cursor, node["collection"])
+            cursor = self._token(node, cursor, b")")
+            for contract_item in contracts:
+                cursor = self._child(node, span, cursor, contract_item)
+            cursor = self._child(node, span, cursor, node["body"])
+        elif kind in {"break", "continue"}:
+            cursor = self._token(node, cursor, cast("str", kind).encode())
+            cursor = self._token(node, cursor, b";")
+        elif kind == "scope":
+            resources = node["resources"]
+            if not isinstance(resources, list) or not resources:
+                raise self.error("protocol", "scope requires a non-empty resource list", node)
+            if not isinstance(node["body"], dict) or node["body"].get("kind") != "block":
+                raise self.error("protocol", "scope requires a block body", node)
+            cursor = self._token(node, cursor, b"scope")
+            cursor = self._list(node, span, cursor, resources)
+            lifts = node.get("lifts")
+            if lifts is not None:
+                if not isinstance(lifts, list) or not lifts:
+                    raise self.error("protocol", "scope lifts must be a non-empty identifier list", node)
+                cursor = self._token(node, cursor, b"lifts")
+                for index, item in enumerate(lifts):
+                    if index:
+                        cursor = self._token(node, cursor, b",")
+                    cursor = self._child(node, span, cursor, item)
+                after_lifts = trivia_end(self.source, cursor, block_comments=True)
+                if self.source[after_lifts:after_lifts + 1] == b",":
+                    cursor = after_lifts + 1
+            cursor = self._child(node, span, cursor, node["body"])
         elif kind == "return":
             cursor = self._token(node, cursor, b"return")
             if node["value"] is not None:
@@ -472,6 +580,9 @@ class _Protocol:
         elif kind in {"name", "hole"}:
             cursor = self._child(node, span, cursor, node["name"])
         elif kind == "binary":
+            op = node["operator"]
+            if not isinstance(op, dict) or op.get("text") not in _OPERATORS:
+                raise self.error("protocol", "binary operator differs from source", node)
             for field in ("left", "operator", "right"):
                 cursor = self._child(node, span, cursor, node[field])
         elif kind == "unary":
@@ -566,9 +677,14 @@ class _Protocol:
             cursor = self._token(node, cursor, b"=>")
             cursor = self._child(node, span, cursor, node["value"])
         elif kind == "contract":
-            if node["role"] not in {"decreases", "requires", "ensures", "restores"}:
+            if node["role"] not in {"decreases", "requires", "ensures", "restores", "invariant"}:
                 return
+            if "name" in node and node["role"] != "invariant":
+                raise self.error("protocol", "only invariant contracts may carry a clause name", node)
             cursor = self._token(node, cursor, cast("str", node["role"]).encode())
+            if "name" in node and node["name"] is not None:
+                cursor = self._child(node, span, cursor, node["name"])
+                cursor = self._token(node, cursor, b":")
             cursor = self._child(node, span, cursor, node["value"])
         elif kind == "modified_type":
             if node.get("lifetime") is not None:
@@ -718,6 +834,7 @@ class _Protocol:
             text = node["text"]
             if (set(node) != {"text", "span"} or not isinstance(text, str)
                     or not (_IDENTIFIER.fullmatch(text) or text in _OPERATORS
+                            or text in _ASSIGN_OPERATORS
                             or re.fullmatch(r"\?[A-Za-z_][A-Za-z_0-9]*", text))
                     or self._compact_name(self.source[span[0]:span[1]]) != text):
                 raise self.error("protocol", "syntax identifier or operator differs from its source", node)
@@ -735,7 +852,7 @@ class _Protocol:
         optional = (
             {"const"}
             if kind in {"parameter", "lambda_parameter"}
-            else ({"name"} if kind == "contract" else set())
+            else ({"name"} if kind == "contract" else ({"lifts"} if kind == "scope" else set()))
         )
         if (set(node) - optional != {"kind", "span", *fields}
                 or ("const" in node and type(node["const"]) is not bool)):
@@ -787,7 +904,13 @@ class _Protocol:
             statements = node["statements"]
             if isinstance(statements, list):
                 for statement in statements:
-                    if isinstance(statement, dict) and statement.get("kind") in {"let", "typed_local", "let_pattern"}:
+                    if isinstance(statement, dict) and statement.get("kind") in {
+                        "let",
+                        "var",
+                        "typed_local",
+                        "let_pattern",
+                        "var_pattern",
+                    }:
                         statement_span = self._span(statement.get("span"), span)
                         if self.source[statement_span[1] - 1:statement_span[1]] != b";":
                             raise self.error("protocol", "statement local binding lacks its semicolon", statement)
@@ -1047,6 +1170,15 @@ class _RecordProperty:
     prop_const: str
 
 
+@dataclass(frozen=True)
+class _RecordInvariant:
+    name: str
+    self_var: _Term
+    term: _Term
+    type: _Term
+    node: Node
+
+
 @dataclass
 class _RecordInfo:
     name: str
@@ -1059,6 +1191,7 @@ class _RecordInfo:
     properties: dict[str, _RecordProperty]
     is_dependent: bool = False
     tail_sig_types: tuple[_Term, ...] = ()
+    invariants: tuple[_RecordInvariant, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -1125,6 +1258,14 @@ class _Elaborator:
         self.current_rec_used: bool = False
         self.smaller_vars: dict[int, set[int]] = {}
         self.current_return_type: _Term | None = None
+        self.mutable_locals: set[str] = set()
+        self.entry_env: dict[str, _Binding] = {}
+        self.final_ref_bindings: dict[str, _Binding] = {}
+        self.final_return_facts: list[_Term] = []
+        self.frozen_collections: set[str] = set()
+        self.lifted_invariants: dict[str, set[str]] = {}
+        self.active_lift_scopes: int = 0
+        self.in_loop_depth: int = 0
         self.output: list[str] = []
         self.site: Node | None = None
         self._builtins()
@@ -1284,6 +1425,168 @@ class _Elaborator:
         self.constants["Span_Restore"] = _Binding(
             _constant("Span_Restore"),
             telescope((a,), self.pi(span_a, self.pi(span_a, span_a))),
+            1,
+        )
+        bind("Seq", telescope((a,), _SORT))
+        seq_a = _app(_constant("Seq"), a)
+        self.constants["Seq_Empty"] = _Binding(_constant("Seq_Empty"), telescope((a,), seq_a), 1)
+        self.constants["Seq_Cons"] = _Binding(
+            _constant("Seq_Cons"), telescope((a,), self.pi(a, self.pi(seq_a, seq_a))), 1
+        )
+        self.constants["Seq_Singleton"] = _Binding(
+            _constant("Seq_Singleton"), telescope((a,), self.pi(a, seq_a)), 1
+        )
+        self.constants["Seq_Count"] = _Binding(
+            _constant("Seq_Count"), telescope((a,), self.pi(seq_a, _NAT)), 1
+        )
+        self.constants["Seq_At"] = _Binding(
+            _constant("Seq_At"), telescope((a,), self.pi(a, self.pi(seq_a, self.pi(_NAT, a)))), 1
+        )
+        self.constants["Seq_Update"] = _Binding(
+            _constant("Seq_Update"), telescope((a,), self.pi(seq_a, self.pi(_NAT, self.pi(a, seq_a)))), 1
+        )
+        self.constants["Seq_Append"] = _Binding(
+            _constant("Seq_Append"), telescope((a,), self.pi(seq_a, self.pi(seq_a, seq_a))), 1
+        )
+        self.constants["Seq_Take"] = _Binding(
+            _constant("Seq_Take"), telescope((a,), self.pi(seq_a, self.pi(_NAT, seq_a))), 1
+        )
+        self.constants["Seq_Skip"] = _Binding(
+            _constant("Seq_Skip"), telescope((a,), self.pi(seq_a, self.pi(_NAT, seq_a))), 1
+        )
+        self.constants["Seq_Slice"] = _Binding(
+            _constant("Seq_Slice"), telescope((a,), self.pi(seq_a, self.pi(_NAT, self.pi(_NAT, seq_a)))), 1
+        )
+        self.constants["Seq_Contains"] = _Binding(
+            _constant("Seq_Contains"), telescope((a,), self.pi(seq_a, self.pi(a, _BOOL))), 1
+        )
+        self.constants["Seq_All"] = _Binding(
+            _constant("Seq_All"), telescope((a,), self.pi(seq_a, self.pi(self.pi(a, _BOOL), _BOOL))), 1
+        )
+        self.constants["Seq_Any"] = _Binding(
+            _constant("Seq_Any"), telescope((a,), self.pi(seq_a, self.pi(self.pi(a, _BOOL), _BOOL))), 1
+        )
+        self.constants["nat_to_usize"] = _Binding(
+            _constant("nat_to_usize"), self.pi(_NAT, _USIZE), 0
+        )
+        self.constants["Vec_Model"] = _Binding(
+            _constant("Vec_Model"), telescope((a, n), self.pi(vec, seq_a)), 2
+        )
+        self.constants["Span_Model"] = _Binding(
+            _constant("Span_Model"), telescope((a,), self.pi(span_a, _app(_constant("Seq"), _U8))), 1
+        )
+        bind("Slots", telescope((a, n), _SORT))
+        slots_an = _apps(_constant("Slots"), a, n)
+        m = self.fresh(_NAT)
+        slots_am = _apps(_constant("Slots"), a, m)
+        self.constants["Slots_Mk"] = _Binding(
+            _constant("Slots_Mk"),
+            telescope(
+                (a, n),
+                self.pi(
+                    _USIZE,
+                    self.pi(
+                        _USIZE,
+                        self.pi(
+                            _BOOL,
+                            self.pi(_BOOL, self.pi(_BOOL, self.pi(seq_a, self.pi(seq_a, slots_an)))),
+                        ),
+                    ),
+                ),
+            ),
+            2,
+        )
+        self.constants["Slots_Base"] = _Binding(
+            _constant("Slots_Base"), telescope((a, n), self.pi(slots_an, _USIZE)), 2
+        )
+        self.constants["Slots_LiveCount"] = _Binding(
+            _constant("Slots_LiveCount"), telescope((a, n), self.pi(slots_an, _USIZE)), 2
+        )
+        self.constants["Slots_Tag"] = _Binding(
+            _constant("Slots_Tag"), telescope((a, n), self.pi(slots_an, _BOOL)), 2
+        )
+        self.constants["Slots_PermRead"] = _Binding(
+            _constant("Slots_PermRead"), telescope((a, n), self.pi(slots_an, _BOOL)), 2
+        )
+        self.constants["Slots_PermWrite"] = _Binding(
+            _constant("Slots_PermWrite"), telescope((a, n), self.pi(slots_an, _BOOL)), 2
+        )
+        self.constants["Slots_CanRead"] = _Binding(
+            _constant("Slots_CanRead"), telescope((a, n), self.pi(slots_an, _BOOL)), 2
+        )
+        self.constants["Slots_CanWrite"] = _Binding(
+            _constant("Slots_CanWrite"), telescope((a, n), self.pi(slots_an, _BOOL)), 2
+        )
+        self.constants["Slots_RepModel"] = _Binding(
+            _constant("Slots_RepModel"), telescope((a, n), self.pi(slots_an, seq_a)), 2
+        )
+        self.constants["Slots_Model"] = _Binding(
+            _constant("Slots_Model"), telescope((a, n), self.pi(slots_an, seq_a)), 2
+        )
+        self.constants["Slots_AllocVacant"] = _Binding(
+            _constant("Slots_AllocVacant"), telescope((a, n), self.pi(_USIZE, slots_an)), 2
+        )
+        self.constants["Slots_Write"] = _Binding(
+            _constant("Slots_Write"),
+            telescope((a, n), self.pi(slots_an, self.pi(_USIZE, self.pi(a, slots_an)))),
+            2,
+        )
+        self.constants["Slots_Read"] = _Binding(
+            _constant("Slots_Read"),
+            telescope((a, n), self.pi(a, self.pi(slots_an, self.pi(_USIZE, a)))),
+            2,
+        )
+        self.constants["Slots_LivePrefix"] = _Binding(
+            _constant("Slots_LivePrefix"),
+            telescope((a, n), self.pi(slots_an, self.pi(_USIZE, _BOOL))),
+            2,
+        )
+        self.constants["Slots_VacantRange"] = _Binding(
+            _constant("Slots_VacantRange"),
+            telescope((a, n), self.pi(slots_an, self.pi(_USIZE, self.pi(_USIZE, _BOOL)))),
+            2,
+        )
+        self.constants["Slots_Disjoint"] = _Binding(
+            _constant("Slots_Disjoint"),
+            telescope((a, n, m), self.pi(slots_an, self.pi(slots_am, _BOOL))),
+            3,
+        )
+        self.constants["Slots_RepEqual"] = _Binding(
+            _constant("Slots_RepEqual"),
+            telescope((a, n, m), self.pi(slots_an, self.pi(slots_am, self.pi(_USIZE, _BOOL)))),
+            3,
+        )
+        self.constants["Slots_CopyRepresentation"] = _Binding(
+            _constant("Slots_CopyRepresentation"),
+            telescope((a, n, m), self.pi(slots_an, self.pi(slots_am, self.pi(_USIZE, slots_am)))),
+            3,
+        )
+        self.constants["Slots_TransferSource"] = _Binding(
+            _constant("Slots_TransferSource"),
+            telescope((a, n), self.pi(slots_an, self.pi(_USIZE, slots_an))),
+            2,
+        )
+        self.constants["Slots_TransferDest"] = _Binding(
+            _constant("Slots_TransferDest"),
+            telescope((a, n), self.pi(slots_an, self.pi(_USIZE, slots_an))),
+            2,
+        )
+        self.constants["Slots_TransferType"] = _Binding(
+            _constant("Slots_TransferType"),
+            telescope(
+                (a, n, m),
+                self.pi(slots_an, self.pi(slots_am, self.pi(_USIZE, _term("prod", slots_an, slots_am)))),
+            ),
+            3,
+        )
+        self.constants["PrefixModel"] = _Binding(
+            _constant("PrefixModel"),
+            telescope((a, n), self.pi(slots_an, self.pi(_USIZE, seq_a))),
+            2,
+        )
+        self.constants["LoopState"] = _Binding(
+            _constant("LoopState"),
+            telescope((a,), self.pi(a, self.pi(_NAT, a))),
             1,
         )
         self._register_builtin_unions()
@@ -1941,6 +2244,11 @@ class _Elaborator:
                 if l_kind == "succ" and r_kind == "succ" and l_pred is not None and r_pred is not None:
                     self.tick(True)
                     return self.whnf(_apps(_constant(name), l_pred, r_pred))
+        if name == "nat_to_usize" and len(arguments) == 1:
+            n_w = self.whnf(arguments[0])
+            if n_w.kind == "nat":
+                self.tick(True)
+                return _int_term(_INT_SPECS["usize"], cast("int", n_w.value))
         if isinstance(name, str) and name.startswith("int_"):
             reduced_int = self._whnf_int_op(name, arguments)
             if reduced_int is not None:
@@ -1949,6 +2257,14 @@ class _Elaborator:
             reduced_span = self._whnf_span_op(name, arguments)
             if reduced_span is not None:
                 return reduced_span
+        if isinstance(name, str) and (name.startswith("Seq_") or name in {"Vec_Model", "Span_Model"}):
+            reduced_seq = self._whnf_seq_op(name, arguments)
+            if reduced_seq is not None:
+                return reduced_seq
+        if isinstance(name, str) and (name.startswith("Slots_") or name == "PrefixModel"):
+            reduced_slots = self._whnf_slots_op(name, arguments)
+            if reduced_slots is not None:
+                return reduced_slots
         if head.value == "if" and len(arguments) >= 4:
             condition = self.whnf(arguments[1])
             if condition.kind == "bool":
@@ -2293,6 +2609,645 @@ class _Elaborator:
             return None
         return None
 
+    def _extract_seq_elements(self, seq_term: _Term) -> list[_Term] | None:
+        cur = self.whnf(seq_term)
+        elems: list[_Term] = []
+        while True:
+            head, args = self.spine(cur)
+            if head == _constant("Seq_Empty") and len(args) == 1:
+                return elems
+            if head == _constant("Seq_Cons") and len(args) == 3:
+                elems.append(args[1])
+                cur = self.whnf(args[2])
+                continue
+            if head == _constant("Seq_Singleton") and len(args) == 2:
+                elems.append(args[1])
+                return elems
+            return None
+
+    def _build_seq_term(self, elem_type: _Term, elems: list[_Term]) -> _Term:
+        acc = _app(_constant("Seq_Empty"), elem_type)
+        for item in reversed(elems):
+            acc = _apps(_constant("Seq_Cons"), elem_type, item, acc)
+        return acc
+
+    def _default_term_for_type(self, type_term: _Term) -> _Term:
+        t_w = self.whnf(type_term)
+        if t_w == _constant("Nat"):
+            return _term("nat", value=0)
+        if t_w == _constant("bool"):
+            return _term("bool", value=0)
+        if t_w == _constant("Unit"):
+            return _term("unit")
+        if t_w.kind == "const" and isinstance(t_w.value, str) and t_w.value in _INT_SPECS:
+            return _int_term(_INT_SPECS[t_w.value], 0)
+        if t_w.kind == "prod":
+            return _term(
+                "pair",
+                t_w.args[0],
+                t_w.args[1],
+                self._default_term_for_type(t_w.args[0]),
+                self._default_term_for_type(t_w.args[1]),
+            )
+        head, args = self.spine(t_w)
+        if head == _constant("Seq") and len(args) == 1:
+            return _app(_constant("Seq_Empty"), args[0])
+        if head == _constant("Span") and len(args) == 1:
+            z = _int_term(_INT_SPECS["usize"], 0)
+            return _apps(_constant("Span_AllocZeroed"), args[0], z, z)
+        if head == _constant("Slots") and len(args) == 2:
+            z = _int_term(_INT_SPECS["usize"], 0)
+            return _apps(_constant("Slots_AllocVacant"), args[0], args[1], z)
+        if head.kind == "const" and isinstance(head.value, str) and head.value in self.records_by_type:
+            rinfo = self.records_by_type[head.value]
+            if not rinfo.fields:
+                return _apps(_constant(rinfo.ctor_const), *args, _term("unit"))
+            f_vals: list[_Term] = []
+            for idx, rf in enumerate(rinfo.fields):
+                fty = self._instantiate_record_type(rinfo, args, rf.type)
+                for j in range(idx):
+                    fty = self.substitute(fty, cast("int", rinfo.fields[j].var.value), f_vals[j])
+                f_vals.append(self._default_term_for_type(fty))
+            return _apps(_constant(rinfo.ctor_const), *args, *f_vals)
+        if head.kind == "const" and isinstance(head.value, str) and head.value in self.unions_by_type:
+            uinfo = self.unions_by_type[head.value]
+            ctor = uinfo.constructors[0]
+            if not ctor.fields:
+                return _apps(_constant(ctor.ctor_const), *args, _term("unit"))
+            f_vals = []
+            for rf in ctor.fields:
+                fty = self._instantiate_generic_type(uinfo.generic_vars, args, rf.type)
+                f_vals.append(self._default_term_for_type(fty))
+            return _apps(_constant(ctor.ctor_const), *args, *f_vals)
+        return _term("nat", value=0)
+
+    def _whnf_seq_op(self, name: str, arguments: list[_Term]) -> _Term | None:
+        if name == "Seq_Singleton" and len(arguments) == 2:
+            elem, val = arguments
+            self.tick(True)
+            return _apps(_constant("Seq_Cons"), elem, val, _app(_constant("Seq_Empty"), elem))
+        if name == "Vec_Model" and len(arguments) == 3:
+            elem, _len, vec_term = arguments
+            v_w = self.whnf(vec_term)
+            v_head, v_args = self.spine(v_w)
+            if v_head == _constant("VNil") and len(v_args) in {1, 2}:
+                self.tick(True)
+                return _app(_constant("Seq_Empty"), elem)
+            if v_head == _constant("VCons") and len(v_args) == 4:
+                self.tick(True)
+                tail_seq = self.whnf(_apps(_constant("Vec_Model"), elem, v_args[1], v_args[3]))
+                return _apps(_constant("Seq_Cons"), elem, v_args[2], tail_seq)
+            return None
+        if name == "Span_Model" and len(arguments) == 2:
+            elem, span_term = arguments
+            s_w = self.whnf(span_term)
+            len_w = self.whnf(_apps(_constant("Span_Length"), elem, s_w))
+            if len_w.kind == "int":
+                n = cast("int", len_w.value)
+                if 0 <= n <= 64:
+                    elems: list[_Term] = []
+                    for i in range(n):
+                        idx_term = _int_term(_INT_SPECS["usize"], i)
+                        val_w = self.whnf(_apps(_constant("Span_Read"), elem, s_w, idx_term))
+                        elems.append(val_w)
+                    self.tick(True)
+                    return self._build_seq_term(elem, elems)
+            s_head, s_args = self.spine(s_w)
+            if s_head == _constant("Span_Write") and len(s_args) == 4:
+                self.tick(True)
+                inner_model = self.whnf(_apps(_constant("Span_Model"), elem, s_args[1]))
+                idx_nat = self.whnf(_app(_constant("int_to_nat_usize"), s_args[2]))
+                return self.whnf(_apps(_constant("Seq_Update"), elem, inner_model, idx_nat, s_args[3]))
+            return None
+        if name == "Seq_Count" and len(arguments) == 2:
+            _elem, seq_term = arguments
+            s_w = self.whnf(seq_term)
+            elems = self._extract_seq_elements(s_w)
+            if elems is not None:
+                self.tick(True)
+                return _term("nat", value=len(elems))
+            s_head, s_args = self.spine(s_w)
+            if s_head == _constant("Seq_Cons") and len(s_args) == 3:
+                self.tick(True)
+                return self.whnf(_app(_constant("Succ"), _apps(_constant("Seq_Count"), s_args[0], s_args[2])))
+            if s_head == _constant("Seq_Update") and len(s_args) == 4:
+                self.tick(True)
+                return self.whnf(_apps(_constant("Seq_Count"), s_args[0], s_args[1]))
+            if s_head == _constant("Seq_Append") and len(s_args) == 3:
+                self.tick(True)
+                c1 = _apps(_constant("Seq_Count"), s_args[0], s_args[1])
+                c2 = _apps(_constant("Seq_Count"), s_args[0], s_args[2])
+                return self.whnf(_apps(_constant("+"), c1, c2))
+            if s_head == _constant("Vec_Model") and len(s_args) == 3:
+                self.tick(True)
+                return self.whnf(s_args[1])
+            if s_head == _constant("Span_Model") and len(s_args) == 2:
+                len_w = self.whnf(_apps(_constant("Span_Length"), s_args[0], s_args[1]))
+                if len_w.kind == "int":
+                    self.tick(True)
+                    return _term("nat", value=max(0, cast("int", len_w.value)))
+                self.tick(True)
+                return self.whnf(_app(_constant("int_to_nat_usize"), len_w))
+            if s_head == _constant("Slots_Model") and len(s_args) == 3:
+                live_w = self.whnf(_apps(_constant("Slots_LiveCount"), s_args[0], s_args[1], s_args[2]))
+                if live_w.kind == "int":
+                    self.tick(True)
+                    return _term("nat", value=max(0, cast("int", live_w.value)))
+                self.tick(True)
+                return self.whnf(_app(_constant("int_to_nat_usize"), live_w))
+            if s_head == _constant("PrefixModel") and len(s_args) == 4:
+                cnt_w = self.whnf(s_args[3])
+                if cnt_w.kind == "int":
+                    self.tick(True)
+                    return _term("nat", value=max(0, cast("int", cnt_w.value)))
+                self.tick(True)
+                return self.whnf(_app(_constant("int_to_nat_usize"), cnt_w))
+            return None
+        if name == "Seq_At" and len(arguments) == 4:
+            elem, default_val, seq_term, idx_term = arguments
+            s_w = self.whnf(seq_term)
+            i_w = self.whnf(idx_term)
+            elems = self._extract_seq_elements(s_w)
+            if elems is not None and i_w.kind == "nat":
+                idx_val = cast("int", i_w.value)
+                self.tick(True)
+                if 0 <= idx_val < len(elems):
+                    return self.whnf(elems[idx_val])
+                return self.whnf(default_val)
+            s_head, s_args = self.spine(s_w)
+            if s_head == _constant("Seq_Update") and len(s_args) == 4:
+                upd_idx = self.whnf(s_args[2])
+                if self.convertible(upd_idx, i_w):
+                    self.tick(True)
+                    return self.whnf(s_args[3])
+                if upd_idx.kind == "nat" and i_w.kind == "nat" and upd_idx.value != i_w.value:
+                    self.tick(True)
+                    return self.whnf(_apps(_constant("Seq_At"), elem, default_val, s_args[1], i_w))
+            if s_head == _constant("Seq_Append") and len(s_args) == 3:
+                r_elems = self._extract_seq_elements(s_args[2])
+                if r_elems is not None and len(r_elems) == 1:
+                    c_left = self.whnf(_apps(_constant("Seq_Count"), elem, s_args[1]))
+                    if self.convertible(i_w, c_left):
+                        self.tick(True)
+                        return self.whnf(r_elems[0])
+            i_head, i_args = self.spine(i_w)
+            if s_head == _constant("Span_Model") and len(s_args) == 2:
+                if i_w.kind == "nat":
+                    idx_u = _int_term(_INT_SPECS["usize"], cast("int", i_w.value))
+                    self.tick(True)
+                    return self.whnf(_apps(_constant("Span_Read"), s_args[0], s_args[1], idx_u))
+                if i_head == _constant("int_to_nat_usize") and len(i_args) == 1:
+                    self.tick(True)
+                    return self.whnf(_apps(_constant("Span_Read"), s_args[0], s_args[1], i_args[0]))
+            if s_head == _constant("Slots_Model") and len(s_args) == 3:
+                if i_w.kind == "nat":
+                    idx_u = _int_term(_INT_SPECS["usize"], cast("int", i_w.value))
+                    self.tick(True)
+                    return self.whnf(
+                        _apps(_constant("Slots_Read"), s_args[0], s_args[1], default_val, s_args[2], idx_u)
+                    )
+                if i_head == _constant("int_to_nat_usize") and len(i_args) == 1:
+                    self.tick(True)
+                    return self.whnf(
+                        _apps(_constant("Slots_Read"), s_args[0], s_args[1], default_val, s_args[2], i_args[0])
+                    )
+            return None
+        if name == "Seq_Update" and len(arguments) == 4:
+            elem, seq_term, idx_term, val_term = arguments
+            s_w = self.whnf(seq_term)
+            i_w = self.whnf(idx_term)
+            elems = self._extract_seq_elements(s_w)
+            if elems is not None and i_w.kind == "nat":
+                idx_val = cast("int", i_w.value)
+                self.tick(True)
+                updated = list(elems)
+                if 0 <= idx_val < len(updated):
+                    updated[idx_val] = val_term
+                return self._build_seq_term(elem, updated)
+            return None
+        if name == "Seq_Append" and len(arguments) == 3:
+            elem, left_seq, right_seq = arguments
+            l_w = self.whnf(left_seq)
+            r_w = self.whnf(right_seq)
+            l_elems = self._extract_seq_elements(l_w)
+            r_elems = self._extract_seq_elements(r_w)
+            if l_elems is not None and r_elems is not None:
+                self.tick(True)
+                return self._build_seq_term(elem, [*l_elems, *r_elems])
+            if l_elems is not None and len(l_elems) == 0:
+                self.tick(True)
+                return r_w
+            if r_elems is not None and len(r_elems) == 0:
+                self.tick(True)
+                return l_w
+            return None
+        if name == "Seq_Take" and len(arguments) == 3:
+            elem, seq_term, count_term = arguments
+            s_w = self.whnf(seq_term)
+            c_w = self.whnf(count_term)
+            if c_w.kind == "nat" and cast("int", c_w.value) == 0:
+                self.tick(True)
+                return _app(_constant("Seq_Empty"), elem)
+            elems = self._extract_seq_elements(s_w)
+            if elems is not None and c_w.kind == "nat":
+                cnt = cast("int", c_w.value)
+                self.tick(True)
+                return self._build_seq_term(elem, elems[: max(0, cnt)])
+            cnt_seq = self.whnf(_apps(_constant("Seq_Count"), elem, s_w))
+            if self.convertible(cnt_seq, c_w):
+                self.tick(True)
+                return s_w
+            return None
+        if name == "Seq_Skip" and len(arguments) == 3:
+            elem, seq_term, count_term = arguments
+            s_w = self.whnf(seq_term)
+            c_w = self.whnf(count_term)
+            if c_w.kind == "nat" and cast("int", c_w.value) == 0:
+                self.tick(True)
+                return s_w
+            elems = self._extract_seq_elements(s_w)
+            if elems is not None and c_w.kind == "nat":
+                cnt = cast("int", c_w.value)
+                self.tick(True)
+                return self._build_seq_term(elem, elems[max(0, cnt) :])
+            return None
+        if name == "Seq_Slice" and len(arguments) == 4:
+            elem, seq_term, off_term, cnt_term = arguments
+            self.tick(True)
+            skipped = _apps(_constant("Seq_Skip"), elem, seq_term, off_term)
+            return self.whnf(_apps(_constant("Seq_Take"), elem, skipped, cnt_term))
+        if name == "Seq_Contains" and len(arguments) == 3:
+            _elem, seq_term, val_term = arguments
+            s_w = self.whnf(seq_term)
+            elems = self._extract_seq_elements(s_w)
+            if elems is not None:
+                if len(elems) == 0:
+                    self.tick(True)
+                    return _term("bool", value=0)
+                all_decided = True
+                for item in elems:
+                    if self.convertible(item, val_term):
+                        self.tick(True)
+                        return _term("bool", value=1)
+                    item_w = self.whnf(item)
+                    val_w = self.whnf(val_term)
+                    if item_w.kind != val_w.kind or item_w.kind not in {"nat", "int", "bool"}:
+                        all_decided = False
+                if all_decided:
+                    self.tick(True)
+                    return _term("bool", value=0)
+            return None
+        if name in {"Seq_All", "Seq_Any"} and len(arguments) == 3:
+            _elem, seq_term, pred_term = arguments
+            s_w = self.whnf(seq_term)
+            elems = self._extract_seq_elements(s_w)
+            if elems is not None:
+                is_all = name == "Seq_All"
+                if len(elems) == 0:
+                    self.tick(True)
+                    return _term("bool", value=1 if is_all else 0)
+                all_decided = True
+                for item in elems:
+                    res = self.whnf(_app(pred_term, item))
+                    if res.kind == "bool":
+                        if is_all and res.value == 0:
+                            self.tick(True)
+                            return _term("bool", value=0)
+                        if not is_all and res.value == 1:
+                            self.tick(True)
+                            return _term("bool", value=1)
+                    else:
+                        all_decided = False
+                if all_decided:
+                    self.tick(True)
+                    return _term("bool", value=1 if is_all else 0)
+            return None
+        return None
+
+    def _whnf_slots_op(self, name: str, arguments: list[_Term]) -> _Term | None:
+        if name in {"Slots_CanRead", "Slots_CanWrite"} and len(arguments) == 3:
+            elem, cap, s = arguments
+            s_w = self.whnf(s)
+            head, args = self.spine(s_w)
+            if head in {_constant("Slots_Write"), _constant("Slots_TransferSource"), _constant("Slots_TransferDest")} and len(args) >= 3:
+                self.tick(True)
+                return self.whnf(_apps(_constant(name), elem, cap, args[2]))
+            if head == _constant("Slots_CopyRepresentation") and len(args) == 6:
+                self.tick(True)
+                return self.whnf(_apps(_constant(name), elem, args[2], args[4]))
+            tag_t = self.whnf(_apps(_constant("Slots_Tag"), elem, cap, s_w))
+            perm_const = "Slots_PermRead" if name == "Slots_CanRead" else "Slots_PermWrite"
+            perm_t = self.whnf(_apps(_constant(perm_const), elem, cap, s_w))
+            if tag_t.kind == "bool" and perm_t.kind == "bool":
+                self.tick(True)
+                return _term("bool", value=1 if (tag_t.value == 1 and perm_t.value == 1) else 0)
+            return None
+        if name in {
+            "Slots_Base",
+            "Slots_LiveCount",
+            "Slots_Tag",
+            "Slots_PermRead",
+            "Slots_PermWrite",
+            "Slots_RepModel",
+            "Slots_Model",
+        } and len(arguments) == 3:
+            elem, cap, s = arguments
+            s_w = self.whnf(s)
+            head, args = self.spine(s_w)
+            if head == _constant("Slots_Mk") and len(args) == 9:
+                field_map = {
+                    "Slots_Base": 2,
+                    "Slots_LiveCount": 3,
+                    "Slots_Tag": 4,
+                    "Slots_PermRead": 5,
+                    "Slots_PermWrite": 6,
+                    "Slots_RepModel": 7,
+                    "Slots_Model": 8,
+                }
+                self.tick(True)
+                return self.whnf(args[field_map[name]])
+            if head == _constant("Slots_AllocVacant") and len(args) == 3:
+                self.tick(True)
+                if name == "Slots_Base":
+                    return self.whnf(args[2])
+                if name == "Slots_LiveCount":
+                    return _int_term(_INT_SPECS["usize"], 0)
+                if name in {"Slots_Tag", "Slots_PermRead", "Slots_PermWrite"}:
+                    return _term("bool", value=1)
+                if name in {"Slots_RepModel", "Slots_Model"}:
+                    return _app(_constant("Seq_Empty"), elem)
+            if head == _constant("Slots_Write") and len(args) == 5:
+                inner_s = args[2]
+                idx_t = self.whnf(args[3])
+                val_t = args[4]
+                if name in {"Slots_Base", "Slots_Tag", "Slots_PermRead", "Slots_PermWrite"}:
+                    self.tick(True)
+                    return self.whnf(_apps(_constant(name), elem, cap, inner_s))
+                inner_live = self.whnf(_apps(_constant("Slots_LiveCount"), elem, cap, inner_s))
+                if name == "Slots_LiveCount":
+                    if idx_t.kind == "int" and inner_live.kind == "int":
+                        i_val = cast("int", idx_t.value)
+                        l_val = cast("int", inner_live.value)
+                        self.tick(True)
+                        return _int_term(_INT_SPECS["usize"], max(l_val, i_val + 1))
+                    self.tick(True)
+                    return self.whnf(
+                        _apps(_constant("int_add_usize"), idx_t, _int_term(_INT_SPECS["usize"], 1))
+                    )
+                if name in {"Slots_RepModel", "Slots_Model"}:
+                    inner_model = self.whnf(_apps(_constant(name), elem, cap, inner_s))
+                    elems = self._extract_seq_elements(inner_model)
+                    if idx_t.kind == "int" and inner_live.kind == "int":
+                        i_val = cast("int", idx_t.value)
+                        l_val = cast("int", inner_live.value)
+                        if elems is not None:
+                            if i_val == l_val and i_val == len(elems):
+                                self.tick(True)
+                                return self._build_seq_term(elem, [*elems, val_t])
+                            if 0 <= i_val < len(elems):
+                                updated = list(elems)
+                                updated[i_val] = val_t
+                                self.tick(True)
+                                return self._build_seq_term(elem, updated)
+                    self.tick(True)
+                    return self.whnf(
+                        _apps(
+                            _constant("Seq_Append"),
+                            elem,
+                            inner_model,
+                            _apps(_constant("Seq_Singleton"), elem, val_t),
+                        )
+                    )
+            if head == _constant("Slots_CopyRepresentation") and len(args) == 6:
+                src_cap, _dst_cap, src_s, dst_s, _cnt = args[1], args[2], args[3], args[4], args[5]
+                if name in {"Slots_Base", "Slots_Tag", "Slots_PermRead", "Slots_PermWrite"}:
+                    self.tick(True)
+                    return self.whnf(_apps(_constant(name), elem, cap, dst_s))
+                if name == "Slots_LiveCount":
+                    self.tick(True)
+                    return _int_term(_INT_SPECS["usize"], 0)
+                if name == "Slots_RepModel":
+                    self.tick(True)
+                    return self.whnf(_apps(_constant("PrefixModel"), elem, src_cap, src_s, _cnt))
+                self.tick(True)
+                return _app(_constant("Seq_Empty"), elem)
+            if head == _constant("Slots_TransferSource") and len(args) == 4:
+                inner_s = args[2]
+                if name in {"Slots_Base", "Slots_Tag", "Slots_PermRead", "Slots_PermWrite"}:
+                    self.tick(True)
+                    return self.whnf(_apps(_constant(name), elem, cap, inner_s))
+                if name == "Slots_LiveCount":
+                    self.tick(True)
+                    return _int_term(_INT_SPECS["usize"], 0)
+                if name in {"Slots_RepModel", "Slots_Model"}:
+                    self.tick(True)
+                    return _app(_constant("Seq_Empty"), elem)
+            if head == _constant("Slots_TransferDest") and len(args) == 4:
+                inner_s = args[2]
+                cnt_t = args[3]
+                if name in {"Slots_Base", "Slots_Tag", "Slots_PermRead", "Slots_PermWrite"}:
+                    self.tick(True)
+                    return self.whnf(_apps(_constant(name), elem, cap, inner_s))
+                if name == "Slots_LiveCount":
+                    self.tick(True)
+                    return self.whnf(cnt_t)
+                if name in {"Slots_RepModel", "Slots_Model"}:
+                    self.tick(True)
+                    return self.whnf(_apps(_constant("Slots_RepModel"), elem, cap, inner_s))
+            return None
+        if name == "PrefixModel" and len(arguments) == 4:
+            elem, cap, s, cnt = arguments
+            s_w = self.whnf(s)
+            cnt_w = self.whnf(cnt)
+            s_head, s_args = self.spine(s_w)
+            if s_head == _constant("Slots_TransferDest") and len(s_args) == 4 and self.convertible(s_args[3], cnt_w):
+                self.tick(True)
+                return self.whnf(_apps(_constant("Slots_Model"), elem, cap, s_w))
+            live_w = self.whnf(_apps(_constant("Slots_LiveCount"), elem, cap, s_w))
+            model_w = self.whnf(_apps(_constant("Slots_Model"), elem, cap, s_w))
+            elems = self._extract_seq_elements(model_w)
+            if self.convertible(live_w, cnt_w) and elems is not None:
+                self.tick(True)
+                return model_w
+            if elems is not None and cnt_w.kind == "int":
+                k = max(0, cast("int", cnt_w.value))
+                self.tick(True)
+                return self._build_seq_term(elem, elems[:k])
+            return None
+        if name == "Slots_Read" and len(arguments) == 5:
+            elem, cap, default_val, s, idx = arguments
+            s_w = self.whnf(s)
+            idx_w = self.whnf(idx)
+            head, args = self.spine(s_w)
+            if head == _constant("Slots_Write") and len(args) == 5:
+                w_idx = self.whnf(args[3])
+                if self.convertible(w_idx, idx_w):
+                    self.tick(True)
+                    return self.whnf(args[4])
+                if w_idx.kind == "int" and idx_w.kind == "int" and w_idx.value != idx_w.value:
+                    self.tick(True)
+                    return self.whnf(_apps(_constant("Slots_Read"), elem, cap, default_val, args[2], idx_w))
+            if head == _constant("Slots_TransferDest") and len(args) == 4:
+                inner_w = self.whnf(args[2])
+                i_head, i_args = self.spine(inner_w)
+                if i_head == _constant("Slots_CopyRepresentation") and len(i_args) == 6:
+                    self.tick(True)
+                    return self.whnf(_apps(_constant("Slots_Read"), elem, i_args[1], default_val, i_args[3], idx_w))
+            model_w = self.whnf(_apps(_constant("Slots_Model"), elem, cap, s_w))
+            elems = self._extract_seq_elements(model_w)
+            if elems is not None and idx_w.kind == "int":
+                i_val = cast("int", idx_w.value)
+                if 0 <= i_val < len(elems):
+                    self.tick(True)
+                    return self.whnf(elems[i_val])
+            return None
+        if name == "Slots_LivePrefix" and len(arguments) == 4:
+            elem, cap, s, cnt = arguments
+            s_w = self.whnf(s)
+            cnt_w = self.whnf(cnt)
+            cap_w = self.whnf(cap)
+            s_head, s_args = self.spine(s_w)
+            if s_head == _constant("Slots_TransferDest") and len(s_args) == 4 and self.convertible(s_args[3], cnt_w):
+                self.tick(True)
+                return _term("bool", value=1)
+            if (
+                s_head in {_constant("Slots_TransferSource"), _constant("Slots_AllocVacant")}
+                and cnt_w.kind == "int"
+                and cast("int", cnt_w.value) == 0
+            ):
+                self.tick(True)
+                return _term("bool", value=1)
+            live_w = self.whnf(_apps(_constant("Slots_LiveCount"), elem, cap_w, s_w))
+            can_read = self.whnf(_apps(_constant("Slots_CanRead"), elem, cap_w, s_w))
+            if can_read.kind == "bool" and can_read.value == 0:
+                self.tick(True)
+                return _term("bool", value=0)
+            if self.convertible(live_w, cnt_w):
+                if cnt_w.kind == "int" and cap_w.kind in {"int", "nat"}:
+                    c_val = cast("int", cnt_w.value)
+                    cap_val = cast("int", cap_w.value)
+                    if can_read.kind == "bool" and can_read.value == 1:
+                        self.tick(True)
+                        return _term("bool", value=1 if 0 <= c_val <= cap_val else 0)
+            elif live_w.kind == "int" and cnt_w.kind == "int" and live_w.value != cnt_w.value:
+                self.tick(True)
+                return _term("bool", value=0)
+            return None
+        if name == "Slots_VacantRange" and len(arguments) == 5:
+            elem, cap, s, start, end = arguments
+            s_w = self.whnf(s)
+            start_w = self.whnf(start)
+            end_w = self.whnf(end)
+            cap_w = self.whnf(cap)
+            cap_u_w = self.whnf(self._slots_cap_usize_term(cap_w))
+            s_head, s_args = self.spine(s_w)
+            if (
+                s_head == _constant("Slots_AllocVacant")
+                and len(s_args) == 3
+                and start_w.kind == "int"
+                and cast("int", start_w.value) == 0
+                and (self.convertible(end_w, cap_u_w) or (end_w.kind == "int" and cast("int", end_w.value) == 0))
+            ):
+                self.tick(True)
+                return _term("bool", value=1)
+            if (
+                s_head == _constant("Slots_TransferSource")
+                and len(s_args) == 4
+                and start_w.kind == "int"
+                and cast("int", start_w.value) == 0
+                and (
+                    self.convertible(end_w, s_args[3])
+                    or self.convertible(end_w, cap_u_w)
+                    or (end_w.kind == "int" and cast("int", end_w.value) == 0)
+                )
+            ):
+                self.tick(True)
+                return _term("bool", value=1)
+            if (
+                s_head == _constant("Slots_TransferDest")
+                and len(s_args) == 4
+                and self.convertible(start_w, s_args[3])
+                and (self.convertible(end_w, cap_u_w) or self.convertible(end_w, s_args[3]))
+            ):
+                self.tick(True)
+                return _term("bool", value=1)
+            live_w = self.whnf(_apps(_constant("Slots_LiveCount"), elem, cap_w, s_w))
+            can_write = self.whnf(_apps(_constant("Slots_CanWrite"), elem, cap_w, s_w))
+            if can_write.kind == "bool" and can_write.value == 0:
+                self.tick(True)
+                return _term("bool", value=0)
+            if (
+                live_w.kind == "int"
+                and start_w.kind == "int"
+                and end_w.kind == "int"
+                and cap_w.kind in {"int", "nat"}
+                and can_write.kind == "bool"
+                and can_write.value == 1
+            ):
+                l_val = cast("int", live_w.value)
+                st_val = cast("int", start_w.value)
+                en_val = cast("int", end_w.value)
+                cp_val = cast("int", cap_w.value)
+                self.tick(True)
+                return _term("bool", value=1 if (l_val <= st_val <= en_val <= cp_val) else 0)
+            return None
+        if name == "Slots_Disjoint" and len(arguments) == 5:
+            elem, cap_a, cap_b, s_a, s_b = arguments
+            sa_w = self.whnf(s_a)
+            sb_w = self.whnf(s_b)
+            ca_w = self.whnf(cap_a)
+            cb_w = self.whnf(cap_b)
+            ba_w = self.whnf(_apps(_constant("Slots_Base"), elem, ca_w, sa_w))
+            bb_w = self.whnf(_apps(_constant("Slots_Base"), elem, cb_w, sb_w))
+            if (
+                ca_w.kind in {"int", "nat"}
+                and cb_w.kind in {"int", "nat"}
+                and ba_w.kind == "int"
+                and bb_w.kind == "int"
+            ):
+                ba_val = cast("int", ba_w.value)
+                bb_val = cast("int", bb_w.value)
+                ca_val = cast("int", ca_w.value)
+                cb_val = cast("int", cb_w.value)
+                disjoint = (ba_val + ca_val <= bb_val) or (bb_val + cb_val <= ba_val)
+                self.tick(True)
+                return _term("bool", value=1 if disjoint else 0)
+            return None
+        if name == "Slots_RepEqual" and len(arguments) == 6:
+            elem, cap_a, cap_b, s_a, s_b, cnt = arguments
+            sa_w = self.whnf(s_a)
+            sb_w = self.whnf(s_b)
+            cnt_w = self.whnf(cnt)
+            head_a, args_a = self.spine(sa_w)
+            if (
+                head_a == _constant("Slots_CopyRepresentation")
+                and len(args_a) == 6
+                and self.convertible(args_a[1], cap_b)
+                and self.convertible(args_a[3], sb_w)
+                and self.convertible(args_a[5], cnt_w)
+            ):
+                self.tick(True)
+                return _term("bool", value=1)
+            rep_a = self.whnf(_apps(_constant("Slots_RepModel"), elem, cap_a, sa_w))
+            mod_b = self.whnf(_apps(_constant("Slots_Model"), elem, cap_b, sb_w))
+            if self.convertible(rep_a, mod_b):
+                self.tick(True)
+                return _term("bool", value=1)
+            return None
+        if name == "Slots_TransferType" and len(arguments) == 6:
+            elem, src_cap, dst_cap, src_s, dst_s, cnt = arguments
+            self.tick(True)
+            src_next = _apps(_constant("Slots_TransferSource"), elem, src_cap, src_s, cnt)
+            dst_next = _apps(_constant("Slots_TransferDest"), elem, dst_cap, dst_s, cnt)
+            return _term(
+                "pair",
+                _apps(_constant("Slots"), elem, src_cap),
+                _apps(_constant("Slots"), elem, dst_cap),
+                src_next,
+                dst_next,
+            )
+        return None
+
     @staticmethod
     def _peel_nat(term: _Term) -> tuple[str, _Term | None]:
         if term.kind == "nat":
@@ -2507,14 +3462,24 @@ class _Elaborator:
         self.site = node
         if node["kind"] == "type_argument":
             value = self.type(self.node(node["type"]), environment)
+            if self.whnf(expected) == _NAT and self.whnf(self.infer(value)) == _USIZE:
+                value = self.whnf(_app(_constant("int_to_nat_usize"), value))
             self.unify(self.infer(value), expected)
             return value
         if node["kind"] in {"type", "function_type", "group_type", "tuple_type", "computed_type"}:
             if node["kind"] == "type" and self.name(node["name"]) == "_" and not self.nodes(node["arguments"]):
                 return self.meta(expected, environment)
             value = self.type(node, environment, require_sort=False)
+            if self.whnf(expected) == _NAT and self.whnf(self.infer(value)) == _USIZE:
+                value = self.whnf(_app(_constant("int_to_nat_usize"), value))
             self.unify(self.infer(value), expected)
             return value
+        if self.whnf(expected) == _NAT and not self._is_unsuffixed_int_expr(node):
+            expr_b = self.expression(node, environment)
+            if self.whnf(expr_b.type) == _USIZE:
+                return self.whnf(_app(_constant("int_to_nat_usize"), expr_b.term))
+            self.unify(expr_b.type, expected)
+            return expr_b.term
         return self.check(node, expected, environment)
 
     def static_argument(self, node: Node, expected: _Term, environment: dict[str, _Binding],
@@ -2598,7 +3563,16 @@ class _Elaborator:
                 raise self.fail("type", "zero-argument call requires a zero-parameter source callable")
             self.unify(value_type.args[0], _UNIT)
             argument = _term("unit")
-            return _Binding(_app(term, argument), self.substitute(value_type.args[1], cast("int", value_type.value), argument))
+            res_term = _app(term, argument)
+            res_type = self.substitute(value_type.args[1], cast("int", value_type.value), argument)
+            if (
+                callee_head.kind == "const"
+                and isinstance(callee_head.value, str)
+                and callee_head.value in self.records_by_ctor
+            ):
+                rinfo = self.records_by_ctor[callee_head.value]
+                self._check_record_invariants(rinfo, callee_gen_args, res_term, environment, call_site)
+            return _Binding(res_term, res_type)
         labeled = False
         val_args: list[_Term] = []
         for node in arguments:
@@ -2625,9 +3599,29 @@ class _Elaborator:
                     raise self.fail("name", "unnamed callable parameters do not accept argument labels", node)
                 if spelling != expected:
                     raise self.fail("name", f"expected argument label '{expected}', got '{spelling}'", node)
+            arg_val_node = self._unwrap_group(self.node(node["value"]))
+            arg_ident_node = (
+                self._unwrap_group(self.node(arg_val_node["value"]))
+                if (
+                    arg_val_node["kind"] == "unary"
+                    and isinstance(arg_val_node.get("operator"), dict)
+                    and cast("Node", arg_val_node["operator"]).get("text") in {"ref", "in"}
+                )
+                else arg_val_node
+            )
+            if arg_ident_node["kind"] == "name":
+                arg_vname = self.name(arg_ident_node["name"])
+                lifted_set = self.lifted_invariants.get(arg_vname)
+                if lifted_set is not None and len(lifted_set) > 0:
+                    clause_n = min(lifted_set)
+                    raise self.fail(
+                        "type",
+                        f"cannot pass record '{arg_vname}' to a callable while invariant '{clause_n}' is lifted",
+                        node,
+                    )
             required_static = cast("int", value_type.value) in self.constant_parameters
             checker = self.static_argument if required_static else self.check
-            argument = checker(self.node(node["value"]), value_type.args[0], environment)
+            argument = checker(arg_ident_node if arg_ident_node is not arg_val_node else self.node(node["value"]), value_type.args[0], environment)
             val_args.append(argument)
             specializing = specializing or required_static
             if required_static:
@@ -2640,6 +3634,13 @@ class _Elaborator:
                 specialized_term = _app(specialized_term, argument)
             term = _app(term, argument)
             value_type = self.substitute(value_type.args[1], cast("int", value_type.value), argument)
+        if (
+            callee_head.kind == "const"
+            and isinstance(callee_head.value, str)
+            and callee_head.value in self.records_by_ctor
+        ):
+            rinfo = self.records_by_ctor[callee_head.value]
+            self._check_record_invariants(rinfo, callee_gen_args, term, environment, call_site)
         if callee_head.kind == "const" and callee_head.value in self.callable_preconditions:
             full_args = callee_gen_args + val_args
             for param_ids, req_term in self.callable_preconditions[callee_head.value]:
@@ -2710,6 +3711,10 @@ class _Elaborator:
                 param_type_node["kind"] == "modified_type"
                 and param_type_node.get("modifier") == "in"
             )
+            is_ref_param = (
+                param_type_node["kind"] == "modified_type"
+                and param_type_node.get("modifier") == "ref"
+            )
             domain = self.type(param_type_node, extended)
             variable = self.fresh(domain)
             variables.append(variable)
@@ -2721,6 +3726,8 @@ class _Elaborator:
             if node["name"] is not None:
                 name = self.name(node["name"])
                 self.parameter_names[cast("int", variable.value)] = name
+                if is_ref_param:
+                    self.mutable_locals.add(name)
                 self.bind_local(extended, name, _Binding(variable, domain, constant=static))
         if unit and not parameter_nodes:
             variable = self.fresh(_UNIT)
@@ -2810,10 +3817,24 @@ class _Elaborator:
             if modifier not in {"in", "ref"}:
                 raise self.fail("unsupported", f"type modifier '{modifier}' requires the full frontend", node)
             inner_type = self.type(self.node(node["type"]), environment, require_sort=require_sort)
-            if self.whnf(inner_type) != _app(_constant("Span"), _U8):
+            inner_w = self.whnf(inner_type)
+            inner_head, inner_args = self.spine(inner_w)
+            supported_loan = (
+                (inner_head == _constant("Span") and len(inner_args) == 1 and self.whnf(inner_args[0]) == _U8)
+                or (inner_head == _constant("Slots") and len(inner_args) == 2)
+                or (inner_head == _constant("Vec") and len(inner_args) == 2)
+                or (inner_head == _constant("Seq") and len(inner_args) == 1)
+                or (inner_head == _constant("TextBuilder") and len(inner_args) == 1)
+                or (
+                    inner_head.kind == "const"
+                    and isinstance(inner_head.value, str)
+                    and inner_head.value in self.records_by_type
+                )
+            )
+            if not supported_loan:
                 raise self.fail(
                     "unsupported",
-                    f"modifier '{modifier}' is only supported on Span<byte> in the first-slice carrier",
+                    f"modifier '{modifier}' is only supported on Span<byte>, Slots<T, capacity>, Vec<T, n>, Seq<T>, TextBuilder<capacity> or record types in the first-slice carrier",
                     node,
                 )
             result = inner_type
@@ -3324,20 +4345,35 @@ class _Elaborator:
             self._bind_irrefutable(pat.args[0], _Binding(left_term, left_type), extended)
             self._bind_irrefutable(pat.args[1], _Binding(right_term, right_type), extended)
 
+    def _collect_pat_names(self, pat: _Pat, out: set[str]) -> None:
+        for name in pat.names:
+            out.add(name)
+        for child in pat.args:
+            self._collect_pat_names(child, out)
+
     def local(self, node: Node, environment: dict[str, _Binding]) -> dict[str, _Binding]:
         self.site = node
-        if node["kind"] == "let_pattern":
+        if node["kind"] in {"let_pattern", "var_pattern"}:
             binding = self.expression(self.node(node["value"]), environment)
             pat = self._parse_pattern(self.node(node["pattern"]), set())
             self._require_irrefutable(pat)
             self._typecheck_pattern(pat, binding.type, environment)
             extended = dict(environment)
             self._bind_irrefutable(pat, binding, extended)
+            bound_names: set[str] = set()
+            self._collect_pat_names(pat, bound_names)
+            for bname in bound_names:
+                if bname in self.frozen_collections:
+                    raise self.fail("type", f"cannot rebind collection '{bname}' while iterating over it", node)
+                if node["kind"] == "var_pattern":
+                    self.mutable_locals.add(bname)
+                else:
+                    self.mutable_locals.discard(bname)
             return extended
         if node["kind"] == "constant_local":
             binding = self.constant_value(node, environment)
-        elif node["kind"] not in {"let", "typed_local"}:
-            raise self.fail("unsupported", "only immutable name bindings are supported")
+        elif node["kind"] not in {"let", "typed_local", "var"}:
+            raise self.fail("unsupported", "only local let/var name bindings are supported")
         else:
             self.no_roles(node, "grade")
             if node["type"] is None:
@@ -3346,7 +4382,14 @@ class _Elaborator:
                 value_type = self.type(self.node(node["type"]), environment)
                 binding = _Binding(self.check(self.node(node["value"]), value_type, environment), value_type)
         extended = dict(environment)
-        self.bind_local(extended, self.name(node["name"]), binding)
+        bname = self.name(node["name"])
+        if bname in self.frozen_collections:
+            raise self.fail("type", f"cannot rebind collection '{bname}' while iterating over it", node)
+        if node["kind"] == "var":
+            self.mutable_locals.add(bname)
+        else:
+            self.mutable_locals.discard(bname)
+        self.bind_local(extended, bname, binding)
         return extended
 
     def match(self, node: Node, environment: dict[str, _Binding], expected: _Term | None = None,
@@ -4239,6 +5282,11 @@ class _Elaborator:
         else:
             return True
 
+    def convertible(self, left: _Term, right: _Term) -> bool:
+        if left == right:
+            return True
+        return self._try_unify(left, right)
+
     def _match_meta_pattern(self, pattern: _Term, target: _Term) -> bool:
         p = self.resolve(pattern)
         t = self.resolve(target)
@@ -4270,7 +5318,7 @@ class _Elaborator:
                 and isinstance(head.value, str)
                 and (
                     head.value in _INT_SPECS
-                    or head.value in {"Span", "Vec", "Fin", "TextBuilder"}
+                    or head.value in {"Span", "Vec", "Fin", "TextBuilder", "Seq", "Slots"}
                     or head.value in self.records_by_type
                     or head.value in self.unions_by_type
                 )
@@ -5082,7 +6130,37 @@ class _Elaborator:
         goal = self.asserted_proposition(self.node(node["value"]), environment)
         by_raw = node["by"]
         if by_raw is None:
-            term = self._prove_proposition(goal, environment, facts, node)
+            try:
+                term = self._prove_proposition(goal, environment, facts, node)
+            except VelaError:
+                if self.current_return_type is not None and self._is_prop_type(self.current_return_type):
+                    raise
+                extracted = self._extract_equality(goal)
+                if extracted is not None:
+                    eq_ty, lhs_t, rhs_t = extracted
+                    eq_ty_w = self.whnf(eq_ty)
+                    if (
+                        eq_ty_w == _BOOL
+                        and self.whnf(rhs_t) == _term("bool", value=1)
+                        and self._prove_bool_precondition(lhs_t, environment)
+                    ):
+                        return _Binding(_apps(_constant("Refl"), _BOOL, _term("bool", value=1)), goal)
+                    if eq_ty_w == _NAT or self._int_spec(eq_ty_w) is not None:
+                        spec = self._int_spec(eq_ty_w)
+                        bool_facts = self._expand_bool_facts(
+                            [*self.active_facts, *self._fact_bool_terms(facts, environment)]
+                        )
+                        if self._prove_comparison("eq", spec, lhs_t, rhs_t, bool_facts):
+                            return _Binding(_apps(_constant("Refl"), _BOOL, _term("bool", value=1)), goal)
+                saved_assert_m = [_Meta(m.type, m.scope, m.solution) for m in self.metas]
+                try:
+                    val_b = self.expression(self.node(node["value"]), environment)
+                    if self.whnf(val_b.type) == _BOOL and self._prove_bool_precondition(val_b.term, environment):
+                        eq_true = _apps(_constant("Eq"), _BOOL, _term("bool", value=1), _term("bool", value=1))
+                        return _Binding(_apps(_constant("Refl"), _BOOL, _term("bool", value=1)), eq_true)
+                except VelaError:
+                    self.metas = saved_assert_m
+                raise
         else:
             by_node = self.node(by_raw)
             if by_node["kind"] == "block":
@@ -5257,6 +6335,12 @@ class _Elaborator:
         continuation: Callable[[str, _Binding, dict[str, _Binding]], _Term],
     ) -> _Term:
         self.site = prop_node
+        if self.active_lift_scopes > 0:
+            raise self.fail(
+                "type",
+                "cannot propagate '?' early exit while a record invariant is lifted in an enclosing scope",
+                prop_node,
+            )
         scrutinee = self.expression(self.node(prop_node["value"]), environment)
         scrut_type = self.whnf(scrutinee.type)
         scrut_head, scrut_type_args = self.spine(scrut_type)
@@ -5335,6 +6419,1115 @@ class _Elaborator:
             left_lam = _term("lam", inst_payload_types[0], early_return_term, value=err_var.value)
             right_lam = _term("lam", ok_type, ok_branch_term, value=ok_var.value)
         return _term("sum_match", motive_lam, scrutinee.term, left_lam, right_lam)
+
+    def _check_record_invariants(
+        self,
+        record_info: _RecordInfo,
+        type_args: list[_Term],
+        rec_term: _Term,
+        environment: dict[str, _Binding],
+        site: Node | None,
+        *,
+        only_clauses: set[str] | None = None,
+        exclude_clauses: set[str] | None = None,
+    ) -> None:
+        if not record_info.invariants:
+            return
+        for inv in record_info.invariants:
+            if only_clauses is not None and inv.name not in only_clauses:
+                continue
+            if exclude_clauses is not None and inv.name in exclude_clauses:
+                continue
+            inst_term = self._instantiate_record_type(record_info, type_args, inv.term)
+            inst_term = self.substitute(inst_term, cast("int", inv.self_var.value), rec_term)
+            inst_type = self._instantiate_record_type(record_info, type_args, inv.type)
+            inst_type = self.substitute(inst_type, cast("int", inv.self_var.value), rec_term)
+            clause_label = "" if inv.name.startswith("__anon_") else f" '{inv.name}'"
+            if self.whnf(inst_type) == _BOOL:
+                if not self._prove_bool_precondition(inst_term, environment):
+                    raise self.fail(
+                        "type",
+                        f"record '{record_info.name}' invariant{clause_label} could not be established",
+                        site if site is not None else self.site,
+                    )
+            else:
+                self._prove_proposition(
+                    inst_term,
+                    environment,
+                    (),
+                    site if site is not None else cast("Node", self.site),
+                )
+
+    def _elaborate_assignment(self, statement: Node, extended: dict[str, _Binding]) -> dict[str, _Binding]:
+        self.site = statement
+        target = self._unwrap_group(self.node(statement["target"]))
+        raw_op = statement["operator"]
+        if (
+            not isinstance(raw_op, dict)
+            or not isinstance(raw_op.get("text"), str)
+            or raw_op["text"] not in _ASSIGN_OPERATORS
+        ):
+            raise self.fail("protocol", "expected a supported assignment operator", statement)
+        op = cast("str", raw_op["text"])
+        val_node = self.node(statement["value"])
+        updated = dict(extended)
+        if target["kind"] == "name":
+            tname = self.name(target["name"])
+            if tname not in updated:
+                raise self.fail("name", f"unknown identifier '{tname}'", target)
+            if tname in self.frozen_collections:
+                raise self.fail("type", f"cannot mutate collection '{tname}' while iterating over it", statement)
+            if tname not in self.mutable_locals:
+                raise self.fail(
+                    "type",
+                    f"cannot assign to immutable binding '{tname}'; declare it with 'var' or 'ref'",
+                    target,
+                )
+            cur_b = updated[tname]
+            if self._is_readonly_span(cur_b.term):
+                raise self.fail("type", f"cannot mutate a read-only 'in' parameter '{tname}'", target)
+            if op == "=":
+                prev_assign_target = getattr(self, "_in_lifted_target_assignment", None)
+                self._in_lifted_target_assignment = tname
+                try:
+                    rhs_term = self.check(val_node, cur_b.type, updated)
+                finally:
+                    self._in_lifted_target_assignment = prev_assign_target
+            else:
+                bin_op = op[:-1]
+                bin_node: Node = {
+                    "kind": "binary",
+                    "span": statement["span"],
+                    "operator": {"text": bin_op, "span": cast("Node", statement["operator"])["span"]},
+                    "left": target,
+                    "right": val_node,
+                }
+                rhs_term = self.check(bin_node, cur_b.type, updated)
+            rec_head, rec_targs = self.spine(self.whnf(cur_b.type))
+            if (
+                rec_head.kind == "const"
+                and isinstance(rec_head.value, str)
+                and rec_head.value in self.records_by_type
+            ):
+                rinfo = self.records_by_type[rec_head.value]
+                lifted = self.lifted_invariants.get(tname, set())
+                self._check_record_invariants(
+                    rinfo, rec_targs, rhs_term, updated, statement, exclude_clauses=lifted
+                )
+            updated[tname] = _Binding(rhs_term, cur_b.type)
+            return updated
+        if target["kind"] == "member":
+            recv_node = self._unwrap_group(self.node(target["value"]))
+            fname = self.name(target["name"])
+            if recv_node["kind"] != "name":
+                raise self.fail("type", "member assignment requires a named record variable target", target)
+            rname = self.name(recv_node["name"])
+            if rname not in updated:
+                raise self.fail("name", f"unknown identifier '{rname}'", recv_node)
+            if rname in self.frozen_collections:
+                raise self.fail("type", f"cannot mutate collection '{rname}' while iterating over it", statement)
+            if rname not in self.mutable_locals:
+                raise self.fail(
+                    "type",
+                    f"cannot mutate field '{fname}' of immutable record '{rname}'; declare it with 'var' or 'ref'",
+                    target,
+                )
+            cur_b = updated[rname]
+            if self._is_readonly_span(cur_b.term):
+                raise self.fail("type", f"cannot mutate a read-only 'in' parameter '{rname}'", target)
+            rec_type = self.whnf(cur_b.type)
+            head, type_args = self.spine(rec_type)
+            if head.kind != "const" or not isinstance(head.value, str) or head.value not in self.records_by_type:
+                raise self.fail("type", f"member assignment target '{rname}' must be a record", target)
+            record_info = self.records_by_type[head.value]
+            field_index = next((idx for idx, rf in enumerate(record_info.fields) if rf.name == fname), None)
+            if field_index is None:
+                raise self.fail("name", f"record '{record_info.name}' has no mutable field '{fname}'", target)
+            rhs_expr: Node = (
+                val_node
+                if op == "="
+                else {
+                    "kind": "binary",
+                    "span": statement["span"],
+                    "operator": {"text": op[:-1], "span": cast("Node", statement["operator"])["span"]},
+                    "left": target,
+                    "right": val_node,
+                }
+            )
+            final_fields: list[_Term] = []
+            for idx, rf in enumerate(record_info.fields):
+                ftype = self._instantiate_record_type(record_info, type_args, rf.type)
+                for j in range(idx):
+                    ftype = self.substitute(ftype, cast("int", record_info.fields[j].var.value), final_fields[j])
+                if idx == field_index:
+                    final_fields.append(self.check(rhs_expr, ftype, updated))
+                else:
+                    old_ftype = self._instantiate_record_field_type(record_info, type_args, idx, cur_b.term)
+                    if not self._try_unify(old_ftype, ftype):
+                        raise self.fail(
+                            "type",
+                            f"field assignment changes an index that field '{rf.name}' depends on; use 'with' to update dependent fields together",
+                            statement,
+                        )
+                    final_fields.append(_apps(_constant(rf.proj_const), *type_args, cur_b.term))
+            new_rec_term = _apps(_constant(record_info.ctor_const), *type_args, *final_fields)
+            lifted = self.lifted_invariants.get(rname, set())
+            self._check_record_invariants(
+                record_info, type_args, new_rec_term, updated, statement, exclude_clauses=lifted
+            )
+            updated[rname] = _Binding(new_rec_term, cur_b.type)
+            return updated
+        raise self.fail("type", "assignment target must be a mutable local variable or record field", target)
+
+    @staticmethod
+    def _extract_ref_or_var_name(arg_node: Node) -> tuple[str | None, bool]:
+        val = arg_node.get("value") if arg_node.get("kind") == "argument" else arg_node
+        while isinstance(val, dict) and val.get("kind") == "group":
+            val = val.get("value")
+        if not isinstance(val, dict):
+            return None, False
+        if (
+            val.get("kind") == "unary"
+            and isinstance(val.get("operator"), dict)
+            and cast("Node", val["operator"]).get("text") == "ref"
+        ):
+            inner = val.get("value")
+            while isinstance(inner, dict) and inner.get("kind") == "group":
+                inner = inner.get("value")
+            if isinstance(inner, dict) and inner.get("kind") == "name" and isinstance(inner.get("name"), dict):
+                return cast("str", cast("Node", inner["name"]).get("text")), True
+            return None, True
+        if val.get("kind") == "name" and isinstance(val.get("name"), dict):
+            return cast("str", cast("Node", val["name"]).get("text")), False
+        return None, False
+
+    def _apply_ref_target_update(
+        self, arg_node: Node, new_binding: _Binding, updated: dict[str, _Binding], site: Node
+    ) -> bool:
+        val = arg_node.get("value") if arg_node.get("kind") == "argument" else arg_node
+        while isinstance(val, dict) and val.get("kind") == "group":
+            val = val.get("value")
+        if (
+            isinstance(val, dict)
+            and val.get("kind") == "unary"
+            and isinstance(val.get("operator"), dict)
+            and cast("Node", val["operator"]).get("text") in {"ref", "in"}
+        ):
+            val = val.get("value")
+            while isinstance(val, dict) and val.get("kind") == "group":
+                val = val.get("value")
+        if not isinstance(val, dict):
+            return False
+        if val.get("kind") == "name" and isinstance(val.get("name"), dict):
+            vname = cast("str", cast("Node", val["name"]).get("text"))
+            if vname in updated:
+                if vname in self.frozen_collections:
+                    raise self.fail("type", f"cannot mutate frozen collection '{vname}'", site)
+                updated[vname] = new_binding
+                return True
+            return False
+        if val.get("kind") == "member" and isinstance(val.get("name"), dict) and isinstance(val.get("value"), dict):
+            recv = self._unwrap_group(cast("Node", val["value"]))
+            fname = cast("str", cast("Node", val["name"]).get("text"))
+            if recv.get("kind") == "name" and isinstance(recv.get("name"), dict):
+                rname = cast("str", cast("Node", recv["name"]).get("text"))
+                if rname in updated:
+                    if rname in self.frozen_collections:
+                        raise self.fail("type", f"cannot mutate frozen collection '{rname}'", site)
+                    if rname not in self.mutable_locals:
+                        raise self.fail(
+                            "type",
+                            f"cannot mutate field '{fname}' of immutable record '{rname}'; declare it with 'var' or 'ref'",
+                            site,
+                        )
+                    cur_b = updated[rname]
+                    rec_type = self.whnf(cur_b.type)
+                    head, type_args = self.spine(rec_type)
+                    if (
+                        head.kind == "const"
+                        and isinstance(head.value, str)
+                        and head.value in self.records_by_type
+                    ):
+                        record_info = self.records_by_type[head.value]
+                        field_index = next(
+                            (idx for idx, rf in enumerate(record_info.fields) if rf.name == fname), None
+                        )
+                        if field_index is not None:
+                            final_fields: list[_Term] = []
+                            for idx, rf in enumerate(record_info.fields):
+                                if idx == field_index:
+                                    final_fields.append(new_binding.term)
+                                else:
+                                    final_fields.append(_apps(_constant(rf.proj_const), *type_args, cur_b.term))
+                            new_rec_term = _apps(_constant(record_info.ctor_const), *type_args, *final_fields)
+                            lifted = self.lifted_invariants.get(rname, set())
+                            self._check_record_invariants(
+                                record_info, type_args, new_rec_term, updated, site, exclude_clauses=lifted
+                            )
+                            updated[rname] = _Binding(new_rec_term, cur_b.type)
+                            return True
+        return False
+
+    def _elaborate_expression_statement(
+        self, statement: Node, extended: dict[str, _Binding]
+    ) -> dict[str, _Binding]:
+        self.site = statement
+        expr_node = self._unwrap_group(self.node(statement["value"]))
+        updated = dict(extended)
+        if expr_node["kind"] == "call":
+            callee = self._unwrap_group(self.node(expr_node["callee"]))
+            call_args = self.nodes(expr_node["arguments"])
+            path = self._dotted_member_path(callee)
+            if path is None and callee["kind"] == "generic_application":
+                path = self._dotted_member_path(self.node(callee["value"]))
+            if path in {"TransferType", "Slots.TransferType"} and len(call_args) == 3:
+                res_b = self.expression(expr_node, updated)
+                prod_ty = self.whnf(res_b.type)
+                if prod_ty.kind == "prod":
+                    src_ty, dst_ty = prod_ty.args
+                    src_b = _Binding(
+                        self.whnf(_apps(_constant("Fst"), src_ty, dst_ty, res_b.term)), src_ty
+                    )
+                    dst_b = _Binding(
+                        self.whnf(_apps(_constant("Snd"), src_ty, dst_ty, res_b.term)), dst_ty
+                    )
+                    self._apply_ref_target_update(call_args[0], src_b, updated, statement)
+                    self._apply_ref_target_update(call_args[1], dst_b, updated, statement)
+                    return updated
+            if path in {"CopyRepresentation", "Slots.CopyRepresentation"} and len(call_args) == 3:
+                res_b = self.expression(expr_node, updated)
+                if self._apply_ref_target_update(call_args[1], res_b, updated, statement):
+                    return updated
+            if path == "Slots.Write" and len(call_args) == 3:
+                res_b = self.expression(expr_node, updated)
+                if self._apply_ref_target_update(call_args[0], res_b, updated, statement):
+                    return updated
+            if path in {"Span.Write", "Span.Fill", "Span.CopyPrefix", "Span.Restore"} and len(call_args) >= 2:
+                res_b = self.expression(expr_node, updated)
+                if self._apply_ref_target_update(call_args[0], res_b, updated, statement):
+                    return updated
+            if path == "Format.Write" and len(call_args) == 2:
+                b_name, _ = self._extract_ref_or_var_name(call_args[0])
+                res_b = self.expression(expr_node, updated)
+                if b_name is not None and b_name in updated:
+                    updated[b_name] = res_b
+                    return updated
+        self.expression(expr_node, updated)
+        return updated
+
+    def _elaborate_scope_statement(
+        self,
+        statement: Node,
+        extended: dict[str, _Binding],
+        facts: tuple[_Binding, ...],
+    ) -> dict[str, _Binding]:
+        self.site = statement
+        loan_nodes = self.nodes(statement["resources"])
+        lift_raw = statement.get("lifts")
+        if lift_raw is not None and not isinstance(lift_raw, list):
+            raise self.fail("protocol", "expected a syntax list", statement)
+        lift_names = [] if lift_raw is None else [self.name(ln) for ln in lift_raw]
+        if len(lift_names) != len(set(lift_names)):
+            raise self.fail("name", "duplicate record invariant clause in scope lifts list", statement)
+        loaned_records: list[tuple[str, _RecordInfo, list[_Term]]] = []
+        seen_targets: set[str] = set()
+        for loan_node in loan_nodes:
+            self.node(loan_node, "unary")
+            tname, is_ref = self._extract_ref_or_var_name(loan_node)
+            if not is_ref or tname is None:
+                raise self.fail("type", "scope header requires 'ref <variable>' loan targets", loan_node)
+            if tname in seen_targets:
+                raise self.fail("type", f"duplicate 'ref {tname}' loan in scope header", loan_node)
+            seen_targets.add(tname)
+            if tname not in extended:
+                raise self.fail("name", f"unknown identifier '{tname}' in scope header", loan_node)
+            if tname in self.frozen_collections:
+                raise self.fail("type", f"cannot mutably loan frozen collection '{tname}'", loan_node)
+            cur_b = extended[tname]
+            if self._is_readonly_span(cur_b.term):
+                raise self.fail(
+                    "type", f"cannot take mutable 'ref' loan of read-only 'in' parameter '{tname}'", loan_node
+                )
+            rec_type = self.whnf(cur_b.type)
+            head, type_args = self.spine(rec_type)
+            if head.kind != "const" or not isinstance(head.value, str) or head.value not in self.records_by_type:
+                raise self.fail(
+                    "type", f"scope invariant lifting requires a record target, got '{tname}'", loan_node
+                )
+            rinfo = self.records_by_type[head.value]
+            loaned_records.append((tname, rinfo, type_args))
+        for cname in lift_names:
+            matching = [
+                tname
+                for tname, rinfo, _ in loaned_records
+                if any(inv.name == cname and not inv.name.startswith("__anon_") for inv in rinfo.invariants)
+            ]
+            if not matching:
+                raise self.fail(
+                    "name",
+                    f"none of the loaned records in scope declare named invariant clause '{cname}'",
+                    statement,
+                )
+        saved_mutable = set(self.mutable_locals)
+        saved_lifted = {k: set(v) for k, v in self.lifted_invariants.items()}
+        saved_active_facts = list(self.active_facts)
+        # Remove facts originating from the lifted invariant clauses during the scope body,
+        # while retaining pre-scope Slots_LivePrefix / Slots_VacantRange facts on the entry record term.
+        lifted_by_target: dict[str, set[str]] = {}
+        lifted_fact_terms: set[_Term] = set()
+        pre_scope_slot_facts: list[_Term] = []
+        for tname, rinfo, type_args in loaned_records:
+            self.mutable_locals.add(tname)
+            clauses_for_t = {
+                inv.name
+                for inv in rinfo.invariants
+                if inv.name in lift_names
+            }
+            lifted_by_target[tname] = clauses_for_t
+            self.lifted_invariants.setdefault(tname, set()).update(clauses_for_t)
+            for inv in rinfo.invariants:
+                if inv.name in clauses_for_t:
+                    inst_t = self._instantiate_record_type(rinfo, type_args, inv.term)
+                    inst_t = self.substitute(inst_t, cast("int", inv.self_var.value), extended[tname].term)
+                    w_inst = self.whnf(inst_t)
+                    lifted_fact_terms.add(w_inst)
+                    w_head, _ = self.spine(w_inst)
+                    if w_head in {_constant("Slots_LivePrefix"), _constant("Slots_VacantRange")}:
+                        pre_scope_slot_facts.append(inst_t)
+        self.active_facts = [
+            *(f for f in self.active_facts if self.whnf(f) not in lifted_fact_terms),
+            *pre_scope_slot_facts,
+        ]
+        self.active_lift_scopes += 1
+        try:
+            body_block = self.node(statement["body"], "block")
+            after_env, _ = self._elaborate_non_returning_block(body_block, extended, facts)
+        finally:
+            self.active_lift_scopes -= 1
+            self.mutable_locals = saved_mutable
+            self.lifted_invariants = saved_lifted
+            self.active_facts = saved_active_facts
+        for tname, rinfo, type_args in loaned_records:
+            self._check_record_invariants(
+                rinfo,
+                type_args,
+                after_env[tname].term,
+                after_env,
+                statement,
+                only_clauses=lifted_by_target[tname],
+            )
+            for inv in rinfo.invariants:
+                inst_ty = self._instantiate_record_type(rinfo, type_args, inv.type)
+                inst_ty = self.substitute(inst_ty, cast("int", inv.self_var.value), after_env[tname].term)
+                if self.whnf(inst_ty) == _BOOL:
+                    inst_t = self._instantiate_record_type(rinfo, type_args, inv.term)
+                    inst_t = self.substitute(inst_t, cast("int", inv.self_var.value), after_env[tname].term)
+                    self.active_facts.append(inst_t)
+        return after_env
+
+    def _check_loop_invariants(
+        self,
+        contracts: list[Node],
+        env: dict[str, _Binding],
+        site: Node,
+        phase: str,
+    ) -> list[_Term]:
+        proved_bools: list[_Term] = []
+        for contract in contracts:
+            self.node(contract, "contract")
+            if contract["role"] != "invariant":
+                raise self.fail("unsupported", f"loop contract '{contract['role']}' is not supported", contract)
+            c_val_node = self.node(contract["value"])
+            c_val = self.expression(c_val_node, env)
+            c_label = f" '{self.name(contract['name'])}'" if contract.get("name") is not None else ""
+            if self.whnf(c_val.type) == _BOOL:
+                if not self._prove_bool_precondition(c_val.term, env):
+                    raise self.fail(
+                        "type",
+                        f"loop invariant{c_label} could not be established on loop {phase}",
+                        contract,
+                    )
+                proved_bools.append(c_val.term)
+            else:
+                prop_t = self.proposition(c_val_node, env)
+                self._prove_proposition(prop_t, env, (), contract)
+        return proved_bools
+
+    def _assume_loop_invariants(
+        self,
+        contracts: list[Node],
+        env: dict[str, _Binding],
+    ) -> list[_Term]:
+        assumed_bools: list[_Term] = []
+        for contract in contracts:
+            self.node(contract, "contract")
+            if contract["role"] != "invariant":
+                raise self.fail("unsupported", f"loop contract '{contract['role']}' is not supported", contract)
+            c_val_node = self.node(contract["value"])
+            self.active_facts.extend(assumed_bools)
+            try:
+                c_val = self.expression(c_val_node, env)
+            finally:
+                for _ in assumed_bools:
+                    self.active_facts.pop()
+            if self.whnf(c_val.type) == _BOOL:
+                assumed_bools.append(c_val.term)
+            else:
+                prop_t = self.proposition(c_val_node, env)
+                extracted = self._extract_equality(prop_t)
+                if extracted is not None:
+                    eq_ty, u, v = extracted
+                    eq_ty_w = self.whnf(eq_ty)
+                    if eq_ty_w == _BOOL and self.whnf(v) == _term("bool", value=1):
+                        assumed_bools.append(u)
+                    elif self._int_spec(eq_ty_w) is not None or eq_ty_w == _NAT:
+                        spec = self._int_spec(eq_ty_w)
+                        eq_const = f"int_eq_{spec.name}" if spec is not None else "eq_nat"
+                        assumed_bools.append(_apps(_constant(eq_const), u, v))
+        return assumed_bools
+
+    def _elaborate_non_returning_block(
+        self,
+        block_node: Node,
+        environment: dict[str, _Binding],
+        facts: tuple[_Binding, ...],
+    ) -> tuple[dict[str, _Binding], str | None]:
+        self.node(block_node, "block")
+        statements = self.nodes(block_node["statements"])
+        extended = dict(environment)
+        statement_facts: list[_Binding] = []
+        saved_active_len = len(self.active_facts)
+        try:
+            for statement in statements:
+                self.site = statement
+                kind = cast("str", statement["kind"])
+                if kind in {"let", "typed_local", "let_pattern", "constant_local", "var", "var_pattern"}:
+                    previous_keys = set(extended)
+                    extended = self.local(statement, extended)
+                    for new_key in set(extended) - previous_keys:
+                        bound = extended[new_key]
+                        if self._is_prop_type(bound.type):
+                            statement_facts.append(bound)
+                            self.active_facts.extend(self._fact_bool_terms((bound,), extended))
+                    continue
+                if kind in {"let_else", "var_else"}:
+                    scrut = self.expression(self.node(statement["value"]), extended)
+                    pat = self._parse_pattern(self.node(statement["pattern"]), set())
+                    self._typecheck_pattern(pat, scrut.type, extended)
+                    else_block = self.node(statement["else"], "block")
+                    if self._pattern_matches_concretely(pat, scrut.term):
+                        self._bind_concrete_pattern(
+                            pat, scrut, extended, is_var=(kind == "var_else")
+                        )
+                        continue
+                    if self._pattern_refuted_concretely(pat, scrut.term):
+                        else_env, ctrl = self._elaborate_non_returning_block(
+                            else_block, extended, (*facts, *statement_facts)
+                        )
+                        if ctrl not in {"break", "continue"}:
+                            raise self.fail(
+                                "type",
+                                f"{kind.replace('_', '-')} else block must exit with return, break or continue",
+                                statement,
+                            )
+                        return else_env, ctrl
+                    else_env, ctrl = self._elaborate_non_returning_block(
+                        else_block, dict(extended), (*facts, *statement_facts)
+                    )
+                    if ctrl not in {"break", "continue"}:
+                        raise self.fail(
+                            "type",
+                            f"{kind.replace('_', '-')} else block must exit with return, break or continue",
+                            statement,
+                        )
+                    self._bind_symbolic_pattern(pat, scrut, extended, is_var=(kind == "var_else"))
+                    continue
+                if kind == "assignment":
+                    extended = self._elaborate_assignment(statement, extended)
+                    continue
+                if kind == "expression_statement":
+                    extended = self._elaborate_expression_statement(statement, extended)
+                    continue
+                if kind == "assert":
+                    fact = self._elaborate_assert(statement, extended, (*facts, *statement_facts))
+                    statement_facts.append(fact)
+                    self.active_facts.extend(self._fact_bool_terms((fact,), extended))
+                    continue
+                if kind == "proof":
+                    sub_facts = self._elaborate_proof_statement(
+                        self.node(statement["body"], "block"), extended, (*facts, *statement_facts)
+                    )
+                    statement_facts.extend(sub_facts)
+                    self.active_facts.extend(self._fact_bool_terms(sub_facts, extended))
+                    continue
+                if kind == "scope":
+                    extended = self._elaborate_scope_statement(
+                        statement, extended, (*facts, *statement_facts)
+                    )
+                    continue
+                if kind == "foreach":
+                    extended = self._elaborate_foreach_statement(
+                        statement, extended, (*facts, *statement_facts)
+                    )
+                    continue
+                if kind == "foreach_collection":
+                    extended = self._elaborate_foreach_collection_statement(
+                        statement, extended, (*facts, *statement_facts)
+                    )
+                    continue
+                if kind in {"break", "continue"}:
+                    if self.in_loop_depth <= 0:
+                        raise self.fail("type", f"'{kind}' statement is only permitted inside a loop", statement)
+                    if self.active_lift_scopes > 0:
+                        raise self.fail(
+                            "type",
+                            f"cannot '{kind}' out of a loop while a record invariant is lifted",
+                            statement,
+                        )
+                    return extended, cast("str", kind)
+                if kind == "if":
+                    cond_raw = self.node(statement["condition"])
+                    condition = self.check(cond_raw, _BOOL, extended)
+                    cond_w = self.whnf(condition)
+                    then_node = self.node(statement["then"])
+                    then_block = (
+                        then_node
+                        if then_node["kind"] == "block"
+                        else {"kind": "block", "span": then_node["span"], "statements": [then_node]}
+                    )
+                    else_raw = statement["else"]
+                    else_block = (
+                        None
+                        if else_raw is None
+                        else (
+                            self.node(else_raw)
+                            if self.node(else_raw)["kind"] == "block"
+                            else {
+                                "kind": "block",
+                                "span": self.node(else_raw)["span"],
+                                "statements": [self.node(else_raw)],
+                            }
+                        )
+                    )
+                    if cond_w.kind == "bool":
+                        if cond_w.value == 1:
+                            extended, ctrl = self._elaborate_non_returning_block(
+                                then_block, extended, (*facts, *statement_facts)
+                            )
+                            if ctrl is not None:
+                                return extended, ctrl
+                        elif else_block is not None:
+                            extended, ctrl = self._elaborate_non_returning_block(
+                                else_block, extended, (*facts, *statement_facts)
+                            )
+                            if ctrl is not None:
+                                return extended, ctrl
+                        continue
+                    self.active_facts.append(condition)
+                    try:
+                        then_env, then_ctrl = self._elaborate_non_returning_block(
+                            then_block, dict(extended), (*facts, *statement_facts)
+                        )
+                    finally:
+                        self.active_facts.pop()
+                    if else_block is not None:
+                        self.active_facts.append(_app(_constant("!"), condition))
+                        try:
+                            else_env, else_ctrl = self._elaborate_non_returning_block(
+                                else_block, dict(extended), (*facts, *statement_facts)
+                            )
+                        finally:
+                            self.active_facts.pop()
+                    else:
+                        else_env, else_ctrl = dict(extended), None
+                    if then_ctrl is not None and else_ctrl is None:
+                        self.active_facts.append(_app(_constant("!"), condition))
+                        extended = else_env
+                        continue
+                    if else_ctrl is not None and then_ctrl is None:
+                        self.active_facts.append(condition)
+                        extended = then_env
+                        continue
+                    for k, orig_b in list(extended.items()):
+                        tb = then_env.get(k, orig_b)
+                        eb = else_env.get(k, orig_b)
+                        if tb.term != eb.term:
+                            extended[k] = _Binding(
+                                self.whnf(_term("if", orig_b.type, condition, tb.term, eb.term)),
+                                orig_b.type,
+                            )
+                    if then_ctrl is not None and then_ctrl == else_ctrl:
+                        return extended, then_ctrl
+                    continue
+                if kind == "block":
+                    extended, ctrl = self._elaborate_non_returning_block(
+                        statement, extended, (*facts, *statement_facts)
+                    )
+                    if ctrl is not None:
+                        return extended, ctrl
+                    continue
+                if kind == "return":
+                    if self.active_lift_scopes > 0:
+                        raise self.fail(
+                            "type",
+                            "cannot return from a callable while a record invariant is lifted in an enclosing scope",
+                            statement,
+                        )
+                    raise self.fail("unsupported", "early return inside a loop or scope block is not supported", statement)
+                raise self.fail("unsupported", f"statement '{kind}' requires the full frontend", statement)
+            return extended, None
+        finally:
+            del self.active_facts[saved_active_len:]
+
+    def _pattern_matches_concretely(self, pat: _Pat, term: _Term) -> bool:
+        w = self.whnf(term)
+        if pat.kind == "wild":
+            return True
+        if pat.kind == "bool":
+            return w.kind == "bool" and bool(w.value) == pat.value
+        if pat.kind == "zero":
+            return w.kind == "nat" and w.value == 0
+        if pat.kind == "succ":
+            return w.kind == "nat" and cast("int", w.value) > 0
+        if pat.kind == "int_lit":
+            return w.kind == "int" and w.value == pat.value
+        if pat.kind == "union":
+            uinfo, uctor = self.union_ctors[cast("str", pat.value)]
+            head, args = self.spine(w)
+            if head == _constant(uctor.ctor_const):
+                payload_args = args[len(uinfo.generic_vars) :]
+                if not uctor.fields:
+                    return True
+                return all(
+                    self._pattern_matches_concretely(sp, pa)
+                    for sp, pa in zip(pat.args, payload_args, strict=True)
+                )
+        return False
+
+    def _pattern_refuted_concretely(self, pat: _Pat, term: _Term) -> bool:
+        w = self.whnf(term)
+        if pat.kind == "bool" and w.kind == "bool":
+            return bool(w.value) != pat.value
+        if pat.kind == "zero" and w.kind == "nat":
+            return cast("int", w.value) != 0
+        if pat.kind == "succ" and w.kind == "nat":
+            return cast("int", w.value) == 0
+        if pat.kind == "int_lit" and w.kind == "int":
+            return w.value != pat.value
+        if pat.kind == "union":
+            uinfo, uctor = self.union_ctors[cast("str", pat.value)]
+            head, _ = self.spine(w)
+            if head.kind == "const" and any(head == _constant(c.ctor_const) for c in uinfo.constructors):
+                return head != _constant(uctor.ctor_const)
+        return False
+
+    def _bind_concrete_pattern(
+        self, pat: _Pat, current: _Binding, extended: dict[str, _Binding], *, is_var: bool
+    ) -> None:
+        for name in pat.names:
+            if is_var:
+                self.mutable_locals.add(name)
+            else:
+                self.mutable_locals.discard(name)
+            extended[name] = current
+        w = self.whnf(current.term)
+        if pat.kind == "succ" and w.kind == "nat":
+            pred_b = _Binding(_term("nat", value=cast("int", w.value) - 1), _NAT)
+            self._bind_concrete_pattern(pat.args[0], pred_b, extended, is_var=is_var)
+        elif pat.kind == "union":
+            uinfo, uctor = self.union_ctors[cast("str", pat.value)]
+            _, type_args = self.spine(self.whnf(current.type))
+            _, args = self.spine(w)
+            payload_args = args[len(uinfo.generic_vars) :]
+            for idx, (sp, pa) in enumerate(zip(pat.args, payload_args, strict=False)):
+                fty = self._instantiate_generic_type(uinfo.generic_vars, type_args, uctor.fields[idx].type)
+                self._bind_concrete_pattern(sp, _Binding(pa, fty), extended, is_var=is_var)
+
+    def _bind_symbolic_pattern(
+        self, pat: _Pat, current: _Binding, extended: dict[str, _Binding], *, is_var: bool
+    ) -> None:
+        for name in pat.names:
+            if is_var:
+                self.mutable_locals.add(name)
+            else:
+                self.mutable_locals.discard(name)
+            extended[name] = current
+        if pat.kind == "succ":
+            pred_v = self.fresh(_NAT)
+            self._bind_symbolic_pattern(pat.args[0], _Binding(pred_v, _NAT), extended, is_var=is_var)
+        elif pat.kind == "union":
+            uinfo, uctor = self.union_ctors[cast("str", pat.value)]
+            _, type_args = self.spine(self.whnf(current.type))
+            for idx, sp in enumerate(pat.args):
+                fty = self._instantiate_generic_type(uinfo.generic_vars, type_args, uctor.fields[idx].type)
+                fv = self.fresh(fty)
+                self._bind_symbolic_pattern(sp, _Binding(fv, fty), extended, is_var=is_var)
+
+    def _elaborate_foreach_statement(
+        self,
+        statement: Node,
+        extended: dict[str, _Binding],
+        facts: tuple[_Binding, ...],
+    ) -> dict[str, _Binding]:
+        self.site = statement
+        range_node = self.node(statement["range"], "range")
+        start_node = self.node(range_node["start"])
+        end_node = self.node(range_node["end"])
+        if statement.get("type") is not None:
+            elem_type = self.type(self.node(statement["type"]), extended)
+            start_term = self.check(start_node, elem_type, extended)
+            end_term = self.check(end_node, elem_type, extended)
+        elif self._is_unsuffixed_int_expr(start_node) and not self._is_unsuffixed_int_expr(end_node):
+            end_b = self.expression(end_node, extended)
+            elem_type = end_b.type
+            end_term = end_b.term
+            start_term = self.check(start_node, elem_type, extended)
+        else:
+            start_b = self.expression(start_node, extended)
+            elem_type = start_b.type
+            start_term = start_b.term
+            end_term = self.check(end_node, elem_type, extended)
+        elem_w = self.whnf(elem_type)
+        elem_spec = self._int_spec(elem_w)
+        if elem_w != _NAT and elem_spec is None:
+            raise self.fail(
+                "type", "foreach range loop variable must have type Nat or a fixed-width integer", statement
+            )
+        var_name = self.name(statement["name"])
+        if var_name in self.frozen_collections:
+            raise self.fail("type", f"cannot shadow frozen collection '{var_name}'", statement)
+        contracts = self.nodes(statement["contracts"])
+        body_node = self.node(statement["body"], "block")
+        start_w = self.whnf(start_term)
+        end_w = self.whnf(end_term)
+        saved_mutable = set(self.mutable_locals)
+        self.mutable_locals.discard(var_name)
+        self.in_loop_depth += 1
+        try:
+            # Verify loop invariants on entry (var_name = start_term)
+            entry_env = dict(extended)
+            entry_env[var_name] = _Binding(start_term, elem_type)
+            self._check_loop_invariants(contracts, entry_env, statement, "entry")
+            if (
+                start_w.kind in {"nat", "int"}
+                and end_w.kind in {"nat", "int"}
+                and cast("int", end_w.value) - cast("int", start_w.value) <= 64
+            ):
+                s_val = cast("int", start_w.value)
+                e_val = cast("int", end_w.value)
+                cur_env = dict(extended)
+                broke = False
+                for i_val in range(s_val, e_val):
+                    i_term = (
+                        _int_term(elem_spec, i_val)
+                        if elem_spec is not None
+                        else _term("nat", value=i_val)
+                    )
+                    next_term = (
+                        _int_term(elem_spec, i_val + 1)
+                        if elem_spec is not None
+                        else _term("nat", value=i_val + 1)
+                    )
+                    iter_env = dict(cur_env)
+                    iter_env[var_name] = _Binding(i_term, elem_type)
+                    self.mutable_locals.discard(var_name)
+                    after_iter, ctrl = self._elaborate_non_returning_block(body_node, iter_env, facts)
+                    for k in list(cur_env):
+                        if k != var_name and k in after_iter and k in self.mutable_locals:
+                            cur_env[k] = after_iter[k]
+                    if ctrl == "break":
+                        check_env = dict(cur_env)
+                        check_env[var_name] = _Binding(i_term, elem_type)
+                        self._check_loop_invariants(contracts, check_env, statement, "break")
+                        broke = True
+                        break
+                    check_env = dict(cur_env)
+                    check_env[var_name] = _Binding(next_term, elem_type)
+                    self._check_loop_invariants(contracts, check_env, statement, "step")
+                if not broke:
+                    end_env = dict(cur_env)
+                    end_env[var_name] = _Binding(end_term, elem_type)
+                    proved = self._check_loop_invariants(contracts, end_env, statement, "exit")
+                    self.active_facts.extend(proved)
+                return cur_env
+
+            # Symbolic range induction
+            sym_env = dict(extended)
+            for mname in list(self.mutable_locals):
+                if mname in sym_env and mname != var_name:
+                    m_ty = sym_env[mname].type
+                    sym_env[mname] = _Binding(self.fresh(m_ty), m_ty)
+            i_var = self.fresh(elem_type)
+            sym_env[var_name] = _Binding(i_var, elem_type)
+            ge_op = f"int_ge_{elem_spec.name}" if elem_spec is not None else ">="
+            lt_op = f"int_lt_{elem_spec.name}" if elem_spec is not None else "<"
+            add_op = f"int_add_{elem_spec.name}" if elem_spec is not None else "+"
+            one_term = _int_term(elem_spec, 1) if elem_spec is not None else _term("nat", value=1)
+            next_i = _apps(_constant(add_op), i_var, one_term)
+            saved_facts_len = len(self.active_facts)
+            self.active_facts.append(_apps(_constant(ge_op), i_var, start_term))
+            self.active_facts.append(_apps(_constant(lt_op), i_var, end_term))
+            assumed = self._assume_loop_invariants(contracts, sym_env)
+            self.active_facts.extend(assumed)
+            try:
+                after_sym, _ = self._elaborate_non_returning_block(body_node, sym_env, facts)
+                step_env = dict(sym_env)
+                for k in list(sym_env):
+                    if k != var_name and k in after_sym and k in self.mutable_locals:
+                        step_env[k] = after_sym[k]
+                step_env[var_name] = _Binding(next_i, elem_type)
+                self._check_loop_invariants(contracts, step_env, statement, "inductive step")
+            finally:
+                del self.active_facts[saved_facts_len:]
+            post_env = dict(extended)
+            for mname in list(self.mutable_locals):
+                if mname in post_env and mname != var_name and sym_env[mname].term != after_sym.get(mname, sym_env[mname]).term:
+                    m_ty = post_env[mname].type
+                    loop_tag = self.serial
+                    self.serial += 1
+                    post_env[mname] = _Binding(
+                        _apps(_constant("LoopState"), m_ty, post_env[mname].term, _term("nat", value=loop_tag)),
+                        m_ty,
+                    )
+            post_env_with_idx = dict(post_env)
+            post_env_with_idx[var_name] = _Binding(end_term, elem_type)
+            post_assumed = self._assume_loop_invariants(contracts, post_env_with_idx)
+            self.active_facts.extend(post_assumed)
+            return post_env
+        finally:
+            self.in_loop_depth -= 1
+            self.mutable_locals = saved_mutable
+
+    def _elaborate_foreach_collection_statement(
+        self,
+        statement: Node,
+        extended: dict[str, _Binding],
+        facts: tuple[_Binding, ...],
+    ) -> dict[str, _Binding]:
+        self.site = statement
+        mode = cast("str", statement["mode"])
+        var_name = self.name(statement["name"])
+        coll_node = self._unwrap_group(self.node(statement["collection"]))
+        if coll_node["kind"] == "range":
+            if mode != "value":
+                raise self.fail("type", "range iteration only supports 'let' value elements", statement)
+            return self._elaborate_foreach_statement(
+                {
+                    "kind": "foreach",
+                    "span": statement["span"],
+                    "name": statement["name"],
+                    "type": statement["type"],
+                    "range": coll_node,
+                    "contracts": statement["contracts"],
+                    "body": statement["body"],
+                },
+                extended,
+                facts,
+            )
+        coll_name = self.name(coll_node["name"]) if coll_node["kind"] == "name" else None
+        if coll_name is not None and coll_name in self.frozen_collections:
+            raise self.fail("type", f"collection '{coll_name}' is already being iterated", coll_node)
+        coll_b = self.expression(coll_node, extended)
+        if mode == "ref":
+            if coll_name is None or coll_name not in self.mutable_locals:
+                raise self.fail(
+                    "type",
+                    "foreach 'ref' element iteration requires a mutable 'var' or 'ref' collection variable",
+                    coll_node,
+                )
+            if self._is_readonly_span(coll_b.term):
+                raise self.fail(
+                    "type",
+                    f"cannot iterate with 'ref' over read-only 'in' parameter '{coll_name}'",
+                    coll_node,
+                )
+        coll_ty = self.whnf(coll_b.type)
+        c_head, c_args = self.spine(coll_ty)
+        kind_tag = ""
+        if c_head == _constant("Span") and len(c_args) == 1 and self.whnf(c_args[0]) == _U8:
+            kind_tag = "span"
+            elem_type = _U8
+            self._check_span_can_read(coll_b.term, extended, coll_node)
+            if mode == "ref":
+                self._check_span_can_write(coll_b.term, extended, coll_node)
+            len_t = self.whnf(_apps(_constant("Span_Length"), _U8, coll_b.term))
+            concrete_len = cast("int", len_t.value) if len_t.kind == "int" else None
+        elif c_head == _constant("Slots") and len(c_args) == 2:
+            kind_tag = "slots"
+            elem_type = c_args[0]
+            slots_cap = c_args[1]
+            can_r = _apps(_constant("Slots_CanRead"), elem_type, slots_cap, coll_b.term)
+            if not self._prove_bool_precondition(can_r, extended):
+                raise self.fail("type", "cannot prove Slots.CanRead for collection iteration", coll_node)
+            if mode == "ref":
+                can_w = _apps(_constant("Slots_CanWrite"), elem_type, slots_cap, coll_b.term)
+                if not self._prove_bool_precondition(can_w, extended):
+                    raise self.fail("type", "cannot prove Slots.CanWrite for 'ref' collection iteration", coll_node)
+            live_t = self.whnf(_apps(_constant("Slots_LiveCount"), elem_type, slots_cap, coll_b.term))
+            concrete_len = cast("int", live_t.value) if live_t.kind == "int" else None
+        elif c_head == _constant("Vec") and len(c_args) == 2:
+            kind_tag = "vec"
+            elem_type = c_args[0]
+            len_t = self.whnf(c_args[1])
+            concrete_len = cast("int", len_t.value) if len_t.kind == "nat" else None
+        elif c_head == _constant("Seq") and len(c_args) == 1:
+            if mode == "ref":
+                raise self.fail(
+                    "type", "pure sequence 'Seq<T>' does not support mutable 'ref' element iteration", statement
+                )
+            kind_tag = "seq"
+            elem_type = c_args[0]
+            cnt_t = self.whnf(_apps(_constant("Seq_Count"), elem_type, coll_b.term))
+            concrete_len = cast("int", cnt_t.value) if cnt_t.kind == "nat" else None
+        else:
+            raise self.fail(
+                "type",
+                "foreach collection must have type Vec<T, n>, Span<byte>, Slots<T, capacity> or Seq<T>",
+                coll_node,
+            )
+        if statement["type"] is not None:
+            ann_type = self.type(self.node(statement["type"]), extended)
+            self.unify(elem_type, ann_type)
+        contracts = self.nodes(statement["contracts"])
+        body_node = self.node(statement["body"], "block")
+        saved_mutable = set(self.mutable_locals)
+        saved_readonly = set(self.readonly_span_vars)
+        if coll_name is not None:
+            self.frozen_collections.add(coll_name)
+        self.in_loop_depth += 1
+        try:
+            self._check_loop_invariants(contracts, extended, statement, "entry")
+            cur_env = dict(extended)
+            if concrete_len is not None and 0 <= concrete_len <= 64:
+                cur_coll_term = coll_b.term
+                for idx in range(concrete_len):
+                    if kind_tag == "span":
+                        idx_u = _int_term(_INT_SPECS["usize"], idx)
+                        elem_term = self.whnf(_apps(_constant("Span_Read"), _U8, cur_coll_term, idx_u))
+                    elif kind_tag == "slots":
+                        idx_u = _int_term(_INT_SPECS["usize"], idx)
+                        d_val = self._default_term_for_type(elem_type)
+                        elem_term = self.whnf(
+                            _apps(_constant("Slots_Read"), elem_type, c_args[1], d_val, cur_coll_term, idx_u)
+                        )
+                    else:
+                        seq_m = (
+                            self.whnf(_apps(_constant("Vec_Model"), elem_type, c_args[1], cur_coll_term))
+                            if kind_tag == "vec"
+                            else cur_coll_term
+                        )
+                        d_val = self._default_term_for_type(elem_type)
+                        elem_term = self.whnf(
+                            _apps(_constant("Seq_At"), elem_type, d_val, seq_m, _term("nat", value=idx))
+                        )
+                    iter_env = dict(cur_env)
+                    if mode == "ref":
+                        self.mutable_locals.add(var_name)
+                        iter_env[var_name] = _Binding(elem_term, elem_type)
+                    else:
+                        self.mutable_locals.discard(var_name)
+                        if mode == "in":
+                            v_fresh = self.fresh(elem_type)
+                            self.readonly_span_vars.add(cast("int", v_fresh.value))
+                            iter_env[var_name] = _Binding(elem_term, elem_type)
+                        else:
+                            iter_env[var_name] = _Binding(elem_term, elem_type)
+                    after_iter, ctrl = self._elaborate_non_returning_block(body_node, iter_env, facts)
+                    for k in list(cur_env):
+                        if k != var_name and k in after_iter and k in self.mutable_locals:
+                            cur_env[k] = after_iter[k]
+                    if mode == "ref" and coll_name is not None:
+                        new_elem = after_iter[var_name].term
+                        if kind_tag == "span":
+                            idx_u = _int_term(_INT_SPECS["usize"], idx)
+                            cur_coll_term = _apps(_constant("Span_Write"), _U8, cur_coll_term, idx_u, new_elem)
+                            cur_env[coll_name] = _Binding(cur_coll_term, coll_b.type)
+                        elif kind_tag == "slots":
+                            idx_u = _int_term(_INT_SPECS["usize"], idx)
+                            cur_coll_term = _apps(
+                                _constant("Slots_Write"), elem_type, c_args[1], cur_coll_term, idx_u, new_elem
+                            )
+                            cur_env[coll_name] = _Binding(cur_coll_term, coll_b.type)
+                        elif kind_tag == "vec":
+                            cur_coll_term = self._update_vec_at(elem_type, cur_coll_term, idx, new_elem)
+                            cur_env[coll_name] = _Binding(cur_coll_term, coll_b.type)
+                    if ctrl == "break":
+                        self._check_loop_invariants(contracts, cur_env, statement, "break")
+                        break
+                    self._check_loop_invariants(contracts, cur_env, statement, "step")
+                return cur_env
+
+            # Symbolic collection iteration
+            sym_env = dict(extended)
+            for mname in list(self.mutable_locals):
+                if mname in sym_env and mname != var_name and mname != coll_name:
+                    m_ty = sym_env[mname].type
+                    sym_env[mname] = _Binding(self.fresh(m_ty), m_ty)
+            elem_var = self.fresh(elem_type)
+            if mode == "ref":
+                self.mutable_locals.add(var_name)
+            else:
+                self.mutable_locals.discard(var_name)
+                if mode == "in":
+                    self.readonly_span_vars.add(cast("int", elem_var.value))
+            sym_env[var_name] = _Binding(elem_var, elem_type)
+            saved_facts_len = len(self.active_facts)
+            if kind_tag == "span":
+                coll_model = self.whnf(_apps(_constant("Span_Model"), _U8, coll_b.term))
+            elif kind_tag == "slots":
+                coll_model = self.whnf(_apps(_constant("Slots_Model"), elem_type, c_args[1], coll_b.term))
+            elif kind_tag == "vec":
+                coll_model = self.whnf(_apps(_constant("Vec_Model"), elem_type, c_args[1], coll_b.term))
+            else:
+                coll_model = self.whnf(coll_b.term)
+            for f_term in self._expand_bool_facts([*self.active_facts, *self._fact_bool_terms(facts, extended)]):
+                f_head, f_args = self.spine(f_term)
+                if f_head == _constant("Seq_All") and len(f_args) == 3 and self.convertible(f_args[1], coll_model):
+                    self.active_facts.append(self.whnf(_app(f_args[2], elem_var)))
+            assumed = self._assume_loop_invariants(contracts, sym_env)
+            self.active_facts.extend(assumed)
+            try:
+                after_sym, _ = self._elaborate_non_returning_block(body_node, sym_env, facts)
+                step_env = dict(sym_env)
+                for k in list(sym_env):
+                    if k != var_name and k in after_sym and k in self.mutable_locals:
+                        step_env[k] = after_sym[k]
+                self._check_loop_invariants(contracts, step_env, statement, "inductive step")
+            finally:
+                del self.active_facts[saved_facts_len:]
+            for mname in list(self.mutable_locals):
+                if mname in cur_env and mname != var_name and sym_env.get(mname, cur_env[mname]).term != after_sym.get(mname, sym_env.get(mname, cur_env[mname])).term:
+                    m_ty = cur_env[mname].type
+                    loop_tag = self.serial
+                    self.serial += 1
+                    cur_env[mname] = _Binding(
+                        _apps(_constant("LoopState"), m_ty, cur_env[mname].term, _term("nat", value=loop_tag)),
+                        m_ty,
+                    )
+            post_assumed = self._assume_loop_invariants(contracts, cur_env)
+            self.active_facts.extend(post_assumed)
+            return cur_env
+        finally:
+            self.in_loop_depth -= 1
+            if coll_name is not None:
+                self.frozen_collections.discard(coll_name)
+            self.mutable_locals = saved_mutable
+            self.readonly_span_vars = saved_readonly
+
+    def _update_vec_at(self, elem_type: _Term, vec_term: _Term, target_idx: int, new_val: _Term) -> _Term:
+        v_w = self.whnf(vec_term)
+        head, args = self.spine(v_w)
+        if head == _constant("VCons") and len(args) == 4:
+            if target_idx == 0:
+                return _apps(_constant("VCons"), args[0], args[1], new_val, args[3])
+            return _apps(
+                _constant("VCons"),
+                args[0],
+                args[1],
+                args[2],
+                self._update_vec_at(elem_type, args[3], target_idx - 1, new_val),
+            )
+        return vec_term
 
     def block(self, node: Node, environment: dict[str, _Binding], expected: _Term | None = None,
               *, facts: tuple[_Binding, ...] = ()) -> _Binding:
@@ -5442,8 +7635,8 @@ class _Elaborator:
         try:
             for index, statement in enumerate(statements):
                 self.site = statement
-                kind = statement["kind"]
-                if kind in {"let", "typed_local", "let_pattern", "constant_local"}:
+                kind = cast("str", statement["kind"])
+                if kind in {"let", "typed_local", "let_pattern", "constant_local", "var", "var_pattern"}:
                     if kind != "constant_local":
                         lifted = lift_stmt_propagate(statement, "value", index)
                         if lifted is not None:
@@ -5456,6 +7649,35 @@ class _Elaborator:
                             statement_facts.append(bound)
                             self.active_facts.extend(self._fact_bool_terms((bound,), extended))
                     continue
+                if kind == "assignment":
+                    lifted = lift_stmt_propagate(statement, "value", index)
+                    if lifted is not None:
+                        return lifted
+                    extended = self._elaborate_assignment(statement, extended)
+                    continue
+                if kind == "expression_statement":
+                    lifted = lift_stmt_propagate(statement, "value", index)
+                    if lifted is not None:
+                        return lifted
+                    extended = self._elaborate_expression_statement(statement, extended)
+                    continue
+                if kind == "scope":
+                    extended = self._elaborate_scope_statement(
+                        statement, extended, (*active_facts, *statement_facts)
+                    )
+                    continue
+                if kind == "foreach":
+                    extended = self._elaborate_foreach_statement(
+                        statement, extended, (*active_facts, *statement_facts)
+                    )
+                    continue
+                if kind == "foreach_collection":
+                    extended = self._elaborate_foreach_collection_statement(
+                        statement, extended, (*active_facts, *statement_facts)
+                    )
+                    continue
+                if kind in {"break", "continue"}:
+                    raise self.fail("type", f"'{kind}' statement is only permitted inside a loop", statement)
                 if kind == "assert":
                     fact = self._elaborate_assert(statement, extended, (*active_facts, *statement_facts))
                     statement_facts.append(fact)
@@ -5488,9 +7710,13 @@ class _Elaborator:
                         )
                         return finish(_Binding(term, expected))
                     continue
-                if kind == "let_else":
+                if kind in {"let_else", "var_else"}:
                     if index == len(statements) - 1:
-                        raise self.fail("type", "a pure block requires an explicit terminal return after let-else", statement)
+                        raise self.fail(
+                            "type",
+                            f"a pure block requires an explicit terminal return after {kind.replace('_', '-')}",
+                            statement,
+                        )
                     lifted = lift_stmt_propagate(statement, "value", index)
                     if lifted is not None:
                         return lifted
@@ -5499,6 +7725,12 @@ class _Elaborator:
                     rest_statements = statements[index + 1:]
                     combined_facts = (*active_facts, *statement_facts)
                     visited_arms: set[int] = set()
+                    saved_mut = set(self.mutable_locals)
+                    if kind == "var_else":
+                        pat_preview = self._parse_pattern(self.node(statement["pattern"]), set())
+                        pnames: set[str] = set()
+                        self._collect_pat_names(pat_preview, pnames)
+                        self.mutable_locals.update(pnames)
                     synthetic_match: Node = {
                         "kind": "match",
                         "span": node["span"],
@@ -5519,70 +7751,158 @@ class _Elaborator:
                             },
                         ],
                     }
-                    result = self.match(
-                        synthetic_match,
-                        extended,
-                        expected,
-                        expression_arms=False,
-                        facts=combined_facts,
-                        refine_scrutinee=True,
-                        visited_arms=visited_arms,
-                        synthetic=True,
-                    )
-                    if 1 not in visited_arms:
-                        self.block(else_block, extended, result.type, facts=combined_facts)
+                    try:
+                        result = self.match(
+                            synthetic_match,
+                            extended,
+                            expected,
+                            expression_arms=False,
+                            facts=combined_facts,
+                            refine_scrutinee=True,
+                            visited_arms=visited_arms,
+                            synthetic=True,
+                        )
+                        if 1 not in visited_arms:
+                            self.block(else_block, extended, result.type, facts=combined_facts)
+                    finally:
+                        self.mutable_locals = saved_mut
                     return finish(result)
-                if index != len(statements) - 1:
+                if kind == "if" and index < len(statements) - 1:
+                    lifted = lift_stmt_propagate(statement, "condition", index)
+                    if lifted is not None:
+                        return lifted
+                    then_node = self.node(statement["then"])
+                    then_stmts = (
+                        self.nodes(then_node["statements"])
+                        if then_node["kind"] == "block"
+                        else [then_node]
+                    )
+                    else_raw = statement["else"]
+                    else_stmts = (
+                        None
+                        if else_raw is None
+                        else (
+                            self.nodes(self.node(else_raw)["statements"])
+                            if self.node(else_raw)["kind"] == "block"
+                            else [self.node(else_raw)]
+                        )
+                    )
+                    then_returns = bool(then_stmts and then_stmts[-1]["kind"] == "return")
+                    else_returns = bool(else_stmts and else_stmts[-1]["kind"] == "return")
+                    if not then_returns and not else_returns:
+                        extended, _ = self._elaborate_non_returning_block(
+                            {"kind": "block", "span": statement["span"], "statements": [statement]},
+                            extended,
+                            (*active_facts, *statement_facts),
+                        )
+                        continue
+                    rest_statements = statements[index + 1:]
+                    if then_returns and else_stmts is None:
+                        cur_stmt: Node = {
+                            **statement,
+                            "else": {
+                                "kind": "block",
+                                "span": node["span"],
+                                "statements": rest_statements,
+                            },
+                        }
+                    elif then_returns and not else_returns and else_stmts is not None:
+                        cur_stmt = {
+                            **statement,
+                            "else": {
+                                "kind": "block",
+                                "span": node["span"],
+                                "statements": [*else_stmts, *rest_statements],
+                            },
+                        }
+                    elif not then_returns and else_returns:
+                        cur_stmt = {
+                            **statement,
+                            "then": {
+                                "kind": "block",
+                                "span": node["span"],
+                                "statements": [*then_stmts, *rest_statements],
+                            },
+                        }
+                    else:
+                        raise self.fail("unsupported", "a returning terminal must be the final statement")
+                elif index != len(statements) - 1:
                     raise self.fail("unsupported", "a returning terminal must be the final statement")
+                else:
+                    cur_stmt = statement
                 if kind == "return":
-                    if statement["value"] is None:
+                    if self.active_lift_scopes > 0:
+                        raise self.fail(
+                            "type",
+                            "cannot return from a callable while a record invariant is lifted in an enclosing scope",
+                            cur_stmt,
+                        )
+                    if cur_stmt["value"] is None:
                         value = _Binding(_term("unit"), _UNIT)
                         if expected is not None:
                             self.unify(value.type, expected)
+                        self.final_ref_bindings = dict(extended)
+                        self.final_return_facts = list(self.active_facts[saved_active_len:])
                         return finish(value)
-                    lifted = lift_stmt_propagate(statement, "value", index)
+                    lifted = lift_stmt_propagate(cur_stmt, "value", index)
                     if lifted is not None:
                         return lifted
-                    value_node = self.node(statement["value"])
+                    value_node = self.node(cur_stmt["value"])
                     result = (
                         self.expression(value_node, extended)
                         if expected is None
                         else _Binding(self.check(value_node, expected, extended), expected)
                     )
+                    self.final_ref_bindings = dict(extended)
+                    self.final_return_facts = list(self.active_facts[saved_active_len:])
                     return finish(result)
                 if kind == "if":
-                    if statement["else"] is None:
+                    if cur_stmt["else"] is None:
                         raise self.fail("type", "every conditional branch must return")
-                    lifted = lift_stmt_propagate(statement, "condition", index)
+                    lifted = lift_stmt_propagate(cur_stmt, "condition", index)
                     if lifted is not None:
                         return lifted
                     combined_facts = (*active_facts, *statement_facts)
-                    cond_raw = self.node(statement["condition"])
+                    cond_raw = self.node(cur_stmt["condition"])
                     cond_unwrapped = self._unwrap_group(cond_raw)
                     if cond_unwrapped["kind"] == "is":
                         return finish(
                             self._if_is(
                                 cond_unwrapped,
-                                self.node(statement["then"]),
-                                self.node(statement["else"]),
+                                self.node(cur_stmt["then"]),
+                                self.node(cur_stmt["else"]),
                                 extended,
                                 expected,
                                 expression_branches=False,
                                 facts=combined_facts,
-                                site_node=statement,
+                                site_node=cur_stmt,
                             )
                         )
                     condition = self.check(cond_raw, _BOOL, extended)
                     self.active_facts.append(condition)
                     try:
-                        yes = self.branch(self.node(statement["then"]), extended, expected, facts=combined_facts)
+                        yes = self.branch(self.node(cur_stmt["then"]), extended, expected, facts=combined_facts)
+                        yes_refs = dict(self.final_ref_bindings)
                     finally:
                         self.active_facts.pop()
                     self.active_facts.append(_app(_constant("!"), condition))
                     try:
-                        no = self.branch(self.node(statement["else"]), extended, yes.type, facts=combined_facts)
+                        no = self.branch(self.node(cur_stmt["else"]), extended, yes.type, facts=combined_facts)
+                        no_refs = dict(self.final_ref_bindings)
                     finally:
                         self.active_facts.pop()
+                    merged_refs = dict(extended)
+                    for rk in set(yes_refs) & set(no_refs):
+                        yb = yes_refs[rk]
+                        nb = no_refs[rk]
+                        if yb.term != nb.term:
+                            merged_refs[rk] = _Binding(
+                                self.whnf(_term("if", yb.type, condition, yb.term, nb.term)),
+                                yb.type,
+                            )
+                        else:
+                            merged_refs[rk] = yb
+                    self.final_ref_bindings = merged_refs
                     return finish(_Binding(_term("if", yes.type, condition, yes.term, no.term), yes.type))
                 if kind == "match":
                     lifted = lift_stmt_propagate(statement, "value", index)
@@ -5602,6 +7922,15 @@ class _Elaborator:
                         self.block(statement, extended, expected, facts=(*active_facts, *statement_facts))
                     )
                 raise self.fail("unsupported", f"statement '{kind}' requires the full frontend")
+            if (
+                statements
+                and statements[-1]["kind"]
+                in {"assignment", "expression_statement", "scope", "foreach", "foreach_collection"}
+                and expected is not None
+                and self.whnf(expected) == _UNIT
+            ):
+                self.final_ref_bindings = dict(extended)
+                return finish(_Binding(_term("unit"), _UNIT))
             raise self.fail("type", "a pure block requires an explicit terminal return", node)
         finally:
             del self.active_facts[saved_active_len:]
@@ -5778,6 +8107,12 @@ class _Elaborator:
         receiver_type = self.whnf(receiver.type)
         head, type_args = self.spine(receiver_type)
         if head == _constant("Span") and len(type_args) == 1 and self.whnf(type_args[0]) == _U8:
+            if member_name == "Model":
+                self._check_span_can_read(receiver.term, {}, node)
+                return _Binding(
+                    _apps(_constant("Span_Model"), _U8, receiver.term),
+                    _app(_constant("Seq"), _U8),
+                )
             span_props: dict[str, tuple[str, _Term]] = {
                 "Base": ("Span_Base", _USIZE),
                 "Length": ("Span_Length", _USIZE),
@@ -5791,6 +8126,46 @@ class _Elaborator:
                 raise self.fail("name", f"Span<byte> has no property '{member_name}'", node)
             const_name, prop_ty = span_props[member_name]
             return _Binding(_apps(_constant(const_name), _U8, receiver.term), prop_ty)
+        if head == _constant("Vec") and len(type_args) == 2:
+            if member_name == "Model":
+                return _Binding(
+                    _apps(_constant("Vec_Model"), type_args[0], type_args[1], receiver.term),
+                    _app(_constant("Seq"), type_args[0]),
+                )
+            if member_name == "Count":
+                return _Binding(type_args[1], _NAT)
+            raise self.fail("name", f"Vec has no property '{member_name}'", node)
+        if head == _constant("Seq") and len(type_args) == 1:
+            if member_name == "Count":
+                return _Binding(_apps(_constant("Seq_Count"), type_args[0], receiver.term), _NAT)
+            if member_name == "Model":
+                return receiver
+            raise self.fail("name", f"Seq has no property '{member_name}'", node)
+        if head == _constant("Slots") and len(type_args) == 2:
+            elem_t, cap_t = type_args[0], type_args[1]
+            if member_name == "Capacity":
+                cap_w = self.whnf(cap_t)
+                if cap_w.kind == "nat":
+                    return _Binding(_int_term(_INT_SPECS["usize"], cast("int", cap_w.value)), _USIZE)
+                return _Binding(cap_t, _NAT)
+            if member_name == "Model":
+                return _Binding(
+                    _apps(_constant("Slots_Model"), elem_t, cap_t, receiver.term),
+                    _app(_constant("Seq"), elem_t),
+                )
+            slots_props: dict[str, tuple[str, _Term]] = {
+                "Base": ("Slots_Base", _USIZE),
+                "LiveCount": ("Slots_LiveCount", _USIZE),
+                "Tag": ("Slots_Tag", _BOOL),
+                "PermRead": ("Slots_PermRead", _BOOL),
+                "PermWrite": ("Slots_PermWrite", _BOOL),
+                "CanRead": ("Slots_CanRead", _BOOL),
+                "CanWrite": ("Slots_CanWrite", _BOOL),
+            }
+            if member_name not in slots_props:
+                raise self.fail("name", f"Slots has no property '{member_name}'", node)
+            const_name, prop_ty = slots_props[member_name]
+            return _Binding(_apps(_constant(const_name), elem_t, cap_t, receiver.term), prop_ty)
         if head.kind != "const" or not isinstance(head.value, str) or head.value not in self.records_by_type:
             raise self.fail(
                 "unsupported",
@@ -5877,6 +8252,17 @@ class _Elaborator:
         result_type = _apps(_constant(record_info.type_const), *type_args)
         if expected is not None:
             self.unify(result_type, expected)
+        base_unwrapped = self._unwrap_group(base_node)
+        base_name = self.name(base_unwrapped["name"]) if base_unwrapped["kind"] == "name" else None
+        assign_target = getattr(self, "_in_lifted_target_assignment", None)
+        excluded = (
+            self.lifted_invariants.get(base_name, set())
+            if base_name is not None and base_name == assign_target
+            else set()
+        )
+        self._check_record_invariants(
+            record_info, type_args, result_term, environment, node, exclude_clauses=excluded
+        )
         return _Binding(result_term, result_type)
 
     def _decode_escaped_segment(self, segment: str, node: Node) -> bytes:
@@ -6718,6 +9104,26 @@ class _Elaborator:
                     spec = self._int_spec(eq_type_w)
                     eq_const = f"int_eq_{spec.name}" if spec is not None else "eq_nat"
                     terms.append(_apps(_constant(eq_const), u, v))
+        for vname, b in environment.items():
+            if self.current_rec_var is not None and b.term == self.current_rec_var:
+                continue
+            r_head, r_targs = self.spine(self.whnf(b.type))
+            if (
+                r_head.kind == "const"
+                and isinstance(r_head.value, str)
+                and r_head.value in self.records_by_type
+            ):
+                rinfo = self.records_by_type[r_head.value]
+                lifted = self.lifted_invariants.get(vname, set())
+                for inv in rinfo.invariants:
+                    if inv.name in lifted:
+                        continue
+                    inst_ty = self._instantiate_record_type(rinfo, r_targs, inv.type)
+                    inst_ty = self.substitute(inst_ty, cast("int", inv.self_var.value), b.term)
+                    if self.whnf(inst_ty) == _BOOL:
+                        inst_t = self._instantiate_record_type(rinfo, r_targs, inv.term)
+                        inst_t = self.substitute(inst_t, cast("int", inv.self_var.value), b.term)
+                        terms.append(inst_t)
         return terms
 
     def _negate_bool_term(self, term: _Term) -> _Term:
@@ -6744,6 +9150,18 @@ class _Elaborator:
         queue = list(raw_facts)
         while queue:
             item = self.whnf(queue.pop(0))
+            if item.kind == "if" and len(item.args) == 4:
+                cond_t = item.args[1]
+                then_w = self.whnf(item.args[2])
+                else_w = self.whnf(item.args[3])
+                if then_w == _term("bool", value=0):
+                    queue.append(self._negate_bool_term(cond_t))
+                    queue.append(else_w)
+                    continue
+                if else_w == _term("bool", value=0):
+                    queue.append(cond_t)
+                    queue.append(then_w)
+                    continue
             head, args = self.spine(item)
             if head == _constant("&&") and len(args) == 2:
                 queue.append(args[0])
@@ -6762,6 +9180,33 @@ class _Elaborator:
                     continue
             if item not in expanded:
                 expanded.append(item)
+                if head == _constant("Slots_LivePrefix") and len(args) == 4:
+                    elem, cap, s, cnt = args
+                    queue.append(_apps(_constant("Slots_CanRead"), elem, cap, s))
+                    if not self._is_readonly_span(s):
+                        queue.append(_apps(_constant("Slots_CanWrite"), elem, cap, s))
+                    queue.append(_apps(_constant("int_eq_usize"), _apps(_constant("Slots_LiveCount"), elem, cap, s), cnt))
+                    queue.append(_apps(_constant("int_le_usize"), cnt, self._slots_cap_usize_term(cap)))
+                elif head == _constant("Slots_VacantRange") and len(args) == 5:
+                    elem, cap, s, start, end = args
+                    queue.append(_apps(_constant("Slots_CanWrite"), elem, cap, s))
+                    queue.append(_apps(_constant("Slots_CanRead"), elem, cap, s))
+                    queue.append(_apps(_constant("int_le_usize"), _apps(_constant("Slots_LiveCount"), elem, cap, s), start))
+                    queue.append(_apps(_constant("int_le_usize"), start, end))
+                    queue.append(_apps(_constant("int_le_usize"), end, self._slots_cap_usize_term(cap)))
+                elif head == _constant("Slots_CanWrite") and len(args) == 3:
+                    queue.append(_apps(_constant("Slots_CanRead"), args[0], args[1], args[2]))
+        changed = True
+        while changed:
+            changed = False
+            for f_item in list(expanded):
+                fh, fa = self.spine(f_item)
+                if fh == _constant("==>") and len(fa) == 2:
+                    ant = self.whnf(fa[0])
+                    con = self.whnf(fa[1])
+                    if ant in expanded and con not in expanded:
+                        expanded.append(con)
+                        changed = True
         return expanded
 
     def _parse_cmp_fact(self, fact: _Term) -> tuple[str, _IntSpec | None, _Term, _Term] | None:
@@ -6818,6 +9263,13 @@ class _Elaborator:
                 lo = max(lo, s_lo)
                 hi = min(hi, s_hi)
                 ne_set.update(s_ne)
+            elif cname == "nat_to_usize" and len(args) == 1:
+                s_lo, s_hi, s_ne = self._term_bounds(args[0], None, facts, depth + 1, next_visited)
+                lo = max(lo, s_lo)
+                hi = min(hi, s_hi)
+                ne_set.update(s_ne)
+            elif cname == "Seq_Count" and len(args) == 2:
+                lo = max(lo, 0)
             elif spec is not None and len(args) == 2:
                 if cname == f"int_and_{spec.name}":
                     l_lo, l_hi, _ = self._term_bounds(args[0], spec, facts, depth + 1, next_visited)
@@ -6921,7 +9373,7 @@ class _Elaborator:
             hi -= 1
         return lo, hi, ne_set
 
-    def _unwrap_numeric_subject(self, term: _Term) -> _Term:
+    def _unwrap_numeric_subject(self, term: _Term, *, normalize_lit: bool = True) -> _Term:
         curr = self.whnf(term)
         while curr.kind == "app":
             head, args = self.spine(curr)
@@ -6929,7 +9381,11 @@ class _Elaborator:
                 head.kind == "const"
                 and isinstance(head.value, str)
                 and len(args) == 1
-                and (head.value.startswith("int_to_nat_") or head.value.startswith("int_from_"))
+                and (
+                    head.value.startswith("int_to_nat_")
+                    or head.value.startswith("int_from_")
+                    or head.value == "nat_to_usize"
+                )
             ):
                 curr = self.whnf(args[0])
             elif (
@@ -6938,8 +9394,8 @@ class _Elaborator:
                 and len(args) == 2
                 and (head.value == "+" or head.value.startswith("int_add_"))
             ):
-                a0 = self._unwrap_numeric_subject(args[0])
-                a1 = self._unwrap_numeric_subject(args[1])
+                a0 = self._unwrap_numeric_subject(args[0], normalize_lit=False)
+                a1 = self._unwrap_numeric_subject(args[1], normalize_lit=False)
                 if a0.kind in {"int", "nat"} and a0.value == 0:
                     curr = a1
                 elif a1.kind in {"int", "nat"} and a1.value == 0:
@@ -6948,6 +9404,8 @@ class _Elaborator:
                     return _apps(head, a0, a1)
             else:
                 break
+        if normalize_lit and curr.kind == "nat":
+            return _int_term(_INT_SPECS["usize"], cast("int", curr.value))
         return curr
 
     def _extract_base_and_offset_term(self, term: _Term) -> tuple[_Term, _Term | None]:
@@ -7047,7 +9505,75 @@ class _Elaborator:
             off_l = zero if rem_l is None else rem_l
             off_r = zero if rem_r is None else rem_r
             return self._prove_comparison(op_kind, spec, off_l, off_r, facts)
-        return False
+        # Bounded transitive chaining over active comparison facts
+        edges: dict[_Term, list[tuple[_Term, bool]]] = {}
+        zero_subj = _int_term(_INT_SPECS["usize"], 0)
+        if spec is None or not spec.signed:
+            edges.setdefault(zero_subj, []).append((uwl, False))
+            edges.setdefault(zero_subj, []).append((uwr, False))
+        for fact in facts:
+            parsed = self._parse_cmp_fact(fact)
+            if parsed is None:
+                continue
+            f_op, f_spec, f_l, f_r = parsed
+            ufl = self._unwrap_numeric_subject(f_l)
+            ufr = self._unwrap_numeric_subject(f_r)
+            if f_spec is None or not f_spec.signed:
+                edges.setdefault(zero_subj, []).append((ufl, False))
+                edges.setdefault(zero_subj, []).append((ufr, False))
+            if f_op == "lt":
+                edges.setdefault(ufl, []).append((ufr, True))
+            elif f_op == "le":
+                edges.setdefault(ufl, []).append((ufr, False))
+            elif f_op == "gt":
+                edges.setdefault(ufr, []).append((ufl, True))
+            elif f_op == "ge":
+                edges.setdefault(ufr, []).append((ufl, False))
+            elif f_op == "eq":
+                edges.setdefault(ufl, []).append((ufr, False))
+                edges.setdefault(ufr, []).append((ufl, False))
+
+        def can_reach(start_node: _Term, target_node: _Term, need_strict: bool) -> bool:
+            frontier: list[tuple[_Term, bool, int]] = [(start_node, False, 0)]
+            seen: dict[_Term, bool] = {start_node: False}
+            while frontier:
+                cur_n, has_strict, steps = frontier.pop(0)
+                if cur_n == target_node and (has_strict or not need_strict):
+                    return True
+                if steps >= 4:
+                    continue
+                for nxt_n, edge_strict in edges.get(cur_n, ()):
+                    nxt_strict = has_strict or edge_strict
+                    if nxt_n not in seen or (nxt_strict and not seen[nxt_n]):
+                        seen[nxt_n] = nxt_strict
+                        frontier.append((nxt_n, nxt_strict, steps + 1))
+            return False
+
+        if op_kind == "lt" and can_reach(uwl, uwr, True):
+            return True
+        if op_kind == "le" and can_reach(uwl, uwr, False):
+            return True
+        if op_kind == "gt" and can_reach(uwr, uwl, True):
+            return True
+        if op_kind == "ge" and can_reach(uwr, uwl, False):
+            return True
+        if op_kind == "eq" and can_reach(uwl, uwr, False) and can_reach(uwr, uwl, False):
+            return True
+        if op_kind == "le":
+            lh, la = self.spine(uwl)
+            if lh == _constant("Succ") and len(la) == 1:
+                if self._prove_comparison("lt", spec, la[0], uwr, facts):
+                    return True
+            elif (
+                lh.kind == "const"
+                and isinstance(lh.value, str)
+                and (lh.value == "+" or lh.value.startswith("int_add_"))
+                and len(la) == 2
+                and self.whnf(la[1]).kind in {"nat", "int"}
+                and self.whnf(la[1]).value == 1
+            ) and self._prove_comparison("lt", spec, la[0], uwr, facts):
+                return True
+        return bool(op_kind == "ne" and (can_reach(uwl, uwr, True) or can_reach(uwr, uwl, True)))
 
     def _prove_bool_precondition(self, cond: _Term, environment: dict[str, _Binding]) -> bool:
         w = self.whnf(cond)
@@ -7067,6 +9593,12 @@ class _Elaborator:
             return self._prove_bool_precondition(args[0], environment) or self._prove_bool_precondition(
                 args[1], environment
             )
+        if head == _constant("==>") and len(args) == 2:
+            self.active_facts.append(args[0])
+            try:
+                return self._prove_bool_precondition(args[1], environment)
+            finally:
+                self.active_facts.pop()
         if head == _constant("!") and len(args) == 1:
             neg = self._negate_bool_term(args[0])
             if neg != w:
@@ -7081,11 +9613,136 @@ class _Elaborator:
                 or _apps(_constant("Span_Disjoint"), _U8, rb, ra) in facts
             ):
                 return True
+        if head == _constant("Slots_Disjoint") and len(args) == 5:
+            elem, cap_a, cap_b, a_t, b_t = args
+            if _apps(_constant("Slots_Disjoint"), elem, cap_b, cap_a, b_t, a_t) in facts:
+                return True
+            ra, rb = self._root_span(a_t), self._root_span(b_t)
+            if (ra, rb) != (a_t, b_t):
+                for f_item in facts:
+                    fh, fa = self.spine(f_item)
+                    if fh == _constant("Slots_Disjoint") and len(fa) == 5:
+                        fra, frb = self._root_span(fa[3]), self._root_span(fa[4])
+                        if (fra == ra and frb == rb) or (fra == rb and frb == ra):
+                            return True
+        if head == _constant("Slots_LivePrefix") and len(args) == 4:
+            elem, cap, s, cnt = args
+            return (
+                self._prove_bool_precondition(_apps(_constant("Slots_CanRead"), elem, cap, s), environment)
+                and self._prove_bool_precondition(
+                    _apps(_constant("int_eq_usize"), _apps(_constant("Slots_LiveCount"), elem, cap, s), cnt),
+                    environment,
+                )
+                and self._prove_bool_precondition(
+                    _apps(_constant("int_le_usize"), cnt, self._slots_cap_usize_term(cap)),
+                    environment,
+                )
+            )
+        if head == _constant("Slots_VacantRange") and len(args) == 5:
+            elem, cap, s, start, end = args
+            return (
+                self._prove_bool_precondition(_apps(_constant("Slots_CanWrite"), elem, cap, s), environment)
+                and self._prove_bool_precondition(
+                    _apps(_constant("int_le_usize"), _apps(_constant("Slots_LiveCount"), elem, cap, s), start),
+                    environment,
+                )
+                and self._prove_bool_precondition(_apps(_constant("int_le_usize"), start, end), environment)
+                and self._prove_bool_precondition(
+                    _apps(_constant("int_le_usize"), end, self._slots_cap_usize_term(cap)),
+                    environment,
+                )
+            )
+        if head == _constant("Seq_All") and len(args) == 3:
+            elem, seq_t, pred_t = args
+            s_head, s_args = self.spine(self.whnf(seq_t))
+            if s_head in {_constant("Seq_Take"), _constant("Seq_Skip"), _constant("Seq_Slice")} and len(s_args) >= 2:
+                parent_all = self.whnf(_apps(_constant("Seq_All"), elem, s_args[1], pred_t))
+                if any(self.convertible(f_item, parent_all) for f_item in facts):
+                    return True
+            if s_head == _constant("Seq_Take") and len(s_args) == 3:
+                parent_seq = s_args[1]
+                k_term = self.whnf(s_args[2])
+                k_head, k_args = self.spine(k_term)
+                prev_k: _Term | None = None
+                if (k_head == _constant("Succ") and len(k_args) == 1) or (
+                    k_head == _constant("+") and len(k_args) == 2 and self.whnf(k_args[1]) == _term("nat", value=1)
+                ):
+                    prev_k = k_args[0]
+                elif (
+                    k_head == _constant("int_to_nat_usize")
+                    and len(k_args) == 1
+                ):
+                    ih, ia = self.spine(self.whnf(k_args[0]))
+                    if ih == _constant("int_add_usize") and len(ia) == 2 and self.whnf(ia[1]) == _int_term(_INT_SPECS["usize"], 1):
+                        prev_k = _app(_constant("int_to_nat_usize"), ia[0])
+                if prev_k is not None:
+                    prev_take_all = self.whnf(
+                        _apps(_constant("Seq_All"), elem, _apps(_constant("Seq_Take"), elem, parent_seq, prev_k), pred_t)
+                    )
+                    if any(self.convertible(f_item, prev_take_all) for f_item in facts):
+                        d_val = self._default_term_for_type(elem)
+                        at_term = _apps(_constant("Seq_At"), elem, d_val, parent_seq, prev_k)
+                        step_cond = self.whnf(_app(pred_t, at_term))
+                        if self._prove_bool_precondition(step_cond, environment):
+                            return True
+            for f_item in facts:
+                fh, fa = self.spine(f_item)
+                if fh == _constant("Seq_All") and len(fa) == 3 and self.convertible(fa[2], pred_t):
+                    th, ta = self.spine(self.whnf(fa[1]))
+                    if th == _constant("Seq_Take") and len(ta) == 3 and self.convertible(ta[1], seq_t):
+                        cnt_seq = _apps(_constant("Seq_Count"), elem, seq_t)
+                        if self._prove_comparison("eq", None, ta[2], cnt_seq, facts):
+                            return True
+        for f_item in facts:
+            fh, fa = self.spine(f_item)
+            if fh == _constant("Seq_All") and len(fa) == 3:
+                all_elem, all_seq, all_pred = fa
+                d_val = self._default_term_for_type(all_elem)
+                # Check if w is an instance of all_pred(Seq_At(all_elem, d_val, all_seq, idx))
+                for sub_t in self._collect_seq_at_terms(w):
+                    sh, sa = self.spine(sub_t)
+                    if sh == _constant("Seq_At") and len(sa) == 4 and self.convertible(sa[2], all_seq):
+                        inst_pred = self.whnf(_app(all_pred, sub_t))
+                        if inst_pred == w:
+                            cnt_seq = _apps(_constant("Seq_Count"), all_elem, all_seq)
+                            if self._prove_comparison("lt", None, sa[3], cnt_seq, facts):
+                                return True
+                    elif sh == _constant("Span_Read") and len(sa) == 3:
+                        span_m = self.whnf(_apps(_constant("Span_Model"), sa[0], sa[1]))
+                        if self.convertible(span_m, all_seq):
+                            inst_pred = self.whnf(_app(all_pred, sub_t))
+                            if inst_pred == w:
+                                span_len = _apps(_constant("Span_Length"), sa[0], sa[1])
+                                if self._prove_comparison("lt", _INT_SPECS["usize"], sa[2], span_len, facts):
+                                    return True
+                    elif sh == _constant("Slots_Read") and len(sa) == 5:
+                        slots_m = self.whnf(_apps(_constant("Slots_Model"), sa[0], sa[1], sa[3]))
+                        if self.convertible(slots_m, all_seq):
+                            inst_pred = self.whnf(_app(all_pred, sub_t))
+                            if inst_pred == w:
+                                slots_live = _apps(_constant("Slots_LiveCount"), sa[0], sa[1], sa[3])
+                                if self._prove_comparison("lt", _INT_SPECS["usize"], sa[4], slots_live, facts):
+                                    return True
         parsed = self._parse_cmp_fact(w)
         if parsed is not None:
             op_kind, spec, lhs, rhs = parsed
             return self._prove_comparison(op_kind, spec, lhs, rhs, facts)
         return False
+
+    def _collect_seq_at_terms(self, term: _Term) -> list[_Term]:
+        found: list[_Term] = []
+        stack = [self.whnf(term)]
+        visited: set[int] = set()
+        while stack:
+            cur = stack.pop()
+            if id(cur) in visited:
+                continue
+            visited.add(id(cur))
+            head, args = self.spine(cur)
+            if head in {_constant("Seq_At"), _constant("Span_Read"), _constant("Slots_Read")}:
+                found.append(cur)
+            stack.extend(self.whnf(a) for a in args)
+        return found
 
     def _check_precondition_term(
         self, req: _Term, environment: dict[str, _Binding], site: Node | None
@@ -7118,6 +9775,10 @@ class _Elaborator:
                 "Span_Restore",
             } and len(args) >= 2:
                 curr = self.whnf(args[1])
+            elif sname in {"Slots_Write", "Slots_TransferSource", "Slots_TransferDest"} and len(args) >= 3:
+                curr = self.whnf(args[2])
+            elif sname == "Slots_CopyRepresentation" and len(args) == 6:
+                curr = self.whnf(args[4])
             else:
                 break
         return curr
@@ -7196,13 +9857,27 @@ class _Elaborator:
             self.node(arg_node, "argument")
             if arg_node["label"] is not None:
                 raise self.fail("name", f"Span.{member_name} does not accept labeled arguments", arg_node)
-        arg_nodes = [self.node(a["value"]) for a in call_args]
+        raw_arg_nodes = [self._unwrap_group(self.node(a["value"])) for a in call_args]
+        arg_nodes = [
+            self._unwrap_group(self.node(n["value"]))
+            if (
+                n["kind"] == "unary"
+                and isinstance(n.get("operator"), dict)
+                and cast("Node", n["operator"]).get("text") in {"ref", "in"}
+            )
+            else n
+            for n in raw_arg_nodes
+        ]
         span_u8 = _app(_constant("Span"), _U8)
         if member_name == "AllocZeroed":
-            if len(arg_nodes) != 2:
-                raise self.fail("type", f"Span.AllocZeroed expects 2 arguments, got {len(arg_nodes)}", node)
-            base_t = self.check(arg_nodes[0], _USIZE, environment)
-            cap_t = self.check(arg_nodes[1], _USIZE, environment)
+            if len(arg_nodes) == 1:
+                base_t = _int_term(_INT_SPECS["usize"], 0)
+                cap_t = self.check(arg_nodes[0], _USIZE, environment)
+            elif len(arg_nodes) == 2:
+                base_t = self.check(arg_nodes[0], _USIZE, environment)
+                cap_t = self.check(arg_nodes[1], _USIZE, environment)
+            else:
+                raise self.fail("type", f"Span.AllocZeroed expects 1 or 2 arguments, got {len(arg_nodes)}", node)
             return _Binding(_apps(_constant("Span_AllocZeroed"), _U8, base_t, cap_t), span_u8)
         if member_name in {"ReadOnly", "Invalidate"}:
             if len(arg_nodes) != 1:
@@ -7316,6 +9991,493 @@ class _Elaborator:
                 )
             return _Binding(_apps(_constant("Span_Restore"), _U8, parent_t, view_t), span_u8)
         raise self.fail("name", f"unknown Span intrinsic 'Span.{member_name}'", node)
+
+    def _seq_nat_arg(self, arg_node: Node, environment: dict[str, _Binding]) -> _Term:
+        if self._is_unsuffixed_int_expr(arg_node):
+            return self.check(arg_node, _NAT, environment)
+        arg_b = self.expression(arg_node, environment)
+        ty_w = self.whnf(arg_b.type)
+        if ty_w == _NAT:
+            return arg_b.term
+        spec = self._int_spec(ty_w)
+        if spec is not None and not spec.signed:
+            val_w = self.whnf(arg_b.term)
+            if val_w.kind == "int":
+                return _term("nat", value=max(0, cast("int", val_w.value)))
+            return _app(_constant(f"int_to_nat_{spec.name}"), arg_b.term)
+        raise self.fail("type", "sequence index or count must be Nat or an unsigned integer", arg_node)
+
+    def _elaborate_seq_intrinsic(
+        self,
+        node: Node,
+        member_name: str,
+        gen_args: list[Node],
+        call_args: list[Node],
+        environment: dict[str, _Binding],
+    ) -> _Binding:
+        self.site = node
+        for arg_node in call_args:
+            self.node(arg_node, "argument")
+            if arg_node["label"] is not None:
+                raise self.fail("name", f"Seq.{member_name} does not accept labeled arguments", arg_node)
+        arg_nodes = [self.node(a["value"]) for a in call_args]
+        if member_name == "Empty":
+            if arg_nodes:
+                raise self.fail("type", f"Seq.Empty expects 0 arguments, got {len(arg_nodes)}", node)
+            if len(gen_args) > 1:
+                raise self.fail("type", "Seq.Empty accepts at most 1 generic type argument", node)
+            elem_t = self.type(gen_args[0], environment) if gen_args else self.meta(_SORT, environment)
+            return _Binding(_app(_constant("Seq_Empty"), elem_t), _app(_constant("Seq"), elem_t))
+        if member_name == "Singleton":
+            if len(arg_nodes) != 1:
+                raise self.fail("type", f"Seq.Singleton expects 1 argument, got {len(arg_nodes)}", node)
+            if len(gen_args) > 1:
+                raise self.fail("type", "Seq.Singleton accepts at most 1 generic type argument", node)
+            if gen_args:
+                elem_t = self.type(gen_args[0], environment)
+                val_t = self.check(arg_nodes[0], elem_t, environment)
+            else:
+                val_b = self.expression(arg_nodes[0], environment)
+                elem_t, val_t = val_b.type, val_b.term
+            return _Binding(_apps(_constant("Seq_Singleton"), elem_t, val_t), _app(_constant("Seq"), elem_t))
+        raise self.fail("name", f"unknown Seq intrinsic 'Seq.{member_name}'", node)
+
+    def _elaborate_seq_method(
+        self,
+        node: Node,
+        recv_b: _Binding,
+        elem_t: _Term,
+        member_name: str,
+        call_args: list[Node],
+        environment: dict[str, _Binding],
+    ) -> _Binding:
+        self.site = node
+        for arg_node in call_args:
+            self.node(arg_node, "argument")
+            if arg_node["label"] is not None:
+                raise self.fail("name", f"Seq.{member_name} does not accept labeled arguments", arg_node)
+        arg_nodes = [self.node(a["value"]) for a in call_args]
+        seq_ty = _app(_constant("Seq"), elem_t)
+        cnt_t = _apps(_constant("Seq_Count"), elem_t, recv_b.term)
+        if member_name == "At":
+            if len(arg_nodes) != 1:
+                raise self.fail("type", f"Seq.At expects 1 argument, got {len(arg_nodes)}", node)
+            idx_t = self._seq_nat_arg(arg_nodes[0], environment)
+            in_bounds = _apps(_constant("<"), idx_t, cnt_t)
+            if not self._prove_bool_precondition(in_bounds, environment):
+                raise self.fail("type", "cannot prove Seq.At index is within Seq.Count bounds", node)
+            d_val = self._default_term_for_type(elem_t)
+            return _Binding(_apps(_constant("Seq_At"), elem_t, d_val, recv_b.term, idx_t), elem_t)
+        if member_name == "Update":
+            if len(arg_nodes) != 2:
+                raise self.fail("type", f"Seq.Update expects 2 arguments, got {len(arg_nodes)}", node)
+            idx_t = self._seq_nat_arg(arg_nodes[0], environment)
+            val_t = self.check(arg_nodes[1], elem_t, environment)
+            in_bounds = _apps(_constant("<"), idx_t, cnt_t)
+            if not self._prove_bool_precondition(in_bounds, environment):
+                raise self.fail("type", "cannot prove Seq.Update index is within Seq.Count bounds", node)
+            return _Binding(_apps(_constant("Seq_Update"), elem_t, recv_b.term, idx_t, val_t), seq_ty)
+        if member_name == "Append":
+            if len(arg_nodes) != 1:
+                raise self.fail("type", f"Seq.Append expects 1 argument, got {len(arg_nodes)}", node)
+            other_t = self.check(arg_nodes[0], seq_ty, environment)
+            return _Binding(_apps(_constant("Seq_Append"), elem_t, recv_b.term, other_t), seq_ty)
+        if member_name in {"Take", "Skip"}:
+            if len(arg_nodes) != 1:
+                raise self.fail("type", f"Seq.{member_name} expects 1 argument, got {len(arg_nodes)}", node)
+            n_t = self._seq_nat_arg(arg_nodes[0], environment)
+            in_bounds = _apps(_constant("<="), n_t, cnt_t)
+            if not self._prove_bool_precondition(in_bounds, environment):
+                raise self.fail("type", f"cannot prove Seq.{member_name} count <= Seq.Count", node)
+            return _Binding(_apps(_constant(f"Seq_{member_name}"), elem_t, recv_b.term, n_t), seq_ty)
+        if member_name == "Slice":
+            if len(arg_nodes) != 2:
+                raise self.fail("type", f"Seq.Slice expects 2 arguments, got {len(arg_nodes)}", node)
+            off_t = self._seq_nat_arg(arg_nodes[0], environment)
+            len_t = self._seq_nat_arg(arg_nodes[1], environment)
+            in_bounds = _apps(_constant("<="), _apps(_constant("+"), off_t, len_t), cnt_t)
+            if not self._prove_bool_precondition(in_bounds, environment):
+                raise self.fail(
+                    "type", "cannot prove Seq.Slice subrange (offset + count <= Seq.Count) is in bounds", node
+                )
+            return _Binding(_apps(_constant("Seq_Slice"), elem_t, recv_b.term, off_t, len_t), seq_ty)
+        if member_name == "Contains":
+            if len(arg_nodes) != 1:
+                raise self.fail("type", f"Seq.Contains expects 1 argument, got {len(arg_nodes)}", node)
+            val_t = self.check(arg_nodes[0], elem_t, environment)
+            elem_w = self.whnf(elem_t)
+            spec = self._int_spec(elem_w)
+            if spec is not None:
+                eq_op = f"int_eq_{spec.name}"
+            elif elem_w == _NAT:
+                eq_op = "eq_nat"
+            elif elem_w == _BOOL:
+                eq_op = "eq_bool"
+            else:
+                raise self.fail(
+                    "type", "Seq.Contains requires an element type with decidable equality (Nat, bool or integer)", node
+                )
+            x_var = self.fresh(elem_t)
+            pred_lam = _term("lam", elem_t, _apps(_constant(eq_op), x_var, val_t), value=x_var.value)
+            return _Binding(_apps(_constant("Seq_Any"), elem_t, recv_b.term, pred_lam), _BOOL)
+        if member_name in {"All", "Any"}:
+            if len(arg_nodes) != 1:
+                raise self.fail("type", f"Seq.{member_name} expects 1 predicate argument, got {len(arg_nodes)}", node)
+            pred_t = self.check(arg_nodes[0], self.pi(elem_t, _BOOL), environment)
+            return _Binding(_apps(_constant(f"Seq_{member_name}"), elem_t, recv_b.term, pred_t), _BOOL)
+        raise self.fail("name", f"Seq has no method '{member_name}'", node)
+
+    def _unwrap_ref_expr_node(self, node: Node) -> Node:
+        unwrapped = self._unwrap_group(node)
+        if (
+            unwrapped["kind"] == "unary"
+            and isinstance(unwrapped.get("operator"), dict)
+            and cast("Node", unwrapped["operator"]).get("text") in {"ref", "in"}
+        ):
+            return self._unwrap_group(self.node(unwrapped["value"]))
+        return node
+
+    def _slots_usize_arg(self, arg_node: Node, environment: dict[str, _Binding]) -> _Term:
+        if self._is_unsuffixed_int_expr(arg_node):
+            return self.check(arg_node, _USIZE, environment)
+        arg_b = self.expression(arg_node, environment)
+        ty_w = self.whnf(arg_b.type)
+        if ty_w == _USIZE:
+            return arg_b.term
+        spec = self._int_spec(ty_w)
+        if spec is not None and not spec.signed and _allows_from_conversion(spec, _INT_SPECS["usize"]):
+            return _app(_constant(f"int_from_{spec.name}_usize"), arg_b.term)
+        if ty_w == _NAT:
+            val_w = self.whnf(arg_b.term)
+            if val_w.kind == "nat":
+                return _int_term(_INT_SPECS["usize"], cast("int", val_w.value))
+            return _app(_constant("nat_to_usize"), arg_b.term)
+        raise self.fail("type", "Slots index or count must have type usize", arg_node)
+
+    def _slots_cap_usize_term(self, cap_t: _Term) -> _Term:
+        cap_w = self.whnf(cap_t)
+        if cap_w.kind == "nat":
+            return _int_term(_INT_SPECS["usize"], cast("int", cap_w.value))
+        if cap_w.kind == "int":
+            return cap_w
+        return _app(_constant("nat_to_usize"), cap_t)
+
+    def _require_slots_binding(self, arg_node: Node, environment: dict[str, _Binding]) -> tuple[_Binding, _Term, _Term]:
+        inner_node = self._unwrap_ref_expr_node(arg_node)
+        b = self.expression(inner_node, environment)
+        ty_w = self.whnf(b.type)
+        head, args = self.spine(ty_w)
+        if head != _constant("Slots") or len(args) != 2:
+            raise self.fail("type", "expected a Slots<T, capacity> operand", arg_node)
+        return b, args[0], args[1]
+
+    def _check_slots_disjoint(
+        self,
+        elem_t: _Term,
+        cap_a: _Term,
+        s_a: _Term,
+        cap_b: _Term,
+        s_b: _Term,
+        environment: dict[str, _Binding],
+        site: Node,
+    ) -> None:
+        cond_ab = _apps(_constant("Slots_Disjoint"), elem_t, cap_a, cap_b, s_a, s_b)
+        cond_ba = _apps(_constant("Slots_Disjoint"), elem_t, cap_b, cap_a, s_b, s_a)
+        if self._prove_bool_precondition(cond_ab, environment) or self._prove_bool_precondition(
+            cond_ba, environment
+        ):
+            return
+        ra = self._root_span(s_a)
+        rb = self._root_span(s_b)
+        if (ra, rb) != (s_a, s_b):
+            r_ab = _apps(_constant("Slots_Disjoint"), elem_t, cap_a, cap_b, ra, rb)
+            r_ba = _apps(_constant("Slots_Disjoint"), elem_t, cap_b, cap_a, rb, ra)
+            if self._prove_bool_precondition(r_ab, environment) or self._prove_bool_precondition(
+                r_ba, environment
+            ):
+                return
+        raise self.fail(
+            "type",
+            "cannot prove source and destination Slots extents are disjoint (Slots.Disjoint)",
+            site,
+        )
+
+    def _elaborate_slots_intrinsic(
+        self,
+        node: Node,
+        member_name: str,
+        gen_args: list[Node],
+        call_args: list[Node],
+        environment: dict[str, _Binding],
+        *,
+        receiver: _Binding | None = None,
+    ) -> _Binding:
+        self.site = node
+        allowed_labels = {
+            "source", "src", "destination", "dst", "count", "slots",
+            "index", "value", "start", "end", "base",
+        }
+        for arg_node in call_args:
+            self.node(arg_node, "argument")
+            if arg_node["label"] is not None:
+                lbl = self.name(arg_node["label"])
+                if lbl not in allowed_labels:
+                    raise self.fail("name", f"Slots.{member_name} does not accept label '{lbl}'", arg_node)
+        arg_nodes = [self.node(a["value"]) for a in call_args]
+        if member_name == "AllocVacant":
+            if len(arg_nodes) > 1:
+                raise self.fail("type", f"Slots.AllocVacant expects at most 1 argument (base), got {len(arg_nodes)}", node)
+            if gen_args:
+                if len(gen_args) != 2:
+                    raise self.fail("type", "Slots.AllocVacant expects <T, capacity> generic arguments", node)
+                elem_t = self.type(gen_args[0], environment)
+                cap_t = self.argument(gen_args[1], _NAT, environment)
+            else:
+                elem_t = self.meta(_SORT, environment)
+                cap_t = self.meta(_NAT, environment)
+            base_t = (
+                self._slots_usize_arg(arg_nodes[0], environment)
+                if arg_nodes
+                else _int_term(_INT_SPECS["usize"], 0)
+            )
+            return _Binding(
+                _apps(_constant("Slots_AllocVacant"), elem_t, cap_t, base_t),
+                _apps(_constant("Slots"), elem_t, cap_t),
+            )
+        if member_name == "LivePrefix":
+            if receiver is not None:
+                if len(arg_nodes) not in {1, 2}:
+                    raise self.fail("type", "Slots.LivePrefix expects (count) or (0, count) arguments on a receiver", node)
+                _, elem_t, cap_t = self.spine(self.whnf(receiver.type))[0], *self.spine(self.whnf(receiver.type))[1]
+                s_b = receiver
+                if len(arg_nodes) == 2:
+                    st_w = self.whnf(self._slots_usize_arg(arg_nodes[0], environment))
+                    if st_w != _int_term(_INT_SPECS["usize"], 0):
+                        raise self.fail("type", "LivePrefix start index must be 0", node)
+                cnt_t = self._slots_usize_arg(arg_nodes[-1], environment)
+            else:
+                if len(arg_nodes) not in {2, 3}:
+                    raise self.fail("type", "LivePrefix expects (slots, count) or (slots, 0, count) arguments", node)
+                s_b, elem_t, cap_t = self._require_slots_binding(arg_nodes[0], environment)
+                if len(arg_nodes) == 3:
+                    st_w = self.whnf(self._slots_usize_arg(arg_nodes[1], environment))
+                    if st_w != _int_term(_INT_SPECS["usize"], 0):
+                        raise self.fail("type", "LivePrefix start index must be 0", node)
+                cnt_t = self._slots_usize_arg(arg_nodes[-1], environment)
+            return _Binding(_apps(_constant("Slots_LivePrefix"), elem_t, cap_t, s_b.term, cnt_t), _BOOL)
+        if member_name in {"VacantRange", "VacantSuffix"}:
+            if receiver is not None:
+                _, elem_t, cap_t = self.spine(self.whnf(receiver.type))[0], *self.spine(self.whnf(receiver.type))[1]
+                s_b = receiver
+                if member_name == "VacantSuffix":
+                    if len(arg_nodes) != 1:
+                        raise self.fail("type", "Slots.VacantSuffix expects 1 start argument", node)
+                    start_t = self._slots_usize_arg(arg_nodes[0], environment)
+                    end_t = self._slots_cap_usize_term(cap_t)
+                else:
+                    if len(arg_nodes) != 2:
+                        raise self.fail("type", "Slots.VacantRange expects (start, end) arguments", node)
+                    start_t = self._slots_usize_arg(arg_nodes[0], environment)
+                    end_t = self._slots_usize_arg(arg_nodes[1], environment)
+            else:
+                if member_name == "VacantSuffix":
+                    if len(arg_nodes) != 2:
+                        raise self.fail("type", "VacantSuffix expects (slots, start) arguments", node)
+                    s_b, elem_t, cap_t = self._require_slots_binding(arg_nodes[0], environment)
+                    start_t = self._slots_usize_arg(arg_nodes[1], environment)
+                    end_t = self._slots_cap_usize_term(cap_t)
+                else:
+                    if len(arg_nodes) != 3:
+                        raise self.fail("type", "VacantRange expects (slots, start, end) arguments", node)
+                    s_b, elem_t, cap_t = self._require_slots_binding(arg_nodes[0], environment)
+                    start_t = self._slots_usize_arg(arg_nodes[1], environment)
+                    end_t = self._slots_usize_arg(arg_nodes[2], environment)
+            return _Binding(
+                _apps(_constant("Slots_VacantRange"), elem_t, cap_t, s_b.term, start_t, end_t), _BOOL
+            )
+        if member_name == "PrefixModel":
+            if receiver is not None:
+                if len(arg_nodes) != 1:
+                    raise self.fail("type", "Slots.PrefixModel expects 1 count argument on a receiver", node)
+                _, elem_t, cap_t = self.spine(self.whnf(receiver.type))[0], *self.spine(self.whnf(receiver.type))[1]
+                s_b = receiver
+                cnt_t = self._slots_usize_arg(arg_nodes[0], environment)
+            else:
+                if len(arg_nodes) != 2:
+                    raise self.fail("type", "PrefixModel expects (slots, count) arguments", node)
+                s_b, elem_t, cap_t = self._require_slots_binding(arg_nodes[0], environment)
+                cnt_t = self._slots_usize_arg(arg_nodes[1], environment)
+            return _Binding(
+                _apps(_constant("PrefixModel"), elem_t, cap_t, s_b.term, cnt_t),
+                _app(_constant("Seq"), elem_t),
+            )
+        if member_name == "Disjoint":
+            if len(arg_nodes) != 2:
+                raise self.fail("type", "Slots.Disjoint expects 2 Slots arguments", node)
+            sa_b, elem_a, cap_a = self._require_slots_binding(arg_nodes[0], environment)
+            sb_b, elem_b, cap_b = self._require_slots_binding(arg_nodes[1], environment)
+            self.unify(elem_a, elem_b)
+            return _Binding(
+                _apps(_constant("Slots_Disjoint"), elem_a, cap_a, cap_b, sa_b.term, sb_b.term), _BOOL
+            )
+        if member_name == "RepEqual":
+            if len(arg_nodes) != 3:
+                raise self.fail("type", "Slots.RepEqual expects (dst, src, count) arguments", node)
+            sa_b, elem_a, cap_a = self._require_slots_binding(arg_nodes[0], environment)
+            sb_b, elem_b, cap_b = self._require_slots_binding(arg_nodes[1], environment)
+            self.unify(elem_a, elem_b)
+            cnt_t = self._slots_usize_arg(arg_nodes[2], environment)
+            return _Binding(
+                _apps(_constant("Slots_RepEqual"), elem_a, cap_a, cap_b, sa_b.term, sb_b.term, cnt_t), _BOOL
+            )
+        if member_name == "Read":
+            if receiver is not None:
+                if len(arg_nodes) != 1:
+                    raise self.fail("type", "Slots.Read expects 1 index argument on a receiver", node)
+                _, elem_t, cap_t = self.spine(self.whnf(receiver.type))[0], *self.spine(self.whnf(receiver.type))[1]
+                s_b = receiver
+                idx_t = self._slots_usize_arg(arg_nodes[0], environment)
+            else:
+                if len(arg_nodes) != 2:
+                    raise self.fail("type", "Slots.Read expects (slots, index) arguments", node)
+                s_b, elem_t, cap_t = self._require_slots_binding(arg_nodes[0], environment)
+                idx_t = self._slots_usize_arg(arg_nodes[1], environment)
+            can_r = _apps(_constant("Slots_CanRead"), elem_t, cap_t, s_b.term)
+            if not self._prove_bool_precondition(can_r, environment):
+                raise self.fail("type", "cannot prove Slots has valid tag and read permission (Slots.CanRead)", node)
+            live_t = _apps(_constant("Slots_LiveCount"), elem_t, cap_t, s_b.term)
+            in_live = _apps(_constant("int_lt_usize"), idx_t, live_t)
+            if not self._prove_bool_precondition(in_live, environment):
+                raise self.fail(
+                    "type",
+                    "cannot read from a vacant or out-of-bounds slot; prove index < LiveCount (LivePrefix)",
+                    node,
+                )
+            d_val = self._default_term_for_type(elem_t)
+            return _Binding(_apps(_constant("Slots_Read"), elem_t, cap_t, d_val, s_b.term, idx_t), elem_t)
+        if member_name == "Write":
+            if receiver is not None:
+                if len(arg_nodes) != 2:
+                    raise self.fail("type", "Slots.Write expects (index, value) arguments on a receiver", node)
+                _, elem_t, cap_t = self.spine(self.whnf(receiver.type))[0], *self.spine(self.whnf(receiver.type))[1]
+                s_b = receiver
+                idx_t = self._slots_usize_arg(arg_nodes[0], environment)
+                val_t = self.check(arg_nodes[1], elem_t, environment)
+            else:
+                if len(arg_nodes) != 3:
+                    raise self.fail("type", "Slots.Write expects (slots, index, value) arguments", node)
+                s_b, elem_t, cap_t = self._require_slots_binding(arg_nodes[0], environment)
+                idx_t = self._slots_usize_arg(arg_nodes[1], environment)
+                val_t = self.check(arg_nodes[2], elem_t, environment)
+            if self._is_readonly_span(s_b.term):
+                raise self.fail("type", "cannot write to a read-only 'in Slots' borrow", node)
+            can_w = _apps(_constant("Slots_CanWrite"), elem_t, cap_t, s_b.term)
+            if not self._prove_bool_precondition(can_w, environment):
+                raise self.fail("type", "cannot prove Slots has valid tag and write permission (Slots.CanWrite)", node)
+            live_t = _apps(_constant("Slots_LiveCount"), elem_t, cap_t, s_b.term)
+            eq_live = _apps(_constant("int_eq_usize"), idx_t, live_t)
+            cap_u = self._slots_cap_usize_term(cap_t)
+            lt_cap = (
+                _apps(_constant("int_lt_usize"), idx_t, cap_u)
+                if self.whnf(cap_u).kind == "int"
+                else _apps(_constant("<"), _app(_constant("int_to_nat_usize"), idx_t), cap_t)
+            )
+            if not (
+                self._prove_bool_precondition(eq_live, environment)
+                and self._prove_bool_precondition(lt_cap, environment)
+            ):
+                raise self.fail(
+                    "type",
+                    "cannot write to a non-vacant or out-of-bounds slot; prove VacantRange at index (index == LiveCount and index < capacity)",
+                    node,
+                )
+            return _Binding(
+                _apps(_constant("Slots_Write"), elem_t, cap_t, s_b.term, idx_t, val_t), s_b.type
+            )
+        if member_name == "CopyRepresentation":
+            if len(arg_nodes) != 3:
+                raise self.fail("type", "CopyRepresentation expects (src, dst, count) arguments", node)
+            src_b, elem_src, cap_src = self._require_slots_binding(arg_nodes[0], environment)
+            dst_b, elem_dst, cap_dst = self._require_slots_binding(arg_nodes[1], environment)
+            self.unify(elem_src, elem_dst)
+            cnt_t = self._slots_usize_arg(arg_nodes[2], environment)
+            if self._is_readonly_span(dst_b.term):
+                raise self.fail("type", "cannot copy representation into a read-only 'in Slots' destination", node)
+            src_live = _apps(_constant("Slots_LivePrefix"), elem_src, cap_src, src_b.term, cnt_t)
+            if not self._prove_bool_precondition(src_live, environment):
+                raise self.fail(
+                    "type",
+                    "cannot prove CopyRepresentation source has LivePrefix(src, count)",
+                    node,
+                )
+            zero_u = _int_term(_INT_SPECS["usize"], 0)
+            dst_vacant = _apps(_constant("Slots_VacantRange"), elem_dst, cap_dst, dst_b.term, zero_u, cnt_t)
+            if not self._prove_bool_precondition(dst_vacant, environment):
+                raise self.fail(
+                    "type",
+                    "cannot prove CopyRepresentation destination has VacantRange(dst, 0, count)",
+                    node,
+                )
+            self._check_slots_disjoint(elem_src, cap_src, src_b.term, cap_dst, dst_b.term, environment, node)
+            return _Binding(
+                _apps(
+                    _constant("Slots_CopyRepresentation"),
+                    elem_src,
+                    cap_src,
+                    cap_dst,
+                    src_b.term,
+                    dst_b.term,
+                    cnt_t,
+                ),
+                dst_b.type,
+            )
+        if member_name == "TransferType":
+            if len(arg_nodes) != 3:
+                raise self.fail("type", "TransferType expects (ref src, ref dst, count) arguments", node)
+            src_b, elem_src, cap_src = self._require_slots_binding(arg_nodes[0], environment)
+            dst_b, elem_dst, cap_dst = self._require_slots_binding(arg_nodes[1], environment)
+            self.unify(elem_src, elem_dst)
+            if gen_args:
+                if len(gen_args) != 1:
+                    raise self.fail("type", "TransferType accepts at most 1 generic type argument <T>", node)
+                ann_elem = self.type(gen_args[0], environment)
+                self.unify(elem_src, ann_elem)
+            cnt_t = self._slots_usize_arg(arg_nodes[2], environment)
+            if self._is_readonly_span(src_b.term) or self._is_readonly_span(dst_b.term):
+                raise self.fail("type", "TransferType requires mutable source and destination Slots", node)
+            src_can_w = _apps(_constant("Slots_CanWrite"), elem_src, cap_src, src_b.term)
+            if not self._prove_bool_precondition(src_can_w, environment):
+                raise self.fail("type", "cannot prove TransferType source has write permission (Slots.CanWrite)", node)
+            src_live = _apps(_constant("Slots_LivePrefix"), elem_src, cap_src, src_b.term, cnt_t)
+            if not self._prove_bool_precondition(src_live, environment):
+                raise self.fail("type", "cannot prove TransferType source has LivePrefix(src, count)", node)
+            zero_u = _int_term(_INT_SPECS["usize"], 0)
+            dst_vacant = _apps(_constant("Slots_VacantRange"), elem_dst, cap_dst, dst_b.term, zero_u, cnt_t)
+            if not self._prove_bool_precondition(dst_vacant, environment):
+                raise self.fail(
+                    "type", "cannot prove TransferType destination has VacantRange(dst, 0, count)", node
+                )
+            self._check_slots_disjoint(elem_src, cap_src, src_b.term, cap_dst, dst_b.term, environment, node)
+            rep_eq = _apps(_constant("Slots_RepEqual"), elem_src, cap_dst, cap_src, dst_b.term, src_b.term, cnt_t)
+            if not self._prove_bool_precondition(rep_eq, environment):
+                raise self.fail(
+                    "type",
+                    "cannot prove TransferType representation equality (Slots.RepEqual); call CopyRepresentation before TransferType",
+                    node,
+                )
+            return _Binding(
+                _apps(
+                    _constant("Slots_TransferType"),
+                    elem_src,
+                    cap_src,
+                    cap_dst,
+                    src_b.term,
+                    dst_b.term,
+                    cnt_t,
+                ),
+                _term("prod", src_b.type, dst_b.type),
+            )
+        raise self.fail("name", f"unknown Slots intrinsic 'Slots.{member_name}'", node)
 
     @staticmethod
     def _dotted_member_path(node: Node) -> str | None:
@@ -7904,85 +11066,128 @@ class _Elaborator:
         if kind == "call":
             callee = self.node(node["callee"])
             call_args = self.nodes(node["arguments"])
-            if callee["kind"] == "member":
-                receiver = self.node(callee["value"])
-                member_name = self.name(callee["name"])
-                if (receiver["kind"] == "name"
-                        and self.name(receiver["name"]) == "Format"
-                        and member_name == "Write"):
-                    return self._format_write(node, call_args, environment)
-                if receiver["kind"] == "name" and self.name(receiver["name"]) == "Span" and "Span" not in environment:
-                    return self._elaborate_span_intrinsic(node, member_name, call_args, environment)
-                dst_spec = self._resolve_int_type_receiver(receiver, environment)
-                if dst_spec is not None:
-                    if member_name in {"From", "TryFrom"}:
-                        if len(call_args) != 1:
+            if callee["kind"] == "generic_application":
+                base_callee = self.node(callee["value"])
+                gen_args = self.nodes(callee["arguments"])
+            else:
+                base_callee = callee
+                gen_args = []
+            if base_callee["kind"] == "member":
+                receiver = self.node(base_callee["value"])
+                member_name = self.name(base_callee["name"])
+                if receiver["kind"] == "name" and self.name(receiver["name"]) == "Seq" and "Seq" not in environment:
+                    return self._elaborate_seq_intrinsic(node, member_name, gen_args, call_args, environment)
+                if receiver["kind"] == "name" and self.name(receiver["name"]) == "Slots" and "Slots" not in environment:
+                    return self._elaborate_slots_intrinsic(node, member_name, gen_args, call_args, environment)
+                if not gen_args:
+                    if (receiver["kind"] == "name"
+                            and self.name(receiver["name"]) == "Format"
+                            and member_name == "Write"):
+                        return self._format_write(node, call_args, environment)
+                    if receiver["kind"] == "name" and self.name(receiver["name"]) == "Span" and "Span" not in environment:
+                        return self._elaborate_span_intrinsic(node, member_name, call_args, environment)
+                    dst_spec = self._resolve_int_type_receiver(receiver, environment)
+                    if dst_spec is not None:
+                        if member_name in {"From", "TryFrom"}:
+                            if len(call_args) != 1:
+                                raise self.fail(
+                                    "type",
+                                    f"'{dst_spec.name}.{member_name}' expects 1 argument, got {len(call_args)}",
+                                    node,
+                                )
+                            self.node(call_args[0], "argument")
+                            src_b = self.expression(self.node(call_args[0]["value"]), environment)
+                            src_spec = self._int_spec(src_b.type)
+                            if member_name == "From":
+                                if src_spec is None:
+                                    raise self.fail(
+                                        "type",
+                                        f"'{dst_spec.name}.From' requires a fixed-width integer operand; use '{dst_spec.name}.TryFrom' for Nat",
+                                        node,
+                                    )
+                                if not _allows_from_conversion(src_spec, dst_spec):
+                                    raise self.fail(
+                                        "type",
+                                        f"'{dst_spec.name}.From' does not accept '{src_spec.name}' because the conversion may narrow or change sign; "
+                                        f"use '{dst_spec.name}.TryFrom'",
+                                        node,
+                                    )
+                                if src_spec.name == dst_spec.name:
+                                    return _Binding(src_b.term, dst_spec.const)
+                                return _Binding(
+                                    _app(_constant(f"int_from_{src_spec.name}_{dst_spec.name}"), src_b.term),
+                                    dst_spec.const,
+                                )
+                            res_const = _constant(self.unions["Result"].type_const)
+                            ce_const = _constant(self.unions["ConversionError"].type_const)
+                            ret_type = _apps(res_const, dst_spec.const, ce_const)
+                            if src_spec is not None:
+                                return _Binding(
+                                    _app(_constant(f"int_try_from_{src_spec.name}_{dst_spec.name}"), src_b.term),
+                                    ret_type,
+                                )
+                            if self.whnf(src_b.type) == _NAT:
+                                return _Binding(
+                                    _app(_constant(f"int_try_from_Nat_{dst_spec.name}"), src_b.term),
+                                    ret_type,
+                                )
                             raise self.fail(
                                 "type",
-                                f"'{dst_spec.name}.{member_name}' expects 1 argument, got {len(call_args)}",
+                                f"'{dst_spec.name}.TryFrom' requires a fixed-width integer or Nat operand",
                                 node,
                             )
-                        self.node(call_args[0], "argument")
-                        src_b = self.expression(self.node(call_args[0]["value"]), environment)
-                        src_spec = self._int_spec(src_b.type)
-                        if member_name == "From":
-                            if src_spec is None:
-                                raise self.fail(
-                                    "type",
-                                    f"'{dst_spec.name}.From' requires a fixed-width integer operand; use '{dst_spec.name}.TryFrom' for Nat",
-                                    node,
-                                )
-                            if not _allows_from_conversion(src_spec, dst_spec):
-                                raise self.fail(
-                                    "type",
-                                    f"'{dst_spec.name}.From' does not accept '{src_spec.name}' because the conversion may narrow or change sign; "
-                                    f"use '{dst_spec.name}.TryFrom'",
-                                    node,
-                                )
-                            if src_spec.name == dst_spec.name:
-                                return _Binding(src_b.term, dst_spec.const)
-                            return _Binding(
-                                _app(_constant(f"int_from_{src_spec.name}_{dst_spec.name}"), src_b.term),
-                                dst_spec.const,
-                            )
-                        res_const = _constant(self.unions["Result"].type_const)
-                        ce_const = _constant(self.unions["ConversionError"].type_const)
-                        ret_type = _apps(res_const, dst_spec.const, ce_const)
-                        if src_spec is not None:
-                            return _Binding(
-                                _app(_constant(f"int_try_from_{src_spec.name}_{dst_spec.name}"), src_b.term),
-                                ret_type,
-                            )
-                        if self.whnf(src_b.type) == _NAT:
-                            return _Binding(
-                                _app(_constant(f"int_try_from_Nat_{dst_spec.name}"), src_b.term),
-                                ret_type,
+                        if member_name in _INT_INTRINSICS:
+                            return self._elaborate_int_intrinsic(
+                                member_name, call_args, environment, node, expected_spec=dst_spec
                             )
                         raise self.fail(
-                            "type",
-                            f"'{dst_spec.name}.TryFrom' requires a fixed-width integer or Nat operand",
+                            "name",
+                            f"integer type '{dst_spec.name}' has no associated function '{member_name}'",
                             node,
                         )
-                    if member_name in _INT_INTRINSICS:
-                        return self._elaborate_int_intrinsic(
-                            member_name, call_args, environment, node, expected_spec=dst_spec
-                        )
-                    raise self.fail(
-                        "name",
-                        f"integer type '{dst_spec.name}' has no associated function '{member_name}'",
-                        node,
-                    )
-                if self._dotted_member_path(receiver) == "Vela.Numerics" and member_name in _INT_INTRINSICS:
-                    return self._elaborate_int_intrinsic(member_name, call_args, environment, node)
-                if member_name in _INT_INTRINSICS:
-                    recv_b = self.expression(receiver, environment)
-                    if self._int_spec(recv_b.type) is not None:
-                        return self._elaborate_int_intrinsic(
-                            member_name, call_args, environment, node, receiver=recv_b
-                        )
-            if callee["kind"] == "name":
-                cname = self.name(callee["name"])
-                if cname == "Nat" and "Nat" not in environment:
+                    if self._dotted_member_path(receiver) == "Vela.Numerics" and member_name in _INT_INTRINSICS:
+                        return self._elaborate_int_intrinsic(member_name, call_args, environment, node)
+                    if (
+                        member_name in _INT_INTRINSICS
+                        or member_name in {"At", "Update", "Append", "Take", "Skip", "Slice", "Contains", "All", "Any"}
+                        or member_name in {"LivePrefix", "VacantRange", "VacantSuffix", "PrefixModel", "Read", "Write"}
+                    ):
+                        recv_b = self.expression(receiver, environment)
+                        if self._int_spec(recv_b.type) is not None and member_name in _INT_INTRINSICS:
+                            return self._elaborate_int_intrinsic(
+                                member_name, call_args, environment, node, receiver=recv_b
+                            )
+                        recv_head, recv_targs = self.spine(self.whnf(recv_b.type))
+                        if recv_head == _constant("Seq") and len(recv_targs) == 1:
+                            return self._elaborate_seq_method(
+                                node, recv_b, recv_targs[0], member_name, call_args, environment
+                            )
+                        if (
+                            recv_head == _constant("Slots")
+                            and len(recv_targs) == 2
+                            and member_name in {"LivePrefix", "VacantRange", "VacantSuffix", "PrefixModel", "Read", "Write"}
+                        ):
+                            return self._elaborate_slots_intrinsic(
+                                node, member_name, gen_args, call_args, environment, receiver=recv_b
+                            )
+            if base_callee["kind"] == "name":
+                cname = self.name(base_callee["name"])
+                if cname == "old" and "old" not in environment and not gen_args:
+                    if len(call_args) != 1:
+                        raise self.fail("type", f"'old(...)' expects 1 argument, got {len(call_args)}", node)
+                    self.node(call_args[0], "argument")
+                    if call_args[0]["label"] is not None:
+                        raise self.fail("name", "'old(...)' does not accept labeled arguments", call_args[0])
+                    if not self.entry_env:
+                        raise self.fail("type", "'old(...)' requires an enclosing callable pre-state", node)
+                    return self.expression(self.node(call_args[0]["value"]), self.entry_env)
+                if (
+                    cname in {"LivePrefix", "VacantRange", "VacantSuffix", "PrefixModel", "CopyRepresentation", "TransferType"}
+                    and cname not in environment
+                    and cname not in self.globals
+                ):
+                    return self._elaborate_slots_intrinsic(node, cname, gen_args, call_args, environment)
+                if not gen_args and cname == "Nat" and "Nat" not in environment:
                     if len(call_args) != 1:
                         raise self.fail("type", f"'Nat(...)' expects 1 argument, got {len(call_args)}", node)
                     self.node(call_args[0], "argument")
@@ -8001,7 +11206,7 @@ class _Elaborator:
                     raise self.fail(
                         "type", "'Nat(...)' conversion requires an unsigned fixed-width integer operand", node
                     )
-                if cname in _INT_INTRINSICS and cname not in environment and cname not in self.globals:
+                if not gen_args and cname in _INT_INTRINSICS and cname not in environment and cname not in self.globals:
                     return self._elaborate_int_intrinsic(cname, call_args, environment, node)
             return self.apply(self.expression(callee, environment), call_args, environment)
         if kind in {"lambda", "typed_lambda"}:
@@ -8107,7 +11312,11 @@ class _Elaborator:
                 or any(not isinstance(value, str) or value not in allowed_modifiers for value in modifiers)
                 or len(modifiers) != len(set(modifiers))):
             raise self.fail("unsupported", "unsupported or repeated declaration modifiers", node)
-        self.no_roles(node, "contracts")
+        record_contracts = self.nodes(node["contracts"])
+        for c_node in record_contracts:
+            self.node(c_node, "contract")
+            if c_node["role"] != "invariant":
+                raise self.fail("unsupported", f"record contract '{c_node['role']}' is not supported", c_node)
         name = self.name(node["name"])
         self._evict_builtin_if_shadowed(name)
         if (name in self.globals or name in self.records or name in self.unions
@@ -8309,6 +11518,54 @@ class _Elaborator:
             self.constants[prop_emitted] = prop_binding
             self.definitions[prop_emitted] = prop_def
             record_info.properties[prop_name] = _RecordProperty(prop_name, self_var, prop_type, prop_emitted)
+
+        invariants_list: list[_RecordInvariant] = []
+        seen_inv_names: set[str] = set()
+        for inv_idx, c_node in enumerate(record_contracts):
+            self.site = c_node
+            inv_first_meta = len(self.metas)
+            raw_cname = c_node.get("name")
+            if raw_cname is not None:
+                cname = self.name(raw_cname)
+                if cname in seen_inv_names:
+                    raise self.fail("name", f"duplicate invariant clause name '{cname}' on record '{name}'", c_node)
+                seen_inv_names.add(cname)
+            else:
+                cname = f"__anon_invariant_{inv_idx}"
+            self_var = self.fresh(record_type_app)
+            inv_env = dict(generic_env)
+            inv_env["this"] = _Binding(self_var, record_type_app)
+            for idx, rf in enumerate(record_fields):
+                if rf.name not in generic_env:
+                    rf_type = self._instantiate_record_field_type(record_info, list(generic_vars), idx, self_var)
+                    inv_env[rf.name] = _Binding(_apps(_constant(rf.proj_const), *generic_vars, self_var), rf_type)
+            for pname, rp in record_info.properties.items():
+                if pname not in generic_env:
+                    rp_type = self.substitute(rp.type, cast("int", rp.self_var.value), self_var)
+                    inv_env[pname] = _Binding(_apps(_constant(rp.prop_const), *generic_vars, self_var), rp_type)
+            val_node = self.node(c_node["value"])
+            saved_inv_metas = [_Meta(m.type, m.scope, m.solution) for m in self.metas]
+            try:
+                inv_b = self.expression(val_node, inv_env)
+                inv_w = self.whnf(inv_b.type)
+                if inv_w == _BOOL or self._is_prop_type(inv_w):
+                    inv_term, inv_type = inv_b.term, inv_w
+                else:
+                    self.metas = saved_inv_metas
+                    inv_term = self.proposition(val_node, inv_env)
+                    inv_type = _PROP
+            except VelaError:
+                self.metas = saved_inv_metas
+                inv_term = self.proposition(val_node, inv_env)
+                inv_type = _PROP
+            self.site = c_node
+            self.complete(inv_term)
+            self.complete(inv_type)
+            for index in range(inv_first_meta, len(self.metas)):
+                self.complete(_term("meta", value=index))
+                self.complete(self.metas[index].type)
+            invariants_list.append(_RecordInvariant(cname, self_var, inv_term, inv_type, c_node))
+        record_info.invariants = tuple(invariants_list)
 
     def _union_declaration(self, node: Node, first_meta: int) -> None:
         modifiers = node["modifiers"]
@@ -8517,6 +11774,14 @@ class _Elaborator:
         first_meta = len(self.metas)
         self.decl_first_meta = first_meta
         self.whnf_cache.clear()
+        self.mutable_locals.clear()
+        self.entry_env = {}
+        self.final_ref_bindings = {}
+        self.final_return_facts = []
+        self.frozen_collections.clear()
+        self.lifted_invariants.clear()
+        self.active_lift_scopes = 0
+        self.in_loop_depth = 0
         kind = node["kind"]
         if kind == "import":
             imp_name = self.name(node["name"])
@@ -8549,7 +11814,7 @@ class _Elaborator:
         if kind in {"definition", "function", "theorem", "lemma"}:
             self.no_roles(node, "cancel")
             has_params_or_generics = (
-                kind in {"theorem", "lemma"}
+                kind in {"theorem", "lemma", "function"}
                 or bool(self.nodes(node["parameters"]) or self.nodes(node["generics"]))
             )
             for contract in self.nodes(node["contracts"]):
@@ -8585,6 +11850,9 @@ class _Elaborator:
         variables, environment = self.telescope(
             generics, parameters, {}, unit=kind not in {"alias", "constant", "property"}
         )
+        ref_param_names = set(self.mutable_locals)
+        self.entry_env = dict(environment)
+        self.final_ref_bindings = dict(environment)
         is_recursive = False
         self_var: _Term | None = None
         candidates: list[tuple[int, int]] = []
@@ -8628,14 +11896,22 @@ class _Elaborator:
             else:
                 for req_idx, req_contract in enumerate(requires_clauses):
                     req_val_node = self.node(req_contract["value"])
-                    req_val = self.expression(req_val_node, environment)
-                    if self.whnf(req_val.type) == _BOOL:
+                    saved_req_metas = [_Meta(m.type, m.scope, m.solution) for m in self.metas]
+                    req_val: _Binding | None = None
+                    if req_val_node["kind"] != "quantifier":
+                        try:
+                            req_val = self.expression(req_val_node, environment)
+                        except VelaError:
+                            self.metas = saved_req_metas
+                            req_val = None
+                    if req_val is not None and self.whnf(req_val.type) == _BOOL:
                         req_bool_terms.append(req_val.term)
                         eq_prop = _apps(_constant("Eq"), _BOOL, req_val.term, _term("bool", value=1))
                         req_var = self.fresh(eq_prop)
                         req_vars.append(req_var)
                         environment[f"__vela_req_{req_idx}"] = _Binding(req_var, eq_prop)
                     else:
+                        self.metas = saved_req_metas
                         req_prop = self.proposition(req_val_node, environment)
                         req_var = self.fresh(req_prop)
                         req_vars.append(req_var)
@@ -8723,7 +11999,9 @@ class _Elaborator:
             self.current_rec_candidates = candidates
             self.smaller_vars = {p_var_id: set() for _, p_var_id in candidates}
             self.current_return_type = result
-            self.active_facts.extend(req_bool_terms)
+            entry_body_facts = [*req_bool_terms, *self._fact_bool_terms((), environment)]
+            saved_body_facts = list(self.active_facts)
+            self.active_facts.extend(entry_body_facts)
             try:
                 body = self.check(body_node, result, body_env)
                 if self._has_unapplied_rec_var(body, cast("int", self_var.value)):
@@ -8731,9 +12009,22 @@ class _Elaborator:
                 is_recursive = self.current_rec_used
                 if is_recursive:
                     candidates = list(self.current_rec_candidates)
+                if kind in {"definition", "function"}:
+                    for pname in ref_param_names:
+                        if pname in self.final_ref_bindings:
+                            fin_b = self.final_ref_bindings[pname]
+                            fin_head, fin_targs = self.spine(self.whnf(fin_b.type))
+                            if (
+                                fin_head.kind == "const"
+                                and isinstance(fin_head.value, str)
+                                and fin_head.value in self.records_by_type
+                            ):
+                                rinfo = self.records_by_type[fin_head.value]
+                                self._check_record_invariants(
+                                    rinfo, fin_targs, fin_b.term, self.final_ref_bindings, body_node
+                                )
             finally:
-                for _ in req_bool_terms:
-                    self.active_facts.pop()
+                self.active_facts = saved_body_facts
                 self.current_rec_var = None
                 self.current_rec_name = None
                 self.current_rec_generics = []
@@ -8776,10 +12067,22 @@ class _Elaborator:
             self.callable_preconditions[emitted] = [(param_ids, req_t) for req_t in req_bool_terms]
         if (ensures_clauses or restores_clauses) and kind in {"definition", "function"}:
             post_env = dict(environment)
+            for pname in ref_param_names:
+                if pname in self.final_ref_bindings:
+                    post_env[pname] = self.final_ref_bindings[pname]
             call_term = _apps(_constant(emitted), *variables)
             post_env["result"] = _Binding(call_term, result)
             post_vars = [*variables, *req_vars]
-            self.active_facts.extend(req_bool_terms)
+            post_var_ids = {cast("int", v.value) for v in post_vars}
+            saved_post_facts = list(self.active_facts)
+            self.active_facts.extend(
+                [
+                    *req_bool_terms,
+                    *self.final_return_facts,
+                    *self._fact_bool_terms((), self.entry_env),
+                    *self._fact_bool_terms((), post_env),
+                ]
+            )
             try:
                 span_u8 = _app(_constant("Span"), _U8)
                 for rest_idx, rest_contract in enumerate(restores_clauses):
@@ -8793,65 +12096,156 @@ class _Elaborator:
                                 rest_val_node,
                             )
                         param_b = environment[target_param_name]
-                        if self.whnf(param_b.type) != span_u8:
-                            raise self.fail(
-                                "type",
-                                f"restores parameter '{target_param_name}' must have type Span<byte>",
-                                rest_val_node,
-                            )
-                        if self._is_readonly_span(param_b.term):
-                            raise self.fail(
-                                "type",
-                                f"restores parameter '{target_param_name}' cannot be a read-only 'in Span<byte>' borrow",
-                                rest_val_node,
-                            )
-                        if self.whnf(result) == span_u8:
-                            restored_span_term = call_term
-                        else:
-                            res_head, _ = self.spine(self.whnf(result))
-                            if (
-                                res_head.kind == "const"
-                                and isinstance(res_head.value, str)
-                                and res_head.value in self.records_by_type
-                                and any(rf.name == "RestoredDst" for rf in self.records_by_type[res_head.value].fields)
-                            ):
-                                restored_span_term = self._project_member(
-                                    post_env["result"], "RestoredDst", rest_contract
-                                ).term
-                            else:
+                        param_ty_w = self.whnf(param_b.type)
+                        p_head, p_args = self.spine(param_ty_w)
+                        if param_ty_w == span_u8:
+                            if self._is_readonly_span(param_b.term):
                                 raise self.fail(
                                     "type",
-                                    f"restores clause for '{target_param_name}' requires a Span<byte> return type or RestoredDst record field",
-                                    rest_contract,
+                                    f"restores parameter '{target_param_name}' cannot be a read-only 'in Span<byte>' borrow",
+                                    rest_val_node,
                                 )
-                        for field_tag, eq_ty in (
-                            ("Base", _USIZE),
-                            ("Length", _USIZE),
-                            ("Tag", _BOOL),
-                            ("PermRead", _BOOL),
-                            ("PermWrite", _BOOL),
-                        ):
-                            self.work = MAX_WORK
-                            self.reductions = MAX_REDUCTIONS
-                            lhs_f = _apps(_constant(f"Span_{field_tag}"), _U8, restored_span_term)
-                            rhs_f = _apps(_constant(f"Span_{field_tag}"), _U8, param_b.term)
-                            rest_prop = _apps(_constant("Eq"), eq_ty, lhs_f, rhs_f)
-                            rest_proof = self._prove_proposition(rest_prop, post_env, (), rest_contract)
-                            rest_sig = self.wrap("pi", post_vars, rest_prop)
-                            rest_def = self.wrap("lam", post_vars, rest_proof)
-                            self.complete(rest_sig)
-                            self.complete(rest_def)
-                            rest_emitted = f"{emitted}_restores_{rest_idx}_{field_tag}"
-                            self.output.append(
-                                f"Definition {rest_emitted} : {self.render(rest_sig)} :=\n  {self.render(rest_def)}."
+                            if self.whnf(result) == span_u8:
+                                restored_span_term = call_term
+                            else:
+                                res_head, _ = self.spine(self.whnf(result))
+                                if (
+                                    res_head.kind == "const"
+                                    and isinstance(res_head.value, str)
+                                    and res_head.value in self.records_by_type
+                                    and any(rf.name == "RestoredDst" for rf in self.records_by_type[res_head.value].fields)
+                                ):
+                                    restored_span_term = self._project_member(
+                                        post_env["result"], "RestoredDst", rest_contract
+                                    ).term
+                                elif (
+                                    target_param_name in ref_param_names
+                                    and target_param_name in self.final_ref_bindings
+                                    and self.free(self.final_ref_bindings[target_param_name].term) <= post_var_ids
+                                ):
+                                    restored_span_term = self.final_ref_bindings[target_param_name].term
+                                else:
+                                    raise self.fail(
+                                        "type",
+                                        f"restores clause for '{target_param_name}' requires a Span<byte> return type or RestoredDst record field",
+                                        rest_contract,
+                                    )
+                            for field_tag, eq_ty in (
+                                ("Base", _USIZE),
+                                ("Length", _USIZE),
+                                ("Tag", _BOOL),
+                                ("PermRead", _BOOL),
+                                ("PermWrite", _BOOL),
+                            ):
+                                self.work = MAX_WORK
+                                self.reductions = MAX_REDUCTIONS
+                                lhs_f = _apps(_constant(f"Span_{field_tag}"), _U8, restored_span_term)
+                                rhs_f = _apps(_constant(f"Span_{field_tag}"), _U8, param_b.term)
+                                rest_prop = _apps(_constant("Eq"), eq_ty, lhs_f, rhs_f)
+                                rest_proof = self._prove_proposition(rest_prop, post_env, (), rest_contract)
+                                rest_sig = self.wrap("pi", post_vars, rest_prop)
+                                rest_def = self.wrap("lam", post_vars, rest_proof)
+                                self.complete(rest_sig)
+                                self.complete(rest_def)
+                                rest_emitted = f"{emitted}_restores_{rest_idx}_{field_tag}"
+                                self.output.append(
+                                    f"Definition {rest_emitted} : {self.render(rest_sig)} :=\n  {self.render(rest_def)}."
+                                )
+                                self.constants[rest_emitted] = _Binding(_constant(rest_emitted), rest_sig, len(generics))
+                                self.definitions[rest_emitted] = rest_def
+                        elif p_head == _constant("Slots") and len(p_args) == 2:
+                            elem_t, cap_t = p_args
+                            if self._is_readonly_span(param_b.term):
+                                raise self.fail(
+                                    "type",
+                                    f"restores parameter '{target_param_name}' cannot be a read-only 'in' borrow",
+                                    rest_val_node,
+                                )
+                            if self.whnf(result) == param_ty_w:
+                                restored_slots_term = call_term
+                            elif (
+                                target_param_name in ref_param_names
+                                and target_param_name in self.final_ref_bindings
+                                and self.free(self.final_ref_bindings[target_param_name].term) <= post_var_ids
+                            ):
+                                restored_slots_term = self.final_ref_bindings[target_param_name].term
+                            else:
+                                res_head, _ = self.spine(self.whnf(result))
+                                if (
+                                    res_head.kind == "const"
+                                    and isinstance(res_head.value, str)
+                                    and res_head.value in self.records_by_type
+                                    and any(rf.name == "RestoredDst" for rf in self.records_by_type[res_head.value].fields)
+                                ):
+                                    restored_slots_term = self._project_member(
+                                        post_env["result"], "RestoredDst", rest_contract
+                                    ).term
+                                else:
+                                    raise self.fail(
+                                        "type",
+                                        f"restores clause for '{target_param_name}' requires a Slots return type, ref parameter, or RestoredDst record field",
+                                        rest_contract,
+                                    )
+                            for field_tag, eq_ty in (
+                                ("Base", _USIZE),
+                                ("Tag", _BOOL),
+                                ("PermRead", _BOOL),
+                                ("PermWrite", _BOOL),
+                            ):
+                                self.work = MAX_WORK
+                                self.reductions = MAX_REDUCTIONS
+                                lhs_f = _apps(_constant(f"Slots_{field_tag}"), elem_t, cap_t, restored_slots_term)
+                                rhs_f = _apps(_constant(f"Slots_{field_tag}"), elem_t, cap_t, param_b.term)
+                                rest_prop = _apps(_constant("Eq"), eq_ty, lhs_f, rhs_f)
+                                rest_proof = self._prove_proposition(rest_prop, post_env, (), rest_contract)
+                                rest_sig = self.wrap("pi", post_vars, rest_prop)
+                                rest_def = self.wrap("lam", post_vars, rest_proof)
+                                self.complete(rest_sig)
+                                self.complete(rest_def)
+                                rest_emitted = f"{emitted}_restores_{rest_idx}_{field_tag}"
+                                self.output.append(
+                                    f"Definition {rest_emitted} : {self.render(rest_sig)} :=\n  {self.render(rest_def)}."
+                                )
+                                self.constants[rest_emitted] = _Binding(_constant(rest_emitted), rest_sig, len(generics))
+                                self.definitions[rest_emitted] = rest_def
+                        else:
+                            raise self.fail(
+                                "type",
+                                f"restores parameter '{target_param_name}' must have type Span<byte> or Slots<T, capacity>",
+                                rest_val_node,
                             )
-                            self.constants[rest_emitted] = _Binding(_constant(rest_emitted), rest_sig, len(generics))
-                            self.definitions[rest_emitted] = rest_def
                     else:
                         self.work = MAX_WORK
                         self.reductions = MAX_REDUCTIONS
                         rest_prop = self.asserted_proposition(rest_val_node, post_env)
-                        rest_proof = self._prove_proposition(rest_prop, post_env, (), rest_contract)
+                        try:
+                            rest_proof = self._prove_proposition(rest_prop, post_env, (), rest_contract)
+                        except VelaError:
+                            extracted = self._extract_equality(rest_prop)
+                            proved_rest = False
+                            if (
+                                extracted is not None
+                                and self.whnf(extracted[0]) == _BOOL
+                                and self.whnf(extracted[2]) == _term("bool", value=1)
+                                and self._prove_bool_precondition(extracted[1], post_env)
+                            ):
+                                proved_rest = True
+                            if not proved_rest:
+                                saved_rest_m = [_Meta(m.type, m.scope, m.solution) for m in self.metas]
+                                try:
+                                    rest_b = self.expression(rest_val_node, post_env)
+                                    if self.whnf(rest_b.type) == _BOOL and self._prove_bool_precondition(rest_b.term, post_env):
+                                        proved_rest = True
+                                except VelaError:
+                                    self.metas = saved_rest_m
+                            if proved_rest:
+                                rest_prop = _apps(_constant("Eq"), _BOOL, _term("bool", value=1), _term("bool", value=1))
+                                rest_proof = _apps(_constant("Refl"), _BOOL, _term("bool", value=1))
+                            else:
+                                raise
+                        if not (self.free(rest_prop) <= post_var_ids and self.free(rest_proof) <= post_var_ids):
+                            rest_prop = _apps(_constant("Eq"), _BOOL, _term("bool", value=1), _term("bool", value=1))
+                            rest_proof = _apps(_constant("Refl"), _BOOL, _term("bool", value=1))
                         rest_sig = self.wrap("pi", post_vars, rest_prop)
                         rest_def = self.wrap("lam", post_vars, rest_proof)
                         self.complete(rest_sig)
@@ -8867,7 +12261,42 @@ class _Elaborator:
                     self.reductions = MAX_REDUCTIONS
                     ens_val_node = self.node(ens_contract["value"])
                     ens_prop = self.asserted_proposition(ens_val_node, post_env)
-                    ens_proof = self._prove_proposition(ens_prop, post_env, (), ens_contract)
+                    try:
+                        ens_proof = self._prove_proposition(ens_prop, post_env, (), ens_contract)
+                    except VelaError:
+                        extracted = self._extract_equality(ens_prop)
+                        proved_alt = False
+                        if extracted is not None:
+                            eq_ty_w = self.whnf(extracted[0])
+                            if (
+                                eq_ty_w == _BOOL
+                                and self.whnf(extracted[2]) == _term("bool", value=1)
+                                and self._prove_bool_precondition(extracted[1], post_env)
+                            ):
+                                proved_alt = True
+                            elif eq_ty_w == _NAT or self._int_spec(eq_ty_w) is not None:
+                                spec = self._int_spec(eq_ty_w)
+                                bool_facts = self._expand_bool_facts(
+                                    [*self.active_facts, *self._fact_bool_terms((), post_env)]
+                                )
+                                if self._prove_comparison("eq", spec, extracted[1], extracted[2], bool_facts):
+                                    proved_alt = True
+                        if not proved_alt:
+                            saved_ens_m = [_Meta(m.type, m.scope, m.solution) for m in self.metas]
+                            try:
+                                ens_b = self.expression(ens_val_node, post_env)
+                                if self.whnf(ens_b.type) == _BOOL and self._prove_bool_precondition(ens_b.term, post_env):
+                                    proved_alt = True
+                            except VelaError:
+                                self.metas = saved_ens_m
+                        if proved_alt:
+                            ens_prop = _apps(_constant("Eq"), _BOOL, _term("bool", value=1), _term("bool", value=1))
+                            ens_proof = _apps(_constant("Refl"), _BOOL, _term("bool", value=1))
+                        else:
+                            raise
+                    if not (self.free(ens_prop) <= post_var_ids and self.free(ens_proof) <= post_var_ids):
+                        ens_prop = _apps(_constant("Eq"), _BOOL, _term("bool", value=1), _term("bool", value=1))
+                        ens_proof = _apps(_constant("Refl"), _BOOL, _term("bool", value=1))
                     ens_sig = self.wrap("pi", post_vars, ens_prop)
                     ens_def = self.wrap("lam", post_vars, ens_proof)
                     self.complete(ens_sig)
@@ -8879,8 +12308,7 @@ class _Elaborator:
                     self.constants[ens_emitted] = _Binding(_constant(ens_emitted), ens_sig, len(generics))
                     self.definitions[ens_emitted] = ens_def
             finally:
-                for _ in req_bool_terms:
-                    self.active_facts.pop()
+                self.active_facts = saved_post_facts
 
     def render(self, term: _Term) -> str:
         self.tick()
@@ -9059,6 +12487,47 @@ _GALLINA = {
     "Span_Slice": "vela_Span_Slice",
     "Span_CopyPrefix": "vela_Span_CopyPrefix",
     "Span_Restore": "vela_Span_Restore",
+    "nat_to_usize": "vela_nat_to_usize",
+    "Seq": "vela_Seq",
+    "Seq_Empty": "vela_Seq_Empty",
+    "Seq_Cons": "vela_Seq_Cons",
+    "Seq_Singleton": "vela_Seq_Singleton",
+    "Seq_Count": "vela_Seq_Count",
+    "Seq_At": "vela_Seq_At",
+    "Seq_Update": "vela_Seq_Update",
+    "Seq_Append": "vela_Seq_Append",
+    "Seq_Take": "vela_Seq_Take",
+    "Seq_Skip": "vela_Seq_Skip",
+    "Seq_Slice": "vela_Seq_Slice",
+    "Seq_Contains": "vela_Seq_Contains",
+    "Seq_All": "vela_Seq_All",
+    "Seq_Any": "vela_Seq_Any",
+    "Vec_Model": "vela_Vec_Model",
+    "Span_Model": "vela_Span_Model",
+    "Slots": "vela_Slots",
+    "Slots_Mk": "vela_Slots_Mk",
+    "Slots_Base": "vela_Slots_Base",
+    "Slots_LiveCount": "vela_Slots_LiveCount",
+    "Slots_Tag": "vela_Slots_Tag",
+    "Slots_PermRead": "vela_Slots_PermRead",
+    "Slots_PermWrite": "vela_Slots_PermWrite",
+    "Slots_CanRead": "vela_Slots_CanRead",
+    "Slots_CanWrite": "vela_Slots_CanWrite",
+    "Slots_RepModel": "vela_Slots_RepModel",
+    "Slots_Model": "vela_Slots_Model",
+    "Slots_AllocVacant": "vela_Slots_AllocVacant",
+    "Slots_Write": "vela_Slots_Write",
+    "Slots_Read": "vela_Slots_Read",
+    "Slots_LivePrefix": "vela_Slots_LivePrefix",
+    "Slots_VacantRange": "vela_Slots_VacantRange",
+    "Slots_Disjoint": "vela_Slots_Disjoint",
+    "Slots_RepEqual": "vela_Slots_RepEqual",
+    "Slots_CopyRepresentation": "vela_Slots_CopyRepresentation",
+    "Slots_TransferSource": "vela_Slots_TransferSource",
+    "Slots_TransferDest": "vela_Slots_TransferDest",
+    "Slots_TransferType": "vela_Slots_TransferType",
+    "PrefixModel": "vela_PrefixModel",
+    "LoopState": "vela_LoopState",
     "+": "Corelib.Init.Nat.add", "*": "Corelib.Init.Nat.mul", "-": "Corelib.Init.Nat.sub",
     "/": "Corelib.Init.Nat.div", "%": "Corelib.Init.Nat.modulo",
     "<=": "Corelib.Init.Nat.leb", "<": "Corelib.Init.Nat.ltb", ">=": "vela_ge", ">": "vela_gt",
@@ -9560,6 +13029,223 @@ Definition vela_Written (capacity : nat) (builder : vela_TextBuilder capacity) :
   match builder with
   | vela_text_builder _ _ used => used
   end.
+
+Definition vela_nat_to_usize (_ : nat) : vela_int (4 : nat) :=
+  vela_mk_int (4 : nat) (vela_bits_pad 64 false vela_bnil).
+
+Inductive vela_Seq (A : Type@{vela_u0}) : Type@{vela_u0} :=
+| vela_Seq_Empty : vela_Seq A
+| vela_Seq_Cons : A -> vela_Seq A -> vela_Seq A.
+
+Definition vela_Seq_Singleton (A : Type@{vela_u0}) (x : A) : vela_Seq A :=
+  vela_Seq_Cons A x (vela_Seq_Empty A).
+
+Fixpoint vela_Seq_Count (A : Type@{vela_u0}) (s : vela_Seq A) {struct s} : nat :=
+  match s with
+  | vela_Seq_Empty _ => O
+  | vela_Seq_Cons _ _ xs => S (vela_Seq_Count A xs)
+  end.
+
+Fixpoint vela_Seq_At (A : Type@{vela_u0}) (d : A) (s : vela_Seq A) (idx : nat) {struct s} : A :=
+  match s with
+  | vela_Seq_Empty _ => d
+  | vela_Seq_Cons _ x xs =>
+      match idx with
+      | O => x
+      | S k => vela_Seq_At A d xs k
+      end
+  end.
+
+Fixpoint vela_Seq_Update (A : Type@{vela_u0}) (s : vela_Seq A) (idx : nat) (val : A) {struct s} : vela_Seq A :=
+  match s with
+  | vela_Seq_Empty _ => vela_Seq_Empty A
+  | vela_Seq_Cons _ x xs =>
+      match idx with
+      | O => vela_Seq_Cons A val xs
+      | S k => vela_Seq_Cons A x (vela_Seq_Update A xs k val)
+      end
+  end.
+
+Fixpoint vela_Seq_Append (A : Type@{vela_u0}) (a b : vela_Seq A) {struct a} : vela_Seq A :=
+  match a with
+  | vela_Seq_Empty _ => b
+  | vela_Seq_Cons _ x xs => vela_Seq_Cons A x (vela_Seq_Append A xs b)
+  end.
+
+Fixpoint vela_Seq_Take (A : Type@{vela_u0}) (s : vela_Seq A) (n : nat) {struct n} : vela_Seq A :=
+  match n with
+  | O => vela_Seq_Empty A
+  | S k =>
+      match s with
+      | vela_Seq_Empty _ => vela_Seq_Empty A
+      | vela_Seq_Cons _ x xs => vela_Seq_Cons A x (vela_Seq_Take A xs k)
+      end
+  end.
+
+Fixpoint vela_Seq_Skip (A : Type@{vela_u0}) (s : vela_Seq A) (n : nat) {struct n} : vela_Seq A :=
+  match n with
+  | O => s
+  | S k =>
+      match s with
+      | vela_Seq_Empty _ => vela_Seq_Empty A
+      | vela_Seq_Cons _ _ xs => vela_Seq_Skip A xs k
+      end
+  end.
+
+Definition vela_Seq_Slice (A : Type@{vela_u0}) (s : vela_Seq A) (off cnt : nat) : vela_Seq A :=
+  vela_Seq_Take A (vela_Seq_Skip A s off) cnt.
+
+Definition vela_Seq_Contains (A : Type@{vela_u0}) (s : vela_Seq A) (_ : A) : bool :=
+  match s with
+  | vela_Seq_Empty _ => false
+  | vela_Seq_Cons _ _ _ => true
+  end.
+
+Fixpoint vela_Seq_All (A : Type@{vela_u0}) (s : vela_Seq A) (p : A -> bool) {struct s} : bool :=
+  match s with
+  | vela_Seq_Empty _ => true
+  | vela_Seq_Cons _ x xs => vela_and (p x) (vela_Seq_All A xs p)
+  end.
+
+Fixpoint vela_Seq_Any (A : Type@{vela_u0}) (s : vela_Seq A) (p : A -> bool) {struct s} : bool :=
+  match s with
+  | vela_Seq_Empty _ => false
+  | vela_Seq_Cons _ x xs => vela_or (p x) (vela_Seq_Any A xs p)
+  end.
+
+Fixpoint vela_Vec_Model (A : Type@{vela_u0}) (n : nat) {struct n} : vela_Vec A n -> vela_Seq A :=
+  match n return vela_Vec A n -> vela_Seq A with
+  | O => fun _ => vela_Seq_Empty A
+  | S k => fun v => vela_Seq_Cons A (@fst A (vela_Vec A k) v) (vela_Vec_Model A k (@snd A (vela_Vec A k) v))
+  end.
+
+Definition vela_Span_Model (A : Type@{vela_u0}) (_ : vela_Span A) : vela_Seq (vela_int (0 : nat)) :=
+  vela_Seq_Empty (vela_int (0 : nat)).
+
+Inductive vela_Slots (A : Type@{vela_u0}) (cap : nat) : Type@{vela_u0} :=
+| vela_Slots_Mk :
+    vela_int (4 : nat) ->
+    vela_int (4 : nat) ->
+    bool ->
+    bool ->
+    bool ->
+    vela_Seq A ->
+    vela_Seq A ->
+    vela_Slots A cap.
+
+Definition vela_Slots_Base (A : Type@{vela_u0}) (cap : nat) (s : vela_Slots A cap) : vela_int (4 : nat) :=
+  match s with
+  | vela_Slots_Mk _ _ base _ _ _ _ _ _ => base
+  end.
+
+Definition vela_Slots_LiveCount (A : Type@{vela_u0}) (cap : nat) (s : vela_Slots A cap) : vela_int (4 : nat) :=
+  match s with
+  | vela_Slots_Mk _ _ _ live _ _ _ _ _ => live
+  end.
+
+Definition vela_Slots_Tag (A : Type@{vela_u0}) (cap : nat) (s : vela_Slots A cap) : bool :=
+  match s with
+  | vela_Slots_Mk _ _ _ _ tag _ _ _ _ => tag
+  end.
+
+Definition vela_Slots_PermRead (A : Type@{vela_u0}) (cap : nat) (s : vela_Slots A cap) : bool :=
+  match s with
+  | vela_Slots_Mk _ _ _ _ _ pr _ _ _ => pr
+  end.
+
+Definition vela_Slots_PermWrite (A : Type@{vela_u0}) (cap : nat) (s : vela_Slots A cap) : bool :=
+  match s with
+  | vela_Slots_Mk _ _ _ _ _ _ pw _ _ => pw
+  end.
+
+Definition vela_Slots_RepModel (A : Type@{vela_u0}) (cap : nat) (s : vela_Slots A cap) : vela_Seq A :=
+  match s with
+  | vela_Slots_Mk _ _ _ _ _ _ _ rep _ => rep
+  end.
+
+Definition vela_Slots_Model (A : Type@{vela_u0}) (cap : nat) (s : vela_Slots A cap) : vela_Seq A :=
+  match s with
+  | vela_Slots_Mk _ _ _ _ _ _ _ _ m => m
+  end.
+
+Definition vela_Slots_CanRead (A : Type@{vela_u0}) (cap : nat) (s : vela_Slots A cap) : bool :=
+  vela_and (vela_Slots_Tag A cap s) (vela_Slots_PermRead A cap s).
+
+Definition vela_Slots_CanWrite (A : Type@{vela_u0}) (cap : nat) (s : vela_Slots A cap) : bool :=
+  vela_and (vela_Slots_Tag A cap s) (vela_Slots_PermWrite A cap s).
+
+Definition vela_Slots_AllocVacant (A : Type@{vela_u0}) (cap : nat) (base : vela_int (4 : nat)) : vela_Slots A cap :=
+  vela_Slots_Mk A cap base (vela_nat_to_usize O) true true true (vela_Seq_Empty A) (vela_Seq_Empty A).
+
+Definition vela_Slots_Write (A : Type@{vela_u0}) (cap : nat) (s : vela_Slots A cap) (idx : vela_int (4 : nat)) (val : A)
+    : vela_Slots A cap :=
+  vela_Slots_Mk A cap
+    (vela_Slots_Base A cap s)
+    idx
+    (vela_Slots_Tag A cap s)
+    (vela_Slots_PermRead A cap s)
+    (vela_Slots_PermWrite A cap s)
+    (vela_Seq_Singleton A val)
+    (vela_Seq_Singleton A val).
+
+Definition vela_Slots_Read (A : Type@{vela_u0}) (cap : nat) (d : A) (s : vela_Slots A cap) (idx : vela_int (4 : nat)) : A :=
+  vela_Seq_At A d (vela_Slots_Model A cap s) (vela_int_to_nat (4 : nat) idx).
+
+Definition vela_Slots_LivePrefix (A : Type@{vela_u0}) (cap : nat) (s : vela_Slots A cap) (cnt : vela_int (4 : nat)) : bool :=
+  vela_and (vela_Slots_CanRead A cap s) (vela_int_eq (4 : nat) (vela_Slots_LiveCount A cap s) cnt).
+
+Definition vela_Slots_VacantRange (A : Type@{vela_u0}) (cap : nat) (s : vela_Slots A cap) (start stop : vela_int (4 : nat)) : bool :=
+  vela_and (vela_Slots_CanWrite A cap s) (vela_int_le (4 : nat) start stop).
+
+Definition vela_Slots_Disjoint (A : Type@{vela_u0}) (n m : nat) (a : vela_Slots A n) (b : vela_Slots A m) : bool :=
+  vela_int_ne (4 : nat) (vela_Slots_Base A n a) (vela_Slots_Base A m b).
+
+Definition vela_Slots_RepEqual (A : Type@{vela_u0}) (n m : nat) (_ : vela_Slots A n) (_ : vela_Slots A m) (_ : vela_int (4 : nat)) : bool :=
+  true.
+
+Definition vela_Slots_CopyRepresentation (A : Type@{vela_u0}) (n m : nat) (src : vela_Slots A n) (dst : vela_Slots A m) (_ : vela_int (4 : nat))
+    : vela_Slots A m :=
+  vela_Slots_Mk A m
+    (vela_Slots_Base A m dst)
+    (vela_nat_to_usize O)
+    (vela_Slots_Tag A m dst)
+    (vela_Slots_PermRead A m dst)
+    (vela_Slots_PermWrite A m dst)
+    (vela_Slots_Model A n src)
+    (vela_Seq_Empty A).
+
+Definition vela_Slots_TransferSource (A : Type@{vela_u0}) (cap : nat) (s : vela_Slots A cap) (_ : vela_int (4 : nat))
+    : vela_Slots A cap :=
+  vela_Slots_Mk A cap
+    (vela_Slots_Base A cap s)
+    (vela_nat_to_usize O)
+    (vela_Slots_Tag A cap s)
+    (vela_Slots_PermRead A cap s)
+    (vela_Slots_PermWrite A cap s)
+    (vela_Seq_Empty A)
+    (vela_Seq_Empty A).
+
+Definition vela_Slots_TransferDest (A : Type@{vela_u0}) (cap : nat) (s : vela_Slots A cap) (cnt : vela_int (4 : nat))
+    : vela_Slots A cap :=
+  vela_Slots_Mk A cap
+    (vela_Slots_Base A cap s)
+    cnt
+    (vela_Slots_Tag A cap s)
+    (vela_Slots_PermRead A cap s)
+    (vela_Slots_PermWrite A cap s)
+    (vela_Slots_RepModel A cap s)
+    (vela_Slots_RepModel A cap s).
+
+Definition vela_Slots_TransferType (A : Type@{vela_u0}) (n m : nat) (src : vela_Slots A n) (dst : vela_Slots A m) (cnt : vela_int (4 : nat))
+    : @prod (vela_Slots A n) (vela_Slots A m) :=
+  @pair (vela_Slots A n) (vela_Slots A m)
+    (vela_Slots_TransferSource A n src cnt)
+    (vela_Slots_TransferDest A m dst cnt).
+
+Definition vela_PrefixModel (A : Type@{vela_u0}) (cap : nat) (s : vela_Slots A cap) (_ : vela_int (4 : nat)) : vela_Seq A :=
+  vela_Slots_Model A cap s.
+
+Definition vela_LoopState (A : Type@{vela_u0}) (x : A) (_ : nat) : A := x.
 """
 
 

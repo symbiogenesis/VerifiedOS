@@ -30,7 +30,6 @@ remain available for generic values and disambiguation. The
 [familiar authoring migration](surface-grammar.md#familiar-authoring-migration)
 binds each accepted spelling to exact source bytes. Native syntax and local
 consumer agreement supply no hosted kernel or source-correspondence verdict.
-Collection loops parse but remain unsupported by this mathematical consumer.
 
 The supported increment includes:
 
@@ -152,6 +151,27 @@ The supported increment includes:
   together with `requires`, `ensures` (with `result` bound to the body) and
   `restores param` contract obligations on `definition` and `function`
   declarations for the [first-slice qualification](first-release.md#first-slice-qualification).
+- Pure sequence vocabulary (`Seq<T>`, `Seq.Empty`, `Seq.Singleton`, `.Count`,
+  `.At`, `.Update`, `.Append`, `.Take`, `.Skip`, `.Slice`, `.Contains`, `.All`
+  and `.Any`), `.Model` domain views on `Vec<T, n>`, `Span<byte>`,
+  `Slots<T, capacity>` and `Seq<T>`, and pre-state `old(...)` expressions inside
+  callable contracts.
+- Mutable local bindings (`var`, `var` pattern bindings and `var ... else`),
+  assignments (`=`, `+=`, `-=`, `*=`, `/=`, `%=`) to mutable variables and
+  record fields, non-terminal `if` state threading, and bounded range
+  (`foreach (let i in start..end)`) and collection
+  (`foreach (let | in | ref x in coll)`) loops with `invariant` verification,
+  `break`, `continue` and collection-freeze checks.
+- Named and unnamed `record` invariants (`invariant [Clause:] expr`), verified
+  on construction, `with` updates and field mutations, together with selective
+  invariant lifting (`scope (ref target, ...) lifts Clause, ... { ... }`) that
+  refuses target escape or early exit until lifted clauses are restored at scope
+  exit.
+- Vacant-slot storage (`Slots<T, capacity>`, `Slots.AllocVacant`, `Slots.Write`,
+  `Slots.Read`, `Slots.Disjoint`, `Slots.RepEqual`, `LivePrefix`,
+  `VacantRange`, `VacantSuffix` and `PrefixModel`) and two-step bulk relocation
+  (`CopyRepresentation` followed by `TransferType<T>`) with capacity-independent
+  region verification.
 
 Source callable interfaces preserve explicit arity: `Fn() -> Unit` and
 `Fn(Unit value) -> Unit` require different calls and lambda parameter lists even

@@ -171,14 +171,20 @@ class _Fixture:
                                            modifiers=["public"]))
 
     def function(self, name: str, result: Form, parameters: tuple[Parameter, ...], value: Form,
-                 *, arrow: bool = True, block: bool = False, constant: bool = False) -> None:
+                 *, arrow: bool = True, block: bool = False, constant: bool = False,
+                 generics: tuple[Generic, ...] = (), contracts: tuple[Form, ...] = ()) -> None:
         self.write("\n")
         start = self.offset
         self.write("public const " if constant else "public ")
         annotation = result(self)
         self.write(" ")
         binding = self.name(name)
+        generic_nodes = self.generics(generics)
         parameter_nodes = self.parameters(parameters)
+        obligations: list[Node] = []
+        for contract in contracts:
+            self.write(" ")
+            obligations.append(contract(self))
         self.write(" ")
         body_start = self.offset
         if block:
@@ -198,7 +204,8 @@ class _Fixture:
             self.write(" }")
             body = self.node("block", body_start, statements=[terminal])
         self.declarations.append(self.node("function", start, name=binding, result=annotation,
-                                           generics=[], parameters=parameter_nodes, contracts=[],
+                                           generics=generic_nodes, parameters=parameter_nodes,
+                                           contracts=obligations,
                                            body=body, cancel=None, modifiers=["public", "const"] if constant else ["public"]))
 
     def alias(self, name: str, value_type: Form, generics: tuple[Generic, ...] = ()) -> None:
@@ -228,13 +235,18 @@ class _Fixture:
 
     def record(self, name: str, parameters: tuple[Parameter, ...],
                properties: tuple[tuple[str, Form, Form], ...] = (),
-               generics: tuple[Generic, ...] = ()) -> None:
+               generics: tuple[Generic, ...] = (),
+               contracts: tuple[Form, ...] = ()) -> None:
         self.write("\n")
         start = self.offset
         self.write("public record ")
         binding = self.name(name)
         generic_nodes = self.generics(generics)
         parameter_nodes = self.parameters(parameters)
+        obligations: list[Node] = []
+        for contract in contracts:
+            self.write(" ")
+            obligations.append(contract(self))
         member_nodes: list[Node] = []
         if properties:
             self.write(" {")
@@ -257,7 +269,7 @@ class _Fixture:
             self.write(";")
         self.declarations.append(
             self.node("record", start, name=binding, generics=generic_nodes,
-                      parameters=parameter_nodes, contracts=[], declarations=member_nodes,
+                      parameters=parameter_nodes, contracts=obligations, declarations=member_nodes,
                       modifiers=["public"])
         )
 
@@ -3246,6 +3258,960 @@ def _represented_integers_and_conversions() -> None:
     _refuses(no_import, "name", "int")
 
 
+def _invariant_contract(value: Form, clause_name: str | None = None) -> Form:
+    def form(fixture: _Fixture) -> Node:
+        start = fixture.offset
+        fixture.write("invariant ")
+        name_node = None
+        if clause_name is not None:
+            name_node = fixture.name(clause_name)
+            fixture.write(": ")
+        val_node = value(fixture)
+        if name_node is not None:
+            return fixture.node("contract", start, role="invariant", name=name_node, value=val_node)
+        return fixture.node("contract", start, role="invariant", value=val_node)
+    return form
+
+
+def _block_stmts(*statements: Form) -> Form:
+    def form(fixture: _Fixture) -> Node:
+        start = fixture.offset
+        fixture.write("{ ")
+        stmt_nodes: list[Node] = []
+        for index, stmt in enumerate(statements):
+            if index:
+                fixture.write(" ")
+            stmt_nodes.append(stmt(fixture))
+        fixture.write(" }")
+        return fixture.node("block", start, statements=stmt_nodes)
+    return form
+
+
+def _return_stmt(value: Form | None = None) -> Form:
+    def form(fixture: _Fixture) -> Node:
+        start = fixture.offset
+        fixture.write("return")
+        val_node = None
+        if value is not None:
+            fixture.write(" ")
+            val_node = value(fixture)
+        fixture.write(";")
+        return fixture.node("return", start, value=val_node)
+    return form
+
+
+def _let_stmt(name: str, value: Form, value_type: Form | None = None) -> Form:
+    def form(fixture: _Fixture) -> Node:
+        start = fixture.offset
+        fixture.write("let ")
+        type_node = None
+        if value_type is not None:
+            type_node = value_type(fixture)
+            fixture.write(" ")
+        binding = fixture.name(name)
+        fixture.write(" = ")
+        val_node = value(fixture)
+        fixture.write(";")
+        return fixture.node("let", start, name=binding, type=type_node, grade=None, value=val_node)
+    return form
+
+
+def _var_stmt(name: str, value: Form, value_type: Form | None = None) -> Form:
+    def form(fixture: _Fixture) -> Node:
+        start = fixture.offset
+        fixture.write("var ")
+        type_node = None
+        if value_type is not None:
+            type_node = value_type(fixture)
+            fixture.write(" ")
+        binding = fixture.name(name)
+        fixture.write(" = ")
+        val_node = value(fixture)
+        fixture.write(";")
+        return fixture.node("var", start, name=binding, type=type_node, grade=None, value=val_node)
+    return form
+
+
+def _assign_stmt(target: Form, operator: str, value: Form) -> Form:
+    def form(fixture: _Fixture) -> Node:
+        start = fixture.offset
+        tgt_node = target(fixture)
+        fixture.write(" ")
+        op_node = fixture.name(operator)
+        fixture.write(" ")
+        val_node = value(fixture)
+        fixture.write(";")
+        return fixture.node("assignment", start, target=tgt_node, operator=op_node, value=val_node)
+    return form
+
+
+def _expr_stmt(value: Form) -> Form:
+    def form(fixture: _Fixture) -> Node:
+        start = fixture.offset
+        val_node = value(fixture)
+        fixture.write(";")
+        return fixture.node("expression_statement", start, value=val_node)
+    return form
+
+
+def _if_stmt(condition: Form, then_blk: Form, else_blk: Form | None = None) -> Form:
+    def form(fixture: _Fixture) -> Node:
+        start = fixture.offset
+        fixture.write("if (")
+        cond_node = condition(fixture)
+        fixture.write(") ")
+        then_node = then_blk(fixture)
+        else_node = None
+        if else_blk is not None:
+            fixture.write(" else ")
+            else_node = else_blk(fixture)
+        return fixture.node("if", start, condition=cond_node, **{"then": then_node, "else": else_node})
+    return form
+
+
+def _break_stmt() -> Form:
+    def form(fixture: _Fixture) -> Node:
+        start = fixture.offset
+        fixture.write("break;")
+        return fixture.node("break", start)
+    return form
+
+
+def _continue_stmt() -> Form:
+    def form(fixture: _Fixture) -> Node:
+        start = fixture.offset
+        fixture.write("continue;")
+        return fixture.node("continue", start)
+    return form
+
+
+def _foreach_range(var_name: str, start_expr: Form, end_expr: Form,
+                   body_stmts: tuple[Form, ...], contracts: tuple[Form, ...] = ()) -> Form:
+    def form(fixture: _Fixture) -> Node:
+        start = fixture.offset
+        fixture.write("foreach (let ")
+        name_node = fixture.name(var_name)
+        fixture.write(" in ")
+        rstart = fixture.offset
+        s_node = start_expr(fixture)
+        fixture.write("..")
+        e_node = end_expr(fixture)
+        range_node: Node = {"kind": "range", "span": [rstart, fixture.offset], "start": s_node, "end": e_node}
+        fixture.write(")")
+        contract_nodes: list[Node] = []
+        for contract in contracts:
+            fixture.write(" ")
+            contract_nodes.append(contract(fixture))
+        fixture.write(" ")
+        body_node = _block_stmts(*body_stmts)(fixture)
+        return fixture.node("foreach", start, name=name_node, range=range_node,
+                            contracts=contract_nodes, body=body_node)
+    return form
+
+
+def _foreach_coll(mode: str, var_name: str, collection: Form, body_stmts: tuple[Form, ...],
+                  *, item_type: Form | None = None, contracts: tuple[Form, ...] = ()) -> Form:
+    def form(fixture: _Fixture) -> Node:
+        start = fixture.offset
+        fixture.write("foreach (")
+        fixture.write("let " if mode == "value" else f"{mode} ")
+        type_node = None
+        if item_type is not None:
+            type_node = item_type(fixture)
+            fixture.write(" ")
+        name_node = fixture.name(var_name)
+        fixture.write(" in ")
+        coll_node = collection(fixture)
+        fixture.write(")")
+        contract_nodes: list[Node] = []
+        for contract in contracts:
+            fixture.write(" ")
+            contract_nodes.append(contract(fixture))
+        fixture.write(" ")
+        body_node = _block_stmts(*body_stmts)(fixture)
+        return fixture.node("foreach_collection", start, mode=mode, type=type_node,
+                            name=name_node, collection=coll_node,
+                            contracts=contract_nodes, body=body_node)
+    return form
+
+
+def _scope_lifts(resources: tuple[Form, ...], lifts: tuple[str, ...],
+                 body_stmts: tuple[Form, ...]) -> Form:
+    def form(fixture: _Fixture) -> Node:
+        start = fixture.offset
+        fixture.write("scope (")
+        res_nodes = fixture.forms(resources)
+        fixture.write(")")
+        lift_nodes: list[Node] = []
+        if lifts:
+            fixture.write(" lifts ")
+            for index, lift_name in enumerate(lifts):
+                if index:
+                    fixture.write(", ")
+                lift_nodes.append(fixture.name(lift_name))
+        fixture.write(" ")
+        body_node = _block_stmts(*body_stmts)(fixture)
+        if lifts:
+            return fixture.node("scope", start, resources=res_nodes, lifts=lift_nodes, body=body_node)
+        return fixture.node("scope", start, resources=res_nodes, body=body_node)
+    return form
+
+
+def _pure_sequences_and_model_reasoning() -> None:
+    fixture = _Fixture("Sequences")
+    fixture.definition(
+        "BuildSeq",
+        _type("Seq", _type("u32")),
+        (),
+        _call(
+            _member(
+                _call(
+                    _member(_call(_member(_variable("Seq"), "Singleton"), _int_lit("10", "u32")), "Append"),
+                    _call(
+                        _member(_call(_member(_variable("Seq"), "Empty"), generics=(_type("u32"),)), "Append"),
+                        _call(_member(_variable("Seq"), "Singleton"), _int_lit("20", "u32")),
+                    ),
+                ),
+                "Update",
+            ),
+            _natural(1),
+            _int_lit("30", "u32"),
+        ),
+    )
+    fixture.theorem(
+        "SeqOpsCheck",
+        (),
+        _binary(
+            "==",
+            _binary(
+                "&&",
+                _binary(
+                    "&&",
+                    _binary("==", _member(_call("BuildSeq"), "Count"), _natural(2)),
+                    _binary("==", _call(_member(_call("BuildSeq"), "At"), _natural(1)), _int_lit("30", "u32")),
+                ),
+                _binary(
+                    "&&",
+                    _call(_member(_call("BuildSeq"), "Contains"), _int_lit("10", "u32")),
+                    _binary(
+                        "&&",
+                        _call(
+                            _member(_call("BuildSeq"), "All"),
+                            _inferred_lambda(("x",), _binary(">=", _variable("x"), _int_lit("10", "u32")), bare=True),
+                        ),
+                        _call(
+                            _member(_call("BuildSeq"), "Any"),
+                            _inferred_lambda(("x",), _binary("==", _variable("x"), _int_lit("30", "u32")), bare=True),
+                        ),
+                    ),
+                ),
+            ),
+            _boolean(True),
+        ),
+        _assert(
+            _binary(
+                "==",
+                _binary(
+                    "&&",
+                    _binary(
+                        "&&",
+                        _binary("==", _member(_call("BuildSeq"), "Count"), _natural(2)),
+                        _binary("==", _call(_member(_call("BuildSeq"), "At"), _natural(1)), _int_lit("30", "u32")),
+                    ),
+                    _binary(
+                        "&&",
+                        _call(_member(_call("BuildSeq"), "Contains"), _int_lit("10", "u32")),
+                        _binary(
+                            "&&",
+                            _call(
+                                _member(_call("BuildSeq"), "All"),
+                                _inferred_lambda(("x",), _binary(">=", _variable("x"), _int_lit("10", "u32")), bare=True),
+                            ),
+                            _call(
+                                _member(_call("BuildSeq"), "Any"),
+                                _inferred_lambda(("x",), _binary("==", _variable("x"), _int_lit("30", "u32")), bare=True),
+                            ),
+                        ),
+                    ),
+                ),
+                _boolean(True),
+            )
+        ),
+    )
+    fixture.theorem(
+        "SeqSliceCheck",
+        (),
+        _binary(
+            "==",
+            _call(
+                _member(
+                    _call(_member(_call(_member(_call("BuildSeq"), "Take"), _natural(2)), "Skip"), _natural(1)),
+                    "Slice",
+                ),
+                _natural(0),
+                _natural(1),
+            ),
+            _call(_member(_variable("Seq"), "Singleton"), _int_lit("30", "u32")),
+        ),
+        _assert(
+            _binary(
+                "==",
+                _call(
+                    _member(
+                        _call(_member(_call(_member(_call("BuildSeq"), "Take"), _natural(2)), "Skip"), _natural(1)),
+                        "Slice",
+                    ),
+                    _natural(0),
+                    _natural(1),
+                ),
+                _call(_member(_variable("Seq"), "Singleton"), _int_lit("30", "u32")),
+            )
+        ),
+    )
+    fixture.theorem(
+        "VecModelCheck",
+        (),
+        _binary(
+            "==",
+            _member(_call("VCons", _int_lit("7", "u32"), _call("VNil", generics=(_type("u32"),))), "Model"),
+            _call(_member(_variable("Seq"), "Singleton"), _int_lit("7", "u32")),
+        ),
+        _assert(
+            _binary(
+                "==",
+                _member(_call("VCons", _int_lit("7", "u32"), _call("VNil", generics=(_type("u32"),))), "Model"),
+                _call(_member(_variable("Seq"), "Singleton"), _int_lit("7", "u32")),
+            )
+        ),
+    )
+    fixture.function(
+        "MutateSpanFirst",
+        _type("Unit"),
+        (("s", _modified("ref", _type("Span", _type("byte")))),),
+        _block_stmts(
+            _expr_stmt(_call(_member(_variable("Span"), "Write"), _ref_arg(_variable("s")), _int_lit("0", "usize"), _int_lit("99", "byte"))),
+            _return_stmt(_unit()),
+        ),
+        block=True,
+        contracts=(
+            _contract("requires", _member(_variable("s"), "CanRead")),
+            _contract("requires", _member(_variable("s"), "CanWrite")),
+            _contract("requires", _binary(">", _member(_variable("s"), "Length"), _int_lit("0", "usize"))),
+            _contract(
+                "ensures",
+                _binary(
+                    "==",
+                    _member(_variable("s"), "Model"),
+                    _call(_member(_call("old", _member(_variable("s"), "Model")), "Update"), _natural(0), _int_lit("99", "byte")),
+                ),
+            ),
+        ),
+    )
+    source, response = fixture.response()
+    emitted = elaborate(source, response).gallina
+    ensure("Inductive vela_Seq" in emitted and "vela_Seq_Update" in emitted,
+           "elaborated Gallina omitted Seq definitions")
+
+    oob = _Fixture("SeqAtOutOfBounds")
+    oob.definition(
+        "BadAt",
+        _type("u32"),
+        (("s", _type("Seq", _type("u32"))),),
+        _call(_member(_variable("s"), "At"), _natural(0)),
+    )
+    _refuses(oob, "type", "Seq.Count bounds")
+
+    old_outside = _Fixture("OldOutsideCallable")
+    old_outside.constant("BadOld", _NAT, _call("old", _natural(1)))
+    _refuses(old_outside, "type", "old")
+
+    bad_pred = _Fixture("SeqAllNonPredicate")
+    bad_pred.definition(
+        "BadAll",
+        _BOOL,
+        (("s", _type("Seq", _type("u32"))),),
+        _call(_member(_variable("s"), "All"), _natural(0)),
+    )
+    _refuses(bad_pred, "type", "not definitionally equal")
+
+
+def _mutable_locals_assignments_and_bounded_loops() -> None:
+    fixture = _Fixture("LoopsAndLocals")
+    fixture.record("Tally", (("Count", _type("usize")), ("Total", _type("u32"))))
+    fixture.function(
+        "AccumulateRange",
+        _type("usize"),
+        (),
+        _block_stmts(
+            _var_stmt("t", _call("Tally", _int_lit("0", "usize"), _int_lit("0", "u32"))),
+            _foreach_range(
+                "i",
+                _int_lit("0", "usize"),
+                _int_lit("4", "usize"),
+                (
+                    _if_stmt(
+                        _binary("==", _variable("i"), _int_lit("1", "usize")),
+                        _block_stmts(_continue_stmt()),
+                    ),
+                    _assign_stmt(_member(_variable("t"), "Count"), "+=", _int_lit("1", "usize")),
+                    _if_stmt(
+                        _binary("==", _variable("i"), _int_lit("2", "usize")),
+                        _block_stmts(_break_stmt()),
+                    ),
+                ),
+            ),
+            _return_stmt(_member(_variable("t"), "Count")),
+        ),
+        block=True,
+        contracts=(_contract("ensures", _binary("==", _variable("result"), _int_lit("2", "usize"))),),
+    )
+    fixture.function(
+        "SumVec",
+        _type("u32"),
+        (("items", _type("Vec", _type("u32"), _natural(3))),),
+        _block_stmts(
+            _var_stmt("acc", _int_lit("0", "u32")),
+            _foreach_coll(
+                "value",
+                "x",
+                _variable("items"),
+                (_assign_stmt(_variable("acc"), "=", _call(_member(_variable("acc"), "WrappingAdd"), _variable("x"))),),
+            ),
+            _return_stmt(_variable("acc")),
+        ),
+        block=True,
+    )
+    fixture.function(
+        "ZeroAndCountSpan",
+        _type("usize"),
+        (),
+        _block_stmts(
+            _var_stmt("buf", _call(_member(_variable("Span"), "AllocZeroed"), _int_lit("3", "usize"))),
+            _foreach_coll(
+                "ref",
+                "b",
+                _variable("buf"),
+                (_assign_stmt(_variable("b"), "=", _int_lit("7", "byte")),),
+            ),
+            _var_stmt("sevens", _int_lit("0", "usize")),
+            _foreach_coll(
+                "in",
+                "b",
+                _variable("buf"),
+                (
+                    _if_stmt(
+                        _binary("==", _variable("b"), _int_lit("7", "byte")),
+                        _block_stmts(_assign_stmt(_variable("sevens"), "=", _call(_member(_variable("sevens"), "WrappingAdd"), _int_lit("1", "usize")))),
+                    ),
+                ),
+            ),
+            _return_stmt(_variable("sevens")),
+        ),
+        block=True,
+        contracts=(_contract("ensures", _binary("==", _variable("result"), _int_lit("3", "usize"))),),
+    )
+    fixture.function(
+        "CheckAllNonZero",
+        _BOOL,
+        (("s", _modified("in", _type("Span", _type("byte")))), ("n", _type("usize"))),
+        _block_stmts(
+            _var_stmt("ok", _boolean(True)),
+            _foreach_range(
+                "i",
+                _int_lit("0", "usize"),
+                _variable("n"),
+                (
+                    _let_stmt("v", _call(_member(_variable("Span"), "Read"), _variable("s"), _variable("i"))),
+                    _if_stmt(
+                        _binary("==", _variable("v"), _int_lit("0", "byte")),
+                        _block_stmts(_assign_stmt(_variable("ok"), "=", _boolean(False))),
+                    ),
+                ),
+                contracts=(
+                    _invariant_contract(
+                        _binary(
+                            "==>",
+                            _variable("ok"),
+                            _call(
+                                _member(_call(_member(_member(_variable("s"), "Model"), "Take"), _call("Nat", _variable("i"))), "All"),
+                                _inferred_lambda(("b",), _binary("!=", _variable("b"), _int_lit("0", "byte")), bare=True),
+                            ),
+                        )
+                    ),
+                ),
+            ),
+            _return_stmt(_variable("ok")),
+        ),
+        block=True,
+        contracts=(
+            _contract("requires", _member(_variable("s"), "CanRead")),
+            _contract("requires", _binary("==", _member(_variable("s"), "Length"), _variable("n"))),
+            _contract(
+                "ensures",
+                _binary(
+                    "==>",
+                    _variable("result"),
+                    _call(
+                        _member(_member(_variable("s"), "Model"), "All"),
+                        _inferred_lambda(("b",), _binary("!=", _variable("b"), _int_lit("0", "byte")), bare=True),
+                    ),
+                ),
+            ),
+        ),
+    )
+    source, response = fixture.response()
+    elaborate(source, response)
+
+    assign_let = _Fixture("AssignImmutableLet")
+    assign_let.function(
+        "Bad",
+        _NAT,
+        (),
+        _block_stmts(
+            _let_stmt("x", _natural(1)),
+            _assign_stmt(_variable("x"), "=", _natural(2)),
+            _return_stmt(_variable("x")),
+        ),
+        block=True,
+    )
+    _refuses(assign_let, "type", "immutable")
+
+    assign_in_elem = _Fixture("AssignInForeachElem")
+    assign_in_elem.function(
+        "Bad",
+        _type("Unit"),
+        (("v", _type("Vec", _type("u32"), _natural(2))),),
+        _block_stmts(
+            _foreach_coll("in", "x", _variable("v"), (_assign_stmt(_variable("x"), "=", _int_lit("1", "u32")),)),
+            _return_stmt(_unit()),
+        ),
+        block=True,
+    )
+    _refuses(assign_in_elem, "type", "immutable")
+
+    mutate_frozen = _Fixture("MutateFrozenCollection")
+    mutate_frozen.function(
+        "Bad",
+        _type("Unit"),
+        (),
+        _block_stmts(
+            _var_stmt("buf", _call(_member(_variable("Span"), "AllocZeroed"), _int_lit("2", "usize"))),
+            _foreach_coll(
+                "in",
+                "b",
+                _variable("buf"),
+                (_expr_stmt(_call(_member(_variable("Span"), "Write"), _ref_arg(_variable("buf")), _int_lit("0", "usize"), _int_lit("1", "byte"))),),
+            ),
+            _return_stmt(_unit()),
+        ),
+        block=True,
+    )
+    _refuses(mutate_frozen, "type", "frozen")
+
+    break_outside = _Fixture("BreakOutsideLoop")
+    break_outside.function("Bad", _type("Unit"), (), _block_stmts(_break_stmt()), block=True)
+    _refuses(break_outside, "type", "inside a loop")
+
+    bad_loop_inv = _Fixture("UnprovedLoopInvariant")
+    bad_loop_inv.function(
+        "Bad",
+        _type("Unit"),
+        (("n", _type("usize")),),
+        _block_stmts(
+            _var_stmt("c", _int_lit("0", "usize")),
+            _foreach_range(
+                "i",
+                _int_lit("0", "usize"),
+                _variable("n"),
+                (),
+                contracts=(_invariant_contract(_binary("==", _variable("c"), _int_lit("1", "usize"))),),
+            ),
+            _return_stmt(_unit()),
+        ),
+        block=True,
+    )
+    _refuses(bad_loop_inv, "type", "loop invariant")
+
+
+def _record_invariants_and_selective_lifting() -> None:
+    fixture = _Fixture("RecordInvariants")
+    fixture.record(
+        "Window",
+        (("Low", _type("u32")), ("High", _type("u32")), ("SpanSize", _type("u32"))),
+        contracts=(
+            _invariant_contract(_binary("<=", _member(_variable("this"), "Low"), _member(_variable("this"), "High")), "Ordered"),
+            _invariant_contract(
+                _binary(
+                    "==",
+                    _member(_variable("this"), "SpanSize"),
+                    _call(_member(_member(_variable("this"), "High"), "WrappingSub"), _member(_variable("this"), "Low")),
+                ),
+                "ConsistentSpan",
+            ),
+            _invariant_contract(_binary("<=", _member(_variable("this"), "High"), _int_lit("1000", "u32"))),
+        ),
+    )
+    fixture.definition(
+        "MakeWindow",
+        _type("Window"),
+        (),
+        _call("Window", _int_lit("10", "u32"), _int_lit("30", "u32"), _int_lit("20", "u32")),
+    )
+    fixture.definition(
+        "ShiftHigh",
+        _type("Window"),
+        (),
+        _with_expr(_call("MakeWindow"), (("High", _int_lit("40", "u32")), ("SpanSize", _int_lit("30", "u32")))),
+    )
+    fixture.function(
+        "ObserveLowLeHigh",
+        _BOOL,
+        (("w", _type("Window")),),
+        _block_stmts(
+            _assert(_binary("<=", _member(_variable("w"), "Low"), _member(_variable("w"), "High"))),
+            _assert(_binary("<=", _member(_variable("w"), "High"), _int_lit("1000", "u32"))),
+            _return_stmt(_binary("<=", _member(_variable("w"), "Low"), _member(_variable("w"), "High"))),
+        ),
+        block=True,
+    )
+    fixture.function(
+        "AdjustWindowInPlace",
+        _type("Window"),
+        (("w", _type("Window")),),
+        _block_stmts(
+            _var_stmt("cur", _variable("w")),
+            _scope_lifts(
+                (_ref_arg(_variable("cur")),),
+                ("Ordered", "ConsistentSpan"),
+                (
+                    _assign_stmt(_member(_variable("cur"), "Low"), "=", _int_lit("50", "u32")),
+                    _assign_stmt(_member(_variable("cur"), "High"), "=", _int_lit("80", "u32")),
+                    _assign_stmt(
+                        _member(_variable("cur"), "SpanSize"),
+                        "=",
+                        _call(_member(_member(_variable("cur"), "High"), "WrappingSub"), _member(_variable("cur"), "Low")),
+                    ),
+                ),
+            ),
+            _assert(_binary("<=", _member(_variable("cur"), "Low"), _member(_variable("cur"), "High"))),
+            _return_stmt(_variable("cur")),
+        ),
+        block=True,
+    )
+    source, response = fixture.response()
+    elaborate(source, response)
+
+    bad_ctor = _Fixture("RecordInvariantBadCtor")
+    bad_ctor.record(
+        "Pair",
+        (("A", _type("u32")), ("B", _type("u32"))),
+        contracts=(_invariant_contract(_binary("<=", _member(_variable("this"), "A"), _member(_variable("this"), "B")), "Ordered"),),
+    )
+    bad_ctor.definition("Bad", _type("Pair"), (), _call("Pair", _int_lit("10", "u32"), _int_lit("5", "u32")))
+    _refuses(bad_ctor, "type", "Ordered")
+
+    bad_with = _Fixture("RecordInvariantBadWith")
+    bad_with.record(
+        "Pair",
+        (("A", _type("u32")), ("B", _type("u32"))),
+        contracts=(_invariant_contract(_binary("<=", _member(_variable("this"), "A"), _member(_variable("this"), "B")), "Ordered"),),
+    )
+    bad_with.definition(
+        "Bad",
+        _type("Pair"),
+        (),
+        _with_expr(_call("Pair", _int_lit("1", "u32"), _int_lit("5", "u32")), (("A", _int_lit("10", "u32")),)),
+    )
+    _refuses(bad_with, "type", "Ordered")
+
+    unlifted_violation = _Fixture("RecordUnliftedViolation")
+    unlifted_violation.record(
+        "Pair",
+        (("A", _type("u32")), ("B", _type("u32"))),
+        contracts=(_invariant_contract(_binary("<=", _member(_variable("this"), "A"), _member(_variable("this"), "B")), "Ordered"),),
+    )
+    unlifted_violation.function(
+        "Bad",
+        _type("Pair"),
+        (),
+        _block_stmts(
+            _var_stmt("p", _call("Pair", _int_lit("1", "u32"), _int_lit("5", "u32"))),
+            _assign_stmt(_member(_variable("p"), "A"), "=", _int_lit("10", "u32")),
+            _return_stmt(_variable("p")),
+        ),
+        block=True,
+    )
+    _refuses(unlifted_violation, "type", "Ordered")
+
+    unrestored_scope = _Fixture("RecordUnrestoredScope")
+    unrestored_scope.record(
+        "Pair",
+        (("A", _type("u32")), ("B", _type("u32"))),
+        contracts=(_invariant_contract(_binary("<=", _member(_variable("this"), "A"), _member(_variable("this"), "B")), "Ordered"),),
+    )
+    unrestored_scope.function(
+        "Bad",
+        _type("Pair"),
+        (),
+        _block_stmts(
+            _var_stmt("p", _call("Pair", _int_lit("1", "u32"), _int_lit("5", "u32"))),
+            _scope_lifts(
+                (_ref_arg(_variable("p")),),
+                ("Ordered",),
+                (_assign_stmt(_member(_variable("p"), "A"), "=", _int_lit("10", "u32")),),
+            ),
+            _return_stmt(_variable("p")),
+        ),
+        block=True,
+    )
+    _refuses(unrestored_scope, "type", "Ordered")
+
+    escape_call = _Fixture("RecordLiftedEscapeCall")
+    escape_call.record(
+        "Pair",
+        (("A", _type("u32")), ("B", _type("u32"))),
+        contracts=(_invariant_contract(_binary("<=", _member(_variable("this"), "A"), _member(_variable("this"), "B")), "Ordered"),),
+    )
+    escape_call.definition("ReadA", _type("u32"), (("p", _type("Pair")),), _member(_variable("p"), "A"))
+    escape_call.function(
+        "Bad",
+        _type("Pair"),
+        (),
+        _block_stmts(
+            _var_stmt("p", _call("Pair", _int_lit("1", "u32"), _int_lit("5", "u32"))),
+            _scope_lifts(
+                (_ref_arg(_variable("p")),),
+                ("Ordered",),
+                (_let_stmt("x", _call("ReadA", _variable("p"))),),
+            ),
+            _return_stmt(_variable("p")),
+        ),
+        block=True,
+    )
+    _refuses(escape_call, "type", "lifted")
+
+    unknown_clause = _Fixture("RecordUnknownLiftClause")
+    unknown_clause.record(
+        "Pair",
+        (("A", _type("u32")), ("B", _type("u32"))),
+        contracts=(_invariant_contract(_binary("<=", _member(_variable("this"), "A"), _member(_variable("this"), "B")), "Ordered"),),
+    )
+    unknown_clause.function(
+        "Bad",
+        _type("Pair"),
+        (),
+        _block_stmts(
+            _var_stmt("p", _call("Pair", _int_lit("1", "u32"), _int_lit("5", "u32"))),
+            _scope_lifts((_ref_arg(_variable("p")),), ("Missing",), ()),
+            _return_stmt(_variable("p")),
+        ),
+        block=True,
+    )
+    _refuses(unknown_clause, "name", "Missing")
+
+
+def _vacant_slots_and_two_step_relocation() -> None:
+    fixture = _Fixture("SlotsAndRelocation")
+    fixture.function(
+        "WriteAndReadTwo",
+        _type("u32"),
+        (),
+        _block_stmts(
+            _var_stmt("s", _call(_member(_variable("Slots"), "AllocVacant"), generics=(_type("u32"), _natural(4)))),
+            _expr_stmt(_call(_member(_variable("Slots"), "Write"), _ref_arg(_variable("s")), _int_lit("0", "usize"), _int_lit("11", "u32"))),
+            _expr_stmt(_call(_member(_variable("Slots"), "Write"), _ref_arg(_variable("s")), _int_lit("1", "usize"), _int_lit("22", "u32"))),
+            _assert(_call("LivePrefix", _variable("s"), _int_lit("2", "usize"))),
+            _assert(_call("VacantSuffix", _variable("s"), _int_lit("2", "usize"))),
+            _let_stmt("first", _call(_member(_variable("Slots"), "Read"), _variable("s"), _int_lit("0", "usize"))),
+            _let_stmt("second", _call(_member(_variable("Slots"), "Read"), _variable("s"), _int_lit("1", "usize"))),
+            _return_stmt(_call(_member(_variable("first"), "WrappingAdd"), _variable("second"))),
+        ),
+        block=True,
+        contracts=(_contract("ensures", _binary("==", _variable("result"), _int_lit("33", "u32"))),),
+    )
+    fixture.function(
+        "RelocatePrefix",
+        _type("Unit"),
+        (
+            ("dst", _modified("ref", _type("Slots", _T, _variable("M")))),
+            ("src", _modified("ref", _type("Slots", _T, _variable("N")))),
+            ("count", _type("usize")),
+        ),
+        _block_stmts(
+            _expr_stmt(
+                _call(
+                    "CopyRepresentation",
+                    _variable("src"),
+                    _ref_arg(_variable("dst")),
+                    _variable("count"),
+                )
+            ),
+            _expr_stmt(
+                _call(
+                    "TransferType",
+                    _ref_arg(_variable("src")),
+                    _ref_arg(_variable("dst")),
+                    _variable("count"),
+                    generics=(_T,),
+                )
+            ),
+            _return_stmt(_unit()),
+        ),
+        block=True,
+        generics=(("type", "T", None), ("ghost", "M", _type("usize")), ("ghost", "N", _type("usize"))),
+        contracts=(
+            _contract("requires", _call(_member(_variable("Slots"), "Disjoint"), _variable("dst"), _variable("src"))),
+            _contract("requires", _binary("<=", _variable("count"), _variable("N"))),
+            _contract("requires", _binary("<=", _variable("count"), _variable("M"))),
+            _contract("requires", _call("LivePrefix", _variable("src"), _variable("count"))),
+            _contract("requires", _call("VacantSuffix", _variable("src"), _variable("count"))),
+            _contract("requires", _call("VacantRange", _variable("dst"), _int_lit("0", "usize"), _variable("M"))),
+            _contract("ensures", _call("LivePrefix", _variable("dst"), _variable("count"))),
+            _contract("ensures", _call("VacantSuffix", _variable("dst"), _variable("count"))),
+            _contract("ensures", _call("VacantRange", _variable("src"), _int_lit("0", "usize"), _variable("N"))),
+            _contract(
+                "ensures",
+                _binary(
+                    "==",
+                    _call("PrefixModel", _variable("dst"), _variable("count")),
+                    _call("old", _call("PrefixModel", _variable("src"), _variable("count"))),
+                ),
+            ),
+        ),
+    )
+    source, response = fixture.response()
+    emitted = elaborate(source, response).gallina
+    ensure("Inductive vela_Slots" in emitted and "vela_Slots_TransferType" in emitted,
+           "elaborated Gallina omitted Slots definitions")
+
+    # Verify capacity invariance: N = 4usize vs N = 1_000_000_000usize take identical elaboration work
+    for cap_lit in ("4", "1000000000"):
+        cap_fix = _Fixture(f"SlotsCap_{cap_lit}")
+        cap_fix.function(
+            "RelocFixed",
+            _type("Unit"),
+            (
+                ("dst", _modified("ref", _type("Slots", _type("u32"), _int_lit(cap_lit, "usize")))),
+                ("src", _modified("ref", _type("Slots", _type("u32"), _int_lit(cap_lit, "usize")))),
+                ("count", _type("usize")),
+            ),
+            _block_stmts(
+                _expr_stmt(
+                    _call(
+                        "CopyRepresentation",
+                        _variable("src"),
+                        _ref_arg(_variable("dst")),
+                        _variable("count"),
+                    )
+                ),
+                _expr_stmt(
+                    _call(
+                        "TransferType",
+                        _ref_arg(_variable("src")),
+                        _ref_arg(_variable("dst")),
+                        _variable("count"),
+                        generics=(_type("u32"),),
+                    )
+                ),
+                _return_stmt(_unit()),
+            ),
+            block=True,
+            contracts=(
+                _contract("requires", _call(_member(_variable("Slots"), "Disjoint"), _variable("dst"), _variable("src"))),
+                _contract("requires", _binary("<=", _variable("count"), _int_lit(cap_lit, "usize"))),
+                _contract("requires", _call("LivePrefix", _variable("src"), _variable("count"))),
+                _contract("requires", _call("VacantRange", _variable("dst"), _int_lit("0", "usize"), _int_lit(cap_lit, "usize"))),
+                _contract("ensures", _call("LivePrefix", _variable("dst"), _variable("count"))),
+            ),
+        )
+        cs, cr = cap_fix.response()
+        elaborate(cs, cr)
+
+    read_vacant = _Fixture("SlotsReadVacant")
+    read_vacant.function(
+        "Bad",
+        _type("u32"),
+        (),
+        _block_stmts(
+            _var_stmt("s", _call(_member(_variable("Slots"), "AllocVacant"), generics=(_type("u32"), _natural(4)))),
+            _return_stmt(_call(_member(_variable("Slots"), "Read"), _variable("s"), _int_lit("0", "usize"))),
+        ),
+        block=True,
+    )
+    _refuses(read_vacant, "type", "LivePrefix")
+
+    write_non_vacant = _Fixture("SlotsWriteNonVacant")
+    write_non_vacant.function(
+        "Bad",
+        _type("Unit"),
+        (),
+        _block_stmts(
+            _var_stmt("s", _call(_member(_variable("Slots"), "AllocVacant"), generics=(_type("u32"), _natural(4)))),
+            _expr_stmt(_call(_member(_variable("Slots"), "Write"), _ref_arg(_variable("s")), _int_lit("0", "usize"), _int_lit("1", "u32"))),
+            _expr_stmt(_call(_member(_variable("Slots"), "Write"), _ref_arg(_variable("s")), _int_lit("0", "usize"), _int_lit("2", "u32"))),
+            _return_stmt(_unit()),
+        ),
+        block=True,
+    )
+    _refuses(write_non_vacant, "type", "VacantRange")
+
+    copy_no_disjoint = _Fixture("SlotsCopyWithoutDisjoint")
+    copy_no_disjoint.function(
+        "Bad",
+        _type("Unit"),
+        (
+            ("dst", _modified("ref", _type("Slots", _type("u32"), _int_lit("4", "usize")))),
+            ("src", _modified("in", _type("Slots", _type("u32"), _int_lit("4", "usize")))),
+        ),
+        _block_stmts(
+            _expr_stmt(
+                _call(
+                    "CopyRepresentation",
+                    _variable("src"),
+                    _ref_arg(_variable("dst")),
+                    _int_lit("2", "usize"),
+                )
+            ),
+            _return_stmt(_unit()),
+        ),
+        block=True,
+        contracts=(
+            _contract("requires", _call("LivePrefix", _variable("src"), _int_lit("2", "usize"))),
+            _contract("requires", _call("VacantRange", _variable("dst"), _int_lit("0", "usize"), _int_lit("4", "usize"))),
+        ),
+    )
+    _refuses(copy_no_disjoint, "type", "Disjoint")
+
+    transfer_without_copy = _Fixture("SlotsTransferWithoutCopy")
+    transfer_without_copy.function(
+        "Bad",
+        _type("Unit"),
+        (
+            ("dst", _modified("ref", _type("Slots", _type("u32"), _int_lit("4", "usize")))),
+            ("src", _modified("ref", _type("Slots", _type("u32"), _int_lit("4", "usize")))),
+        ),
+        _block_stmts(
+            _expr_stmt(
+                _call(
+                    "TransferType",
+                    _ref_arg(_variable("src")),
+                    _ref_arg(_variable("dst")),
+                    _int_lit("2", "usize"),
+                    generics=(_type("u32"),),
+                )
+            ),
+            _return_stmt(_unit()),
+        ),
+        block=True,
+        contracts=(
+            _contract("requires", _call(_member(_variable("Slots"), "Disjoint"), _variable("dst"), _variable("src"))),
+            _contract("requires", _call("LivePrefix", _variable("src"), _int_lit("2", "usize"))),
+            _contract("requires", _call("VacantRange", _variable("dst"), _int_lit("0", "usize"), _int_lit("4", "usize"))),
+        ),
+    )
+    _refuses(transfer_without_copy, "type", "CopyRepresentation")
+
+
 def cases() -> list[Case]:
     return [Case("fresh-polymorphism-and-higher-order-inference", _polymorphism_and_higher_order),
             Case("familiar-generic-markers-and-mathematical-body-source-binding", _familiar_generic_spellings),
@@ -3279,4 +4245,8 @@ def cases() -> list[Case]:
             Case("inductive-proofs-and-equational-rewriting", _inductive_proofs_and_equational_rewriting),
             Case("dependent-records-and-existential-propositions", _dependent_records_and_existential_propositions),
             Case("early-return-propagation-for-option-and-result", _early_return_propagation),
-            Case("represented-integers-preconditions-and-conversions", _represented_integers_and_conversions)]
+            Case("represented-integers-preconditions-and-conversions", _represented_integers_and_conversions),
+            Case("pure-sequences-and-model-reasoning", _pure_sequences_and_model_reasoning),
+            Case("mutable-locals-assignments-and-bounded-loops", _mutable_locals_assignments_and_bounded_loops),
+            Case("record-invariants-and-selective-lifting", _record_invariants_and_selective_lifting),
+            Case("vacant-slots-and-two-step-relocation", _vacant_slots_and_two_step_relocation)]
