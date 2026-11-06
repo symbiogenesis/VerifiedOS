@@ -51,11 +51,11 @@ construct syntax, including syntactically valid programs with semantic errors.
 | Modules and abstraction | Qualified module names, imports, aliases, namespaces, public/private declarations, typed constants, interfaces/traits and implementations, abstract signatures and definitions |
 | Data and dependency | Records, structs, tagged unions, fields, constructors, named views, generic types and applications, typed ghost indices, region and capture parameters, grade parameters and annotations |
 | Types and resources | Qualified and applied types, ownership, shared/exclusive loans and place-named lifetimes, ghost/tracked/scoped modifiers, function types with captures and effects, dependent binders and universe syntax |
-| Contracts | Requires, ensures, restores, where, effects, invariants and decreasing measures; old/final are ordinary calls |
+| Contracts | Requires, ensures, restores, where, effects, unnamed and named (`invariant Clause: EXPR`) invariants, and decreasing measures; old/final are ordinary calls |
 | Expressions | Literal spellings (including multi-quote raw strings and interpolated format templates) and representation suffixes, qualified access, nested calls, indexing and ranges, unary/arithmetic/comparison/logical operators, implication, pattern tests, explicit generic application, tuples, lambdas and named holes |
 | Control | Immutable/mutable and typed locals, required-static local constants, assignments, blocks, returns, if/else, bounded-loop syntax, exhaustive-match syntax, break/continue and explicit propagation |
 | Grades | Domain carrier/zero/one/add/mul/admits/interpret/laws declarations and parameter use grades |
-| Effects and tasks | Effect operations and resumption bounds, deep/shallow handlers, return/operation clauses, resume/dispose/rehandle, async functions, scope/spawn/await/commit and on-cancel cleanup |
+| Effects and tasks | Effect operations and resumption bounds, deep/shallow handlers, return/operation clauses, resume/dispose/rehandle, async functions, scope (including `scope (ref target) lifts Clause, ... { ... }` selective invariant lifting)/spawn/await/commit and on-cancel cleanup |
 | Mathematical proofs | Definitions, theorem/lemma statements, proof blocks, assertions with optional `by` expression or block justifications, calculations, quantifiers, inductive/coinductive declarations and constructors, universes and typed holes |
 | Architecture and hardware | Machine/hardware containers, state/register declarations, transitions/rules, guards, next-state assignments and explicit schedules/cycles |
 
@@ -240,9 +240,17 @@ Struct, interface, trait, machine and hardware containers accept the same
 declaration contracts between their generic telescope and opening brace. Their
 `contracts` arrays distinguish container laws from member contracts, for example
 `trait Repeatable<T, grade q : NatExact> where Admits(T, q) { ... }` and
-`struct LocalCell<T> invariant Closed(this) { ... }`. These forms only preserve
-proposed obligations; proving invariant preservation, lawful grades and operation
-effects remains an elaboration duty.
+`struct LocalCell<T> invariant Closed(this) { ... }`. An `invariant` clause may
+carry an optional identifier before a colon (`invariant InitializedPrefix: LivePrefix(this.slots, 0usize, this.length)`),
+adding a located `name` field to the `contract` node while unnamed `invariant`
+clauses omit `name`. A `scope` statement may name the invariant conjuncts it
+temporarily opens (`scope (ref this) lifts InitializedPrefix, VacantSuffix { ... }`,
+allowing one optional trailing comma), adding a `lifts` array of located clause
+identifiers to the `scope` node while unlifted `scope` statements omit `lifts`.
+`lifts` is a reserved keyword in the surface lexer and remains an ordinary
+identifier in the pure entry. These forms only preserve
+proposed obligations; proving invariant preservation, selective conjunct
+independence, lawful grades and operation effects remains an elaboration duty.
 
 The [handler lookup rules](handlers-async.md#handler-lookup-capture-and-return)
 permit an explicit name for the perform capability of a handler instance:
@@ -260,10 +268,16 @@ or open invariant across capture. Lexical selection, frame identity, `Dup`,
 `Dispose` and restoration remain checking obligations under the linked rules.
 
 Independent fixtures must assert operation/container/member contract ownership,
+named and unnamed `invariant` clauses, selective `scope (...) lifts ...` clause
+lists (including trailing commas and unlifted `scope` blocks),
 dependent reply indices, parameter-grade and resumption-bound attachment, named
 and unnamed handler associations, and original UTF-8 byte spans. Compose these
-forms with loans, guarded updates, indexed outcomes, shallow rehandling and explicit
-disposal. Refuse incomplete contract expressions and capability binders without
+forms with loans, guarded updates, two-step bulk relocation (`CopyRepresentation`
+and `TransferType`), indexed outcomes, shallow rehandling and explicit
+disposal. Refuse incomplete contract expressions, malformed named invariants
+(`invariant : expr`, `invariant Clause:`), named `requires`/`ensures` clauses,
+empty or malformed `lifts` lists (`lifts {}`, `lifts , Clause`, `lifts A,, B`),
+`lifts` used as a surface identifier, and incomplete capability binders without
 publishing an AST. Syntactically valid violations of capability scope or resource
 rules must still parse. Retain every existing qualification and migration case.
 

@@ -783,6 +783,32 @@ public struct LocalCell<T, grade q : NatExact>
     private T Value @ q;
     public void Close() requires Opened(this) ensures Closed(this);
 }
+public struct BoundedBuffer<T, ghost Nat capacity>
+    invariant LengthBound: Nat(this.length) <= capacity
+    invariant InitializedPrefix: LivePrefix(this.slots, 0usize, this.length)
+    invariant VacantSuffix: VacantRange(this.slots, this.length, capacity)
+{
+    private usize length;
+    private Slots<T, capacity> slots;
+    public void RelocateInto<ghost Nat targetCapacity>(ref BoundedBuffer<T, targetCapacity> destination)
+        requires capacity <= targetCapacity && destination.length == 0usize
+        effects writes(this), writes(destination)
+        ensures destination.length == old(this.length) && this.length == 0usize
+    {
+        scope (ref this, ref destination) lifts InitializedPrefix, VacantSuffix {
+            CopyRepresentation(source: in this.slots, destination: ref destination.slots, count: this.length);
+            TransferType<T>(source: ref this.slots, destination: ref destination.slots, count: this.length);
+            destination.length = this.length;
+            this.length = 0usize;
+        }
+        scope (ref this) lifts LengthBound, {
+            Touch(in this.length);
+        }
+        scope (ref destination) {
+            Touch(in destination.length);
+        }
+    }
+}
 public interface Storage<T> where StorageLaw(T) {
     operation T Read() requires Readable(this) ensures Stable(result);
     struct Nested invariant InnerLaw() {}
@@ -800,7 +826,7 @@ public hardware Clocked where PhysicalLaw() invariant Bounded(count) {
     rule Tick() { next count = count + 1; }
 }
 private struct Empty {}
-""", ("struct", "interface", "trait", "machine", "hardware", "contract", "field", "operation")),
+""", ("struct", "interface", "trait", "machine", "hardware", "contract", "field", "operation", "scope")),
     Fixture("named-handler-capabilities", """// café: repeated names retain distinct binding spans.
 module NamedHandlers;
 public Nat Nested() {
@@ -1658,6 +1684,14 @@ NEGATIVE: tuple[tuple[str, bytes, str], ...] = (
     ("property-const-modifier", b"module M; struct S { public const usize Length => 0usize; }", "syntax"),
     ("property-effects-clause", b"module M; struct S { public usize Length effects reads(this) => 0usize; }", "syntax"),
     ("property-missing-body", b"module M; struct S { public usize Length => ; }", "syntax"),
+    ("named-invariant-missing-name", b"module M; struct S invariant : Valid(this) {}", "syntax"),
+    ("named-invariant-missing-value", b"module M; struct S invariant Clause: {}", "syntax"),
+    ("named-requires-disallowed", b"module M; void F() requires Clause: true {}", "syntax"),
+    ("named-ensures-disallowed", b"module M; void F() ensures Clause: true {}", "syntax"),
+    ("scope-lifts-missing-clauses", b"module M; void F(ref S s) { scope (ref s) lifts {} }", "syntax"),
+    ("scope-lifts-leading-comma", b"module M; void F(ref S s) { scope (ref s) lifts , Clause {} }", "syntax"),
+    ("scope-lifts-double-comma", b"module M; void F(ref S s) { scope (ref s) lifts A,, B {} }", "syntax"),
+    ("lifts-remains-reserved", b"module M; void F() { let lifts = 1; }", "syntax"),
     ("trailing-input", b"module M; public void F(); garbage", "syntax"),
     ("invalid-utf8", b"// invalid \xff\nmodule M; public void F();", "encoding"),
     ("literal-limit", b"module M; public Nat F() { return " + b"9" * 257 + b"; }", "limit"),
@@ -3340,6 +3374,7 @@ def _effect_resource_roles(source: bytes, result: dict[str, Json]) -> None:
 
 def _container_resource_roles(source: bytes, result: dict[str, Json]) -> None:
     expected = (("struct", "LocalCell", ["where", "invariant"]),
+                ("struct", "BoundedBuffer", ["invariant", "invariant", "invariant"]),
                 ("interface", "Storage", ["where"]), ("trait", "Repeatable", ["where"]),
                 ("machine", "Counter", ["invariant"]), ("hardware", "Clocked", ["where", "invariant"]))
     for kind, name, roles in expected:
@@ -3348,13 +3383,68 @@ def _container_resource_roles(source: bytes, result: dict[str, Json]) -> None:
         if [_object(value, "container contract").get("role") for value in contracts] != roles:
             raise ValueError(f"surface {kind} {name} lost its own resource contracts")
     cell = _named(result.get("ast"), "struct", "LocalCell")
-    _exact_span(source, _object(_sequence(cell.get("contracts"), "cell contracts")[1], "cell invariant"),
-                b"invariant Closed(this)")
+    unnamed_invariant = _object(_sequence(cell.get("contracts"), "cell contracts")[1], "cell invariant")
+    if set(unnamed_invariant) != {"kind", "span", "role", "value"}:
+        raise ValueError("surface unnamed invariant acquired a clause name or unexpected field")
+    _exact_span(source, unnamed_invariant, b"invariant Closed(this)")
     if _texts(_named(cell, "field", "Value").get("grade")) != ["q"]:
         raise ValueError("surface container contract displaced a field grade")
     closed = _named(cell, "function", "Close")
     if _texts(closed.get("contracts")) != ["Opened", "this", "Closed", "this"]:
         raise ValueError("surface container invariant swallowed its member's contracts")
+    buffer = _named(result.get("ast"), "struct", "BoundedBuffer")
+    named_clauses = [_object(value, "named buffer invariant")
+                     for value in _sequence(buffer.get("contracts"), "buffer contracts")]
+    expected_clauses = (
+        ("LengthBound", b"invariant LengthBound: Nat(this.length) <= capacity"),
+        ("InitializedPrefix", b"invariant InitializedPrefix: LivePrefix(this.slots, 0usize, this.length)"),
+        ("VacantSuffix", b"invariant VacantSuffix: VacantRange(this.slots, this.length, capacity)"),
+    )
+    for clause, (clause_name, spelling) in zip(named_clauses, expected_clauses, strict=True):
+        if (set(clause) != {"kind", "span", "role", "name", "value"}
+                or clause.get("role") != "invariant"
+                or _texts(clause.get("name")) != [clause_name]):
+            raise ValueError("surface named invariant lost its clause name or value role")
+        _exact_span(source, clause, spelling)
+        _exact_span(source, _object(clause.get("name"), "invariant clause name"), clause_name.encode())
+    relocate = _named(buffer, "function", "RelocateInto")
+    scopes = [node for node in nodes(relocate) if node.get("kind") == "scope"]
+    if len(scopes) != 3:
+        raise ValueError("surface selective-lifting fixture lost a scope block")
+    lifted_pair, lifted_trailing, unlifted = scopes
+    for scope_node, expected_lifts, spelling in (
+        (
+            lifted_pair,
+            ["InitializedPrefix", "VacantSuffix"],
+            b"scope (ref this, ref destination) lifts InitializedPrefix, VacantSuffix {\n"
+            b"            CopyRepresentation(source: in this.slots, destination: ref destination.slots, count: this.length);\n"
+            b"            TransferType<T>(source: ref this.slots, destination: ref destination.slots, count: this.length);\n"
+            b"            destination.length = this.length;\n"
+            b"            this.length = 0usize;\n"
+            b"        }",
+        ),
+        (
+            lifted_trailing,
+            ["LengthBound"],
+            b"scope (ref this) lifts LengthBound, {\n            Touch(in this.length);\n        }",
+        ),
+    ):
+        if set(scope_node) != {"kind", "span", "resources", "lifts", "body"}:
+            raise ValueError("surface lifted scope changed its required AST fields")
+        _exact_span(source, scope_node, spelling)
+        lifts = [_object(item, "lifted clause name")
+                 for item in _sequence(scope_node.get("lifts"), "lifted clause names")]
+        if [_texts(item) for item in lifts] != [[name] for name in expected_lifts]:
+            raise ValueError("surface scope lifts list changed its clause names or order")
+        scope_start = _sequence(scope_node.get("span"), "lifted scope span")[0]
+        if type(scope_start) is not int:
+            raise ValueError("surface lifted scope lacks an integer start offset")
+        for item, clause_name in zip(lifts, expected_lifts, strict=True):
+            clause_offset = source.index(clause_name.encode(), scope_start)
+            if item.get("span") != [clause_offset, clause_offset + len(clause_name)]:
+                raise ValueError("surface lifted clause identifier lost its exact UTF-8 byte span")
+    if set(unlifted) != {"kind", "span", "resources", "body"}:
+        raise ValueError("surface unlifted scope fabricated a lifts field")
     storage = _named(result.get("ast"), "interface", "Storage")
     read = _named(storage, "operation", "Read")
     if _texts(read.get("contracts")) != ["Readable", "this", "Stable", "result"]:

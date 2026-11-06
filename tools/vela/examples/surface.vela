@@ -273,6 +273,39 @@ public struct Stored<T, grade q : NatExact>
     public void Release() requires Disposable(this) ensures Disposed(this);
 }
 
+// Selective invariant lifting opens only the named clauses during multi-step updates;
+// two-step bulk relocation separates byte/capability copy from linear type transfer.
+public struct BoundedBuffer<T, ghost Nat capacity>
+    invariant LengthBound: Nat(this.length) <= capacity
+    invariant InitializedPrefix: LivePrefix(this.slots, 0usize, this.length)
+    invariant VacantSuffix: VacantRange(this.slots, this.length, capacity)
+{
+    private usize length;
+    private Slots<T, capacity> slots;
+    public ghost Seq<T> Model => PrefixModel(this.slots, this.length);
+
+    public void RelocateInto<ghost Nat targetCapacity>(
+        ref BoundedBuffer<T, targetCapacity> destination)
+        requires capacity <= targetCapacity && destination.length == 0usize
+        effects writes(this), writes(destination)
+        ensures destination.Model == old(this.Model) && this.length == 0usize
+    {
+        scope (ref this, ref destination) lifts InitializedPrefix, VacantSuffix
+        {
+            CopyRepresentation(
+                source: in this.slots,
+                destination: ref destination.slots,
+                count: this.length);
+            TransferType<T>(
+                source: ref this.slots,
+                destination: ref destination.slots,
+                count: this.length);
+            destination.length = this.length;
+            this.length = 0usize;
+        }
+    }
+}
+
 public effect Exchange<T> where Representable(T) invariant Closed(Storage)
 {
     owned T Replace(owned T replacement @ NatExact(1)) resumes(0..1)

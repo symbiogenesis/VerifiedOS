@@ -109,7 +109,7 @@ The fixture requests memory access, closed effects and an observation relation u
 
 A pure dependent function has type `Pi x:A. B(x)` with Rocq-checked universes. A runtime result can have type `Sigma n:RuntimeLength. Payload(n)`, pairing a real scalar with erased evidence. A dependent match retains its discriminant while refining branch facts and resources. An erased existential witness cannot decide executable control flow.
 
-A write transforms `Own(r,xs)` into `Own(r,update(xs,i,b))` at fixed capacity. Shape changes would consume the old owner and return a newly indexed one under a proved transition; this trial excludes resizing. Initialization needs writes, never a cast. Entry snapshots are immutable values justified by the entry representation and grant no access while ownership is lent.
+A write transforms `Own(r,xs)` into `Own(r,update(xs,i,b))` at fixed capacity. Shape changes would consume the old owner and return a newly indexed one under a proved transition; this trial excludes resizing. Initialization needs writes, never a cast. Bulk prefix relocation between vacant-slot buffers (`Slots<T, capacity>`) separates physical representation copying from logical ownership transfer: `CopyRepresentation` copies bytes and CHERI capability tags into logically vacant destination storage (`Vacant<T>`), leaving the destination unowned and establishing a revision-bound representation-equality fact without arming destructors or duplicating linear resources, and the erased operation `TransferType<T>` consumes that representation-equality fact with the initialized source prefix and vacant destination prefix to transition source `[0..count)` to vacant and destination `[0..count)` to live `T` in one capacity-independent range step. Entry snapshots are immutable values justified by the entry representation and grant no access while ownership is lent.
 
 Branches join through checked entailments to one common resource predicate or through an indexed sum retaining the alternatives. `Ready(view of dst)` and `Rejected(owner restored)` cannot silently join into `owner restored`. Equality beyond conversion requires a checked transport; runtime equality requires a decision operation and its correctness law. No global UIP, proof irrelevance or extensionality axiom is introduced.
 
@@ -134,7 +134,14 @@ The only escaping local loan is a shared view into one statically named borrowed
 
 The [ownership library contract](first-release.md#ownership-libraries) supplies
 the practical presentation: bounded iteration and spans, fixed `out`
-initialization on every normal return, and distinct fallible-builder protocols
+initialization on every normal return, named `invariant Clause: ...` conjuncts
+with selective `scope (ref ...) lifts Clause, ... { ... }` invariant lifting
+(opening only the named conjuncts into a linear `CloseDebt` in `Delta`, keeping
+unlifted conjuncts active across disjoint or non-invalidating field writes,
+refusing early exits, suspension or whole-receiver calls while the debt is open,
+and re-proving only the lifted clauses at block exit), two-step
+`CopyRepresentation`/`TransferType<T>` bulk relocation over vacant-slot storage,
+and distinct fallible-builder protocols
 with explicit partial initialization and rollback. The simple receiver-loan
 order remains selected, with footprint diagnostics and a checked snapshot
 suggestion where valid. These clients qualify ordinary use of the rules; no
@@ -165,7 +172,7 @@ nor a diagnostic's path precision establishes superiority to another checker.
 
 ## Refinement, effects and staging
 
-Automatic refinement covers quantifier-free linear integer arithmetic over bounded scalars, equality/disequality, finite discriminants and congruence to a positive specialization-time alignment constant. Multiplication is by a known constant. Variable products, general nonlinear arithmetic and open quantified mathematics remain explicit goals. The [first-release primitive contract](first-release.md#primitive-semantics) fixes source operations and their target binding. Machine words enter through checked representability/no-overflow lemmas; intentional modular arithmetic uses explicit word lemmas. Initialization and typestate facts rely on resource rules. Bounded predicates and subrange projections over finite sequences on `.Model`—`Seq<T>.All(x => ...)`, `.Any(x => ...)`, `.Contains(x)`, `.Take(n)`, `.Skip(n)`, `.Slice(a, b)` and `.Count` when the element predicate stays within the supported fragment—together with sequence updates and content equality use pre-proved standard-library domain lemmas in the refinement/domain tier rather than open `forall`/`exists` quantifier instantiation or silently enlarging the arithmetic fragment.
+Automatic refinement covers quantifier-free linear integer arithmetic over bounded scalars, equality/disequality, finite discriminants and congruence to a positive specialization-time alignment constant. Multiplication is by a known constant. Variable products, general nonlinear arithmetic and open quantified mathematics remain explicit goals. The [first-release primitive contract](first-release.md#primitive-semantics) fixes source operations and their target binding. Machine words enter through checked representability/no-overflow lemmas; intentional modular arithmetic uses explicit word lemmas. Initialization and typestate facts rely on resource rules. Bounded predicates and subrange projections over finite sequences on `.Model`—`Seq<T>.All(x => ...)`, `.Any(x => ...)`, `.Contains(x)`, `.Take(n)`, `.Skip(n)`, `.Slice(a, b)` and `.Count` when the element predicate stays within the supported fragment—together with sequence updates, vacant-slot prefix/suffix range splits (`[0..length)` and `[length..capacity)`) and content equality use pre-proved standard-library domain lemmas in the refinement/domain tier rather than open `forall`/`exists` quantifier instantiation or silently enlarging the arithmetic fragment. Sparse range obligations stay symbolic in static capacity `capacity` without per-element unfolding, and [qualification](first-release.md#qualification) checks capacity invariance ($N = 4$ versus $N = 10^9$).
 
 Checking uses conversion, resource/capture rules, reconstructed arithmetic, domain automation and explicit proof in that order. Timeout, unsupported formulas or failed reconstruction leave goals unresolved. [R-05-017](../../spec.md#r-05-017) keeps its reconstruction duty. Proof search proves the chosen contract and cannot weaken it to close a goal.
 

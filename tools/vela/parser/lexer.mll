@@ -324,7 +324,7 @@ let identifier state lexbuf =
   | "operation" -> OPERATION | "proof" -> PROOF | "effect" -> EFFECT | "resumes" -> RESUMES
   | "handle" -> HANDLE | "shallow" -> SHALLOW | "with" -> WITH | "resume" -> RESUME
   | "dispose" -> DISPOSE | "rehandle" -> REHANDLE | "await" -> AWAIT
-  | "scope" -> SCOPE | "spawn" -> SPAWN | "commit" -> COMMIT | "on" -> ON | "cancel" -> CANCEL
+  | "scope" -> SCOPE | "lifts" -> LIFTS | "spawn" -> SPAWN | "commit" -> COMMIT | "on" -> ON | "cancel" -> CANCEL
   | "var" -> VAR | "foreach" -> FOREACH | "while" -> WHILE | "match" -> MATCH | "case" -> CASE
   | "break" -> BREAK | "continue" -> CONTINUE | "definition" -> DEFINITION
   | "theorem" -> THEOREM | "lemma" -> LEMMA | "inductive" -> INDUCTIVE

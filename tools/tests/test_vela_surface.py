@@ -293,6 +293,7 @@ def _familiar_authoring_oracles_required() -> None:
                               ("familiar-generic-calls-and-expression-arms", "_familiar_call_roles"),
                               ("bounded-collection-iteration", "_collection_iteration_roles"),
                               ("raw-strings-and-checked-formatting", "_raw_string_and_format_roles"),
+                              ("container-resource-contracts", "_container_resource_roles"),
                               ("mathematical-definitions-and-proofs", "_indexed_constructor_roles")):
         fixture = next(value for value in surface.POSITIVE if value.name == name)
         result: dict[str, parser.Json] = {"ast": [{"kind": kind} for kind in fixture.kinds]}

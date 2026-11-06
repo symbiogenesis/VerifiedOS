@@ -47,7 +47,7 @@ let binary first last operator left right =
 %token REQUIRES ENSURES RESTORES WHERE EFFECTS INVARIANT DECREASES PROGRESS
 %token VIEW GROWS TYPE PREDICATE OPERATION PROOF
 %token EFFECT RESUMES HANDLE SHALLOW WITH RESUME DISPOSE REHANDLE
-%token AWAIT SCOPE SPAWN COMMIT ON CANCEL VAR FOREACH WHILE MATCH CASE BREAK CONTINUE
+%token AWAIT SCOPE LIFTS SPAWN COMMIT ON CANCEL VAR FOREACH WHILE MATCH CASE BREAK CONTINUE
 %token DEFINITION THEOREM LEMMA INDUCTIVE COINDUCTIVE UNIVERSE FORALL EXISTS ASSERT BY CALC
 %token MACHINE HARDWARE STATE REGISTER TRANSITION RULE WHEN NEXT SCHEDULE CYCLE
 %token FN FNMUT FNONCE IS CARRIER ZERO ONE ADD MUL ADMITS INTERPRET LAWS
@@ -497,9 +497,13 @@ s_contract:
 s_obligation:
   role=s_contract_role value=s_contract_expression
     { make "contract" $startpos $endpos [("role", String role); ("value", value.syntax)] [value] }
+| INVARIANT value=s_contract_expression
+    { make "contract" $startpos $endpos [("role", String "invariant"); ("value", value.syntax)] [value] }
+| INVARIANT clause=s_identifier COLON value=s_contract_expression
+    { make "contract" $startpos $endpos [("role", String "invariant"); ("name", clause); ("value", value.syntax)] [value] }
 s_contract_role:
   REQUIRES { "requires" } | ENSURES { "ensures" } | RESTORES { "restores" }
-| WHERE { "where" } | INVARIANT { "invariant" } | DECREASES { "decreases" } | PROGRESS { "progress" }
+| WHERE { "where" } | DECREASES { "decreases" } | PROGRESS { "progress" }
 
 s_block:
   LBRACE statements=list(s_statement) RBRACE
@@ -560,8 +564,9 @@ s_simple_statement:
 | ASSERT value=s_expression justification=s_assert_tail
     { let by_node, parts = justification in
       make "assert" $startpos $endpos [("value", value.syntax); ("by", by_node)] (value :: parts) }
-| SCOPE LPAREN values=comma_list(s_expression) RPAREN body=s_block
-    { make "scope" $startpos $endpos [("resources", array values); ("body", body.syntax)] (body :: values) }
+| SCOPE LPAREN values=comma_list(s_expression) RPAREN clauses=option(s_lifts) body=s_block
+    { let lifted = match clauses with None -> [] | Some names -> [("lifts", Array names)] in
+      make "scope" $startpos $endpos ([("resources", array values)] @ lifted @ [("body", body.syntax)]) (body :: values) }
 | MATCH LPAREN value=s_expression RPAREN motive=option(s_match_motive) LBRACE cases=nonempty_list(s_match_case) RBRACE
     { make "match" $startpos $endpos [("value", value.syntax); ("motive", optional motive);
         ("cases", array cases)] (value :: children motive @ cases) }
@@ -593,6 +598,8 @@ s_assert_tail:
   SEMICOLON { Null, [] }
 | BY justification=s_expression SEMICOLON { justification.syntax, [justification] }
 | BY body=s_block { body.syntax, [body] }
+s_lifts:
+  LIFTS clauses=comma_nonempty_list(s_identifier) { clauses }
 s_annotation_path:
   first=ANNOTATION_NAME rest=list(s_path_segment)
     { name $startpos $endpos (String.concat "." (first :: rest)) }
