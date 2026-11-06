@@ -144,6 +144,14 @@ The supported increment includes:
   immutable proof locals. Equality proofs are ordinary first-class values;
   theorem bodies must inhabit the declared proposition. Ordinary expression
   equality remains Boolean, while theorem equality denotes a proposition.
+- Concrete `Span<byte>` capability-and-memory carrier (`in Span<byte>` and
+  `ref Span<byte>` parameter modes, `.Base`, `.Length`, `.Tag`, `.PermRead`,
+  `.PermWrite`, `.CanRead` and `.CanWrite` metadata, and `Span.AllocZeroed`,
+  `Span.Read`, `Span.Write`, `Span.Fill`, `Span.Slice`, `Span.ReadOnly`,
+  `Span.Invalidate`, `Span.Disjoint`, `Span.CopyPrefix` and `Span.Restore`),
+  together with `requires`, `ensures` (with `result` bound to the body) and
+  `restores param` contract obligations on `definition` and `function`
+  declarations for the [first-slice qualification](first-release.md#first-slice-qualification).
 
 Source callable interfaces preserve explicit arity: `Fn() -> Unit` and
 `Fn(Unit value) -> Unit` require different calls and lambda parameter lists even

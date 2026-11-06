@@ -391,3 +391,64 @@ size/speed trade has a declared target envelope and per-case evidence; no averag
 hides a missed hard bound. The canceled [workflow comparison](workflow-contract.md)
 retains its frozen experiment's identity and verdict, and supplies no current
 product acceptance by implication.
+
+### First-slice component and concrete `Span<byte>` carrier <a id="first-slice-qualification"></a>
+
+[tools/vela/examples/first_slice.vela](../../../tools/vela/examples/first_slice.vela)
+authors the bounded packet/manifest validator `PrepareAndValidatePacket(ref Span<byte> dst, in Span<byte> pkt)`
+over the concrete `Span<byte>` carrier in
+[tools/vos/vela_elaborate.py](../../../tools/vos/vela_elaborate.py) and its
+CompCert Clight/C and purecap CHERI-RISC-V target harness in
+[tools/vos/vela_first_slice.py](../../../tools/vos/vela_first_slice.py):
+
+- **Concrete `Span<byte>` carrier and contract obligations:** `Span<byte>` lowers
+  in the mathematical consumer to `vela_Span` (`vela_ByteStore = nat -> vela_u8`
+  paired with `Base`, `Length`, `Tag`, `PermRead`, `PermWrite` and derived
+  `CanRead` / `CanWrite` predicates). Bounded operations `Span.AllocZeroed`,
+  `Span.Read`, `Span.Write`, `Span.Fill`, `Span.Slice`, `Span.ReadOnly`,
+  `Span.Invalidate`, `Span.Disjoint`, `Span.CopyPrefix` and `Span.Restore`
+  require checked bounds, read/write capability permissions, loan-mode discipline
+  (`in Span<byte>` read-only vs `ref Span<byte>` read-write) and disjoint base
+  intervals before emitting terms. Function contracts elaborate `requires` into
+  typing premises, `restores param` into five metadata-preservation obligations
+  (`Base`, `Length`, `Tag`, `PermRead`, `PermWrite` between `result` and `param`),
+  and `ensures` into postcondition obligations with `result` bound to the
+  function body.
+- **Elaborated laws, validator and scenario theorems:** `Vela.FirstSlice` proves
+  ten carrier laws (`LawInhabitedByteCase`, `LawAllocZeroedRead`,
+  `LawReadOverWriteSame`, `LawReadOverWriteOther`, `LawFillAndFrame`,
+  `LawSliceMetadataAndRead`, `LawReadOnlyAndInvalidate`,
+  `LawDisjointCopyAndFrame`, `LawCapacityInvarianceSmall`,
+  `LawCapacityInvarianceLarge`), elaborates `PrepareAndValidatePacket` with five
+  `restores dst` obligations and three `ensures` obligations, and proves seven
+  concrete scenario theorems (`ValidateEmptyPacketOk`, `ValidateFullPacketOk`,
+  `ValidatePartialPacketScrubsStaleAndTrailingBytes`, `RejectFramingShort`,
+  `RejectBadMagic`, `RejectLengthOutOfBounds`,
+  `RejectChecksumScrubsDestinationAndRestores`).
+- **End-to-end qualification (`python tools/run.py vela-parser first-slice`):**
+  1. Parses `first_slice.vela` through the native Menhir `--surface` parser,
+     elaborates all 50 declarations into `FirstSlice.v`, compiles with `rocq c`,
+     verifies `Closed under the global context` via `Print Assumptions`, and
+     audits with `rocqchk`, plus a fail-closed proof-corruption negative control.
+  2. Runs the capacity-invariance gate at $N = 8$ (`8usize`) and $N = 10^9$
+     (`1_000_000_000usize`), checking that obligation count (`9`), inference work
+     steps, reduction steps and emitted Gallina byte length are identical across
+     both capacities and that both pass `rocq c` and `rocqchk`.
+  3. Replays 12 schema-2 semantic negative controls (`oob-read`, `oob-write`,
+     `oob-slice`, `oob-fill`, `mutate-in-borrow`, `mutate-readonly-view`,
+     `read-invalidated-view`, `overlapping-copyprefix`, `foreign-restore`,
+     `broken-restores-contract`, `wrong-expected-byte`, `stale-input-leak`)
+     through the native parser and confirms each fails with `category == "type"`.
+  4. Executes the purecap CHERI-RISC-V hardware capability slice (`csetbounds`,
+     `candperm`, capability round-trip and byte checks) and three hardware fault
+     controls (`bounds-trap`, `perm-trap`, `tag-trap`) on `sail_riscv_sim`.
+  5. Lowers the executable validator and its seven scenarios to CompCert Clight/C
+     (`-fverifiedos-typed -dclight`), executes the C harness under both
+     `ccomp -interp` and purecap `sail_riscv_sim`, and verifies four perturbed C
+     negative controls (`wrong-expected-byte`, `stale-trailing-leak`,
+     `checksum-scrub-omitted`, `restores-length-corrupted`).
+- **Remaining full-chain boundaries:** this slice connects exact Vela source to
+  kernel-checked Gallina obligations, CompCert Clight/C lowering and purecap
+  `sail_riscv_sim` execution; mechanized Sail-to-Clight/CompCert refinement
+  (`Q35d`, `M1.2g`), broader frontend/admission closure and user-managed Host CI
+  and Guest CI verdicts remain separate open obligations.

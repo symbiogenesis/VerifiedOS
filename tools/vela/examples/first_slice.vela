@@ -1,0 +1,472 @@
+// SPDX-License-Identifier: Apache-2.0
+// Bounded synchronous packet/manifest validator for the Vela first-slice gate (Q25w).
+module Vela.FirstSlice;
+
+public union ValidationError
+{
+    ValidatedOk();
+    FramingShort();
+    BadMagicOrFlags();
+    LengthOutOfBounds();
+    ChecksumRejected();
+}
+
+public record ValidationOutcome(
+    bool Ok,
+    ValidationError Error,
+    usize CopiedBytes,
+    Span<byte> PayloadView,
+    Span<byte> RestoredDst);
+
+public definition Span<byte> MakePacket8(
+    usize base,
+    byte b0,
+    byte b1,
+    byte b2,
+    byte b3,
+    byte b4,
+    byte b5,
+    byte b6,
+    byte b7) =>
+    let s0 = Span.AllocZeroed(base, 8usize) in
+    let s1 = Span.Write(s0, 0usize, b0) in
+    let s2 = Span.Write(s1, 1usize, b1) in
+    let s3 = Span.Write(s2, 2usize, b2) in
+    let s4 = Span.Write(s3, 3usize, b3) in
+    let s5 = Span.Write(s4, 4usize, b4) in
+    let s6 = Span.Write(s5, 5usize, b5) in
+    let s7 = Span.Write(s6, 6usize, b6) in
+    Span.Write(s7, 7usize, b7);
+
+public definition Span<byte> InhabitedByteSpan() =>
+    Span.Write(Span.AllocZeroed(0x1000usize, 8usize), 0usize, 0x56u8);
+
+public theorem LawInhabitedByteCase():
+    exists (Span<byte> s) =>
+        (s.Tag && s.PermRead && s.PermWrite && s.Length == 8usize && Span.Read(s, 0usize) == 0x56u8) == true
+    proof
+    {
+        assert exists (Span<byte> s) =>
+            (s.Tag && s.PermRead && s.PermWrite && s.Length == 8usize && Span.Read(s, 0usize) == 0x56u8) == true
+            by InhabitedByteSpan();
+    }
+
+public theorem LawAllocZeroedRead(usize base, usize idx):
+    (if (idx < 8usize) Span.Read(Span.AllocZeroed(base, 8usize), idx) == 0x00u8 else true) == true
+    proof
+    {
+        assert (if (idx < 8usize) Span.Read(Span.AllocZeroed(base, 8usize), idx) == 0x00u8 else true) == true;
+    }
+
+public theorem LawReadOverWriteSame():
+    let s = Span.Write(Span.AllocZeroed(0x1000usize, 8usize), 3usize, 0xA5u8) in
+    Span.Read(s, 3usize) == 0xA5u8
+    proof
+    {
+        assert Span.Read(Span.Write(Span.AllocZeroed(0x1000usize, 8usize), 3usize, 0xA5u8), 3usize) == 0xA5u8;
+    }
+
+public theorem LawReadOverWriteOther():
+    let s0 = Span.Write(Span.AllocZeroed(0x1000usize, 8usize), 2usize, 0x3Cu8) in
+    let s1 = Span.Write(s0, 5usize, 0x99u8) in
+    (Span.Read(s1, 2usize) == 0x3Cu8 && Span.Read(s1, 5usize) == 0x99u8 && Span.Read(s1, 0usize) == 0x00u8) == true
+    proof
+    {
+        let s0 = Span.Write(Span.AllocZeroed(0x1000usize, 8usize), 2usize, 0x3Cu8);
+        let s1 = Span.Write(s0, 5usize, 0x99u8);
+        assert (Span.Read(s1, 2usize) == 0x3Cu8 && Span.Read(s1, 5usize) == 0x99u8 && Span.Read(s1, 0usize) == 0x00u8) == true;
+    }
+
+public theorem LawFillAndFrame():
+    let s0 = Span.Write(Span.AllocZeroed(0x1000usize, 8usize), 1usize, 0x77u8) in
+    let s1 = Span.Fill(s0, 2usize, 4usize, 0xEEu8) in
+    (Span.Read(s1, 1usize) == 0x77u8
+        && Span.Read(s1, 2usize) == 0xEEu8
+        && Span.Read(s1, 5usize) == 0xEEu8
+        && Span.Read(s1, 6usize) == 0x00u8) == true
+    proof
+    {
+        let s0 = Span.Write(Span.AllocZeroed(0x1000usize, 8usize), 1usize, 0x77u8);
+        let s1 = Span.Fill(s0, 2usize, 4usize, 0xEEu8);
+        assert (Span.Read(s1, 1usize) == 0x77u8
+            && Span.Read(s1, 2usize) == 0xEEu8
+            && Span.Read(s1, 5usize) == 0xEEu8
+            && Span.Read(s1, 6usize) == 0x00u8) == true;
+    }
+
+public theorem LawSliceMetadataAndRead():
+    let s0 = Span.Write(Span.AllocZeroed(0x1000usize, 8usize), 5usize, 0x42u8) in
+    let sub = Span.Slice(s0, 4usize, 3usize) in
+    (sub.Base == 0x1004usize
+        && sub.Length == 3usize
+        && sub.CanRead
+        && sub.CanWrite
+        && Span.Read(sub, 1usize) == 0x42u8) == true
+    proof
+    {
+        let s0 = Span.Write(Span.AllocZeroed(0x1000usize, 8usize), 5usize, 0x42u8);
+        let sub = Span.Slice(s0, 4usize, 3usize);
+        assert (sub.Base == 0x1004usize
+            && sub.Length == 3usize
+            && sub.CanRead
+            && sub.PermWrite
+            && Span.Read(sub, 1usize) == 0x42u8) == true;
+    }
+
+public theorem LawReadOnlyAndInvalidate():
+    let s0 = Span.AllocZeroed(0x1000usize, 8usize) in
+    let ro = Span.ReadOnly(s0) in
+    let inv = Span.Invalidate(s0) in
+    (ro.Tag && ro.PermRead && !ro.PermWrite && !inv.Tag && !inv.PermRead && !inv.PermWrite) == true
+    proof
+    {
+        let s0 = Span.AllocZeroed(0x1000usize, 8usize);
+        let ro = Span.ReadOnly(s0);
+        let inv = Span.Invalidate(s0);
+        assert (ro.Tag && ro.PermRead && !ro.PermWrite && !inv.Tag && !inv.PermRead && !inv.PermWrite) == true;
+    }
+
+public theorem LawDisjointCopyAndFrame():
+    let dst0 = Span.Fill(Span.AllocZeroed(0x1000usize, 8usize), 0usize, 8usize, 0xCCu8) in
+    let src0 = MakePacket8(0x2000usize, 0x56u8, 0x02u8, 0x6Bu8, 0x01u8, 0x11u8, 0x22u8, 0x33u8, 0x44u8) in
+    let dstSub = Span.Slice(dst0, 4usize, 2usize) in
+    let srcSub = Span.Slice(src0, 4usize, 2usize) in
+    let copiedSub = Span.CopyPrefix(dstSub, srcSub, 2usize) in
+    let restored = Span.Restore(dst0, copiedSub) in
+    (Span.Disjoint(dst0, src0)
+        && restored.Base == 0x1000usize
+        && restored.Length == 8usize
+        && Span.Read(restored, 3usize) == 0xCCu8
+        && Span.Read(restored, 4usize) == 0x11u8
+        && Span.Read(restored, 5usize) == 0x22u8
+        && Span.Read(restored, 6usize) == 0xCCu8) == true
+    proof
+    {
+        let dst0 = Span.Fill(Span.AllocZeroed(0x1000usize, 8usize), 0usize, 8usize, 0xCCu8);
+        let src0 = MakePacket8(0x2000usize, 0x56u8, 0x02u8, 0x6Bu8, 0x01u8, 0x11u8, 0x22u8, 0x33u8, 0x44u8);
+        let dstSub = Span.Slice(dst0, 4usize, 2usize);
+        let srcSub = Span.Slice(src0, 4usize, 2usize);
+        let copiedSub = Span.CopyPrefix(dstSub, srcSub, 2usize);
+        let restored = Span.Restore(dst0, copiedSub);
+        assert (Span.Disjoint(dst0, src0)
+            && restored.Base == 0x1000usize
+            && restored.Length == 8usize
+            && Span.Read(restored, 3usize) == 0xCCu8
+            && Span.Read(restored, 4usize) == 0x11u8
+            && Span.Read(restored, 5usize) == 0x22u8
+            && Span.Read(restored, 6usize) == 0xCCu8) == true;
+    }
+
+public theorem LawCapacityInvarianceSmall():
+    let s = Span.Write(Span.AllocZeroed(0x1000usize, 8usize), 7usize, 0x7Fu8) in
+    (s.Length == 8usize && Span.Read(s, 7usize) == 0x7Fu8 && Span.Read(s, 0usize) == 0x00u8) == true
+    proof
+    {
+        let s = Span.Write(Span.AllocZeroed(0x1000usize, 8usize), 7usize, 0x7Fu8);
+        assert (s.Length == 8usize && Span.Read(s, 7usize) == 0x7Fu8 && Span.Read(s, 0usize) == 0x00u8) == true;
+    }
+
+public theorem LawCapacityInvarianceLarge():
+    let s = Span.Write(Span.AllocZeroed(0x1000usize, 1_000_000_000usize), 7usize, 0x7Fu8) in
+    (s.Length == 1_000_000_000usize && Span.Read(s, 7usize) == 0x7Fu8 && Span.Read(s, 0usize) == 0x00u8) == true
+    proof
+    {
+        let s = Span.Write(Span.AllocZeroed(0x1000usize, 1_000_000_000usize), 7usize, 0x7Fu8);
+        assert (s.Length == 1_000_000_000usize && Span.Read(s, 7usize) == 0x7Fu8 && Span.Read(s, 0usize) == 0x00u8) == true;
+    }
+
+private definition Span<byte> CopyPacketToDst(Span<byte> cleanedDst, Span<byte> pkt, usize payloadLen)
+    requires cleanedDst.CanRead
+    requires cleanedDst.CanWrite
+    requires pkt.CanRead
+    requires cleanedDst.Length >= 8usize
+    requires pkt.Length >= 4usize
+    requires Span.Disjoint(cleanedDst, pkt)
+    requires payloadLen <= 4usize
+    requires 4usize + payloadLen <= pkt.Length
+    requires 4usize + payloadLen <= cleanedDst.Length
+=>
+    let d0 = Span.Write(cleanedDst, 0usize, Span.Read(pkt, 0usize)) in
+    let d1 = Span.Write(d0, 1usize, Span.Read(pkt, 1usize)) in
+    let d2 = Span.Write(d1, 2usize, Span.Read(pkt, 2usize)) in
+    let d3 = Span.Write(d2, 3usize, Span.Read(pkt, 3usize)) in
+    Span.Restore(
+        cleanedDst,
+        Span.CopyPrefix(Span.Slice(d3, 4usize, payloadLen), Span.Slice(pkt, 4usize, payloadLen), payloadLen)
+    );
+
+private definition u8 ComputePacketChecksum(Span<byte> pkt, u8 rawLen, usize payloadLen)
+    requires pkt.CanRead
+    requires payloadLen <= 4usize
+    requires 4usize + payloadLen <= pkt.Length
+=>
+    let pktPayload = Span.Slice(pkt, 4usize, payloadLen) in
+    let b0 = if (payloadLen > 0usize) Span.Read(pktPayload, 0usize) else 0x00u8 in
+    let b1 = if (payloadLen > 1usize) Span.Read(pktPayload, 1usize) else 0x00u8 in
+    let b2 = if (payloadLen > 2usize) Span.Read(pktPayload, 2usize) else 0x00u8 in
+    let b3 = if (payloadLen > 3usize) Span.Read(pktPayload, 3usize) else 0x00u8 in
+    (0x5Au8 ^ rawLen) ^ (b0 ^ b1 ^ b2 ^ b3);
+
+public ValidationOutcome PrepareAndValidatePacket(ref Span<byte> dst, in Span<byte> pkt)
+    requires dst.CanRead
+    requires dst.CanWrite
+    requires pkt.CanRead
+    restores dst
+    ensures result.PayloadView.PermWrite == false
+    ensures result.CopiedBytes == result.PayloadView.Length
+    ensures (!result.Ok ==> !result.PayloadView.Tag) == true
+{
+    let cleanedDst = Span.Fill(dst, 0usize, dst.Length, 0x00u8);
+    if (dst.Length < 8usize || pkt.Length < 4usize || !Span.Disjoint(dst, pkt))
+    {
+        let emptyView = Span.Invalidate(Span.Slice(dst, 0usize, 0usize));
+        return ValidationOutcome(false, FramingShort(), 0usize, emptyView, Span.Restore(dst, cleanedDst));
+    }
+    else
+    {
+        let magic = Span.Read(pkt, 0usize);
+        let rawLen = Span.Read(pkt, 1usize);
+        let expectedChecksum = Span.Read(pkt, 2usize);
+        let flags = Span.Read(pkt, 3usize);
+        let payloadLen = usize.From(rawLen);
+        if (magic != 0x56u8 || flags != 0x01u8)
+        {
+            let emptyView = Span.Invalidate(Span.Slice(dst, 0usize, 0usize));
+            return ValidationOutcome(false, BadMagicOrFlags(), 0usize, emptyView, Span.Restore(dst, cleanedDst));
+        }
+        else
+        {
+            if (payloadLen > 4usize || 4usize + payloadLen > pkt.Length || 4usize + payloadLen > dst.Length)
+            {
+                let emptyView = Span.Invalidate(Span.Slice(dst, 0usize, 0usize));
+                return ValidationOutcome(false, LengthOutOfBounds(), 0usize, emptyView, Span.Restore(dst, cleanedDst));
+            }
+            else
+            {
+                let workDst = CopyPacketToDst(cleanedDst, pkt, payloadLen);
+                let actualChecksum = ComputePacketChecksum(pkt, rawLen, payloadLen);
+                if (actualChecksum != expectedChecksum)
+                {
+                    let scrubbedDst = Span.Fill(workDst, 0usize, dst.Length, 0x00u8);
+                    let emptyView = Span.Invalidate(Span.Slice(dst, 0usize, 0usize));
+                    return ValidationOutcome(false, ChecksumRejected(), 0usize, emptyView, Span.Restore(dst, scrubbedDst));
+                }
+                else
+                {
+                    let payloadView = Span.ReadOnly(Span.Slice(workDst, 4usize, payloadLen));
+                    let restoredDst = Span.Restore(dst, payloadView);
+                    return ValidationOutcome(true, ValidatedOk(), payloadLen, payloadView, restoredDst);
+                }
+            }
+        }
+    }
+}
+
+private definition ValidationOutcome ScenarioEmptyPacket() =>
+    PrepareAndValidatePacket(
+        Span.AllocZeroed(0x1000usize, 8usize),
+        MakePacket8(0x2000usize, 0x56u8, 0x00u8, 0x5Au8, 0x01u8, 0x00u8, 0x00u8, 0x00u8, 0x00u8)
+    );
+
+public theorem ValidateEmptyPacketOk():
+    let outcome = ScenarioEmptyPacket() in
+    (outcome.Ok
+        && (outcome.Error is ValidatedOk())
+        && outcome.CopiedBytes == 0usize
+        && outcome.PayloadView.Base == 0x1004usize
+        && outcome.PayloadView.Length == 0usize
+        && outcome.PayloadView.CanRead
+        && !outcome.PayloadView.PermWrite
+        && outcome.RestoredDst.Base == 0x1000usize
+        && outcome.RestoredDst.Length == 8usize
+        && Span.Read(outcome.RestoredDst, 0usize) == 0x56u8
+        && Span.Read(outcome.RestoredDst, 4usize) == 0x00u8) == true
+    proof
+    {
+        let outcome = ScenarioEmptyPacket();
+        assert (outcome.Ok
+            && (outcome.Error is ValidatedOk())
+            && outcome.CopiedBytes == 0usize
+            && outcome.PayloadView.Base == 0x1004usize
+            && outcome.PayloadView.Length == 0usize
+            && outcome.PayloadView.CanRead
+            && !outcome.PayloadView.PermWrite
+            && outcome.RestoredDst.Base == 0x1000usize
+            && outcome.RestoredDst.Length == 8usize
+            && Span.Read(outcome.RestoredDst, 0usize) == 0x56u8
+            && Span.Read(outcome.RestoredDst, 4usize) == 0x00u8) == true;
+    }
+
+private definition ValidationOutcome ScenarioFullPacket() =>
+    PrepareAndValidatePacket(
+        Span.AllocZeroed(0x1000usize, 8usize),
+        MakePacket8(0x2000usize, 0x56u8, 0x04u8, 0x1Eu8, 0x01u8, 0x10u8, 0x20u8, 0x30u8, 0x40u8)
+    );
+
+public theorem ValidateFullPacketOk():
+    let outcome = ScenarioFullPacket() in
+    (outcome.Ok
+        && (outcome.Error is ValidatedOk())
+        && outcome.CopiedBytes == 4usize
+        && outcome.PayloadView.Base == 0x1004usize
+        && outcome.PayloadView.Length == 4usize
+        && outcome.PayloadView.CanRead
+        && !outcome.PayloadView.PermWrite
+        && Span.Read(outcome.PayloadView, 0usize) == 0x10u8
+        && Span.Read(outcome.PayloadView, 1usize) == 0x20u8
+        && Span.Read(outcome.PayloadView, 2usize) == 0x30u8
+        && Span.Read(outcome.PayloadView, 3usize) == 0x40u8
+        && Span.Read(outcome.RestoredDst, 7usize) == 0x40u8) == true
+    proof
+    {
+        let outcome = ScenarioFullPacket();
+        assert (outcome.Ok
+            && (outcome.Error is ValidatedOk())
+            && outcome.CopiedBytes == 4usize
+            && outcome.PayloadView.Base == 0x1004usize
+            && outcome.PayloadView.Length == 4usize
+            && outcome.PayloadView.CanRead
+            && !outcome.PayloadView.PermWrite
+            && Span.Read(outcome.PayloadView, 0usize) == 0x10u8
+            && Span.Read(outcome.PayloadView, 1usize) == 0x20u8
+            && Span.Read(outcome.PayloadView, 2usize) == 0x30u8
+            && Span.Read(outcome.PayloadView, 3usize) == 0x40u8
+            && Span.Read(outcome.RestoredDst, 7usize) == 0x40u8) == true;
+    }
+
+private definition ValidationOutcome ScenarioPartialStalePacket() =>
+    PrepareAndValidatePacket(
+        Span.Fill(Span.AllocZeroed(0x1000usize, 8usize), 0usize, 8usize, 0xAAu8),
+        MakePacket8(0x2000usize, 0x56u8, 0x02u8, 0x6Bu8, 0x01u8, 0x11u8, 0x22u8, 0xDEu8, 0xADu8)
+    );
+
+public theorem ValidatePartialPacketScrubsStaleAndTrailingBytes():
+    let outcome = ScenarioPartialStalePacket() in
+    (outcome.Ok
+        && (outcome.Error is ValidatedOk())
+        && outcome.CopiedBytes == 2usize
+        && outcome.PayloadView.Length == 2usize
+        && Span.Read(outcome.PayloadView, 0usize) == 0x11u8
+        && Span.Read(outcome.PayloadView, 1usize) == 0x22u8
+        && Span.Read(outcome.RestoredDst, 4usize) == 0x11u8
+        && Span.Read(outcome.RestoredDst, 5usize) == 0x22u8
+        && Span.Read(outcome.RestoredDst, 6usize) == 0x00u8
+        && Span.Read(outcome.RestoredDst, 7usize) == 0x00u8) == true
+    proof
+    {
+        let outcome = ScenarioPartialStalePacket();
+        assert (outcome.Ok
+            && (outcome.Error is ValidatedOk())
+            && outcome.CopiedBytes == 2usize
+            && outcome.PayloadView.Length == 2usize
+            && Span.Read(outcome.PayloadView, 0usize) == 0x11u8
+            && Span.Read(outcome.PayloadView, 1usize) == 0x22u8
+            && Span.Read(outcome.RestoredDst, 4usize) == 0x11u8
+            && Span.Read(outcome.RestoredDst, 5usize) == 0x22u8
+            && Span.Read(outcome.RestoredDst, 6usize) == 0x00u8
+            && Span.Read(outcome.RestoredDst, 7usize) == 0x00u8) == true;
+    }
+
+private definition ValidationOutcome ScenarioFramingShort() =>
+    PrepareAndValidatePacket(
+        Span.AllocZeroed(0x1000usize, 8usize),
+        Span.AllocZeroed(0x2000usize, 3usize)
+    );
+
+public theorem RejectFramingShort():
+    let outcome = ScenarioFramingShort() in
+    (!outcome.Ok
+        && (outcome.Error is FramingShort())
+        && outcome.CopiedBytes == 0usize
+        && !outcome.PayloadView.Tag
+        && outcome.RestoredDst.Base == 0x1000usize
+        && outcome.RestoredDst.Length == 8usize
+        && outcome.RestoredDst.CanWrite) == true
+    proof
+    {
+        let outcome = ScenarioFramingShort();
+        assert (!outcome.Ok
+            && (outcome.Error is FramingShort())
+            && outcome.CopiedBytes == 0usize
+            && !outcome.PayloadView.Tag
+            && outcome.RestoredDst.Base == 0x1000usize
+            && outcome.RestoredDst.Length == 8usize
+            && outcome.RestoredDst.CanWrite) == true;
+    }
+
+private definition ValidationOutcome ScenarioBadMagic() =>
+    PrepareAndValidatePacket(
+        Span.Fill(Span.AllocZeroed(0x1000usize, 8usize), 0usize, 8usize, 0xBBu8),
+        MakePacket8(0x2000usize, 0x00u8, 0x00u8, 0x5Au8, 0x01u8, 0x00u8, 0x00u8, 0x00u8, 0x00u8)
+    );
+
+public theorem RejectBadMagic():
+    let outcome = ScenarioBadMagic() in
+    (!outcome.Ok
+        && (outcome.Error is BadMagicOrFlags())
+        && outcome.CopiedBytes == 0usize
+        && !outcome.PayloadView.Tag
+        && Span.Read(outcome.RestoredDst, 0usize) == 0x00u8) == true
+    proof
+    {
+        let outcome = ScenarioBadMagic();
+        assert (!outcome.Ok
+            && (outcome.Error is BadMagicOrFlags())
+            && outcome.CopiedBytes == 0usize
+            && !outcome.PayloadView.Tag
+            && Span.Read(outcome.RestoredDst, 0usize) == 0x00u8) == true;
+    }
+
+private definition ValidationOutcome ScenarioLengthOutOfBounds() =>
+    PrepareAndValidatePacket(
+        Span.AllocZeroed(0x1000usize, 8usize),
+        MakePacket8(0x2000usize, 0x56u8, 0x05u8, 0x5Fu8, 0x01u8, 0x00u8, 0x00u8, 0x00u8, 0x00u8)
+    );
+
+public theorem RejectLengthOutOfBounds():
+    let outcome = ScenarioLengthOutOfBounds() in
+    (!outcome.Ok
+        && (outcome.Error is LengthOutOfBounds())
+        && outcome.CopiedBytes == 0usize
+        && !outcome.PayloadView.Tag
+        && outcome.RestoredDst.Length == 8usize) == true
+    proof
+    {
+        let outcome = ScenarioLengthOutOfBounds();
+        assert (!outcome.Ok
+            && (outcome.Error is LengthOutOfBounds())
+            && outcome.CopiedBytes == 0usize
+            && !outcome.PayloadView.Tag
+            && outcome.RestoredDst.Length == 8usize) == true;
+    }
+
+private definition ValidationOutcome ScenarioChecksumRejected() =>
+    PrepareAndValidatePacket(
+        Span.Fill(Span.AllocZeroed(0x1000usize, 8usize), 0usize, 8usize, 0xAAu8),
+        MakePacket8(0x2000usize, 0x56u8, 0x02u8, 0xFFu8, 0x01u8, 0x11u8, 0x22u8, 0x00u8, 0x00u8)
+    );
+
+public theorem RejectChecksumScrubsDestinationAndRestores():
+    let outcome = ScenarioChecksumRejected() in
+    (!outcome.Ok
+        && (outcome.Error is ChecksumRejected())
+        && outcome.CopiedBytes == 0usize
+        && !outcome.PayloadView.Tag
+        && outcome.RestoredDst.Base == 0x1000usize
+        && outcome.RestoredDst.Length == 8usize
+        && Span.Read(outcome.RestoredDst, 0usize) == 0x00u8
+        && Span.Read(outcome.RestoredDst, 4usize) == 0x00u8
+        && Span.Read(outcome.RestoredDst, 5usize) == 0x00u8) == true
+    proof
+    {
+        let outcome = ScenarioChecksumRejected();
+        assert (!outcome.Ok
+            && (outcome.Error is ChecksumRejected())
+            && outcome.CopiedBytes == 0usize
+            && !outcome.PayloadView.Tag
+            && outcome.RestoredDst.Base == 0x1000usize
+            && outcome.RestoredDst.Length == 8usize
+            && Span.Read(outcome.RestoredDst, 0usize) == 0x00u8
+            && Span.Read(outcome.RestoredDst, 4usize) == 0x00u8
+            && Span.Read(outcome.RestoredDst, 5usize) == 0x00u8) == true;
+    }

@@ -64,7 +64,7 @@ _FIELDS: dict[str, set[str]] = {
     "type": {"name", "arguments"},
     "function_type": {"mode", "generics", "parameters", "result", "captures", "effects", "contracts"},
     "group_type": {"type"}, "computed_type": {"value"}, "type_argument": {"type"},
-    "tuple_type": {"types"},
+    "tuple_type": {"types"}, "modified_type": {"modifier", "lifetime", "type"},
     "name": {"name"}, "nat": {"value", "suffix"}, "bool": {"value"},
     "string": {"value"}, "interpolated_string": {"value"}, "member": {"value", "name"},
     "unit": set(), "tuple": {"values"}, "group": {"value"},
@@ -115,6 +115,7 @@ _SYNTAX_WORDS = {
     "generic_parameter": ("mode", {"type", "ghost", "region", "effect", "captures", "grade"}),
     "quantifier": ("quantifier", {"forall", "exists"}),
     "contract": ("role", {"requires", "ensures", "restores", "where", "decreases", "progress", "invariant"}),
+    "modified_type": ("modifier", {"owned", "in", "ref", "out", "ghost", "tracked", "scoped"}),
 }
 
 
@@ -236,7 +237,7 @@ class _Protocol:
                 or any(
                     not isinstance(item, dict)
                     or item.get("kind") != "contract"
-                    or item.get("role") not in {"decreases", "requires"}
+                    or item.get("role") not in {"decreases", "requires", "ensures", "restores"}
                     for item in contracts
                 )
             ):
@@ -547,10 +548,15 @@ class _Protocol:
             cursor = self._token(node, cursor, b"=>")
             cursor = self._child(node, span, cursor, node["value"])
         elif kind == "contract":
-            if node["role"] not in {"decreases", "requires"}:
+            if node["role"] not in {"decreases", "requires", "ensures", "restores"}:
                 return
             cursor = self._token(node, cursor, cast("str", node["role"]).encode())
             cursor = self._child(node, span, cursor, node["value"])
+        elif kind == "modified_type":
+            if node.get("lifetime") is not None:
+                return
+            cursor = self._token(node, cursor, cast("str", node["modifier"]).encode())
+            cursor = self._child(node, span, cursor, node["type"])
         elif kind == "import":
             cursor = self._token(node, cursor, b"import")
             cursor = self._child(node, span, cursor, node["name"])
@@ -903,6 +909,7 @@ _INT_SPECS: dict[str, _IntSpec] = {
     "i32": _IntSpec("i32", 7, 32, True, -(1 << 31), (1 << 31) - 1, _constant("i32")),
     "i64": _IntSpec("i64", 8, 64, True, -(1 << 63), (1 << 63) - 1, _constant("i64")),
 }
+_U8 = _INT_SPECS["u8"].const
 _USIZE = _INT_SPECS["usize"].const
 _NUMERICS_ALIASES: dict[str, str] = {
     "int": "i32",
@@ -1065,11 +1072,14 @@ class _Elaborator:
         self.work = MAX_WORK
         self.reductions = MAX_REDUCTIONS
         self.metas: list[_Meta] = []
+        self.decl_first_meta = 0
+        self.whnf_cache: dict[int, tuple[_Term, _Term]] = {}
         self.types: dict[int, _Term] = {}
         # Callable parameter labels are source metadata, never CIC constructors.
         self.parameter_names: dict[int, str] = {}
         self.nullary_parameters: set[int] = set()
         self.constant_parameters: set[int] = set()
+        self.readonly_span_vars: set[int] = set()
         self.static_forbidden: set[int] | None = None
         self.globals: dict[str, _Binding] = {}
         self.constants: dict[str, _Binding] = {}
@@ -1199,6 +1209,65 @@ class _Elaborator:
         bind("!", self.pi(_BOOL, _BOOL))
         for name, domain in (("eq_nat", _NAT), ("ne_nat", _NAT), ("eq_bool", _BOOL), ("ne_bool", _BOOL)):
             bind(name, self.pi(domain, self.pi(domain, _BOOL)))
+        bind("Span", telescope((a,), _SORT))
+        span_a = _app(_constant("Span"), a)
+        self.constants["Span_Base"] = _Binding(_constant("Span_Base"), telescope((a,), self.pi(span_a, _USIZE)), 1)
+        self.constants["Span_Length"] = _Binding(_constant("Span_Length"), telescope((a,), self.pi(span_a, _USIZE)), 1)
+        self.constants["Span_Tag"] = _Binding(_constant("Span_Tag"), telescope((a,), self.pi(span_a, _BOOL)), 1)
+        self.constants["Span_PermRead"] = _Binding(_constant("Span_PermRead"), telescope((a,), self.pi(span_a, _BOOL)), 1)
+        self.constants["Span_PermWrite"] = _Binding(_constant("Span_PermWrite"), telescope((a,), self.pi(span_a, _BOOL)), 1)
+        self.constants["Span_CanRead"] = _Binding(_constant("Span_CanRead"), telescope((a,), self.pi(span_a, _BOOL)), 1)
+        self.constants["Span_CanWrite"] = _Binding(_constant("Span_CanWrite"), telescope((a,), self.pi(span_a, _BOOL)), 1)
+        self.constants["Span_AllocZeroed"] = _Binding(
+            _constant("Span_AllocZeroed"),
+            telescope((a,), self.pi(_USIZE, self.pi(_USIZE, span_a))),
+            1,
+        )
+        self.constants["Span_ReadOnly"] = _Binding(
+            _constant("Span_ReadOnly"),
+            telescope((a,), self.pi(span_a, span_a)),
+            1,
+        )
+        self.constants["Span_Invalidate"] = _Binding(
+            _constant("Span_Invalidate"),
+            telescope((a,), self.pi(span_a, span_a)),
+            1,
+        )
+        self.constants["Span_Disjoint"] = _Binding(
+            _constant("Span_Disjoint"),
+            telescope((a,), self.pi(span_a, self.pi(span_a, _BOOL))),
+            1,
+        )
+        self.constants["Span_Read"] = _Binding(
+            _constant("Span_Read"),
+            telescope((a,), self.pi(span_a, self.pi(_USIZE, a))),
+            1,
+        )
+        self.constants["Span_Write"] = _Binding(
+            _constant("Span_Write"),
+            telescope((a,), self.pi(span_a, self.pi(_USIZE, self.pi(a, span_a)))),
+            1,
+        )
+        self.constants["Span_Fill"] = _Binding(
+            _constant("Span_Fill"),
+            telescope((a,), self.pi(span_a, self.pi(_USIZE, self.pi(_USIZE, self.pi(a, span_a))))),
+            1,
+        )
+        self.constants["Span_Slice"] = _Binding(
+            _constant("Span_Slice"),
+            telescope((a,), self.pi(span_a, self.pi(_USIZE, self.pi(_USIZE, span_a)))),
+            1,
+        )
+        self.constants["Span_CopyPrefix"] = _Binding(
+            _constant("Span_CopyPrefix"),
+            telescope((a,), self.pi(span_a, self.pi(span_a, self.pi(_USIZE, span_a)))),
+            1,
+        )
+        self.constants["Span_Restore"] = _Binding(
+            _constant("Span_Restore"),
+            telescope((a,), self.pi(span_a, self.pi(span_a, span_a))),
+            1,
+        )
         self._register_builtin_unions()
         self._register_int_constants()
 
@@ -1370,37 +1439,89 @@ class _Elaborator:
                 return self.resolve(solution)
         return term
 
-    def substitute(self, term: _Term, variable: int, replacement: _Term) -> _Term:
+    def substitute(
+        self,
+        term: _Term,
+        variable: int,
+        replacement: _Term,
+        memo: dict[int, tuple[_Term, _Term]] | None = None,
+    ) -> _Term:
+        if memo is None:
+            memo = {}
+        tid = id(term)
+        if tid in memo:
+            return memo[tid][1]
         self.tick()
-        term = self.resolve(term)
-        if term.kind == "var" and term.value == variable:
+        resolved = self.resolve(term)
+        if resolved.kind == "var" and resolved.value == variable:
+            memo[tid] = (term, replacement)
             return replacement
-        if term.kind in {"pi", "lam"} and term.value == variable:
-            return _term(term.kind, self.substitute(term.args[0], variable, replacement), term.args[1], value=term.value)
-        if term.kind == "let" and term.value == variable:
-            return _term("let", self.substitute(term.args[0], variable, replacement),
-                         self.substitute(term.args[1], variable, replacement), term.args[2], value=term.value)
-        if term.kind == "fix" and term.value == variable:
-            return _term(
-                "fix",
-                self.substitute(term.args[0], variable, replacement),
-                term.args[1],
-                term.args[2],
-                term.args[3],
-                value=term.value,
+        if resolved.kind in {"pi", "lam"} and resolved.value == variable:
+            new_dom = self.substitute(resolved.args[0], variable, replacement, memo)
+            res = (
+                resolved
+                if new_dom is resolved.args[0]
+                else _term(resolved.kind, new_dom, resolved.args[1], value=resolved.value)
             )
-        return _Term(term.kind, term.value, tuple(self.substitute(value, variable, replacement) for value in term.args))
+            memo[tid] = (term, res)
+            return res
+        if resolved.kind == "let" and resolved.value == variable:
+            new_dom = self.substitute(resolved.args[0], variable, replacement, memo)
+            new_val = self.substitute(resolved.args[1], variable, replacement, memo)
+            res = (
+                resolved
+                if (new_dom is resolved.args[0] and new_val is resolved.args[1])
+                else _term("let", new_dom, new_val, resolved.args[2], value=resolved.value)
+            )
+            memo[tid] = (term, res)
+            return res
+        if resolved.kind == "fix" and resolved.value == variable:
+            new_sig = self.substitute(resolved.args[0], variable, replacement, memo)
+            res = (
+                resolved
+                if new_sig is resolved.args[0]
+                else _term(
+                    "fix",
+                    new_sig,
+                    resolved.args[1],
+                    resolved.args[2],
+                    resolved.args[3],
+                    value=resolved.value,
+                )
+            )
+            memo[tid] = (term, res)
+            return res
+        if not resolved.args:
+            memo[tid] = (term, resolved)
+            return resolved
+        new_args = tuple(self.substitute(value, variable, replacement, memo) for value in resolved.args)
+        if all(na is oa for na, oa in zip(new_args, resolved.args, strict=True)):
+            memo[tid] = (term, resolved)
+            return resolved
+        res = _Term(resolved.kind, resolved.value, new_args)
+        memo[tid] = (term, res)
+        return res
 
-    def free(self, term: _Term) -> set[int]:
+    def free(
+        self, term: _Term, memo: dict[int, tuple[_Term, frozenset[int]]] | None = None
+    ) -> set[int]:
+        if memo is None:
+            memo = {}
+        tid = id(term)
+        if tid in memo:
+            return set(memo[tid][1])
         self.tick()
         term = self.resolve(term)
         if term.kind == "var":
-            return {cast("int", term.value)}
+            fset = frozenset({cast("int", term.value)})
+            memo[tid] = (term, fset)
+            return set(fset)
         result: set[int] = set()
         for argument in term.args:
-            result.update(self.free(argument))
+            result.update(self.free(argument, memo))
         if term.kind in {"pi", "lam", "let", "fix"}:
             result.discard(cast("int", term.value))
+        memo[tid] = (term, frozenset(result))
         return result
 
     def _is_whnf_constructor(self, term: _Term) -> bool:
@@ -1451,6 +1572,18 @@ class _Elaborator:
     def whnf(self, term: _Term) -> _Term:
         self.tick()
         term = self.resolve(term)
+        if self.static_forbidden is None and len(self.metas) == self.decl_first_meta:
+            tid = id(term)
+            cached = self.whnf_cache.get(tid)
+            if cached is not None:
+                return cached[1]
+            res = self._whnf_core(term)
+            self.whnf_cache[tid] = (term, res)
+            self.whnf_cache[id(res)] = (res, res)
+            return res
+        return self._whnf_core(term)
+
+    def _whnf_core(self, term: _Term) -> _Term:
         if term.kind == "let":
             self.tick(True)
             return self.whnf(self.substitute(term.args[2], cast("int", term.value), term.args[1]))
@@ -1602,13 +1735,18 @@ class _Elaborator:
             return self.whnf(self.definitions[term.value])
         if term.kind != "app":
             return term
-        function, argument = term.args
-        function = self.whnf(function)
-        if function.kind == "lam":
-            self.tick(True)
-            return self.whnf(self.substitute(function.args[1], cast("int", function.value), argument))
-        term = _app(function, argument)
         head, arguments = self.spine(term)
+        if head.kind == "const" and head.value not in self.definitions:
+            pass
+        else:
+            new_head = self.whnf(head)
+            if new_head.kind == "lam":
+                self.tick(True)
+                substituted = self.substitute(new_head.args[1], cast("int", new_head.value), arguments[0])
+                return self.whnf(_apps(substituted, *arguments[1:]))
+            if new_head != head:
+                term = _apps(new_head, *arguments)
+                head, arguments = self.spine(term)
         if head.kind == "fix":
             struct_idx = cast("int", head.args[3].value)
             total_arity = self._lam_arity(head.args[1])
@@ -1632,28 +1770,32 @@ class _Elaborator:
                 return self.whnf(_apps(unfolded, *arguments))
         if isinstance(name, str) and name in self.record_projections:
             record_info, field_index = self.record_projections[name]
-            if len(arguments) == len(record_info.generic_vars) + 1:
-                rec_val = self.whnf(arguments[-1])
+            proj_arity = len(record_info.generic_vars) + 1
+            if len(arguments) >= proj_arity:
+                rec_val = self.whnf(arguments[proj_arity - 1])
                 rec_head, rec_args = self.spine(rec_val)
                 if (rec_head == _constant(record_info.ctor_const)
                         and len(rec_args) == len(record_info.generic_vars) + len(record_info.fields)):
                     self.tick(True)
-                    return self.whnf(rec_args[len(record_info.generic_vars) + field_index])
-        if name in {"Fst", "Snd"} and len(arguments) == 3:
+                    projected = rec_args[len(record_info.generic_vars) + field_index]
+                    return self.whnf(_apps(projected, *arguments[proj_arity:]))
+        if name in {"Fst", "Snd"} and len(arguments) >= 3:
             pair = self.whnf(arguments[2])
             if pair.kind == "pair":
                 self.tick(True)
-                return self.whnf(pair.args[2] if name == "Fst" else pair.args[3])
-        if name == "At" and len(arguments) == 4:
+                projected = pair.args[2] if name == "Fst" else pair.args[3]
+                return self.whnf(_apps(projected, *arguments[3:]))
+        if name == "At" and len(arguments) >= 4:
             vector, values = self.spine(self.whnf(arguments[2]))
             index, indices = self.spine(self.whnf(arguments[3]))
             if vector == _constant("VCons") and len(values) == 4:
                 if index == _constant("FZero") and len(indices) == 2:
                     self.tick(True)
-                    return self.whnf(values[2])
+                    return self.whnf(_apps(values[2], *arguments[4:]))
                 if index == _constant("FSucc") and len(indices) == 2:
                     self.tick(True)
-                    return self.whnf(_apps(_constant("At"), arguments[0], values[1], values[3], indices[1]))
+                    at_step = _apps(_constant("At"), arguments[0], values[1], values[3], indices[1])
+                    return self.whnf(_apps(at_step, *arguments[4:]))
         if name == "ByteLength" and len(arguments) == 2:
             self.tick(True)
             return self.whnf(arguments[0])
@@ -1785,11 +1927,16 @@ class _Elaborator:
             reduced_int = self._whnf_int_op(name, arguments)
             if reduced_int is not None:
                 return reduced_int
-        if head.value == "if" and len(arguments) == 4:
+        if isinstance(name, str) and name.startswith("Span_"):
+            reduced_span = self._whnf_span_op(name, arguments)
+            if reduced_span is not None:
+                return reduced_span
+        if head.value == "if" and len(arguments) >= 4:
             condition = self.whnf(arguments[1])
             if condition.kind == "bool":
                 self.tick(True)
-                return self.whnf(arguments[2] if condition.value else arguments[3])
+                chosen = arguments[2] if condition.value else arguments[3]
+                return self.whnf(_apps(chosen, *arguments[4:]))
         return term
 
     def _make_result_ok(self, val_type: _Term, err_type: _Term, val_term: _Term) -> _Term:
@@ -1953,6 +2100,179 @@ class _Elaborator:
                     return self._make_result_err(spec.const, ae_const, self._make_arith_err("InvalidShift"))
                 shifted = (a >> b) if spec.signed else ((a & ((1 << spec.bits) - 1)) >> b)
                 return self._make_result_ok(spec.const, ae_const, _int_term(spec, shifted))
+        return None
+
+    def _eval_in_extent(self, addr: _Term, base: _Term, count: _Term) -> bool | None:
+        addr_w = self.whnf(addr)
+        base_w = self.whnf(base)
+        count_w = self.whnf(count)
+        if addr_w.kind == "int" and base_w.kind == "int" and count_w.kind == "int":
+            a_v = cast("int", addr_w.value)
+            b_v = cast("int", base_w.value)
+            c_v = cast("int", count_w.value)
+            return b_v <= a_v < b_v + c_v
+        return None
+
+    def _lookup_span_at_addr(self, elem: _Term, span_term: _Term, addr: _Term) -> _Term | None:
+        self.tick()
+        s = self.whnf(span_term)
+        s_head, s_args = self.spine(s)
+        if s_head.kind != "const" or not isinstance(s_head.value, str):
+            return None
+        sname = s_head.value
+        if sname == "Span_AllocZeroed" and len(s_args) == 3:
+            return _int_term(_INT_SPECS["u8"], 0)
+        if sname in {"Span_ReadOnly", "Span_Invalidate"} and len(s_args) == 2:
+            return self._lookup_span_at_addr(elem, s_args[1], addr)
+        if sname == "Span_Slice" and len(s_args) == 4:
+            return self._lookup_span_at_addr(elem, s_args[1], addr)
+        if sname == "Span_Restore" and len(s_args) == 3:
+            return self._lookup_span_at_addr(elem, s_args[2], addr)
+        if sname == "Span_Write" and len(s_args) == 4:
+            inner, w_idx, val = s_args[1], s_args[2], s_args[3]
+            inner_base = self.whnf(_apps(_constant("Span_Base"), elem, inner))
+            w_idx_w = self.whnf(w_idx)
+            addr_w = self.whnf(addr)
+            if inner_base.kind == "int" and w_idx_w.kind == "int" and addr_w.kind == "int":
+                w_addr_v = _wrap_int(_INT_SPECS["usize"], cast("int", inner_base.value) + cast("int", w_idx_w.value))
+                if cast("int", addr_w.value) == w_addr_v:
+                    return self.whnf(val)
+                return self._lookup_span_at_addr(elem, inner, addr_w)
+            return None
+        if sname == "Span_Fill" and len(s_args) == 5:
+            inner, off, count, val = s_args[1], s_args[2], s_args[3], s_args[4]
+            inner_base = self.whnf(_apps(_constant("Span_Base"), elem, inner))
+            off_w = self.whnf(off)
+            if inner_base.kind != "int" or off_w.kind != "int":
+                return None
+            f_base = _int_term(
+                _INT_SPECS["usize"],
+                _wrap_int(_INT_SPECS["usize"], cast("int", inner_base.value) + cast("int", off_w.value)),
+            )
+            in_ext = self._eval_in_extent(addr, f_base, count)
+            if in_ext is True:
+                return self.whnf(val)
+            if in_ext is False:
+                return self._lookup_span_at_addr(elem, inner, addr)
+            return None
+        if sname == "Span_CopyPrefix" and len(s_args) == 4:
+            dst, src, count = s_args[1], s_args[2], s_args[3]
+            d_base = self.whnf(_apps(_constant("Span_Base"), elem, dst))
+            s_base = self.whnf(_apps(_constant("Span_Base"), elem, src))
+            addr_w = self.whnf(addr)
+            if d_base.kind != "int" or s_base.kind != "int" or addr_w.kind != "int":
+                return None
+            in_ext = self._eval_in_extent(addr_w, d_base, count)
+            if in_ext is True:
+                src_addr = _int_term(
+                    _INT_SPECS["usize"],
+                    _wrap_int(
+                        _INT_SPECS["usize"],
+                        cast("int", s_base.value) + (cast("int", addr_w.value) - cast("int", d_base.value)),
+                    ),
+                )
+                return self._lookup_span_at_addr(elem, src, src_addr)
+            if in_ext is False:
+                return self._lookup_span_at_addr(elem, dst, addr_w)
+            return None
+        return None
+
+    def _whnf_span_op(self, name: str, arguments: list[_Term]) -> _Term | None:
+        if name in {"Span_CanRead", "Span_CanWrite"} and len(arguments) == 2:
+            elem, s = arguments
+            perm_const = "Span_PermRead" if name == "Span_CanRead" else "Span_PermWrite"
+            self.tick(True)
+            return self.whnf(
+                _apps(
+                    _constant("&&"),
+                    _apps(_constant("Span_Tag"), elem, s),
+                    _apps(_constant(perm_const), elem, s),
+                )
+            )
+        if name in {"Span_Base", "Span_Length", "Span_Tag", "Span_PermRead", "Span_PermWrite"} and len(arguments) == 2:
+            elem = arguments[0]
+            s = self.whnf(arguments[1])
+            s_head, s_args = self.spine(s)
+            if s_head.kind != "const" or not isinstance(s_head.value, str):
+                return None
+            sname = s_head.value
+            if sname == "Span_AllocZeroed" and len(s_args) == 3:
+                self.tick(True)
+                if name == "Span_Base":
+                    return self.whnf(s_args[1])
+                if name == "Span_Length":
+                    return self.whnf(s_args[2])
+                return _term("bool", value=1)
+            if sname == "Span_ReadOnly" and len(s_args) == 2:
+                self.tick(True)
+                if name == "Span_PermWrite":
+                    return _term("bool", value=0)
+                return self.whnf(_apps(_constant(name), elem, s_args[1]))
+            if sname == "Span_Invalidate" and len(s_args) == 2:
+                self.tick(True)
+                if name in {"Span_Tag", "Span_PermRead", "Span_PermWrite"}:
+                    return _term("bool", value=0)
+                return self.whnf(_apps(_constant(name), elem, s_args[1]))
+            if sname == "Span_Write" and len(s_args) == 4:
+                self.tick(True)
+                return self.whnf(_apps(_constant(name), elem, s_args[1]))
+            if sname == "Span_Fill" and len(s_args) == 5:
+                self.tick(True)
+                return self.whnf(_apps(_constant(name), elem, s_args[1]))
+            if sname == "Span_Slice" and len(s_args) == 4:
+                self.tick(True)
+                if name == "Span_Base":
+                    return self.whnf(
+                        _apps(_constant("int_add_usize"), _apps(_constant("Span_Base"), elem, s_args[1]), s_args[2])
+                    )
+                if name == "Span_Length":
+                    return self.whnf(s_args[3])
+                return self.whnf(_apps(_constant(name), elem, s_args[1]))
+            if sname == "Span_CopyPrefix" and len(s_args) == 4:
+                self.tick(True)
+                return self.whnf(_apps(_constant(name), elem, s_args[1]))
+            if sname == "Span_Restore" and len(s_args) == 3:
+                self.tick(True)
+                return self.whnf(_apps(_constant(name), elem, s_args[1]))
+            return None
+        if name == "Span_Disjoint" and len(arguments) == 3:
+            elem, a, b = arguments
+            ba = self.whnf(_apps(_constant("Span_Base"), elem, a))
+            if ba.kind != "int":
+                return None
+            la = self.whnf(_apps(_constant("Span_Length"), elem, a))
+            bb = self.whnf(_apps(_constant("Span_Base"), elem, b))
+            lb = self.whnf(_apps(_constant("Span_Length"), elem, b))
+            if la.kind != "int" or bb.kind != "int" or lb.kind != "int":
+                return None
+            self.tick(True)
+            ba_v = cast("int", ba.value)
+            la_v = cast("int", la.value)
+            bb_v = cast("int", bb.value)
+            lb_v = cast("int", lb.value)
+            return _term("bool", value=int(ba_v + la_v <= bb_v or bb_v + lb_v <= ba_v))
+        if name == "Span_Read" and len(arguments) == 3:
+            elem, s, idx = arguments
+            s_w = self.whnf(s)
+            if s_w.kind != "app":
+                return None
+            s_head, s_args = self.spine(s_w)
+            if s_head == _constant("Span_AllocZeroed") and len(s_args) == 3:
+                self.tick(True)
+                return _int_term(_INT_SPECS["u8"], 0)
+            base_w = self.whnf(_apps(_constant("Span_Base"), elem, s_w))
+            idx_w = self.whnf(idx)
+            if base_w.kind != "int" or idx_w.kind != "int":
+                return None
+            addr = _int_term(
+                _INT_SPECS["usize"],
+                _wrap_int(_INT_SPECS["usize"], cast("int", base_w.value) + cast("int", idx_w.value)),
+            )
+            found = self._lookup_span_at_addr(elem, s_w, addr)
+            if found is not None:
+                self.tick(True)
+                return found
+            return None
         return None
 
     @staticmethod
@@ -2367,9 +2687,16 @@ class _Elaborator:
             if node["kind"] != "parameter":
                 raise self.fail("protocol", "invalid parameter role")
             self.no_roles(node, "grade")
-            domain = self.type(self.node(node["type"]), extended)
+            param_type_node = self.node(node["type"])
+            is_readonly_span = (
+                param_type_node["kind"] == "modified_type"
+                and param_type_node.get("modifier") == "in"
+            )
+            domain = self.type(param_type_node, extended)
             variable = self.fresh(domain)
             variables.append(variable)
+            if is_readonly_span:
+                self.readonly_span_vars.add(cast("int", variable.value))
             static = cast("bool", node.get("const", False))
             if static:
                 self.constant_parameters.add(cast("int", variable.value))
@@ -2458,6 +2785,20 @@ class _Elaborator:
                 raise self.fail("unsupported", "only pure Fn callable types are supported")
             variables, extended = self.telescope(self.nodes(node["generics"]), self.nodes(node["parameters"]), environment, unit=True)
             result = self.wrap("pi", variables, self.type(self.node(node["result"]), extended))
+        elif kind == "modified_type":
+            if node.get("lifetime") is not None:
+                raise self.fail("unsupported", "explicit loan lifetimes require the full frontend", node)
+            modifier = node.get("modifier")
+            if modifier not in {"in", "ref"}:
+                raise self.fail("unsupported", f"type modifier '{modifier}' requires the full frontend", node)
+            inner_type = self.type(self.node(node["type"]), environment, require_sort=require_sort)
+            if self.whnf(inner_type) != _app(_constant("Span"), _U8):
+                raise self.fail(
+                    "unsupported",
+                    f"modifier '{modifier}' is only supported on Span<byte> in the first-slice carrier",
+                    node,
+                )
+            result = inner_type
         else:
             raise self.fail("unsupported", f"'{kind}' is not a supported mathematical type")
         if require_sort:
@@ -3900,6 +4241,23 @@ class _Elaborator:
         return self._try_unify(p, t)
 
     def _is_prop_type(self, value_type: _Term) -> bool:
+        if value_type in {_PROP, _NAT, _BOOL, _UNIT, _SORT}:
+            return False
+        if value_type.kind in {"const", "app"}:
+            head, _ = self.spine(value_type)
+            if head == _constant("Eq"):
+                return True
+            if (
+                head.kind == "const"
+                and isinstance(head.value, str)
+                and (
+                    head.value in _INT_SPECS
+                    or head.value in {"Span", "Vec", "Fin", "TextBuilder"}
+                    or head.value in self.records_by_type
+                    or head.value in self.unions_by_type
+                )
+            ):
+                return False
         return self.whnf(self.infer(value_type)) == _PROP
 
     def _extract_equality(self, prop: _Term) -> tuple[_Term, _Term, _Term] | None:
@@ -3911,24 +4269,29 @@ class _Elaborator:
             return args[0], args[1], args[2]
         return None
 
-    def _replace_subterm(self, term: _Term, eq_type: _Term, u: _Term, z: _Term) -> tuple[_Term, bool]:
+    def _replace_subterm(
+        self, term: _Term, eq_type: _Term, u: _Term, z: _Term, depth: int = 0
+    ) -> tuple[_Term, bool]:
+        if depth > 6:
+            return term, False
         term = self.resolve(term)
         if term == u or (
-            self._try_unify(self.infer(term), eq_type) and self._try_unify(term, u)
+            depth <= 3 and self._try_unify(self.infer(term), eq_type) and self._try_unify(term, u)
         ):
             return z, True
         if term.kind not in {"pi", "lam", "let"} and term.args:
             new_args: list[_Term] = []
             any_rep = False
             for arg in term.args:
-                n_arg, rep = self._replace_subterm(arg, eq_type, u, z)
+                n_arg, rep = self._replace_subterm(arg, eq_type, u, z, depth + 1)
                 new_args.append(n_arg)
                 any_rep = any_rep or rep
             if any_rep:
                 return _Term(term.kind, term.value, tuple(new_args)), True
-        whnf_term = self.whnf(term)
-        if whnf_term != term:
-            return self._replace_subterm(whnf_term, eq_type, u, z)
+        if depth <= 2:
+            whnf_term = self.whnf(term)
+            if whnf_term != term and whnf_term.kind != "if":
+                return self._replace_subterm(whnf_term, eq_type, u, z, depth + 1)
         return term, False
 
     def _try_congruence(
@@ -4251,6 +4614,12 @@ class _Elaborator:
         goal_eq = self._extract_equality(goal)
         if goal_eq is not None:
             goal_type, lhs, rhs = goal_eq
+            if allow_refl and not all_facts:
+                if self._try_unify(lhs, rhs):
+                    return _apps(_constant("Refl"), goal_type, lhs)
+                split_proof = self._try_if_split_equality(goal_type, lhs, rhs)
+                if split_proof is not None:
+                    return split_proof
             edges = self._equality_edges(goal_type, all_facts)
             for _, u, v, p in reversed(edges):
                 if u == lhs and v == rhs:
@@ -4318,6 +4687,10 @@ class _Elaborator:
                 self.metas = saved1
             if allow_refl and self._try_unify(lhs, rhs):
                 return _apps(_constant("Refl"), goal_type, lhs)
+            if allow_refl:
+                split_proof = self._try_if_split_equality(goal_type, lhs, rhs)
+                if split_proof is not None:
+                    return split_proof
 
         for fact in reversed(all_facts):
             if self._try_unify(fact.type, goal):
@@ -4329,10 +4702,108 @@ class _Elaborator:
             node,
         )
 
+    def _find_if_condition(self, term: _Term, depth: int = 0) -> _Term | None:
+        if depth > MAX_DEPTH:
+            return None
+        w = self.whnf(term)
+        if w.kind == "if":
+            return w.args[1]
+        if w.kind == "app":
+            _, args = self.spine(w)
+            for child in args:
+                found = self._find_if_condition(child, depth + 1)
+                if found is not None:
+                    return found
+        return None
+
+    def _replace_exact(self, term: _Term, target: _Term, repl: _Term) -> tuple[_Term, bool]:
+        term = self.resolve(term)
+        if term == target:
+            return repl, True
+        if term.kind in {"pi", "lam", "let"} or not term.args:
+            return term, False
+        new_args: list[_Term] = []
+        any_rep = False
+        for arg in term.args:
+            n_arg, rep = self._replace_exact(arg, target, repl)
+            new_args.append(n_arg)
+            any_rep = any_rep or rep
+        if any_rep:
+            return _Term(term.kind, term.value, tuple(new_args)), True
+        return term, False
+
+    def _expose_and_replace_if(
+        self, term: _Term, cond: _Term, repl: _Term, depth: int = 0
+    ) -> tuple[_Term, bool]:
+        if depth > MAX_DEPTH:
+            return term, False
+        term = self.resolve(term)
+        if term == cond:
+            return repl, True
+        w = self.whnf(term)
+        if w == cond:
+            return repl, True
+        if w.kind == "if":
+            if w.args[1] == cond:
+                return _term("if", w.args[0], repl, w.args[2], w.args[3]), True
+            c_rep, did_c = self._expose_and_replace_if(w.args[1], cond, repl, depth + 1)
+            if did_c:
+                return _term("if", w.args[0], c_rep, w.args[2], w.args[3]), True
+            return w, False
+        if w.kind == "app":
+            head, args = self.spine(w)
+            new_args: list[_Term] = []
+            any_rep = False
+            for a in args:
+                na, r = self._expose_and_replace_if(a, cond, repl, depth + 1)
+                new_args.append(na)
+                any_rep = any_rep or r
+            if any_rep:
+                return _apps(head, *new_args), True
+        return term, False
+
+    def _try_if_split_equality(
+        self, goal_type: _Term, lhs: _Term, rhs: _Term, depth: int = 0
+    ) -> _Term | None:
+        if depth > 8:
+            return None
+        saved = [_Meta(m.type, m.scope, m.solution) for m in self.metas]
+        if self._try_unify(lhs, rhs):
+            return _apps(_constant("Refl"), goal_type, self.whnf(rhs))
+        self.metas = saved
+        cond = self._find_if_condition(lhs)
+        if cond is None:
+            cond = self._find_if_condition(rhs)
+        if cond is None:
+            return None
+        b_var = self.fresh(_BOOL)
+        b_id = cast("int", b_var.value)
+        lhs_b, rep_l = self._expose_and_replace_if(lhs, cond, b_var)
+        rhs_b, rep_r = self._expose_and_replace_if(rhs, cond, b_var)
+        if not rep_l and not rep_r:
+            return None
+        motive_body = _apps(_constant("Eq"), goal_type, lhs_b, rhs_b)
+        motive_lam = _term("lam", _BOOL, motive_body, value=b_id)
+        lhs_true = self.substitute(lhs_b, b_id, _term("bool", value=1))
+        rhs_true = self.substitute(rhs_b, b_id, _term("bool", value=1))
+        yes_proof = self._try_if_split_equality(goal_type, lhs_true, rhs_true, depth + 1)
+        if yes_proof is None:
+            return None
+        lhs_false = self.substitute(lhs_b, b_id, _term("bool", value=0))
+        rhs_false = self.substitute(rhs_b, b_id, _term("bool", value=0))
+        no_proof = self._try_if_split_equality(goal_type, lhs_false, rhs_false, depth + 1)
+        if no_proof is None:
+            return None
+        return _term("bool_match", motive_lam, cond, yes_proof, no_proof)
+
     def asserted_proposition(self, node: Node, environment: dict[str, _Binding]) -> _Term:
         self.site = node
         if node["kind"] == "group":
             return self.asserted_proposition(self.node(node["value"]), environment)
+        if node["kind"] == "let_expression":
+            return self.asserted_proposition(
+                self.node(node["body"]), self.local(self.node(node["binding"]), environment)
+            )
         if node["kind"] == "binary":
             operator = self.operator(node["operator"])
             if operator == "==":
@@ -5288,6 +5759,20 @@ class _Elaborator:
         self.site = node
         receiver_type = self.whnf(receiver.type)
         head, type_args = self.spine(receiver_type)
+        if head == _constant("Span") and len(type_args) == 1 and self.whnf(type_args[0]) == _U8:
+            span_props: dict[str, tuple[str, _Term]] = {
+                "Base": ("Span_Base", _USIZE),
+                "Length": ("Span_Length", _USIZE),
+                "Tag": ("Span_Tag", _BOOL),
+                "PermRead": ("Span_PermRead", _BOOL),
+                "PermWrite": ("Span_PermWrite", _BOOL),
+                "CanRead": ("Span_CanRead", _BOOL),
+                "CanWrite": ("Span_CanWrite", _BOOL),
+            }
+            if member_name not in span_props:
+                raise self.fail("name", f"Span<byte> has no property '{member_name}'", node)
+            const_name, prop_ty = span_props[member_name]
+            return _Binding(_apps(_constant(const_name), _U8, receiver.term), prop_ty)
         if head.kind != "const" or not isinstance(head.value, str) or head.value not in self.records_by_type:
             raise self.fail(
                 "unsupported",
@@ -6279,7 +6764,12 @@ class _Elaborator:
         return None
 
     def _term_bounds(
-        self, term: _Term, spec: _IntSpec | None, facts: list[_Term], depth: int = 0
+        self,
+        term: _Term,
+        spec: _IntSpec | None,
+        facts: list[_Term],
+        depth: int = 0,
+        visited: frozenset[_Term] = frozenset(),
     ) -> tuple[int, int, set[int]]:
         lo = spec.min_val if spec is not None else 0
         hi = spec.max_val if spec is not None else (1 << MAX_NAT_BITS) - 1
@@ -6288,31 +6778,32 @@ class _Elaborator:
         if w.kind in {"int", "nat"}:
             val = cast("int", w.value)
             return val, val, set()
-        if depth > 4:
+        if depth > 2 or w in visited:
             return lo, hi, ne_set
+        next_visited = visited | {w}
         head, args = self.spine(w)
         if head.kind == "const" and isinstance(head.value, str):
             cname = head.value
             if cname == "Succ" and len(args) == 1:
-                s_lo, s_hi, _ = self._term_bounds(args[0], None, facts, depth + 1)
+                s_lo, s_hi, _ = self._term_bounds(args[0], None, facts, depth + 1, next_visited)
                 lo = max(lo, s_lo + 1)
                 hi = min(hi, s_hi + 1)
             elif cname.startswith("int_from_") and len(args) == 1:
                 src_spec = _INT_SPECS[cname.split("_")[2]]
-                s_lo, s_hi, s_ne = self._term_bounds(args[0], src_spec, facts, depth + 1)
+                s_lo, s_hi, s_ne = self._term_bounds(args[0], src_spec, facts, depth + 1, next_visited)
                 lo = max(lo, s_lo)
                 hi = min(hi, s_hi)
                 ne_set.update(s_ne)
             elif cname.startswith("int_to_nat_") and len(args) == 1:
                 src_spec = _INT_SPECS[cname.split("_")[3]]
-                s_lo, s_hi, s_ne = self._term_bounds(args[0], src_spec, facts, depth + 1)
+                s_lo, s_hi, s_ne = self._term_bounds(args[0], src_spec, facts, depth + 1, next_visited)
                 lo = max(lo, s_lo)
                 hi = min(hi, s_hi)
                 ne_set.update(s_ne)
             elif spec is not None and len(args) == 2:
                 if cname == f"int_and_{spec.name}":
-                    l_lo, l_hi, _ = self._term_bounds(args[0], spec, facts, depth + 1)
-                    r_lo, r_hi, _ = self._term_bounds(args[1], spec, facts, depth + 1)
+                    l_lo, l_hi, _ = self._term_bounds(args[0], spec, facts, depth + 1, next_visited)
+                    r_lo, r_hi, _ = self._term_bounds(args[1], spec, facts, depth + 1, next_visited)
                     if r_lo == r_hi and r_lo >= 0:
                         lo = max(lo, 0)
                         hi = min(hi, r_lo)
@@ -6320,63 +6811,64 @@ class _Elaborator:
                         lo = max(lo, 0)
                         hi = min(hi, l_lo)
                 elif cname == f"int_rem_{spec.name}" and not spec.signed:
-                    _, r_hi, _ = self._term_bounds(args[1], spec, facts, depth + 1)
+                    _, r_hi, _ = self._term_bounds(args[1], spec, facts, depth + 1, next_visited)
                     if r_hi > 0:
                         lo = max(lo, 0)
                         hi = min(hi, r_hi - 1)
                 elif cname == f"int_shr_{spec.name}":
-                    l_lo, l_hi, _ = self._term_bounds(args[0], spec, facts, depth + 1)
-                    r_lo, r_hi, _ = self._term_bounds(args[1], _INT_SPECS["usize"], facts, depth + 1)
+                    l_lo, l_hi, _ = self._term_bounds(args[0], spec, facts, depth + 1, next_visited)
+                    r_lo, r_hi, _ = self._term_bounds(args[1], _INT_SPECS["usize"], facts, depth + 1, next_visited)
                     if 0 <= r_lo <= r_hi < spec.bits and (not spec.signed or l_lo >= 0):
                         lo = max(lo, max(0, l_lo) >> r_hi)
                         hi = min(hi, l_hi >> r_lo)
                 elif cname == f"int_shl_{spec.name}":
-                    l_lo, l_hi, _ = self._term_bounds(args[0], spec, facts, depth + 1)
-                    r_lo, r_hi, _ = self._term_bounds(args[1], _INT_SPECS["usize"], facts, depth + 1)
+                    l_lo, l_hi, _ = self._term_bounds(args[0], spec, facts, depth + 1, next_visited)
+                    r_lo, r_hi, _ = self._term_bounds(args[1], _INT_SPECS["usize"], facts, depth + 1, next_visited)
                     if 0 <= r_lo <= r_hi < spec.bits and l_lo >= 0:
                         lo = max(lo, l_lo << r_lo)
                         hi = min(hi, l_hi << r_hi)
                 elif cname == f"int_add_{spec.name}":
-                    l_lo, l_hi, _ = self._term_bounds(args[0], spec, facts, depth + 1)
-                    r_lo, r_hi, _ = self._term_bounds(args[1], spec, facts, depth + 1)
+                    l_lo, l_hi, _ = self._term_bounds(args[0], spec, facts, depth + 1, next_visited)
+                    r_lo, r_hi, _ = self._term_bounds(args[1], spec, facts, depth + 1, next_visited)
                     lo = max(lo, l_lo + r_lo)
                     hi = min(hi, l_hi + r_hi)
                 elif cname == f"int_sub_{spec.name}":
-                    l_lo, l_hi, _ = self._term_bounds(args[0], spec, facts, depth + 1)
-                    r_lo, r_hi, _ = self._term_bounds(args[1], spec, facts, depth + 1)
+                    l_lo, l_hi, _ = self._term_bounds(args[0], spec, facts, depth + 1, next_visited)
+                    r_lo, r_hi, _ = self._term_bounds(args[1], spec, facts, depth + 1, next_visited)
                     lo = max(lo, l_lo - r_hi)
                     hi = min(hi, l_hi - r_lo)
                 elif cname == f"int_mul_{spec.name}":
-                    l_lo, l_hi, _ = self._term_bounds(args[0], spec, facts, depth + 1)
-                    r_lo, r_hi, _ = self._term_bounds(args[1], spec, facts, depth + 1)
+                    l_lo, l_hi, _ = self._term_bounds(args[0], spec, facts, depth + 1, next_visited)
+                    r_lo, r_hi, _ = self._term_bounds(args[1], spec, facts, depth + 1, next_visited)
                     prods = (l_lo * r_lo, l_lo * r_hi, l_hi * r_lo, l_hi * r_hi)
                     lo = max(lo, min(prods))
                     hi = min(hi, max(prods))
             elif spec is None and len(args) == 2:
                 if cname == "+":
-                    l_lo, l_hi, _ = self._term_bounds(args[0], None, facts, depth + 1)
-                    r_lo, r_hi, _ = self._term_bounds(args[1], None, facts, depth + 1)
+                    l_lo, l_hi, _ = self._term_bounds(args[0], None, facts, depth + 1, next_visited)
+                    r_lo, r_hi, _ = self._term_bounds(args[1], None, facts, depth + 1, next_visited)
                     lo = max(lo, l_lo + r_lo)
                     hi = min(hi, l_hi + r_hi)
                 elif cname == "-":
-                    l_lo, l_hi, _ = self._term_bounds(args[0], None, facts, depth + 1)
-                    r_lo, r_hi, _ = self._term_bounds(args[1], None, facts, depth + 1)
+                    l_lo, l_hi, _ = self._term_bounds(args[0], None, facts, depth + 1, next_visited)
+                    r_lo, r_hi, _ = self._term_bounds(args[1], None, facts, depth + 1, next_visited)
                     lo = max(0, l_lo - r_hi)
                     hi = min(hi, max(0, l_hi - r_lo))
                 elif cname == "*":
-                    l_lo, l_hi, _ = self._term_bounds(args[0], None, facts, depth + 1)
-                    r_lo, r_hi, _ = self._term_bounds(args[1], None, facts, depth + 1)
+                    l_lo, l_hi, _ = self._term_bounds(args[0], None, facts, depth + 1, next_visited)
+                    r_lo, r_hi, _ = self._term_bounds(args[1], None, facts, depth + 1, next_visited)
                     lo = max(lo, l_lo * r_lo)
                     hi = min(hi, l_hi * r_hi)
+        uw = self._unwrap_numeric_subject(w)
         for fact in facts:
             parsed = self._parse_cmp_fact(fact)
             if parsed is None:
                 continue
             f_op, f_spec, f_l, f_r = parsed
-            fl = self.whnf(f_l)
-            fr = self.whnf(f_r)
-            if self._same_numeric_subject(fl, w):
-                r_lo, r_hi, _ = self._term_bounds(fr, f_spec, facts, depth + 1)
+            ufl = self._unwrap_numeric_subject(f_l)
+            ufr = self._unwrap_numeric_subject(f_r)
+            if ufl == uw:
+                r_lo, r_hi, _ = self._term_bounds(f_r, f_spec, facts, depth + 1, next_visited)
                 if f_op == "lt":
                     hi = min(hi, r_hi - 1)
                 elif f_op == "le":
@@ -6390,8 +6882,8 @@ class _Elaborator:
                     hi = min(hi, r_hi)
                 elif f_op == "ne" and r_lo == r_hi:
                     ne_set.add(r_lo)
-            elif self._same_numeric_subject(fr, w):
-                l_lo, l_hi, _ = self._term_bounds(fl, f_spec, facts, depth + 1)
+            elif ufr == uw:
+                l_lo, l_hi, _ = self._term_bounds(f_l, f_spec, facts, depth + 1, next_visited)
                 if f_op == "lt":
                     lo = max(lo, l_lo + 1)
                 elif f_op == "le":
@@ -6422,9 +6914,39 @@ class _Elaborator:
                 and (head.value.startswith("int_to_nat_") or head.value.startswith("int_from_"))
             ):
                 curr = self.whnf(args[0])
+            elif (
+                head.kind == "const"
+                and isinstance(head.value, str)
+                and len(args) == 2
+                and (head.value == "+" or head.value.startswith("int_add_"))
+            ):
+                a0 = self._unwrap_numeric_subject(args[0])
+                a1 = self._unwrap_numeric_subject(args[1])
+                if a0.kind in {"int", "nat"} and a0.value == 0:
+                    curr = a1
+                elif a1.kind in {"int", "nat"} and a1.value == 0:
+                    curr = a0
+                else:
+                    return _apps(head, a0, a1)
             else:
                 break
         return curr
+
+    def _extract_base_and_offset_term(self, term: _Term) -> tuple[_Term, _Term | None]:
+        w = self._unwrap_numeric_subject(term)
+        if w.kind == "app":
+            head, args = self.spine(w)
+            if (
+                head.kind == "const"
+                and isinstance(head.value, str)
+                and len(args) == 2
+                and (head.value == "+" or head.value.startswith("int_add_"))
+            ):
+                base_a, rem_a = self._extract_base_and_offset_term(args[0])
+                if rem_a is None:
+                    return base_a, args[1]
+                return base_a, _apps(head, rem_a, args[1])
+        return w, None
 
     def _same_numeric_subject(self, a: _Term, b: _Term) -> bool:
         return self._unwrap_numeric_subject(a) == self._unwrap_numeric_subject(b)
@@ -6434,8 +6956,50 @@ class _Elaborator:
     ) -> bool:
         wl = self.whnf(lhs)
         wr = self.whnf(rhs)
-        if self._same_numeric_subject(wl, wr) and op_kind in {"le", "ge", "eq"}:
+        if wl.kind in {"int", "nat"} and wr.kind in {"int", "nat"}:
+            lv = cast("int", wl.value)
+            rv = cast("int", wr.value)
+            return (
+                (op_kind == "lt" and lv < rv)
+                or (op_kind == "le" and lv <= rv)
+                or (op_kind == "gt" and lv > rv)
+                or (op_kind == "ge" and lv >= rv)
+                or (op_kind == "eq" and lv == rv)
+                or (op_kind == "ne" and lv != rv)
+            )
+        uwl = self._unwrap_numeric_subject(wl)
+        uwr = self._unwrap_numeric_subject(wr)
+        if uwl == uwr and op_kind in {"le", "ge", "eq"}:
             return True
+        for fact in facts:
+            parsed = self._parse_cmp_fact(fact)
+            if parsed is None:
+                continue
+            f_op, _, f_l, f_r = parsed
+            ufl = self._unwrap_numeric_subject(f_l)
+            ufr = self._unwrap_numeric_subject(f_r)
+            if ufl == uwl and ufr == uwr:
+                if op_kind == f_op:
+                    return True
+                if op_kind == "le" and f_op in {"lt", "eq"}:
+                    return True
+                if op_kind == "ge" and f_op in {"gt", "eq"}:
+                    return True
+                if op_kind == "ne" and f_op in {"lt", "gt"}:
+                    return True
+            if ufl == uwr and ufr == uwl:
+                if op_kind == "lt" and f_op == "gt":
+                    return True
+                if op_kind == "le" and f_op in {"ge", "eq"}:
+                    return True
+                if op_kind == "gt" and f_op == "lt":
+                    return True
+                if op_kind == "ge" and f_op in {"le", "eq"}:
+                    return True
+                if op_kind == "eq" and f_op == "eq":
+                    return True
+                if op_kind == "ne" and f_op in {"ne", "lt", "gt"}:
+                    return True
         l_lo, l_hi, l_ne = self._term_bounds(wl, spec, facts)
         r_lo, r_hi, r_ne = self._term_bounds(wr, spec, facts)
         if l_lo > l_hi or r_lo > r_hi:
@@ -6458,33 +7022,13 @@ class _Elaborator:
                 return True
             if l_lo == l_hi and l_lo in r_ne:
                 return True
-        for fact in facts:
-            parsed = self._parse_cmp_fact(fact)
-            if parsed is None:
-                continue
-            f_op, _, f_l, f_r = parsed
-            if self._same_numeric_subject(f_l, wl) and self._same_numeric_subject(f_r, wr):
-                if op_kind == f_op:
-                    return True
-                if op_kind == "le" and f_op in {"lt", "eq"}:
-                    return True
-                if op_kind == "ge" and f_op in {"gt", "eq"}:
-                    return True
-                if op_kind == "ne" and f_op in {"lt", "gt"}:
-                    return True
-            if self._same_numeric_subject(f_l, wr) and self._same_numeric_subject(f_r, wl):
-                if op_kind == "lt" and f_op == "gt":
-                    return True
-                if op_kind == "le" and f_op in {"ge", "eq"}:
-                    return True
-                if op_kind == "gt" and f_op == "lt":
-                    return True
-                if op_kind == "ge" and f_op in {"le", "eq"}:
-                    return True
-                if op_kind == "eq" and f_op == "eq":
-                    return True
-                if op_kind == "ne" and f_op in {"ne", "lt", "gt"}:
-                    return True
+        base_l, rem_l = self._extract_base_and_offset_term(wl)
+        base_r, rem_r = self._extract_base_and_offset_term(wr)
+        if self._same_numeric_subject(base_l, base_r) and (rem_l is not None or rem_r is not None):
+            zero = _int_term(spec, 0) if spec is not None else _term("nat", value=0)
+            off_l = zero if rem_l is None else rem_l
+            off_r = zero if rem_r is None else rem_r
+            return self._prove_comparison(op_kind, spec, off_l, off_r, facts)
         return False
 
     def _prove_bool_precondition(self, cond: _Term, environment: dict[str, _Binding]) -> bool:
@@ -6509,6 +7053,16 @@ class _Elaborator:
             neg = self._negate_bool_term(args[0])
             if neg != w:
                 return self._prove_bool_precondition(neg, environment)
+        if head == _constant("Span_Disjoint") and len(args) == 3:
+            a_t, b_t = args[1], args[2]
+            if _apps(_constant("Span_Disjoint"), _U8, b_t, a_t) in facts:
+                return True
+            ra, rb = self._root_span(a_t), self._root_span(b_t)
+            if (ra, rb) != (a_t, b_t) and (
+                _apps(_constant("Span_Disjoint"), _U8, ra, rb) in facts
+                or _apps(_constant("Span_Disjoint"), _U8, rb, ra) in facts
+            ):
+                return True
         parsed = self._parse_cmp_fact(w)
         if parsed is not None:
             op_kind, spec, lhs, rhs = parsed
@@ -6528,6 +7082,222 @@ class _Elaborator:
                 )
             return
         self._prove_proposition(req, environment, (), site if site is not None else cast("Node", self.site))
+
+    def _root_span(self, span_term: _Term) -> _Term:
+        curr = self.whnf(span_term)
+        while curr.kind == "app":
+            head, args = self.spine(curr)
+            if head.kind != "const" or not isinstance(head.value, str):
+                break
+            sname = head.value
+            if sname in {
+                "Span_ReadOnly",
+                "Span_Invalidate",
+                "Span_Write",
+                "Span_Fill",
+                "Span_Slice",
+                "Span_CopyPrefix",
+                "Span_Restore",
+            } and len(args) >= 2:
+                curr = self.whnf(args[1])
+            else:
+                break
+        return curr
+
+    def _is_readonly_span(self, span_term: _Term) -> bool:
+        root = self._root_span(span_term)
+        return root.kind == "var" and cast("int", root.value) in self.readonly_span_vars
+
+    def _check_span_can_read(
+        self, span_term: _Term, environment: dict[str, _Binding], site: Node
+    ) -> None:
+        cond = _apps(_constant("Span_CanRead"), _U8, span_term)
+        if not self._prove_bool_precondition(cond, environment):
+            raise self.fail(
+                "type",
+                "cannot prove Span has valid tag and read permission (Span.CanRead)",
+                site,
+            )
+
+    def _check_span_can_write(
+        self, span_term: _Term, environment: dict[str, _Binding], site: Node
+    ) -> None:
+        if self._is_readonly_span(span_term):
+            raise self.fail("type", "cannot mutate a read-only 'in Span<byte>' borrow", site)
+        cond = _apps(_constant("Span_CanWrite"), _U8, span_term)
+        if not self._prove_bool_precondition(cond, environment):
+            raise self.fail(
+                "type",
+                "cannot prove Span has valid tag and write permission (Span.CanWrite)",
+                site,
+            )
+
+    def _check_span_disjoint(
+        self, dst_term: _Term, src_term: _Term, environment: dict[str, _Binding], site: Node
+    ) -> None:
+        direct_ab = _apps(_constant("Span_Disjoint"), _U8, dst_term, src_term)
+        direct_ba = _apps(_constant("Span_Disjoint"), _U8, src_term, dst_term)
+        if self._prove_bool_precondition(direct_ab, environment) or self._prove_bool_precondition(
+            direct_ba, environment
+        ):
+            return
+        root_dst = self._root_span(dst_term)
+        root_src = self._root_span(src_term)
+        if root_dst != root_src:
+            root_ab = _apps(_constant("Span_Disjoint"), _U8, root_dst, root_src)
+            root_ba = _apps(_constant("Span_Disjoint"), _U8, root_src, root_dst)
+            if self._prove_bool_precondition(root_ab, environment) or self._prove_bool_precondition(
+                root_ba, environment
+            ):
+                return
+        ba = _apps(_constant("Span_Base"), _U8, dst_term)
+        la = _apps(_constant("Span_Length"), _U8, dst_term)
+        bb = _apps(_constant("Span_Base"), _U8, src_term)
+        lb = _apps(_constant("Span_Length"), _U8, src_term)
+        cond_ab = _apps(_constant("int_le_usize"), _apps(_constant("int_add_usize"), ba, la), bb)
+        cond_ba = _apps(_constant("int_le_usize"), _apps(_constant("int_add_usize"), bb, lb), ba)
+        if self._prove_bool_precondition(cond_ab, environment) or self._prove_bool_precondition(
+            cond_ba, environment
+        ):
+            return
+        raise self.fail(
+            "type",
+            "cannot prove Span.CopyPrefix source and destination extents are disjoint",
+            site,
+        )
+
+    def _elaborate_span_intrinsic(
+        self,
+        node: Node,
+        member_name: str,
+        call_args: list[Node],
+        environment: dict[str, _Binding],
+    ) -> _Binding:
+        self.site = node
+        for arg_node in call_args:
+            self.node(arg_node, "argument")
+            if arg_node["label"] is not None:
+                raise self.fail("name", f"Span.{member_name} does not accept labeled arguments", arg_node)
+        arg_nodes = [self.node(a["value"]) for a in call_args]
+        span_u8 = _app(_constant("Span"), _U8)
+        if member_name == "AllocZeroed":
+            if len(arg_nodes) != 2:
+                raise self.fail("type", f"Span.AllocZeroed expects 2 arguments, got {len(arg_nodes)}", node)
+            base_t = self.check(arg_nodes[0], _USIZE, environment)
+            cap_t = self.check(arg_nodes[1], _USIZE, environment)
+            return _Binding(_apps(_constant("Span_AllocZeroed"), _U8, base_t, cap_t), span_u8)
+        if member_name in {"ReadOnly", "Invalidate"}:
+            if len(arg_nodes) != 1:
+                raise self.fail("type", f"Span.{member_name} expects 1 argument, got {len(arg_nodes)}", node)
+            s_t = self.check(arg_nodes[0], span_u8, environment)
+            return _Binding(_apps(_constant(f"Span_{member_name}"), _U8, s_t), span_u8)
+        if member_name == "Disjoint":
+            if len(arg_nodes) != 2:
+                raise self.fail("type", f"Span.Disjoint expects 2 arguments, got {len(arg_nodes)}", node)
+            a_t = self.check(arg_nodes[0], span_u8, environment)
+            b_t = self.check(arg_nodes[1], span_u8, environment)
+            return _Binding(_apps(_constant("Span_Disjoint"), _U8, a_t, b_t), _BOOL)
+        if member_name == "Read":
+            if len(arg_nodes) != 2:
+                raise self.fail("type", f"Span.Read expects 2 arguments, got {len(arg_nodes)}", node)
+            s_t = self.check(arg_nodes[0], span_u8, environment)
+            idx_t = self.check(arg_nodes[1], _USIZE, environment)
+            self._check_span_can_read(s_t, environment, node)
+            len_t = _apps(_constant("Span_Length"), _U8, s_t)
+            in_bounds = _apps(_constant("int_lt_usize"), idx_t, len_t)
+            if not self._prove_bool_precondition(in_bounds, environment):
+                raise self.fail("type", "cannot prove Span.Read index is within Span.Length bounds", node)
+            return _Binding(_apps(_constant("Span_Read"), _U8, s_t, idx_t), _U8)
+        if member_name == "Write":
+            if len(arg_nodes) != 3:
+                raise self.fail("type", f"Span.Write expects 3 arguments, got {len(arg_nodes)}", node)
+            s_t = self.check(arg_nodes[0], span_u8, environment)
+            idx_t = self.check(arg_nodes[1], _USIZE, environment)
+            val_t = self.check(arg_nodes[2], _U8, environment)
+            self._check_span_can_write(s_t, environment, node)
+            len_t = _apps(_constant("Span_Length"), _U8, s_t)
+            in_bounds = _apps(_constant("int_lt_usize"), idx_t, len_t)
+            if not self._prove_bool_precondition(in_bounds, environment):
+                raise self.fail("type", "cannot prove Span.Write index is within Span.Length bounds", node)
+            return _Binding(_apps(_constant("Span_Write"), _U8, s_t, idx_t, val_t), span_u8)
+        if member_name == "Fill":
+            if len(arg_nodes) != 4:
+                raise self.fail("type", f"Span.Fill expects 4 arguments, got {len(arg_nodes)}", node)
+            s_t = self.check(arg_nodes[0], span_u8, environment)
+            off_t = self.check(arg_nodes[1], _USIZE, environment)
+            cnt_t = self.check(arg_nodes[2], _USIZE, environment)
+            val_t = self.check(arg_nodes[3], _U8, environment)
+            self._check_span_can_write(s_t, environment, node)
+            len_t = _apps(_constant("Span_Length"), _U8, s_t)
+            end_t = _apps(_constant("int_add_usize"), off_t, cnt_t)
+            in_bounds = _apps(_constant("int_le_usize"), end_t, len_t)
+            if not self._prove_bool_precondition(in_bounds, environment):
+                raise self.fail(
+                    "type",
+                    "cannot prove Span.Fill subrange (offset + count <= Span.Length) is in bounds",
+                    node,
+                )
+            return _Binding(_apps(_constant("Span_Fill"), _U8, s_t, off_t, cnt_t, val_t), span_u8)
+        if member_name == "Slice":
+            if len(arg_nodes) != 3:
+                raise self.fail("type", f"Span.Slice expects 3 arguments, got {len(arg_nodes)}", node)
+            s_t = self.check(arg_nodes[0], span_u8, environment)
+            off_t = self.check(arg_nodes[1], _USIZE, environment)
+            cnt_t = self.check(arg_nodes[2], _USIZE, environment)
+            self._check_span_can_read(s_t, environment, node)
+            len_t = _apps(_constant("Span_Length"), _U8, s_t)
+            end_t = _apps(_constant("int_add_usize"), off_t, cnt_t)
+            in_bounds = _apps(_constant("int_le_usize"), end_t, len_t)
+            if not self._prove_bool_precondition(in_bounds, environment):
+                raise self.fail(
+                    "type",
+                    "cannot prove Span.Slice subrange (offset + count <= Span.Length) is in bounds",
+                    node,
+                )
+            return _Binding(_apps(_constant("Span_Slice"), _U8, s_t, off_t, cnt_t), span_u8)
+        if member_name == "CopyPrefix":
+            if len(arg_nodes) != 3:
+                raise self.fail("type", f"Span.CopyPrefix expects 3 arguments, got {len(arg_nodes)}", node)
+            dst_t = self.check(arg_nodes[0], span_u8, environment)
+            src_t = self.check(arg_nodes[1], span_u8, environment)
+            cnt_t = self.check(arg_nodes[2], _USIZE, environment)
+            self._check_span_can_write(dst_t, environment, node)
+            self._check_span_can_read(src_t, environment, node)
+            dst_len = _apps(_constant("Span_Length"), _U8, dst_t)
+            src_len = _apps(_constant("Span_Length"), _U8, src_t)
+            if not self._prove_bool_precondition(_apps(_constant("int_le_usize"), cnt_t, dst_len), environment):
+                raise self.fail("type", "cannot prove Span.CopyPrefix count <= dst.Length", node)
+            if not self._prove_bool_precondition(_apps(_constant("int_le_usize"), cnt_t, src_len), environment):
+                raise self.fail("type", "cannot prove Span.CopyPrefix count <= src.Length", node)
+            self._check_span_disjoint(dst_t, src_t, environment, node)
+            return _Binding(_apps(_constant("Span_CopyPrefix"), _U8, dst_t, src_t, cnt_t), span_u8)
+        if member_name == "Restore":
+            if len(arg_nodes) != 2:
+                raise self.fail("type", f"Span.Restore expects 2 arguments, got {len(arg_nodes)}", node)
+            parent_t = self.check(arg_nodes[0], span_u8, environment)
+            view_t = self.check(arg_nodes[1], span_u8, environment)
+            self._check_span_can_write(parent_t, environment, node)
+            p_base = _apps(_constant("Span_Base"), _U8, parent_t)
+            p_len = _apps(_constant("Span_Length"), _U8, parent_t)
+            v_base = _apps(_constant("Span_Base"), _U8, view_t)
+            v_len = _apps(_constant("Span_Length"), _U8, view_t)
+            base_ok = _apps(_constant("int_ge_usize"), v_base, p_base)
+            end_ok = _apps(
+                _constant("int_le_usize"),
+                _apps(_constant("int_add_usize"), v_base, v_len),
+                _apps(_constant("int_add_usize"), p_base, p_len),
+            )
+            if not (
+                self._prove_bool_precondition(base_ok, environment)
+                and self._prove_bool_precondition(end_ok, environment)
+            ):
+                raise self.fail(
+                    "type",
+                    "cannot prove Span.Restore view extent is contained within parent extent",
+                    node,
+                )
+            return _Binding(_apps(_constant("Span_Restore"), _U8, parent_t, view_t), span_u8)
+        raise self.fail("name", f"unknown Span intrinsic 'Span.{member_name}'", node)
 
     @staticmethod
     def _dotted_member_path(node: Node) -> str | None:
@@ -7123,6 +7893,8 @@ class _Elaborator:
                         and self.name(receiver["name"]) == "Format"
                         and member_name == "Write"):
                     return self._format_write(node, call_args, environment)
+                if receiver["kind"] == "name" and self.name(receiver["name"]) == "Span" and "Span" not in environment:
+                    return self._elaborate_span_intrinsic(node, member_name, call_args, environment)
                 dst_spec = self._resolve_int_type_receiver(receiver, environment)
                 if dst_spec is not None:
                     if member_name in {"From", "TryFrom"}:
@@ -7244,6 +8016,8 @@ class _Elaborator:
         self.site = node
         if node["kind"] == "group":
             return self.proposition(self.node(node["value"]), environment)
+        if node["kind"] == "let_expression":
+            return self.proposition(self.node(node["body"]), self.local(self.node(node["binding"]), environment))
         if node["kind"] == "binary":
             operator = self.operator(node["operator"])
             if operator == "==":
@@ -7278,13 +8052,19 @@ class _Elaborator:
         self.unify(value.type, _PROP)
         return value.term
 
-    def complete(self, term: _Term) -> None:
+    def complete(self, term: _Term, seen: dict[int, _Term] | None = None) -> None:
+        if seen is None:
+            seen = {}
+        tid = id(term)
+        if tid in seen:
+            return
+        seen[tid] = term
         self.tick()
         term = self.resolve(term)
         if term.kind == "meta":
             raise self.fail("inference", "unresolved inference variable; add a type or generic argument")
         for child in term.args:
-            self.complete(child)
+            self.complete(child, seen)
 
     def _evict_builtin_if_shadowed(self, name: str) -> None:
         if name in self.builtin_unions:
@@ -7714,7 +8494,11 @@ class _Elaborator:
 
     def declaration(self, node: Node) -> None:
         self.site = node
+        self.work = MAX_WORK
+        self.reductions = MAX_REDUCTIONS
         first_meta = len(self.metas)
+        self.decl_first_meta = first_meta
+        self.whnf_cache.clear()
         kind = node["kind"]
         if kind == "import":
             imp_name = self.name(node["name"])
@@ -7742,6 +8526,8 @@ class _Elaborator:
             raise self.fail("unsupported", "unsupported or repeated declaration modifiers")
         decreases_clauses: list[Node] = []
         requires_clauses: list[Node] = []
+        ensures_clauses: list[Node] = []
+        restores_clauses: list[Node] = []
         if kind in {"definition", "function"}:
             self.no_roles(node, "cancel")
             has_params_or_generics = bool(self.nodes(node["parameters"]) or self.nodes(node["generics"]))
@@ -7752,6 +8538,10 @@ class _Elaborator:
                     decreases_clauses.append(contract)
                 elif role == "requires" and has_params_or_generics:
                     requires_clauses.append(contract)
+                elif role == "ensures" and has_params_or_generics:
+                    ensures_clauses.append(contract)
+                elif role == "restores" and has_params_or_generics:
+                    restores_clauses.append(contract)
                 else:
                     raise self.fail(
                         "unsupported",
@@ -7776,6 +8566,7 @@ class _Elaborator:
         self_var: _Term | None = None
         candidates: list[tuple[int, int]] = []
         req_bool_terms: list[_Term] = []
+        req_vars: list[_Term] = []
         if kind == "constant":
             evaluated = self.constant_value(node, environment)
             body, result = evaluated.term, evaluated.type
@@ -7801,10 +8592,12 @@ class _Elaborator:
                     req_bool_terms.append(req_val.term)
                     eq_prop = _apps(_constant("Eq"), _BOOL, req_val.term, _term("bool", value=1))
                     req_var = self.fresh(eq_prop)
+                    req_vars.append(req_var)
                     environment[f"__vela_req_{req_idx}"] = _Binding(req_var, eq_prop)
                 else:
                     req_prop = self.proposition(req_val_node, environment)
                     req_var = self.fresh(req_prop)
+                    req_vars.append(req_var)
                     environment[f"__vela_req_{req_idx}"] = _Binding(req_var, req_prop)
                     if req_prop.kind == "app":
                         head_p, args_p = self.spine(req_prop)
@@ -7927,6 +8720,113 @@ class _Elaborator:
         if req_bool_terms:
             param_ids = tuple(cast("int", v.value) for v in variables)
             self.callable_preconditions[emitted] = [(param_ids, req_t) for req_t in req_bool_terms]
+        if ensures_clauses or restores_clauses:
+            post_env = dict(environment)
+            call_term = _apps(_constant(emitted), *variables)
+            post_env["result"] = _Binding(call_term, result)
+            post_vars = [*variables, *req_vars]
+            self.active_facts.extend(req_bool_terms)
+            try:
+                span_u8 = _app(_constant("Span"), _U8)
+                for rest_idx, rest_contract in enumerate(restores_clauses):
+                    rest_val_node = self.node(rest_contract["value"])
+                    if rest_val_node["kind"] == "name":
+                        target_param_name = self.name(rest_val_node["name"])
+                        if target_param_name not in environment:
+                            raise self.fail(
+                                "name",
+                                f"unknown parameter '{target_param_name}' in restores clause",
+                                rest_val_node,
+                            )
+                        param_b = environment[target_param_name]
+                        if self.whnf(param_b.type) != span_u8:
+                            raise self.fail(
+                                "type",
+                                f"restores parameter '{target_param_name}' must have type Span<byte>",
+                                rest_val_node,
+                            )
+                        if self._is_readonly_span(param_b.term):
+                            raise self.fail(
+                                "type",
+                                f"restores parameter '{target_param_name}' cannot be a read-only 'in Span<byte>' borrow",
+                                rest_val_node,
+                            )
+                        if self.whnf(result) == span_u8:
+                            restored_span_term = call_term
+                        else:
+                            res_head, _ = self.spine(self.whnf(result))
+                            if (
+                                res_head.kind == "const"
+                                and isinstance(res_head.value, str)
+                                and res_head.value in self.records_by_type
+                                and any(rf.name == "RestoredDst" for rf in self.records_by_type[res_head.value].fields)
+                            ):
+                                restored_span_term = self._project_member(
+                                    post_env["result"], "RestoredDst", rest_contract
+                                ).term
+                            else:
+                                raise self.fail(
+                                    "type",
+                                    f"restores clause for '{target_param_name}' requires a Span<byte> return type or RestoredDst record field",
+                                    rest_contract,
+                                )
+                        for field_tag, eq_ty in (
+                            ("Base", _USIZE),
+                            ("Length", _USIZE),
+                            ("Tag", _BOOL),
+                            ("PermRead", _BOOL),
+                            ("PermWrite", _BOOL),
+                        ):
+                            self.work = MAX_WORK
+                            self.reductions = MAX_REDUCTIONS
+                            lhs_f = _apps(_constant(f"Span_{field_tag}"), _U8, restored_span_term)
+                            rhs_f = _apps(_constant(f"Span_{field_tag}"), _U8, param_b.term)
+                            rest_prop = _apps(_constant("Eq"), eq_ty, lhs_f, rhs_f)
+                            rest_proof = self._prove_proposition(rest_prop, post_env, (), rest_contract)
+                            rest_sig = self.wrap("pi", post_vars, rest_prop)
+                            rest_def = self.wrap("lam", post_vars, rest_proof)
+                            self.complete(rest_sig)
+                            self.complete(rest_def)
+                            rest_emitted = f"{emitted}_restores_{rest_idx}_{field_tag}"
+                            self.output.append(
+                                f"Definition {rest_emitted} : {self.render(rest_sig)} :=\n  {self.render(rest_def)}."
+                            )
+                            self.constants[rest_emitted] = _Binding(_constant(rest_emitted), rest_sig, len(generics))
+                            self.definitions[rest_emitted] = rest_def
+                    else:
+                        self.work = MAX_WORK
+                        self.reductions = MAX_REDUCTIONS
+                        rest_prop = self.asserted_proposition(rest_val_node, post_env)
+                        rest_proof = self._prove_proposition(rest_prop, post_env, (), rest_contract)
+                        rest_sig = self.wrap("pi", post_vars, rest_prop)
+                        rest_def = self.wrap("lam", post_vars, rest_proof)
+                        self.complete(rest_sig)
+                        self.complete(rest_def)
+                        rest_emitted = f"{emitted}_restores_{rest_idx}"
+                        self.output.append(
+                            f"Definition {rest_emitted} : {self.render(rest_sig)} :=\n  {self.render(rest_def)}."
+                        )
+                        self.constants[rest_emitted] = _Binding(_constant(rest_emitted), rest_sig, len(generics))
+                        self.definitions[rest_emitted] = rest_def
+                for ens_idx, ens_contract in enumerate(ensures_clauses):
+                    self.work = MAX_WORK
+                    self.reductions = MAX_REDUCTIONS
+                    ens_val_node = self.node(ens_contract["value"])
+                    ens_prop = self.asserted_proposition(ens_val_node, post_env)
+                    ens_proof = self._prove_proposition(ens_prop, post_env, (), ens_contract)
+                    ens_sig = self.wrap("pi", post_vars, ens_prop)
+                    ens_def = self.wrap("lam", post_vars, ens_proof)
+                    self.complete(ens_sig)
+                    self.complete(ens_def)
+                    ens_emitted = f"{emitted}_ensures_{ens_idx}"
+                    self.output.append(
+                        f"Definition {ens_emitted} : {self.render(ens_sig)} :=\n  {self.render(ens_def)}."
+                    )
+                    self.constants[ens_emitted] = _Binding(_constant(ens_emitted), ens_sig, len(generics))
+                    self.definitions[ens_emitted] = ens_def
+            finally:
+                for _ in req_bool_terms:
+                    self.active_facts.pop()
 
     def render(self, term: _Term) -> str:
         self.tick()
@@ -7950,13 +8850,9 @@ class _Elaborator:
             int_val = cast("int", term.value)
             unsigned = int_val & ((1 << spec.bits) - 1)
             bits_term = "vela_bnil"
-            for bit_idx in range(spec.bits):
-                bit_bool = (
-                    "Corelib.Init.Datatypes.true"
-                    if ((unsigned >> bit_idx) & 1)
-                    else "Corelib.Init.Datatypes.false"
-                )
-                bits_term = f"(vela_bcons {bit_bool} {bits_term})"
+            for nib_idx in range(0, spec.bits, 4):
+                nib = (unsigned >> nib_idx) & 0xF
+                bits_term = f"(vela_x{nib:x} {bits_term})"
             return f"(@vela_mk_int ({spec.tag} : Corelib.Init.Datatypes.nat) {bits_term})"
         if kind == "bool":
             return "Corelib.Init.Datatypes.true" if term.value else "Corelib.Init.Datatypes.false"
@@ -8091,6 +8987,24 @@ _GALLINA = {
     "EmptyBuilder": "vela_EmptyBuilder", "FormatStep": "vela_FormatStep",
     "Fits": "vela_Fits", "Written": "vela_Written",
     "Fin": "vela_Fin", "FZero": "vela_FZero", "FSucc": "vela_FSucc", "At": "vela_At",
+    "Span": "vela_Span",
+    "Span_Base": "vela_Span_Base",
+    "Span_Length": "vela_Span_Length",
+    "Span_Tag": "vela_Span_Tag",
+    "Span_PermRead": "vela_Span_PermRead",
+    "Span_PermWrite": "vela_Span_PermWrite",
+    "Span_CanRead": "vela_Span_CanRead",
+    "Span_CanWrite": "vela_Span_CanWrite",
+    "Span_AllocZeroed": "vela_Span_AllocZeroed",
+    "Span_ReadOnly": "vela_Span_ReadOnly",
+    "Span_Invalidate": "vela_Span_Invalidate",
+    "Span_Disjoint": "vela_Span_Disjoint",
+    "Span_Read": "vela_Span_Read",
+    "Span_Write": "vela_Span_Write",
+    "Span_Fill": "vela_Span_Fill",
+    "Span_Slice": "vela_Span_Slice",
+    "Span_CopyPrefix": "vela_Span_CopyPrefix",
+    "Span_Restore": "vela_Span_Restore",
     "+": "Corelib.Init.Nat.add", "*": "Corelib.Init.Nat.mul", "-": "Corelib.Init.Nat.sub",
     "/": "Corelib.Init.Nat.div", "%": "Corelib.Init.Nat.modulo",
     "<=": "Corelib.Init.Nat.leb", "<": "Corelib.Init.Nat.ltb", ">=": "vela_ge", ">": "vela_gt",
@@ -8154,6 +9068,25 @@ Inductive vela_bits : Type@{vela_u0} :=
 | vela_bnil : vela_bits
 | vela_bcons : bool -> vela_bits -> vela_bits.
 
+Abbreviation vela_0 x := (vela_bcons Corelib.Init.Datatypes.false x) (only parsing).
+Abbreviation vela_1 x := (vela_bcons Corelib.Init.Datatypes.true x) (only parsing).
+Abbreviation vela_x0 x := (vela_0 (vela_0 (vela_0 (vela_0 x)))) (only parsing).
+Abbreviation vela_x1 x := (vela_0 (vela_0 (vela_0 (vela_1 x)))) (only parsing).
+Abbreviation vela_x2 x := (vela_0 (vela_0 (vela_1 (vela_0 x)))) (only parsing).
+Abbreviation vela_x3 x := (vela_0 (vela_0 (vela_1 (vela_1 x)))) (only parsing).
+Abbreviation vela_x4 x := (vela_0 (vela_1 (vela_0 (vela_0 x)))) (only parsing).
+Abbreviation vela_x5 x := (vela_0 (vela_1 (vela_0 (vela_1 x)))) (only parsing).
+Abbreviation vela_x6 x := (vela_0 (vela_1 (vela_1 (vela_0 x)))) (only parsing).
+Abbreviation vela_x7 x := (vela_0 (vela_1 (vela_1 (vela_1 x)))) (only parsing).
+Abbreviation vela_x8 x := (vela_1 (vela_0 (vela_0 (vela_0 x)))) (only parsing).
+Abbreviation vela_x9 x := (vela_1 (vela_0 (vela_0 (vela_1 x)))) (only parsing).
+Abbreviation vela_xa x := (vela_1 (vela_0 (vela_1 (vela_0 x)))) (only parsing).
+Abbreviation vela_xb x := (vela_1 (vela_0 (vela_1 (vela_1 x)))) (only parsing).
+Abbreviation vela_xc x := (vela_1 (vela_1 (vela_0 (vela_0 x)))) (only parsing).
+Abbreviation vela_xd x := (vela_1 (vela_1 (vela_0 (vela_1 x)))) (only parsing).
+Abbreviation vela_xe x := (vela_1 (vela_1 (vela_1 (vela_0 x)))) (only parsing).
+Abbreviation vela_xf x := (vela_1 (vela_1 (vela_1 (vela_1 x)))) (only parsing).
+
 Inductive vela_int (tag : nat) : Type@{vela_u0} :=
 | vela_mk_int : vela_bits -> vela_int tag.
 
@@ -8167,6 +9100,107 @@ Fixpoint vela_bits_eqb (a b : vela_bits) : bool :=
 Definition vela_int_bits (tag : nat) (x : vela_int tag) : vela_bits :=
   match x with
   | vela_mk_int _ bs => bs
+  end.
+
+Definition vela_xorb (a b : bool) : bool := if a then vela_not b else b.
+
+Fixpoint vela_bits_xor (a b : vela_bits) : vela_bits :=
+  match a, b with
+  | vela_bcons x xs, vela_bcons y ys => vela_bcons (vela_xorb x y) (vela_bits_xor xs ys)
+  | _, _ => vela_bnil
+  end.
+
+Fixpoint vela_bits_and (a b : vela_bits) : vela_bits :=
+  match a, b with
+  | vela_bcons x xs, vela_bcons y ys => vela_bcons (vela_and x y) (vela_bits_and xs ys)
+  | _, _ => vela_bnil
+  end.
+
+Fixpoint vela_bits_or (a b : vela_bits) : vela_bits :=
+  match a, b with
+  | vela_bcons x xs, vela_bcons y ys => vela_bcons (vela_or x y) (vela_bits_or xs ys)
+  | _, _ => vela_bnil
+  end.
+
+Fixpoint vela_bits_not (a : vela_bits) : vela_bits :=
+  match a with
+  | vela_bcons x xs => vela_bcons (vela_not x) (vela_bits_not xs)
+  | vela_bnil => vela_bnil
+  end.
+
+Fixpoint vela_bits_ult (a b : vela_bits) : bool :=
+  match a, b with
+  | vela_bcons x xs, vela_bcons y ys =>
+      if vela_eq_bool x y then vela_bits_ult xs ys else y
+  | _, _ => false
+  end.
+
+Fixpoint vela_bits_ule (a b : vela_bits) : bool :=
+  match a, b with
+  | vela_bcons x xs, vela_bcons y ys =>
+      if vela_eq_bool x y then vela_bits_ule xs ys else y
+  | _, _ => true
+  end.
+
+Fixpoint vela_bits_rev_acc (a acc : vela_bits) : vela_bits :=
+  match a with
+  | vela_bnil => acc
+  | vela_bcons x xs => vela_bits_rev_acc xs (vela_bcons x acc)
+  end.
+
+Definition vela_bits_rev (a : vela_bits) : vela_bits :=
+  vela_bits_rev_acc a vela_bnil.
+
+Fixpoint vela_bits_add_lsb (a b : vela_bits) (carry : bool) : vela_bits :=
+  match a, b with
+  | vela_bcons x xs, vela_bcons y ys =>
+      let sum := vela_xorb (vela_xorb x y) carry in
+      let next_carry := vela_or (vela_and x y) (vela_and (vela_xorb x y) carry) in
+      vela_bcons sum (vela_bits_add_lsb xs ys next_carry)
+  | _, _ => vela_bnil
+  end.
+
+Definition vela_bits_add (a b : vela_bits) : vela_bits :=
+  vela_bits_rev (vela_bits_add_lsb (vela_bits_rev a) (vela_bits_rev b) false).
+
+Fixpoint vela_bits_sub_lsb (a b : vela_bits) (borrow : bool) : vela_bits :=
+  match a, b with
+  | vela_bcons x xs, vela_bcons y ys =>
+      let diff := vela_xorb (vela_xorb x y) borrow in
+      let next_borrow := vela_or (vela_and (vela_not x) y) (vela_and (vela_not (vela_xorb x y)) borrow) in
+      vela_bcons diff (vela_bits_sub_lsb xs ys next_borrow)
+  | _, _ => vela_bnil
+  end.
+
+Definition vela_bits_sub (a b : vela_bits) : vela_bits :=
+  vela_bits_rev (vela_bits_sub_lsb (vela_bits_rev a) (vela_bits_rev b) false).
+
+Definition vela_tag_bits (tag : nat) : nat :=
+  match tag with
+  | O => 8
+  | S O => 16
+  | S (S O) => 32
+  | S (S (S O)) => 64
+  | S (S (S (S O))) => 64
+  | S (S (S (S (S O)))) => 8
+  | S (S (S (S (S (S O))))) => 16
+  | S (S (S (S (S (S (S O)))))) => 32
+  | _ => 64
+  end.
+
+Definition vela_tag_signed (tag : nat) : bool :=
+  Corelib.Init.Nat.leb 5 tag.
+
+Fixpoint vela_bits_len (a : vela_bits) : nat :=
+  match a with
+  | vela_bnil => O
+  | vela_bcons _ xs => S (vela_bits_len xs)
+  end.
+
+Fixpoint vela_bits_pad (n : nat) (fill : bool) (a : vela_bits) : vela_bits :=
+  match n with
+  | O => a
+  | S k => vela_bcons fill (vela_bits_pad k fill a)
   end.
 
 Definition vela_ArithmeticError : Type@{vela_u0} :=
@@ -8188,28 +9222,40 @@ Definition vela_Result_Err (TValue TError : Type@{vela_u0}) (e : TError) : vela_
 Definition vela_Result_Ok (TValue TError : Type@{vela_u0}) (v : TValue) : vela_Result TValue TError :=
   @inr TError TValue v.
 
-Definition vela_int_add (tag : nat) (a _ : vela_int tag) : vela_int tag := a.
-Definition vela_int_sub (tag : nat) (a _ : vela_int tag) : vela_int tag := a.
+Definition vela_int_add (tag : nat) (a b : vela_int tag) : vela_int tag :=
+  vela_mk_int tag (vela_bits_add (vela_int_bits tag a) (vela_int_bits tag b)).
+Definition vela_int_sub (tag : nat) (a b : vela_int tag) : vela_int tag :=
+  vela_mk_int tag (vela_bits_sub (vela_int_bits tag a) (vela_int_bits tag b)).
 Definition vela_int_mul (tag : nat) (a _ : vela_int tag) : vela_int tag := a.
 Definition vela_int_div (tag : nat) (a _ : vela_int tag) : vela_int tag := a.
 Definition vela_int_rem (tag : nat) (a _ : vela_int tag) : vela_int tag := a.
 Definition vela_int_neg (tag : nat) (a : vela_int tag) : vela_int tag := a.
-Definition vela_int_and (tag : nat) (a _ : vela_int tag) : vela_int tag := a.
-Definition vela_int_or (tag : nat) (a _ : vela_int tag) : vela_int tag := a.
-Definition vela_int_xor (tag : nat) (a _ : vela_int tag) : vela_int tag := a.
-Definition vela_int_not (tag : nat) (a : vela_int tag) : vela_int tag := a.
+Definition vela_int_and (tag : nat) (a b : vela_int tag) : vela_int tag :=
+  vela_mk_int tag (vela_bits_and (vela_int_bits tag a) (vela_int_bits tag b)).
+Definition vela_int_or (tag : nat) (a b : vela_int tag) : vela_int tag :=
+  vela_mk_int tag (vela_bits_or (vela_int_bits tag a) (vela_int_bits tag b)).
+Definition vela_int_xor (tag : nat) (a b : vela_int tag) : vela_int tag :=
+  vela_mk_int tag (vela_bits_xor (vela_int_bits tag a) (vela_int_bits tag b)).
+Definition vela_int_not (tag : nat) (a : vela_int tag) : vela_int tag :=
+  vela_mk_int tag (vela_bits_not (vela_int_bits tag a)).
 Definition vela_int_shl (tag : nat) (a : vela_int tag) (_ : vela_int (4 : nat)) : vela_int tag := a.
 Definition vela_int_shr (tag : nat) (a : vela_int tag) (_ : vela_int (4 : nat)) : vela_int tag := a.
 Definition vela_int_eq (tag : nat) (a b : vela_int tag) : bool :=
   vela_bits_eqb (vela_int_bits tag a) (vela_int_bits tag b).
 Definition vela_int_ne (tag : nat) (a b : vela_int tag) : bool :=
   vela_not (vela_int_eq tag a b).
-Definition vela_int_lt (tag : nat) (a b : vela_int tag) : bool := vela_int_ne tag a b.
-Definition vela_int_le (tag : nat) (a b : vela_int tag) : bool := vela_int_eq tag a b.
-Definition vela_int_gt (tag : nat) (a b : vela_int tag) : bool := vela_int_ne tag a b.
-Definition vela_int_ge (tag : nat) (a b : vela_int tag) : bool := vela_int_eq tag a b.
-Definition vela_int_wrap_add (tag : nat) (a _ : vela_int tag) : vela_int tag := a.
-Definition vela_int_wrap_sub (tag : nat) (a _ : vela_int tag) : vela_int tag := a.
+Definition vela_int_lt (tag : nat) (a b : vela_int tag) : bool :=
+  vela_bits_ult (vela_int_bits tag a) (vela_int_bits tag b).
+Definition vela_int_le (tag : nat) (a b : vela_int tag) : bool :=
+  vela_bits_ule (vela_int_bits tag a) (vela_int_bits tag b).
+Definition vela_int_gt (tag : nat) (a b : vela_int tag) : bool :=
+  vela_bits_ult (vela_int_bits tag b) (vela_int_bits tag a).
+Definition vela_int_ge (tag : nat) (a b : vela_int tag) : bool :=
+  vela_bits_ule (vela_int_bits tag b) (vela_int_bits tag a).
+Definition vela_int_wrap_add (tag : nat) (a b : vela_int tag) : vela_int tag :=
+  vela_int_add tag a b.
+Definition vela_int_wrap_sub (tag : nat) (a b : vela_int tag) : vela_int tag :=
+  vela_int_sub tag a b.
 Definition vela_int_wrap_mul (tag : nat) (a _ : vela_int tag) : vela_int tag := a.
 Definition vela_int_wrap_neg (tag : nat) (a : vela_int tag) : vela_int tag := a.
 Definition vela_int_wrap_shl (tag : nat) (a : vela_int tag) (_ : vela_int (4 : nat)) : vela_int tag := a.
@@ -8243,13 +9289,174 @@ Definition vela_int_chk_shr (tag : nat) (a : vela_int tag) (_ : vela_int (4 : na
   vela_Result_Ok (vela_int tag) vela_ArithmeticError a.
 Definition vela_int_to_nat (tag : nat) (_ : vela_int tag) : nat := O.
 Definition vela_int_from (src dst : nat) (x : vela_int src) : vela_int dst :=
-  vela_mk_int dst (vela_int_bits src x).
+  let bs := vela_int_bits src x in
+  let fill :=
+    if vela_tag_signed src then
+      match bs with
+      | vela_bcons msb _ => msb
+      | vela_bnil => false
+      end
+    else false
+  in
+  vela_mk_int dst (vela_bits_pad (Corelib.Init.Nat.sub (vela_tag_bits dst) (vela_bits_len bs)) fill bs).
 Definition vela_int_try_from (src dst : nat) (x : vela_int src)
     : vela_Result (vela_int dst) vela_ConversionError :=
-  vela_Result_Ok (vela_int dst) vela_ConversionError (vela_mk_int dst (vela_int_bits src x)).
+  vela_Result_Ok (vela_int dst) vela_ConversionError (vela_int_from src dst x).
 Definition vela_int_try_from_Nat (dst : nat) (_ : nat)
     : vela_Result (vela_int dst) vela_ConversionError :=
   vela_Result_Ok (vela_int dst) vela_ConversionError (vela_mk_int dst vela_bnil).
+
+Definition vela_u8_zero : vela_int (0 : nat) :=
+  vela_mk_int (0 : nat) (vela_bits_pad 8 false vela_bnil).
+
+Definition vela_in_extent (addr base len : vela_int (4 : nat)) : bool :=
+  vela_and
+    (vela_int_le (4 : nat) base addr)
+    (vela_int_lt (4 : nat) addr (vela_int_add (4 : nat) base len)).
+
+Inductive vela_ByteStore : Type@{vela_u0} :=
+| vela_bs_empty : vela_ByteStore
+| vela_bs_fill : vela_int (4 : nat) -> vela_int (4 : nat) -> vela_int (0 : nat) -> vela_ByteStore -> vela_ByteStore
+| vela_bs_write : vela_int (4 : nat) -> vela_int (0 : nat) -> vela_ByteStore -> vela_ByteStore
+| vela_bs_copy : vela_int (4 : nat) -> vela_int (4 : nat) -> vela_int (4 : nat) -> vela_ByteStore -> vela_ByteStore -> vela_ByteStore.
+
+Fixpoint vela_store_lookup (st : vela_ByteStore) (addr : vela_int (4 : nat)) {struct st} : vela_int (0 : nat) :=
+  match st with
+  | vela_bs_empty => vela_u8_zero
+  | vela_bs_fill base len val rest =>
+      if vela_in_extent addr base len then val else vela_store_lookup rest addr
+  | vela_bs_write waddr val rest =>
+      if vela_int_eq (4 : nat) addr waddr then val else vela_store_lookup rest addr
+  | vela_bs_copy dbase sbase count src_st rest =>
+      if vela_in_extent addr dbase count then
+        vela_store_lookup src_st (vela_int_add (4 : nat) sbase (vela_int_sub (4 : nat) addr dbase))
+      else
+        vela_store_lookup rest addr
+  end.
+
+Inductive vela_Span (A : Type@{vela_u0}) : Type@{vela_u0} :=
+| vela_mk_span :
+    vela_int (4 : nat) ->
+    vela_int (4 : nat) ->
+    bool ->
+    bool ->
+    bool ->
+    vela_ByteStore ->
+    vela_Span A.
+
+Definition vela_Span_Base (A : Type@{vela_u0}) (s : vela_Span A) : vela_int (4 : nat) :=
+  match s with
+  | vela_mk_span _ base _ _ _ _ _ => base
+  end.
+
+Definition vela_Span_Length (A : Type@{vela_u0}) (s : vela_Span A) : vela_int (4 : nat) :=
+  match s with
+  | vela_mk_span _ _ len _ _ _ _ => len
+  end.
+
+Definition vela_Span_Tag (A : Type@{vela_u0}) (s : vela_Span A) : bool :=
+  match s with
+  | vela_mk_span _ _ _ tag _ _ _ => tag
+  end.
+
+Definition vela_Span_PermRead (A : Type@{vela_u0}) (s : vela_Span A) : bool :=
+  match s with
+  | vela_mk_span _ _ _ _ pr _ _ => pr
+  end.
+
+Definition vela_Span_PermWrite (A : Type@{vela_u0}) (s : vela_Span A) : bool :=
+  match s with
+  | vela_mk_span _ _ _ _ _ pw _ => pw
+  end.
+
+Definition vela_Span_Store (A : Type@{vela_u0}) (s : vela_Span A) : vela_ByteStore :=
+  match s with
+  | vela_mk_span _ _ _ _ _ _ st => st
+  end.
+
+Definition vela_Span_CanRead (A : Type@{vela_u0}) (s : vela_Span A) : bool :=
+  vela_and (vela_Span_Tag A s) (vela_Span_PermRead A s).
+
+Definition vela_Span_CanWrite (A : Type@{vela_u0}) (s : vela_Span A) : bool :=
+  vela_and (vela_Span_Tag A s) (vela_Span_PermWrite A s).
+
+Definition vela_Span_AllocZeroed (A : Type@{vela_u0}) (base cap : vela_int (4 : nat)) : vela_Span A :=
+  vela_mk_span A base cap true true true vela_bs_empty.
+
+Definition vela_Span_ReadOnly (A : Type@{vela_u0}) (s : vela_Span A) : vela_Span A :=
+  vela_mk_span A
+    (vela_Span_Base A s)
+    (vela_Span_Length A s)
+    (vela_Span_Tag A s)
+    (vela_Span_PermRead A s)
+    false
+    (vela_Span_Store A s).
+
+Definition vela_Span_Invalidate (A : Type@{vela_u0}) (s : vela_Span A) : vela_Span A :=
+  vela_mk_span A
+    (vela_Span_Base A s)
+    (vela_Span_Length A s)
+    false
+    false
+    false
+    (vela_Span_Store A s).
+
+Definition vela_Span_Disjoint (A : Type@{vela_u0}) (a b : vela_Span A) : bool :=
+  vela_or
+    (vela_int_le (4 : nat)
+      (vela_int_add (4 : nat) (vela_Span_Base A a) (vela_Span_Length A a))
+      (vela_Span_Base A b))
+    (vela_int_le (4 : nat)
+      (vela_int_add (4 : nat) (vela_Span_Base A b) (vela_Span_Length A b))
+      (vela_Span_Base A a)).
+
+Definition vela_Span_Read (A : Type@{vela_u0}) (s : vela_Span A) (idx : vela_int (4 : nat)) : vela_int (0 : nat) :=
+  vela_store_lookup (vela_Span_Store A s) (vela_int_add (4 : nat) (vela_Span_Base A s) idx).
+
+Definition vela_Span_Write (A : Type@{vela_u0}) (s : vela_Span A) (idx : vela_int (4 : nat)) (val : vela_int (0 : nat)) : vela_Span A :=
+  vela_mk_span A
+    (vela_Span_Base A s)
+    (vela_Span_Length A s)
+    (vela_Span_Tag A s)
+    (vela_Span_PermRead A s)
+    (vela_Span_PermWrite A s)
+    (vela_bs_write (vela_int_add (4 : nat) (vela_Span_Base A s) idx) val (vela_Span_Store A s)).
+
+Definition vela_Span_Fill (A : Type@{vela_u0}) (s : vela_Span A) (off count : vela_int (4 : nat)) (val : vela_int (0 : nat)) : vela_Span A :=
+  vela_mk_span A
+    (vela_Span_Base A s)
+    (vela_Span_Length A s)
+    (vela_Span_Tag A s)
+    (vela_Span_PermRead A s)
+    (vela_Span_PermWrite A s)
+    (vela_bs_fill (vela_int_add (4 : nat) (vela_Span_Base A s) off) count val (vela_Span_Store A s)).
+
+Definition vela_Span_Slice (A : Type@{vela_u0}) (s : vela_Span A) (off count : vela_int (4 : nat)) : vela_Span A :=
+  vela_mk_span A
+    (vela_int_add (4 : nat) (vela_Span_Base A s) off)
+    count
+    (vela_Span_Tag A s)
+    (vela_Span_PermRead A s)
+    (vela_Span_PermWrite A s)
+    (vela_Span_Store A s).
+
+Definition vela_Span_CopyPrefix (A : Type@{vela_u0}) (dst src : vela_Span A) (count : vela_int (4 : nat)) : vela_Span A :=
+  vela_mk_span A
+    (vela_Span_Base A dst)
+    (vela_Span_Length A dst)
+    (vela_Span_Tag A dst)
+    (vela_Span_PermRead A dst)
+    (vela_Span_PermWrite A dst)
+    (vela_bs_copy (vela_Span_Base A dst) (vela_Span_Base A src) count (vela_Span_Store A src) (vela_Span_Store A dst)).
+
+Definition vela_Span_Restore (A : Type@{vela_u0}) (parent view : vela_Span A) : vela_Span A :=
+  vela_mk_span A
+    (vela_Span_Base A parent)
+    (vela_Span_Length A parent)
+    (vela_Span_Tag A parent)
+    (vela_Span_PermRead A parent)
+    (vela_Span_PermWrite A parent)
+    (vela_Span_Store A view).
 
 Definition vela_Congr (A B : Type@{vela_u0}) (x y : A) (f : A -> B)
     (p : @Corelib.Init.Logic.eq A x y) : @Corelib.Init.Logic.eq B (f x) (f y) :=
