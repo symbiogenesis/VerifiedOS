@@ -127,15 +127,20 @@ class _Fixture:
                                            contracts=obligations, value=body, modifiers=["public"]))
 
     def theorem(self, name: str, parameters: tuple[Parameter, ...], proposition: Form,
-                proof: Form | None, generics: tuple[Generic, ...] = ()) -> None:
+                proof: Form | None, generics: tuple[Generic, ...] = (),
+                contracts: tuple[Form, ...] = ()) -> None:
         self.write("\n")
         start = self.offset
         self.write("public lemma ")
         binding = self.name(name)
         generic_nodes = self.generics(generics)
         parameter_nodes = self.parameters(parameters)
-        self.write(": ")
-        goal = proposition(self)
+        obligations: list[Node] = []
+        for contract in contracts:
+            self.write(" ")
+            obligations.append(contract(self))
+        self.write(" ")
+        obligations.append(_contract("ensures", proposition)(self))
         body = None
         if proof is None:
             self.write(";")
@@ -162,7 +167,7 @@ class _Fixture:
                 self.write(" }")
                 body = self.node("block", block_start, statements=[terminal])
         self.declarations.append(self.node("lemma", start, name=binding, generics=generic_nodes,
-                                           parameters=parameter_nodes, proposition=goal, body=body,
+                                           parameters=parameter_nodes, contracts=obligations, body=body,
                                            modifiers=["public"]))
 
     def function(self, name: str, result: Form, parameters: tuple[Parameter, ...], value: Form,
@@ -1324,6 +1329,9 @@ def _proof_values_and_false_neighbors() -> None:
     fixture.theorem("ForwardProof", (("evidence", _type("P")),), _variable("P"),
                     _assert(_variable("P"), by=_call("KeepProof", _variable("evidence"))),
                     proposition_generic)
+    fixture.theorem("WithRequires", (("x", _NAT),), _binary("==", x, _natural(0)),
+                    _assert(_binary("==", x, _natural(0))),
+                    contracts=(_contract("requires", _binary("==", x, _natural(0))),))
     source, response = fixture.response()
     emitted = elaborate(source, response).gallina
     ensure("Corelib.Init.Logic.eq" in emitted, "proof goal omitted propositional equality")

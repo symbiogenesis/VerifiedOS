@@ -192,7 +192,8 @@ public definition Nat HigherOrder() =>
     Apply(function: value => value + 1, value: 41);
 
 /// Proof blocks verify their declared equality proposition.
-public lemma Result(): HigherOrder() == 42
+public lemma Result()
+    ensures HigherOrder() == 42
     proof
     {
         assert HigherOrder() == 42;
@@ -214,7 +215,8 @@ public definition Nat Read(Fin<3> index) => At(Samples(), index);
 /// The successor of zero selects the second value: 20.
 public definition Nat Second() => Read(FSucc(FZero<1>()));
 
-public lemma SelectedValue(): Second() == 20
+public lemma SelectedValue()
+    ensures Second() == 20
     proof
     {
         assert Second() == 20;
@@ -245,7 +247,8 @@ public definition Vec<Nat, 1> Preserved() =>
 public definition Nat PreservedValue() => At(Preserved(), FZero<0>());
 
 /// The proposed proof is checked by the elaborator; kernel replay is separate.
-public lemma SameValue(): PreservedValue() == 42
+public lemma SameValue()
+    ensures PreservedValue() == 42
     proof
     {
         assert PreservedValue() == 42;
@@ -284,25 +287,29 @@ public TextBuilder<12> OverflowPacket(Nat id)
     return Format.Write(ref tiny, $"hdr={HeaderTag()} id=0x{id:x4}");
 }
 
-public lemma DedentedHeaderLength(): HeaderBytes == 10
+public lemma DedentedHeaderLength()
+    ensures HeaderBytes == 10
     proof
     {
         assert HeaderBytes == 10;
     }
 
-public theorem PacketFitsForEveryId(): forall (Nat id) => Fits(FormatPacket(id, true)) == true
+public theorem PacketFitsForEveryId()
+    ensures forall (Nat id) => Fits(FormatPacket(id, true)) == true
     proof
     {
         assert Fits(FormatPacket(id, true));
     }
 
-public lemma PacketWrites32Bytes(): Written(FormatPacket(42, true)) == 32
+public lemma PacketWrites32Bytes()
+    ensures Written(FormatPacket(42, true)) == 32
     proof
     {
         assert Written(FormatPacket(42, true)) == 32;
     }
 
-public lemma SmallBufferFailsClosed(): Fits(OverflowPacket(42)) == false
+public lemma SmallBufferFailsClosed()
+    ensures Fits(OverflowPacket(42)) == false
     proof
     {
         assert Fits(OverflowPacket(42)) == false;
@@ -350,22 +357,22 @@ public Nat StepIfPositive(Nat value, Counter counter)
     return if (previous is Succ(inner)) base + inner + limit else base + limit;
 }
 
-public lemma AdvanceStep():
-    Advance(Counter(Value: 2, Limit: 5), DefaultStep).Value == 3
+public lemma AdvanceStep()
+    ensures Advance(Counter(Value: 2, Limit: 5), DefaultStep).Value == 3
     proof
     {
         assert Advance(Counter(Value: 2, Limit: 5), DefaultStep).Value == 3;
     }
 
-public lemma PropertyMatchesUnpack():
-    Unpack(Counter(Value: 2, Limit: 5)) == Counter(Value: 2, Limit: 5).Remaining
+public lemma PropertyMatchesUnpack()
+    ensures Unpack(Counter(Value: 2, Limit: 5)) == Counter(Value: 2, Limit: 5).Remaining
     proof
     {
         assert Unpack(Counter(Value: 2, Limit: 5)) == Counter(Value: 2, Limit: 5).Remaining;
     }
 
-public lemma GuardAndBranchRefinement():
-    StepIfPositive(2, Counter(Value: 10, Limit: 5)) == 15
+public lemma GuardAndBranchRefinement()
+    ensures StepIfPositive(2, Counter(Value: 10, Limit: 5)) == 15
     proof
     {
         assert StepIfPositive(2, Counter(Value: 10, Limit: 5)) == 15;
@@ -959,7 +966,7 @@ function registerLanguage() {
         surroundingPairs: [{ open: "{", close: "}" }, { open: "(", close: ")" }],
     });
     monaco.languages.setMonarchTokensProvider("vela", {
-        keywords: ["module", "public", "const", "let", "if", "else", "match", "case", "return", "definition", "alias", "ghost", "lemma", "theorem", "proof", "assert", "by", "type", "forall", "exists", "ref", "record", "with", "is", "this"],
+        keywords: ["module", "public", "const", "let", "if", "else", "match", "case", "return", "definition", "alias", "ghost", "lemma", "theorem", "requires", "ensures", "decreases", "where", "proof", "assert", "by", "type", "forall", "exists", "ref", "record", "with", "is", "this"],
         typeKeywords: ["Nat", "bool", "Unit", "Type", "Prop", "Fn", "Vec", "Fin", "Eq", "TextBuilder"], tokenizer: { root: [
             [/\/\/.*$/, "comment"], [/"""[\s\S]*?"""/, "string"], [/\$"(?:\\.|[^"\\])*"/, "string"], [/"(?:\\.|[^"\\])*"/, "string"], [/\b(?:true|false)\b/, "constant"],
             [/[A-Za-z_][A-Za-z0-9_]*/, { cases: { "@keywords": "keyword", "@typeKeywords": "type", "@default": "identifier" } }],

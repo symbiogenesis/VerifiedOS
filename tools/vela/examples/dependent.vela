@@ -33,7 +33,8 @@ public definition Nat Predecessor(Nat value) =>
         Succ(previous) => previous,
     };
 
-public lemma PredecessorSuccessor(Nat value): Predecessor(Succ(value)) == value
+public lemma PredecessorSuccessor(Nat value)
+    ensures Predecessor(Succ(value)) == value
     proof
     {
         assert Predecessor(Succ(value)) == value;
@@ -45,7 +46,8 @@ public definition bool Flip(bool flag) =>
         false => true,
     };
 
-public lemma DoubleNegation(bool flag): Flip(Flip(flag)) == flag
+public lemma DoubleNegation(bool flag)
+    ensures Flip(Flip(flag)) == flag
     proof
     {
         match (flag)
@@ -70,7 +72,8 @@ public definition Words<1> Aliased() => Singleton();
 
 public definition Nat Lookup() => At(Copy(values: Singleton()), FZero<0>());
 
-public lemma LookupValue(): Lookup() == 42
+public lemma LookupValue()
+    ensures Lookup() == 42
     proof
     {
         assert Lookup() == 42;
@@ -82,13 +85,15 @@ public definition Fn(Nat length, Vec<Nat, length> values) -> Vec<Nat, length> Pr
 public definition Vec<Nat, Limit> PreservedSingleton() =>
     PreserveLength()(length: Limit, values: Singleton());
 
-public lemma Reflexivity<TValue>(TValue value): value == value
+public lemma Reflexivity<TValue>(TValue value)
+    ensures value == value
     proof
     {
         assert value == value;
     }
 
-public lemma Composed(Nat value): value == value
+public lemma Composed(Nat value)
+    ensures value == value
     proof
     {
         assert value == value by
@@ -99,7 +104,8 @@ public lemma Composed(Nat value): value == value
         }
     }
 
-public lemma Congruence(Nat value): value + 1 == value + 1
+public lemma Congruence(Nat value)
+    ensures value + 1 == value + 1
     proof
     {
         assert value + 1 == value + 1 by Reflexivity(value);
@@ -110,7 +116,8 @@ public definition type[Eq<Nat>(value, value)] KeepEvidence(
 
 public definition TProposition KeepProof<TProposition : Prop>(TProposition evidence) => evidence;
 
-public lemma ForwardProof<TProposition : Prop>(TProposition evidence): TProposition
+public lemma ForwardProof<TProposition : Prop>(TProposition evidence)
+    ensures TProposition
     proof
     {
         assert TProposition by KeepProof(evidence);
@@ -144,22 +151,22 @@ public Nat StepIfPositive(Nat value, Counter counter)
     return if (previous is Succ(inner)) base + inner + limit else base + limit;
 }
 
-public lemma AdvanceBelowLimit():
-    AdvanceCounter(Counter(Value: 2, Limit: 5), DefaultStep).Value == 3
+public lemma AdvanceBelowLimit()
+    ensures AdvanceCounter(Counter(Value: 2, Limit: 5), DefaultStep).Value == 3
     proof
     {
         assert AdvanceCounter(Counter(Value: 2, Limit: 5), DefaultStep).Value == 3;
     }
 
-public lemma CounterPropertyAgreement():
-    Counter(Value: 2, Limit: 5).Remaining == UnpackCounter(Counter(Value: 2, Limit: 5))
+public lemma CounterPropertyAgreement()
+    ensures Counter(Value: 2, Limit: 5).Remaining == UnpackCounter(Counter(Value: 2, Limit: 5))
     proof
     {
         assert Counter(Value: 2, Limit: 5).Remaining == UnpackCounter(Counter(Value: 2, Limit: 5));
     }
 
-public lemma StepIfPositiveProof():
-    StepIfPositive(2, Counter(Value: 10, Limit: 5)) == 15
+public lemma StepIfPositiveProof()
+    ensures StepIfPositive(2, Counter(Value: 10, Limit: 5)) == 15
     proof
     {
         assert StepIfPositive(2, Counter(Value: 10, Limit: 5)) == 15;
@@ -177,15 +184,15 @@ public definition TValue UnwrapOr<TValue>(Option<TValue> item, TValue fallback) 
         Some(Value: inner) => inner,
     };
 
-public lemma UnwrapSome(Nat value, Nat fallback):
-    UnwrapOr(Some(Value: value), fallback) == value
+public lemma UnwrapSome(Nat value, Nat fallback)
+    ensures UnwrapOr(Some(Value: value), fallback) == value
     proof
     {
         assert UnwrapOr(Some(Value: value), fallback) == value;
     }
 
-public lemma OptionRoundTrip(Option<Nat> item):
-    (match (item) {
+public lemma OptionRoundTrip(Option<Nat> item)
+    ensures (match (item) {
         None() => None<Nat>(),
         Some(value) => Some<Nat>(value),
     }) == item
@@ -209,13 +216,15 @@ public lemma OptionRoundTrip(Option<Nat> item):
 public definition Option<Nat> AddOptions(Option<Nat> left, Option<Nat> right) =>
     Some(left? + right?);
 
-public lemma PropagateSome(): AddOptions(Some(3), Some(4)) == Some(7)
+public lemma PropagateSome()
+    ensures AddOptions(Some(3), Some(4)) == Some(7)
     proof
     {
         assert AddOptions(Some(3), Some(4)) == Some(7);
     }
 
-public lemma PropagateNone(): AddOptions(None<Nat>(), Some(4)) == None<Nat>()
+public lemma PropagateNone()
+    ensures AddOptions(None<Nat>(), Some(4)) == None<Nat>()
     proof
     {
         assert AddOptions(None<Nat>(), Some(4)) == None<Nat>();
@@ -227,7 +236,8 @@ public definition Nat AddRec(Nat left, Nat right) decreases left =>
         Succ(previous) => Succ(AddRec(previous, right)),
     };
 
-public lemma AddZeroRight(Nat value): value + 0 == value
+public lemma AddZeroRight(Nat value)
+    ensures value + 0 == value
     proof
     {
         match (value)
@@ -239,7 +249,8 @@ public lemma AddZeroRight(Nat value): value + 0 == value
         }
     }
 
-public lemma AddSuccRight(Nat left, Nat right): left + Succ(right) == Succ(left + right)
+public lemma AddSuccRight(Nat left, Nat right)
+    ensures left + Succ(right) == Succ(left + right)
     proof
     {
         match (left)
@@ -251,7 +262,8 @@ public lemma AddSuccRight(Nat left, Nat right): left + Succ(right) == Succ(left 
         }
     }
 
-public theorem AddComm(Nat left, Nat right): left + right == right + left
+public theorem AddComm(Nat left, Nat right)
+    ensures left + right == right + left
     proof
     {
         match (left)
@@ -275,13 +287,15 @@ public record BoundedIndex(Nat Limit, Fin<Limit> Index)
 public definition BoundedIndex ZeroBoundedIndex() =>
     BoundedIndex(Limit: 1, Index: FZero<0>());
 
-public lemma ZeroBoundedCapacity(): ZeroBoundedIndex().Capacity == 1
+public lemma ZeroBoundedCapacity()
+    ensures ZeroBoundedIndex().Capacity == 1
     proof
     {
         assert ZeroBoundedIndex().Capacity == 1;
     }
 
-public lemma ExistsRightIdentity(Nat value): exists (Nat neutral) => value + neutral == value
+public lemma ExistsRightIdentity(Nat value)
+    ensures exists (Nat neutral) => value + neutral == value
     proof
     {
         assert exists (Nat neutral) => value + neutral == value by

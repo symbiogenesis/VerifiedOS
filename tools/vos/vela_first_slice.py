@@ -204,9 +204,10 @@ public definition Span<byte> BadRestores(ref Span<byte> dst)
     NegativeControl(
         "wrong-expected-byte",
         """module Vela.FirstSlice.NegWrongByte;
-theorem BadByte():
-    let s = Span.Write(Span.AllocZeroed(64usize, 8usize), 0usize, 0x10u8) in
-    Span.Read(s, 0usize) == 0x99u8
+theorem BadByte()
+    ensures
+        let s = Span.Write(Span.AllocZeroed(64usize, 8usize), 0usize, 0x10u8) in
+        Span.Read(s, 0usize) == 0x99u8
 proof {
     let s = Span.Write(Span.AllocZeroed(64usize, 8usize), 0usize, 0x10u8);
     assert Span.Read(s, 0usize) == 0x99u8;
@@ -218,10 +219,11 @@ proof {
     NegativeControl(
         "stale-input-leak",
         """module Vela.FirstSlice.NegStaleLeak;
-theorem BadStale():
-    let dirty = Span.Fill(Span.AllocZeroed(64usize, 8usize), 0usize, 8usize, 0xEEu8) in
-    let cleaned = Span.Fill(dirty, 0usize, 8usize, 0x00u8) in
-    Span.Read(cleaned, 6usize) == 0xEEu8
+theorem BadStale()
+    ensures
+        let dirty = Span.Fill(Span.AllocZeroed(64usize, 8usize), 0usize, 8usize, 0xEEu8) in
+        let cleaned = Span.Fill(dirty, 0usize, 8usize, 0x00u8) in
+        Span.Read(cleaned, 6usize) == 0xEEu8
 proof {
     let dirty = Span.Fill(Span.AllocZeroed(64usize, 8usize), 0usize, 8usize, 0xEEu8);
     let cleaned = Span.Fill(dirty, 0usize, 8usize, 0x00u8);
@@ -298,13 +300,14 @@ public definition Span<byte> PrepareSliceHeader(ref Span<byte> dst)
     let roView = Span.ReadOnly(Span.Slice(s2, 0usize, 4usize)) in
     Span.Restore(dst, roView);
 
-theorem CapacityLaw():
-    let s0 = Span.AllocZeroed(4096usize, {capacity_literal}) in
-    let res = PrepareSliceHeader(s0) in
-    (res.Length == {capacity_literal}
-     && Span.Read(res, 0usize) == 0x56u8
-     && Span.Read(res, 3usize) == 0x01u8
-     && Span.Read(res, 1usize) == 0x00u8) == true
+theorem CapacityLaw()
+    ensures
+        let s0 = Span.AllocZeroed(4096usize, {capacity_literal}) in
+        let res = PrepareSliceHeader(s0) in
+        (res.Length == {capacity_literal}
+         && Span.Read(res, 0usize) == 0x56u8
+         && Span.Read(res, 3usize) == 0x01u8
+         && Span.Read(res, 1usize) == 0x00u8) == true
 proof {{
     let s0 = Span.AllocZeroed(4096usize, {capacity_literal});
     let res = PrepareSliceHeader(s0);

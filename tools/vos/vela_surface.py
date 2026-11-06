@@ -1146,7 +1146,7 @@ namespace Internal {
         type Handle;
         predicate Owns(Handle target);
         void Read();
-        lemma ReadLaw(Handle target): Owns(target);
+        lemma ReadLaw(Handle target) ensures Owns(target);
     }
     public interface Eq<T> { bool Equal(T other); }
     public impl Eq<u64> { public bool Equal(u64 other) { return true; } }
@@ -1316,7 +1316,9 @@ public inductive Vec<T, ghost Nat n> {
     Cons(ghost Nat m, T head, Vec<T,m> tail) : Vec<T,(m+1)>;
 }
 public coinductive Stream<T> { More(T head, Stream<T> tail); }
-public lemma Reflexive(Nat n): forall (Nat x) => x == x
+public lemma Reflexive(Nat n)
+    requires n >= 0
+    ensures forall (Nat x) => x == x
     proof {
         calc { n + 0 == n; n == n; }
         assert n == n;
@@ -1324,7 +1326,7 @@ public lemma Reflexive(Nat n): forall (Nat x) => x == x
         assert n == n by { assert n + 0 == n; }
         ?step;
     }
-public theorem Witness(): exists (Nat n) => n == 0;
+public theorem Witness() ensures exists (Nat n) => n == 0;
 """, ("universe", "definition", "inductive", "coinductive", "lemma", "theorem", "quantifier", "calc", "assert")),
     Fixture("represented-numeric-patterns", """module Patterns;
 public bool IsLow(byte value) {
@@ -1715,6 +1717,10 @@ NEGATIVE: tuple[tuple[str, bytes, str], ...] = (
     ("legacy-trait-keyword-refused", b"module M; public trait Eq<T> { bool Equal(T other); }", "syntax"),
     ("legacy-operation-keyword-refused", b"module M; public interface Storage<T> { operation T Read(); }", "syntax"),
     ("legacy-proof-signature-refused", b"module M; public interface Storage<T> { proof ReadLaw; }", "syntax"),
+    ("legacy-theorem-colon-refused", b"module M; public theorem T(): true;", "syntax"),
+    ("legacy-lemma-colon-refused", b"module M; public lemma L(Nat n): n == n proof { assert n == n; }", "syntax"),
+    ("theorem-missing-ensures", b"module M; public theorem T(Nat n) requires n > 0;", "syntax"),
+    ("theorem-requires-after-ensures", b"module M; public theorem T(Nat n) ensures n > 0 requires n > 0;", "syntax"),
     ("handle-keyword-parameter-refused", b"module M; public void F(Handle handle);", "syntax"),
     ("trailing-input", b"module M; public void F(); garbage", "syntax"),
     ("invalid-utf8", b"// invalid \xff\nmodule M; public void F();", "encoding"),
@@ -3906,6 +3912,11 @@ def _indexed_constructor_roles(source: bytes, result: dict[str, Json]) -> None:
     if "result" not in successor or successor["result"] is not None:
         raise ValueError("surface unindexed constructor needs an explicit absent result")
     reflexive = _named(result.get("ast"), "lemma", "Reflexive")
+    witness = _named(result.get("ast"), "theorem", "Witness")
+    if "proposition" in reflexive or "proposition" in witness:
+        raise ValueError("surface theorem or lemma retained legacy proposition field")
+    _contract_roles(reflexive, ["requires", "ensures"])
+    _contract_roles(witness, ["ensures"])
     body = _object(reflexive.get("body"), "lemma proof block")
     statements = [_object(item, "lemma proof statement")
                   for item in _sequence(body.get("statements"), "lemma proof statements")]

@@ -281,10 +281,12 @@ s_decl:
         ("generics", array generics); ("parameters", array parameters); ("contracts", array contracts);
         ("value", value.syntax)] (result :: value :: generics @ parameters @ contracts) }
 | kind=s_theorem_kind theorem_name=s_identifier generics=s_generics LPAREN
-  parameters=comma_list(s_parameter) RPAREN COLON proposition=s_expression body=s_theorem_body
-    { make kind $startpos $endpos [("name", theorem_name); ("generics", array generics);
-        ("parameters", array parameters); ("proposition", proposition.syntax); ("body", optional body)]
-        (proposition :: generics @ parameters @ children body) }
+  parameters=comma_list(s_parameter) RPAREN pre=list(s_theorem_precontract)
+  post=nonempty_list(s_theorem_ensures) body=s_theorem_body
+    { let contracts = pre @ post in
+      make kind $startpos $endpos [("name", theorem_name); ("generics", array generics);
+        ("parameters", array parameters); ("contracts", array contracts); ("body", optional body)]
+        (generics @ parameters @ contracts @ children body) }
 | kind=s_storage_kind value_type=s_type storage_name=s_identifier EQUAL value=s_expression SEMICOLON
     { make kind $startpos $endpos [("name", storage_name); ("type", value_type.syntax);
         ("value", value.syntax)] [value_type; value] }
@@ -326,6 +328,14 @@ s_sum_kind:
   UNION { "union" } | INDUCTIVE { "inductive" } | COINDUCTIVE { "coinductive" }
 s_theorem_kind:
   THEOREM { "theorem" } | LEMMA { "lemma" }
+s_theorem_precontract:
+  role=s_theorem_precontract_role value=s_expression
+    { make "contract" $startpos $endpos [("role", String role); ("value", value.syntax)] [value] }
+s_theorem_precontract_role:
+  REQUIRES { "requires" } | WHERE { "where" } | DECREASES { "decreases" }
+s_theorem_ensures:
+  ENSURES value=s_expression
+    { make "contract" $startpos $endpos [("role", String "ensures"); ("value", value.syntax)] [value] }
 s_theorem_body:
   SEMICOLON { None } | PROOF body=s_block { Some body }
 s_storage_kind:

@@ -93,9 +93,11 @@ public Nat Increment(Nat x)
     => x + 1;
 public inductive Natural { Zero(); Succ(Natural predecessor); }
 public coinductive Stream<T> { More(T head, Stream<T> tail); }
-public lemma Reflexive(Nat n): forall (Nat x) => x == x
+public lemma Reflexive(Nat n)
+    requires n >= 0
+    ensures forall (Nat x) => x == x
     proof { assert n == n; assert n == n by Reflexive(n); ?step; }
-public theorem Witness(): exists (Nat n) => n == 0;
+public theorem Witness() ensures exists (Nat n) => n == 0;
 public machine Counter {
     state Nat value = 0;
     transition Step() when (value < 10) { next value = value + 1; }
@@ -244,7 +246,11 @@ declaration contracts between their generic telescope and opening brace. Their
 signatures inside interfaces and modules use ordinary bodyless function
 declarations (`T Read() requires Readable(this) ensures Stable(result);`), and
 interface proof laws use bodyless `lemma`/`theorem` declarations
-(`lemma ReadLaw(Handle target): Owns(target);`). The legacy `trait` and
+(`lemma ReadLaw(Handle target) ensures Owns(target);`). Theorem and lemma
+declarations state their propositions with `requires`, `where` and `decreases`
+precontracts followed by one or more `ensures` clauses in their `contracts`
+array before `proof { ... }` or `;`; colon-delimited theorem propositions are
+refused. The legacy `trait` and
 `operation` keywords, proposition-less `proof Name;` signature stubs, and
 `handle` parameter binders (`handle` is a reserved effect-handling keyword) are
 refused in the surface entry (`trait` and `operation` remain ordinary

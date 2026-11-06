@@ -56,8 +56,8 @@ _FIELDS: dict[str, set[str]] = {
     "union": {"name", "generics", "contracts", "constructors", "modifiers"},
     "constructor": {"name", "parameters", "result", "contracts"},
     "property": {"name", "type", "contracts", "value", "modifiers"},
-    "theorem": {"name", "generics", "parameters", "proposition", "body", "modifiers"},
-    "lemma": {"name", "generics", "parameters", "proposition", "body", "modifiers"},
+    "theorem": {"name", "generics", "parameters", "contracts", "body", "modifiers"},
+    "lemma": {"name", "generics", "parameters", "contracts", "body", "modifiers"},
     "generic_parameter": {"name", "mode", "type"},
     "parameter": {"name", "type", "grade"},
     "lambda_parameter": {"name", "type", "grade"},
@@ -231,7 +231,27 @@ class _Protocol:
             contracts = node.get("contracts")
             if node.get("cancel"):
                 return  # These roles are refused by the mathematical consumer.
-            if contracts and (
+            if kind in {"theorem", "lemma"}:
+                if not isinstance(contracts, list) or not contracts:
+                    raise self.error("protocol", "theorem contracts must be a non-empty list", node)
+                seen_ensures = False
+                for item in contracts:
+                    if not isinstance(item, dict) or item.get("kind") != "contract":
+                        raise self.error("protocol", "theorem contracts must be contract nodes", node)
+                    role = item.get("role")
+                    if role == "ensures":
+                        seen_ensures = True
+                    elif seen_ensures or role not in {"decreases", "requires", "where"}:
+                        raise self.error(
+                            "protocol",
+                            "theorem contracts must be precontracts followed by ensures clauses",
+                            node,
+                        )
+                if not seen_ensures:
+                    raise self.error("protocol", "theorem requires at least one ensures clause", node)
+                if any(item.get("role") == "where" for item in contracts):
+                    return
+            elif contracts and (
                 kind not in {"definition", "function"}
                 or not isinstance(contracts, list)
                 or any(
@@ -260,8 +280,6 @@ class _Protocol:
                 for contract_item in contracts:
                     cursor = self._child(node, span, cursor, contract_item)
             if kind in {"theorem", "lemma"}:
-                cursor = self._token(node, cursor, b":")
-                cursor = self._child(node, span, cursor, node["proposition"])
                 if node["body"] is not None:
                     cursor = self._token(node, cursor, b"proof")
                     cursor = self._child(node, span, cursor, node["body"])
@@ -8528,9 +8546,12 @@ class _Elaborator:
         requires_clauses: list[Node] = []
         ensures_clauses: list[Node] = []
         restores_clauses: list[Node] = []
-        if kind in {"definition", "function"}:
+        if kind in {"definition", "function", "theorem", "lemma"}:
             self.no_roles(node, "cancel")
-            has_params_or_generics = bool(self.nodes(node["parameters"]) or self.nodes(node["generics"]))
+            has_params_or_generics = (
+                kind in {"theorem", "lemma"}
+                or bool(self.nodes(node["parameters"]) or self.nodes(node["generics"]))
+            )
             for contract in self.nodes(node["contracts"]):
                 self.node(contract, "contract")
                 role = contract["role"]
@@ -8540,7 +8561,7 @@ class _Elaborator:
                     requires_clauses.append(contract)
                 elif role == "ensures" and has_params_or_generics:
                     ensures_clauses.append(contract)
-                elif role == "restores" and has_params_or_generics:
+                elif role == "restores" and kind in {"definition", "function"} and has_params_or_generics:
                     restores_clauses.append(contract)
                 else:
                     raise self.fail(
@@ -8550,6 +8571,8 @@ class _Elaborator:
                     )
             if len(decreases_clauses) > 1:
                 raise self.fail("type", "at most one decreases clause is permitted", decreases_clauses[1])
+            if kind in {"theorem", "lemma"} and not ensures_clauses:
+                raise self.fail("protocol", "theorem requires at least one ensures clause", node)
         else:
             self.no_roles(node, "contracts", "cancel")
         name = self.name(node["name"])
@@ -8585,20 +8608,12 @@ class _Elaborator:
             result = self.infer(body)
             signature = self.wrap("pi", variables, result)
         else:
-            for req_idx, req_contract in enumerate(requires_clauses):
-                req_val_node = self.node(req_contract["value"])
-                req_val = self.expression(req_val_node, environment)
-                if self.whnf(req_val.type) == _BOOL:
-                    req_bool_terms.append(req_val.term)
-                    eq_prop = _apps(_constant("Eq"), _BOOL, req_val.term, _term("bool", value=1))
-                    req_var = self.fresh(eq_prop)
-                    req_vars.append(req_var)
-                    environment[f"__vela_req_{req_idx}"] = _Binding(req_var, eq_prop)
-                else:
-                    req_prop = self.proposition(req_val_node, environment)
-                    req_var = self.fresh(req_prop)
-                    req_vars.append(req_var)
-                    environment[f"__vela_req_{req_idx}"] = _Binding(req_var, req_prop)
+            req_props: list[_Term] = []
+            if kind in {"theorem", "lemma"}:
+                for req_contract in requires_clauses:
+                    req_val_node = self.node(req_contract["value"])
+                    req_prop = self.asserted_proposition(req_val_node, environment)
+                    req_props.append(req_prop)
                     if req_prop.kind == "app":
                         head_p, args_p = self.spine(req_prop)
                         if (
@@ -8610,8 +8625,47 @@ class _Elaborator:
                             rhs_w = self.whnf(args_p[2])
                             if rhs_w.kind == "bool" and rhs_w.value == 1:
                                 req_bool_terms.append(args_p[1])
+            else:
+                for req_idx, req_contract in enumerate(requires_clauses):
+                    req_val_node = self.node(req_contract["value"])
+                    req_val = self.expression(req_val_node, environment)
+                    if self.whnf(req_val.type) == _BOOL:
+                        req_bool_terms.append(req_val.term)
+                        eq_prop = _apps(_constant("Eq"), _BOOL, req_val.term, _term("bool", value=1))
+                        req_var = self.fresh(eq_prop)
+                        req_vars.append(req_var)
+                        environment[f"__vela_req_{req_idx}"] = _Binding(req_var, eq_prop)
+                    else:
+                        req_prop = self.proposition(req_val_node, environment)
+                        req_var = self.fresh(req_prop)
+                        req_vars.append(req_var)
+                        environment[f"__vela_req_{req_idx}"] = _Binding(req_var, req_prop)
+                        if req_prop.kind == "app":
+                            head_p, args_p = self.spine(req_prop)
+                            if (
+                                head_p.kind == "const"
+                                and head_p.value == "Eq"
+                                and len(args_p) == 3
+                                and self.whnf(args_p[0]) == _BOOL
+                            ):
+                                rhs_w = self.whnf(args_p[2])
+                                if rhs_w.kind == "bool" and rhs_w.value == 1:
+                                    req_bool_terms.append(args_p[1])
             if kind in {"theorem", "lemma"}:
-                result = self.proposition(self.node(node["proposition"]), environment)
+                if len(ensures_clauses) > 1:
+                    raise self.fail(
+                        "unsupported",
+                        "multiple ensures clauses on a theorem require the full frontend",
+                        ensures_clauses[1],
+                    )
+                self.active_facts.extend(req_bool_terms)
+                try:
+                    result = self.proposition(self.node(ensures_clauses[0]["value"]), environment)
+                finally:
+                    for _ in req_bool_terms:
+                        self.active_facts.pop()
+                for req_prop in reversed(req_props):
+                    result = self.pi(req_prop, result)
                 if node["body"] is None:
                     raise self.fail("unsupported", "a theorem requires a complete explicit proof body", node)
                 body_node = self.node(node["body"])
@@ -8717,10 +8771,10 @@ class _Elaborator:
         # Generated references never become names in the source namespace.
         self.constants[emitted] = binding
         self.definitions[emitted] = definition
-        if req_bool_terms:
+        if req_bool_terms and kind in {"definition", "function"}:
             param_ids = tuple(cast("int", v.value) for v in variables)
             self.callable_preconditions[emitted] = [(param_ids, req_t) for req_t in req_bool_terms]
-        if ensures_clauses or restores_clauses:
+        if (ensures_clauses or restores_clauses) and kind in {"definition", "function"}:
             post_env = dict(environment)
             call_term = _apps(_constant(emitted), *variables)
             post_env["result"] = _Binding(call_term, result)

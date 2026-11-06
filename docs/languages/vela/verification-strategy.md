@@ -700,10 +700,10 @@ interface BufferStorage {
 	void Write(ref Handle target, Index index, byte value);
 	void WithElement(ref Handle target, Index index, ...);
 
-	lemma ReadReturnsSelectedElement(Handle target, Seq<byte> contents, Index index): ...;
-	lemma WriteUpdatesSelectedElementAndPreservesFrame(Handle target, Seq<byte> contents, Index index, byte value): ...;
-	lemma ScopedBorrowRestoresOwnership(Handle target, Seq<byte> contents, Index index): ...;
-	lemma OperationsTerminateUnderTheirPreconditions(Handle target, Seq<byte> contents, Index index): ...;
+	lemma ReadReturnsSelectedElement(Handle target, Seq<byte> contents, Index index) ensures ...;
+	lemma WriteUpdatesSelectedElementAndPreservesFrame(Handle target, Seq<byte> contents, Index index, byte value) ensures ...;
+	lemma ScopedBorrowRestoresOwnership(Handle target, Seq<byte> contents, Index index) ensures ...;
+	lemma OperationsTerminateUnderTheirPreconditions(Handle target, Seq<byte> contents, Index index) ensures ...;
 }
 ```
 

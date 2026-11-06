@@ -50,21 +50,21 @@ definition T Identity<T>(T value) => value;
 definition U Apply<T,U>(Fn(T value) -> U function,T value) => function(value);
 definition Nat Value() => Apply(Identity::<Nat>,7);
 definition Nat Call() => Identity::<Nat>(8);
-lemma ValueCorrect(): Value() == 7 proof { assert Value() == 7; }
-lemma CallCorrect(): Call() == 8 proof { assert Call() == 8; }
+lemma ValueCorrect() ensures Value() == 7 proof { assert Value() == 7; }
+lemma CallCorrect() ensures Call() == 8 proof { assert Call() == 8; }
 """),
         ("dependent-vector-lookup", """module VectorReplay;
 definition Vec<T,n> Copy<T, ghost Nat n>(Vec<T,n> xs) => xs;
 definition Vec<Nat,2> Two() => VCons(7, VCons(8, VNil<Nat>()));
 definition Vec<Nat,0> Empty() => Copy(VNil<Nat>());
 definition Nat Lookup() => At(Copy(Two()), FSucc(FZero<0>()));
-lemma Selected(): At(Two(), FSucc(FZero<0>())) == 8 proof { assert At(Two(), FSucc(FZero<0>())) == 8; }
+lemma Selected() ensures At(Two(), FSucc(FZero<0>())) == 8 proof { assert At(Two(), FSucc(FZero<0>())) == 8; }
 """),
         ("product-projection-conversion", """module ProductReplay;
 definition Nat Left() => Fst((7, true));
 definition bool Right() => Snd((7, true));
-lemma LeftValue(): Fst((7, true)) == 7 proof { assert Fst((7, true)) == 7; }
-lemma RightValue(): Snd((7, true)) == true proof { assert Snd((7, true)) == true; }
+lemma LeftValue() ensures Fst((7, true)) == 7 proof { assert Fst((7, true)) == 7; }
+lemma RightValue() ensures Snd((7, true)) == true proof { assert Snd((7, true)) == true; }
 """),
         ("higher-order-inference", """module InferenceReplay;
 definition U Apply<T,U>(Fn(T value) -> U f, T x) => f(x);
@@ -78,35 +78,35 @@ definition Nat Use() => Keep((Nat index) => type Nat, 0, 7);
 """),
         ("proof-composition", """module ProofReplay;
 definition T Id<T>(T value) => value;
-lemma Reflexive<T>(T x): x == x proof {
+lemma Reflexive<T>(T x) ensures x == x proof {
     assert x == x;
 }
-lemma Same<T>(T x): x == x proof {
+lemma Same<T>(T x) ensures x == x proof {
     assert x == x by {
         let step = Id(x);
         assert x == step;
         assert step == x;
     }
 }
-lemma Step(Nat x): x + 1 == x + 1 proof {
+lemma Step(Nat x) ensures x + 1 == x + 1 proof {
     assert x + 1 == x + 1 by Reflexive(x);
 }
 definition Eq<T,(x),(y)> KeepProof<T, ghost T x, ghost T y>(Eq<T,(x),(y)> p) => p;
 """),
         ("universal-explicit-equality-proof", """module QuantifierReplay;
-lemma Reflexive(): forall (Nat value) => value == value proof {
+lemma Reflexive() ensures forall (Nat value) => value == value proof {
     assert value == value;
 }
 """),
         ("definitional-conversion", """module ConversionReplay;
 definition Nat Twice(Nat value) => value + value;
-lemma Computed(): Twice(2) == 4 proof { assert Twice(2) == 4; }
+lemma Computed() ensures Twice(2) == 4 proof { assert Twice(2) == 4; }
 """),
         ("canonical-unit-and-labeled-generics", """module NamedReplay;
 definition T Identity<T>(T value) => value;
 definition Unit Empty() => Identity<Unit>(value: ());
 definition Nat Value() => Identity(value: 7,);
-lemma Same(): Identity(value: 7) == 7 proof { assert Identity(value: 7) == 7; }
+lemma Same() ensures Identity(value: 7) == 7 proof { assert Identity(value: 7) == 7; }
 """),
         ("declared-dependent-callable-labels", """module CallableReplay;
 alias Reader<T> = Fn(Nat count, Vec<T,count> values) -> Vec<T,count>;
@@ -127,7 +127,7 @@ const Unit Nothing = ();
 Nat Local() { const Nat Next = Answer + 1; return Next; }
 const Nat Count = 1;
 definition Vec<Nat,Count> One() => VCons(7, VNil<Nat>());
-lemma Correct(): Answer == 42 proof { assert Answer == 42; }
+lemma Correct() ensures Answer == 42 proof { assert Answer == 42; }
 """),
         ("compositional-static-and-runtime-calls", """module StaticCallsReplay;
 public const Nat Square(Nat value) => value * value;
@@ -139,8 +139,8 @@ Nat Scale(const Nat factor, Nat value) {
 Nat Forward(const Nat factor, Nat value) => Scale(factor: factor, value: value);
 Nat Runtime(Nat value) => Forward(factor: 4, value: value);
 Nat RuntimeSquare(Nat value) => Square(value);
-lemma Specialized(): Runtime(3) == 48 proof { assert Runtime(3) == 48; }
-lemma DualPhase(): RuntimeSquare(3) == 9 proof { assert RuntimeSquare(3) == 9; }
+lemma Specialized() ensures Runtime(3) == 48 proof { assert Runtime(3) == 48; }
+lemma DualPhase() ensures RuntimeSquare(3) == 9 proof { assert RuntimeSquare(3) == 9; }
 """),
         ("static-callable-telescopes-and-lambdas", """module StaticCallableReplay;
 alias StaticMap = Fn(const Nat factor, Nat value) -> Nat;
@@ -149,8 +149,8 @@ definition StaticMap Explicit() => Fn(const Nat factor, Nat value) -> Nat => fac
 definition Nat Partial(Nat value) => Build()(factor: 4)(value: value);
 definition T Select<T>(const Nat index, T value) => value;
 definition Nat Generic(Nat value) => Select(index: 0, value: value);
-lemma Correct(): Partial(3) == 12 proof { assert Partial(3) == 12; }
-lemma TypedCorrect(): Explicit()(factor: 5, value: 3) == 15 proof { assert Explicit()(factor: 5, value: 3) == 15; }
+lemma Correct() ensures Partial(3) == 12 proof { assert Partial(3) == 12; }
+lemma TypedCorrect() ensures Explicit()(factor: 5, value: 3) == 15 proof { assert Explicit()(factor: 5, value: 3) == 15; }
 """),
         ("nullary-and-explicit-unit-values", """module ArityReplay;
 definition Nat Empty() => 7;
@@ -177,7 +177,7 @@ Nat Classify((bool, Nat) item) {
         case (false, _): return 0;
     }
 }
-lemma PredecessorStep(Nat value): Predecessor(Succ(value)) == value proof {
+lemma PredecessorStep(Nat value) ensures Predecessor(Succ(value)) == value proof {
     assert Predecessor(Succ(value)) == value;
 }
 definition bool Flip(bool flag) =>
@@ -185,14 +185,14 @@ definition bool Flip(bool flag) =>
         true => false,
         false => true,
     };
-lemma BoolInvolution(bool flag): Flip(Flip(flag)) == flag proof {
+lemma BoolInvolution(bool flag) ensures Flip(Flip(flag)) == flag proof {
     match (flag) {
         case true: assert Flip(Flip(true)) == true;
         case false: assert Flip(Flip(false)) == false;
     }
 }
-lemma PairEta<TLeft, TRight>((TLeft, TRight) pair):
-    pair == (Fst(pair), Snd(pair)) proof {
+lemma PairEta<TLeft, TRight>((TLeft, TRight) pair)
+    ensures pair == (Fst(pair), Snd(pair)) proof {
     match (pair) as whole : type[Eq(whole, (Fst(whole), Snd(whole)))] {
         case (left, right): assert (left, right) == (Fst((left, right)), Snd((left, right)));
     }
@@ -214,17 +214,17 @@ public TextBuilder<12> OverflowPacket(Nat id) {
     let TextBuilder<12> tiny = EmptyBuilder();
     return Format.Write(ref tiny, $"hdr={HeaderTag()} id=0x{id:x4}");
 }
-public lemma DedentedHeaderLength(): HeaderBytes == 10 proof { assert HeaderBytes == 10; }
-public theorem PacketFitsForEveryId(): forall (Nat id) => Fits(FormatPacket(id, true)) == true
+public lemma DedentedHeaderLength() ensures HeaderBytes == 10 proof { assert HeaderBytes == 10; }
+public theorem PacketFitsForEveryId() ensures forall (Nat id) => Fits(FormatPacket(id, true)) == true
     proof { assert Fits(FormatPacket(id, true)); }
-public lemma PacketWrites32Bytes(): Written(FormatPacket(42, true)) == 32 proof { assert Written(FormatPacket(42, true)) == 32; }
-public lemma SmallBufferFailsClosed(): Fits(OverflowPacket(42)) == false proof { assert Fits(OverflowPacket(42)) == false; }
+public lemma PacketWrites32Bytes() ensures Written(FormatPacket(42, true)) == 32 proof { assert Written(FormatPacket(42, true)) == 32; }
+public lemma SmallBufferFailsClosed() ensures Fits(OverflowPacket(42)) == false proof { assert Fits(OverflowPacket(42)) == false; }
 public definition Nat Scale(Nat factor, Nat value) => factor * value;
 public TextBuilder<48> FormatComputed(Nat id) {
     let TextBuilder<48> b = EmptyBuilder();
     return Format.Write(ref b, $"next=0x{id + 1:x4} scaled=0x{Scale(factor: 2, value: id):x4}");
 }
-public lemma ComputedWrites25Bytes(): Written(FormatComputed(5)) == 25 proof { assert Written(FormatComputed(5)) == 25; }
+public lemma ComputedWrites25Bytes() ensures Written(FormatComputed(5)) == 25 proof { assert Written(FormatComputed(5)) == 25; }
 '''),
         ("ergonomic-expressions-patterns-updates-guards-and-properties", '''module ErgonomicsReplay;
 public record Counter(Nat Value, Nat Limit) {
@@ -260,26 +260,26 @@ public TextBuilder<24> FormatCounter(Counter counter) {
     let TextBuilder<24> builder = EmptyBuilder();
     return Format.Write(ref builder, $"v=0x{counter.Value:x4} r=0x{counter.Remaining:x4}");
 }
-public lemma AdvanceStep():
-    Advance(Counter(Value: 2, Limit: 5), DefaultStep).Value == 3
+public lemma AdvanceStep()
+    ensures Advance(Counter(Value: 2, Limit: 5), DefaultStep).Value == 3
     proof { assert Advance(Counter(Value: 2, Limit: 5), DefaultStep).Value == 3; }
-public lemma ReconfigureBoth():
-    Reconfigure(Counter(Value: 1, Limit: 2), 4, 9).Remaining == 5
+public lemma ReconfigureBoth()
+    ensures Reconfigure(Counter(Value: 1, Limit: 2), 4, 9).Remaining == 5
     proof { assert Reconfigure(Counter(Value: 1, Limit: 2), 4, 9).Remaining == 5; }
-public lemma UnpackMatchesRemaining():
-    Unpack(Counter(Value: 2, Limit: 5)) == Counter(Value: 2, Limit: 5).Remaining
+public lemma UnpackMatchesRemaining()
+    ensures Unpack(Counter(Value: 2, Limit: 5)) == Counter(Value: 2, Limit: 5).Remaining
     proof { assert Unpack(Counter(Value: 2, Limit: 5)) == Counter(Value: 2, Limit: 5).Remaining; }
-public lemma GuardEarlyExit():
-    StepIfPositive(0, Counter(Value: 10, Limit: 5)) == 10
+public lemma GuardEarlyExit()
+    ensures StepIfPositive(0, Counter(Value: 10, Limit: 5)) == 10
     proof { assert StepIfPositive(0, Counter(Value: 10, Limit: 5)) == 10; }
-public lemma GuardRefinedBranch():
-    StepIfPositive(2, Counter(Value: 10, Limit: 5)) == 15
+public lemma GuardRefinedBranch()
+    ensures StepIfPositive(2, Counter(Value: 10, Limit: 5)) == 15
     proof { assert StepIfPositive(2, Counter(Value: 10, Limit: 5)) == 15; }
-public lemma ExprIfIsCheck():
-    (ExprIfIs(3) == 12 && HasSuccessor(3) && !HasSuccessor(0)) == true
+public lemma ExprIfIsCheck()
+    ensures (ExprIfIs(3) == 12 && HasSuccessor(3) && !HasSuccessor(0)) == true
     proof { assert (ExprIfIs(3) == 12 && HasSuccessor(3) && !HasSuccessor(0)) == true; }
-public lemma FormatCounterLength():
-    Written(FormatCounter(Counter(Value: 2, Limit: 5))) == 17
+public lemma FormatCounterLength()
+    ensures Written(FormatCounter(Counter(Value: 2, Limit: 5))) == 17
     proof { assert Written(FormatCounter(Counter(Value: 2, Limit: 5))) == 17; }
 '''),
         ("tagged-union-declarations-and-elimination", '''module UnionReplay;
@@ -309,17 +309,17 @@ public Nat UnwrapGuarded(Option<Nat> item, Nat fallback) {
     }
     return if (item is Some(inner)) current + inner else fallback;
 }
-public lemma UnwrapSome(Nat value, Nat fallback):
-    UnwrapOr(Some(Value: value), fallback) == value
+public lemma UnwrapSome(Nat value, Nat fallback)
+    ensures UnwrapOr(Some(Value: value), fallback) == value
     proof { assert UnwrapOr(Some(Value: value), fallback) == value; }
-public lemma MeasureSplit():
-    MeasureStatus(Split(Left: 3, Right: 4)) == 7
+public lemma MeasureSplit()
+    ensures MeasureStatus(Split(Left: 3, Right: 4)) == 7
     proof { assert MeasureStatus(Split(Left: 3, Right: 4)) == 7; }
-public lemma GuardedSome():
-    UnwrapGuarded(Some(5), 0) == 10
+public lemma GuardedSome()
+    ensures UnwrapGuarded(Some(5), 0) == 10
     proof { assert UnwrapGuarded(Some(5), 0) == 10; }
-public lemma OptionRoundTrip(Option<Nat> item):
-    (match (item) {
+public lemma OptionRoundTrip(Option<Nat> item)
+    ensures (match (item) {
         None() => None<Nat>(),
         Some(value) => Some<Nat>(value),
     }) == item
@@ -352,7 +352,7 @@ public Nat DoubleRec(Nat n) decreases n {
             return Succ(Succ(DoubleRec(k)));
     }
 }
-public lemma AddZeroRight(Nat n): n + 0 == n
+public lemma AddZeroRight(Nat n) ensures n + 0 == n
     proof {
         match (n) {
             case 0:
@@ -361,7 +361,7 @@ public lemma AddZeroRight(Nat n): n + 0 == n
                 assert Succ(k) + 0 == Succ(k) by AddZeroRight(k);
         }
     }
-public lemma AddSuccRight(Nat a, Nat b): a + Succ(b) == Succ(a + b)
+public lemma AddSuccRight(Nat a, Nat b) ensures a + Succ(b) == Succ(a + b)
     proof {
         match (a) {
             case 0:
@@ -370,7 +370,7 @@ public lemma AddSuccRight(Nat a, Nat b): a + Succ(b) == Succ(a + b)
                 assert Succ(k) + Succ(b) == Succ(Succ(k) + b) by AddSuccRight(k, b);
         }
     }
-public theorem AddComm(Nat a, Nat b): a + b == b + a
+public theorem AddComm(Nat a, Nat b) ensures a + b == b + a
     proof {
         match (a) {
             case 0:
@@ -382,7 +382,7 @@ public theorem AddComm(Nat a, Nat b): a + b == b + a
                 }
         }
     }
-public lemma DoubleIsAddSelf(Nat n): DoubleRec(n) == n + n
+public lemma DoubleIsAddSelf(Nat n) ensures DoubleRec(n) == n + n
     proof {
         match (n) {
             case 0:
@@ -408,11 +408,11 @@ public definition Nat UnpackBoundedSize<TElement>(BoundedVec<TElement> packed) =
     match (packed) {
         BoundedVec(Length: n, Items: _) => n,
     };
-public lemma SingletonBoundedSize(): SingletonBounded().Size == 1
+public lemma SingletonBoundedSize() ensures SingletonBounded().Size == 1
     proof { assert SingletonBounded().Size == 1; }
-public lemma UnpackSingletonBounded(): UnpackBoundedSize(SingletonBounded()) == 1
+public lemma UnpackSingletonBounded() ensures UnpackBoundedSize(SingletonBounded()) == 1
     proof { assert UnpackBoundedSize(SingletonBounded()) == 1; }
-public lemma ExistsWitness(Nat n): exists (Nat m) => m + 0 == n
+public lemma ExistsWitness(Nat n) ensures exists (Nat m) => m + 0 == n
     proof {
         assert exists (Nat m) => m + 0 == n by {
             assert n + 0 == n by AddZeroRight(n);
@@ -433,13 +433,13 @@ public Result<Nat, bool> AddResults(Result<Nat, bool> left, Result<Nat, bool> ri
     let b = right?;
     return Ok(a + b);
 }
-public lemma PropagateSome(): AddOptions(Some(3), Some(4)) == Some(7)
+public lemma PropagateSome() ensures AddOptions(Some(3), Some(4)) == Some(7)
     proof { assert AddOptions(Some(3), Some(4)) == Some(7); }
-public lemma PropagateNone(): AddOptions(None<Nat>(), Some(4)) == None<Nat>()
+public lemma PropagateNone() ensures AddOptions(None<Nat>(), Some(4)) == None<Nat>()
     proof { assert AddOptions(None<Nat>(), Some(4)) == None<Nat>(); }
-public lemma PropagateOk(): AddResults(Ok<Nat, bool>(2), Ok<Nat, bool>(5)) == Ok<Nat, bool>(7)
+public lemma PropagateOk() ensures AddResults(Ok<Nat, bool>(2), Ok<Nat, bool>(5)) == Ok<Nat, bool>(7)
     proof { assert AddResults(Ok<Nat, bool>(2), Ok<Nat, bool>(5)) == Ok<Nat, bool>(7); }
-public lemma PropagateErr(): AddResults(Err<Nat, bool>(true), Ok<Nat, bool>(5)) == Err<Nat, bool>(true)
+public lemma PropagateErr() ensures AddResults(Err<Nat, bool>(true), Ok<Nat, bool>(5)) == Err<Nat, bool>(true)
     proof { assert AddResults(Err<Nat, bool>(true), Ok<Nat, bool>(5)) == Err<Nat, bool>(true); }
 '''),
     )
@@ -455,16 +455,16 @@ public lemma PropagateErr(): AddResults(Err<Nat, bool>(true), Ok<Nat, bool>(5)) 
          "definition Nat Wrong() => Identity(true);", "type"),
         ("unequal-vector-index", "definition Vec<Nat,0> Wrong() => VCons(1, VNil<Nat>());", "type"),
         ("out-of-bounds-index", "definition Nat Wrong() => At(VNil<Nat>(), FZero<0>());", "type"),
-        ("false-equality-proof", "lemma Wrong(): 1 == 2 proof { assert 1 == 2; }", "type"),
-        ("false-by-expression", "lemma Same(Nat n): n == n proof { assert n == n; } "
-         "lemma Wrong(): 1 == 2 proof { assert 1 == 2 by Same(1); }", "type"),
-        ("non-proof-by-expression", "lemma Wrong(): 1 == 1 proof { assert 1 == 1 by 1; }", "type"),
-        ("unrelated-by-block", "lemma Wrong(Nat n): n == n proof { assert n == n by { assert 1 == 1; } }", "type"),
-        ("obsolete-refl-combinator", "lemma Wrong(): 1 == 1 proof { return Refl(1); }", "name"),
-        ("non-proposition", "lemma Wrong(): 3 proof { return 3; }", "type"),
-        ("unwitnessed-existential-binder", "lemma Wrong(): exists (Nat value) => value == value "
+        ("false-equality-proof", "lemma Wrong() ensures 1 == 2 proof { assert 1 == 2; }", "type"),
+        ("false-by-expression", "lemma Same(Nat n) ensures n == n proof { assert n == n; } "
+         "lemma Wrong() ensures 1 == 2 proof { assert 1 == 2 by Same(1); }", "type"),
+        ("non-proof-by-expression", "lemma Wrong() ensures 1 == 1 proof { assert 1 == 1 by 1; }", "type"),
+        ("unrelated-by-block", "lemma Wrong(Nat n) ensures n == n proof { assert n == n by { assert 1 == 1; } }", "type"),
+        ("obsolete-refl-combinator", "lemma Wrong() ensures 1 == 1 proof { return Refl(1); }", "name"),
+        ("non-proposition", "lemma Wrong() ensures 3 proof { return 3; }", "type"),
+        ("unwitnessed-existential-binder", "lemma Wrong() ensures exists (Nat value) => value == value "
          "proof { assert value == value; }", "name"),
-        ("existential-invalid-witness", "lemma Wrong(): exists (Nat value) => value == 1 "
+        ("existential-invalid-witness", "lemma Wrong() ensures exists (Nat value) => value == 1 "
          "proof { assert exists (Nat value) => value == 1 by 0; }", "type"),
         ("recursion-non-decreasing", "definition Nat Bad(Nat n) => Bad(n);", "type"),
         ("recursion-wrong-decreases-parameter",
@@ -485,7 +485,7 @@ public lemma PropagateErr(): AddResults(Err<Nat, bool>(true), Ok<Nat, bool>(5)) 
          "Nat Wrong(Option<Nat> x) { return x?; }", "type"),
         ("universe-self-typing", "definition Type Wrong() => type Type;", "type"),
         ("unresolved-inference", "definition _ Unknown() => VNil();", "inference"),
-        ("unfinished-proof", "lemma Missing(): 1 == 1;", "unsupported"),
+        ("unfinished-proof", "lemma Missing() ensures 1 == 1;", "unsupported"),
         ("proof-hole", "definition Nat Hole() => ?proof;", "inference"),
         ("unsupported-contract", "definition Nat Contract() requires true => 0;", "unsupported"),
         ("unbound-value", "definition Nat Wrong() => missing;", "name"),
@@ -504,7 +504,7 @@ public lemma PropagateErr(): AddResults(Err<Nat, bool>(true), Ok<Nat, bool>(5)) 
         ("labeled-dependent-index-mismatch", "definition Vec<Nat,n> Keep(Nat n,Vec<Nat,n> values) => values; "
          "definition Vec<Nat,0> Wrong() => Keep(n: 1,values: VNil<Nat>());", "type"),
         ("labeled-false-equality", "definition Nat Id(Nat value) => value; "
-         "lemma Wrong(): Id(value: 1) == 2 proof { assert Id(value: 1) == 2; }", "type"),
+         "lemma Wrong() ensures Id(value: 1) == 2 proof { assert Id(value: 1) == 2; }", "type"),
         ("unsupported-use-grade", "definition Nat Graded(Nat value @ 1) => value;", "unsupported"),
         ("unsupported-source-loan", "definition Nat Loan(ref Nat value) => value;", "unsupported"),
         ("constant-runtime-input", "Nat Wrong(Nat runtime) { const Nat value = runtime; return value; }", "type"),
@@ -518,7 +518,7 @@ public lemma PropagateErr(): AddResults(Err<Nat, bool>(true), Ok<Nat, bool>(5)) 
         ("constant-forward-input", "const Nat First = Later; const Nat Later = 3;", "name"),
         ("constant-cyclic-input", "const Nat First = First;", "name"),
         ("constant-noncallable", "const Nat Value = 3; definition Nat Wrong() => Value();", "type"),
-        ("constant-false-proof", "const Nat Value = 1; lemma Wrong(): Value == 2 proof { assert Value == 2; }", "type"),
+        ("constant-false-proof", "const Nat Value = 1; lemma Wrong() ensures Value == 2 proof { assert Value == 2; }", "type"),
         ("omitted-explicit-unit", "definition Nat Id(Unit token) => 1; definition Nat Wrong() => Id();", "type"),
         ("explicit-nullary-unit", "definition Nat Empty() => 1; definition Nat Wrong() => Empty(());", "type"),
         ("empty-lambda-explicit-interface", "definition Fn(Unit token) -> Nat Wrong() => () => 1;", "type"),

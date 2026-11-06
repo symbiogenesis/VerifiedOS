@@ -68,7 +68,8 @@ def _malformed_words() -> None:
             elif role == "generic":
                 node, field = cast("list[Node]", declarations[1]["generics"])[0], "mode"
             else:
-                node, field = cast("Node", declarations[2]["proposition"]), "quantifier"
+                contract = cast("list[Node]", declarations[2]["contracts"])[0]
+                node, field = cast("Node", contract["value"]), "quantifier"
             node[field] = malformed
             try:
                 elaborate(source, changed)
