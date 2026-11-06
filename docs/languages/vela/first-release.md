@@ -412,34 +412,43 @@ CompCert Clight/C and purecap CHERI-RISC-V target harness in
   (`in Span<byte>` read-only vs `ref Span<byte>` read-write) and disjoint base
   intervals before emitting terms. Function contracts elaborate `requires` into
   typing premises, `restores param` into five metadata-preservation obligations
-  (`Base`, `Length`, `Tag`, `PermRead`, `PermWrite` between `result` and `param`),
-  and `ensures` into postcondition obligations with `result` bound to the
-  function body.
+  (`Base`, `Length`, `Tag`, `PermRead`, `PermWrite` between the post-state of
+  `param` or `result` and `old(param)`), and `ensures` into postcondition
+  obligations with `result` bound to the function body and `ref` parameters bound
+  to their exit post-states.
 - **Elaborated laws, validator and scenario theorems:** `Vela.FirstSlice` proves
-  ten carrier laws (`LawInhabitedByteCase`, `LawAllocZeroedRead`,
-  `LawReadOverWriteSame`, `LawReadOverWriteOther`, `LawFillAndFrame`,
+  eleven carrier laws (`LawInhabitedByteCase`, `LawAllocZeroedRead`,
+  `LawReadOverWriteSame`, `LawReadOverWriteOther`,
+  `LawLoopFramePreservesDisjointSuffix`, `LawFillAndFrame`,
   `LawSliceMetadataAndRead`, `LawReadOnlyAndInvalidate`,
   `LawDisjointCopyAndFrame`, `LawCapacityInvarianceSmall`,
-  `LawCapacityInvarianceLarge`), elaborates `PrepareAndValidatePacket` with five
-  `restores dst` obligations and three `ensures` obligations, and proves seven
-  concrete scenario theorems (`ValidateEmptyPacketOk`, `ValidateFullPacketOk`,
+  `LawCapacityInvarianceLarge`), elaborates imperative `MakePacket8`,
+  `CopyPacketToDst`, `ComputePacketChecksum` and `PrepareAndValidatePacket` (with
+  in-place `dst[i] = ...`, `Span.Fill(ref dst, ...)`,
+  `Span.CopyPrefix(ref payloadView, ...)`, `Span.Restore(ref dst, ...)`,
+  `foreach` loops with `invariant`/`decreases`, five `restores dst` obligations
+  and three `ensures` obligations without functional state-threading or a
+  `RestoredDst` return field), and proves seven symbolic scenario theorems
+  (`ValidateEmptyPacketOk`, `ValidateFullPacketOk`,
   `ValidatePartialPacketScrubsStaleAndTrailingBytes`, `RejectFramingShort`,
   `RejectBadMagic`, `RejectLengthOutOfBounds`,
-  `RejectChecksumScrubsDestinationAndRestores`).
+  `RejectChecksumScrubsDestinationAndRestores`) with separation-logic framing
+  (`dst[frameIdx] == old(dst[frameIdx])`) over loops and slices.
 - **End-to-end qualification (`python tools/run.py vela-parser first-slice`):**
   1. Parses `first_slice.vela` through the native Menhir `--surface` parser,
-     elaborates all 50 declarations into `FirstSlice.v`, compiles with `rocq c`,
+     elaborates all 51 declarations into `FirstSlice.v`, compiles with `rocq c`,
      verifies `Closed under the global context` via `Print Assumptions`, and
      audits with `rocqchk`, plus a fail-closed proof-corruption negative control.
   2. Runs the capacity-invariance gate at $N = 8$ (`8usize`) and $N = 10^9$
      (`1_000_000_000usize`), checking that obligation count (`9`), inference work
      steps, reduction steps and emitted Gallina byte length are identical across
      both capacities and that both pass `rocq c` and `rocqchk`.
-  3. Replays 12 schema-2 semantic negative controls (`oob-read`, `oob-write`,
+  3. Replays 13 schema-2 semantic negative controls (`oob-read`, `oob-write`,
      `oob-slice`, `oob-fill`, `mutate-in-borrow`, `mutate-readonly-view`,
      `read-invalidated-view`, `overlapping-copyprefix`, `foreign-restore`,
-     `broken-restores-contract`, `wrong-expected-byte`, `stale-input-leak`)
-     through the native parser and confirms each fails with `category == "type"`.
+     `broken-restores-contract`, `wrong-expected-byte`, `stale-input-leak`,
+     `loop-frame-overlap`) through the native parser and confirms each fails with
+     `category == "type"`.
   4. Executes the purecap CHERI-RISC-V hardware capability slice (`csetbounds`,
      `candperm`, capability round-trip and byte checks) and three hardware fault
      controls (`bounds-trap`, `perm-trap`, `tag-trap`) on `sail_riscv_sim`.

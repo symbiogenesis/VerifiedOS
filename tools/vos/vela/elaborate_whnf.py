@@ -73,7 +73,10 @@ class _WhnfMixin:
     def whnf(self: _Elaborator, term: _Term) -> _Term:
         self.tick()
         term = self.resolve(term)
-        if self.static_forbidden is None and len(self.metas) == self.decl_first_meta:
+        if self.static_forbidden is None and all(
+            m.solution is not None for m in self.metas[self.decl_first_meta :]
+        ):
+            self.decl_first_meta = len(self.metas)
             tid = id(term)
             cached = self.whnf_cache.get(tid)
             if cached is not None:
@@ -701,79 +704,107 @@ class _WhnfMixin:
                 return self._make_result_ok(spec.const, ae_const, _int_term(spec, shifted))
         return None
 
-    def _eval_in_extent(self: _Elaborator, addr: _Term, base: _Term, count: _Term) -> bool | None:
-        addr_w = self.whnf(addr)
-        base_w = self.whnf(base)
-        count_w = self.whnf(count)
-        if addr_w.kind == "int" and base_w.kind == "int" and count_w.kind == "int":
-            a_v = cast("int", addr_w.value)
-            b_v = cast("int", base_w.value)
-            c_v = cast("int", count_w.value)
-            return b_v <= a_v < b_v + c_v
-        return None
-
-    def _lookup_span_at_addr(self: _Elaborator, elem: _Term, span_term: _Term, addr: _Term) -> _Term | None:
+    def _span_root_and_const_offset(self: _Elaborator, elem: _Term, span_term: _Term) -> tuple[_Term, int] | None:
         self.tick()
         s = self.whnf(span_term)
+        if s.kind == "if":
+            return None
         s_head, s_args = self.spine(s)
-        if s_head.kind != "const" or not isinstance(s_head.value, str):
-            return None
-        sname = s_head.value
-        if sname == "Span_AllocZeroed" and len(s_args) == 3:
-            return _int_term(_INT_SPECS["u8"], 0)
-        if sname in {"Span_ReadOnly", "Span_Invalidate"} and len(s_args) == 2:
-            return self._lookup_span_at_addr(elem, s_args[1], addr)
-        if sname == "Span_Slice" and len(s_args) == 4:
-            return self._lookup_span_at_addr(elem, s_args[1], addr)
-        if sname == "Span_Restore" and len(s_args) == 3:
-            return self._lookup_span_at_addr(elem, s_args[2], addr)
-        if sname == "Span_Write" and len(s_args) == 4:
-            inner, w_idx, val = s_args[1], s_args[2], s_args[3]
-            inner_base = self.whnf(_apps(_constant("Span_Base"), elem, inner))
-            w_idx_w = self.whnf(w_idx)
-            addr_w = self.whnf(addr)
-            if inner_base.kind == "int" and w_idx_w.kind == "int" and addr_w.kind == "int":
-                w_addr_v = _wrap_int(_INT_SPECS["usize"], cast("int", inner_base.value) + cast("int", w_idx_w.value))
-                if cast("int", addr_w.value) == w_addr_v:
-                    return self.whnf(val)
-                return self._lookup_span_at_addr(elem, inner, addr_w)
-            return None
-        if sname == "Span_Fill" and len(s_args) == 5:
-            inner, off, count, val = s_args[1], s_args[2], s_args[3], s_args[4]
-            inner_base = self.whnf(_apps(_constant("Span_Base"), elem, inner))
-            off_w = self.whnf(off)
-            if inner_base.kind != "int" or off_w.kind != "int":
-                return None
-            f_base = _int_term(
-                _INT_SPECS["usize"],
-                _wrap_int(_INT_SPECS["usize"], cast("int", inner_base.value) + cast("int", off_w.value)),
-            )
-            in_ext = self._eval_in_extent(addr, f_base, count)
-            if in_ext is True:
-                return self.whnf(val)
-            if in_ext is False:
-                return self._lookup_span_at_addr(elem, inner, addr)
-            return None
-        if sname == "Span_CopyPrefix" and len(s_args) == 4:
-            dst, src, count = s_args[1], s_args[2], s_args[3]
-            d_base = self.whnf(_apps(_constant("Span_Base"), elem, dst))
-            s_base = self.whnf(_apps(_constant("Span_Base"), elem, src))
-            addr_w = self.whnf(addr)
-            if d_base.kind != "int" or s_base.kind != "int" or addr_w.kind != "int":
-                return None
-            in_ext = self._eval_in_extent(addr_w, d_base, count)
-            if in_ext is True:
-                src_addr = _int_term(
-                    _INT_SPECS["usize"],
-                    _wrap_int(
-                        _INT_SPECS["usize"],
-                        cast("int", s_base.value) + (cast("int", addr_w.value) - cast("int", d_base.value)),
-                    ),
+        if s_head.kind == "const" and isinstance(s_head.value, str):
+            sname = s_head.value
+            if sname == "Span_AllocZeroed" and len(s_args) == 3:
+                base_w = self.whnf(s_args[1])
+                if base_w.kind == "int":
+                    return (_constant("__concrete_addr__"), cast("int", base_w.value))
+                return (s, 0)
+            if (
+                sname
+                in {
+                    "Span_ReadOnly",
+                    "Span_Invalidate",
+                    "Span_Write",
+                    "Span_Fill",
+                    "Span_CopyPrefix",
+                    "Span_Restore",
+                    "LoopState",
+                }
+                and len(s_args) >= 2
+            ):
+                return self._span_root_and_const_offset(elem, s_args[1])
+            if sname == "Span_Slice" and len(s_args) == 4:
+                off_w = self.whnf(s_args[2])
+                if off_w.kind != "int":
+                    return None
+                inner_ro = self._span_root_and_const_offset(elem, s_args[1])
+                if inner_ro is None:
+                    return None
+                return (
+                    inner_ro[0],
+                    _wrap_int(_INT_SPECS["usize"], inner_ro[1] + cast("int", off_w.value)),
                 )
-                return self._lookup_span_at_addr(elem, src, src_addr)
-            if in_ext is False:
-                return self._lookup_span_at_addr(elem, dst, addr_w)
+        return (s, 0)
+
+    def _lookup_span_at_root_offset(
+        self: _Elaborator,
+        elem: _Term,
+        span_term: _Term,
+        target_root: _Term,
+        target_off: int,
+        orig_span: _Term,
+    ) -> _Term | None:
+        self.tick()
+        s = self.whnf(span_term)
+        ro = self._span_root_and_const_offset(elem, s)
+        if ro is None or ro[0] != target_root:
             return None
+        cur_off = ro[1]
+        s_head, s_args = self.spine(s)
+        if s_head.kind == "const" and isinstance(s_head.value, str):
+            sname = s_head.value
+            if sname == "Span_AllocZeroed" and len(s_args) == 3:
+                return _int_term(_INT_SPECS["u8"], 0)
+            if sname in {"Span_ReadOnly", "Span_Invalidate"} and len(s_args) == 2:
+                return self._lookup_span_at_root_offset(elem, s_args[1], target_root, target_off, orig_span)
+            if sname == "Span_Slice" and len(s_args) == 4:
+                return self._lookup_span_at_root_offset(elem, s_args[1], target_root, target_off, orig_span)
+            if sname == "Span_Restore" and len(s_args) == 3:
+                return self._lookup_span_at_root_offset(elem, s_args[2], target_root, target_off, orig_span)
+            if sname == "Span_Write" and len(s_args) == 4:
+                inner, w_idx, val = s_args[1], s_args[2], s_args[3]
+                w_idx_w = self.whnf(w_idx)
+                if w_idx_w.kind == "int":
+                    w_off = _wrap_int(_INT_SPECS["usize"], cur_off + cast("int", w_idx_w.value))
+                    if target_off == w_off:
+                        return self.whnf(val)
+                    return self._lookup_span_at_root_offset(elem, inner, target_root, target_off, orig_span)
+                return None
+            if sname == "Span_Fill" and len(s_args) == 5:
+                inner, off, count, val = s_args[1], s_args[2], s_args[3], s_args[4]
+                off_w = self.whnf(off)
+                cnt_w = self.whnf(count)
+                if off_w.kind == "int" and cnt_w.kind == "int":
+                    lo = _wrap_int(_INT_SPECS["usize"], cur_off + cast("int", off_w.value))
+                    hi = lo + cast("int", cnt_w.value)
+                    if lo <= target_off < hi:
+                        return self.whnf(val)
+                    return self._lookup_span_at_root_offset(elem, inner, target_root, target_off, orig_span)
+                return None
+            if sname == "Span_CopyPrefix" and len(s_args) == 4:
+                dst_s, src_s, count = s_args[1], s_args[2], s_args[3]
+                cnt_w = self.whnf(count)
+                if cnt_w.kind == "int":
+                    lo = cur_off
+                    hi = lo + cast("int", cnt_w.value)
+                    if lo <= target_off < hi:
+                        src_ro = self._span_root_and_const_offset(elem, src_s)
+                        if src_ro is not None:
+                            src_target = _wrap_int(_INT_SPECS["usize"], src_ro[1] + (target_off - lo))
+                            return self._lookup_span_at_root_offset(elem, src_s, src_ro[0], src_target, src_s)
+                        return None
+                    return self._lookup_span_at_root_offset(elem, dst_s, target_root, target_off, orig_span)
+                return None
+        if s != orig_span and target_root != _constant("__concrete_addr__") and cur_off == 0:
+            return _apps(_constant("Span_Read"), elem, s, _int_term(_INT_SPECS["usize"], target_off))
         return None
 
     def _whnf_span_op(self: _Elaborator, name: str, arguments: list[_Term]) -> _Term | None:
@@ -833,6 +864,9 @@ class _WhnfMixin:
             if sname == "Span_Restore" and len(s_args) == 3:
                 self.tick(True)
                 return self.whnf(_apps(_constant(name), elem, s_args[1]))
+            if sname == "LoopState" and len(s_args) == 3:
+                self.tick(True)
+                return self.whnf(_apps(_constant(name), elem, s_args[1]))
             return None
         if name == "Span_Disjoint" and len(arguments) == 3:
             elem, a, b = arguments
@@ -853,21 +887,23 @@ class _WhnfMixin:
         if name == "Span_Read" and len(arguments) == 3:
             elem, s, idx = arguments
             s_w = self.whnf(s)
+            idx_w = self.whnf(idx)
             if s_w.kind != "app":
+                if s_w != s or idx_w != idx:
+                    self.tick(True)
+                    return _apps(_constant("Span_Read"), elem, s_w, idx_w)
                 return None
             s_head, s_args = self.spine(s_w)
             if s_head == _constant("Span_AllocZeroed") and len(s_args) == 3:
                 self.tick(True)
                 return _int_term(_INT_SPECS["u8"], 0)
-            base_w = self.whnf(_apps(_constant("Span_Base"), elem, s_w))
-            idx_w = self.whnf(idx)
-            if base_w.kind != "int" or idx_w.kind != "int":
+            if idx_w.kind != "int":
                 return None
-            addr = _int_term(
-                _INT_SPECS["usize"],
-                _wrap_int(_INT_SPECS["usize"], cast("int", base_w.value) + cast("int", idx_w.value)),
-            )
-            found = self._lookup_span_at_addr(elem, s_w, addr)
+            ro = self._span_root_and_const_offset(elem, s_w)
+            if ro is None:
+                return None
+            target_off = _wrap_int(_INT_SPECS["usize"], ro[1] + cast("int", idx_w.value))
+            found = self._lookup_span_at_root_offset(elem, s_w, ro[0], target_off, s_w)
             if found is not None:
                 self.tick(True)
                 return found

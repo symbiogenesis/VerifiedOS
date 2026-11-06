@@ -59,6 +59,7 @@ EXPECTED_LAWS: Final[tuple[str, ...]] = (
     "LawAllocZeroedRead",
     "LawReadOverWriteSame",
     "LawReadOverWriteOther",
+    "LawLoopFramePreservesDisjointSuffix",
     "LawFillAndFrame",
     "LawSliceMetadataAndRead",
     "LawReadOnlyAndInvalidate",
@@ -241,6 +242,29 @@ proof {
         "type",
         "assertion could not be established",
     ),
+    NegativeControl(
+        "loop-frame-overlap",
+        """module Vela.FirstSlice.NegLoopFrameOverlap;
+public theorem BadLoopFrame(ref Span<byte> s, usize bound, usize frameIdx)
+    requires s.CanRead && s.CanWrite
+    requires bound <= s.Length
+    requires frameIdx < bound && frameIdx < s.Length
+    ensures s[frameIdx] == old(s[frameIdx])
+proof {
+    foreach (let i in 0usize..bound)
+        invariant i <= bound
+        invariant s.CanRead && s.CanWrite && s.Length == old(s.Length)
+        invariant s[frameIdx] == old(s[frameIdx])
+        decreases bound - i
+    {
+        s[i] = 0xAAu8;
+    }
+    assert s[frameIdx] == old(s[frameIdx]);
+}
+""",
+        "type",
+        "loop invariant could not be established on loop inductive step",
+    ),
 )
 
 
@@ -295,34 +319,39 @@ def _work_root(root: Path) -> Path:
 def _capacity_fixture(capacity_literal: str) -> bytes:
     text = f"""module Vela.FirstSlice.CapGate;
 
-public definition Span<byte> PrepareSliceHeader(ref Span<byte> dst)
+public Span<byte> PrepareSliceHeader(ref Span<byte> dst)
     requires dst.CanRead
     requires dst.CanWrite
     requires dst.Length >= 8usize
     restores dst
-    ensures result.Length == dst.Length
-    ensures Span.ReadOnly(result).PermWrite == false
-=>
-    let s1 = Span.Write(dst, 0usize, 0x56u8) in
-    let s2 = Span.Write(s1, 3usize, 0x01u8) in
-    let roView = Span.ReadOnly(Span.Slice(s2, 0usize, 4usize)) in
-    Span.Restore(dst, roView);
+    ensures result.Length == 4usize
+    ensures result.PermWrite == false
+{{
+    dst[0usize] = 0x56u8;
+    dst[3usize] = 0x01u8;
+    let roView = Span.ReadOnly(Span.Slice(dst, 0usize, 4usize));
+    Span.Restore(ref dst, roView);
+    return roView;
+}}
 
 theorem CapacityLaw()
     ensures
         let s0 = Span.AllocZeroed(4096usize, {capacity_literal}) in
-        let res = PrepareSliceHeader(s0) in
-        (res.Length == {capacity_literal}
-         && Span.Read(res, 0usize) == 0x56u8
-         && Span.Read(res, 3usize) == 0x01u8
-         && Span.Read(res, 1usize) == 0x00u8) == true
+        let s1 = Span.Write(s0, 0usize, 0x56u8) in
+        let s2 = Span.Write(s1, 3usize, 0x01u8) in
+        (s2.Length == {capacity_literal}
+         && s2[0usize] == 0x56u8
+         && s2[3usize] == 0x01u8
+         && s2[1usize] == 0x00u8) == true
 proof {{
-    let s0 = Span.AllocZeroed(4096usize, {capacity_literal});
-    let res = PrepareSliceHeader(s0);
-    assert (res.Length == {capacity_literal}
-        && Span.Read(res, 0usize) == 0x56u8
-        && Span.Read(res, 3usize) == 0x01u8
-        && Span.Read(res, 1usize) == 0x00u8) == true;
+    var s = Span.AllocZeroed(4096usize, {capacity_literal});
+    let roView = PrepareSliceHeader(ref s);
+    assert (s.Length == {capacity_literal}
+        && roView.Length == 4usize
+        && !roView.PermWrite
+        && s[0usize] == 0x56u8
+        && s[3usize] == 0x01u8
+        && s[1usize] == 0x00u8) == true;
 }}
 """
     return text.encode("utf-8")
@@ -354,17 +383,18 @@ def lower_to_c(source: bytes, parsed: object, *, perturb_check: int = 0) -> tupl
     required_callables = (
         ("ValidationError", "union"),
         ("ValidationOutcome", "record"),
-        ("MakePacket8", "definition"),
-        ("CopyPacketToDst", "definition"),
-        ("ComputePacketChecksum", "definition"),
+        ("MakePacket8", "function"),
+        ("CopyPacketToDst", "function"),
+        ("ComputePacketChecksum", "function"),
         ("PrepareAndValidatePacket", "function"),
-        ("ScenarioEmptyPacket", "definition"),
-        ("ScenarioFullPacket", "definition"),
-        ("ScenarioPartialStalePacket", "definition"),
-        ("ScenarioFramingShort", "definition"),
-        ("ScenarioBadMagic", "definition"),
-        ("ScenarioLengthOutOfBounds", "definition"),
-        ("ScenarioChecksumRejected", "definition"),
+        ("LawLoopFramePreservesDisjointSuffix", "theorem"),
+        ("ValidateEmptyPacketOk", "theorem"),
+        ("ValidateFullPacketOk", "theorem"),
+        ("ValidatePartialPacketScrubsStaleAndTrailingBytes", "theorem"),
+        ("RejectFramingShort", "theorem"),
+        ("RejectBadMagic", "theorem"),
+        ("RejectLengthOutOfBounds", "theorem"),
+        ("RejectChecksumScrubsDestinationAndRestores", "theorem"),
     )
     for name, expected_kind in required_callables:
         actual = decls.get(name)
@@ -398,7 +428,6 @@ struct vos_ValidationOutcome {{
     int Error;
     unsigned long CopiedBytes;
     struct vos_span_byte PayloadView;
-    struct vos_span_byte RestoredDst;
 }};
 
 static void vos_span_copy_meta(struct vos_span_byte *dst, struct vos_span_byte *src)
@@ -532,36 +561,32 @@ static void MakePacket8(
     unsigned char b6,
     unsigned char b7)
 {{
-    struct vos_span_byte s0;
-    vos_span_alloc_zeroed(&s0, backing, baseAddr, 8UL);
-    vos_span_write(&s0, &s0, 0UL, b0);
-    vos_span_write(&s0, &s0, 1UL, b1);
-    vos_span_write(&s0, &s0, 2UL, b2);
-    vos_span_write(&s0, &s0, 3UL, b3);
-    vos_span_write(&s0, &s0, 4UL, b4);
-    vos_span_write(&s0, &s0, 5UL, b5);
-    vos_span_write(&s0, &s0, 6UL, b6);
-    vos_span_write(out, &s0, 7UL, b7);
+    vos_span_alloc_zeroed(out, backing, baseAddr, 8UL);
+    vos_span_write(out, out, 0UL, b0);
+    vos_span_write(out, out, 1UL, b1);
+    vos_span_write(out, out, 2UL, b2);
+    vos_span_write(out, out, 3UL, b3);
+    vos_span_write(out, out, 4UL, b4);
+    vos_span_write(out, out, 5UL, b5);
+    vos_span_write(out, out, 6UL, b6);
+    vos_span_write(out, out, 7UL, b7);
 }}
 
 static void CopyPacketToDst(
-    struct vos_span_byte *out,
-    struct vos_span_byte *cleanedDst,
+    struct vos_span_byte *dst,
     struct vos_span_byte *pkt,
     unsigned long payloadLen)
 {{
-    struct vos_span_byte d;
-    struct vos_span_byte dstSlice;
-    struct vos_span_byte pktSlice;
-    struct vos_span_byte copiedSlice;
-    vos_span_write(&d, cleanedDst, 0UL, vos_span_read(pkt, 0UL));
-    vos_span_write(&d, &d, 1UL, vos_span_read(pkt, 1UL));
-    vos_span_write(&d, &d, 2UL, vos_span_read(pkt, 2UL));
-    vos_span_write(&d, &d, 3UL, vos_span_read(pkt, 3UL));
-    vos_span_slice(&dstSlice, &d, 4UL, payloadLen);
-    vos_span_slice(&pktSlice, pkt, 4UL, payloadLen);
-    vos_span_copy_prefix(&copiedSlice, &dstSlice, &pktSlice, payloadLen);
-    vos_span_restore(out, cleanedDst, &copiedSlice);
+    unsigned long i;
+    struct vos_span_byte payloadView;
+    struct vos_span_byte pktPayload;
+    for (i = 0UL; i < 4UL; i++) {{
+        vos_span_write(dst, dst, i, vos_span_read(pkt, i));
+    }}
+    vos_span_slice(&payloadView, dst, 4UL, payloadLen);
+    vos_span_slice(&pktPayload, pkt, 4UL, payloadLen);
+    vos_span_copy_prefix(&payloadView, &payloadView, &pktPayload, payloadLen);
+    vos_span_restore(dst, dst, &payloadView);
 }}
 
 static unsigned char ComputePacketChecksum(
@@ -569,17 +594,15 @@ static unsigned char ComputePacketChecksum(
     unsigned char rawLen,
     unsigned long payloadLen)
 {{
-    struct vos_span_byte pktPayload;
-    unsigned char b0;
-    unsigned char b1;
-    unsigned char b2;
-    unsigned char b3;
-    vos_span_slice(&pktPayload, pkt, 4UL, payloadLen);
-    b0 = (payloadLen > 0UL) ? vos_span_read(&pktPayload, 0UL) : 0U;
-    b1 = (payloadLen > 1UL) ? vos_span_read(&pktPayload, 1UL) : 0U;
-    b2 = (payloadLen > 2UL) ? vos_span_read(&pktPayload, 2UL) : 0U;
-    b3 = (payloadLen > 3UL) ? vos_span_read(&pktPayload, 3UL) : 0U;
-    return (unsigned char)(((0x5AU ^ (unsigned int)rawLen) ^ ((unsigned int)b0 ^ (unsigned int)b1 ^ (unsigned int)b2 ^ (unsigned int)b3)) & 0xFFU);
+    unsigned long i;
+    unsigned int acc;
+    acc = 0x5AU ^ (unsigned int)rawLen;
+    for (i = 0UL; i < 4UL; i++) {{
+        if (i < payloadLen) {{
+            acc = acc ^ (unsigned int)vos_span_read(pkt, 4UL + i);
+        }}
+    }}
+    return (unsigned char)(acc & 0xFFU);
 }}
 
 static void PrepareAndValidatePacket(
@@ -587,10 +610,7 @@ static void PrepareAndValidatePacket(
     struct vos_span_byte *dst,
     struct vos_span_byte *pkt)
 {{
-    struct vos_span_byte cleanedDst;
     struct vos_span_byte emptySlice;
-    struct vos_span_byte workDst;
-    struct vos_span_byte scrubbedDst;
     struct vos_span_byte rawView;
     unsigned char magic;
     unsigned char rawLen;
@@ -599,16 +619,15 @@ static void PrepareAndValidatePacket(
     unsigned char actualChecksum;
     unsigned long payloadLen;
 
-    vos_span_fill(&cleanedDst, dst, 0UL, dst->length, 0U);
     if (dst->length < 8UL || pkt->length < 4UL || !vos_span_disjoint(dst, pkt)) {{
         vos_span_slice(&emptySlice, dst, 0UL, 0UL);
         out->Ok = 0;
         out->Error = VOS_ERR_FramingShort;
         out->CopiedBytes = 0UL;
         vos_span_invalidate(&out->PayloadView, &emptySlice);
-        vos_span_restore(&out->RestoredDst, dst, &cleanedDst);
         return;
     }}
+    vos_span_fill(dst, dst, 0UL, 8UL, 0U);
     magic = vos_span_read(pkt, 0UL);
     rawLen = vos_span_read(pkt, 1UL);
     expectedChecksum = vos_span_read(pkt, 2UL);
@@ -620,7 +639,6 @@ static void PrepareAndValidatePacket(
         out->Error = VOS_ERR_BadMagicOrFlags;
         out->CopiedBytes = 0UL;
         vos_span_invalidate(&out->PayloadView, &emptySlice);
-        vos_span_restore(&out->RestoredDst, dst, &cleanedDst);
         return;
     }}
     if (payloadLen > 4UL || 4UL + payloadLen > pkt->length || 4UL + payloadLen > dst->length) {{
@@ -629,39 +647,38 @@ static void PrepareAndValidatePacket(
         out->Error = VOS_ERR_LengthOutOfBounds;
         out->CopiedBytes = 0UL;
         vos_span_invalidate(&out->PayloadView, &emptySlice);
-        vos_span_restore(&out->RestoredDst, dst, &cleanedDst);
         return;
     }}
-    CopyPacketToDst(&workDst, &cleanedDst, pkt, payloadLen);
+    CopyPacketToDst(dst, pkt, payloadLen);
     actualChecksum = ComputePacketChecksum(pkt, rawLen, payloadLen);
     if (actualChecksum != expectedChecksum) {{
-        vos_span_fill(&scrubbedDst, &workDst, 0UL, dst->length, 0U);
+        vos_span_fill(dst, dst, 0UL, 8UL, 0U);
         vos_span_slice(&emptySlice, dst, 0UL, 0UL);
         out->Ok = 0;
         out->Error = VOS_ERR_ChecksumRejected;
         out->CopiedBytes = 0UL;
         vos_span_invalidate(&out->PayloadView, &emptySlice);
-        vos_span_restore(&out->RestoredDst, dst, &scrubbedDst);
         return;
     }}
-    vos_span_slice(&rawView, &workDst, 4UL, payloadLen);
+    vos_span_slice(&rawView, dst, 4UL, payloadLen);
     out->Ok = 1;
     out->Error = VOS_ERR_ValidatedOk;
     out->CopiedBytes = payloadLen;
     vos_span_readonly(&out->PayloadView, &rawView);
-    vos_span_restore(&out->RestoredDst, dst, &out->PayloadView);
+    vos_span_restore(dst, dst, &out->PayloadView);
 }}
 
 int main(void)
 {{
-    unsigned char dst_buf[8];
+    unsigned char dst_buf[10];
     unsigned char pkt_buf[8];
     struct vos_span_byte dst;
     struct vos_span_byte pkt;
     struct vos_ValidationOutcome out;
 
-    /* 1. ScenarioEmptyPacket: valid 0-byte payload */
-    vos_span_alloc_zeroed(&dst, dst_buf, 64UL, 8UL);
+    /* 1. ValidateEmptyPacketOk: valid 0-byte payload + live frame preservation at index 8 */
+    vos_span_alloc_zeroed(&dst, dst_buf, 64UL, 10UL);
+    vos_span_write(&dst, &dst, 8UL, 0xC3U);
     MakePacket8(&pkt, pkt_buf, 128UL, 0x56U, 0x00U, 0x5AU, 0x01U, 0x00U, 0x00U, 0x00U, 0x00U);
     PrepareAndValidatePacket(&out, &dst, &pkt);
     if (out.Ok != {exp(1, 1)})
@@ -672,10 +689,10 @@ int main(void)
         return 3;
     if (out.PayloadView.tag != 1 || out.PayloadView.perm_read != 1 || out.PayloadView.perm_write != 0)
         return 4;
-    if (out.RestoredDst.base != 64UL || out.RestoredDst.length != {exp(5, 8)}UL || out.RestoredDst.perm_write != 1)
+    if (dst.base != 64UL || dst.length != {exp(5, 10)}UL || dst.perm_write != 1 || vos_span_read(&dst, 8UL) != 0xC3U)
         return 5;
 
-    /* 2. ScenarioFullPacket: valid 4-byte payload [0x10, 0x20, 0x30, 0x40] */
+    /* 2. ValidateFullPacketOk: valid 4-byte payload [0x10, 0x20, 0x30, 0x40] */
     vos_span_alloc_zeroed(&dst, dst_buf, 64UL, 8UL);
     MakePacket8(&pkt, pkt_buf, 128UL, 0x56U, 0x04U, 0x1EU, 0x01U, 0x10U, 0x20U, 0x30U, 0x40U);
     PrepareAndValidatePacket(&out, &dst, &pkt);
@@ -687,54 +704,55 @@ int main(void)
         || vos_span_read(&out.PayloadView, 2UL) != 0x30U
         || vos_span_read(&out.PayloadView, 3UL) != {exp(8, 0x40)}U)
         return 8;
-    if (vos_span_read(&out.RestoredDst, 0UL) != 0x56U || vos_span_read(&out.RestoredDst, 7UL) != 0x40U)
+    if (vos_span_read(&dst, 0UL) != 0x56U || vos_span_read(&dst, 7UL) != 0x40U)
         return 9;
 
-    /* 3. ScenarioPartialStalePacket: 2-byte payload scrubs stale destination and ignores trailing source */
-    vos_span_alloc_zeroed(&dst, dst_buf, 64UL, 8UL);
-    vos_span_fill(&dst, &dst, 0UL, 8UL, 0xAAU);
+    /* 3. ValidatePartialPacketScrubsStaleAndTrailingBytes: 2-byte payload scrubs [6..8) and preserves frame [8..10) */
+    vos_span_alloc_zeroed(&dst, dst_buf, 64UL, 10UL);
+    vos_span_fill(&dst, &dst, 0UL, 10UL, 0xAAU);
     MakePacket8(&pkt, pkt_buf, 128UL, 0x56U, 0x02U, 0x6BU, 0x01U, 0x11U, 0x22U, 0xDEU, 0xADU);
     PrepareAndValidatePacket(&out, &dst, &pkt);
     if (out.Ok != 1 || out.CopiedBytes != 2UL || out.PayloadView.length != 2UL)
         return 10;
     if (vos_span_read(&out.PayloadView, 0UL) != 0x11U || vos_span_read(&out.PayloadView, 1UL) != 0x22U)
         return 11;
-    if (vos_span_read(&out.RestoredDst, 6UL) != {exp(12, 0x00)}U || vos_span_read(&out.RestoredDst, 7UL) != 0x00U)
+    if (vos_span_read(&dst, 6UL) != {exp(12, 0x00)}U || vos_span_read(&dst, 7UL) != 0x00U || vos_span_read(&dst, 9UL) != 0xAAU)
         return 12;
 
-    /* 4. ScenarioFramingShort: pkt.length < 4 */
+    /* 4. RejectFramingShort: pkt.length < 4 */
     vos_span_alloc_zeroed(&dst, dst_buf, 64UL, 8UL);
     vos_span_alloc_zeroed(&pkt, pkt_buf, 128UL, 3UL);
     PrepareAndValidatePacket(&out, &dst, &pkt);
     if (out.Ok != 0 || out.Error != {exp(13, 1)} || out.PayloadView.tag != 0)
         return 13;
 
-    /* 5. ScenarioBadMagic: header magic != 0x56 */
+    /* 5. RejectBadMagic: header magic != 0x56 */
     vos_span_alloc_zeroed(&dst, dst_buf, 64UL, 8UL);
     MakePacket8(&pkt, pkt_buf, 128UL, 0x00U, 0x02U, 0x3AU, 0x01U, 0xAAU, 0xCCU, 0x00U, 0x00U);
     PrepareAndValidatePacket(&out, &dst, &pkt);
     if (out.Ok != 0 || out.Error != {exp(14, 2)} || out.PayloadView.tag != 0)
         return 14;
 
-    /* 6. ScenarioLengthOutOfBounds: rawLen == 5 > 4 */
+    /* 6. RejectLengthOutOfBounds: rawLen == 5 > 4 */
     vos_span_alloc_zeroed(&dst, dst_buf, 64UL, 8UL);
     MakePacket8(&pkt, pkt_buf, 128UL, 0x56U, 0x05U, 0x5FU, 0x01U, 0x10U, 0x20U, 0x30U, 0x40U);
     PrepareAndValidatePacket(&out, &dst, &pkt);
     if (out.Ok != 0 || out.Error != {exp(15, 3)} || out.PayloadView.tag != 0)
         return 15;
 
-    /* 7. ScenarioChecksumRejected: bad checksum scrubs destination and restores parent dst */
-    vos_span_alloc_zeroed(&dst, dst_buf, 64UL, 8UL);
-    vos_span_fill(&dst, &dst, 0UL, 8UL, 0x77U);
+    /* 7. RejectChecksumScrubsDestinationAndRestores: bad checksum scrubs [0..8), preserves frame at 8, restores dst */
+    vos_span_alloc_zeroed(&dst, dst_buf, 64UL, 10UL);
+    vos_span_fill(&dst, &dst, 0UL, 10UL, 0x77U);
     MakePacket8(&pkt, pkt_buf, 128UL, 0x56U, 0x04U, 0xFFU, 0x01U, 0x10U, 0x20U, 0x30U, 0x40U);
     PrepareAndValidatePacket(&out, &dst, &pkt);
     if (out.Ok != 0 || out.Error != {exp(16, 4)} || out.PayloadView.tag != 0)
         return 16;
-    if (vos_span_read(&out.RestoredDst, 0UL) != {exp(17, 0x00)}U
-        || vos_span_read(&out.RestoredDst, 4UL) != 0x00U
-        || vos_span_read(&out.RestoredDst, 7UL) != 0x00U)
+    if (vos_span_read(&dst, 0UL) != {exp(17, 0x00)}U
+        || vos_span_read(&dst, 4UL) != 0x00U
+        || vos_span_read(&dst, 7UL) != 0x00U
+        || vos_span_read(&dst, 8UL) != 0x77U)
         return 17;
-    if (out.RestoredDst.base != 64UL || out.RestoredDst.length != 8UL || out.RestoredDst.perm_write != 1)
+    if (dst.base != 64UL || dst.length != 10UL || dst.perm_write != 1)
         return 18;
 
     /* 8. Overlapping-span alias control at runtime: disjoint check rejects overlapping base ranges */

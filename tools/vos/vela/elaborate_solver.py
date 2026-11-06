@@ -86,6 +86,10 @@ class _SolverMixin:
         head, args = self.spine(w)
         if head == _constant("!") and len(args) == 1:
             return args[0]
+        if head == _constant("||") and len(args) == 2:
+            return _apps(_constant("&&"), self._negate_bool_term(args[0]), self._negate_bool_term(args[1]))
+        if head == _constant("&&") and len(args) == 2:
+            return _apps(_constant("||"), self._negate_bool_term(args[0]), self._negate_bool_term(args[1]))
         if head.kind == "const" and isinstance(head.value, str) and len(args) == 2:
             cname = head.value
             flip_nat = {
@@ -435,11 +439,252 @@ class _SolverMixin:
     def _same_numeric_subject(self: _Elaborator, a: _Term, b: _Term) -> bool:
         return self._unwrap_numeric_subject(a) == self._unwrap_numeric_subject(b)
 
+    def _add_usize_offset(self: _Elaborator, a: _Term, b: _Term) -> _Term:
+        zero = _int_term(_INT_SPECS["usize"], 0)
+        aw = self.whnf(a)
+        bw = self.whnf(b)
+        if aw == zero:
+            return bw
+        if bw == zero:
+            return aw
+        return self.whnf(_apps(_constant("int_add_usize"), aw, bw))
+
+    def _span_root_and_offset_term(self: _Elaborator, elem: _Term, span_term: _Term) -> tuple[_Term, _Term] | None:
+        s = self.whnf(span_term)
+        if s.kind == "if":
+            return None
+        s_head, s_args = self.spine(s)
+        if s_head.kind == "const" and isinstance(s_head.value, str):
+            sname = s_head.value
+            if sname == "Span_AllocZeroed" and len(s_args) == 3:
+                return (s, _int_term(_INT_SPECS["usize"], 0))
+            if (
+                sname
+                in {
+                    "Span_ReadOnly",
+                    "Span_Invalidate",
+                    "Span_Write",
+                    "Span_Fill",
+                    "Span_CopyPrefix",
+                    "Span_Restore",
+                    "LoopState",
+                }
+                and len(s_args) >= 2
+            ):
+                return self._span_root_and_offset_term(elem, s_args[1])
+            if sname == "Span_Slice" and len(s_args) == 4:
+                inner_ro = self._span_root_and_offset_term(elem, s_args[1])
+                if inner_ro is None:
+                    return None
+                return (inner_ro[0], self._add_usize_offset(inner_ro[1], s_args[2]))
+        return (s, _int_term(_INT_SPECS["usize"], 0))
+
+    def _simplify_span_read_with_facts(self: _Elaborator, term: _Term, facts: list[_Term]) -> _Term:
+        w = self.whnf(term)
+        head, args = self.spine(w)
+        if head != _constant("Span_Read") or len(args) != 3:
+            return w
+        elem, s, idx = args
+        ro = self._span_root_and_offset_term(elem, s)
+        if ro is None:
+            return w
+        target_root, s_off = ro
+        read_off = self._add_usize_offset(s_off, idx)
+        usize_spec = _INT_SPECS["usize"]
+        zero_u = _int_term(usize_spec, 0)
+        curr = self.whnf(s)
+        for _ in range(32):
+            curr_ro = self._span_root_and_offset_term(elem, curr)
+            if curr_ro is None or curr_ro[0] != target_root:
+                break
+            cur_off = curr_ro[1]
+            c_head, c_args = self.spine(curr)
+            if c_head == _constant("Span_AllocZeroed") and len(c_args) == 3:
+                return _int_term(_INT_SPECS["u8"], 0)
+            if c_head in {_constant("Span_ReadOnly"), _constant("Span_Invalidate")} and len(c_args) == 2:
+                curr = self.whnf(c_args[1])
+                continue
+            if c_head == _constant("Span_Slice") and len(c_args) == 4:
+                curr = self.whnf(c_args[1])
+                continue
+            if c_head == _constant("Span_Restore") and len(c_args) == 3:
+                curr = self.whnf(c_args[2])
+                continue
+            if c_head == _constant("Span_Write") and len(c_args) == 4:
+                inner, w_idx, val = c_args[1], c_args[2], c_args[3]
+                w_off = self._add_usize_offset(cur_off, w_idx)
+                if self._prove_comparison("eq", usize_spec, read_off, w_off, facts, simplify_reads=False):
+                    return self._simplify_span_read_with_facts(val, facts)
+                if self._prove_comparison("ne", usize_spec, read_off, w_off, facts, simplify_reads=False):
+                    curr = self.whnf(inner)
+                    continue
+                break
+            if c_head == _constant("Span_Fill") and len(c_args) == 5:
+                inner, f_off, count, val = c_args[1], c_args[2], c_args[3], c_args[4]
+                lo = self._add_usize_offset(cur_off, f_off)
+                hi = self._add_usize_offset(lo, count)
+                if self._prove_comparison(
+                    "ge", usize_spec, read_off, lo, facts, simplify_reads=False
+                ) and self._prove_comparison("lt", usize_spec, read_off, hi, facts, simplify_reads=False):
+                    return self._simplify_span_read_with_facts(val, facts)
+                if self._prove_comparison(
+                    "lt", usize_spec, read_off, lo, facts, simplify_reads=False
+                ) or self._prove_comparison("ge", usize_spec, read_off, hi, facts, simplify_reads=False):
+                    curr = self.whnf(inner)
+                    continue
+                break
+            if c_head == _constant("Span_CopyPrefix") and len(c_args) == 4:
+                dst_s, _src_s, count = c_args[1], c_args[2], c_args[3]
+                lo = cur_off
+                hi = self._add_usize_offset(lo, count)
+                if self._prove_comparison(
+                    "ge", usize_spec, read_off, lo, facts, simplify_reads=False
+                ) and self._prove_comparison("lt", usize_spec, read_off, hi, facts, simplify_reads=False):
+                    src_ro = self._span_root_and_offset_term(elem, _src_s)
+                    if src_ro is not None and read_off.kind == "int" and lo.kind == "int":
+                        delta = cast("int", read_off.value) - cast("int", lo.value)
+                        src_idx = self._add_usize_offset(src_ro[1], _int_term(usize_spec, delta))
+                        return self._simplify_span_read_with_facts(
+                            _apps(_constant("Span_Read"), elem, src_ro[0], src_idx), facts
+                        )
+                if self._prove_comparison(
+                    "lt", usize_spec, read_off, lo, facts, simplify_reads=False
+                ) or self._prove_comparison("ge", usize_spec, read_off, hi, facts, simplify_reads=False):
+                    curr = self.whnf(dst_s)
+                    continue
+                break
+            break
+        if self._span_root_and_offset_term(elem, curr) == (target_root, zero_u):
+            w = self.whnf(_apps(_constant("Span_Read"), elem, curr, read_off))
+        for fact in facts:
+            parsed = self._parse_cmp_fact(fact)
+            if parsed is None or parsed[0] != "eq":
+                continue
+            _, _, fl, fr = parsed
+            fl_w = self.whnf(fl)
+            fr_w = self.whnf(fr)
+            if fl_w == w and not self._contains_span_read(fr_w):
+                return fr_w
+            if fr_w == w and not self._contains_span_read(fl_w):
+                return fl_w
+        return w
+
+    def _contains_span_read(self: _Elaborator, term: _Term) -> bool:
+        t = self.resolve(term)
+        if t == _constant("Span_Read"):
+            return True
+        return any(self._contains_span_read(child) for child in t.args)
+
+    def _simplify_term_with_facts(
+        self: _Elaborator, term: _Term, environment: dict[str, _Binding]
+    ) -> _Term:
+        facts = self._expand_bool_facts([*self.active_facts, *self._fact_bool_terms((), environment)])
+        read_rewrites: dict[_Term, _Term] = {}
+        for fact in facts:
+            parsed = self._parse_cmp_fact(fact)
+            if parsed is None or parsed[0] != "eq":
+                continue
+            _, _, fl, fr = parsed
+            fl_w = self.whnf(fl)
+            fr_w = self.whnf(fr)
+            if self.spine(fl_w)[0] == _constant("Span_Read") and not self._contains_span_read(fr_w):
+                read_rewrites[fl_w] = fr_w
+            elif self.spine(fr_w)[0] == _constant("Span_Read") and not self._contains_span_read(fl_w):
+                read_rewrites[fr_w] = fl_w
+
+        memo: dict[int, tuple[_Term, _Term, bool]] = {}
+
+        def apply_rewrites(cur: _Term) -> tuple[_Term, bool]:
+            tid = id(cur)
+            if tid in memo:
+                return memo[tid][1], memo[tid][2]
+            resolved = self.resolve(cur)
+            if resolved in read_rewrites:
+                repl = read_rewrites[resolved]
+                memo[tid] = (cur, repl, True)
+                return repl, True
+            if resolved.kind in {"pi", "lam", "let", "fix"} or not resolved.args:
+                memo[tid] = (cur, resolved, False)
+                return resolved, False
+            new_args: list[_Term] = []
+            changed = False
+            for child in resolved.args:
+                nc, ch = apply_rewrites(child)
+                new_args.append(nc)
+                changed = changed or ch
+            if not changed:
+                memo[tid] = (cur, resolved, False)
+                return resolved, False
+            rebuilt = _Term(resolved.kind, resolved.value, tuple(new_args))
+            if rebuilt in read_rewrites:
+                rebuilt = read_rewrites[rebuilt]
+            memo[tid] = (cur, rebuilt, True)
+            memo[id(rebuilt)] = (rebuilt, rebuilt, False)
+            return rebuilt, True
+
+        def collapse(cur: _Term, depth: int = 0) -> _Term:
+            w = self.whnf(cur)
+            if read_rewrites:
+                rewritten, changed = apply_rewrites(w)
+                if changed:
+                    w = self.whnf(rewritten)
+                    rewritten2, changed2 = apply_rewrites(w)
+                    if changed2:
+                        w = self.whnf(rewritten2)
+            if depth > 12:
+                return w
+            if w.kind == "if":
+                cond = collapse(w.args[1], depth + 1)
+                if self._prove_bool_precondition(cond, environment):
+                    return collapse(w.args[2], depth + 1)
+                if self._prove_bool_precondition(self._negate_bool_term(cond), environment):
+                    return collapse(w.args[3], depth + 1)
+                t_b = collapse(w.args[2], depth + 1)
+                e_b = collapse(w.args[3], depth + 1)
+                if t_b == e_b:
+                    return t_b
+                return _term("if", w.args[0], cond, t_b, e_b)
+            return w
+
+        return collapse(term)
+
+    def _xor_canonical_form(
+        self: _Elaborator, term: _Term, spec: _IntSpec, facts: list[_Term]
+    ) -> tuple[int, tuple[_Term, ...]]:
+        mask = 0
+        syms: list[_Term] = []
+        stack = [self.whnf(term)]
+        xor_const = _constant(f"int_xor_{spec.name}")
+        while stack:
+            cur = self._simplify_span_read_with_facts(self.whnf(stack.pop()), facts)
+            if cur.kind == "int":
+                mask ^= cast("int", cur.value)
+                continue
+            h, a = self.spine(cur)
+            if h == xor_const and len(a) == 2:
+                stack.append(a[1])
+                stack.append(a[0])
+                continue
+            u_cur = self._unwrap_numeric_subject(cur)
+            if u_cur in syms:
+                syms.remove(u_cur)
+            else:
+                syms.append(u_cur)
+        syms.sort(key=repr)
+        return (mask & ((1 << spec.bits) - 1), tuple(syms))
+
     def _prove_comparison(
-        self: _Elaborator, op_kind: str, spec: _IntSpec | None, lhs: _Term, rhs: _Term, facts: list[_Term]
+        self: _Elaborator,
+        op_kind: str,
+        spec: _IntSpec | None,
+        lhs: _Term,
+        rhs: _Term,
+        facts: list[_Term],
+        *,
+        simplify_reads: bool = True,
     ) -> bool:
-        wl = self.whnf(lhs)
-        wr = self.whnf(rhs)
+        wl = self._simplify_span_read_with_facts(self.whnf(lhs), facts) if simplify_reads else self.whnf(lhs)
+        wr = self._simplify_span_read_with_facts(self.whnf(rhs), facts) if simplify_reads else self.whnf(rhs)
         if wl.kind in {"int", "nat", "char"} and wr.kind in {"int", "nat", "char"}:
             lv = cast("int", wl.value)
             rv = cast("int", wr.value)
@@ -455,11 +700,21 @@ class _SolverMixin:
         uwr = self._unwrap_numeric_subject(wr)
         if uwl == uwr and op_kind in {"le", "ge", "eq"}:
             return True
+        xor_lr: tuple[tuple[int, tuple[_Term, ...]], tuple[int, tuple[_Term, ...]]] | None = None
+        if spec is not None and op_kind in {"eq", "ne"}:
+            mask_l, sym_l = self._xor_canonical_form(uwl, spec, facts)
+            mask_r, sym_r = self._xor_canonical_form(uwr, spec, facts)
+            xor_lr = ((mask_l, sym_l), (mask_r, sym_r))
+            if sym_l == sym_r:
+                if op_kind == "eq" and mask_l == mask_r:
+                    return True
+                if op_kind == "ne" and mask_l != mask_r:
+                    return True
         for fact in facts:
             parsed = self._parse_cmp_fact(fact)
             if parsed is None:
                 continue
-            f_op, _, f_l, f_r = parsed
+            f_op, f_spec, f_l, f_r = parsed
             ufl = self._unwrap_numeric_subject(f_l)
             ufr = self._unwrap_numeric_subject(f_r)
             if ufl == uwl and ufr == uwr:
@@ -483,6 +738,11 @@ class _SolverMixin:
                 if op_kind == "eq" and f_op == "eq":
                     return True
                 if op_kind == "ne" and f_op in {"ne", "lt", "gt"}:
+                    return True
+            if xor_lr is not None and spec is not None and f_spec == spec and f_op == op_kind:
+                f_xl = self._xor_canonical_form(ufl, spec, facts)
+                f_xr = self._xor_canonical_form(ufr, spec, facts)
+                if (f_xl, f_xr) in (xor_lr, (xor_lr[1], xor_lr[0])):
                     return True
         l_lo, l_hi, l_ne = self._term_bounds(wl, spec, facts)
         r_lo, r_hi, r_ne = self._term_bounds(wr, spec, facts)
@@ -714,6 +974,17 @@ class _SolverMixin:
                 or _apps(_constant("Span_Disjoint"), _U8, rb, ra) in facts
             ):
                 return True
+            for sa, sb in ((a_t, b_t), (ra, rb)):
+                ba = _apps(_constant("Span_Base"), _U8, sa)
+                la = _apps(_constant("Span_Length"), _U8, sa)
+                bb = _apps(_constant("Span_Base"), _U8, sb)
+                lb = _apps(_constant("Span_Length"), _U8, sb)
+                if self._prove_comparison(
+                    "le", _INT_SPECS["usize"], _apps(_constant("int_add_usize"), ba, la), bb, facts
+                ) or self._prove_comparison(
+                    "le", _INT_SPECS["usize"], _apps(_constant("int_add_usize"), bb, lb), ba, facts
+                ):
+                    return True
         if head == _constant("Slots_Disjoint") and len(args) == 5:
             elem, cap_a, cap_b, a_t, b_t = args
             if _apps(_constant("Slots_Disjoint"), elem, cap_b, cap_a, b_t, a_t) in facts:
@@ -829,7 +1100,7 @@ class _SolverMixin:
             op_kind, spec, lhs, rhs = parsed
             if self._prove_comparison(op_kind, spec, lhs, rhs, facts):
                 return True
-        if depth <= 4:
+        if depth <= 8:
             if_cond = self._find_if_condition(w)
             if if_cond is not None:
                 b_var = self.fresh(_BOOL)
@@ -838,6 +1109,10 @@ class _SolverMixin:
                 if rep:
                     w_true = self.substitute(w_b, b_id, _term("bool", value=1))
                     w_false = self.substitute(w_b, b_id, _term("bool", value=0))
+                    if self._prove_bool_precondition(if_cond, environment, depth + 1):
+                        return self._prove_bool_precondition(w_true, environment, depth + 1)
+                    if self._prove_bool_precondition(self._negate_bool_term(if_cond), environment, depth + 1):
+                        return self._prove_bool_precondition(w_false, environment, depth + 1)
                     self.active_facts.append(if_cond)
                     try:
                         ok_true = self._prove_bool_precondition(w_true, environment, depth + 1)

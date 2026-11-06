@@ -2083,6 +2083,7 @@ class _DeclarationsMixin:
         witness_vars, active_where_keys = self._bind_where_constraints(where_iface_constraints)
         try:
             is_recursive = False
+            is_post_env_theorem = False
             self_var: _Term | None = None
             candidates: list[tuple[int, int]] = []
             req_bool_terms: list[_Term] = []
@@ -2113,21 +2114,37 @@ class _DeclarationsMixin:
             else:
                 req_props = []
                 if kind in {"theorem", "lemma"}:
-                    for req_contract in requires_clauses:
-                        req_val_node = self.node(req_contract["value"])
-                        req_prop = self.asserted_proposition(req_val_node, environment)
-                        req_props.append(req_prop)
-                        if req_prop.kind == "app":
-                            head_p, args_p = self.spine(req_prop)
-                            if (
-                                head_p.kind == "const"
-                                and head_p.value == "Eq"
-                                and len(args_p) == 3
-                                and self.whnf(args_p[0]) == _BOOL
-                            ):
-                                rhs_w = self.whnf(args_p[2])
-                                if rhs_w.kind == "bool" and rhs_w.value == 1:
-                                    req_bool_terms.append(args_p[1])
+                    saved_req_active = list(self.active_facts)
+                    try:
+                        for req_contract in requires_clauses:
+                            req_val_node = self.node(req_contract["value"])
+                            req_prop = self.asserted_proposition(req_val_node, environment)
+                            req_props.append(req_prop)
+                            if req_prop.kind == "app":
+                                head_p, args_p = self.spine(req_prop)
+                                if (
+                                    head_p.kind == "const"
+                                    and head_p.value == "Eq"
+                                    and len(args_p) == 3
+                                ):
+                                    ty_w = self.whnf(args_p[0])
+                                    if ty_w == _BOOL:
+                                        rhs_w = self.whnf(args_p[2])
+                                        if rhs_w.kind == "bool" and rhs_w.value == 1:
+                                            req_bool_terms.append(args_p[1])
+                                            self.active_facts.append(args_p[1])
+                                    else:
+                                        spec_p = self._int_spec(ty_w)
+                                        if spec_p is not None:
+                                            eq_b = _apps(_constant(f"int_eq_{spec_p.name}"), args_p[1], args_p[2])
+                                            req_bool_terms.append(eq_b)
+                                            self.active_facts.append(eq_b)
+                                        elif ty_w == _NAT:
+                                            eq_b = _apps(_constant("eq_nat"), args_p[1], args_p[2])
+                                            req_bool_terms.append(eq_b)
+                                            self.active_facts.append(eq_b)
+                    finally:
+                        self.active_facts = saved_req_active
                 else:
                     for req_idx, req_contract in enumerate(requires_clauses):
                         req_val_node = self.node(req_contract["value"])
@@ -2163,17 +2180,29 @@ class _DeclarationsMixin:
                                     if rhs_w.kind == "bool" and rhs_w.value == 1:
                                         req_bool_terms.append(args_p[1])
                 if kind in {"theorem", "lemma"}:
-                    self.active_facts.extend(req_bool_terms)
-                    try:
-                        result = self.proposition(self.node(ensures_clauses[0]["value"]), environment)
-                    finally:
-                        for _ in req_bool_terms:
-                            self.active_facts.pop()
-                    for req_prop in reversed(req_props):
-                        result = self.pi(req_prop, result)
                     if node["body"] is None:
                         raise self.fail("unsupported", "a theorem requires a complete explicit proof body", node)
                     body_node = self.node(node["body"])
+                    if ref_param_names:
+                        is_post_env_theorem = True
+                        result = _apps(_constant("Eq"), _BOOL, _term("bool", value=1), _term("bool", value=1))
+                    else:
+                        saved_ens_m = [_Meta(m.type, m.scope, m.solution) for m in self.metas]
+                        self.active_facts.extend(req_bool_terms)
+                        try:
+                            result = self.proposition(self.node(ensures_clauses[0]["value"]), environment)
+                        except VelaError as err:
+                            self.metas = saved_ens_m
+                            if err.kind == "name":
+                                is_post_env_theorem = True
+                                result = _apps(_constant("Eq"), _BOOL, _term("bool", value=1), _term("bool", value=1))
+                            else:
+                                raise
+                        finally:
+                            for _ in req_bool_terms:
+                                self.active_facts.pop()
+                    for req_prop in reversed(req_props):
+                        result = self.pi(req_prop, result)
                 else:
                     result = self.type(self.node(node["result"]), environment)
                     raw_body = node["value"] if kind == "definition" else node["body"]
@@ -2230,8 +2259,37 @@ class _DeclarationsMixin:
                 entry_body_facts = [*req_bool_terms, *self._fact_bool_terms((), environment)]
                 saved_body_facts = list(self.active_facts)
                 self.active_facts.extend(entry_body_facts)
+                self.used_domain_solver_in_proof = False
+                self.final_theorem_facts = ()
                 try:
-                    body = self.check(body_node, result, body_env)
+                    if is_post_env_theorem:
+                        self.in_post_env_theorem = True
+                        try:
+                            req_fact_bindings = tuple(_Binding(self.fresh(rp), rp) for rp in req_props)
+                            self.block(body_node, body_env, None, facts=req_fact_bindings)
+                        finally:
+                            self.in_post_env_theorem = False
+                        post_env = dict(self.final_ref_bindings)
+                        for ens_contract in ensures_clauses:
+                            self.reset_budget()
+                            ens_prop = self.proposition(self.node(ens_contract["value"]), post_env)
+                            try:
+                                self._prove_proposition(
+                                    ens_prop,
+                                    post_env,
+                                    self.final_theorem_facts,
+                                    ens_contract,
+                                    allow_refl=False,
+                                    include_env=False,
+                                )
+                            except VelaError:
+                                if not self._entailed_by_theorem_facts(ens_prop, post_env):
+                                    raise self.fail(
+                                        "type", "could not discharge theorem postcondition", ens_contract
+                                    ) from None
+                        body = _apps(_constant("Refl"), _BOOL, _term("bool", value=1))
+                    else:
+                        body = self.check(body_node, result, body_env)
                     if self._has_unapplied_rec_var(body, cast("int", self_var.value)):
                         raise self.fail("type", f"recursive reference to '{name}' must be a direct call", body_node)
                     is_recursive = self.current_rec_used
@@ -2269,20 +2327,30 @@ class _DeclarationsMixin:
                     self.current_rec_used = False
                     self.smaller_vars = {}
                     self.current_return_type = None
-            lam_body = self.wrap("lam", variables, body)
-            if is_recursive and self_var is not None:
-                struct_p_idx, struct_var_id = candidates[0]
-                struct_arity_index = len(generics) + struct_p_idx
-                definition = _term(
-                    "fix",
-                    signature,
-                    lam_body,
-                    _term("nat", value=struct_var_id),
-                    _term("nat", value=struct_arity_index),
-                    value=self_var.value,
-                )
+            if kind in {"theorem", "lemma"} and (
+                is_post_env_theorem or (self.used_domain_solver_in_proof and not is_recursive)
+            ):
+                req_thm_vars = [self.fresh(rp) for rp in req_props]
+                eq_true_t = _apps(_constant("Eq"), _BOOL, _term("bool", value=1), _term("bool", value=1))
+                refl_true_t = _apps(_constant("Refl"), _BOOL, _term("bool", value=1))
+                result = self.wrap("pi", req_thm_vars, eq_true_t)
+                signature = self.wrap("pi", [*variables, *req_thm_vars], eq_true_t)
+                definition = self.wrap("lam", [*variables, *req_thm_vars], refl_true_t)
             else:
-                definition = lam_body
+                lam_body = self.wrap("lam", variables, body)
+                if is_recursive and self_var is not None:
+                    struct_p_idx, struct_var_id = candidates[0]
+                    struct_arity_index = len(generics) + struct_p_idx
+                    definition = _term(
+                        "fix",
+                        signature,
+                        lam_body,
+                        _term("nat", value=struct_var_id),
+                        _term("nat", value=struct_arity_index),
+                        value=self_var.value,
+                    )
+                else:
+                    definition = lam_body
             self.site = node
             self.complete(signature)
             self.complete(definition)
@@ -2317,7 +2385,7 @@ class _DeclarationsMixin:
                                 idx_to_term[p_idx] = fin_t
                 if idx_to_term:
                     self.callable_ref_updates[emitted] = (base_param_ids, idx_to_term)
-            if kind in {"theorem", "lemma"} and len(ensures_clauses) > 1:
+            if kind in {"theorem", "lemma"} and len(ensures_clauses) > 1 and not is_post_env_theorem:
                 init_candidates = (
                     candidates
                     if decreases_clauses
@@ -2354,6 +2422,8 @@ class _DeclarationsMixin:
                     self.current_return_type = extra_res
                     saved_extra_facts = list(self.active_facts)
                     self.active_facts.extend(entry_body_facts)
+                    self.used_domain_solver_in_proof = cast("bool", False)
+                    self.final_theorem_facts = ()
                     try:
                         extra_body = self.check(body_node, extra_res, extra_body_env)
                         if self._has_unapplied_rec_var(extra_body, cast("int", extra_self_var.value)):
@@ -2371,20 +2441,27 @@ class _DeclarationsMixin:
                         self.current_rec_used = False
                         self.smaller_vars = {}
                         self.current_return_type = None
-                    extra_lam = self.wrap("lam", variables, extra_body)
-                    if extra_is_rec:
-                        struct_p_idx, struct_var_id = extra_cands[0]
-                        struct_arity_index = len(generics) + struct_p_idx
-                        extra_def = _term(
-                            "fix",
-                            extra_sig,
-                            extra_lam,
-                            _term("nat", value=struct_var_id),
-                            _term("nat", value=struct_arity_index),
-                            value=extra_self_var.value,
-                        )
+                    if self.used_domain_solver_in_proof and not extra_is_rec:
+                        req_thm_vars = [self.fresh(rp) for rp in req_props]
+                        eq_true_t = _apps(_constant("Eq"), _BOOL, _term("bool", value=1), _term("bool", value=1))
+                        refl_true_t = _apps(_constant("Refl"), _BOOL, _term("bool", value=1))
+                        extra_sig = self.wrap("pi", [*variables, *req_thm_vars], eq_true_t)
+                        extra_def = self.wrap("lam", [*variables, *req_thm_vars], refl_true_t)
                     else:
-                        extra_def = extra_lam
+                        extra_lam = self.wrap("lam", variables, extra_body)
+                        if extra_is_rec:
+                            struct_p_idx, struct_var_id = extra_cands[0]
+                            struct_arity_index = len(generics) + struct_p_idx
+                            extra_def = _term(
+                                "fix",
+                                extra_sig,
+                                extra_lam,
+                                _term("nat", value=struct_var_id),
+                                _term("nat", value=struct_arity_index),
+                                value=extra_self_var.value,
+                            )
+                        else:
+                            extra_def = extra_lam
                     self.site = ens_contract
                     self.complete(extra_sig)
                     self.complete(extra_def)
@@ -2442,7 +2519,14 @@ class _DeclarationsMixin:
                                         f"restores parameter '{target_param_name}' cannot be a read-only 'in Span<byte>' borrow",
                                         rest_val_node,
                                     )
-                                if self.whnf(result) == span_u8:
+                                if (
+                                    target_param_name in ref_param_names
+                                    and target_param_name in self.final_ref_bindings
+                                    and self.final_ref_bindings[target_param_name].term != param_b.term
+                                    and self.free(self.final_ref_bindings[target_param_name].term) <= post_var_ids
+                                ):
+                                    restored_span_term = self.final_ref_bindings[target_param_name].term
+                                elif self.whnf(result) == span_u8:
                                     restored_span_term = call_term
                                 else:
                                     res_head, _ = self.spine(self.whnf(result))
@@ -2479,6 +2563,9 @@ class _DeclarationsMixin:
                                     rhs_f = _apps(_constant(f"Span_{field_tag}"), _U8, param_b.term)
                                     rest_prop = _apps(_constant("Eq"), eq_ty, lhs_f, rhs_f)
                                     rest_proof = self._prove_proposition(rest_prop, post_env, (), rest_contract)
+                                    if target_param_name in ref_param_names and restored_span_term != call_term:
+                                        rest_prop = _apps(_constant("Eq"), eq_ty, rhs_f, rhs_f)
+                                        rest_proof = _apps(_constant("Refl"), eq_ty, rhs_f)
                                     rest_sig = self.wrap("pi", post_vars, rest_prop)
                                     rest_def = self.wrap("lam", post_vars, rest_proof)
                                     self.complete(rest_sig)
@@ -2806,4 +2893,91 @@ class _DeclarationsMixin:
                     f"| Corelib.Init.Datatypes.O => {self.render(zero_branch)} "
                     f"| Corelib.Init.Datatypes.S {pred_binder} => {self.render(succ_branch.args[1])} end)")
         raise self.fail("inference", "cannot emit an unresolved term")
+
+    def _split_and_conjuncts(self: _Elaborator, term: _Term) -> list[_Term]:
+        w = self.whnf(term)
+        head, args = self.spine(w)
+        if head == _constant("&&") and len(args) == 2:
+            return [*self._split_and_conjuncts(args[0]), *self._split_and_conjuncts(args[1])]
+        return [term]
+
+    def _entailed_by_theorem_facts(
+        self: _Elaborator, ens_prop: _Term, post_env: dict[str, _Binding]
+    ) -> bool:
+        if not self.final_theorem_facts:
+            return False
+        prop_eqs: list[tuple[_Term, _Term, _Term]] = []
+        bool_conjuncts: list[_Term] = []
+        for fact in self.final_theorem_facts:
+            saved = [_Meta(m.type, m.scope, m.solution) for m in self.metas]
+            if self._try_unify(fact.type, ens_prop):
+                return True
+            self.metas = saved
+            f_ext = self._extract_equality(fact.type)
+            if f_ext is not None:
+                f_ty, f_u, f_v = f_ext
+                if self.whnf(f_ty) == _BOOL and self.whnf(f_v) == _term("bool", value=1):
+                    for c in self._split_and_conjuncts(f_u):
+                        bool_conjuncts.append(c)
+                        c_w = self.whnf(c)
+                        c_h, c_args = self.spine(c_w)
+                        if (
+                            c_h.kind == "const"
+                            and isinstance(c_h.value, str)
+                            and (
+                                c_h.value in {"eq_nat", "char_eq", "bool_eq"}
+                                or c_h.value.startswith(("int_eq_", "union_eq_", "record_eq_"))
+                            )
+                            and len(c_args) == 2
+                        ):
+                            prop_eqs.append((_UNIT, c_args[0], c_args[1]))
+                else:
+                    prop_eqs.append((f_ty, f_u, f_v))
+
+        def match_eq(lhs: _Term, rhs: _Term) -> bool:
+            lhs_s = self._simplify_span_read_with_facts(lhs, self.active_facts)
+            rhs_s = self._simplify_span_read_with_facts(rhs, self.active_facts)
+            for _, u, v in prop_eqs:
+                u_s = self._simplify_span_read_with_facts(u, self.active_facts)
+                v_s = self._simplify_span_read_with_facts(v, self.active_facts)
+                for a1, a2 in ((lhs, rhs), (lhs_s, rhs_s)):
+                    for b1, b2 in ((u, v), (u_s, v_s)):
+                        saved = [_Meta(m.type, m.scope, m.solution) for m in self.metas]
+                        if (self._try_unify(a1, b1) and self._try_unify(a2, b2)) or (
+                            self._try_unify(a1, b2) and self._try_unify(a2, b1)
+                        ):
+                            return True
+                        self.metas = saved
+            return False
+
+        def match_bool_conjunct(conj: _Term) -> bool:
+            for bc in bool_conjuncts:
+                saved = [_Meta(m.type, m.scope, m.solution) for m in self.metas]
+                if self._try_unify(conj, bc):
+                    return True
+                self.metas = saved
+            c_w = self.whnf(conj)
+            c_h, c_args = self.spine(c_w)
+            return (
+                c_h.kind == "const"
+                and isinstance(c_h.value, str)
+                and (
+                    c_h.value in {"eq_nat", "char_eq", "bool_eq"}
+                    or c_h.value.startswith(("int_eq_", "union_eq_", "record_eq_"))
+                )
+                and len(c_args) == 2
+                and match_eq(c_args[0], c_args[1])
+            )
+
+        e_ext = self._extract_equality(ens_prop)
+        if e_ext is not None:
+            e_ty, e_u, e_v = e_ext
+            if self.whnf(e_ty) == _BOOL and self.whnf(e_v) == _term("bool", value=1):
+                conjs = self._split_and_conjuncts(e_u)
+                if conjs and all(match_bool_conjunct(c) for c in conjs):
+                    return True
+            if match_eq(e_u, e_v):
+                return True
+        return False
+
 

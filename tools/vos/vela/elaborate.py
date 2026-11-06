@@ -166,6 +166,9 @@ class _Elaborator(
         self.entry_env: dict[str, _Binding] = {}
         self.final_ref_bindings: dict[str, _Binding] = {}
         self.final_return_facts: list[_Term] = []
+        self.in_post_env_theorem: bool = False
+        self.used_domain_solver_in_proof: bool = False
+        self.final_theorem_facts: tuple[_Binding, ...] = ()
         self.frozen_collections: set[str] = set()
         self.lifted_invariants: dict[str, set[str]] = {}
         self.active_lift_scopes: int = 0
@@ -1282,6 +1285,15 @@ class _Elaborator(
                 value_type = self.substitute(value_type.args[1], cast("int", value_type.value), w_term)
         for vname in out_loan_names:
             self.uninitialized_out_params.discard(vname)
+        if (
+            self.in_post_env_theorem
+            and not protects_runtime
+            and callee_head.kind == "const"
+            and isinstance(callee_head.value, str)
+            and callee_head.value in self.definitions
+            and not self._is_prop_type(value_type)
+        ):
+            term = self._simplify_term_with_facts(term, environment)
         post_loan_terms: dict[int, _Term] = {}
         if loan_targets:
             full_args = callee_gen_args + val_args
@@ -1298,6 +1310,8 @@ class _Elaborator(
                     upd_term = idx_to_term[idx]
                     for pid, aval in zip(u_param_ids, full_args, strict=False):
                         upd_term = self.substitute(upd_term, pid, aval)
+                    if self.in_post_env_theorem:
+                        upd_term = self._simplify_term_with_facts(upd_term, environment)
                 else:
                     upd_term = self.fresh(t_dom)
                 post_loan_terms[idx] = upd_term
@@ -1320,7 +1334,8 @@ class _Elaborator(
                             p_idx, val_args[p_idx] if p_idx < len(val_args) else _term("var", value=post_vid)
                         )
                         inst_ens = self.substitute(inst_ens, post_vid, replacement)
-                    self.active_facts.append(inst_ens)
+                    if self.whnf(inst_ens) != _term("bool", value=1):
+                        self.active_facts.append(inst_ens)
         if is_rec_call:
             self.current_rec_used = True
             if len(callee_gen_args) != len(self.current_rec_generics):

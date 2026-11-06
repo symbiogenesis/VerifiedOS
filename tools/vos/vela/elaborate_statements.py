@@ -4,6 +4,7 @@
 from collections.abc import Callable
 from typing import TYPE_CHECKING, cast
 
+from vos.vela.ast import VelaError
 from vos.vela.elaborate_protocol import _ASSIGN_OPERATORS
 from vos.vela.elaborate_types import (
     _BOOL,
@@ -1949,16 +1950,28 @@ class _StatementsMixin:
                     fact = self._elaborate_assert(statement, extended, (*active_facts, *statement_facts))
                     statement_facts.append(fact)
                     self.active_facts.extend(self._fact_bool_terms((fact,), extended))
-                    if index == len(statements) - 1 and expected is not None and self._is_prop_type(expected):
-                        term = self._prove_proposition(
-                            expected,
-                            extended,
-                            tuple(statement_facts),
-                            statement,
-                            allow_refl=False,
-                            include_env=False,
-                        )
-                        return finish(_Binding(term, expected))
+                    if index == len(statements) - 1:
+                        self.final_ref_bindings = dict(extended)
+                        self.final_return_facts = list(self.active_facts[saved_active_len:])
+                        self.final_theorem_facts = tuple(statement_facts)
+                        if self.in_post_env_theorem and expected is None:
+                            return finish(statement_facts[-1])
+                        if expected is not None and self._is_prop_type(expected):
+                            try:
+                                term = self._prove_proposition(
+                                    expected,
+                                    extended,
+                                    tuple(statement_facts),
+                                    statement,
+                                    allow_refl=False,
+                                    include_env=False,
+                                )
+                                return finish(_Binding(term, expected))
+                            except VelaError:
+                                if self._entailed_by_theorem_facts(expected, extended):
+                                    self.used_domain_solver_in_proof = True
+                                    return finish(_Binding(_apps(_constant("Refl"), _BOOL, _term("bool", value=1)), expected))
+                                raise
                     continue
                 if kind == "proof":
                     sub_facts = self._elaborate_proof_statement(
@@ -1966,16 +1979,28 @@ class _StatementsMixin:
                     )
                     statement_facts.extend(sub_facts)
                     self.active_facts.extend(self._fact_bool_terms(sub_facts, extended))
-                    if index == len(statements) - 1 and expected is not None and self._is_prop_type(expected):
-                        term = self._prove_proposition(
-                            expected,
-                            extended,
-                            tuple(statement_facts),
-                            statement,
-                            allow_refl=False,
-                            include_env=False,
-                        )
-                        return finish(_Binding(term, expected))
+                    if index == len(statements) - 1:
+                        self.final_ref_bindings = dict(extended)
+                        self.final_return_facts = list(self.active_facts[saved_active_len:])
+                        self.final_theorem_facts = tuple(statement_facts)
+                        if self.in_post_env_theorem and expected is None:
+                            return finish(statement_facts[-1] if statement_facts else _Binding(_constant("Tt"), _UNIT))
+                        if expected is not None and self._is_prop_type(expected):
+                            try:
+                                term = self._prove_proposition(
+                                    expected,
+                                    extended,
+                                    tuple(statement_facts),
+                                    statement,
+                                    allow_refl=False,
+                                    include_env=False,
+                                )
+                                return finish(_Binding(term, expected))
+                            except VelaError:
+                                if self._entailed_by_theorem_facts(expected, extended):
+                                    self.used_domain_solver_in_proof = True
+                                    return finish(_Binding(_apps(_constant("Refl"), _BOOL, _term("bool", value=1)), expected))
+                                raise
                     continue
                 if kind == "calc":
                     sub_facts = self._elaborate_calc_statement(
@@ -1983,16 +2008,28 @@ class _StatementsMixin:
                     )
                     statement_facts.extend(sub_facts)
                     self.active_facts.extend(self._fact_bool_terms(sub_facts, extended))
-                    if index == len(statements) - 1 and expected is not None and self._is_prop_type(expected):
-                        term = self._prove_proposition(
-                            expected,
-                            extended,
-                            tuple(statement_facts),
-                            statement,
-                            allow_refl=False,
-                            include_env=False,
-                        )
-                        return finish(_Binding(term, expected))
+                    if index == len(statements) - 1:
+                        self.final_ref_bindings = dict(extended)
+                        self.final_return_facts = list(self.active_facts[saved_active_len:])
+                        self.final_theorem_facts = tuple(statement_facts)
+                        if self.in_post_env_theorem and expected is None:
+                            return finish(statement_facts[-1] if statement_facts else _Binding(_constant("Tt"), _UNIT))
+                        if expected is not None and self._is_prop_type(expected):
+                            try:
+                                term = self._prove_proposition(
+                                    expected,
+                                    extended,
+                                    tuple(statement_facts),
+                                    statement,
+                                    allow_refl=False,
+                                    include_env=False,
+                                )
+                                return finish(_Binding(term, expected))
+                            except VelaError:
+                                if self._entailed_by_theorem_facts(expected, extended):
+                                    self.used_domain_solver_in_proof = True
+                                    return finish(_Binding(_apps(_constant("Refl"), _BOOL, _term("bool", value=1)), expected))
+                                raise
                     continue
                 if kind in {"let_else", "var_else"}:
                     if index == len(statements) - 1:

@@ -473,12 +473,19 @@ class _ProofsMixin:
         goal_eq = self._extract_equality(goal)
         if goal_eq is not None:
             goal_type, lhs, rhs = goal_eq
-            if allow_refl and not all_facts:
+            if allow_refl and (
+                not all_facts
+                or (
+                    not facts
+                    and all(m.solution is not None for m in self.metas[self.decl_first_meta :])
+                )
+            ):
                 if self._try_unify(lhs, rhs):
                     return _apps(_constant("Refl"), goal_type, lhs)
-                split_proof = self._try_if_split_equality(goal_type, lhs, rhs)
-                if split_proof is not None:
-                    return split_proof
+                if not all_facts:
+                    split_proof = self._try_if_split_equality(goal_type, lhs, rhs)
+                    if split_proof is not None:
+                        return split_proof
             edges = self._equality_edges(goal_type, all_facts)
             for _, u, v, p in reversed(edges):
                 if u == lhs and v == rhs:
@@ -603,11 +610,13 @@ class _ProofsMixin:
         if w == cond:
             return repl, True
         if w.kind == "if":
+            t_rep, did_t = self._expose_and_replace_if(w.args[2], cond, repl, depth + 1)
+            e_rep, did_e = self._expose_and_replace_if(w.args[3], cond, repl, depth + 1)
             if w.args[1] == cond:
-                return _term("if", w.args[0], repl, w.args[2], w.args[3]), True
+                return _term("if", w.args[0], repl, t_rep, e_rep), True
             c_rep, did_c = self._expose_and_replace_if(w.args[1], cond, repl, depth + 1)
-            if did_c:
-                return _term("if", w.args[0], c_rep, w.args[2], w.args[3]), True
+            if did_c or did_t or did_e:
+                return _term("if", w.args[0], c_rep, t_rep, e_rep), True
             return w, False
         if w.kind == "app":
             head, args = self.spine(w)
@@ -922,43 +931,69 @@ class _ProofsMixin:
             )
         )
 
+    def _try_domain_solver_goal(
+        self: _Elaborator,
+        node: Node,
+        goal: _Term,
+        environment: dict[str, _Binding],
+        facts: tuple[_Binding, ...],
+    ) -> _Binding | None:
+        extracted = self._extract_equality(goal)
+        if extracted is not None:
+            eq_ty, lhs_t, rhs_t = extracted
+            eq_ty_w = self.whnf(eq_ty)
+            if (
+                eq_ty_w == _BOOL
+                and self.whnf(rhs_t) == _term("bool", value=1)
+                and self._prove_bool_precondition(lhs_t, environment)
+            ):
+                self.used_domain_solver_in_proof = True
+                return _Binding(_apps(_constant("Refl"), _BOOL, _term("bool", value=1)), goal)
+            if eq_ty_w == _NAT or self._int_spec(eq_ty_w) is not None:
+                spec = self._int_spec(eq_ty_w)
+                bool_facts = self._expand_bool_facts(
+                    [*self.active_facts, *self._fact_bool_terms(facts, environment)]
+                )
+                if self._prove_comparison("eq", spec, lhs_t, rhs_t, bool_facts):
+                    self.used_domain_solver_in_proof = True
+                    return _Binding(_apps(_constant("Refl"), _BOOL, _term("bool", value=1)), goal)
+        saved_assert_m = [_Meta(m.type, m.scope, m.solution) for m in self.metas]
+        try:
+            val_b = self.expression(self.node(node["value"]), environment)
+            if self.whnf(val_b.type) == _BOOL and self._prove_bool_precondition(val_b.term, environment):
+                self.used_domain_solver_in_proof = True
+                return _Binding(_apps(_constant("Refl"), _BOOL, _term("bool", value=1)), goal)
+        except VelaError:
+            self.metas = saved_assert_m
+        return None
+
     def _elaborate_assert(
         self: _Elaborator, node: Node, environment: dict[str, _Binding], facts: tuple[_Binding, ...]
     ) -> _Binding:
         self.site = node
+        self.reset_budget()
         goal = self.asserted_proposition(self.node(node["value"]), environment)
         by_raw = node["by"]
         if by_raw is None:
+            if self.in_post_env_theorem:
+                solved = self._try_domain_solver_goal(node, goal, environment, facts)
+                if solved is not None:
+                    return solved
             try:
                 term = self._prove_proposition(goal, environment, facts, node)
             except VelaError:
-                if self.current_return_type is not None and self._is_prop_type(self.current_return_type):
+                has_span_env = self.in_post_env_theorem or any(
+                    self.spine(self.whnf(b.type))[0] == _constant("Span") for b in environment.values()
+                )
+                if (
+                    self.current_return_type is not None
+                    and self._is_prop_type(self.current_return_type)
+                    and not has_span_env
+                ):
                     raise
-                extracted = self._extract_equality(goal)
-                if extracted is not None:
-                    eq_ty, lhs_t, rhs_t = extracted
-                    eq_ty_w = self.whnf(eq_ty)
-                    if (
-                        eq_ty_w == _BOOL
-                        and self.whnf(rhs_t) == _term("bool", value=1)
-                        and self._prove_bool_precondition(lhs_t, environment)
-                    ):
-                        return _Binding(_apps(_constant("Refl"), _BOOL, _term("bool", value=1)), goal)
-                    if eq_ty_w == _NAT or self._int_spec(eq_ty_w) is not None:
-                        spec = self._int_spec(eq_ty_w)
-                        bool_facts = self._expand_bool_facts(
-                            [*self.active_facts, *self._fact_bool_terms(facts, environment)]
-                        )
-                        if self._prove_comparison("eq", spec, lhs_t, rhs_t, bool_facts):
-                            return _Binding(_apps(_constant("Refl"), _BOOL, _term("bool", value=1)), goal)
-                saved_assert_m = [_Meta(m.type, m.scope, m.solution) for m in self.metas]
-                try:
-                    val_b = self.expression(self.node(node["value"]), environment)
-                    if self.whnf(val_b.type) == _BOOL and self._prove_bool_precondition(val_b.term, environment):
-                        eq_true = _apps(_constant("Eq"), _BOOL, _term("bool", value=1), _term("bool", value=1))
-                        return _Binding(_apps(_constant("Refl"), _BOOL, _term("bool", value=1)), eq_true)
-                except VelaError:
-                    self.metas = saved_assert_m
+                solved = self._try_domain_solver_goal(node, goal, environment, facts)
+                if solved is not None:
+                    return solved
                 raise
         else:
             by_node = self.node(by_raw)
