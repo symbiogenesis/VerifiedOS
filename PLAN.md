@@ -451,20 +451,20 @@ These figures cover the priced reference-build, assessment and named hardening b
 <!-- estimate-summary:start -->
 | Measure | Value |
 | --- | --- |
-| Total estimate midpoint h | 4,919.8 |
-| Total estimate range h | 3,230.2–6,609.4 |
+| Total estimate midpoint h | 4,995.8 |
+| Total estimate range h | 3,282.2–6,709.4 |
 | Completed scope h | 958.8 |
-| Complete by estimate % | 19.5 |
-| Remaining h | 3,961 |
-| Committed remaining h | 2,482.5 |
-| Open class I h | 971.5 |
+| Complete by estimate % | 19.2 |
+| Remaining h | 4,037 |
+| Committed remaining h | 2,558.5 |
+| Open class I h | 1,047.5 |
 | Open class X h | 2,989.5 |
 | Retained completion estimate h | 353.5 |
 | Unmeasured completed items | 35 |
-| Calibrated total h | 5,893.7 |
+| Calibrated total h | 5,947.6 |
 | Committed M8a open h | 74 |
 | Committed M8b open h | 105.5 |
-| Other committed open h | 2,303 |
+| Other committed open h | 2,379 |
 | Conditional open h | 1,064.5 |
 | Unfunded option open h | 414 |
 | Committed M8a open class X h | 0 |
@@ -702,7 +702,7 @@ Shared decisions, prerequisites and instruments sit outside the milestone track 
   * [x] **S31d · State calibration field classes and the digest binding** · 8 h retained estimate, actual n/a · agent-parallel
     * The unpopulated schema classifies trim fields, names ceiling owners and reserves the manifest digest binding. ([note](docs/implementation/completion-log.md#s31d-state-calibration-field-classes-and-the-digest-binding))
 
-**S subtotal:** 173.8 h · 4% · 137.8 h complete · open range 22–50 h.
+**S subtotal:** 173.8 h · 3% · 137.8 h complete · open range 22–50 h.
 
 <a id="q-assessment-actions"></a>
 
@@ -1030,7 +1030,7 @@ The [first-release delivery sequence](#vela-first-release-delivery) governs new 
 * [x] **Q25v · Settle the bounded Vela release and practical language contracts** · 0.7 h actual · agent-parallel
   * Selects a synchronous release, checked interpretation and concrete primitive/package contracts, with practical ownership, assurance, tooling and staged-delivery acceptance. ([note](docs/implementation/completion-log.md#q25v-settle-the-bounded-vela-release-and-practical-language-contracts))
 * [x] **Q25w · Investigate the concrete Vela buffer foundation within a fixed budget** · 24 h retained estimate, actual n/a · agent-parallel
-  * Qualifies the concrete `Span<byte>` carrier, inhabited byte case, restoration/frame laws and bounded packet validator across Rocq, purecap CHERI Sail execution and CompCert Clight/C while recording the upstream Sail and machine-logic blockers that keep full machine refinement and subsequent delivery stages closed. ([note](docs/implementation/completion-log.md#q25w-investigate-the-concrete-vela-buffer-foundation-within-a-fixed-budget))
+  * Records a blocked outcome: a concrete `Span<byte>` carrier, packet validator and purecap Sail and CompCert execution slice whose laws, scenarios and restoration obligations mostly reach the kernel as tautologies, alongside the upstream Sail and machine-logic blockers that keep full machine refinement and subsequent delivery stages closed. ([note](docs/implementation/completion-log.md#q25w-investigate-the-concrete-vela-buffer-foundation-within-a-fixed-budget))
 * [ ] **Q25x · Qualify generated tests for existing Vela development tools** · 6 h, range 4–8 · X · agent-parallel
   * **Start:** the [generated-development-test contract](docs/languages/vela/tooling-protocols.md#generated-development-tests), existing pure source/LSP/formatter implementations and their independent controls, and the locked Python environment. **Owns:** a bounded Hypothesis candidate trial over that supported behavior, an independent state/coordinate oracle, shrinkable and replayable cases, meaningful fault controls and an adopt-or-decline record. **Check:** every contract predicate, exact selected dependency/licence and host-tuple qualification, focused host feedback and the user-managed hosted acceptance handoff. Missing hosted evidence remains pending. **Join:** independent oracle and fault review, unchanged existing fixtures and acceptance boundaries, and a measured comparison with the current test-authoring/replay work. **Execute:** cap establishment, review and repair at eight summed active agent-session hours; preserve the existing runner and qualify an isolated development candidate before adding a permanent dependency. A tested refusal records the inspected blocker and remaining owner without claiming a passing candidate. QCheck is an alternative for an actual OCaml consumer, not a second installation in this trial; wider language, async and protocol features remain outside its scope.
   * **Estimate basis:** source/closure and licence selection, independent model and generation, fault/replay controls, host integration and adoption review. The range is a planning judgment, not measured savings. This development-tool trial does not gate Q25w or the first executable component and does not reopen Q19/Q20.
@@ -1055,6 +1055,14 @@ The [first-release delivery sequence](#vela-first-release-delivery) governs new 
 * [ ] **Q25ae · Bring dependent Vela mathematics into the playground** · 16 h, range 12–20 · I · agent-parallel
   * **Start:** the landed [dependent playground contract](docs/languages/vela/playground.md#dependent-mathematics-increment), Q25k's mathematical consumer and Q25aa's isolated transport. **Owns:** one native-backed playground with dependent mathematics always included, automatic source-based compiler selection, closed typed expression reduction through the existing elaborator, dependent examples, source-bound diagnostics and automatic pure-service availability. **Check:** every linked launch, automatic selection, dependent inference, vector/index/proof, injection, identity, resource and transport predicate, independent focused tests, Python and corpus checks, native diagnostic examples where available, followed by user-managed Host CI on both platforms and all Guest CI lanes including kernel replay. **Join:** independent reducer, transport and browser review and the local validation handoff. **Execute:** reuse the schema-2 parser and bounded reducer without a second mathematical parser; retain all kernel, source-correspondence and production qualification boundaries.
   * **Implementation checkpoint:** the single native-backed `vela-playground` launch automatically selects the pure or mathematical compiler from the source, providing actual Gallina elaboration, bounded closed-expression reduction through the existing schema-2 parser and reducer, and automatic pure editor-service availability. Generic/higher-order, finite-index vector and dependent-function examples return independently expected values; wrong lengths, out-of-range indices, false proofs and declaration injection refuse. Independent evaluator/HTTP controls, retained elaboration/playground checks and Python validation pass locally. Locked native generation and actual HTTP observations pass, and headless Edge verifies automatic compiler selection, unified example loading, compilation, evaluation, diagnostics, recovery and automatic pure-service switching in Monaco and plain-text fallback. The [generic naming and pattern lints](docs/languages/vela/authoring-tools.md#generic-type-parameter-naming) add source-bound `VELA105` warnings for type parameters and `VELA106` warnings for constructor-shadowing or unreachable pattern arms, alongside the [assist-don't-coerce bridges](docs/languages/vela/authoring-tools.md#compiler-verified-assist-dont-coerce-tooling); the mathematical CLI can suppress or deny `VELA105`/`VELA106` before publication. Independent role/coordinate/protocol and CLI controls, native warning/strict-output observations and Monaco/fallback warning recovery pass locally. The authored `.vela` example and matching browser snippets use descriptive PascalCase type parameters and a camelCase `length` value index; strict native elaboration and refreshed browser/console observations pass. The `vela-unified-20261104` fanout journal records the current local handoff and recommends full hosted validation; hosted dependent observations, kernel replay and Host/Guest CI verdicts remain pending, so this item stays open.
+* [ ] **Q25af · Make Vela elaboration evidence kernel-honest** · 24 h, range 16–32 · I · agent-parallel
+  * **Start:** the [evidence review](docs/background/critique.md#vela-evidence-and-surface-review), R-05-020a, the [primitive contract](docs/languages/vela/first-release.md#primitive-semantics) and the current mathematical elaborator. **Owns:** emission of the real proposition for every contract, `restores` and theorem obligation; kernel proofs where the elaborator can construct or compute them; a named, counted assumption for every remaining solver-trusted obligation; integer multiplication, division, remainder, negation, shifts, signed comparison, wrapping, saturating and checked operations and conversions defined by the primitive contract in place of their placeholder definitions; and an assumption ledger in the first-slice inventory. **Check:** no emitted obligation's type is `true = true` or a reflexive self-equality unless its source statement is; `Print Assumptions` lists exactly the ledger; a false postcondition the solver accepted before cannot appear as closed; independent value controls for every corrected operation; focused `test_vela_elaborate*`, `test_vela_first_slice` and local kernel replay. **Join:** independent review of emitted subjects against source statements; Q25w's blocked record; hosted parser/kernel lanes remain user-managed. **Execute:** prefer computation and explicit proof terms; never weaken a statement to close it; an obligation without a kernel proof stays an assumption and blocks acceptance rather than becoming a tautology.
+* [ ] **Q25ag · Conform the Vela first slice to the synchronous design** · 24 h, range 16–32 · I · agent-parallel
+  * **Start:** Q25af, the [synchronous core](docs/languages/vela/core-design.md#loans-and-control-flow), the [surface examples](docs/languages/vela/verification-strategy.md#dependent-results-and-place-named-loans) and the [first-slice section](docs/languages/vela/first-release.md#first-slice-qualification). **Owns:** a validator returning `Result` with a place-named read-only payload view, restoration inferred at the view's end, caller-supplied storage with specification-only span construction, client contracts over portable access predicates, explicit `effects`, an independent packet-format model, content postconditions, the restore-then-return-view and capability-fabrication refusals, a capacity-wide symbolic capacity gate and matching C lowering. **Check:** the elaborator refuses each listed design violation as a semantic negative at its rule; the positive slice, scenarios and format agreement replay through the kernel with the Q25af ledger; capacity-invariance obligations range over the capacity; AST-lowered C and target scenarios pass with perturbed controls; focused tests and local `vela-parser first-slice`. **Join:** independent review of the format model, refusal reasons and lowered C; machine-refinement blockers stay with their existing owners. **Execute:** change the slice and elaborator together without fallback spellings; stop at the upper estimate with an owned gap for any rule that cannot be checked.
+* [ ] **Q25ah · Resolve Vela surface collisions and redundant spellings** · 16 h, range 12–20 · I · agent-parallel
+  * **Start:** the [evidence review](docs/background/critique.md#vela-evidence-and-surface-review), the [surface grammar](docs/languages/vela/surface-grammar.md) and both parser routes. **Owns:** `open (...) lifts ...` for invariant lifting, with `scope` reserved for task scopes; `restores` with its returned-loan meaning and descriptor preservation as an implied `ref` property; `let`/`var` required for locals; token-shape constructor patterns with bare nullary constructors, retiring `VELA106` and the pattern preview; one `Pattern => body` arm form for statement and expression matches; migrated examples, fixtures and documents. **Check:** strict conflict-free native generation, independent accept/refuse fixtures for each changed spelling, retained mathematical interpretations, focused parser/elaborator/authoring tests and corpus checks. **Join:** independent grammar review and the Q25ag slice using the settled spellings. **Execute:** migrate every consumer without a compatibility spelling; record retired lint IDs permanently.
+* [ ] **Q25ai · Publish the Vela language reference and separate extension research** · 12 h, range 8–16 · I · agent-parallel
+  * **Start:** the [evidence review](docs/background/critique.md#vela-evidence-and-surface-review), Q25ah's settled spellings and the existing Vela documents. **Owns:** a compact reference giving each construct's syntax, meaning, example and implementation status; extension dossiers moved under `docs/languages/vela/extensions/`; dated language comparisons moved to background; the product contract's statement of arithmetic-proof, effect-list and borrow-restriction costs with their package-trial measurements. **Check:** link validation and corpus checks; every reference example parses under the development grammar or is marked as a design example; required co-reads read and blessed. **Join:** integrator review against Q25af–Q25ah's landed behavior. **Execute:** move text rather than duplicate it; state current decisions only.
 * [x] **Q26 · Price the resident toolchain against the floor's own comparisons** · 4.6 h actual · agent-parallel
   * [The toolchain residency report](docs/performance/toolchain-residency.md) records the three quantities with their predicates, instruments, lanes and revisions, scores each against the artifact that owns its supply or declares it unscorable with the act that owes the supply named, and states which of the three binds and what would have to move, as arms for the product's owner with none taken. ([note](docs/implementation/completion-log.md#q26-price-the-resident-toolchain-against-the-floors-own-comparisons))
 
@@ -1418,7 +1426,7 @@ Q6's conventional-memory simulators are conditional on a topology comparison nee
 
 No assessment completion automatically increases a performance estimate. For an optimization affecting fraction `f` of runtime by factor `s`, the unchanged-cost bound is `1 / ((1 - f) + f / s)`; added transfers or changed scheduling require a fresh whole-workload comparison. Better packing is not more fabricated capacity, and host performance is not target throughput.
 
-**Q subtotal:** 3,090.3 h · 63% · 346.8 h complete · open range 1,601–3,886 h.
+**Q subtotal:** 3,166.3 h · 63% · 346.8 h complete · open range 1,653–3,986 h.
 
 ### M0 · Hardware reference
 
@@ -1748,7 +1756,7 @@ RoT core + firmware ([§2](#2-root-of-trust-sail-scalar-rv64cheri-core--coq-firm
     * **Execute:** Prepare timing observation and success/timeout harness cases from M3.6a and M0.16 while R5/M9a run. Synthetic responses check the harness only. Join the qualified macro and admitted activation set for physical invariance; R1c-ii's modeled sequencer does not wait on this measurement.
     * Close discharge-speed invariance against R5's macro evidence and M9a's droop model.
 
-**M3 subtotal:** 74.2 h · 2% · 63.7 h complete · open range 7–14 h.
+**M3 subtotal:** 74.2 h · 1% · 63.7 h complete · open range 7–14 h.
 
 ### M4 · Kernel
 
@@ -1994,7 +2002,7 @@ The ring data plane is brought up in its contract order: the common ring schema 
   * **Check:** both generations admitted by the ordinary path and booted by the transactor with health-gated rollback intact, the mint reachable only through the consent act, the composition mode entered and left as R-11-018 requires, and the install's proof checking staying inside R-06-015a's declared budget. **Join:** Q26 prices the occupancy and the storage this act needs; Q9 measures its turnaround beside the remote path's.
   * **Done when** the device composes, signs, admits and boots its own generation twice over, once for a package change and once for the base image, with nothing reachable and no artifact another machine produced, and the run records what it occupied rather than only that it finished.
 
-**M6 subtotal:** 665.7 h · 14% · 52.7 h complete · open range 295–931 h.
+**M6 subtotal:** 665.7 h · 13% · 52.7 h complete · open range 295–931 h.
 
 ### M7 · Full emulated system
 

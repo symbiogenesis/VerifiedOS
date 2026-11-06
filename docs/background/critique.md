@@ -592,6 +592,24 @@ remain distinct, and the later task/continuation/guard inventory amendment stays
 owed before that runtime extension. This disposition changes design and planning;
 it claims no implemented ownership language, service runtime or performance gain.
 
+## Vela evidence, conformance and surface review <a id="vela-evidence-and-surface-review"></a>
+
+A review of the first slice, its elaborator and the release documents found that
+the [Q25w](../../PLAN.md#q-assessment-actions) candidate's kernel evidence does
+not carry its source claims, that the slice departs from the synchronous design it
+qualifies, and that the surface and documents impose avoidable costs. The
+judgments below are accepted; Q25af through Q25ai own the follow-through.
+
+| Finding and judgment | Disposition and implementation owner |
+| --- | --- |
+| Solver-discharged contracts and theorems reach Rocq as `true = true`. The elaborator replaces every proposition its Python solver discharges, and every theorem with mutated `ref` parameters, by `eq_refl true`; `restores` obligations for `ref` parameters are emitted as `x = x`. `Closed under the global context` therefore checks tautologies for most of the first slice's laws, scenarios and contracts, contrary to the [untrusted-elaboration boundary](../spec.md#r-05-020a). | Q25af emits the real proposition for every obligation, kernel-proves what it can and records every remaining solver-trusted obligation as a named, counted assumption that blocks acceptance. The [Q25w record](../implementation/completion-log.md#q25w-investigate-the-concrete-vela-buffer-foundation-within-a-fixed-budget) is a blocked outcome with no candidate acceptance. |
+| The Gallina integer model disagrees with the source semantics: multiplication, division, remainder, negation and shifts are identity functions of their first operand; saturating and checked operations, conversions and `to_nat` are placeholders; signed comparisons compare unsigned bit patterns. A kernel statement over these operations describes a different program from the one the solver and target execute. | Q25af defines every primitive by the [primitive contract](../languages/vela/first-release.md#primitive-semantics), with independent value controls. |
+| The first slice contradicts the design it qualifies: an explicit `Span.Restore` call, capability fields in client contracts, `Span.AllocZeroed` fabricating a span from an integer base in executable code, a flag-plus-error record instead of a `Result` carrying a place-named view, no `effects` clauses, and a returned view into `dst` after `dst` is restored, which [the core design](../languages/vela/core-design.md#intended-negative-neighbors) lists as a required refusal. Its contracts state no content facts; scenarios mirror the implementation's checksum rather than an independent format model. | Q25ag rewrites the slice to the synchronous design, adds the missing elaborator rules and an independent format model, and turns the restore-then-return pattern into a semantic negative control. |
+| The capacity-invariance gate cannot fail for the intended reason: no obligation in its fixture ranges over the capacity. | Q25ag replaces the fixture with a capacity-wide bounded loop whose obligations must stay symbolic. |
+| The surface overloads `scope` for task scopes and invariant lifting, gives `restores` different meanings in design and implementation, accepts two spellings for an immutable typed local, needs `None()` plus an advisory lint because bare pattern names bind, and keeps two match forms. | Q25ah renames invariant lifting to `open (...) lifts`, settles `restores` on its returned-loan meaning, requires `let`/`var`, distinguishes constructors from binders by token shape and unifies match arms. |
+| The release has no compact language reference; extension research and dated market comparisons sit beside the release contract, and the product contract omits the costs of representability proofs, closed effect lists and the borrow restrictions. | Q25ai adds the reference, separates extension dossiers and background comparisons from the release documents, and states the costs with the package trial's measurement duties. |
+| The development frontend is a Python elaborator beside the selected Menhir/OCaml route. | Retained: kernel rechecking bounds its trust once Q25af lands; [Q25h](../../PLAN.md#q-assessment-actions) keeps parser migration and the native frontend keeps elaboration. |
+
 ## The work list
 
 Outstanding assessment actions are maintained in

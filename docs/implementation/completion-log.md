@@ -1322,11 +1322,14 @@ not source metatheory or executable acceptance.
 
 ### Q25w · Investigate the concrete Vela buffer foundation within a fixed budget
 
-Completed on 2026-11-06 under the finite foundation-investigation contract in
-[first-release.md](../languages/vela/first-release.md#first-slice-qualification),
-supplying the kernel-checked concrete `Span<byte>` candidate and target-execution
-slice while recording the inspected upstream Sail and machine-logic blockers that
-keep full machine-refinement closure and subsequent delivery stages closed:
+Completed on 2026-11-06 as a blocked outcome under the finite
+foundation-investigation contract in
+[first-release.md](../languages/vela/first-release.md#first-slice-qualification).
+It supplies a concrete `Span<byte>` candidate and target-execution slice but no
+candidate acceptance: most of the candidate's laws, scenarios and contracts reach
+the kernel only as tautologies (item 2), and the inspected upstream Sail and
+machine-logic blockers keep full machine-refinement closure and subsequent
+delivery stages closed:
 
 1. **Concrete `Span<byte>` carrier, inhabited byte case and contract elaboration
    ([tools/vos/vela/elaborate.py](../../tools/vos/vela/elaborate.py),
@@ -1341,12 +1344,12 @@ keep full machine-refinement closure and subsequent delivery stages closed:
    contracts elaborate `requires` into typing premises, `restores dst` into five
    metadata-preservation obligations (`Base`, `Length`, `Tag`, `PermRead`,
    `PermWrite`), and `ensures` into postcondition obligations over exit states.
-2. **Checked law, obligation and scenario inventory (`51` declarations in
+2. **Law, obligation and scenario inventory (`51` declarations in
    `Vela_Vela_FirstSlice`):** `python tools/run.py vela-parser first-slice` parses
    `first_slice.vela` (`SHA256: 840dd34b2e2a03ed45dd8124d5fdf7369dda64090786b677c5cd9b7974f895b3`)
    through the native Menhir `--surface` parser, elaborates all `51` declarations
    into `FirstSlice.v` (`SHA256: 275d9c200c488b3cd1569cc629bbc8f73bdf0ad063745d45cc53c8c001426110`),
-   compiles under Rocq 9.3.0 (`rocq c`), verifies `Closed under the global context`
+   compiles under Rocq 9.3.0 (`rocq c`), reports `Closed under the global context`
    (`0` axioms) via `Print Assumptions`, and audits with `rocqchk`, plus a
    fail-closed proof-corruption control. The `51` declarations comprise the union
    `ValidationError`, the record `ValidationOutcome`, `MakePacket8`,
@@ -1360,8 +1363,19 @@ keep full machine-refinement closure and subsequent delivery stages closed:
    (`ValidateEmptyPacketOk`, `ValidateFullPacketOk`,
    `ValidatePartialPacketScrubsStaleAndTrailingBytes`, `RejectFramingShort`,
    `RejectBadMagic`, `RejectLengthOutOfBounds`,
-   `RejectChecksumScrubsDestinationAndRestores`) with separation-logic framing
-   (`dst[frameIdx] == old(dst[frameIdx])`) over loops and slices.
+   `RejectChecksumScrubsDestinationAndRestores`). The closure verdict does not
+   carry these statements: inspecting the emitted file shows `7` carrier laws,
+   all `7` scenario theorems and `MakePacket8`'s `3` postconditions typed
+   `true = true` and proved by `eq_refl`, and all `10` `restores` obligations of
+   `CopyPacketToDst` and `PrepareAndValidatePacket` typed as reflexive
+   self-equalities of the entry descriptor. Only `LawInhabitedByteCase`,
+   `LawAllocZeroedRead`, the two closed capacity laws and the validator's three
+   metadata postconditions reach the kernel as stated. The framing, scenario and
+   restoration claims rest on the untrusted Python solver, and the Gallina model
+   defines multiplication, division, remainder, negation and shifts as identity
+   functions of their first operand.
+   [Q25af and Q25ag](../background/critique.md#vela-evidence-and-surface-review)
+   own honest emission and slice conformance.
 3. **Capacity-invariance gate, semantic negative controls and target execution
    ([tools/vos/vela/first_slice.py](../../tools/vos/vela/first_slice.py)):**
    checking at static capacity $N = 8$ (`8usize`) and $N = 10^9$

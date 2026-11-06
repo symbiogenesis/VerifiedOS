@@ -400,7 +400,13 @@ authors the bounded packet/manifest validator `PrepareAndValidatePacket(ref Span
 over the concrete `Span<byte>` carrier in
 [tools/vos/vela/elaborate.py](../../../tools/vos/vela/elaborate.py) and its
 CompCert Clight/C and purecap CHERI-RISC-V target harness in
-[tools/vos/vela/first_slice.py](../../../tools/vos/vela/first_slice.py):
+[tools/vos/vela/first_slice.py](../../../tools/vos/vela/first_slice.py).
+The slice supplies no acceptance: the
+[evidence review](../../background/critique.md#vela-evidence-and-surface-review)
+found that most of its laws, scenarios and restoration obligations reach the
+kernel as `true = true` or reflexive self-equalities, and that the slice departs
+from the synchronous design. Q25af and Q25ag own those corrections; the
+description below states what the current harness runs.
 
 - **Concrete `Span<byte>` carrier and contract obligations:** `Span<byte>` lowers
   in the mathematical consumer to `vela_Span` (`vela_ByteStore = nat -> vela_u8`
