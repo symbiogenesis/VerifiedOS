@@ -9,8 +9,14 @@ from typing import cast
 from unittest.mock import patch
 
 from tests.harness import Case, ensure
-from vos import vela_lsp_worker
-from vos.vela import VelaError, inspect_source, translate
+from vos.vela import (
+    VelaError,
+    inspect_source,
+    translate,
+)
+from vos.vela import (
+    lsp_worker as vela_lsp_worker,
+)
 
 _SOURCE = """module Facts;
 public Nat Step(Nat x) {

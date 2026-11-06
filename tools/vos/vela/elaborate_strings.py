@@ -4,16 +4,16 @@
 from collections.abc import Callable
 from typing import TYPE_CHECKING, cast
 
-from vos.vela_ast import (
+from vos.vela.ast import (
     DECIMAL,
     trivia_end,
 )
-from vos.vela_authoring import assist_loan_argument
-from vos.vela_elaborate_protocol import (
+from vos.vela.authoring import assist_loan_argument
+from vos.vela.elaborate_protocol import (
     _BIN_LITERAL,
     _HEX_LITERAL,
 )
-from vos.vela_elaborate_types import (
+from vos.vela.elaborate_types import (
     _BOOL,
     _CHAR,
     _NAT,
@@ -28,7 +28,7 @@ from vos.vela_elaborate_types import (
 )
 
 if TYPE_CHECKING:
-    from vos.vela_elaborate import _Elaborator
+    from vos.vela.elaborate import _Elaborator
 
 
 class _StringsMixin:

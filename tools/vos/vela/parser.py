@@ -17,11 +17,17 @@ from typing import cast
 
 from filelock import FileLock
 
-from vos import env, vela_surface
+from vos import env
 from vos.atomic import atomic_path
 from vos.jsonutil import finite_float, unique_object
-from vos.vela import MAX_SOURCE_BYTES, VelaError
-from vos.vela_ast import MAX_SYNTAX_DEPTH
+from vos.vela import (
+    MAX_SOURCE_BYTES,
+    VelaError,
+)
+from vos.vela import (
+    surface as vela_surface,
+)
+from vos.vela.ast import MAX_SYNTAX_DEPTH
 
 type Json = bool | int | float | str | list[Json] | dict[str, Json] | None
 
@@ -96,7 +102,7 @@ def _toolchain(root: Path) -> dict[str, object]:
 
 def _inputs(root: Path) -> dict[str, str]:
     paths = [f"tools/vela/parser/{name}" for name in SOURCES]
-    paths.extend(("tools/opam/sail.lock", "tools/vos/vela_parser.py", "tools/vos/vela_surface.py",
+    paths.extend(("tools/opam/sail.lock", "tools/vos/vela/parser.py", "tools/vos/vela/surface.py",
                   "tools/vela/examples/pure.vela", "tools/vela/examples/surface.vela",
                   "tools/vela/examples/constants.vela", "tools/vela/examples/expressions.vela"))
     return {name: _digest(root / name) for name in paths}

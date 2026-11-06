@@ -11,7 +11,7 @@ from unittest.mock import patch
 from tests.harness import Case, ensure
 from vos.cli import vela_parser as cli
 from vos.vela import VelaError
-from vos.vela_mathematical import Compilation
+from vos.vela.mathematical import Compilation
 
 SOURCE = b"module Demo; definition Nat Value() => 3;"
 GALLINA = "(* unqualified test term *)\nDefinition value : nat := 3.\n"

@@ -16,10 +16,10 @@ from pathlib import Path
 from typing import cast, override
 
 from vos.protocol_json import MAX_BODY_BYTES, decode_message, encode_message
-from vos.vela_ast import IDENTIFIER, MAX_SOURCE_BYTES
-from vos.vela_authoring import LINT_CODES, is_pascal_case
-from vos.vela_lsp import Server
-from vos.vela_source import SourceSnapshot
+from vos.vela.ast import IDENTIFIER, MAX_SOURCE_BYTES
+from vos.vela.authoring import LINT_CODES, is_pascal_case
+from vos.vela.lsp import Server
+from vos.vela.source import SourceSnapshot
 
 MAX_SESSIONS = 8
 SESSION_SECONDS = 1800
@@ -137,10 +137,10 @@ def _validate_findings(findings: object, source: str, *, mathematical: bool = Fa
 def _compiler_response(request: dict[str, object], digest: str, *,
                        mathematical_parser: Path | None = None,
                        parser_sha256: str | None = None) -> dict[str, object]:
-    directory = str(Path(__file__).resolve().parents[1])
+    directory = str(Path(__file__).resolve().parents[2])
     parser_argument = f"Path({str(mathematical_parser)!r})" if mathematical_parser is not None else "None"
     script = (f"import sys; sys.path.insert(0, {directory!r}); from pathlib import Path; "
-              "from vos.vela_playground_worker import main; "
+              "from vos.vela.playground_worker import main; "
               f"raise SystemExit(main(mathematical_parser={parser_argument}, "
               f"parser_sha256={parser_sha256!r}))")
     done = subprocess.run([sys.executable, "-I", "-c", script], input=_raw(request),
@@ -205,7 +205,7 @@ class PlaygroundServer(HTTPServer):
         self.parser_sha256 = (hashlib.sha256(mathematical_parser.read_bytes()).hexdigest()
                               if mathematical_parser is not None else None)
         self.sessions: dict[str, Session] = {}
-        self.assets = (Path(__file__).resolve().parents[1] / "vela" / "playground"
+        self.assets = (Path(__file__).resolve().parents[2] / "vela" / "playground"
                        if assets is None else assets)
         super().__init__(("127.0.0.1", port), PlaygroundHandler)
         self.authority = f"127.0.0.1:{self.server_address[1]}"

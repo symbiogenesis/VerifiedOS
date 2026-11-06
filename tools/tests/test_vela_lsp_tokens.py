@@ -8,14 +8,14 @@ from unittest.mock import patch
 
 from tests.harness import Case, ensure
 from vos.vela import inspect_source
-from vos.vela_lsp_services import (
+from vos.vela.lsp_services import (
     METHODS,
     SEMANTIC_TOKEN_MODIFIERS,
     SEMANTIC_TOKEN_TYPES,
     InspectionError,
     project,
 )
-from vos.vela_source import SourceSnapshot
+from vos.vela.source import SourceSnapshot
 
 INDEPENDENT_CASES = True
 
@@ -152,7 +152,7 @@ def _inspection_bounds_are_complete_refusals() -> None:
     snapshot = SourceSnapshot(_URI, 1, text, 1)
     raw = inspect_source(text.encode())
     for name, bound in (("MAX_SYMBOLS", 1), ("MAX_OCCURRENCES", 2)):
-        with patch(f"vos.vela_lsp_services.{name}", bound):
+        with patch(f"vos.vela.lsp_services.{name}", bound):
             _refuses(lambda: project(snapshot, raw, _METHOD, None),
                      "inspection bound truncated rather than refused semantic tokens")
     changed = copy.deepcopy(raw)

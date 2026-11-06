@@ -19,9 +19,17 @@ from typing import cast
 
 from filelock import FileLock
 
-from vos import env, proofenv, vela, vela_elaborate, vela_parser
+from vos import env, proofenv, vela
 from vos.atomic import atomic_path
-from vos.vela import VelaError
+from vos.vela import (
+    VelaError,
+)
+from vos.vela import (
+    elaborate as vela_elaborate,
+)
+from vos.vela import (
+    parser as vela_parser,
+)
 
 TIMEOUT = 120
 EXAMPLE = "tools/vela/examples/dependent.vela"
@@ -787,21 +795,21 @@ def _inputs(root: Path) -> dict[str, str]:
         "tools/opam/rocq.lock",
         "tools/vos/proofenv.py",
         "tools/vos/env.py",
-        "tools/vos/vela_elaborate.py",
-        "tools/vos/vela_elaborate_types.py",
-        "tools/vos/vela_elaborate_protocol.py",
-        "tools/vos/vela_elaborate_whnf.py",
-        "tools/vos/vela_elaborate_patterns.py",
-        "tools/vos/vela_elaborate_proofs.py",
-        "tools/vos/vela_elaborate_statements.py",
-        "tools/vos/vela_elaborate_strings.py",
-        "tools/vos/vela_elaborate_solver.py",
-        "tools/vos/vela_elaborate_intrinsics.py",
-        "tools/vos/vela_elaborate_declarations.py",
-        "tools/vos/vela_authoring.py",
-        "tools/vos/vela_ast.py",
-        "tools/vos/vela.py",
-        "tools/vos/vela_elaboration_check.py",
+        "tools/vos/vela/elaborate.py",
+        "tools/vos/vela/elaborate_types.py",
+        "tools/vos/vela/elaborate_protocol.py",
+        "tools/vos/vela/elaborate_whnf.py",
+        "tools/vos/vela/elaborate_patterns.py",
+        "tools/vos/vela/elaborate_proofs.py",
+        "tools/vos/vela/elaborate_statements.py",
+        "tools/vos/vela/elaborate_strings.py",
+        "tools/vos/vela/elaborate_solver.py",
+        "tools/vos/vela/elaborate_intrinsics.py",
+        "tools/vos/vela/elaborate_declarations.py",
+        "tools/vos/vela/authoring.py",
+        "tools/vos/vela/ast.py",
+        "tools/vos/vela/__init__.py",
+        "tools/vos/vela/elaboration_check.py",
         "tools/vos/atomic.py",
     )
     return {**vela_parser._inputs(root),

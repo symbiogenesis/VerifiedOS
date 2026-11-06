@@ -193,7 +193,7 @@ def _run(arguments: list[str], directory: Path, log: Path,
 
 def _inputs(root: Path) -> dict[str, str]:
     return {name: _sha256((root / name).read_bytes()) for name in (
-        "tools/opam/rocq.lock", "tools/opam/sail.lock", "tools/vos/vela_parser_checked.py")}
+        "tools/opam/rocq.lock", "tools/opam/sail.lock", "tools/vos/vela/parser_checked.py")}
 
 
 def _toolchain(root: Path, directory: Path, steps: list[dict[str, object]]) -> dict[str, object]:

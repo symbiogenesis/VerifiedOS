@@ -3,7 +3,7 @@
 
 from tests.harness import Case, ensure
 from vos.vela import VelaError, translate
-from vos.vela_authoring import STYLE_VERSION, format_source
+from vos.vela.authoring import STYLE_VERSION, format_source
 
 INDEPENDENT_CASES = True
 

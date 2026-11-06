@@ -6,7 +6,7 @@ import json
 import re
 from dataclasses import dataclass
 
-from vos.vela_ast import MAX_SOURCE_BYTES
+from vos.vela.ast import MAX_SOURCE_BYTES
 
 MAX_URI_BYTES = 4096
 

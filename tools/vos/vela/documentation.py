@@ -6,7 +6,7 @@ from bisect import bisect_right
 from dataclasses import dataclass
 from typing import cast
 
-from vos.vela_ast import Name, Site, source_text, trivia_end
+from vos.vela.ast import Name, Site, source_text, trivia_end
 
 MAX_DOCUMENTATION_BYTES = 8192
 

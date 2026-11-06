@@ -6,10 +6,17 @@ import sys
 from pathlib import Path
 from typing import cast
 
-from vos import vela_mathematical
 from vos.protocol_json import MAX_BODY_BYTES, decode_message, encode_message
-from vos.vela import ValueType, VelaError, evaluate, translate
-from vos.vela_authoring import lint_source, preview_bindings
+from vos.vela import (
+    ValueType,
+    VelaError,
+    evaluate,
+    translate,
+)
+from vos.vela import (
+    mathematical as vela_mathematical,
+)
+from vos.vela.authoring import lint_source, preview_bindings
 
 
 def _mathematical_request(request: dict[str, object], source: bytes, digest: str,

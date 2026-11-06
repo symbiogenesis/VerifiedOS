@@ -10,13 +10,13 @@ from unittest.mock import patch
 from tests.harness import Case, ensure
 from vos.cli import vela_parser as cli
 from vos.vela import VelaError
-from vos.vela_authoring import (
+from vos.vela.authoring import (
     Finding,
     assist_refusal,
     pattern_constructor_findings,
     preview_pattern_constructors,
 )
-from vos.vela_mathematical import Compilation
+from vos.vela.mathematical import Compilation
 
 SOURCE = b"module Named;\npublic definition element Identity<element>(element value) => value;\n"
 GALLINA = "(* unchanged unqualified translation *)\nDefinition identity := fun value => value.\n"

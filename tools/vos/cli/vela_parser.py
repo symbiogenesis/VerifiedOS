@@ -8,17 +8,29 @@ from pathlib import Path
 
 from filelock import Timeout
 
-from vos import (
-    vela_elaboration_check,
-    vela_first_slice,
-    vela_mathematical,
-    vela_migration,
-    vela_parser,
-    vela_parser_checked,
-)
 from vos.atomic import atomic_path
-from vos.vela import VelaError
-from vos.vela_authoring import Finding, preview_pattern_constructors
+from vos.vela import (
+    VelaError,
+)
+from vos.vela import (
+    elaboration_check as vela_elaboration_check,
+)
+from vos.vela import (
+    first_slice as vela_first_slice,
+)
+from vos.vela import (
+    mathematical as vela_mathematical,
+)
+from vos.vela import (
+    migration as vela_migration,
+)
+from vos.vela import (
+    parser as vela_parser,
+)
+from vos.vela import (
+    parser_checked as vela_parser_checked,
+)
+from vos.vela.authoring import Finding, preview_pattern_constructors
 
 
 def _publish(source: Path, destination: Path, gallina: str) -> None:

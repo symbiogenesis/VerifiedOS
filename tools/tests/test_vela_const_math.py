@@ -25,8 +25,8 @@ from tests.test_vela_elaborate import (
     _type_value,
     _variable,
 )
-from vos import vela_elaborate as language
-from vos.vela_ast import VelaError
+from vos.vela import elaborate as language
+from vos.vela.ast import VelaError
 
 
 def _refuses(fixture: _Fixture, kind: str, fragment: str = "") -> None:

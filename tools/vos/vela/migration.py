@@ -12,8 +12,9 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import cast
 
-from vos import vela, vela_parser
+from vos import vela
 from vos.atomic import atomic_path
+from vos.vela import parser as vela_parser
 
 
 @dataclass(frozen=True)
@@ -284,7 +285,7 @@ def compare(compiled: vela_parser.Build, cases: tuple[Fixture, ...]) -> dict[str
 
 
 def _inputs(root: Path) -> dict[str, str]:
-    paths = ("tools/vos/vela.py", "tools/vos/vela_ast.py", "tools/vos/vela_migration.py",
+    paths = ("tools/vos/vela/__init__.py", "tools/vos/vela/ast.py", "tools/vos/vela/migration.py",
              "tools/vela/examples/pure.vela")
     return {**vela_parser._inputs(root),
             **{path: hashlib.sha256((root / path).read_bytes()).hexdigest() for path in paths}}

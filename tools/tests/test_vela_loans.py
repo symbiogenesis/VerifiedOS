@@ -6,7 +6,7 @@ from itertools import product
 from typing import cast
 
 from tests.harness import Case, ensure
-from vos.vela_loans import (
+from vos.vela.loans import (
     Access,
     AnalysisRefusalError,
     Bind,

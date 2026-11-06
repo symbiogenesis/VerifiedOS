@@ -8,8 +8,13 @@ from typing import cast
 
 from tests.harness import TOOLS, Case, ensure
 from vos import compiler_diff as cd
-from vos import vela_elaborate, vela_first_slice
-from vos.vela_ast import VelaError
+from vos.vela import (
+    elaborate as vela_elaborate,
+)
+from vos.vela import (
+    first_slice as vela_first_slice,
+)
+from vos.vela.ast import VelaError
 
 INDEPENDENT_CASES = True
 

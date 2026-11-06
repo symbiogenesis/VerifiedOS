@@ -14,8 +14,8 @@ from unittest.mock import patch
 
 from tests.harness import Case, ensure
 from vos.protocol_json import decode_message, encode_message, read_frame
-from vos.vela_lsp import Server, diagnose, serve
-from vos.vela_source import SourceSnapshot
+from vos.vela.lsp import Server, diagnose, serve
+from vos.vela.source import SourceSnapshot
 
 _URI = "file:///workspace/unsaved.vela"
 _GOOD = "module Demo; public Nat Answer() { return 42; }"

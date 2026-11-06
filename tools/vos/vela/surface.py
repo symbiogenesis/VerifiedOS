@@ -10,8 +10,8 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, cast
 
 from vos.vela import MAX_SOURCE_BYTES, VelaError
-from vos.vela_ast import trivia_end
-from vos.vela_loans import (
+from vos.vela.ast import trivia_end
+from vos.vela.loans import (
     LoweredFunction,
     analyze_function,
     analyze_module,
@@ -33,7 +33,7 @@ __all__ = (
 )
 
 if TYPE_CHECKING:
-    from vos.vela_parser import Json
+    from vos.vela.parser import Json
 
 
 @dataclass(frozen=True)

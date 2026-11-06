@@ -15,8 +15,8 @@ from vos.protocol_json import (
     encode_message,
     read_frame,
 )
-from vos.vela_lsp_format import Formatter, format_document, formatting_edits
-from vos.vela_lsp_services import (
+from vos.vela.lsp_format import Formatter, format_document, formatting_edits
+from vos.vela.lsp_services import (
     METHODS,
     SEMANTIC_TOKEN_MODIFIERS,
     SEMANTIC_TOKEN_TYPES,
@@ -26,7 +26,7 @@ from vos.vela_lsp_services import (
     inspect_document,
     project,
 )
-from vos.vela_source import SourceSnapshot
+from vos.vela.source import SourceSnapshot
 
 MAX_DOCUMENTS = 16
 MAX_CHANGES = 64
@@ -43,9 +43,9 @@ def diagnose(source: bytes) -> dict[str, object] | None:
     try:
         # -I excludes caller PYTHONPATH and user site packages. The only added path
         # is this adapter's own tools directory; no client text is executable code.
-        tools = str(Path(__file__).resolve().parents[1])
+        tools = str(Path(__file__).resolve().parents[2])
         script = (f"import sys; sys.path.insert(0, {tools!r}); "
-                  "from vos.vela_lsp_worker import main; raise SystemExit(main())")
+                  "from vos.vela.lsp_worker import main; raise SystemExit(main())")
         done = subprocess.run([sys.executable, "-I", "-c", script], input=source,
                               capture_output=True, timeout=WORKER_SECONDS, check=False)
         if done.returncode != 0 or len(done.stdout) > MAX_BODY_BYTES:

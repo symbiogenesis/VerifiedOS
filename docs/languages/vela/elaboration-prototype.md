@@ -204,27 +204,27 @@ increment supplies theorem authorship and proof parameters; automatic discharge
 of `requires`/`ensures` and the full proof language remain frontend work.
 
 The implementation is decomposed across the public entry point
-([`vela_elaborate.py`](../../../tools/vos/vela_elaborate.py)) and cohesive
+([`elaborate.py`](../../../tools/vos/vela/elaborate.py)) and cohesive
 submodules for CIC terms and carrier metadata
-([`vela_elaborate_types.py`](../../../tools/vos/vela_elaborate_types.py)),
+([`elaborate_types.py`](../../../tools/vos/vela/elaborate_types.py)),
 schema-2 AST validation
-([`vela_elaborate_protocol.py`](../../../tools/vos/vela_elaborate_protocol.py)),
+([`elaborate_protocol.py`](../../../tools/vos/vela/elaborate_protocol.py)),
 strings, characters and formatting
-([`vela_elaborate_strings.py`](../../../tools/vos/vela_elaborate_strings.py)),
+([`elaborate_strings.py`](../../../tools/vos/vela/elaborate_strings.py)),
 definitional WHNF reduction and structural equality
-([`vela_elaborate_whnf.py`](../../../tools/vos/vela_elaborate_whnf.py)),
+([`elaborate_whnf.py`](../../../tools/vos/vela/elaborate_whnf.py)),
 carrier and sequence intrinsics
-([`vela_elaborate_intrinsics.py`](../../../tools/vos/vela_elaborate_intrinsics.py)),
+([`elaborate_intrinsics.py`](../../../tools/vos/vela/elaborate_intrinsics.py)),
 interval/algebraic precondition discharge
-([`vela_elaborate_solver.py`](../../../tools/vos/vela_elaborate_solver.py)),
+([`elaborate_solver.py`](../../../tools/vos/vela/elaborate_solver.py)),
 proof terms and calculational chains
-([`vela_elaborate_proofs.py`](../../../tools/vos/vela_elaborate_proofs.py)),
+([`elaborate_proofs.py`](../../../tools/vos/vela/elaborate_proofs.py)),
 pattern matching and exhaustiveness
-([`vela_elaborate_patterns.py`](../../../tools/vos/vela_elaborate_patterns.py)),
+([`elaborate_patterns.py`](../../../tools/vos/vela/elaborate_patterns.py)),
 statements, indexing and bounded loops
-([`vela_elaborate_statements.py`](../../../tools/vos/vela_elaborate_statements.py)),
+([`elaborate_statements.py`](../../../tools/vos/vela/elaborate_statements.py)),
 and module declarations, records, unions and contracts
-([`vela_elaborate_declarations.py`](../../../tools/vos/vela_elaborate_declarations.py)).
+([`elaborate_declarations.py`](../../../tools/vos/vela/elaborate_declarations.py)).
 It owns explicit finite source, syntax-depth, inference-work,
 reduction and output limits. Diagnostics retain source positions and distinguish
 unsupported syntax, names, typing, unresolved inference, protocol and limits.

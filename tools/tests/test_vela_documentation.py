@@ -11,11 +11,11 @@ from typing import cast
 
 from tests.harness import Case, ensure
 from vos.vela import VelaError, inspect_source, translate
-from vos.vela_authoring import format_source
-from vos.vela_documentation import MAX_DOCUMENTATION_BYTES
-from vos.vela_lsp import Server
-from vos.vela_lsp_services import InspectionError, project
-from vos.vela_source import SourceSnapshot
+from vos.vela.authoring import format_source
+from vos.vela.documentation import MAX_DOCUMENTATION_BYTES
+from vos.vela.lsp import Server
+from vos.vela.lsp_services import InspectionError, project
+from vos.vela.source import SourceSnapshot
 
 INDEPENDENT_CASES = True
 _URI = "untitled:documentation.vela"

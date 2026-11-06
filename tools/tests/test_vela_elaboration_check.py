@@ -9,8 +9,12 @@ from types import SimpleNamespace
 from unittest.mock import patch
 
 from tests.harness import Case, ensure
-from vos import vela_elaboration_check as replay
-from vos.vela import VelaError
+from vos.vela import (
+    VelaError,
+)
+from vos.vela import (
+    elaboration_check as replay,
+)
 
 
 def _process_controls() -> None:

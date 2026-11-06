@@ -11,9 +11,8 @@ from pathlib import Path
 from unittest.mock import patch
 
 from tests.harness import TOOLS, Case, ensure
-from vos import vela_parser as parser
 from vos.cli import vela_parser as cli
-from vos.vela import MAX_SOURCE_BYTES, VelaError
+from vos.vela import MAX_SOURCE_BYTES, VelaError, parser
 
 
 def _build(directory: Path) -> parser.Build:
@@ -225,9 +224,9 @@ def _failed_build() -> None:
             (sources / name).write_text("authored input\n", encoding="utf-8")
         (root / "tools/opam").mkdir()
         (root / "tools/opam/sail.lock").write_text("snapshot\n", encoding="utf-8")
-        (root / "tools/vos").mkdir()
-        (root / "tools/vos/vela_parser.py").write_text("driver\n", encoding="utf-8")
-        (root / "tools/vos/vela_surface.py").write_text("fixtures\n", encoding="utf-8")
+        (root / "tools/vos/vela").mkdir(parents=True)
+        (root / "tools/vos/vela/parser.py").write_text("driver\n", encoding="utf-8")
+        (root / "tools/vos/vela/surface.py").write_text("fixtures\n", encoding="utf-8")
         (root / "tools/vela/examples").mkdir()
         for name in ("pure.vela", "surface.vela", "constants.vela", "expressions.vela"):
             (root / "tools/vela/examples" / name).write_text("example\n", encoding="utf-8")

@@ -7,10 +7,10 @@ from typing import cast
 from tests.harness import TOOLS, Case, ensure
 from vos import vela
 from vos.vela import inspect_source
-from vos.vela_ast import MAX_LITERAL_DIGITS
-from vos.vela_lsp import Server
-from vos.vela_lsp_services import InspectionError, project
-from vos.vela_source import SourceSnapshot
+from vos.vela.ast import MAX_LITERAL_DIGITS
+from vos.vela.lsp import Server
+from vos.vela.lsp_services import InspectionError, project
+from vos.vela.source import SourceSnapshot
 
 INDEPENDENT_CASES = True
 

@@ -10,8 +10,8 @@ import hashlib
 from dataclasses import dataclass
 from typing import cast
 
-from vos import vela_ast as syntax
-from vos.vela_ast import (
+from vos.vela import ast as syntax
+from vos.vela.ast import (
     MAX_BLOCK_DEPTH,
     MAX_EXPRESSION_DEPTH,
     MAX_LITERAL_DIGITS,
@@ -19,7 +19,7 @@ from vos.vela_ast import (
     ValueType,
     VelaError,
 )
-from vos.vela_facts import Facts, SymbolKind
+from vos.vela.facts import Facts, SymbolKind
 
 __all__ = ["MAX_BLOCK_DEPTH", "MAX_EXPRESSION_DEPTH", "MAX_LITERAL_DIGITS", "MAX_SOURCE_BYTES",
            "StaticEvaluation", "Translation", "ValueType", "VelaError", "evaluate",
@@ -797,7 +797,7 @@ def translate(source: bytes) -> Translation:
 def evaluate(source: bytes, expression: str, value_type: ValueType) -> StaticEvaluation:
     """Check the original source and one closed compiler constant initializer.
 
-    The [playground contract](../../docs/languages/vela/playground.md#browser-behavior)
+    The [playground contract](../../../docs/languages/vela/playground.md#browser-behavior)
     restricts this development service to the existing bounded static evaluator.
     """
     elaborator = _Elaborator()

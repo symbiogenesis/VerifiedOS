@@ -34,9 +34,17 @@ from typing import Final, cast
 from filelock import FileLock
 
 from vos import compiler_diff as cd
-from vos import env, proofenv, vela_elaborate, vela_parser
+from vos import env, proofenv
 from vos.atomic import atomic_path
-from vos.vela import VelaError
+from vos.vela import (
+    VelaError,
+)
+from vos.vela import (
+    elaborate as vela_elaborate,
+)
+from vos.vela import (
+    parser as vela_parser,
+)
 
 TIMEOUT: Final = 120
 EXAMPLE: Final = "tools/vela/examples/first_slice.vela"

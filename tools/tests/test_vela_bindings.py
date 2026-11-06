@@ -4,9 +4,16 @@
 from unittest.mock import patch
 
 from tests.harness import Case, ensure
-from vos import vela, vela_authoring
-from vos.vela import Translation, VelaError, translate
-from vos.vela_authoring import (
+from vos import vela
+from vos.vela import (
+    Translation,
+    VelaError,
+    translate,
+)
+from vos.vela import (
+    authoring as vela_authoring,
+)
+from vos.vela.authoring import (
     Finding,
     assist_effects_clause,
     assist_loan_argument,

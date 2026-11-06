@@ -16,9 +16,9 @@ from unittest.mock import patch
 
 from tests.harness import Case, ensure
 from vos import vela
-from vos import vela_playground as playground
-from vos.vela_facts import MAX_SYMBOLS
-from vos.vela_playground_worker import compile_request
+from vos.vela import playground
+from vos.vela.facts import MAX_SYMBOLS
+from vos.vela.playground_worker import compile_request
 
 _SOURCE = ("module Demo;\n// supplementary comment: \U0001f680\n"
            "public Nat Square(Nat x) { let result = x * x; return result; }\n"
@@ -251,7 +251,7 @@ def _authoring_worker_refusals() -> None:
     source = "// \U0001f680\r\nmodule M;\rpublic Nat Read(){Nat value=1;return value;}"
     request: dict[str, object] = {"action": "authoring", "source": source}
     for kind in ("inspection-limit", "lint-preview", "format"):
-        with patch("vos.vela_playground_worker.preview_bindings",
+        with patch("vos.vela.playground_worker.preview_bindings",
                    side_effect=vela.VelaError(kind, 3, 19, "independent producer refusal")):
             refused = compile_request(request)
         ensure(refused["ok"] is False and cast("dict[str, object]", refused["error"])["kind"] == kind

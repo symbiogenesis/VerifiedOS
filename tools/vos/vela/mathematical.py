@@ -6,11 +6,19 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import cast
 
-from vos import vela_elaborate, vela_parser
-from vos.vela import StaticEvaluation, ValueType
-from vos.vela_ast import Name, position
-from vos.vela_authoring import Finding, generic_type_findings, pattern_constructor_findings
-from vos.vela_elaborate import Elaboration
+from vos.vela import (
+    StaticEvaluation,
+    ValueType,
+)
+from vos.vela import (
+    elaborate as vela_elaborate,
+)
+from vos.vela import (
+    parser as vela_parser,
+)
+from vos.vela.ast import Name, position
+from vos.vela.authoring import Finding, generic_type_findings, pattern_constructor_findings
+from vos.vela.elaborate import Elaboration
 
 
 def _build(parser: Path) -> vela_parser.Build:
@@ -26,7 +34,7 @@ class Compilation(Elaboration):
 def inspect_source(source: bytes, parsed: object) -> Compilation:
     """Inspect type binders only after complete exact-source semantic acceptance.
 
-    The [generic naming contract](../../docs/languages/vela/authoring-tools.md#generic-type-parameter-naming)
+    The [generic naming contract](../../../docs/languages/vela/authoring-tools.md#generic-type-parameter-naming)
     keeps this advisory inspection separate from mathematical acceptance.
     """
     translation = vela_elaborate.elaborate(source, parsed)

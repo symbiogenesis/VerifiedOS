@@ -7,10 +7,16 @@ from typing import cast
 from tests.harness import Case, ensure
 from tests.test_vela_ast import _fixture, _literal
 from tests.test_vela_elaborate import _NAT, Form, Node, _call, _Fixture, _type
-from vos import vela, vela_ast, vela_surface
-from vos.vela_ast import MAX_LITERAL_DIGITS, VelaError
-from vos.vela_elaborate import elaborate
-from vos.vela_parser import Json
+from vos import vela
+from vos.vela import (
+    ast as vela_ast,
+)
+from vos.vela import (
+    surface as vela_surface,
+)
+from vos.vela.ast import MAX_LITERAL_DIGITS, VelaError
+from vos.vela.elaborate import elaborate
+from vos.vela.parser import Json
 
 
 def _body(gallina: str) -> str:

@@ -4,8 +4,8 @@
 from dataclasses import dataclass
 from typing import Literal
 
-from vos.vela_ast import Name, Site, VelaError
-from vos.vela_documentation import DocumentationSource
+from vos.vela.ast import Name, Site, VelaError
+from vos.vela.documentation import DocumentationSource
 
 MAX_SYMBOLS = 1024
 MAX_OCCURRENCES = 4096

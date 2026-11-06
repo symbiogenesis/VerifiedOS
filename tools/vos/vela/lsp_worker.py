@@ -7,7 +7,7 @@ import sys
 
 from vos.protocol_json import MAX_BODY_BYTES
 from vos.vela import MAX_SOURCE_BYTES, VelaError, inspect_source, translate
-from vos.vela_authoring import format_source
+from vos.vela.authoring import format_source
 
 
 def main() -> int:

@@ -284,7 +284,7 @@ after the [first release](first-release.md#qualification).
 ## Pure formatting and lint disposition
 
 Q25t's pure implementation meets its local predicate. Independent review covers
-the complete [formatter and lints](../../../tools/vos/vela_authoring.py),
+the complete [formatter and lints](../../../tools/vos/vela/authoring.py),
 [compiler command](../../../tools/vos/cli/vela.py) and
 [publication helper](../../../tools/vos/atomic.py) at
 `bd51161f7858b55cb1a3e854730998c1c22c3204`, with the acceptance controls added by

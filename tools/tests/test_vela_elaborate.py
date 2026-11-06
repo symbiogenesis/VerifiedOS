@@ -12,9 +12,9 @@ from typing import cast
 from unittest.mock import patch
 
 from tests.harness import Case, ensure
-from vos import vela_elaborate as language
-from vos.vela_ast import VelaError
-from vos.vela_elaborate import elaborate
+from vos.vela import elaborate as language
+from vos.vela.ast import VelaError
+from vos.vela.elaborate import elaborate
 
 type Node = dict[str, object]
 type Form = Callable[[_Fixture], Node]

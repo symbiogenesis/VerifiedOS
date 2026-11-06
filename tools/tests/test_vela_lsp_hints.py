@@ -13,9 +13,9 @@ from typing import cast
 from tests.harness import Case, ensure
 from vos.protocol_json import MAX_BODY_BYTES, encode_message
 from vos.vela import VelaError, inspect_source
-from vos.vela_lsp import Server
-from vos.vela_lsp_services import InspectionError, project
-from vos.vela_source import SourceSnapshot
+from vos.vela.lsp import Server
+from vos.vela.lsp_services import InspectionError, project
+from vos.vela.source import SourceSnapshot
 
 INDEPENDENT_CASES = True
 

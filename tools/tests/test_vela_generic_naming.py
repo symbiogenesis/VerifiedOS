@@ -21,10 +21,16 @@ from tests.test_vela_elaborate import (
     _type,
     _variable,
 )
-from vos import vela_authoring as authoring
-from vos import vela_elaborate as language
-from vos import vela_mathematical as adapter
-from vos.vela import VelaError
+from vos.vela import (
+    VelaError,
+    authoring,
+)
+from vos.vela import (
+    elaborate as language,
+)
+from vos.vela import (
+    mathematical as adapter,
+)
 
 
 def _identity(fixture: _Fixture, spelling: str, index: int) -> None:

@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import cast
 
 from vos.protocol_json import MAX_BODY_BYTES, decode_message, encode_message
-from vos.vela_ast import (
+from vos.vela.ast import (
     IDENTIFIER,
     KEYWORDS,
     MAX_LITERAL_DIGITS,
@@ -18,9 +18,9 @@ from vos.vela_ast import (
     Name,
     Site,
 )
-from vos.vela_documentation import DocumentationSource
-from vos.vela_facts import MAX_OCCURRENCES, MAX_SYMBOLS
-from vos.vela_source import SourceSnapshot
+from vos.vela.documentation import DocumentationSource
+from vos.vela.facts import MAX_OCCURRENCES, MAX_SYMBOLS
+from vos.vela.source import SourceSnapshot
 
 INSPECTION_SECONDS = 5
 SEMANTIC_TOKEN_TYPES = ("function", "parameter", "variable")
@@ -39,9 +39,9 @@ class InspectionError(ValueError):
 
 def inspect_document(source: bytes) -> dict[str, object]:
     """Run only the checkout's fixed fact producer, never a client-selected tool."""
-    tools = str(Path(__file__).resolve().parents[1])
+    tools = str(Path(__file__).resolve().parents[2])
     script = (f"import sys; sys.path.insert(0, {tools!r}); "
-              "from vos.vela_lsp_worker import main; raise SystemExit(main())")
+              "from vos.vela.lsp_worker import main; raise SystemExit(main())")
     try:
         done = subprocess.run([sys.executable, "-I", "-c", script, "--inspect"],
                               input=source, capture_output=True,

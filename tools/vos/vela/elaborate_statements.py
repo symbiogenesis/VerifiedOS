@@ -4,8 +4,8 @@
 from collections.abc import Callable
 from typing import TYPE_CHECKING, cast
 
-from vos.vela_elaborate_protocol import _ASSIGN_OPERATORS
-from vos.vela_elaborate_types import (
+from vos.vela.elaborate_protocol import _ASSIGN_OPERATORS
+from vos.vela.elaborate_types import (
     _BOOL,
     _INT_SPECS,
     _NAT,
@@ -26,7 +26,7 @@ from vos.vela_elaborate_types import (
 )
 
 if TYPE_CHECKING:
-    from vos.vela_elaborate import _Elaborator
+    from vos.vela.elaborate import _Elaborator
 
 
 class _StatementsMixin:

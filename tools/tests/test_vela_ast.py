@@ -7,7 +7,8 @@ from typing import cast
 from unittest.mock import patch
 
 from tests.harness import Case, ensure
-from vos import vela, vela_ast
+from vos import vela
+from vos.vela import ast as vela_ast
 
 
 def _node(kind: str, start: int, end: int, **fields: object) -> dict[str, object]:

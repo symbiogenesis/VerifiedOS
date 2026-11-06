@@ -397,9 +397,9 @@ product acceptance by implication.
 [tools/vela/examples/first_slice.vela](../../../tools/vela/examples/first_slice.vela)
 authors the bounded packet/manifest validator `PrepareAndValidatePacket(ref Span<byte> dst, in Span<byte> pkt)`
 over the concrete `Span<byte>` carrier in
-[tools/vos/vela_elaborate.py](../../../tools/vos/vela_elaborate.py) and its
+[tools/vos/vela/elaborate.py](../../../tools/vos/vela/elaborate.py) and its
 CompCert Clight/C and purecap CHERI-RISC-V target harness in
-[tools/vos/vela_first_slice.py](../../../tools/vos/vela_first_slice.py):
+[tools/vos/vela/first_slice.py](../../../tools/vos/vela/first_slice.py):
 
 - **Concrete `Span<byte>` carrier and contract obligations:** `Span<byte>` lowers
   in the mathematical consumer to `vela_Span` (`vela_ByteStore = nat -> vela_u8`

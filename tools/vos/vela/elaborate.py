@@ -12,20 +12,20 @@ from collections.abc import Callable
 from typing import cast
 
 from vos.vela import StaticEvaluation
-from vos.vela_ast import ValueType, VelaError
-from vos.vela_elaborate_declarations import _DeclarationsMixin
-from vos.vela_elaborate_intrinsics import _IntrinsicsMixin
-from vos.vela_elaborate_patterns import _PatternsMixin
-from vos.vela_elaborate_proofs import _ProofsMixin
-from vos.vela_elaborate_protocol import (
+from vos.vela.ast import ValueType, VelaError
+from vos.vela.elaborate_declarations import _DeclarationsMixin
+from vos.vela.elaborate_intrinsics import _IntrinsicsMixin
+from vos.vela.elaborate_patterns import _PatternsMixin
+from vos.vela.elaborate_proofs import _ProofsMixin
+from vos.vela.elaborate_protocol import (
     _IDENTIFIER,
     _OPERATORS,
     _Protocol,
 )
-from vos.vela_elaborate_solver import _SolverMixin
-from vos.vela_elaborate_statements import _StatementsMixin
-from vos.vela_elaborate_strings import _StringsMixin
-from vos.vela_elaborate_types import (
+from vos.vela.elaborate_solver import _SolverMixin
+from vos.vela.elaborate_statements import _StatementsMixin
+from vos.vela.elaborate_strings import _StringsMixin
+from vos.vela.elaborate_types import (
     _BOOL,
     _CHAR,
     _INT_SPECS,
@@ -63,7 +63,7 @@ from vos.vela_elaborate_types import (
     _UnionCtor,
     _UnionInfo,
 )
-from vos.vela_elaborate_whnf import _WhnfMixin
+from vos.vela.elaborate_whnf import _WhnfMixin
 
 __all__ = [
     "MAX_CONSTANT_NAT",
@@ -1557,7 +1557,7 @@ def evaluate(source: bytes, parsed: object, expression: str, value_type: ValueTy
              *, parse: Callable[[bytes], object]) -> StaticEvaluation:
     """Reduce one source-bound console constant in the checked module's environment.
 
-    The [mathematical console contract](../../docs/languages/vela/elaboration-prototype.md#commands-and-acceptance)
+    The [mathematical console contract](../../../docs/languages/vela/elaboration-prototype.md#commands-and-acceptance)
     retains the native parser and existing bounded constant reducer.
     """
     _, elaborator = _checked_elaboration(source, parsed)

@@ -11,8 +11,8 @@ from dataclasses import dataclass, fields, is_dataclass
 from typing import cast
 
 from vos import vela
-from vos import vela_ast as syntax
-from vos.vela_source import SourceSnapshot
+from vos.vela import ast as syntax
+from vos.vela.source import SourceSnapshot
 
 STYLE_VERSION = 1
 LINT_CODES = frozenset({"VELA100", "VELA101", "VELA102", "VELA103", "VELA104", "VELA105", "VELA106"})

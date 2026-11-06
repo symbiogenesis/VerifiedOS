@@ -3,7 +3,7 @@
 
 from dataclasses import dataclass, field
 
-from vos.vela_ast import MAX_LITERAL_DIGITS
+from vos.vela.ast import MAX_LITERAL_DIGITS
 
 MAX_DEPTH = 128
 MAX_WORK = 200_000

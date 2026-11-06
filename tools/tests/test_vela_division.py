@@ -7,8 +7,9 @@ from typing import cast
 from unittest.mock import patch
 
 from tests.harness import Case, ensure
-from vos import vela, vela_ast
-from vos.vela_authoring import format_source
+from vos import vela
+from vos.vela import ast as vela_ast
+from vos.vela.authoring import format_source
 
 _NAT = "Corelib.Init.Datatypes.nat"
 _BASE = b"module M; public Nat Id(Nat value) => value;"

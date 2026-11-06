@@ -5,7 +5,7 @@ import hashlib
 import re
 from typing import cast
 
-from vos.vela_ast import (
+from vos.vela.ast import (
     DECIMAL,
     MAX_LITERAL_DIGITS,
     MAX_SOURCE_BYTES,
@@ -13,7 +13,7 @@ from vos.vela_ast import (
     source_text,
     trivia_end,
 )
-from vos.vela_elaborate_types import MAX_DEPTH, Node
+from vos.vela.elaborate_types import MAX_DEPTH, Node
 
 _FIELDS: dict[str, set[str]] = {
     "surface_file": {"name", "declarations"},

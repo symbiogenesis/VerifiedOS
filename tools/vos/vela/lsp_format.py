@@ -8,18 +8,18 @@ from collections.abc import Callable
 from pathlib import Path
 
 from vos.protocol_json import MAX_BODY_BYTES, decode_message, encode_message
-from vos.vela_ast import MAX_SOURCE_BYTES
-from vos.vela_lsp_services import INSPECTION_SECONDS, InspectionError
-from vos.vela_source import SourceSnapshot
+from vos.vela.ast import MAX_SOURCE_BYTES
+from vos.vela.lsp_services import INSPECTION_SECONDS, InspectionError
+from vos.vela.source import SourceSnapshot
 
 type Formatter = Callable[[bytes], dict[str, object]]
 
 
 def format_document(source: bytes) -> dict[str, object]:
     """Run the fixed compiler library without invoking its file-writing command."""
-    tools = str(Path(__file__).resolve().parents[1])
+    tools = str(Path(__file__).resolve().parents[2])
     script = (f"import sys; sys.path.insert(0, {tools!r}); "
-              "from vos.vela_lsp_worker import main; raise SystemExit(main())")
+              "from vos.vela.lsp_worker import main; raise SystemExit(main())")
     try:
         done = subprocess.run([sys.executable, "-I", "-c", script, "--format"],
                               input=source, capture_output=True,

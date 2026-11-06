@@ -11,9 +11,8 @@ from pathlib import Path
 from unittest.mock import patch
 
 from tests.harness import Case, ensure
-from vos import vela_parser as parser
-from vos import vela_surface as surface
 from vos.cli import vela_parser as cli
+from vos.vela import parser, surface
 
 
 def _build(directory: Path) -> parser.Build:
@@ -76,7 +75,7 @@ def _qualification_input_binding() -> None:
     with tempfile.TemporaryDirectory(prefix="vos-vela-surface-") as temporary:
         root = Path(temporary)
         files = [*(f"tools/vela/parser/{name}" for name in parser.SOURCES),
-                 "tools/opam/sail.lock", "tools/vos/vela_parser.py", "tools/vos/vela_surface.py",
+                 "tools/opam/sail.lock", "tools/vos/vela/parser.py", "tools/vos/vela/surface.py",
                  "tools/vela/examples/pure.vela", "tools/vela/examples/surface.vela",
                  "tools/vela/examples/constants.vela", "tools/vela/examples/expressions.vela"]
         for name in files:
@@ -84,7 +83,7 @@ def _qualification_input_binding() -> None:
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_bytes(name.encode())
         initial = parser._inputs(root)
-        for name in ("tools/vos/vela_surface.py", "tools/vela/examples/surface.vela",
+        for name in ("tools/vos/vela/surface.py", "tools/vela/examples/surface.vela",
                      "tools/vela/examples/constants.vela", "tools/vela/examples/expressions.vela"):
             path = root / name
             original = path.read_bytes()

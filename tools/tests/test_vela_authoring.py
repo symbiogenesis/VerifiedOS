@@ -5,7 +5,7 @@ from typing import cast
 
 from tests.harness import Case, ensure
 from vos.vela import inspect_source
-from vos.vela_lsp import Server
+from vos.vela.lsp import Server
 
 INDEPENDENT_CASES = True
 

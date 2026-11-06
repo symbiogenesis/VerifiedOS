@@ -7,8 +7,8 @@ from unittest.mock import patch
 from tests.harness import Case, ensure
 from vos import vela
 from vos.vela import VelaError
-from vos.vela_authoring import LINT_CODES, lint_source
-from vos.vela_facts import MAX_SYMBOLS
+from vos.vela.authoring import LINT_CODES, lint_source
+from vos.vela.facts import MAX_SYMBOLS
 
 INDEPENDENT_CASES = True
 

@@ -4,7 +4,7 @@
 import argparse
 import sys
 
-from vos.vela_lsp import serve
+from vos.vela.lsp import serve
 
 
 def main(argv: list[str] | None = None) -> int:

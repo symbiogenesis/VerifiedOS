@@ -10,7 +10,7 @@ from unittest.mock import patch
 
 from tests.harness import Case, ensure
 from vos.protocol_json import MAX_BODY_BYTES, encode_message
-from vos.vela_lsp import Server, diagnose
+from vos.vela.lsp import Server, diagnose
 
 INDEPENDENT_CASES = True
 _URI = "untitled:safety.vela"
@@ -78,7 +78,7 @@ def _malformed_diagnostic_worker() -> None:
                     {"kind": "x" * (MAX_BODY_BYTES - 100)})]]
     for raw in variants:
         done = subprocess.CompletedProcess(["fixed"], 0, raw, b"")
-        with patch("vos.vela_lsp.subprocess.run", return_value=done):
+        with patch("vos.vela.lsp.subprocess.run", return_value=done):
             result = diagnose(_SOURCE)
         if result is None:
             raise AssertionError("malformed worker output erased its failure diagnostic")
@@ -87,7 +87,7 @@ def _malformed_diagnostic_worker() -> None:
                f"malformed worker output escaped its boundary: {raw[:120]!r}")
         encode_message(result)
     for raw, expected in ((b" \r\nnull\t", None), (json.dumps(valid).encode(), valid)):
-        with patch("vos.vela_lsp.subprocess.run", return_value=subprocess.CompletedProcess([], 0, raw, b"")):
+        with patch("vos.vela.lsp.subprocess.run", return_value=subprocess.CompletedProcess([], 0, raw, b"")):
             ensure(diagnose(_SOURCE) == expected, "valid diagnostic worker output was refused")
 
 
@@ -95,12 +95,12 @@ def _worker_failure_keeps_overlay_synchronized() -> None:
     invalid = subprocess.CompletedProcess([], 0,
         b'{"kind":"type","line":999,"column":1,"message":"bad site"}', b"")
     server = Server()
-    with patch("vos.vela_lsp.subprocess.run", return_value=invalid):
+    with patch("vos.vela.lsp.subprocess.run", return_value=invalid):
         _open(server, _SOURCE.decode())
     ensure(_URI not in server.desynchronized and server.documents[_URI].text == _SOURCE.decode(),
            "malformed producer coordinates desynchronized the valid client overlay")
     valid = {"kind": "type", "line": 1, "column": 26, "message": "chosen type error"}
-    with patch("vos.vela_lsp.subprocess.run", return_value=subprocess.CompletedProcess(
+    with patch("vos.vela.lsp.subprocess.run", return_value=subprocess.CompletedProcess(
             [], 0, json.dumps(valid).encode(), b"")):
         replies = server.handle(_notice("textDocument/didSave", {"textDocument": {"uri": _URI}}))
     params = cast("dict[str, object]", replies[0]["params"])

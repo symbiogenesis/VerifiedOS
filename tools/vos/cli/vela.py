@@ -11,7 +11,7 @@ from typing import BinaryIO, cast
 
 from vos.atomic import atomic_path
 from vos.vela import MAX_SOURCE_BYTES, VelaError, translate
-from vos.vela_authoring import LINT_CODES, format_source, lint_source, preview_bindings
+from vos.vela.authoring import LINT_CODES, format_source, lint_source, preview_bindings
 
 
 @dataclass(frozen=True)

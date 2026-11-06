@@ -14,11 +14,11 @@ from unittest.mock import patch
 from tests.harness import Case, ensure
 from vos.protocol_json import MAX_BODY_BYTES, decode_message, encode_message, read_frame
 from vos.vela import VelaError, inspect_source, translate
-from vos.vela_authoring import format_source
-from vos.vela_lsp import Server, serve
-from vos.vela_lsp_format import format_document, formatting_edits
-from vos.vela_lsp_services import InspectionError
-from vos.vela_source import SourceSnapshot
+from vos.vela.authoring import format_source
+from vos.vela.lsp import Server, serve
+from vos.vela.lsp_format import format_document, formatting_edits
+from vos.vela.lsp_services import InspectionError
+from vos.vela.source import SourceSnapshot
 
 INDEPENDENT_CASES = True
 _URI = "untitled:editor.vela"
@@ -166,7 +166,7 @@ def _formatter_transport_and_limits() -> None:
     valid = _format(snapshot.source)
     ensure(formatting_edits(snapshot, valid) == _edits((1, 32)), "valid format worker result was refused")
     success = subprocess.CompletedProcess([], 0, json.dumps(valid).encode(), b"")
-    with patch("vos.vela_lsp_format.subprocess.run", return_value=success) as worker:
+    with patch("vos.vela.lsp_format.subprocess.run", return_value=success) as worker:
         ensure(format_document(snapshot.source) == valid, "valid worker transport was refused")
         args, kwargs = worker.call_args
         command = args[0]
@@ -188,14 +188,14 @@ def _formatter_transport_and_limits() -> None:
     for done in (subprocess.CompletedProcess([], 1, b"{}", b""),
                  subprocess.CompletedProcess([], 0, b"x" * (MAX_BODY_BYTES + 1), b""),
                  subprocess.CompletedProcess([], 0, b'{"status":"ok","status":"ok"}', b"")):
-        with patch("vos.vela_lsp_format.subprocess.run", return_value=done):
+        with patch("vos.vela.lsp_format.subprocess.run", return_value=done):
             try:
                 format_document(snapshot.source)
             except InspectionError:
                 pass
             else:
                 raise AssertionError("invalid format worker transport was accepted")
-    with patch("vos.vela_lsp_format.subprocess.run", side_effect=subprocess.TimeoutExpired("worker", 5)):
+    with patch("vos.vela.lsp_format.subprocess.run", side_effect=subprocess.TimeoutExpired("worker", 5)):
         server = _server()
         server.formatter = format_document
         _error(server, "textDocument/formatting", _params(True), -32803)

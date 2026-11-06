@@ -3,8 +3,8 @@
 
 from typing import TYPE_CHECKING, cast
 
-from vos.vela_ast import VelaError
-from vos.vela_elaborate_types import (
+from vos.vela.ast import VelaError
+from vos.vela.elaborate_types import (
     _BOOL,
     _GALLINA,
     _NAT,
@@ -32,7 +32,7 @@ from vos.vela_elaborate_types import (
 )
 
 if TYPE_CHECKING:
-    from vos.vela_elaborate import _Elaborator
+    from vos.vela.elaborate import _Elaborator
 
 
 class _DeclarationsMixin:

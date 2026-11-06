@@ -7,8 +7,8 @@ from pathlib import Path
 
 from filelock import Timeout
 
-from vos import vela_parser
-from vos.vela_playground import PlaygroundServer
+from vos.vela import parser as vela_parser
+from vos.vela.playground import PlaygroundServer
 
 
 def main(argv: list[str] | None = None) -> int:

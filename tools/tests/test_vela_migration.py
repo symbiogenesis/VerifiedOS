@@ -10,9 +10,10 @@ from pathlib import Path
 from unittest.mock import patch
 
 from tests.harness import TOOLS, Case, ensure
-from vos import vela, vela_parser
-from vos import vela_migration as migration
+from vos import vela
 from vos.cli import vela_parser as cli
+from vos.vela import migration
+from vos.vela import parser as vela_parser
 
 
 def _comparison() -> None:
