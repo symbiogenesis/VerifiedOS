@@ -220,6 +220,62 @@ public theorem PacketFitsForEveryId(): forall (Nat id) => Fits(FormatPacket(id, 
 public lemma PacketWrites32Bytes(): Written(FormatPacket(42, true)) == 32 proof { assert Written(FormatPacket(42, true)) == 32; }
 public lemma SmallBufferFailsClosed(): Fits(OverflowPacket(42)) == false proof { assert Fits(OverflowPacket(42)) == false; }
 '''),
+        ("ergonomic-expressions-patterns-updates-guards-and-properties", '''module ErgonomicsReplay;
+public record Counter(Nat Value, Nat Limit) {
+    public bool AtLimit => this.Value >= this.Limit;
+    public Nat Remaining => this.Limit - this.Value;
+}
+public Nat DefaultStep => 1;
+public definition Counter Advance(Counter counter, Nat step) =>
+    if (counter.AtLimit) counter
+    else counter with { Value = counter.Value + step };
+public definition Counter Reconfigure(Counter counter, Nat value, Nat limit) =>
+    counter with { Value = value, Limit = limit };
+public definition Nat Unpack(Counter counter) =>
+    match (counter) {
+        Counter(Value: current, Limit: maximum) =>
+            if (current <= maximum) maximum - current else 0,
+    };
+public Nat StepIfPositive(Nat value, Counter counter) {
+    let Succ(previous) = value else {
+        return counter.Value;
+    }
+    let Counter(Value: base, Limit: limit) = counter;
+    if (previous is Succ(inner)) {
+        return base + inner + limit;
+    } else {
+        return base + limit;
+    }
+}
+public definition Nat ExprIfIs(Nat value) =>
+    if (value is Succ(previous)) previous + 10 else 0;
+public definition bool HasSuccessor(Nat value) => value is Succ(_);
+public TextBuilder<24> FormatCounter(Counter counter) {
+    let TextBuilder<24> builder = EmptyBuilder();
+    return Format.Write(ref builder, $"v=0x{counter.Value:x4} r=0x{counter.Remaining:x4}");
+}
+public lemma AdvanceStep():
+    Advance(Counter(Value: 2, Limit: 5), DefaultStep).Value == 3
+    proof { assert Advance(Counter(Value: 2, Limit: 5), DefaultStep).Value == 3; }
+public lemma ReconfigureBoth():
+    Reconfigure(Counter(Value: 1, Limit: 2), 4, 9).Remaining == 5
+    proof { assert Reconfigure(Counter(Value: 1, Limit: 2), 4, 9).Remaining == 5; }
+public lemma UnpackMatchesRemaining():
+    Unpack(Counter(Value: 2, Limit: 5)) == Counter(Value: 2, Limit: 5).Remaining
+    proof { assert Unpack(Counter(Value: 2, Limit: 5)) == Counter(Value: 2, Limit: 5).Remaining; }
+public lemma GuardEarlyExit():
+    StepIfPositive(0, Counter(Value: 10, Limit: 5)) == 10
+    proof { assert StepIfPositive(0, Counter(Value: 10, Limit: 5)) == 10; }
+public lemma GuardRefinedBranch():
+    StepIfPositive(2, Counter(Value: 10, Limit: 5)) == 15
+    proof { assert StepIfPositive(2, Counter(Value: 10, Limit: 5)) == 15; }
+public lemma ExprIfIsCheck():
+    (ExprIfIs(3) == 12 && HasSuccessor(3) && !HasSuccessor(0)) == true
+    proof { assert (ExprIfIs(3) == 12 && HasSuccessor(3) && !HasSuccessor(0)) == true; }
+public lemma FormatCounterLength():
+    Written(FormatCounter(Counter(Value: 2, Limit: 5))) == 17
+    proof { assert Written(FormatCounter(Counter(Value: 2, Limit: 5))) == 17; }
+'''),
     )
     negatives = (
         ("static-parameter-runtime-input", "Nat F(const Nat value) => value; Nat Wrong(Nat runtime) => F(runtime);", "type"),
@@ -303,6 +359,46 @@ public lemma SmallBufferFailsClosed(): Fits(OverflowPacket(42)) == false proof {
          'definition TextBuilder<16> Wrong(TextBuilder<16> b) => Format.Write(ref b, $"n={Written(b):x4}");', "type"),
         ("format-write-capacity-mismatch",
          'definition TextBuilder<32> Wrong(TextBuilder<16> b) => Format.Write(ref b, $"ok");', "type"),
+        ("if-expression-non-bool-condition",
+         "definition Nat Wrong(Nat n) => if (n) 1 else 0;", "type"),
+        ("if-expression-branch-mismatch",
+         "definition Nat Wrong(bool flag) => if (flag) 1 else false;", "type"),
+        ("labeled-pattern-unknown-label",
+         "public record Pair(Nat Left, Nat Right); "
+         "definition Nat Wrong(Pair p) => match (p) { Pair(Missing: x, Right: y) => x };", "name"),
+        ("labeled-pattern-out-of-order",
+         "public record Pair(Nat Left, Nat Right); "
+         "definition Nat Wrong(Pair p) => match (p) { Pair(Right: y, Left: x) => x };", "name"),
+        ("labeled-pattern-positional-after-label",
+         "public record Pair(Nat Left, Nat Right); "
+         "definition Nat Wrong(Pair p) => match (p) { Pair(Left: x, y) => x };", "name"),
+        ("labeled-pattern-unnamed-constructor",
+         "definition Nat Wrong(Nat n) => match (n) { 0 => 0, Succ(value: k) => k };", "name"),
+        ("with-update-non-record",
+         "definition Nat Wrong(Nat n) => n with { Value = 1 };", "type"),
+        ("with-update-unknown-field",
+         "public record Counter(Nat Value); "
+         "definition Counter Wrong(Counter c) => c with { Missing = 1 };", "name"),
+        ("with-update-out-of-order-fields",
+         "public record Pair(Nat Left, Nat Right); "
+         "definition Pair Wrong(Pair p) => p with { Right = 1, Left = 2 };", "name"),
+        ("with-update-duplicate-field",
+         "public record Pair(Nat Left, Nat Right); "
+         "definition Pair Wrong(Pair p) => p with { Left = 1, Left = 2 };", "name"),
+        ("with-update-field-type-mismatch",
+         "public record Counter(Nat Value); "
+         "definition Counter Wrong(Counter c) => c with { Value = true };", "type"),
+        ("let-else-non-exiting-else",
+         "Nat Wrong(Nat n) { let Succ(k) = n else { let unused = 0; } return k; }", "type"),
+        ("let-else-else-type-mismatch",
+         "Nat Wrong(Nat n) { let Succ(k) = n else { return true; } return k; }", "type"),
+        ("let-else-missing-continuation",
+         "Nat Wrong(Nat n) { let Succ(k) = n else { return 0; } }", "type"),
+        ("property-unknown-member",
+         "public record Counter(Nat Value); "
+         "definition Nat Wrong(Counter c) => c.Missing;", "name"),
+        ("record-duplicate-member",
+         "public record Counter(Nat Value) { public Nat Value => 0; }", "name"),
     )
     pure = Fixture("pure-expression-operators", b"""module PureExpressions;
 public Nat Difference(Nat left, Nat right) => left - right;
@@ -398,13 +494,34 @@ public TextBuilder<36> FormatPacket(Nat id, bool ok) {
 }
 public definition Nat PacketWritten() => Written(FormatPacket(42, true));
 public definition bool PacketFits() => Fits(FormatPacket(42, true));
+public record Counter(Nat Value, Nat Limit) {
+    public bool AtLimit => this.Value >= this.Limit;
+    public Nat Remaining => this.Limit - this.Value;
+}
+public Nat DefaultStep => 1;
+public definition Counter Advance(Counter counter, Nat step) =>
+    if (counter.AtLimit) counter
+    else counter with { Value = counter.Value + step };
+public Nat StepIfPositive(Nat value, Counter counter) {
+    let Succ(previous) = value else {
+        return counter.Value;
+    }
+    let Counter(Value: base, Limit: limit) = counter;
+    return if (previous is Succ(inner)) base + inner + limit else base + limit;
+}
+public definition Nat AdvancedRemaining() =>
+    Advance(Counter(Value: 2, Limit: 5), DefaultStep).Remaining;
+public definition Nat GuardedStep() =>
+    StepIfPositive(2, Counter(Value: 10, Limit: 5));
 ''', observations=(
         ("vela_d2_HigherOrder Corelib.Init.Datatypes.tt", "42"),
         ("vela_d4_Second Corelib.Init.Datatypes.tt", "20"),
         ("vela_d5_SelectedValue Corelib.Init.Datatypes.tt", "true"),
         ("vela_d9_PreservedValue Corelib.Init.Datatypes.tt", "42"),
         ("vela_d12_PacketWritten Corelib.Init.Datatypes.tt", "32"),
-        ("vela_d13_PacketFits Corelib.Init.Datatypes.tt", "true")))
+        ("vela_d13_PacketFits Corelib.Init.Datatypes.tt", "true"),
+        ("vela_d23_AdvancedRemaining Corelib.Init.Datatypes.tt", "2"),
+        ("vela_d24_GuardedStep Corelib.Init.Datatypes.tt", "15")))
     return (Fixture("authored-example", example), pure, division, dependent_playground,
             *(Fixture(name, ("module PureNegativeReplay; " + source).encode(), expected, pure=True)
               for name, source, expected in pure_negatives),
@@ -577,7 +694,10 @@ def _case(compiled: vela_parser.Build, case: Fixture, directory: Path, index: in
         row.update({"category": error.kind, "line": error.line, "column": error.column,
                     "message": error.message})
         if error.kind != case.expected or case.expected == "accepted":
-            raise ValueError(f"Vela replay {case.name}: expected {case.expected}, got {error.kind}") from error
+            raise ValueError(
+                f"Vela replay {case.name}: expected {case.expected}, got {error.kind} "
+                f"at {error.line}:{error.column}: {error.message}"
+            ) from error
         return row
     if case.expected != "accepted":
         raise ValueError(f"Vela replay {case.name}: expected {case.expected}, source was accepted")

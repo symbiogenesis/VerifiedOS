@@ -24,6 +24,50 @@ class Fixture:
 
 
 POSITIVE: tuple[Fixture, ...] = (
+    Fixture("expressions-patterns-updates-guards-and-properties", """// café: conditional expressions, labeled patterns, updates, guards and properties.
+module Ergonomics;
+public record Counter<T>(usize Count, usize Limit, owned Buffer<T, Count> Storage)
+    invariant Count <= Limit
+{
+    public usize Remaining => this.Limit - this.Count;
+    public ghost Seq<T> Model
+        requires Valid(this)
+        ensures result.Count == Nat(this.Count)
+        => this.Storage.Model;
+}
+public Nat Clamp(bool bounded, Nat value, Nat limit)
+    requires (if (bounded) limit > 0 else true)
+    => if (bounded) if (value < limit) value + 1 else limit else value;
+public Counter<T> Advance<T>(owned Counter<T> counter, owned Buffer<T, 1usize> replacement)
+{
+    let transferred = move counter with { Count = 1usize, Storage = move replacement, };
+    let chained = transferred with { Count = 1usize } with { Limit = 2usize };
+    return chained;
+}
+public Nat Extract(Option<Delivery> candidate, Nat fallback)
+{
+    let Some(Accepted(packet: p, receipt: r,)) = candidate else
+    {
+        return fallback;
+    }
+    var Accepted(packet: mutablePacket, beta) = Wrap(p, r) else
+    {
+        return if (candidate is Some(Cancelled(packet: c))) c.Length else fallback;
+    }
+    let chosen = (if (candidate is Some(_)) p.Length else fallback) + 1;
+    let matched = match (candidate)
+    {
+        Some(Accepted(packet: item, receipt: token)) => item.Length,
+        _ => chosen,
+    };
+    if (candidate is Some(Accepted(packet: observed, receipt: _)))
+    {
+        return observed.Length + matched;
+    }
+    return matched;
+}
+""", ("record", "property", "if_expression", "with_expression", "field_update",
+      "labeled_pattern", "let_else", "var_else", "is", "match_expression")),
     Fixture("familiar-generic-calls-and-expression-arms", """// café: token shape fixes every generic application.
 module Familiar;
 import Vela.Numerics;
@@ -1598,6 +1642,22 @@ NEGATIVE: tuple[tuple[str, bytes, str], ...] = (
     ("chained-comparison", b"module M; public bool F() { return a < b < c; }", "syntax"),
     ("generic-looking-comparison-group", b"module M; public bool F() { return (a < b > c); }", "syntax"),
     ("generic-looking-comparison-argument", b"module M; public void F() { Call(a < b > c, x); }", "syntax"),
+    ("if-expression-missing-else", b"module M; definition Nat F(bool c) => if (c) 1;", "syntax"),
+    ("if-expression-missing-condition", b"module M; definition Nat F() => if () 1 else 2;", "syntax"),
+    ("if-expression-missing-then", b"module M; definition Nat F(bool c) => if (c) else 2;", "syntax"),
+    ("if-expression-unparenthesized-condition", b"module M; definition Nat F(bool c) => if c 1 else 2;", "syntax"),
+    ("labeled-pattern-missing-pattern", b"module M; void F() { let Some(value:) = x; }", "syntax"),
+    ("labeled-pattern-missing-label", b"module M; void F() { let Some(: value) = x; }", "syntax"),
+    ("with-expression-empty-updates", b"module M; definition S F(S s) => s with {};", "syntax"),
+    ("with-expression-missing-value", b"module M; definition S F(S s) => s with { Count = };", "syntax"),
+    ("with-expression-missing-equal", b"module M; definition S F(S s) => s with { Count : 1 };", "syntax"),
+    ("let-else-bare-identifier", b"module M; void F() { let x = source else { return; } }", "syntax"),
+    ("let-else-unbraced-body", b"module M; void F() { let Some(x) = source else return; }", "syntax"),
+    ("let-else-missing-body", b"module M; void F() { let Some(x) = source else; }", "syntax"),
+    ("property-async-modifier", b"module M; struct S { public async usize Length => 0usize; }", "syntax"),
+    ("property-const-modifier", b"module M; struct S { public const usize Length => 0usize; }", "syntax"),
+    ("property-effects-clause", b"module M; struct S { public usize Length effects reads(this) => 0usize; }", "syntax"),
+    ("property-missing-body", b"module M; struct S { public usize Length => ; }", "syntax"),
     ("trailing-input", b"module M; public void F(); garbage", "syntax"),
     ("invalid-utf8", b"// invalid \xff\nmodule M; public void F();", "encoding"),
     ("literal-limit", b"module M; public Nat F() { return " + b"9" * 257 + b"; }", "limit"),
@@ -4001,6 +4061,9 @@ def _recursive_pattern_shape(value: Json) -> Json:
     if kind == "constructor_pattern":
         return ["constructor", *_texts(pattern.get("name")),
                 [_recursive_pattern_shape(child) for child in _sequence(pattern.get("arguments"), "constructor arguments")]]
+    if kind == "labeled_pattern":
+        return ["labeled", *_texts(pattern.get("label")),
+                _recursive_pattern_shape(pattern.get("pattern"))]
     if kind == "group_pattern":
         return ["group", _recursive_pattern_shape(pattern.get("pattern"))]
     if kind == "tuple_pattern":
@@ -4377,6 +4440,117 @@ def _generic_probe_limits(parse: Callable[[bytes], dict[str, Json]]) -> None:
                 raise ValueError("generic probe inspection exhaustion reinterpreted source or published syntax")
 
 
+def _ergonomic_expression_and_property_roles(source: bytes, result: dict[str, Json]) -> None:
+    tree = result.get("ast")
+    counter = _named(tree, "record", "Counter")
+    remaining = _named(counter, "property", "Remaining")
+    model = _named(counter, "property", "Model")
+    for prop, modifiers, contracts, spelling in (
+        (remaining, ["public"], [], b"public usize Remaining => this.Limit - this.Count;"),
+        (
+            model,
+            ["public"],
+            ["requires", "ensures"],
+            b"public ghost Seq<T> Model\n        requires Valid(this)\n"
+            b"        ensures result.Count == Nat(this.Count)\n        => this.Storage.Model;",
+        ),
+    ):
+        if (set(prop) != {"kind", "span", "name", "type", "contracts", "value", "modifiers"}
+                or prop.get("modifiers") != modifiers):
+            raise ValueError("surface expression property changed its AST fields or modifiers")
+        _exact_span(source, prop, spelling)
+        _contract_roles(prop, contracts)
+    if _object(model.get("type"), "ghost property type").get("modifier") != "ghost":
+        raise ValueError("surface ghost property lost its erased type modifier")
+    clamp = _named(tree, "function", "Clamp")
+    clamp_contract = _object(_contract_roles(clamp, ["requires"])[0].get("value"), "grouped if contract")
+    if (clamp_contract.get("kind") != "group"
+            or _object(clamp_contract.get("value"), "contract if_expression").get("kind") != "if_expression"):
+        raise ValueError("surface grouped conditional contract lost its if_expression role")
+    clamp_body = _object(_object(clamp.get("body"), "clamp expression body").get("value"), "outer if_expression")
+    inner_if = _object(clamp_body.get("then"), "nested if_expression")
+    for node, spelling in (
+        (clamp_body, b"if (bounded) if (value < limit) value + 1 else limit else value"),
+        (inner_if, b"if (value < limit) value + 1 else limit"),
+    ):
+        if set(node) != {"kind", "span", "condition", "then", "else"} or node.get("kind") != "if_expression":
+            raise ValueError("surface if_expression changed its required AST fields")
+        _exact_span(source, node, spelling)
+    advance = _named(tree, "function", "Advance")
+    transferred = _object(_named(advance, "let", "transferred").get("value"), "transferred with_expression")
+    base = _object(transferred.get("value"), "move base of with_expression")
+    updates = [_object(item, "field update") for item in _sequence(transferred.get("updates"), "field updates")]
+    if (set(transferred) != {"kind", "span", "value", "updates"}
+            or transferred.get("kind") != "with_expression"
+            or base.get("kind") != "unary" or _texts(base.get("operator")) != ["move"]
+            or _texts(base.get("value")) != ["counter"] or len(updates) != 2):
+        raise ValueError("surface with_expression lost its move base or field updates")
+    _exact_span(source, transferred, b"move counter with { Count = 1usize, Storage = move replacement, }")
+    for update, field_name, spelling in zip(
+        updates,
+        ("Count", "Storage"),
+        (b"Count = 1usize", b"Storage = move replacement"),
+        strict=True,
+    ):
+        if (set(update) != {"kind", "span", "name", "value"}
+                or update.get("kind") != "field_update" or _texts(update.get("name")) != [field_name]):
+            raise ValueError("surface field_update changed its name/value AST role")
+        _exact_span(source, update, spelling)
+    chained = _object(_named(advance, "let", "chained").get("value"), "chained with_expression")
+    chained_inner = _object(chained.get("value"), "inner with_expression")
+    if chained.get("kind") != "with_expression" or chained_inner.get("kind") != "with_expression":
+        raise ValueError("surface chained with_expression lost left-associative postfix grouping")
+    extract = _named(tree, "function", "Extract")
+    statements = [_object(item, "extract statement")
+                  for item in _sequence(_object(extract.get("body"), "extract body").get("statements"), "extract statements")]
+    let_else, var_else = statements[0], statements[1]
+    for guard, kind, expected_pattern, spelling in (
+        (
+            let_else,
+            "let_else",
+            ["constructor", "Some", [["constructor", "Accepted", [
+                ["labeled", "packet", ["bind", "p"]],
+                ["labeled", "receipt", ["bind", "r"]],
+            ]]]],
+            b"let Some(Accepted(packet: p, receipt: r,)) = candidate else\n    {\n        return fallback;\n    }",
+        ),
+        (
+            var_else,
+            "var_else",
+            ["constructor", "Accepted", [
+                ["labeled", "packet", ["bind", "mutablePacket"]],
+                ["bind", "beta"],
+            ]],
+            b"var Accepted(packet: mutablePacket, beta) = Wrap(p, r) else\n    {\n"
+            b"        return if (candidate is Some(Cancelled(packet: c))) c.Length else fallback;\n    }",
+        ),
+    ):
+        if (set(guard) != {"kind", "span", "pattern", "value", "else"}
+                or guard.get("kind") != kind
+                or _object(guard.get("else"), "guard else block").get("kind") != "block"
+                or _recursive_pattern_shape(guard.get("pattern")) != expected_pattern):
+            raise ValueError("surface let_else/var_else guard changed its pattern or else block role")
+        _exact_span(source, guard, spelling)
+    labeled_patterns = [node for node in nodes(extract) if node.get("kind") == "labeled_pattern"]
+    expected_labels = (
+        ("packet", b"packet: p"),
+        ("receipt", b"receipt: r"),
+        ("packet", b"packet: mutablePacket"),
+        ("packet", b"packet: c"),
+        ("packet", b"packet: item"),
+        ("receipt", b"receipt: token"),
+        ("packet", b"packet: observed"),
+        ("receipt", b"receipt: _"),
+    )
+    if len(labeled_patterns) != len(expected_labels):
+        raise ValueError("surface labeled_pattern count differs across guards, matches and pattern tests")
+    for node, (label, spelling) in zip(labeled_patterns, expected_labels, strict=True):
+        if (set(node) != {"kind", "span", "label", "pattern"}
+                or _texts(node.get("label")) != [label]):
+            raise ValueError("surface labeled_pattern changed its label or pattern fields")
+        _exact_span(source, node, spelling)
+
+
 def qualify(parse: Callable[[bytes], dict[str, Json]]) -> list[str]:
     """Exercise independent syntax cases; a failed oracle never passes a case."""
     _precedence_and_spans(parse)
@@ -4394,7 +4568,9 @@ def qualify(parse: Callable[[bytes], dict[str, Json]]) -> list[str]:
         missing = set(fixture.kinds) - found
         if missing:
             raise ValueError(f"surface fixture {fixture.name} lacks AST roles: {sorted(missing)}")
-        if fixture.name == "familiar-generic-calls-and-expression-arms":
+        if fixture.name == "expressions-patterns-updates-guards-and-properties":
+            _ergonomic_expression_and_property_roles(fixture.source.encode("utf-8"), result)
+        elif fixture.name == "familiar-generic-calls-and-expression-arms":
             _familiar_call_roles(fixture.source.encode("utf-8"), result)
         elif fixture.name == "bounded-collection-iteration":
             _collection_iteration_roles(fixture.source.encode("utf-8"), result)

@@ -289,7 +289,8 @@ def _numeric_separator_limits_required() -> None:
 
 
 def _familiar_authoring_oracles_required() -> None:
-    for name, oracle_name in (("familiar-generic-calls-and-expression-arms", "_familiar_call_roles"),
+    for name, oracle_name in (("expressions-patterns-updates-guards-and-properties", "_ergonomic_expression_and_property_roles"),
+                              ("familiar-generic-calls-and-expression-arms", "_familiar_call_roles"),
                               ("bounded-collection-iteration", "_collection_iteration_roles"),
                               ("raw-strings-and-checked-formatting", "_raw_string_and_format_roles"),
                               ("mathematical-definitions-and-proofs", "_indexed_constructor_roles")):

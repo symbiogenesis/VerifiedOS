@@ -65,11 +65,23 @@ The supported increment includes:
   checked formatting with static hole formatting (`Nat`, `bool`, `Vec<Nat, n>`,
   and `:x2`/`:x4`/`:x8`/`:d`/`:b` specifiers) and fail-closed capacity bounds.
 - Exhaustive `match` expressions and returning statement `match` over `Nat`,
-  `bool`, `Unit` and products, with wildcard (`_`), variable, `()`, Boolean
-  literal, nested tuple, decimal natural (bounded by structural unrolling) and
-  `Succ(...)` patterns, optional dependent `as name : Type` motives, and
-  irrefutable `let (a, b) = ...` product/unit destructuring in blocks and
-  `let ... in ...` expressions.
+  `bool`, `Unit`, products and nominal `record` types, with wildcard (`_`),
+  variable, `()`, Boolean literal, nested tuple, decimal natural (bounded by
+  structural unrolling), `Succ(...)` and record constructor patterns (supporting
+  optional declaration-order `label: pattern` arguments), optional dependent
+  `as name : Type` motives, and irrefutable `let (a, b) = ...` or
+  `let RecordName(...) = ...` destructuring in blocks and `let ... in ...`
+  expressions.
+- Conditional `if (cond) a else b` expressions (`if_expression`), Boolean
+  `expr is Pattern` tests, flow-refined `if (expr is Pattern)` statements and
+  expressions (binding `Pattern`'s variables in the `then` branch), and scoped
+  early-exit `let Pattern = expr else { return ...; }` (`let_else`) guards in
+  blocks and `assert ... by { ... }` proof blocks.
+- Nominal `record Name(T1 Field1, ...)` declarations with primary-constructor
+  fields, total read-only expression properties (`public T Prop => expr;`) on
+  records and at module scope, `.Field` and `.Property` member projections, and
+  postfix `base with { Field = expr, ... }` record updates evaluated in
+  declaration order.
 - Typed `const` values of `Nat`, `bool` or `Unit`, at module or local scope,
   under the [required-static contract](surface-grammar.md#required-static-constants).
   Initializers use earlier constants and admitted total pure calls with static

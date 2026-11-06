@@ -35,8 +35,11 @@ parser bytes. Source, expression and result type all invalidate stale output.
 
 Runnable examples demonstrate generic instantiation, safe vector lookup, dependent
 length preservation, multi-quote raw string literals with allocation-free checked
-`Format.Write(ref builder, $"...")` formatting, and explicit proofs, with
-independently expected console answers.
+`Format.Write(ref builder, $"...")` formatting, nominal records with total
+read-only expression properties, `with { ... }` updates, declaration-order labeled
+constructor patterns, `if (...) ... else ...` expressions, `let ... else` /
+`if (x is ...)` guards, and explicit proofs, with independently expected console
+answers.
 All examples share one selector and one source buffer. Debounced source checks
 automatically update diagnostics and editor-service availability. Dependent source
 disables pure-only LSP, formatting, lint and binding preview services explicitly;

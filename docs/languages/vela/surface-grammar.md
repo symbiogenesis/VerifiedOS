@@ -908,6 +908,45 @@ exposes located `value` and nullable `by` fields (`null` for a bare assertion,
 the located expression node for `by EXPR;`, or the located `block` node for
 `by { ... }`). `by` remains a reserved keyword in the surface lexer.
 
+**Conditional expressions, constructor-pattern labels and record updates.**
+In expression positions (`let` initializers, `=>` expression bodies, `return`
+values, call arguments, contracts and nested expressions), `if (COND) THEN else ELSE`
+parses as a located `if_expression` node with `condition`, `then` and mandatory
+`else` fields, avoiding ternary `?` ambiguity (where `?` remains postfix error
+propagation and prefix typed holes) and desugaring to an exhaustive Boolean
+elimination with the same resource join as a two-arm `match`. Statement-start
+`if` retains its statement production without LR(1) conflict by restricting
+bare statement expressions and assignment targets to `s_statement_expression`.
+Constructor patterns `Path(arg, ...)` accept positional sub-patterns or a
+positional prefix followed by declaration-order `label: pattern` arguments
+(`labeled_pattern` nodes with located `label` and `pattern` fields), matching
+call-expression label order without symbol-table lookup during parsing. Postfix
+`BASE with { Field = EXPR, ... }` (allowing one trailing comma) parses at unary
+precedence as a located `with_expression` node with `value` and nonempty
+`updates` (`field_update` nodes carrying `name` and `value`), so `move packet with { ... }`
+binds `move packet` as the base `value` expression. It does not conflict with
+callable-type `with { requires ...; }` (only in `Fn`/`FnMut`/`FnOnce` types) or
+handler `with k =>`. Evaluation proceeds left-to-right in declaration order;
+linear or affine records require `move base with { ... }` so unreplaced fields
+transfer cleanly and replaced resources are accounted for.
+
+**Scoped early-exit guards, flow-refined `is` and total read-only expression properties.**
+Inside blocks, `let [grade] [T] PATTERN = EXPR else { ... }` and `var [grade] [T] PATTERN = EXPR else { ... }`
+parse as located `let_else` and `var_else` statement nodes with `grade`,
+nullable `type`, `pattern`, `value` and braced `else` block fields (`else`
+takes a block without a trailing semicolon). The `else` block must exit the
+enclosing scope (`return`, `break`, `continue` or diverging handler/propagation)
+and discharge non-matching resources, leaving the pattern's bindings in scope for
+the remainder of the enclosing block. In conditional headers, `if (EXPR is PATTERN)`
+binds `PATTERN`'s variables in the `then` branch and refines the complement in
+`else` under the same exhaustive split. At module, `record`, `struct`, `union`
+and `impl` declaration scope, `[visibility] [ghost] T Name [contracts] => EXPR;`
+parses as a located `property` declaration with `visibility`, `ghost`,
+`attributes`, `modifiers`, `name`, `return_type`, `contracts` (excluding
+`effects` clauses) and `body` fields. `async` and `const` modifiers, parameter
+lists, `effects` clauses and `set` accessors are syntax refusals on properties,
+guaranteeing that `a.B` is always a total, allocation-free, effect-free read of `a`.
+
 **Pure typed locals and binding guidance.** Both pure syntax routes accept
 `let Nat count = value;`, `let bool ready = value;` and the immutable bare forms
 `Nat count = value;` and `bool ready = value;`. The annotation must equal the
@@ -931,7 +970,16 @@ interpolated templates with expressions, format specifiers and escaped `{{`/`}}`
 braces, syntax-valid semantic error neighbors (standalone `$"..."` value
 bindings and conflicting receiver reads inside holes), and syntax refusals for
 malformed raw-string delimiters/indentation, empty or unclosed interpolation
-holes, malformed specifiers, unescaped braces and interpolated patterns. Refuse
+holes, malformed specifiers, unescaped braces and interpolated patterns.
+Expression, pattern, update, guard and property fixtures cover `if_expression`
+(including nested conditionals), declaration-order `labeled_pattern` arguments,
+`with_expression` record/model updates (including `move base with { ... }` and
+trailing commas), `let_else`/`var_else` guards, `if (x is Pattern)` branch
+refinements, and read-only `property` declarations (including `ghost` and
+`ensures` contracts), alongside syntax refusals for `if` expressions without
+`else`, statement-start `if` expressions, empty or colon-written `with {}`
+updates, non-block `let ... else`, missing `labeled_pattern` sub-patterns, and
+`async`, `const`, `effects` or setter-block properties. Refuse
 incomplete binders,
 missing `in`, malformed annotations and budget exhaustion without an AST. Keep
 syntax-valid borrowing, copying and cleanup violations for the semantic checker

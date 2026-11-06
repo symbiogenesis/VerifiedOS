@@ -221,6 +221,56 @@ class _Fixture:
         self.declarations.append(self.node("constant", start, name=binding, type=annotation,
                                            value=initializer, modifiers=["public"]))
 
+    def record(self, name: str, parameters: tuple[Parameter, ...],
+               properties: tuple[tuple[str, Form, Form], ...] = (),
+               generics: tuple[Generic, ...] = ()) -> None:
+        self.write("\n")
+        start = self.offset
+        self.write("public record ")
+        binding = self.name(name)
+        generic_nodes = self.generics(generics)
+        parameter_nodes = self.parameters(parameters)
+        member_nodes: list[Node] = []
+        if properties:
+            self.write(" {")
+            for prop_name, prop_type, prop_value in properties:
+                self.write(" ")
+                prop_start = self.offset
+                self.write("public ")
+                annotation = prop_type(self)
+                self.write(" ")
+                prop_binding = self.name(prop_name)
+                self.write(" => ")
+                body = prop_value(self)
+                self.write(";")
+                member_nodes.append(
+                    self.node("property", prop_start, name=prop_binding, type=annotation,
+                              contracts=[], value=body, modifiers=["public"])
+                )
+            self.write(" }")
+        else:
+            self.write(";")
+        self.declarations.append(
+            self.node("record", start, name=binding, generics=generic_nodes,
+                      parameters=parameter_nodes, contracts=[], declarations=member_nodes,
+                      modifiers=["public"])
+        )
+
+    def property_decl(self, name: str, value_type: Form, value: Form) -> None:
+        self.write("\n")
+        start = self.offset
+        self.write("public ")
+        annotation = value_type(self)
+        self.write(" ")
+        binding = self.name(name)
+        self.write(" => ")
+        body = value(self)
+        self.write(";")
+        self.declarations.append(
+            self.node("property", start, name=binding, type=annotation,
+                      contracts=[], value=body, modifiers=["public"])
+        )
+
     def response(self) -> tuple[bytes, Node]:
         source = self.text.encode("utf-8")
         return source, {"schema": 2, "source_sha256": hashlib.sha256(source).hexdigest(),
@@ -1990,6 +2040,235 @@ def _raw_strings_and_checked_formatting() -> None:
     _refuses(alias_read, "type", "alias")
 
 
+def _if_expr(condition: Form, yes: Form, no: Form) -> Form:
+    def form(fixture: _Fixture) -> Node:
+        start = fixture.offset
+        fixture.write("if (")
+        cond_node = condition(fixture)
+        fixture.write(") ")
+        yes_node = yes(fixture)
+        fixture.write(" else ")
+        no_node = no(fixture)
+        return fixture.node("if_expression", start, condition=cond_node, **{"then": yes_node, "else": no_node})
+    return form
+
+
+def _with_expr(value: Form, updates: tuple[tuple[str, Form], ...]) -> Form:
+    def form(fixture: _Fixture) -> Node:
+        start = fixture.offset
+        val_node = value(fixture)
+        fixture.write(" with { ")
+        update_nodes: list[Node] = []
+        for index, (fname, fval) in enumerate(updates):
+            if index:
+                fixture.write(", ")
+            ustart = fixture.offset
+            name_node = fixture.name(fname)
+            fixture.write(" = ")
+            fval_node = fval(fixture)
+            update_nodes.append(fixture.node("field_update", ustart, name=name_node, value=fval_node))
+        fixture.write(" }")
+        return fixture.node("with_expression", start, value=val_node, updates=update_nodes)
+    return form
+
+
+def _is_expr(value: Form, pattern: Form) -> Form:
+    def form(fixture: _Fixture) -> Node:
+        start = fixture.offset
+        val_node = value(fixture)
+        fixture.write(" is ")
+        pat_node = pattern(fixture)
+        return fixture.node("is", start, value=val_node, pattern=pat_node)
+    return form
+
+
+def _pat_labeled(label: str, pattern: Form) -> Form:
+    def form(fixture: _Fixture) -> Node:
+        start = fixture.offset
+        lbl_node = fixture.name(label)
+        fixture.write(": ")
+        pat_node = pattern(fixture)
+        return fixture.node("labeled_pattern", start, label=lbl_node, pattern=pat_node)
+    return form
+
+
+def _let_else_block(pattern: Form, value: Form, otherwise: Form, body: Form) -> Form:
+    def form(fixture: _Fixture) -> Node:
+        start = fixture.offset
+        fixture.write("{ ")
+        le_start = fixture.offset
+        fixture.write("let ")
+        pat_node = pattern(fixture)
+        fixture.write(" = ")
+        val_node = value(fixture)
+        fixture.write(" else ")
+        else_start = fixture.offset
+        fixture.write("{ ")
+        else_ret_start = fixture.offset
+        fixture.write("return ")
+        else_val = otherwise(fixture)
+        fixture.write(";")
+        else_ret = fixture.node("return", else_ret_start, value=else_val)
+        fixture.write(" }")
+        else_blk = fixture.node("block", else_start, statements=[else_ret])
+        le_node = fixture.node("let_else", le_start, pattern=pat_node, value=val_node, **{"else": else_blk})
+        fixture.write(" ")
+        ret_start = fixture.offset
+        fixture.write("return ")
+        out_val = body(fixture)
+        fixture.write(";")
+        ret_node = fixture.node("return", ret_start, value=out_val)
+        fixture.write(" }")
+        return fixture.node("block", start, statements=[le_node, ret_node])
+    return form
+
+
+def _records_properties_updates_guards_and_expressions() -> None:
+    fixture = _Fixture("Ergonomics")
+    fixture.record(
+        "Counter",
+        (("Value", _NAT), ("Limit", _NAT)),
+        properties=(
+            ("AtLimit", _BOOL, _binary(">=", _member(_variable("this"), "Value"), _member(_variable("this"), "Limit"))),
+            ("Remaining", _NAT, _binary("-", _member(_variable("this"), "Limit"), _member(_variable("this"), "Value"))),
+        ),
+    )
+    fixture.property_decl("DefaultStep", _NAT, _natural(1))
+    fixture.definition(
+        "Advance",
+        _type("Counter"),
+        (("counter", _type("Counter")), ("step", _NAT)),
+        _if_expr(
+            _member(_variable("counter"), "AtLimit"),
+            _variable("counter"),
+            _with_expr(
+                _variable("counter"),
+                (("Value", _binary("+", _member(_variable("counter"), "Value"), _variable("step"))),),
+            ),
+        ),
+    )
+    fixture.definition(
+        "Unpack",
+        _NAT,
+        (("counter", _type("Counter")),),
+        _match_expr(
+            _variable("counter"),
+            ((
+                _pat_ctor(
+                    "Counter",
+                    _pat_labeled("Value", _pat_bind("current")),
+                    _pat_labeled("Limit", _pat_bind("maximum")),
+                ),
+                _if_expr(
+                    _binary("<=", _variable("current"), _variable("maximum")),
+                    _binary("-", _variable("maximum"), _variable("current")),
+                    _natural(0),
+                ),
+            ),),
+        ),
+    )
+    fixture.function(
+        "StepIfPositive",
+        _NAT,
+        (("value", _NAT), ("counter", _type("Counter"))),
+        _let_else_block(
+            _pat_ctor("Succ", _pat_bind("previous")),
+            _variable("value"),
+            _member(_variable("counter"), "Value"),
+            _if_expr(
+                _is_expr(_variable("previous"), _pat_ctor("Succ", _pat_bind("inner"))),
+                _binary(
+                    "+",
+                    _binary("+", _member(_variable("counter"), "Value"), _variable("inner")),
+                    _member(_variable("counter"), "Limit"),
+                ),
+                _binary("+", _member(_variable("counter"), "Value"), _member(_variable("counter"), "Limit")),
+            ),
+        ),
+        block=True,
+    )
+    sample = _call("Counter", _natural(2), _natural(5), labels=("Value", "Limit"))
+    fixture.theorem(
+        "AdvanceCheck",
+        (),
+        _binary(
+            "==",
+            _member(_call("Advance", sample, _variable("DefaultStep")), "Value"),
+            _natural(3),
+        ),
+        _assert(
+            _binary(
+                "==",
+                _member(_call("Advance", sample, _variable("DefaultStep")), "Value"),
+                _natural(3),
+            )
+        ),
+    )
+    fixture.theorem(
+        "UnpackCheck",
+        (),
+        _binary("==", _call("Unpack", sample), _member(sample, "Remaining")),
+        _assert(_binary("==", _call("Unpack", sample), _member(sample, "Remaining"))),
+    )
+    fixture.theorem(
+        "GuardCheck",
+        (),
+        _binary(
+            "==",
+            _call("StepIfPositive", _natural(2), _call("Counter", _natural(10), _natural(5))),
+            _natural(15),
+        ),
+        _assert(
+            _binary(
+                "==",
+                _call("StepIfPositive", _natural(2), _call("Counter", _natural(10), _natural(5))),
+                _natural(15),
+            )
+        ),
+    )
+    source, response = fixture.response()
+    emitted = elaborate(source, response).gallina
+    ensure("vela_d0_Counter" in emitted and "vela_d5_Counter_Remaining" in emitted,
+           "elaborated Gallina omitted record or property definitions")
+
+    for name, result_type, body, kind, fragment in (
+        ("IfNonBool", _NAT, _if_expr(_natural(1), _natural(1), _natural(0)), "type", ""),
+        ("IfBranchMismatch", _NAT, _if_expr(_boolean(True), _natural(1), _boolean(False)), "type", ""),
+        ("WithNonRecord", _NAT, _with_expr(_natural(1), (("Value", _natural(2)),)), "type", "record"),
+        ("UnknownLabelPattern", _NAT, _match_expr(
+            _variable("counter"),
+            ((_pat_ctor("Counter", _pat_labeled("Missing", _pat_bind("x")), _pat_labeled("Limit", _pat_bind("y"))),
+              _variable("x")),)), "name", "expected pattern field label"),
+        ("OutOfOrderLabelPattern", _NAT, _match_expr(
+            _variable("counter"),
+            ((_pat_ctor("Counter", _pat_labeled("Limit", _pat_bind("y")), _pat_labeled("Value", _pat_bind("x"))),
+              _variable("x")),)), "name", "expected pattern field label"),
+        ("PositionalAfterLabelPattern", _NAT, _match_expr(
+            _variable("counter"),
+            ((_pat_ctor("Counter", _pat_labeled("Value", _pat_bind("x")), _pat_bind("y")),
+              _variable("x")),)), "name", "positional pattern"),
+        ("UnnamedConstructorLabelPattern", _NAT, _match_expr(
+            _natural(1),
+            ((_pat_nat(0), _natural(0)),
+             (_pat_ctor("Succ", _pat_labeled("value", _pat_bind("k"))), _variable("k"))),), "name", "does not accept labeled pattern arguments"),
+        ("WithUnknownField", _type("Counter"), _with_expr(_variable("counter"), (("Missing", _natural(1)),)), "name", "no field"),
+        ("WithOutOfOrder", _type("Counter"), _with_expr(
+            _variable("counter"),
+            (("Limit", _natural(1)), ("Value", _natural(2))),
+        ), "name", "declaration order"),
+        ("WithDuplicateField", _type("Counter"), _with_expr(
+            _variable("counter"),
+            (("Value", _natural(1)), ("Value", _natural(2))),
+        ), "name", "duplicate field"),
+        ("WithTypeMismatch", _type("Counter"), _with_expr(_variable("counter"), (("Value", _boolean(True)),)), "type", ""),
+        ("UnknownProperty", _NAT, _member(_variable("counter"), "Missing"), "name", "no field or property"),
+    ):
+        wrong = _Fixture("ErgonomicsRefusals")
+        wrong.record("Counter", (("Value", _NAT), ("Limit", _NAT)))
+        wrong.definition(name, result_type, (("counter", _type("Counter")),), body)
+        _refuses(wrong, kind, fragment)
+
+
 def cases() -> list[Case]:
     return [Case("fresh-polymorphism-and-higher-order-inference", _polymorphism_and_higher_order),
             Case("familiar-generic-markers-and-mathematical-body-source-binding", _familiar_generic_spellings),
@@ -2016,4 +2295,5 @@ def cases() -> list[Case]:
             Case("inference-reduction-and-output-budgets", _elaboration_budgets),
             Case("pattern-matching-and-product-destructuring", _pattern_matching_and_destructuring),
             Case("pattern-matching-refusals-and-protocol", _pattern_matching_refusals_and_protocol),
-            Case("raw-strings-and-checked-formatting", _raw_strings_and_checked_formatting)]
+            Case("raw-strings-and-checked-formatting", _raw_strings_and_checked_formatting),
+            Case("records-properties-updates-guards-and-expressions", _records_properties_updates_guards_and_expressions)]

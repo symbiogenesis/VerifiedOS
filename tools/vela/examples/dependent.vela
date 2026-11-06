@@ -116,4 +116,53 @@ public lemma ForwardProof<TProposition : Prop>(TProposition evidence): TProposit
         assert TProposition by KeepProof(evidence);
     }
 
+public record Counter(Nat Value, Nat Limit)
+{
+    public bool AtLimit => this.Value >= this.Limit;
+    public Nat Remaining => this.Limit - this.Value;
+}
+
+public Nat DefaultStep => Limit;
+
+public definition Counter AdvanceCounter(Counter counter, Nat step) =>
+    if (counter.AtLimit) counter
+    else counter with { Value = counter.Value + step };
+
+public definition Nat UnpackCounter(Counter counter) =>
+    match (counter) {
+        Counter(Value: current, Limit: maximum) =>
+            if (current <= maximum) maximum - current else 0,
+    };
+
+public Nat StepIfPositive(Nat value, Counter counter)
+{
+    let Succ(previous) = value else
+    {
+        return counter.Value;
+    }
+    let Counter(Value: base, Limit: limit) = counter;
+    return if (previous is Succ(inner)) base + inner + limit else base + limit;
+}
+
+public lemma AdvanceBelowLimit():
+    AdvanceCounter(Counter(Value: 2, Limit: 5), DefaultStep).Value == 3
+    proof
+    {
+        assert AdvanceCounter(Counter(Value: 2, Limit: 5), DefaultStep).Value == 3;
+    }
+
+public lemma CounterPropertyAgreement():
+    Counter(Value: 2, Limit: 5).Remaining == UnpackCounter(Counter(Value: 2, Limit: 5))
+    proof
+    {
+        assert Counter(Value: 2, Limit: 5).Remaining == UnpackCounter(Counter(Value: 2, Limit: 5));
+    }
+
+public lemma StepIfPositiveProof():
+    StepIfPositive(2, Counter(Value: 10, Limit: 5)) == 15
+    proof
+    {
+        assert StepIfPositive(2, Counter(Value: 10, Limit: 5)) == 15;
+    }
+
 public definition Type<1> SmallUniverse() => type Type;

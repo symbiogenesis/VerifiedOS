@@ -312,6 +312,68 @@ public lemma SmallBufferFailsClosed(): Fits(OverflowPacket(42)) == false
 // Standalone $"..." without Format.Write(ref builder, ...) is rejected.
 `,
     },
+    ergonomics: {
+        label: "Records, properties, updates & guards",
+        expression: "StepIfPositive(2, Counter(Value: 10, Limit: 5))", valueType: "Nat",
+        source: `module Ergonomics;
+
+/// Records declare primary-constructor fields and total, read-only expression properties.
+public record Counter(Nat Value, Nat Limit)
+{
+    public bool AtLimit => this.Value >= this.Limit;
+    public Nat Remaining => this.Limit - this.Value;
+}
+
+/// Top-level expression properties are pure, parameterless computed reads.
+public Nat DefaultStep => 1;
+
+/// Expression-form if/else and record update (with { ... }) compose in => bodies.
+public definition Counter Advance(Counter counter, Nat step) =>
+    if (counter.AtLimit) counter
+    else counter with { Value = counter.Value + step };
+
+/// Constructor patterns accept optional declaration-order field labels.
+public definition Nat Unpack(Counter counter) =>
+    match (counter) {
+        Counter(Value: current, Limit: maximum) =>
+            if (current <= maximum) maximum - current else 0,
+    };
+
+/// Scoped early-exit extraction (let ... else) and flow-refined if (x is Pattern).
+public Nat StepIfPositive(Nat value, Counter counter)
+{
+    let Succ(previous) = value else
+    {
+        return counter.Value;
+    }
+    let Counter(Value: base, Limit: limit) = counter;
+    return if (previous is Succ(inner)) base + inner + limit else base + limit;
+}
+
+public lemma AdvanceStep():
+    Advance(Counter(Value: 2, Limit: 5), DefaultStep).Value == 3
+    proof
+    {
+        assert Advance(Counter(Value: 2, Limit: 5), DefaultStep).Value == 3;
+    }
+
+public lemma PropertyMatchesUnpack():
+    Unpack(Counter(Value: 2, Limit: 5)) == Counter(Value: 2, Limit: 5).Remaining
+    proof
+    {
+        assert Unpack(Counter(Value: 2, Limit: 5)) == Counter(Value: 2, Limit: 5).Remaining;
+    }
+
+public lemma GuardAndBranchRefinement():
+    StepIfPositive(2, Counter(Value: 10, Limit: 5)) == 15
+    proof
+    {
+        assert StepIfPositive(2, Counter(Value: 10, Limit: 5)) == 15;
+    }
+
+// Try Advance(Counter(Value: 2, Limit: 5), DefaultStep).Remaining and Unpack(Counter(Value: 2, Limit: 5)).
+`,
+    },
 };
 
 const state = {
@@ -897,7 +959,7 @@ function registerLanguage() {
         surroundingPairs: [{ open: "{", close: "}" }, { open: "(", close: ")" }],
     });
     monaco.languages.setMonarchTokensProvider("vela", {
-        keywords: ["module", "public", "const", "let", "if", "else", "match", "case", "return", "definition", "alias", "ghost", "lemma", "theorem", "proof", "assert", "by", "type", "forall", "exists", "ref"],
+        keywords: ["module", "public", "const", "let", "if", "else", "match", "case", "return", "definition", "alias", "ghost", "lemma", "theorem", "proof", "assert", "by", "type", "forall", "exists", "ref", "record", "with", "is", "this"],
         typeKeywords: ["Nat", "bool", "Unit", "Type", "Prop", "Fn", "Vec", "Fin", "Eq", "TextBuilder"], tokenizer: { root: [
             [/\/\/.*$/, "comment"], [/"""[\s\S]*?"""/, "string"], [/\$"(?:\\.|[^"\\])*"/, "string"], [/"(?:\\.|[^"\\])*"/, "string"], [/\b(?:true|false)\b/, "constant"],
             [/[A-Za-z_][A-Za-z0-9_]*/, { cases: { "@keywords": "keyword", "@typeKeywords": "type", "@default": "identifier" } }],

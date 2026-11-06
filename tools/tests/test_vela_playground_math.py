@@ -371,6 +371,10 @@ def _playground_formatting_example_assets() -> None:
            "playground selector omitted the raw-strings and checked-formatting example")
     ensure("formatting: {" in script and "Format.Write(ref " in script and '"""' in script,
            "playground app.mjs omitted the raw-strings and checked-formatting example source")
+    ensure('<option value="ergonomics">Records, properties, updates &amp; guards</option>' in html,
+           "playground selector omitted the records, properties, updates and guards example")
+    ensure("ergonomics: {" in script and "counter with {" in script and "previous is Succ(" in script,
+           "playground app.mjs omitted the records, properties, updates and guards example source")
 
 
 def cases() -> list[Case]:

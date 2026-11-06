@@ -1556,7 +1556,7 @@ an established guarantee for the current build.
 
 | Area | Proposed behavior |
 | --- | --- |
-| Everyday data | Value records, tagged unions, exhaustive patterns, generics, traits/interfaces, local inference, immutable bindings by default. No implicit object allocation. |
+| Everyday data | Value records, tagged unions, exhaustive patterns (including optional declaration-order `label: pattern` constructor fields), `if (cond) a else b` expressions, postfix `with { ... }` record/model updates (`move base with { ... }` for linear/affine fields), `let Pattern = expr else { ... }` and flow-refined `if (x is Pattern)` guards, total read-only `=>` expression properties, generics, traits/interfaces, local inference, immutable bindings by default. No implicit object allocation. |
 | Ownership | `owned`/`move` for transfers, `ref`/`in` for exclusive/shared loans and `out` for exclusive initialization loans, typestate transitions, place-named lifetimes and named views for partial loans. Restoration is inferred from control flow, and a returned loan states its `restores` contract; scoped callbacks are pilot proof infrastructure. Record copying cannot duplicate permission. |
 | Numeric behavior | The [primitive contract](first-release.md#primitive-semantics) fixes widths, division/remainder, shifts and bytes/text. Distinguish mathematical specification integers from fixed-width runtime integers. No implicit promotion or coercion; conversions are explicit contracted operations. Overflow is proved absent or represented by explicit checked/wrapping operations under the platform's existing rules. |
 | Dependent contracts | Stable lengths, states, identities and justified snapshots index types; changing contents use spatial predicates. Runtime-discovered indices use dependent packages. Non-definitional equalities need checked transport. |
@@ -1570,7 +1570,7 @@ an established guarantee for the current build.
 | Encapsulation | Clients use abstract contracts and named views; representation proofs stay with the defining module. Changing layout invalidates its proof dependencies without requiring clients to inspect the heap. |
 
 The C# contribution is **ergonomics**, not the CLR: namespaces, precise completion, useful diagnostics, readable generic APIs, and direct navigation between code and proof.
-Properties cannot conceal unaccounted effects; query syntax needs a known allocation-free lowering before it belongs in the runtime subset.
+Expression properties (`public T Name => expr;`) are get-only, total and effect-free (`set` accessors and effectful/fallible getters are permanently excluded so properties never conceal unaccounted effects); query syntax uses the allocation-free `ISequenceModel<T>` / `IBoundedIterable<T>` `.Model` combinator lowering rather than runtime enumerators or expression trees.
 Open-ended runtime reflection, dynamic native loading, general managed objects,
 and an implicit async scheduler are outside that subset. Compile-time reflection
 and explicitly represented finite metadata follow the

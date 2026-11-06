@@ -13,6 +13,8 @@ let with_declaration_modifiers first last modifiers value =
       let refuse message = raise (Refusal ("syntax", first.Lexing.pos_cnum, message)) in
       if occurrences > 1 then refuse "repeated const declaration modifier";
       let kind = List.assoc "kind" fields in
+      if List.mem "async" modifiers && kind = String "property" then
+        refuse "expression properties are total and synchronous";
       let kind, fields, modifiers =
         if is_const && kind = String "field" then begin
           if List.assoc "value" fields = Null || List.assoc "grade" fields <> Null then
@@ -307,6 +309,10 @@ s_decl:
         ("generics", array generics); ("parameters", array parameters); ("contracts", array contracts);
         ("body", optional body); ("cancel", optional cancel)]
         (result :: generics @ parameters @ contracts @ children body @ children cancel) }
+| value_type=s_type property_name=s_identifier contracts=list(s_obligation) FATARROW value=s_expression SEMICOLON
+    { make "property" $startpos $endpos [("name", property_name); ("type", value_type.syntax);
+        ("contracts", array contracts); ("value", value.syntax)]
+        (value_type :: value :: contracts) }
 | value_type=s_type field_name=s_identifier grade=option(s_grade) value=option(s_value_definition) SEMICOLON
     { make "field" $startpos $endpos [("name", field_name); ("type", value_type.syntax);
         ("grade", optional grade); ("value", optional value)]
@@ -540,6 +546,10 @@ s_simple_statement:
 | kind=s_local_kind binding=s_local_initializer SEMICOLON
     { let suffix, fields, parts = binding in
       make (kind ^ suffix) $startpos $endpos fields parts }
+| kind=s_local_kind pattern=s_local_pattern EQUAL value=s_expression ELSE otherwise=s_block
+    { make (kind ^ "_else") $startpos $endpos
+        [("pattern", pattern.syntax); ("value", value.syntax); ("else", otherwise.syntax)]
+        [pattern; value; otherwise] }
 | binding=s_typed_initializer SEMICOLON
     { let fields, parts = binding in make "typed_local" $startpos $endpos fields parts }
 | RETURN value=option(s_expression) SEMICOLON
@@ -561,9 +571,9 @@ s_simple_statement:
         ("cases", Array [])] (value :: children motive) }
 | NEXT target=s_postfix EQUAL value=s_expression SEMICOLON
     { make "next" $startpos $endpos [("target", target.syntax); ("value", value.syntax)] [target; value] }
-| target=s_expression operator=s_assignment value=s_expression SEMICOLON
+| target=s_statement_expression operator=s_assignment value=s_expression SEMICOLON
     { make "assignment" $startpos $endpos [("target", target.syntax); ("operator", operator); ("value", value.syntax)] [target; value] }
-| value=s_expression SEMICOLON
+| value=s_statement_expression SEMICOLON
     { make "expression_statement" $startpos $endpos [("value", value.syntax)] [value] }
 s_annotation_type:
   value=s_modified_type(s_annotation_type_atom) { value }
@@ -634,7 +644,11 @@ s_pattern:
 | payload=s_literal_payload
     { let kind, fields = payload in make (kind ^ "_pattern") $startpos $endpos fields [] }
 s_pattern_arguments:
-  s_parameter_open values=comma_list(s_pattern) RPAREN { values }
+  s_parameter_open values=comma_list(s_pattern_argument) RPAREN { values }
+s_pattern_argument:
+  pattern=s_pattern { pattern }
+| label=s_identifier COLON pattern=s_pattern
+    { make "labeled_pattern" $startpos $endpos [("label", label); ("pattern", pattern.syntax)] [pattern] }
 /* A bare local name stays an inferred binder. Constructor elimination has an
    explicit argument list, while nested patterns reuse the general grammar. */
 s_local_pattern:
@@ -650,6 +664,11 @@ s_product_pattern:
     { make "tuple_pattern" $startpos $endpos [("patterns", array (first :: rest))] (first :: rest) }
 
 s_expression:
+  value=s_statement_expression { value }
+| IF s_open_paren condition=s_expression RPAREN yes=s_expression ELSE no=s_expression
+    { make "if_expression" $startpos $endpos [("condition", condition.syntax);
+        ("then", yes.syntax); ("else", no.syntax)] [condition; yes; no] }
+s_statement_expression:
   value=s_implication { value }
 | LET initialized=s_local_initializer IN body=s_expression
     { let suffix, fields, parts = initialized in
@@ -748,13 +767,21 @@ s_product_operator:
   value=star_operator { value } | SLASH { name $startpos $endpos "/" }
 | PERCENT { name $startpos $endpos "%" }
 s_unary_with(opening):
+  value=s_prefix_with(opening) { value }
+| value=s_unary_with(opening) WITH LBRACE updates=comma_nonempty_list(s_field_update) RBRACE
+    { make "with_expression" $startpos $endpos
+        [("value", value.syntax); ("updates", array updates)] (value :: updates) }
+s_prefix_with(opening):
   value=s_postfix_with(opening) { value }
-| operator=s_unary_operator value=s_unary_with(opening)
+| operator=s_unary_operator value=s_prefix_with(opening)
     { make "unary" $startpos $endpos [("operator", operator); ("value", value.syntax)] [value] }
-| DISPOSE value=s_unary_with(opening)
+| DISPOSE value=s_prefix_with(opening)
     { make "dispose" $startpos $endpos [("value", value.syntax)] [value] }
 | RESUME continuation=s_identifier s_parameter_open value=s_expression RPAREN
     { make "resume" $startpos $endpos [("continuation", continuation); ("value", value.syntax)] [value] }
+s_field_update:
+  field_name=s_identifier EQUAL value=s_expression
+    { make "field_update" $startpos $endpos [("name", field_name); ("value", value.syntax)] [value] }
 %inline s_unary_operator:
   MINUS { name $startpos $endpos "-" } | value=negation_operator { value }
 | TILDE { name $startpos $endpos "~" } | MOVE { name $startpos $endpos "move" }
