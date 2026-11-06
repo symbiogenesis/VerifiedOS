@@ -305,3 +305,138 @@ public lemma ExistsRightIdentity(Nat value)
     }
 
 public definition Type<1> SmallUniverse() => type Type;
+
+public const char HeaderMarker = 'V';
+public const u8 SmallByte = 42u8;
+public const u32 WidenedWord = u32.From(SmallByte);
+
+public definition u32 SafeWordAdd(u32 left, u32 right)
+    requires left <= 100u32 && right <= 100u32 =>
+    left + right;
+
+public definition u32 WrappedByte(u8 value) =>
+    u32.From(Vela.Numerics.WrappingAdd(value, 1u8));
+
+public lemma CharAndIntegerCheck()
+    ensures (Nat(HeaderMarker) == 86 && WidenedWord == 42u32 && SafeWordAdd(10u32, 20u32) == 30u32 && WrappedByte(255u8) == 0u32) == true
+    proof
+    {
+        assert (Nat(HeaderMarker) == 86 && WidenedWord == 42u32 && SafeWordAdd(10u32, 20u32) == 30u32 && WrappedByte(255u8) == 0u32) == true;
+    }
+
+public definition Seq<u32> SampleSeq() =>
+    Seq.Singleton(10u32).Append(Seq.Singleton(20u32));
+
+public lemma SampleSeqProperties()
+    ensures SampleSeq().Count == 2
+    ensures SampleSeq()[1] == 20u32
+    ensures SampleSeq().Contains(10u32) == true
+    proof
+    {
+        assert SampleSeq().Count == 2;
+        assert SampleSeq()[1] == 20u32;
+        assert SampleSeq().Contains(10u32) == true;
+    }
+
+public usize CountUpTo(usize limit)
+    requires limit <= 8usize
+    ensures result == limit
+{
+    var i = 0usize;
+    while (i < limit)
+        invariant i <= limit
+        decreases limit - i
+    {
+        i += 1usize;
+    }
+    return i;
+}
+
+public record RangeWindow(u32 Low, u32 High)
+    invariant Ordered: Low <= High
+{
+    public definition u32 SpanWidth() => High - Low;
+
+    public RangeWindow AdvanceLow(u32 delta)
+        where delta <= this.SpanWidth()
+        ensures result.Low == Low + delta
+    {
+        return this with { Low = Low + delta };
+    }
+}
+
+public RangeWindow RebalanceWindow()
+    ensures result.Low == 4u32 && result.High == 9u32
+{
+    var window = RangeWindow(2u32, 5u32);
+    scope (ref window) lifts Ordered
+    {
+        window.Low = 4u32;
+        window.High = 9u32;
+    }
+    return window;
+}
+
+public lemma CalcChainCheck(Nat a, Nat b, Nat c)
+    requires a == b
+    requires b == c
+    ensures a == c
+    proof
+    {
+        calc
+        {
+            assert a == b;
+            assert b == c;
+        }
+        assert a == c;
+    }
+
+public Unit InitBounds(u32 base, out u32 low, out u32 high)
+    requires base <= 100u32
+    ensures low == base + 1u32
+    ensures high == base + 2u32
+{
+    low = base + 1u32;
+    high = low + 1u32;
+    return;
+}
+
+public u32 SumInitializedBounds()
+    ensures result == 23u32
+{
+    var low = 0u32;
+    var high = 0u32;
+    InitBounds(10u32, out low, out high);
+    return low + high;
+}
+
+public interface Steppable<T>
+{
+    T Step(T value);
+    lemma StepDeterministic(T value) ensures Step(value) == Step(value);
+}
+
+public impl Steppable<Nat>
+{
+    public definition Nat Step(Nat value) => value + 1;
+    lemma StepDeterministic(Nat value)
+        ensures Step(value) == Step(value)
+        proof
+        {
+            assert Step(value) == Step(value);
+        }
+}
+
+public T AdvanceTwice<T>(T start)
+    where Steppable(type T)
+{
+    let middle = start.Step();
+    return Steppable.Step(middle);
+}
+
+public lemma AdvanceTwiceNat()
+    ensures AdvanceTwice(5) == 7
+    proof
+    {
+        assert AdvanceTwice(5) == 7;
+    }

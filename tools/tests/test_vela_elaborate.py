@@ -14,7 +14,7 @@ from unittest.mock import patch
 from tests.harness import Case, ensure
 from vos.vela import elaborate as language
 from vos.vela.ast import VelaError
-from vos.vela.elaborate import elaborate
+from vos.vela.elaborate import elaborate, elaborate_package
 
 type Node = dict[str, object]
 type Form = Callable[[_Fixture], Node]
@@ -4860,6 +4860,600 @@ def _record_member_methods_and_contracts() -> None:
     _refuses(violate_method_pre, "type", "precondition")
 
 
+def _out_arg(value: Form) -> Form:
+    def form(fixture: _Fixture) -> Node:
+        start = fixture.offset
+        op = fixture.name("out")
+        fixture.write(" ")
+        inner = value(fixture)
+        return fixture.node("unary", start, operator=op, value=inner)
+
+    return form
+
+
+def _import_decl(fixture: _Fixture, module_path: str) -> None:
+    fixture.write("\n")
+    start = fixture.offset
+    fixture.write("import ")
+    name_node = fixture.name(module_path)
+    fixture.write(";")
+    fixture.declarations.append(fixture.node("import", start, name=name_node))
+
+
+def _interface_fn_sig(
+    name: str,
+    result: Form,
+    parameters: tuple[Parameter, ...],
+    contracts: tuple[Form, ...] = (),
+) -> Form:
+    def form(fixture: _Fixture) -> Node:
+        start = fixture.offset
+        res_node = result(fixture)
+        fixture.write(" ")
+        name_node = fixture.name(name)
+        param_nodes = fixture.parameters(parameters)
+        contract_nodes: list[Node] = []
+        for c in contracts:
+            fixture.write(" ")
+            contract_nodes.append(c(fixture))
+        fixture.write(";")
+        return fixture.node(
+            "function",
+            start,
+            name=name_node,
+            result=res_node,
+            generics=[],
+            parameters=param_nodes,
+            contracts=contract_nodes,
+            body=None,
+            cancel=None,
+            modifiers=[],
+        )
+
+    return form
+
+
+def _interface_law_sig(
+    name: str,
+    parameters: tuple[Parameter, ...],
+    proposition: Form,
+    contracts: tuple[Form, ...] = (),
+) -> Form:
+    def form(fixture: _Fixture) -> Node:
+        start = fixture.offset
+        fixture.write("lemma ")
+        name_node = fixture.name(name)
+        param_nodes = fixture.parameters(parameters)
+        contract_nodes: list[Node] = []
+        for c in contracts:
+            fixture.write(" ")
+            contract_nodes.append(c(fixture))
+        fixture.write(" ")
+        contract_nodes.append(_contract("ensures", proposition)(fixture))
+        fixture.write(";")
+        return fixture.node(
+            "lemma",
+            start,
+            name=name_node,
+            generics=[],
+            parameters=param_nodes,
+            contracts=contract_nodes,
+            body=None,
+            modifiers=[],
+        )
+
+    return form
+
+
+def _interface_decl(
+    fixture: _Fixture,
+    name: str,
+    generics: tuple[Generic, ...],
+    members: tuple[Form, ...],
+    contracts: tuple[Form, ...] = (),
+) -> None:
+    fixture.write("\n")
+    start = fixture.offset
+    fixture.write("public interface ")
+    name_node = fixture.name(name)
+    gen_nodes = fixture.generics(generics)
+    contract_nodes: list[Node] = []
+    for c in contracts:
+        fixture.write(" ")
+        contract_nodes.append(c(fixture))
+    fixture.write(" {")
+    member_nodes: list[Node] = []
+    for m in members:
+        fixture.write(" ")
+        member_nodes.append(m(fixture))
+    fixture.write(" }")
+    fixture.declarations.append(
+        fixture.node(
+            "interface",
+            start,
+            name=name_node,
+            generics=gen_nodes,
+            contracts=contract_nodes,
+            declarations=member_nodes,
+            modifiers=["public"],
+        )
+    )
+
+
+def _impl_law_member(
+    name: str,
+    parameters: tuple[Parameter, ...],
+    proposition: Form,
+    proof: Form,
+    contracts: tuple[Form, ...] = (),
+) -> Form:
+    def form(fixture: _Fixture) -> Node:
+        start = fixture.offset
+        fixture.write("lemma ")
+        name_node = fixture.name(name)
+        param_nodes = fixture.parameters(parameters)
+        contract_nodes: list[Node] = []
+        for c in contracts:
+            fixture.write(" ")
+            contract_nodes.append(c(fixture))
+        fixture.write(" ")
+        contract_nodes.append(_contract("ensures", proposition)(fixture))
+        fixture.write(" proof ")
+        body_node = _block_stmts(proof)(fixture)
+        return fixture.node(
+            "lemma",
+            start,
+            name=name_node,
+            generics=[],
+            parameters=param_nodes,
+            contracts=contract_nodes,
+            body=body_node,
+            modifiers=[],
+        )
+
+    return form
+
+
+def _impl_decl(
+    fixture: _Fixture,
+    target_type: Form,
+    members: tuple[Form, ...],
+    generics: tuple[Generic, ...] = (),
+    contracts: tuple[Form, ...] = (),
+) -> None:
+    fixture.write("\n")
+    start = fixture.offset
+    fixture.write("public impl")
+    gen_nodes = fixture.generics(generics)
+    fixture.write(" ")
+    ty_node = target_type(fixture)
+    contract_nodes: list[Node] = []
+    for c in contracts:
+        fixture.write(" ")
+        contract_nodes.append(c(fixture))
+    fixture.write(" {")
+    member_nodes: list[Node] = []
+    for m in members:
+        fixture.write(" ")
+        member_nodes.append(m(fixture))
+    fixture.write(" }")
+    fixture.declarations.append(
+        fixture.node(
+            "impl",
+            start,
+            generics=gen_nodes,
+            type=ty_node,
+            contracts=contract_nodes,
+            declarations=member_nodes,
+            modifiers=["public"],
+        )
+    )
+
+
+def _out_loan_parameters_and_initialization_tracking() -> None:
+    fixture = _Fixture("OutLoanParameters")
+    fixture.function(
+        "InitPair",
+        _type("Unit"),
+        (("x", _NAT), ("first", _modified("out", _NAT)), ("second", _modified("out", _NAT))),
+        _block_stmts(
+            _assign_stmt(_variable("first"), "=", _binary("+", _variable("x"), _natural(1))),
+            _assign_stmt(_variable("second"), "=", _binary("+", _variable("first"), _natural(1))),
+            _return_stmt(),
+        ),
+        block=True,
+        contracts=(
+            _contract("ensures", _binary("==", _variable("first"), _binary("+", _variable("x"), _natural(1)))),
+            _contract("ensures", _binary("==", _variable("second"), _binary("+", _variable("x"), _natural(2)))),
+        ),
+    )
+    fixture.function(
+        "InitFromBranch",
+        _type("Unit"),
+        (("flag", _BOOL), ("x", _NAT), ("dst", _modified("out", _NAT))),
+        _block_stmts(
+            _if_stmt(
+                _variable("flag"),
+                _block_stmts(_assign_stmt(_variable("dst"), "=", _binary("+", _variable("x"), _natural(1)))),
+                _block_stmts(_assign_stmt(_variable("dst"), "=", _binary("+", _variable("x"), _natural(2)))),
+            ),
+            _return_stmt(),
+        ),
+        block=True,
+        contracts=(_contract("ensures", _binary(">", _variable("dst"), _variable("x"))),),
+    )
+    fixture.function(
+        "DelegateOut",
+        _type("Unit"),
+        (("x", _NAT), ("a", _modified("out", _NAT)), ("b", _modified("out", _NAT))),
+        _block_stmts(
+            _expr_stmt(_call("InitPair", _variable("x"), _out_arg(_variable("a")), _out_arg(_variable("b")))),
+            _return_stmt(),
+        ),
+        block=True,
+        contracts=(
+            _contract("ensures", _binary("==", _variable("a"), _binary("+", _variable("x"), _natural(1)))),
+            _contract("ensures", _binary("==", _variable("b"), _binary("+", _variable("x"), _natural(2)))),
+        ),
+    )
+    fixture.function(
+        "UseOutCaller",
+        _NAT,
+        (),
+        _block_stmts(
+            _var_stmt("a", _natural(0)),
+            _var_stmt("b", _natural(0)),
+            _expr_stmt(_call("DelegateOut", _natural(10), _out_arg(_variable("a")), _out_arg(_variable("b")))),
+            _return_stmt(_binary("+", _variable("a"), _variable("b"))),
+        ),
+        block=True,
+        contracts=(_contract("ensures", _binary("==", _variable("result"), _natural(23))),),
+    )
+    source, response = fixture.response()
+    elaborate(source, response)
+
+    uninit_return = _Fixture("UninitOutReturn")
+    uninit_return.function(
+        "Bad",
+        _type("Unit"),
+        (("dst", _modified("out", _NAT)),),
+        _block_stmts(_return_stmt()),
+        block=True,
+    )
+    _refuses(uninit_return, "type", "before 'out' parameter 'dst' is initialized")
+
+    uninit_branch = _Fixture("UninitOutBranch")
+    uninit_branch.function(
+        "Bad",
+        _type("Unit"),
+        (("flag", _BOOL), ("dst", _modified("out", _NAT))),
+        _block_stmts(
+            _if_stmt(
+                _variable("flag"),
+                _block_stmts(_assign_stmt(_variable("dst"), "=", _natural(1))),
+            ),
+            _return_stmt(),
+        ),
+        block=True,
+    )
+    _refuses(uninit_branch, "type", "before 'out' parameter 'dst' is initialized")
+
+    read_uninit = _Fixture("ReadUninitOut")
+    read_uninit.function(
+        "Bad",
+        _NAT,
+        (("dst", _modified("out", _NAT)),),
+        _block_stmts(_return_stmt(_variable("dst"))),
+        block=True,
+    )
+    _refuses(read_uninit, "type", "cannot read uninitialized 'out' parameter 'dst'")
+
+    compound_uninit = _Fixture("CompoundUninitOut")
+    compound_uninit.function(
+        "Bad",
+        _type("Unit"),
+        (("dst", _modified("out", _NAT)),),
+        _block_stmts(
+            _assign_stmt(_variable("dst"), "+=", _natural(1)),
+            _return_stmt(),
+        ),
+        block=True,
+    )
+    _refuses(compound_uninit, "type", "uninitialized 'out' parameter 'dst'")
+
+    partial_uninit = _Fixture("PartialUninitOut")
+    partial_uninit.record("PairRec", (("X", _NAT), ("Y", _NAT)))
+    partial_uninit.function(
+        "Bad",
+        _type("Unit"),
+        (("dst", _modified("out", _type("PairRec"))),),
+        _block_stmts(
+            _assign_stmt(_member(_variable("dst"), "X"), "=", _natural(1)),
+            _return_stmt(),
+        ),
+        block=True,
+    )
+    _refuses(partial_uninit, "type", "uninitialized 'out' parameter 'dst'")
+
+    old_on_out = _Fixture("OldOnOut")
+    old_on_out.function(
+        "Bad",
+        _type("Unit"),
+        (("dst", _modified("out", _NAT)),),
+        _block_stmts(
+            _assign_stmt(_variable("dst"), "=", _natural(1)),
+            _return_stmt(),
+        ),
+        block=True,
+        contracts=(_contract("ensures", _binary("==", _variable("dst"), _call("old", _variable("dst")))),),
+    )
+    _refuses(old_on_out, "type", "write-only 'out' parameter 'dst'")
+
+    missing_out_mod = _Fixture("MissingOutMod")
+    missing_out_mod.function(
+        "Init",
+        _type("Unit"),
+        (("dst", _modified("out", _NAT)),),
+        _block_stmts(_assign_stmt(_variable("dst"), "=", _natural(1)), _return_stmt()),
+        block=True,
+    )
+    missing_out_mod.function(
+        "Caller",
+        _type("Unit"),
+        (),
+        _block_stmts(
+            _var_stmt("x", _natural(0)),
+            _expr_stmt(_call("Init", _variable("x"))),
+            _return_stmt(),
+        ),
+        block=True,
+    )
+    _refuses(missing_out_mod, "type", "an 'out' parameter requires an 'out' call-site argument modifier")
+
+    overlap_out = _Fixture("OverlapOut")
+    overlap_out.function(
+        "InitTwo",
+        _type("Unit"),
+        (("a", _modified("out", _NAT)), ("b", _modified("out", _NAT))),
+        _block_stmts(
+            _assign_stmt(_variable("a"), "=", _natural(1)),
+            _assign_stmt(_variable("b"), "=", _natural(2)),
+            _return_stmt(),
+        ),
+        block=True,
+    )
+    overlap_out.function(
+        "Caller",
+        _type("Unit"),
+        (),
+        _block_stmts(
+            _var_stmt("x", _natural(0)),
+            _expr_stmt(_call("InitTwo", _out_arg(_variable("x")), _out_arg(_variable("x")))),
+            _return_stmt(),
+        ),
+        block=True,
+    )
+    _refuses(overlap_out, "type", "overlapping loan for 'x'")
+
+
+def _interfaces_nonoverlapping_impls_and_where_constraints() -> None:
+    fixture = _Fixture("InterfacesAndImpls")
+    _interface_decl(
+        fixture,
+        "Steppable",
+        (("type", "T", None),),
+        (
+            _interface_fn_sig(
+                "Step",
+                _type("T"),
+                (("x", _type("T")),),
+            ),
+            _interface_law_sig(
+                "StepDeterministic",
+                (("x", _type("T")),),
+                _binary("==", _call("Step", _variable("x")), _call("Step", _variable("x"))),
+            ),
+        ),
+    )
+    _impl_decl(
+        fixture,
+        _type("Steppable", _NAT),
+        (
+            _record_def_member(
+                "Step",
+                _NAT,
+                (("x", _NAT),),
+                _binary("+", _variable("x"), _natural(1)),
+            ),
+            _impl_law_member(
+                "StepDeterministic",
+                (("x", _NAT),),
+                _binary("==", _call("Step", _variable("x")), _call("Step", _variable("x"))),
+                _assert(_binary("==", _call("Step", _variable("x")), _call("Step", _variable("x")))),
+            ),
+        ),
+    )
+    fixture.function(
+        "StepTwice",
+        _type("T"),
+        (("x", _type("T")),),
+        _block_stmts(
+            _let_stmt("first", _call(_member(_variable("x"), "Step"))),
+            _return_stmt(_call(_member(_variable("Steppable"), "Step"), _variable("first"))),
+        ),
+        block=True,
+        generics=(("type", "T", None),),
+        contracts=(_contract("where", _call("Steppable", _type_value(_type("T")))),),
+    )
+    fixture.theorem(
+        "StepTwiceNatCheck",
+        (),
+        _binary("==", _call("StepTwice", _natural(5)), _natural(7)),
+        _assert(_binary("==", _call("StepTwice", _natural(5)), _natural(7))),
+    )
+    source, response = fixture.response()
+    elaborate(source, response)
+
+    blanket = _Fixture("BlanketImplRefused")
+    _interface_decl(
+        blanket,
+        "IdIface",
+        (("type", "T", None),),
+        (_interface_fn_sig("Id", _type("T"), (("x", _type("T")),)),),
+    )
+    _impl_decl(
+        blanket,
+        _type("IdIface", _type("T")),
+        (_record_def_member("Id", _type("T"), (("x", _type("T")),), _variable("x")),),
+        generics=(("type", "T", None),),
+    )
+    _refuses(blanket, "type", "blanket impl")
+
+    overlap = _Fixture("OverlapImplRefused")
+    _interface_decl(
+        overlap,
+        "IdIface",
+        (("type", "T", None),),
+        (_interface_fn_sig("Id", _type("T"), (("x", _type("T")),)),),
+    )
+    _impl_decl(
+        overlap,
+        _type("IdIface", _NAT),
+        (_record_def_member("Id", _NAT, (("x", _NAT),), _variable("x")),),
+    )
+    _impl_decl(
+        overlap,
+        _type("IdIface", _NAT),
+        (_record_def_member("Id", _NAT, (("x", _NAT),), _variable("x")),),
+    )
+    _refuses(overlap, "type", "overlapping or duplicate impl")
+
+    missing_law = _Fixture("MissingImplLaw")
+    _interface_decl(
+        missing_law,
+        "Lawful",
+        (("type", "T", None),),
+        (
+            _interface_fn_sig("Act", _type("T"), (("x", _type("T")),)),
+            _interface_law_sig(
+                "SelfEq",
+                (("x", _type("T")),),
+                _binary("==", _call("Act", _variable("x")), _call("Act", _variable("x"))),
+            ),
+        ),
+    )
+    _impl_decl(
+        missing_law,
+        _type("Lawful", _NAT),
+        (_record_def_member("Act", _NAT, (("x", _NAT),), _variable("x")),),
+    )
+    _refuses(missing_law, "type", "is missing required law 'SelfEq'")
+
+    unsatisfied = _Fixture("UnsatisfiedWhere")
+    _interface_decl(
+        unsatisfied,
+        "Steppable",
+        (("type", "T", None),),
+        (_interface_fn_sig("Step", _type("T"), (("x", _type("T")),)),),
+    )
+    unsatisfied.definition(
+        "UseStep",
+        _type("T"),
+        (("x", _type("T")),),
+        _call(_member(_variable("Steppable"), "Step"), _variable("x")),
+        generics=(("type", "T", None),),
+        contracts=(_contract("where", _call("Steppable", _type_value(_type("T")))),),
+    )
+    unsatisfied.definition(
+        "BadCall",
+        _BOOL,
+        (),
+        _call("UseStep", _boolean(True)),
+    )
+    _refuses(unsatisfied, "type", "no implementation of interface 'Steppable'")
+
+
+def _multi_module_imports_and_visibility() -> None:
+    math_mod = _Fixture("MathMod")
+    math_mod.definition(
+        "Double",
+        _NAT,
+        (("x", _NAT),),
+        _binary("+", _variable("x"), _variable("x")),
+    )
+    math_mod.write("\n")
+    priv_start = math_mod.offset
+    math_mod.write("private definition Nat Secret(Nat x) => x + 1;")
+    math_mod.declarations.append(
+        {
+            "kind": "definition",
+            "span": [priv_start, math_mod.offset],
+            "name": {"text": "Secret", "span": [priv_start + 23, priv_start + 29]},
+            "result": {"kind": "type", "span": [priv_start + 19, priv_start + 22], "name": {"text": "Nat", "span": [priv_start + 19, priv_start + 22]}, "arguments": []},
+            "generics": [],
+            "parameters": [
+                {
+                    "kind": "parameter",
+                    "span": [priv_start + 30, priv_start + 35],
+                    "name": {"text": "x", "span": [priv_start + 34, priv_start + 35]},
+                    "type": {"kind": "type", "span": [priv_start + 30, priv_start + 33], "name": {"text": "Nat", "span": [priv_start + 30, priv_start + 33]}, "arguments": []},
+                    "grade": None,
+                }
+            ],
+            "contracts": [],
+            "value": {
+                "kind": "binary",
+                "span": [priv_start + 40, priv_start + 45],
+                "operator": {"text": "+", "span": [priv_start + 42, priv_start + 43]},
+                "left": {"kind": "name", "span": [priv_start + 40, priv_start + 41], "name": {"text": "x", "span": [priv_start + 40, priv_start + 41]}},
+                "right": {"kind": "nat", "span": [priv_start + 44, priv_start + 45], "value": "1", "suffix": ""},
+            },
+            "modifiers": ["private"],
+        }
+    )
+
+    consumer = _Fixture("ConsumerMod")
+    _import_decl(consumer, "MathMod")
+    consumer.definition(
+        "Quad",
+        _NAT,
+        (("x", _NAT),),
+        _call(_member(_variable("MathMod"), "Double"), _call("Double", _variable("x"))),
+    )
+    consumer.theorem(
+        "QuadCheck",
+        (),
+        _binary("==", _call("Quad", _natural(3)), _natural(12)),
+        _assert(_binary("==", _call("Quad", _natural(3)), _natural(12))),
+    )
+    pkg_results = elaborate_package([consumer.response(), math_mod.response()])
+    ensure(
+        tuple(pkg_results.keys()) == ("MathMod", "ConsumerMod"),
+        "elaborate_package did not topologically order dependencies",
+    )
+
+    priv_access = _Fixture("PrivConsumer")
+    _import_decl(priv_access, "MathMod")
+    priv_access.definition("Bad", _NAT, (), _call("Secret", _natural(1)))
+    try:
+        elaborate_package([math_mod.response(), priv_access.response()])
+    except VelaError as error:
+        ensure(error.kind == "name" and "private declaration 'Secret'" in error.message, f"unexpected error: {error}")
+    else:
+        raise AssertionError("accepted cross-module private call")
+
+    cyc_a = _Fixture("CycA")
+    _import_decl(cyc_a, "CycB")
+    cyc_b = _Fixture("CycB")
+    _import_decl(cyc_b, "CycA")
+    try:
+        elaborate_package([cyc_a.response(), cyc_b.response()])
+    except VelaError as error:
+        ensure(error.kind == "name" and "circular module import" in error.message, f"unexpected error: {error}")
+    else:
+        raise AssertionError("accepted circular module imports")
+
+
 def cases() -> list[Case]:
     return [Case("fresh-polymorphism-and-higher-order-inference", _polymorphism_and_higher_order),
             Case("familiar-generic-markers-and-mathematical-body-source-binding", _familiar_generic_spellings),
@@ -4903,4 +5497,7 @@ def cases() -> list[Case]:
             Case("postfix-indexing-and-indexed-assignment", _postfix_indexing_and_indexed_assignment),
             Case("bounded-while-loops-and-decreases-contracts", _bounded_while_loops_and_decreases_contracts),
             Case("calculational-proofs-where-and-multi-ensures", _calculational_proofs_where_and_multi_ensures),
-            Case("record-member-methods-and-contracts", _record_member_methods_and_contracts)]
+            Case("record-member-methods-and-contracts", _record_member_methods_and_contracts),
+            Case("out-loan-parameters-and-initialization-tracking", _out_loan_parameters_and_initialization_tracking),
+            Case("interfaces-nonoverlapping-impls-and-where-constraints", _interfaces_nonoverlapping_impls_and_where_constraints),
+            Case("multi-module-imports-and-visibility", _multi_module_imports_and_visibility)]

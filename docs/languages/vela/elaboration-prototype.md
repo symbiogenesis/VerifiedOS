@@ -189,6 +189,27 @@ The supported increment includes:
   `VacantRange`, `VacantSuffix` and `PrefixModel`) and two-step bulk relocation
   (`CopyRepresentation` followed by `TransferType<T>`) with capacity-independent
   region verification.
+- Write-only initialization loan parameters (`out T`) and `out target` call-site
+  arguments, with path-sensitive initialization tracking across `if`/`else`,
+  `match`, `let_else`/`var_else` and loops, refusal of reading, partially
+  mutating (`+=`, `.Field =`, `[idx] =`), `old(...)`, or returning/propagating
+  (`?`) before every `out` parameter is initialized on all normal return paths,
+  and postcondition (`ensures` / `restores`) binding to the final initialized
+  value.
+- Explicit nonoverlapping `interface Name<T, ...> { ... }` and
+  `impl<...> Interface<...> { ... }` declarations, supporting abstract callable
+  signatures with `requires`/`where`/`ensures` contracts and abstract
+  `lemma`/`theorem` law signatures, unification-based coherence and overlap
+  refusal, blanket-impl and computed-type head refusal, Liskov signature and
+  contract verification, explicit law proof checking, Gallina emission, and
+  `where Interface(type T)` generic constraint resolution with dictionary
+  witness passing and static (`Interface.Method(...)`) or receiver
+  (`x.Method(...)`) dispatch.
+- Multi-module `import Module.Path;` composition (`elaborate(..., imports=...)`
+  and `elaborate_package(modules)`) with topological dependency sorting,
+  circular-import refusal, `public` versus `private` visibility enforcement
+  across module boundaries, duplicate/conflicting binding refusal, and qualified
+  `Module.Path.Name` resolution.
 
 Source callable interfaces preserve explicit arity: `Fn() -> Unit` and
 `Fn(Unit value) -> Unit` require different calls and lambda parameter lists even

@@ -450,6 +450,150 @@ public lemma PropagateOk() ensures AddResults(Ok<Nat, bool>(2), Ok<Nat, bool>(5)
 public lemma PropagateErr() ensures AddResults(Err<Nat, bool>(true), Ok<Nat, bool>(5)) == Err<Nat, bool>(true)
     proof { assert AddResults(Err<Nat, bool>(true), Ok<Nat, bool>(5)) == Err<Nat, bool>(true); }
 '''),
+        ("characters-represented-integers-and-sequences", '''module CharIntSeqReplay;
+public const char ColonChar = ':';
+public const u8 SmallByte = 65u8;
+public const u32 WordFromByte = u32.From(SmallByte);
+public definition bool IsAsciiUpper(char c) => c >= 'A' && c <= 'Z';
+public definition Nat ClassifySep(char c) =>
+    match (c) {
+        ':' => 1,
+        '/' => 2,
+        _ => 0,
+    };
+public definition u32 SafeAdd(u32 a, u32 b)
+    requires a <= 1000u32 && b <= 1000u32 =>
+    a + b;
+public definition u8 WrapByte(u8 x) =>
+    Vela.Numerics.WrappingAdd(x, 1u8);
+public definition Seq<u32> PairSeq() =>
+    Seq.Singleton(10u32).Append(Seq.Singleton(20u32));
+public lemma CharIntAndSeqProofs()
+    ensures IsAsciiUpper(char.From(SmallByte)) == true
+    ensures ClassifySep(ColonChar) == 1
+    ensures WordFromByte == 65u32
+    ensures SafeAdd(30u32, 12u32) == 42u32
+    ensures WrapByte(255u8) == 0u8
+    ensures PairSeq().Count == 2
+    ensures PairSeq()[1] == 20u32
+    ensures PairSeq().Contains(10u32) == true
+    proof {
+        assert IsAsciiUpper(char.From(SmallByte)) == true;
+        assert ClassifySep(ColonChar) == 1;
+        assert WordFromByte == 65u32;
+        assert SafeAdd(30u32, 12u32) == 42u32;
+        assert WrapByte(255u8) == 0u8;
+        assert PairSeq().Count == 2;
+        assert PairSeq()[1] == 20u32;
+        assert PairSeq().Contains(10u32) == true;
+    }
+'''),
+        ("mutable-locals-loops-invariants-slots-and-calc", '''module LoopsInvariantsSlotsReplay;
+public usize SumPrefix(usize limit)
+    requires limit <= 6usize
+    ensures result == limit
+{
+    var i = 0usize;
+    while (i < limit)
+        invariant i <= limit
+        decreases limit - i
+    {
+        i += 1usize;
+    }
+    return i;
+}
+public record BoundedRange(u32 Low, u32 High)
+    invariant Ordered: Low <= High
+{
+    public definition u32 Width() => High - Low;
+    public BoundedRange AdvanceLow(u32 delta)
+        where delta <= this.Width()
+        ensures result.Low == Low + delta
+    {
+        return this with { Low = Low + delta };
+    }
+}
+public BoundedRange UpdateRange()
+    ensures result.Low == 5u32 && result.High == 9u32
+{
+    var r = BoundedRange(1u32, 3u32);
+    scope (ref r) lifts Ordered {
+        r.Low = 5u32;
+        r.High = 9u32;
+    }
+    return r;
+}
+public Slots<u32, 4> RelocateFirstSlot(Slots<u32, 4> src, Slots<u32, 4> dst)
+    requires src.LivePrefix(1usize) && dst.VacantRange(0usize, 1usize)
+    requires Slots.Disjoint(src, dst)
+    restores dst
+    ensures result.LivePrefix(1usize)
+{
+    var s = src;
+    var d = dst;
+    CopyRepresentation(s, ref d, 1usize);
+    TransferType<u32>(ref s, ref d, 1usize);
+    return d;
+}
+public lemma CalcTransitive(Nat a, Nat b, Nat c)
+    requires a == b
+    requires b == c
+    ensures a == c
+    proof {
+        calc {
+            assert a == b;
+            assert b == c;
+        }
+        assert a == c;
+    }
+'''),
+        ("out-initialization-loans-interfaces-and-impls", '''module OutInterfacesImplsReplay;
+public Unit InitPair(Nat x, out Nat first, out Nat second)
+    ensures first == x + 1
+    ensures second == x + 2
+{
+    first = x + 1;
+    second = first + 1;
+    return;
+}
+public Unit InitBranch(bool flag, Nat x, out Nat dst)
+    ensures dst > x
+{
+    if (flag) {
+        dst = x + 1;
+    } else {
+        dst = x + 2;
+    }
+    return;
+}
+public Nat UseOutInit()
+    ensures result == 23
+{
+    var a = 0;
+    var b = 0;
+    InitPair(10, out a, out b);
+    return a + b;
+}
+public interface Steppable<T> {
+    T Step(T x);
+    lemma StepSelf(T x) ensures Step(x) == Step(x);
+}
+public impl Steppable<Nat> {
+    public definition Nat Step(Nat x) => x + 1;
+    lemma StepSelf(Nat x) ensures Step(x) == Step(x) proof {
+        assert Step(x) == Step(x);
+    }
+}
+public T StepTwice<T>(T x)
+    where Steppable(type T)
+{
+    let once = x.Step();
+    return Steppable.Step(once);
+}
+public lemma StepTwiceCheck()
+    ensures StepTwice(5) == 7
+    proof { assert StepTwice(5) == 7; }
+'''),
     )
     negatives = (
         ("static-parameter-runtime-input", "Nat F(const Nat value) => value; Nat Wrong(Nat runtime) => F(runtime);", "type"),
@@ -605,6 +749,40 @@ public lemma PropagateErr() ensures AddResults(Err<Nat, bool>(true), Ok<Nat, boo
          "definition Nat Wrong(Option<Nat> x) => match (x) { None() => 0, Some(Missing: v) => v };", "name"),
         ("format-write-target-alias-in-binary-hole",
          'definition TextBuilder<16> Wrong(TextBuilder<16> b) => Format.Write(ref b, $"n={Written(b) + 1:x4}");', "type"),
+        ("integer-literal-overflow", "public const u8 Wrong = 300u8;", "type"),
+        ("integer-unchecked-add-overflow", "public definition u8 Wrong(u8 x) => x + 1u8;", "type"),
+        ("integer-narrowing-from", "public definition u8 Wrong(u32 x) => u8.From(x);", "type"),
+        ("char-non-exhaustive-match", "public definition Nat Wrong(char c) => match (c) { 'a' => 1 };", "type"),
+        ("immutable-let-assignment", "public Nat Wrong() { let x = 1; x = 2; return x; }", "type"),
+        ("while-missing-decreases",
+         "public usize Wrong() { var i = 0usize; while (i < 2usize) { i += 1usize; } return i; }", "type"),
+        ("record-invariant-violation",
+         "public record Ordered(u32 Low, u32 High) invariant Valid: Low <= High; "
+         "public definition Ordered Wrong() => Ordered(10u32, 2u32);", "type"),
+        ("calc-broken-chain",
+         "public lemma Wrong(Nat a, Nat b, Nat c) requires a == b requires b == c ensures a == c "
+         "proof { calc { assert a == b; assert c == c; } }", "type"),
+        ("out-uninitialized-return", "public Unit Wrong(out Nat dst) { return; }", "type"),
+        ("out-read-before-init", "public Nat Wrong(out Nat dst) { return dst; }", "type"),
+        ("out-old-forbidden",
+         "public Unit Wrong(out Nat dst) ensures dst == old(dst) { dst = 1; return; }", "type"),
+        ("out-missing-call-modifier",
+         "public Unit Init(out Nat dst) { dst = 1; return; } "
+         "public Unit Wrong() { var x = 0; Init(x); return; }", "type"),
+        ("interface-blanket-impl",
+         "public interface IdIface<T> { T Id(T x); } "
+         "public impl<T> IdIface<T> { public definition T Id(T x) => x; }", "type"),
+        ("interface-overlapping-impl",
+         "public interface IdIface<T> { T Id(T x); } "
+         "public impl IdIface<Nat> { public definition Nat Id(Nat x) => x; } "
+         "public impl IdIface<Nat> { public definition Nat Id(Nat x) => x; }", "type"),
+        ("interface-missing-law",
+         "public interface Lawful<T> { T Act(T x); lemma SelfEq(T x) ensures Act(x) == Act(x); } "
+         "public impl Lawful<Nat> { public definition Nat Act(Nat x) => x; }", "type"),
+        ("interface-unsatisfied-where",
+         "public interface Steppable<T> { T Step(T x); } "
+         "public definition T UseStep<T>(T x) where Steppable(type T) => Steppable.Step(x); "
+         "public definition bool Wrong() => UseStep(true);", "type"),
     )
     pure = Fixture("pure-expression-operators", b"""module PureExpressions;
 public Nat Difference(Nat left, Nat right) => left - right;

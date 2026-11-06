@@ -22,6 +22,8 @@ from vos.vela.elaborate_types import (
     _Binding,
     _constant,
     _int_term,
+    _InterfaceInfo,
+    _InterfaceMethodSpec,
     _IntSpec,
     _Meta,
     _parse_numeric_magnitude,
@@ -1298,6 +1300,213 @@ class _IntrinsicsMixin:
             node,
         )
 
+    def _elaborate_interface_method_call(
+        self: _Elaborator,
+        node: Node,
+        iface: _InterfaceInfo,
+        mspec: _InterfaceMethodSpec,
+        iface_gen_args: list[Node],
+        pre_evaluated_recv: _Binding | None,
+        call_args: list[Node],
+        environment: dict[str, _Binding],
+    ) -> _Binding:
+        self.site = node
+        if iface_gen_args and len(iface_gen_args) != len(iface.generic_vars):
+            raise self.fail(
+                "type",
+                f"interface '{iface.name}' expects {len(iface.generic_vars)} generic arguments, got {len(iface_gen_args)}",
+                node,
+            )
+        type_args: list[_Term] = []
+        for idx, gv in enumerate(iface.generic_vars):
+            dom = self.types[cast("int", gv.value)]
+            for prev_gv, prev_t in zip(iface.generic_vars[:idx], type_args, strict=True):
+                dom = self.substitute(dom, cast("int", prev_gv.value), prev_t)
+            if iface_gen_args:
+                type_args.append(self.argument(iface_gen_args[idx], dom, environment))
+            else:
+                type_args.append(self.meta(dom, environment))
+        m_gen_args: list[_Term] = []
+        for idx, mgv in enumerate(mspec.generic_vars):
+            dom = self._instantiate_generic_type(
+                iface.generic_vars, type_args, self.types[cast("int", mgv.value)]
+            )
+            for prev_mgv, prev_mt in zip(mspec.generic_vars[:idx], m_gen_args, strict=True):
+                dom = self.substitute(dom, cast("int", prev_mgv.value), prev_mt)
+            m_gen_args.append(self.meta(dom, environment))
+        arg_terms: list[_Term] = []
+        loan_targets: dict[int, tuple[Node, _Term]] = {}
+        seen_loan_names: set[str] = set()
+        all_arg_var_names: set[str] = set()
+        out_loan_names: set[str] = set()
+        if mspec.nullary:
+            if pre_evaluated_recv is not None or call_args:
+                got_n = (1 if pre_evaluated_recv is not None else 0) + len(call_args)
+                raise self.fail(
+                    "type",
+                    f"interface method '{iface.name}.{mspec.name}' expects 0 arguments, got {got_n}",
+                    node,
+                )
+            arg_terms.append(_term("unit"))
+            if self.expected_call_type is not None:
+                expected_ret = self._instantiate_generic_type(
+                    iface.generic_vars, type_args, mspec.return_type
+                )
+                for mgv, mgt in zip(mspec.generic_vars, m_gen_args, strict=True):
+                    expected_ret = self.substitute(expected_ret, cast("int", mgv.value), mgt)
+                self._try_unify(expected_ret, self.expected_call_type)
+        else:
+            total_given = (1 if pre_evaluated_recv is not None else 0) + len(call_args)
+            if total_given != len(mspec.param_vars):
+                raise self.fail(
+                    "type",
+                    f"interface method '{iface.name}.{mspec.name}' expects {len(mspec.param_vars)} arguments, got {total_given}",
+                    node,
+                )
+            labeled_seen = False
+            for idx, pvar in enumerate(mspec.param_vars):
+                p_dom = self._instantiate_generic_type(
+                    iface.generic_vars, type_args, self.types[cast("int", pvar.value)]
+                )
+                for mgv, mgt in zip(mspec.generic_vars, m_gen_args, strict=True):
+                    p_dom = self.substitute(p_dom, cast("int", mgv.value), mgt)
+                for j in range(idx):
+                    p_dom = self.substitute(p_dom, cast("int", mspec.param_vars[j].value), arg_terms[j])
+                if idx == 0 and pre_evaluated_recv is not None:
+                    self.unify(pre_evaluated_recv.type, p_dom)
+                    arg_terms.append(pre_evaluated_recv.term)
+                    continue
+                arg_node = call_args[idx - (1 if pre_evaluated_recv is not None else 0)]
+                self.node(arg_node, "argument")
+                if arg_node["label"] is not None:
+                    if pre_evaluated_recv is not None:
+                        raise self.fail(
+                            "name",
+                            "labeled arguments are not supported on receiver-syntax interface calls",
+                            arg_node,
+                        )
+                    labeled_seen = True
+                    lbl = self.name(arg_node["label"])
+                    if lbl != mspec.param_labels[idx]:
+                        raise self.fail(
+                            "name",
+                            f"expected argument label '{mspec.param_labels[idx]}', got '{lbl}'",
+                            arg_node,
+                        )
+                elif labeled_seen:
+                    raise self.fail(
+                        "name",
+                        "positional arguments cannot follow a labeled argument",
+                        arg_node,
+                    )
+                p_mod = mspec.param_modifiers[idx]
+                is_out_param = p_mod == "out"
+                is_ref_param = p_mod == "ref"
+                arg_val_node = self._unwrap_group(self.node(arg_node["value"]))
+                arg_mod = (
+                    cast("Node", arg_val_node["operator"]).get("text")
+                    if (
+                        arg_val_node["kind"] == "unary"
+                        and isinstance(arg_val_node.get("operator"), dict)
+                        and cast("Node", arg_val_node["operator"]).get("text") in {"ref", "in", "out"}
+                    )
+                    else None
+                )
+                if is_out_param and arg_mod != "out":
+                    raise self.fail(
+                        "type", "an 'out' parameter requires an 'out' call-site argument modifier", arg_node
+                    )
+                if not is_out_param and arg_mod == "out":
+                    raise self.fail(
+                        "type", "'out' call-site argument modifier requires an 'out' parameter", arg_node
+                    )
+                if arg_mod == "out":
+                    arg_ident_node = self._unwrap_group(self.node(arg_val_node["value"]))
+                    if arg_ident_node["kind"] != "name":
+                        raise self.fail(
+                            "type", "'out' argument target must be a mutable local or loan variable", arg_node
+                        )
+                    arg_vname = self.name(arg_ident_node["name"])
+                    if arg_vname not in self.mutable_locals:
+                        raise self.fail(
+                            "type", f"cannot pass immutable binding '{arg_vname}' as an 'out' argument", arg_node
+                        )
+                    if arg_vname in all_arg_var_names:
+                        raise self.fail("type", f"overlapping loan for '{arg_vname}' in call", arg_node)
+                    seen_loan_names.add(arg_vname)
+                    all_arg_var_names.add(arg_vname)
+                    out_loan_names.add(arg_vname)
+                    target_b = self.lookup(arg_vname, environment)
+                    self.site = arg_node
+                    self.unify(target_b.type, p_dom)
+                    arg_terms.append(target_b.term)
+                    loan_targets[idx] = (arg_ident_node, p_dom)
+                else:
+                    val_node = (
+                        self._unwrap_group(self.node(arg_val_node["value"]))
+                        if arg_mod in {"ref", "in"}
+                        else self.node(arg_node["value"])
+                    )
+                    if val_node["kind"] == "name":
+                        arg_vname = self.name(val_node["name"])
+                        if is_ref_param or arg_mod == "ref":
+                            if arg_vname not in self.mutable_locals:
+                                raise self.fail(
+                                    "type",
+                                    f"cannot pass immutable binding '{arg_vname}' as a 'ref' argument",
+                                    arg_node,
+                                )
+                            if arg_vname in all_arg_var_names:
+                                raise self.fail("type", f"overlapping loan for '{arg_vname}' in call", arg_node)
+                            seen_loan_names.add(arg_vname)
+                            loan_targets[idx] = (val_node, p_dom)
+                        elif arg_vname in seen_loan_names:
+                            raise self.fail("type", f"overlapping loan for '{arg_vname}' in call", arg_node)
+                        all_arg_var_names.add(arg_vname)
+                    if self.whnf(p_dom).kind == "meta":
+                        arg_b = self.expression(val_node, environment)
+                        self.unify(p_dom, arg_b.type)
+                        arg_terms.append(arg_b.term)
+                    else:
+                        arg_terms.append(self.check(val_node, p_dom, environment))
+            if self.expected_call_type is not None:
+                expected_ret = self._instantiate_generic_type(iface.generic_vars, type_args, mspec.return_type)
+                for mgv, mgt in zip(mspec.generic_vars, m_gen_args, strict=True):
+                    expected_ret = self.substitute(expected_ret, cast("int", mgv.value), mgt)
+                for j, pv in enumerate(mspec.param_vars):
+                    expected_ret = self.substitute(expected_ret, cast("int", pv.value), arg_terms[j])
+                self._try_unify(expected_ret, self.expected_call_type)
+        resolved_targs = tuple(self.whnf(t) for t in type_args)
+        witness_dict, ensures_dict = self._resolve_single_interface_witness(
+            iface.name, resolved_targs, environment, node
+        )
+        fn_term = witness_dict[mspec.name].term
+        all_spec_vars = [*iface.generic_vars, *mspec.generic_vars, *mspec.param_vars]
+        all_call_vals = [*resolved_targs, *m_gen_args, *arg_terms]
+        for _, req_t in mspec.preconditions:
+            inst_req = req_t
+            for sv, cv in zip(all_spec_vars, all_call_vals, strict=True):
+                inst_req = self.substitute(inst_req, cast("int", sv.value), cv)
+            self._check_precondition_term(inst_req, environment, node)
+        res_term = _apps(fn_term, *m_gen_args, *arg_terms)
+        res_type = mspec.return_type
+        for sv, cv in zip(all_spec_vars, all_call_vals, strict=True):
+            res_type = self.substitute(res_type, cast("int", sv.value), cv)
+        for vname in out_loan_names:
+            self.uninitialized_out_params.discard(vname)
+        for t_node, t_dom in loan_targets.values():
+            upd_term = self.fresh(t_dom)
+            self.last_call_updates.append((t_node, _Binding(upd_term, t_dom)))
+        if mspec.name in ensures_dict:
+            rem_m_ids, ens_props = ensures_dict[mspec.name]
+            rem_vals = [*m_gen_args, *arg_terms]
+            for ens_t in ens_props:
+                inst_ens = ens_t
+                for pid, aval in zip(rem_m_ids, rem_vals, strict=True):
+                    inst_ens = self.substitute(inst_ens, pid, aval)
+                self.active_facts.append(self.whnf(inst_ens))
+        return _Binding(res_term, res_type)
+
     def _elaborate_record_method_call(
         self: _Elaborator,
         node: Node,
@@ -1557,11 +1766,17 @@ class _IntrinsicsMixin:
                     "name", f"integer type '{type_spec.name}' has no associated member '{member_name}'", node
                 )
             full_path = self._dotted_member_path(node)
+            if full_path is not None and full_path in self.inaccessible_private_symbols:
+                mod_origin = self.inaccessible_private_symbols[full_path]
+                raise self.fail(
+                    "name",
+                    f"cannot access private declaration '{full_path}' from module '{mod_origin}'",
+                    node,
+                )
             if (
                 full_path is not None
-                and full_path.startswith("Vela.Numerics.")
-                and "Vela" not in environment
                 and full_path in self.globals
+                and full_path.split(".", 1)[0] not in environment
             ):
                 return self.lookup(full_path, environment)
             return self._project_member(
@@ -1571,6 +1786,8 @@ class _IntrinsicsMixin:
             )
         if kind in {"name", "operator"}:
             name = self.operator(node["name"]) if kind == "operator" else self.name(node["name"])
+            if kind == "name" and name in self.uninitialized_out_params:
+                raise self.fail("type", f"cannot read uninitialized 'out' parameter '{name}'", node)
             if name == "Type":
                 return _Binding(_SORT, _term("sort", value=1))
             if name == "Prop":
@@ -1618,6 +1835,49 @@ class _IntrinsicsMixin:
             if base_callee["kind"] == "member":
                 receiver = self.node(base_callee["value"])
                 member_name = self.name(base_callee["name"])
+                if (
+                    receiver["kind"] == "name"
+                    and self.name(receiver["name"]) in self.interfaces
+                    and self.name(receiver["name"]) not in environment
+                ):
+                    iface = self.interfaces[self.name(receiver["name"])]
+                    if member_name not in iface.methods:
+                        raise self.fail(
+                            "name",
+                            f"interface '{iface.name}' has no method '{member_name}'",
+                            node,
+                        )
+                    return self._elaborate_interface_method_call(
+                        node, iface, iface.methods[member_name], gen_args, None, call_args, environment
+                    )
+                if (
+                    receiver["kind"] == "generic_application"
+                    and self.node(receiver["value"])["kind"] == "name"
+                    and self.name(self.node(receiver["value"])["name"]) in self.interfaces
+                    and self.name(self.node(receiver["value"])["name"]) not in environment
+                ):
+                    if gen_args:
+                        raise self.fail(
+                            "type",
+                            "generic arguments cannot be specified on both interface and method in qualified call",
+                            node,
+                        )
+                    iface = self.interfaces[self.name(self.node(receiver["value"])["name"])]
+                    if member_name not in iface.methods:
+                        raise self.fail(
+                            "name",
+                            f"interface '{iface.name}' has no method '{member_name}'",
+                            node,
+                        )
+                    return self._elaborate_interface_method_call(
+                        node,
+                        iface,
+                        iface.methods[member_name],
+                        self.nodes(receiver["arguments"]),
+                        None,
+                        call_args,
+                        environment,
+                    )
                 if receiver["kind"] == "name" and self.name(receiver["name"]) == "Seq" and "Seq" not in environment:
                     return self._elaborate_seq_intrinsic(node, member_name, gen_args, call_args, environment)
                 if receiver["kind"] == "name" and self.name(receiver["name"]) == "Slots" and "Slots" not in environment:
@@ -1769,6 +2029,41 @@ class _IntrinsicsMixin:
                             environment,
                             recv_node=receiver,
                         )
+                    candidate_ifaces = [
+                        iface
+                        for iface in self.interfaces.values()
+                        if member_name in iface.methods
+                        and not iface.methods[member_name].nullary
+                        and len(iface.methods[member_name].param_vars) == 1 + len(call_args)
+                    ]
+                    if len(candidate_ifaces) == 1:
+                        iface = candidate_ifaces[0]
+                        return self._elaborate_interface_method_call(
+                            node,
+                            iface,
+                            iface.methods[member_name],
+                            gen_args,
+                            recv_for_method,
+                            call_args,
+                            environment,
+                        )
+                    if len(candidate_ifaces) > 1:
+                        for iface in candidate_ifaces:
+                            saved_try_m = [_Meta(m.type, m.scope, m.solution) for m in self.metas]
+                            saved_try_f = list(self.active_facts)
+                            try:
+                                return self._elaborate_interface_method_call(
+                                    node,
+                                    iface,
+                                    iface.methods[member_name],
+                                    gen_args,
+                                    recv_for_method,
+                                    call_args,
+                                    environment,
+                                )
+                            except Exception:
+                                self.metas = saved_try_m
+                                self.active_facts = saved_try_f
                     self.metas = saved_recv_m
             if base_callee["kind"] == "name":
                 cname = self.name(base_callee["name"])
@@ -1780,7 +2075,60 @@ class _IntrinsicsMixin:
                         raise self.fail("name", "'old(...)' does not accept labeled arguments", call_args[0])
                     if not self.entry_env:
                         raise self.fail("type", "'old(...)' requires an enclosing callable pre-state", node)
-                    return self.expression(self.node(call_args[0]["value"]), self.entry_env)
+                    old_val_node = self.node(call_args[0]["value"])
+                    unwrapped_old = self._unwrap_group(old_val_node)
+                    while unwrapped_old["kind"] in {"member", "index"}:
+                        unwrapped_old = self._unwrap_group(self.node(unwrapped_old["value"]))
+                    if unwrapped_old["kind"] == "name" and self.name(unwrapped_old["name"]) in self.out_param_names:
+                        raise self.fail(
+                            "type",
+                            f"cannot use 'old(...)' on write-only 'out' parameter '{self.name(unwrapped_old['name'])}'",
+                            node,
+                        )
+                    saved_uninit_old = set(self.uninitialized_out_params)
+                    self.uninitialized_out_params = set(self.out_param_names)
+                    try:
+                        return self.expression(old_val_node, self.entry_env)
+                    finally:
+                        self.uninitialized_out_params = saved_uninit_old
+                if (
+                    cname not in environment
+                    and cname not in self.globals
+                    and cname not in self.records
+                ):
+                    candidate_ifaces = [
+                        iface
+                        for iface in self.interfaces.values()
+                        if cname in iface.methods
+                    ]
+                    if len(candidate_ifaces) == 1:
+                        iface = candidate_ifaces[0]
+                        return self._elaborate_interface_method_call(
+                            node,
+                            iface,
+                            iface.methods[cname],
+                            gen_args,
+                            None,
+                            call_args,
+                            environment,
+                        )
+                    if len(candidate_ifaces) > 1:
+                        for iface in candidate_ifaces:
+                            saved_try_m = [_Meta(m.type, m.scope, m.solution) for m in self.metas]
+                            saved_try_f = list(self.active_facts)
+                            try:
+                                return self._elaborate_interface_method_call(
+                                    node,
+                                    iface,
+                                    iface.methods[cname],
+                                    gen_args,
+                                    None,
+                                    call_args,
+                                    environment,
+                                )
+                            except Exception:
+                                self.metas = saved_try_m
+                                self.active_facts = saved_try_f
                 if (
                     cname in {"LivePrefix", "VacantRange", "VacantSuffix", "PrefixModel", "CopyRepresentation", "TransferType"}
                     and cname not in environment

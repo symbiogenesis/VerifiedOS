@@ -8,7 +8,7 @@ Fin an indexed inductive, and lookup recurses structurally on the finite index.
 """
 
 import hashlib
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from typing import cast
 
 from vos.vela import StaticEvaluation
@@ -52,7 +52,9 @@ from vos.vela.elaborate_types import (
     _apps,
     _Binding,
     _constant,
+    _ImplInstance,
     _int_term,
+    _InterfaceInfo,
     _IntSpec,
     _Meta,
     _parse_numeric_magnitude,
@@ -81,6 +83,7 @@ __all__ = [
     "_Protocol",
     "_checked_elaboration",
     "elaborate",
+    "elaborate_package",
     "evaluate",
 ]
 
@@ -109,6 +112,15 @@ class _Elaborator(
         self.nullary_parameters: set[int] = set()
         self.constant_parameters: set[int] = set()
         self.readonly_span_vars: set[int] = set()
+        self.ref_parameters: set[int] = set()
+        self.out_parameters: set[int] = set()
+        self.out_param_names: set[str] = set()
+        self.uninitialized_out_params: set[str] = set()
+        self.callable_ref_updates: dict[str, tuple[tuple[int, ...], dict[int, _Term]]] = {}
+        self.callable_ensures: dict[
+            str, list[tuple[tuple[int, ...], tuple[tuple[int, int], ...], int | None, _Term]]
+        ] = {}
+        self.last_call_updates: list[tuple[Node, _Binding]] = []
         self.static_forbidden: set[int] | None = None
         self.globals: dict[str, _Binding] = {}
         self.constants: dict[str, _Binding] = {}
@@ -121,6 +133,19 @@ class _Elaborator(
         self.unions_by_type: dict[str, _UnionInfo] = {}
         self.union_ctors: dict[str, tuple[_UnionInfo, _UnionCtor]] = {}
         self.unions_by_ctor: dict[str, tuple[_UnionInfo, _UnionCtor]] = {}
+        self.interfaces: dict[str, _InterfaceInfo] = {}
+        self.impls: dict[str, list[_ImplInstance]] = {}
+        self.active_interface_witnesses: dict[tuple[str, tuple[_Term, ...]], dict[str, _Binding]] = {}
+        self.active_interface_ensures: dict[tuple[str, tuple[_Term, ...]], dict[str, tuple[tuple[int, ...], tuple[_Term, ...]]]] = {}
+        self.callable_where_constraints: dict[str, tuple[tuple[int, ...], tuple[tuple[str, tuple[_Term, ...]], ...]]] = {}
+        self.var_preconditions: dict[int, list[tuple[tuple[int, ...], _Term]]] = {}
+        self.expected_call_type: _Term | None = None
+        self.module_name: str = ""
+        self.public_symbols: set[str] = set()
+        self.private_symbols: set[str] = set()
+        self.available_modules: dict[str, _Elaborator] = {}
+        self.imported_modules: set[str] = set()
+        self.inaccessible_private_symbols: dict[str, str] = {}
         self.builtin_unions: set[str] = {"Result", "ArithmeticError", "ConversionError"}
         self.builtin_union_ctors: set[str] = {
             "Err", "Ok", "Overflow", "ZeroDivisor", "InvalidShift", "OutOfRange",
@@ -132,6 +157,7 @@ class _Elaborator(
         self.current_rec_name: str | None = None
         self.current_rec_generics: list[_Term] = []
         self.current_rec_params: list[_Term] = []
+        self.current_rec_witnesses: list[_Term] = []
         self.current_rec_candidates: list[tuple[int, int]] = []
         self.current_rec_used: bool = False
         self.smaller_vars: dict[int, set[int]] = {}
@@ -958,6 +984,9 @@ class _Elaborator(
     def lookup(self, name: str, environment: dict[str, _Binding], *, raw: bool = False) -> _Binding:
         binding = environment.get(name, self.globals.get(name))
         if binding is None:
+            if name in self.inaccessible_private_symbols:
+                mod = self.inaccessible_private_symbols[name]
+                raise self.fail("name", f"cannot access private declaration '{name}' of module '{mod}'")
             raise self.fail("name", f"unknown or forward name '{name}'")
         if self.static_forbidden is not None and id(binding) in self.static_forbidden:
             raise self.fail("type", f"constant initializer depends on nonstatic binding '{name}'")
@@ -1060,6 +1089,11 @@ class _Elaborator(
         while future.kind == "pi":
             protects_runtime = protects_runtime or cast("int", future.value) in self.constant_parameters
             future = self.whnf(future.args[1])
+        val_args: list[_Term] = []
+        loan_targets: dict[int, tuple[Node, _Term]] = {}
+        seen_loan_names: set[str] = set()
+        all_arg_var_names: set[str] = set()
+        out_loan_names: set[str] = set()
         if not arguments:
             if is_rec_call:
                 raise self.fail("type", f"zero-parameter declaration '{self.current_rec_name}' cannot be structurally recursive")
@@ -1068,77 +1102,128 @@ class _Elaborator(
                 raise self.fail("type", "zero-argument call requires a zero-parameter source callable")
             self.unify(value_type.args[0], _UNIT)
             argument = _term("unit")
-            res_term = _app(term, argument)
-            res_type = self.substitute(value_type.args[1], cast("int", value_type.value), argument)
-            if (
-                callee_head.kind == "const"
-                and isinstance(callee_head.value, str)
-                and callee_head.value in self.records_by_ctor
-            ):
-                rinfo = self.records_by_ctor[callee_head.value]
-                self._check_record_invariants(rinfo, callee_gen_args, res_term, environment, call_site)
-            return _Binding(res_term, res_type)
-        labeled = False
-        val_args: list[_Term] = []
-        for node in arguments:
-            self.node(node, "argument")
-            label = node["label"]
-            if label is None and labeled:
-                raise self.fail("name", "positional arguments cannot follow a named argument", node)
-            labeled = labeled or label is not None
-            value_type = self.whnf(value_type)
-            if value_type.kind == "meta":
-                domain = self.meta(_SORT, environment)
-                variable = self.fresh(domain)
-                result = self.meta(_SORT, environment)
-                self.unify(value_type, _term("pi", domain, result, value=variable.value))
-                value_type = self.whnf(value_type)
-            if value_type.kind != "pi":
-                raise self.fail("type", "too many arguments or a non-callable value", node)
-            if cast("int", value_type.value) in self.nullary_parameters:
-                raise self.fail("type", "a zero-parameter callable accepts no explicit arguments", node)
-            if label is not None:
-                spelling = self.name(label)
-                expected = self.parameter_names.get(cast("int", value_type.value))
-                if expected is None:
-                    raise self.fail("name", "unnamed callable parameters do not accept argument labels", node)
-                if spelling != expected:
-                    raise self.fail("name", f"expected argument label '{expected}', got '{spelling}'", node)
-            arg_val_node = self._unwrap_group(self.node(node["value"]))
-            arg_ident_node = (
-                self._unwrap_group(self.node(arg_val_node["value"]))
-                if (
-                    arg_val_node["kind"] == "unary"
-                    and isinstance(arg_val_node.get("operator"), dict)
-                    and cast("Node", arg_val_node["operator"]).get("text") in {"ref", "in"}
-                )
-                else arg_val_node
-            )
-            if arg_ident_node["kind"] == "name":
-                arg_vname = self.name(arg_ident_node["name"])
-                lifted_set = self.lifted_invariants.get(arg_vname)
-                if lifted_set is not None and len(lifted_set) > 0:
-                    clause_n = min(lifted_set)
-                    raise self.fail(
-                        "type",
-                        f"cannot pass record '{arg_vname}' to a callable while invariant '{clause_n}' is lifted",
-                        node,
-                    )
-            required_static = cast("int", value_type.value) in self.constant_parameters
-            checker = self.static_argument if required_static else self.check
-            argument = checker(arg_ident_node if arg_ident_node is not arg_val_node else self.node(node["value"]), value_type.args[0], environment)
             val_args.append(argument)
-            specializing = specializing or required_static
-            if required_static:
-                specialized_term = _app(specialized_term, argument)
-            elif protects_runtime:
-                variable = self.fresh(value_type.args[0])
-                runtime_arguments.append((variable, argument))
-                specialized_term = _app(specialized_term, variable)
-            else:
-                specialized_term = _app(specialized_term, argument)
             term = _app(term, argument)
+            specialized_term = _app(specialized_term, argument)
             value_type = self.substitute(value_type.args[1], cast("int", value_type.value), argument)
+        else:
+            labeled = False
+            for idx, node in enumerate(arguments):
+                self.node(node, "argument")
+                label = node["label"]
+                if label is None and labeled:
+                    raise self.fail("name", "positional arguments cannot follow a named argument", node)
+                labeled = labeled or label is not None
+                value_type = self.whnf(value_type)
+                if value_type.kind == "meta":
+                    domain = self.meta(_SORT, environment)
+                    variable = self.fresh(domain)
+                    result = self.meta(_SORT, environment)
+                    self.unify(value_type, _term("pi", domain, result, value=variable.value))
+                    value_type = self.whnf(value_type)
+                if value_type.kind != "pi":
+                    raise self.fail("type", "too many arguments or a non-callable value", node)
+                param_var_id = cast("int", value_type.value)
+                if param_var_id in self.nullary_parameters:
+                    raise self.fail("type", "a zero-parameter callable accepts no explicit arguments", node)
+                if label is not None:
+                    spelling = self.name(label)
+                    expected = self.parameter_names.get(param_var_id)
+                    if expected is None:
+                        raise self.fail("name", "unnamed callable parameters do not accept argument labels", node)
+                    if spelling != expected:
+                        raise self.fail("name", f"expected argument label '{expected}', got '{spelling}'", node)
+                is_out_param = param_var_id in self.out_parameters
+                is_ref_param = param_var_id in self.ref_parameters
+                arg_val_node = self._unwrap_group(self.node(node["value"]))
+                arg_mod = (
+                    cast("Node", arg_val_node["operator"]).get("text")
+                    if (
+                        arg_val_node["kind"] == "unary"
+                        and isinstance(arg_val_node.get("operator"), dict)
+                        and cast("Node", arg_val_node["operator"]).get("text") in {"ref", "in", "out"}
+                    )
+                    else None
+                )
+                if is_out_param and arg_mod != "out":
+                    raise self.fail("type", "an 'out' parameter requires an 'out' call-site argument modifier", node)
+                if not is_out_param and arg_mod == "out":
+                    raise self.fail("type", "'out' call-site argument modifier requires an 'out' parameter", node)
+                if arg_mod == "out":
+                    arg_ident_node = self._unwrap_group(self.node(arg_val_node["value"]))
+                    if arg_ident_node["kind"] != "name":
+                        raise self.fail("type", "'out' argument target must be a mutable local or loan variable", node)
+                    arg_vname = self.name(arg_ident_node["name"])
+                    if arg_vname not in self.mutable_locals:
+                        raise self.fail("type", f"cannot pass immutable binding '{arg_vname}' as an 'out' argument", node)
+                    if arg_vname in self.frozen_collections:
+                        raise self.fail(
+                            "type",
+                            f"cannot mutate collection '{arg_vname}' with 'out' while it is traversed by 'foreach'",
+                            node,
+                        )
+                    if arg_vname in all_arg_var_names:
+                        raise self.fail("type", f"overlapping loan for '{arg_vname}' in call", node)
+                    seen_loan_names.add(arg_vname)
+                    all_arg_var_names.add(arg_vname)
+                    out_loan_names.add(arg_vname)
+                    target_b = self.lookup(arg_vname, environment)
+                    self.site = node
+                    self.unify(target_b.type, value_type.args[0])
+                    argument = target_b.term
+                    loan_targets[idx] = (arg_ident_node, value_type.args[0])
+                    required_static = False
+                else:
+                    arg_ident_node = (
+                        self._unwrap_group(self.node(arg_val_node["value"]))
+                        if arg_mod in {"ref", "in"}
+                        else arg_val_node
+                    )
+                    if arg_ident_node["kind"] == "name":
+                        arg_vname = self.name(arg_ident_node["name"])
+                        lifted_set = self.lifted_invariants.get(arg_vname)
+                        if lifted_set is not None and len(lifted_set) > 0:
+                            clause_n = min(lifted_set)
+                            raise self.fail(
+                                "type",
+                                f"cannot pass record '{arg_vname}' to a callable while invariant '{clause_n}' is lifted",
+                                node,
+                            )
+                        if is_ref_param or arg_mod == "ref":
+                            if arg_vname not in self.mutable_locals:
+                                raise self.fail("type", f"cannot pass immutable binding '{arg_vname}' as a 'ref' argument", node)
+                            if arg_vname in self.frozen_collections:
+                                raise self.fail(
+                                    "type",
+                                    f"cannot mutate collection '{arg_vname}' with 'ref' while it is traversed by 'foreach'",
+                                    node,
+                                )
+                            if arg_vname in all_arg_var_names:
+                                raise self.fail("type", f"overlapping loan for '{arg_vname}' in call", node)
+                            seen_loan_names.add(arg_vname)
+                            loan_targets[idx] = (arg_ident_node, value_type.args[0])
+                        elif arg_vname in seen_loan_names:
+                            raise self.fail("type", f"overlapping loan for '{arg_vname}' in call", node)
+                        all_arg_var_names.add(arg_vname)
+                    required_static = param_var_id in self.constant_parameters
+                    checker = self.static_argument if required_static else self.check
+                    argument = checker(
+                        arg_ident_node if arg_ident_node is not arg_val_node else self.node(node["value"]),
+                        value_type.args[0],
+                        environment,
+                    )
+                val_args.append(argument)
+                specializing = specializing or required_static
+                if required_static:
+                    specialized_term = _app(specialized_term, argument)
+                elif protects_runtime:
+                    variable = self.fresh(value_type.args[0])
+                    runtime_arguments.append((variable, argument))
+                    specialized_term = _app(specialized_term, variable)
+                else:
+                    specialized_term = _app(specialized_term, argument)
+                term = _app(term, argument)
+                value_type = self.substitute(value_type.args[1], param_var_id, argument)
         if (
             callee_head.kind == "const"
             and isinstance(callee_head.value, str)
@@ -1154,6 +1239,88 @@ class _Elaborator(
                     for pid, arg_val in zip(param_ids, full_args, strict=False):
                         inst_req = self.substitute(inst_req, pid, arg_val)
                     self._check_precondition_term(inst_req, environment, call_site)
+        if callee_head.kind == "var" and cast("int", callee_head.value) in self.var_preconditions:
+            full_args_v = callee_gen_args + val_args
+            for param_ids, req_term in self.var_preconditions[cast("int", callee_head.value)]:
+                if len(full_args_v) >= len(param_ids):
+                    inst_req = req_term
+                    for pid, arg_val in zip(param_ids, full_args_v, strict=False):
+                        inst_req = self.substitute(inst_req, pid, arg_val)
+                    self._check_precondition_term(inst_req, environment, call_site)
+        if (
+            callee_head.kind == "const"
+            and isinstance(callee_head.value, str)
+            and callee_head.value in self.callable_where_constraints
+        ):
+            _, w_specs = self.callable_where_constraints[callee_head.value]
+            if self.expected_call_type is not None:
+                peek_type = value_type
+                for _ in w_specs:
+                    peek_w = self.whnf(peek_type)
+                    if peek_w.kind == "pi":
+                        peek_type = peek_w.args[1]
+                self._try_unify(peek_type, self.expected_call_type)
+            witness_terms = self._resolve_interface_witnesses(
+                callee_head.value, callee_gen_args + val_args, environment, call_site
+            )
+            for w_term in witness_terms:
+                value_type = self.whnf(value_type)
+                if value_type.kind != "pi":
+                    raise self.fail("type", "invalid interface witness telescope", call_site)
+                self.unify(self.infer(w_term), value_type.args[0])
+                term = _app(term, w_term)
+                specialized_term = _app(specialized_term, w_term)
+                value_type = self.substitute(value_type.args[1], cast("int", value_type.value), w_term)
+        elif is_rec_call and self.current_rec_witnesses:
+            for w_term in self.current_rec_witnesses:
+                value_type = self.whnf(value_type)
+                if value_type.kind != "pi":
+                    raise self.fail("type", "invalid recursive interface witness telescope", call_site)
+                self.unify(self.infer(w_term), value_type.args[0])
+                term = _app(term, w_term)
+                specialized_term = _app(specialized_term, w_term)
+                value_type = self.substitute(value_type.args[1], cast("int", value_type.value), w_term)
+        for vname in out_loan_names:
+            self.uninitialized_out_params.discard(vname)
+        post_loan_terms: dict[int, _Term] = {}
+        if loan_targets:
+            full_args = callee_gen_args + val_args
+            u_param_ids: tuple[int, ...] = ()
+            idx_to_term: dict[int, _Term] = {}
+            if (
+                callee_head.kind == "const"
+                and isinstance(callee_head.value, str)
+                and callee_head.value in self.callable_ref_updates
+            ):
+                u_param_ids, idx_to_term = self.callable_ref_updates[callee_head.value]
+            for idx, (t_node, t_dom) in loan_targets.items():
+                if idx in idx_to_term and len(full_args) >= len(u_param_ids):
+                    upd_term = idx_to_term[idx]
+                    for pid, aval in zip(u_param_ids, full_args, strict=False):
+                        upd_term = self.substitute(upd_term, pid, aval)
+                else:
+                    upd_term = self.fresh(t_dom)
+                post_loan_terms[idx] = upd_term
+                self.last_call_updates.append((t_node, _Binding(upd_term, t_dom)))
+        if (
+            callee_head.kind == "const"
+            and isinstance(callee_head.value, str)
+            and callee_head.value in self.callable_ensures
+        ):
+            full_args = callee_gen_args + val_args
+            for e_param_ids, post_loan_pairs, res_var_id, ens_term in self.callable_ensures[callee_head.value]:
+                if len(full_args) >= len(e_param_ids):
+                    inst_ens = ens_term
+                    for pid, aval in zip(e_param_ids, full_args, strict=False):
+                        inst_ens = self.substitute(inst_ens, pid, aval)
+                    if res_var_id is not None:
+                        inst_ens = self.substitute(inst_ens, res_var_id, term)
+                    for p_idx, post_vid in post_loan_pairs:
+                        replacement = post_loan_terms.get(
+                            p_idx, val_args[p_idx] if p_idx < len(val_args) else _term("var", value=post_vid)
+                        )
+                        inst_ens = self.substitute(inst_ens, post_vid, replacement)
+                    self.active_facts.append(inst_ens)
         if is_rec_call:
             self.current_rec_used = True
             if len(callee_gen_args) != len(self.current_rec_generics):
@@ -1220,20 +1387,35 @@ class _Elaborator(
                 param_type_node["kind"] == "modified_type"
                 and param_type_node.get("modifier") == "ref"
             )
-            domain = self.type(param_type_node, extended)
+            is_out_param = (
+                param_type_node["kind"] == "modified_type"
+                and param_type_node.get("modifier") == "out"
+            )
+            domain = self.type(param_type_node, extended, allow_out=True)
             variable = self.fresh(domain)
             variables.append(variable)
             if is_readonly_span:
                 self.readonly_span_vars.add(cast("int", variable.value))
+            if is_ref_param:
+                self.ref_parameters.add(cast("int", variable.value))
+            if is_out_param:
+                self.out_parameters.add(cast("int", variable.value))
             static = cast("bool", node.get("const", False))
+            if static and is_out_param:
+                raise self.fail("type", "constant parameter cannot be an 'out' loan", node)
             if static:
                 self.constant_parameters.add(cast("int", variable.value))
             if node["name"] is not None:
                 name = self.name(node["name"])
                 self.parameter_names[cast("int", variable.value)] = name
-                if is_ref_param:
+                if is_ref_param or is_out_param:
                     self.mutable_locals.add(name)
+                if is_out_param:
+                    self.out_param_names.add(name)
+                    self.uninitialized_out_params.add(name)
                 self.bind_local(extended, name, _Binding(variable, domain, constant=static))
+            elif is_out_param:
+                raise self.fail("type", "'out' parameter requires a parameter name", node)
         if unit and not parameter_nodes:
             variable = self.fresh(_UNIT)
             self.nullary_parameters.add(cast("int", variable.value))
@@ -1245,7 +1427,14 @@ class _Elaborator(
             result = _term(kind, self.types[cast("int", variable.value)], result, value=variable.value)
         return result
 
-    def type(self, node: Node, environment: dict[str, _Binding], *, require_sort: bool = True) -> _Term:
+    def type(
+        self,
+        node: Node,
+        environment: dict[str, _Binding],
+        *,
+        require_sort: bool = True,
+        allow_out: bool = False,
+    ) -> _Term:
         self.tick()
         self.site = node
         kind = node["kind"]
@@ -1299,7 +1488,7 @@ class _Elaborator(
                         result = _app(result, value)
                         value_type = self.substitute(value_type.args[1], cast("int", value_type.value), value)
         elif kind in {"group_type", "type_argument"}:
-            result = self.type(self.node(node["type"]), environment, require_sort=require_sort)
+            result = self.type(self.node(node["type"]), environment, require_sort=require_sort, allow_out=allow_out)
         elif kind == "tuple_type":
             values = [self.type(value, environment) for value in self.nodes(node["types"])]
             if len(values) < 2:
@@ -1319,30 +1508,39 @@ class _Elaborator(
             if node.get("lifetime") is not None:
                 raise self.fail("unsupported", "explicit loan lifetimes require the full frontend", node)
             modifier = node.get("modifier")
-            if modifier not in {"in", "ref"}:
+            if modifier == "out":
+                if not allow_out:
+                    raise self.fail("type", "'out' type modifier is only permitted on callable parameters", node)
+                inner_type = self.type(self.node(node["type"]), environment, require_sort=require_sort)
+                inner_w = self.whnf(inner_type)
+                if inner_w in (_PROP, _UNIT) or inner_w.kind in {"pi", "sort"}:
+                    raise self.fail("type", "'out' parameter requires a runtime value type", node)
+                result = inner_type
+            elif modifier in {"in", "ref"}:
+                inner_type = self.type(self.node(node["type"]), environment, require_sort=require_sort)
+                inner_w = self.whnf(inner_type)
+                inner_head, inner_args = self.spine(inner_w)
+                supported_loan = (
+                    (inner_head == _constant("Span") and len(inner_args) == 1 and self.whnf(inner_args[0]) == _U8)
+                    or (inner_head == _constant("Slots") and len(inner_args) == 2)
+                    or (inner_head == _constant("Vec") and len(inner_args) == 2)
+                    or (inner_head == _constant("Seq") and len(inner_args) == 1)
+                    or (inner_head == _constant("TextBuilder") and len(inner_args) == 1)
+                    or (
+                        inner_head.kind == "const"
+                        and isinstance(inner_head.value, str)
+                        and inner_head.value in self.records_by_type
+                    )
+                )
+                if not supported_loan:
+                    raise self.fail(
+                        "unsupported",
+                        f"modifier '{modifier}' is only supported on Span<byte>, Slots<T, capacity>, Vec<T, n>, Seq<T>, TextBuilder<capacity> or record types in the first-slice carrier",
+                        node,
+                    )
+                result = inner_type
+            else:
                 raise self.fail("unsupported", f"type modifier '{modifier}' requires the full frontend", node)
-            inner_type = self.type(self.node(node["type"]), environment, require_sort=require_sort)
-            inner_w = self.whnf(inner_type)
-            inner_head, inner_args = self.spine(inner_w)
-            supported_loan = (
-                (inner_head == _constant("Span") and len(inner_args) == 1 and self.whnf(inner_args[0]) == _U8)
-                or (inner_head == _constant("Slots") and len(inner_args) == 2)
-                or (inner_head == _constant("Vec") and len(inner_args) == 2)
-                or (inner_head == _constant("Seq") and len(inner_args) == 1)
-                or (inner_head == _constant("TextBuilder") and len(inner_args) == 1)
-                or (
-                    inner_head.kind == "const"
-                    and isinstance(inner_head.value, str)
-                    and inner_head.value in self.records_by_type
-                )
-            )
-            if not supported_loan:
-                raise self.fail(
-                    "unsupported",
-                    f"modifier '{modifier}' is only supported on Span<byte>, Slots<T, capacity>, Vec<T, n>, Seq<T>, TextBuilder<capacity> or record types in the first-slice carrier",
-                    node,
-                )
-            result = inner_type
         else:
             raise self.fail("unsupported", f"'{kind}' is not a supported mathematical type")
         if require_sort:
@@ -1424,7 +1622,13 @@ class _Elaborator(
             self.site = node
             self.unify(res_b.type, expected)
             return res_b.term
-        value = self.expression(node, environment)
+        prev_expected_call = self.expected_call_type
+        if node["kind"] == "call":
+            self.expected_call_type = expected
+        try:
+            value = self.expression(node, environment)
+        finally:
+            self.expected_call_type = prev_expected_call
         self.site = node
         self.unify(value.type, expected)
         return value.term
@@ -1499,12 +1703,24 @@ class _Elaborator(
 
 
 
-def _checked_elaboration(source: bytes, parsed: object) -> tuple[Elaboration, _Elaborator]:
+def _checked_elaboration(
+    source: bytes,
+    parsed: object,
+    *,
+    available_modules: dict[str, _Elaborator] | None = None,
+) -> tuple[Elaboration, _Elaborator]:
     protocol = _Protocol(source)
     try:
         root = protocol.decode(parsed)
         elaborator = _Elaborator(protocol)
         module = elaborator.name(root["name"])
+        elaborator.module_name = module
+        if available_modules is not None and available_modules:
+            elaborator.available_modules = dict(available_modules)
+            elaborator.serial = max(
+                elaborator.serial,
+                *(mod.serial for mod in available_modules.values()),
+            )
         for declaration in elaborator.nodes(root["declarations"]):
             elaborator.declaration(declaration)
         generated_module = "Vela_" + module.replace(".", "_")
@@ -1520,9 +1736,78 @@ def _checked_elaboration(source: bytes, parsed: object) -> tuple[Elaboration, _E
         raise protocol.error("limit", "elaboration nesting exceeds the host stack bound") from error
 
 
-def elaborate(source: bytes, parsed: object) -> Elaboration:
+def elaborate(
+    source: bytes,
+    parsed: object,
+    *,
+    imports: Sequence[tuple[bytes, object]] | None = None,
+) -> Elaboration:
     """Check an exact-source schema-2 AST and propose a complete bounded CIC file."""
-    return _checked_elaboration(source, parsed)[0]
+    available: dict[str, _Elaborator] = {}
+    if imports is not None:
+        for imp_source, imp_parsed in imports:
+            imp_elab, imp_elaborator = _checked_elaboration(
+                imp_source, imp_parsed, available_modules=available
+            )
+            available[imp_elab.module] = imp_elaborator
+    return _checked_elaboration(source, parsed, available_modules=available or None)[0]
+
+
+def elaborate_package(modules: Sequence[tuple[bytes, object]]) -> dict[str, Elaboration]:
+    """Elaborate a multi-module package in dependency order, enforcing module visibility."""
+    decoded: dict[str, tuple[bytes, object, _Protocol, Node, list[tuple[str, Node]]]] = {}
+    order_names: list[str] = []
+    for src, parsed in modules:
+        protocol = _Protocol(src)
+        root = protocol.decode(parsed)
+        probe = _Elaborator(protocol)
+        mod_name = probe.name(root["name"])
+        if mod_name in decoded:
+            raise protocol.error("name", f"duplicate module '{mod_name}' in package", root)
+        deps = [
+            (probe.name(decl["name"]), decl)
+            for decl in probe.nodes(root["declarations"])
+            if decl["kind"] == "import"
+        ]
+        decoded[mod_name] = (src, parsed, protocol, root, deps)
+        order_names.append(mod_name)
+
+    visited: dict[str, int] = {}
+    topo: list[str] = []
+
+    def visit(mod_name: str, call_edge: tuple[_Protocol, Node] | None = None) -> None:
+        state = visited.get(mod_name, 0)
+        if state == 1:
+            if call_edge is not None:
+                err_proto, err_node = call_edge
+                raise err_proto.error("name", f"circular module import involving '{mod_name}'", err_node)
+            _, _, err_proto, err_root, _ = decoded[mod_name]
+            raise err_proto.error("name", f"circular module import involving '{mod_name}'", err_root)
+        if state == 2:
+            return
+        visited[mod_name] = 1
+        _, _, proto, _, deps = decoded[mod_name]
+        for dep_name, imp_node in deps:
+            if dep_name == mod_name:
+                raise proto.error("name", f"circular module import involving '{mod_name}'", imp_node)
+            if dep_name in decoded:
+                visit(dep_name, (proto, imp_node))
+        visited[mod_name] = 2
+        topo.append(mod_name)
+
+    for mname in order_names:
+        if visited.get(mname, 0) == 0:
+            visit(mname)
+
+    available: dict[str, _Elaborator] = {}
+    elaborations: dict[str, Elaboration] = {}
+    for mname in topo:
+        src, parsed, _, _, _ = decoded[mname]
+        elab, elaborator = _checked_elaboration(src, parsed, available_modules=available)
+        available[mname] = elaborator
+        elaborations[mname] = elab
+
+    return elaborations
 
 
 def _console_initializer(elaborator: _Elaborator, protocol: _Protocol, parsed: object,

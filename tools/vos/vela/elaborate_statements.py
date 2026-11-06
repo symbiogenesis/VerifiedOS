@@ -182,6 +182,13 @@ class _StatementsMixin:
                 "cannot propagate '?' early exit while a record invariant is lifted in an enclosing scope",
                 prop_node,
             )
+        if self.uninitialized_out_params:
+            uninit_name = min(self.uninitialized_out_params)
+            raise self.fail(
+                "type",
+                f"cannot propagate '?' early exit before 'out' parameter '{uninit_name}' is initialized",
+                prop_node,
+            )
         scrutinee = self.expression(self.node(prop_node["value"]), environment)
         scrut_type = self.whnf(scrutinee.type)
         scrut_head, scrut_type_args = self.spine(scrut_type)
@@ -334,7 +341,15 @@ class _StatementsMixin:
                     rhs_term = self.check(val_node, cur_b.type, updated)
                 finally:
                     self._in_lifted_target_assignment = prev_assign_target
+                self._consume_call_updates(updated, statement)
+                self.uninitialized_out_params.discard(tname)
             else:
+                if tname in self.uninitialized_out_params:
+                    raise self.fail(
+                        "type",
+                        f"cannot apply compound assignment '{op}' to uninitialized 'out' parameter '{tname}'",
+                        target,
+                    )
                 bin_op = op[:-1]
                 bin_node: Node = {
                     "kind": "binary",
@@ -344,6 +359,7 @@ class _StatementsMixin:
                     "right": val_node,
                 }
                 rhs_term = self.check(bin_node, cur_b.type, updated)
+                self._consume_call_updates(updated, statement)
             rec_head, rec_targs = self.spine(self.whnf(cur_b.type))
             if (
                 rec_head.kind == "const"
@@ -367,6 +383,12 @@ class _StatementsMixin:
                 raise self.fail("name", f"unknown identifier '{rname}'", recv_node)
             if rname in self.frozen_collections:
                 raise self.fail("type", f"cannot mutate collection '{rname}' while iterating over it", statement)
+            if rname in self.uninitialized_out_params:
+                raise self.fail(
+                    "type",
+                    f"cannot mutate field '{fname}' of uninitialized 'out' parameter '{rname}'; initialize the whole value first",
+                    target,
+                )
             if rname not in self.mutable_locals:
                 raise self.fail(
                     "type",
@@ -411,6 +433,7 @@ class _StatementsMixin:
                             statement,
                         )
                     final_fields.append(_apps(_constant(rf.proj_const), *type_args, cur_b.term))
+            self._consume_call_updates(updated, statement)
             new_rec_term = _apps(_constant(record_info.ctor_const), *type_args, *final_fields)
             lifted = self.lifted_invariants.get(rname, set())
             self._check_record_invariants(
@@ -428,6 +451,12 @@ class _StatementsMixin:
                 raise self.fail("name", f"unknown identifier '{rname}'", recv_node)
             if rname in self.frozen_collections:
                 raise self.fail("type", f"cannot mutate collection '{rname}' while iterating over it", statement)
+            if rname in self.uninitialized_out_params:
+                raise self.fail(
+                    "type",
+                    f"cannot mutate indexed element of uninitialized 'out' parameter '{rname}'; initialize the whole value first",
+                    target,
+                )
             if rname not in self.mutable_locals:
                 raise self.fail(
                     "type",
@@ -582,6 +611,16 @@ class _StatementsMixin:
             return cast("str", cast("Node", val["name"]).get("text")), False
         return None, False
 
+    def _consume_call_updates(
+        self: _Elaborator, updated: dict[str, _Binding], site: Node
+    ) -> None:
+        if not self.last_call_updates:
+            return
+        pending = list(self.last_call_updates)
+        self.last_call_updates.clear()
+        for arg_node, new_b in pending:
+            self._apply_ref_target_update(arg_node, new_b, updated, site)
+
     def _apply_ref_target_update(
         self: _Elaborator, arg_node: Node, new_binding: _Binding, updated: dict[str, _Binding], site: Node
     ) -> bool:
@@ -592,7 +631,7 @@ class _StatementsMixin:
             isinstance(val, dict)
             and val.get("kind") == "unary"
             and isinstance(val.get("operator"), dict)
-            and cast("Node", val["operator"]).get("text") in {"ref", "in"}
+            and cast("Node", val["operator"]).get("text") in {"ref", "in", "out"}
         ):
             val = val.get("value")
             while isinstance(val, dict) and val.get("kind") == "group":
@@ -604,6 +643,7 @@ class _StatementsMixin:
             if vname in updated:
                 if vname in self.frozen_collections:
                     raise self.fail("type", f"cannot mutate frozen collection '{vname}'", site)
+                self.uninitialized_out_params.discard(vname)
                 updated[vname] = new_binding
                 return True
             return False
@@ -613,6 +653,12 @@ class _StatementsMixin:
             if recv.get("kind") == "name" and isinstance(recv.get("name"), dict):
                 rname = cast("str", cast("Node", recv["name"]).get("text"))
                 if rname in updated:
+                    if rname in self.uninitialized_out_params:
+                        raise self.fail(
+                            "type",
+                            f"cannot partially initialize 'out' parameter '{rname}' before whole-value assignment",
+                            site,
+                        )
                     if rname in self.frozen_collections:
                         raise self.fail("type", f"cannot mutate frozen collection '{rname}'", site)
                     if rname not in self.mutable_locals:
@@ -694,6 +740,7 @@ class _StatementsMixin:
                     updated[b_name] = res_b
                     return updated
         self.expression(expr_node, updated)
+        self._consume_call_updates(updated, statement)
         return updated
 
     def _elaborate_scope_statement(
@@ -722,6 +769,12 @@ class _StatementsMixin:
             seen_targets.add(tname)
             if tname not in extended:
                 raise self.fail("name", f"unknown identifier '{tname}' in scope header", loan_node)
+            if tname in self.uninitialized_out_params:
+                raise self.fail(
+                    "type",
+                    f"cannot take mutable 'ref' loan of uninitialized 'out' parameter '{tname}'",
+                    loan_node,
+                )
             if tname in self.frozen_collections:
                 raise self.fail("type", f"cannot mutably loan frozen collection '{tname}'", loan_node)
             cur_b = extended[tname]
@@ -977,9 +1030,11 @@ class _StatementsMixin:
                                 statement,
                             )
                         return else_env, ctrl
+                    saved_uninit = set(self.uninitialized_out_params)
                     else_env, ctrl = self._elaborate_non_returning_block(
                         else_block, dict(extended), (*facts, *statement_facts)
                     )
+                    self.uninitialized_out_params = saved_uninit
                     if ctrl not in {"break", "continue"}:
                         raise self.fail(
                             "type",
@@ -1081,31 +1136,39 @@ class _StatementsMixin:
                             if ctrl is not None:
                                 return extended, ctrl
                         continue
+                    saved_uninit = set(self.uninitialized_out_params)
                     self.active_facts.append(condition)
                     try:
                         then_env, then_ctrl = self._elaborate_non_returning_block(
                             then_block, dict(extended), (*facts, *statement_facts)
                         )
+                        then_uninit = set(self.uninitialized_out_params)
                     finally:
                         self.active_facts.pop()
+                    self.uninitialized_out_params = set(saved_uninit)
                     if else_block is not None:
                         self.active_facts.append(_app(_constant("!"), condition))
                         try:
                             else_env, else_ctrl = self._elaborate_non_returning_block(
                                 else_block, dict(extended), (*facts, *statement_facts)
                             )
+                            else_uninit = set(self.uninitialized_out_params)
                         finally:
                             self.active_facts.pop()
                     else:
                         else_env, else_ctrl = dict(extended), None
+                        else_uninit = set(saved_uninit)
                     if then_ctrl is not None and else_ctrl is None:
                         self.active_facts.append(_app(_constant("!"), condition))
+                        self.uninitialized_out_params = else_uninit
                         extended = else_env
                         continue
                     if else_ctrl is not None and then_ctrl is None:
                         self.active_facts.append(condition)
+                        self.uninitialized_out_params = then_uninit
                         extended = then_env
                         continue
+                    self.uninitialized_out_params = then_uninit | else_uninit
                     for k, orig_b in list(extended.items()):
                         tb = then_env.get(k, orig_b)
                         eb = else_env.get(k, orig_b)
@@ -1317,6 +1380,7 @@ class _StatementsMixin:
                 return cur_env
 
             # Symbolic range induction
+            saved_uninit = set(self.uninitialized_out_params)
             sym_env = dict(extended)
             for mname in list(self.mutable_locals):
                 if mname in sym_env and mname != var_name:
@@ -1345,6 +1409,7 @@ class _StatementsMixin:
                 self._check_loop_invariants(contracts, step_env, statement, "inductive step")
                 self._check_loop_decreases(before_sym_m, step_env, "inductive step")
             finally:
+                self.uninitialized_out_params = saved_uninit
                 del self.active_facts[saved_facts_len:]
             post_env = dict(extended)
             for mname in list(self.mutable_locals):
@@ -1528,6 +1593,7 @@ class _StatementsMixin:
                 return cur_env
 
             # Symbolic collection iteration
+            saved_uninit = set(self.uninitialized_out_params)
             sym_env = dict(extended)
             for mname in list(self.mutable_locals):
                 if mname in sym_env and mname != var_name and mname != coll_name:
@@ -1566,6 +1632,7 @@ class _StatementsMixin:
                 self._check_loop_invariants(contracts, step_env, statement, "inductive step")
                 self._check_loop_decreases(before_sym_m, step_env, "inductive step")
             finally:
+                self.uninitialized_out_params = saved_uninit
                 del self.active_facts[saved_facts_len:]
             for mname in list(self.mutable_locals):
                 if mname in cur_env and mname != var_name and sym_env.get(mname, cur_env[mname]).term != after_sym.get(mname, sym_env.get(mname, cur_env[mname])).term:
@@ -1645,6 +1712,7 @@ class _StatementsMixin:
                 return cur_env
 
             # Symbolic induction for while loop (also checks 0-trip concrete loops)
+            saved_uninit = set(self.uninitialized_out_params)
             sym_env = dict(extended)
             for mname in list(self.mutable_locals):
                 if mname in sym_env:
@@ -1666,6 +1734,7 @@ class _StatementsMixin:
                     self._check_loop_invariants(contracts, step_env, statement, "inductive step")
                     self._check_loop_decreases(before_sym_m, step_env, "inductive step")
             finally:
+                self.uninitialized_out_params = saved_uninit
                 del self.active_facts[saved_facts_len:]
             if unrolled_concretely:
                 return cur_env
@@ -1967,6 +2036,7 @@ class _StatementsMixin:
                         ],
                     }
                     try:
+                        saved_uninit_match = set(self.uninitialized_out_params)
                         result = self.match(
                             synthetic_match,
                             extended,
@@ -1977,8 +2047,11 @@ class _StatementsMixin:
                             visited_arms=visited_arms,
                             synthetic=True,
                         )
+                        after_match_uninit = set(self.uninitialized_out_params)
                         if 1 not in visited_arms:
+                            self.uninitialized_out_params = saved_uninit_match
                             self.block(else_block, extended, result.type, facts=combined_facts)
+                            self.uninitialized_out_params = after_match_uninit
                     finally:
                         self.mutable_locals = saved_mut
                     return finish(result)
@@ -2041,6 +2114,19 @@ class _StatementsMixin:
                         }
                     else:
                         raise self.fail("unsupported", "a returning terminal must be the final statement")
+                elif kind == "match" and index < len(statements) - 1:
+                    lifted = lift_stmt_propagate(statement, "value", index)
+                    if lifted is not None:
+                        return lifted
+                    rest_statements = statements[index + 1:]
+                    new_cases: list[Node] = []
+                    for arm in self.nodes(statement["cases"]):
+                        arm_stmts = self.nodes(arm["statements"])
+                        if arm_stmts and arm_stmts[-1]["kind"] == "return":
+                            new_cases.append(arm)
+                        else:
+                            new_cases.append({**arm, "statements": [*arm_stmts, *rest_statements]})
+                    cur_stmt = {**statement, "cases": new_cases}
                 elif index != len(statements) - 1:
                     raise self.fail("unsupported", "a returning terminal must be the final statement")
                 else:
@@ -2053,6 +2139,13 @@ class _StatementsMixin:
                             cur_stmt,
                         )
                     if cur_stmt["value"] is None:
+                        if self.uninitialized_out_params:
+                            uninit_list = ", ".join(sorted(self.uninitialized_out_params))
+                            raise self.fail(
+                                "type",
+                                f"cannot return before 'out' parameter '{uninit_list}' is initialized",
+                                cur_stmt,
+                            )
                         value = _Binding(_term("unit"), _UNIT)
                         if expected is not None:
                             self.unify(value.type, expected)
@@ -2068,6 +2161,14 @@ class _StatementsMixin:
                         if expected is None
                         else _Binding(self.check(value_node, expected, extended), expected)
                     )
+                    self._consume_call_updates(extended, cur_stmt)
+                    if self.uninitialized_out_params:
+                        uninit_list = ", ".join(sorted(self.uninitialized_out_params))
+                        raise self.fail(
+                            "type",
+                            f"cannot return before 'out' parameter '{uninit_list}' is initialized",
+                            cur_stmt,
+                        )
                     self.final_ref_bindings = dict(extended)
                     self.final_return_facts = list(self.active_facts[saved_active_len:])
                     return finish(result)
@@ -2094,18 +2195,23 @@ class _StatementsMixin:
                             )
                         )
                     condition = self.check(cond_raw, _BOOL, extended)
+                    saved_uninit = set(self.uninitialized_out_params)
                     self.active_facts.append(condition)
                     try:
                         yes = self.branch(self.node(cur_stmt["then"]), extended, expected, facts=combined_facts)
                         yes_refs = dict(self.final_ref_bindings)
+                        yes_uninit = set(self.uninitialized_out_params)
                     finally:
                         self.active_facts.pop()
+                    self.uninitialized_out_params = set(saved_uninit)
                     self.active_facts.append(_app(_constant("!"), condition))
                     try:
                         no = self.branch(self.node(cur_stmt["else"]), extended, yes.type, facts=combined_facts)
                         no_refs = dict(self.final_ref_bindings)
+                        no_uninit = set(self.uninitialized_out_params)
                     finally:
                         self.active_facts.pop()
+                    self.uninitialized_out_params = yes_uninit | no_uninit
                     merged_refs = dict(extended)
                     for rk in set(yes_refs) & set(no_refs):
                         yb = yes_refs[rk]
@@ -2120,12 +2226,12 @@ class _StatementsMixin:
                     self.final_ref_bindings = merged_refs
                     return finish(_Binding(_term("if", yes.type, condition, yes.term, no.term), yes.type))
                 if kind == "match":
-                    lifted = lift_stmt_propagate(statement, "value", index)
+                    lifted = lift_stmt_propagate(cur_stmt, "value", index)
                     if lifted is not None:
                         return lifted
                     return finish(
                         self.match(
-                            statement,
+                            cur_stmt,
                             extended,
                             expected,
                             expression_arms=False,
@@ -2144,6 +2250,13 @@ class _StatementsMixin:
                 and expected is not None
                 and self.whnf(expected) == _UNIT
             ):
+                if self.uninitialized_out_params:
+                    uninit_list = ", ".join(sorted(self.uninitialized_out_params))
+                    raise self.fail(
+                        "type",
+                        f"cannot return before 'out' parameter '{uninit_list}' is initialized",
+                        node,
+                    )
                 self.final_ref_bindings = dict(extended)
                 return finish(_Binding(_term("unit"), _UNIT))
             raise self.fail("type", "a pure block requires an explicit terminal return", node)

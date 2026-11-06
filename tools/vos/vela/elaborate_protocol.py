@@ -23,6 +23,8 @@ _FIELDS: dict[str, set[str]] = {
     "constant_local": {"name", "type", "value"},
     "definition": {"name", "result", "generics", "parameters", "contracts", "value", "modifiers"},
     "function": {"name", "result", "generics", "parameters", "contracts", "body", "cancel", "modifiers"},
+    "interface": {"name", "generics", "contracts", "declarations", "modifiers"},
+    "impl": {"type", "generics", "contracts", "declarations", "modifiers"},
     "record": {"name", "generics", "parameters", "contracts", "declarations", "modifiers"},
     "union": {"name", "generics", "contracts", "constructors", "modifiers"},
     "constructor": {"name", "parameters", "result", "contracts"},
@@ -305,6 +307,29 @@ class _Protocol:
                 cursor = self._token(node, cursor, b";")
             else:
                 cursor = self._child(node, span, cursor, node["body"])
+        elif kind in {"interface", "impl"}:
+            modifiers = node["modifiers"]
+            if not isinstance(modifiers, list) or any(not isinstance(item, str) for item in modifiers):
+                raise self.error("protocol", "declaration modifiers must be a name list", node)
+            for modifier in modifiers:
+                cursor = self._token(node, cursor, cast("str", modifier).encode())
+            cursor = self._token(node, cursor, cast("str", kind).encode())
+            if kind == "interface":
+                cursor = self._child(node, span, cursor, node["name"])
+                cursor = self._generics(node, span, cursor)
+            else:
+                cursor = self._generics(node, span, cursor)
+                cursor = self._child(node, span, cursor, node["type"])
+            contracts = node["contracts"]
+            if not isinstance(contracts, list) or any(
+                not isinstance(item, dict) or item.get("kind") != "contract" for item in contracts
+            ):
+                raise self.error("protocol", f"{kind} contracts must be contract nodes", node)
+            for contract_item in contracts:
+                cursor = self._child(node, span, cursor, contract_item)
+            cursor = self._token(node, cursor, b"{")
+            self._sequence_envelope(node, span, "declarations", cursor, b"}")
+            return
         elif kind == "constructor":
             if node.get("contracts"):
                 return
@@ -689,6 +714,9 @@ class _Protocol:
             cursor = self._token(node, cursor, cast("str", node["modifier"]).encode())
             cursor = self._child(node, span, cursor, node["type"])
         elif kind == "import":
+            modifiers = node.get("modifiers", [])
+            if not isinstance(modifiers, list) or modifiers:
+                raise self.error("protocol", "import declarations cannot carry modifiers", node)
             cursor = self._token(node, cursor, b"import")
             cursor = self._child(node, span, cursor, node["name"])
             cursor = self._token(node, cursor, b";")
@@ -849,7 +877,11 @@ class _Protocol:
         optional = (
             {"const"}
             if kind in {"parameter", "lambda_parameter"}
-            else ({"name"} if kind == "contract" else ({"lifts"} if kind == "scope" else set()))
+            else (
+                {"name"}
+                if kind == "contract"
+                else ({"lifts"} if kind == "scope" else ({"modifiers"} if kind == "import" else set()))
+            )
         )
         if (set(node) - optional != {"kind", "span", *fields}
                 or ("const" in node and type(node["const"]) is not bool)):

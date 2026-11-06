@@ -232,6 +232,16 @@ class _SolverMixin:
         if depth > 2 or w in visited:
             return lo, hi, ne_set
         next_visited = visited | {w}
+        if w.kind == "if" and len(w.args) == 4:
+            t_lo, t_hi, t_ne = self._term_bounds(
+                w.args[2], spec, [*facts, w.args[1]], depth + 1, next_visited
+            )
+            e_lo, e_hi, e_ne = self._term_bounds(
+                w.args[3], spec, [*facts, self._negate_bool_term(w.args[1])], depth + 1, next_visited
+            )
+            lo = max(lo, min(t_lo, e_lo))
+            hi = min(hi, max(t_hi, e_hi))
+            ne_set.update(t_ne & e_ne)
         head, args = self.spine(w)
         if head.kind == "const" and isinstance(head.value, str):
             cname = head.value
@@ -658,7 +668,9 @@ class _SolverMixin:
                         return True
         return bool(op_kind == "ne" and (can_reach(uwl, uwr, True) or can_reach(uwr, uwl, True)))
 
-    def _prove_bool_precondition(self: _Elaborator, cond: _Term, environment: dict[str, _Binding]) -> bool:
+    def _prove_bool_precondition(
+        self: _Elaborator, cond: _Term, environment: dict[str, _Binding], depth: int = 0
+    ) -> bool:
         w = self.whnf(cond)
         if w == _term("bool", value=1):
             return True
@@ -669,23 +681,23 @@ class _SolverMixin:
             return True
         head, args = self.spine(w)
         if head == _constant("&&") and len(args) == 2:
-            return self._prove_bool_precondition(args[0], environment) and self._prove_bool_precondition(
-                args[1], environment
+            return self._prove_bool_precondition(args[0], environment, depth) and self._prove_bool_precondition(
+                args[1], environment, depth
             )
         if head == _constant("||") and len(args) == 2:
-            return self._prove_bool_precondition(args[0], environment) or self._prove_bool_precondition(
-                args[1], environment
+            return self._prove_bool_precondition(args[0], environment, depth) or self._prove_bool_precondition(
+                args[1], environment, depth
             )
         if head == _constant("==>") and len(args) == 2:
             self.active_facts.append(args[0])
             try:
-                return self._prove_bool_precondition(args[1], environment)
+                return self._prove_bool_precondition(args[1], environment, depth)
             finally:
                 self.active_facts.pop()
         if head == _constant("!") and len(args) == 1:
             neg = self._negate_bool_term(args[0])
             if neg != w:
-                return self._prove_bool_precondition(neg, environment)
+                return self._prove_bool_precondition(neg, environment, depth)
         if head == _constant("eq_unit") and len(args) == 2:
             return True
         if head == _constant("eq_bool") and len(args) == 2 and self.convertible(args[0], args[1]):
@@ -815,7 +827,30 @@ class _SolverMixin:
         parsed = self._parse_cmp_fact(w)
         if parsed is not None:
             op_kind, spec, lhs, rhs = parsed
-            return self._prove_comparison(op_kind, spec, lhs, rhs, facts)
+            if self._prove_comparison(op_kind, spec, lhs, rhs, facts):
+                return True
+        if depth <= 4:
+            if_cond = self._find_if_condition(w)
+            if if_cond is not None:
+                b_var = self.fresh(_BOOL)
+                b_id = cast("int", b_var.value)
+                w_b, rep = self._expose_and_replace_if(w, if_cond, b_var)
+                if rep:
+                    w_true = self.substitute(w_b, b_id, _term("bool", value=1))
+                    w_false = self.substitute(w_b, b_id, _term("bool", value=0))
+                    self.active_facts.append(if_cond)
+                    try:
+                        ok_true = self._prove_bool_precondition(w_true, environment, depth + 1)
+                    finally:
+                        self.active_facts.pop()
+                    if ok_true:
+                        self.active_facts.append(self._negate_bool_term(if_cond))
+                        try:
+                            ok_false = self._prove_bool_precondition(w_false, environment, depth + 1)
+                        finally:
+                            self.active_facts.pop()
+                        if ok_false:
+                            return True
         return False
 
     def _collect_seq_at_terms(self: _Elaborator, term: _Term) -> list[_Term]:

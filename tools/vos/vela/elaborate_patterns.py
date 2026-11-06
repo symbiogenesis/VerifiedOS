@@ -420,6 +420,7 @@ class _PatternsMixin:
             self._require_irrefutable(pat)
             self._typecheck_pattern(pat, binding.type, environment)
             extended = dict(environment)
+            self._consume_call_updates(extended, node)
             self._bind_irrefutable(pat, binding, extended)
             bound_names: set[str] = set()
             self._collect_pat_names(pat, bound_names)
@@ -443,6 +444,7 @@ class _PatternsMixin:
                 value_type = self.type(self.node(node["type"]), environment)
                 binding = _Binding(self.check(self.node(node["value"]), value_type, environment), value_type)
         extended = dict(environment)
+        self._consume_call_updates(extended, node)
         bname = self.name(node["name"])
         if bname in self.frozen_collections:
             raise self.fail("type", f"cannot rebind collection '{bname}' while iterating over it", node)
@@ -532,6 +534,8 @@ class _PatternsMixin:
             )
         inferred_result: list[_Term | None] = [expected]
         local_visited: set[int] = set()
+        initial_uninit_out = set(self.uninitialized_out_params)
+        arm_uninit_sets: list[set[str]] = []
 
         def subst_cols(
             cols: list[tuple[_Term, _Term, _Term]], var_id: int, replacement: _Term
@@ -642,7 +646,9 @@ class _PatternsMixin:
                         return evaluated.term
                     return self.check(value_node, leaf_expected, arm_env)
                 block_node = {"kind": "block", "span": arm["span"], "statements": arm["statements"]}
+                self.uninitialized_out_params = set(initial_uninit_out)
                 evaluated = self.block(block_node, arm_env, leaf_expected, facts=arm_facts)
+                arm_uninit_sets.append(set(self.uninitialized_out_params))
                 if motive_body is None and inferred_result[0] is None:
                     inferred_result[0] = evaluated.type
                 return evaluated.term
@@ -811,6 +817,7 @@ class _PatternsMixin:
                         specialize_rows(active_rows, index, "bool", true_term, col_var_id, _BOOL, 0, bool_value=True),
                         self.substitute(pattern_term, col_var_id, true_term),
                     )
+                    yes_refs = dict(self.final_ref_bindings)
                 finally:
                     self.active_facts.pop()
                 self.active_facts.append(_app(_constant("!"), col_scrutinee))
@@ -820,8 +827,22 @@ class _PatternsMixin:
                         specialize_rows(active_rows, index, "bool", false_term, col_var_id, _BOOL, 0, bool_value=False),
                         self.substitute(pattern_term, col_var_id, false_term),
                     )
+                    no_refs = dict(self.final_ref_bindings)
                 finally:
                     self.active_facts.pop()
+                if not expression_arms:
+                    merged_refs = dict(environment)
+                    for rk in set(yes_refs) & set(no_refs):
+                        yb = yes_refs[rk]
+                        nb = no_refs[rk]
+                        if yb.term != nb.term:
+                            merged_refs[rk] = _Binding(
+                                self.whnf(_term("if", yb.type, col_scrutinee, yb.term, nb.term)),
+                                yb.type,
+                            )
+                        else:
+                            merged_refs[rk] = yb
+                    self.final_ref_bindings = merged_refs
                 if motive_body is None:
                     return _term("if", cast("_Term", inferred_result[0]), col_scrutinee, yes, no)
                 motive_lam = _term("lam", _BOOL, self.substitute(motive_body, root_var_id, pattern_term), value=col_var_id)
@@ -1434,5 +1455,12 @@ class _PatternsMixin:
                     self.check(self.node(arm["value"]), result_type, arm_env)
                 else:
                     block_node = {"kind": "block", "span": arm["span"], "statements": arm["statements"]}
+                    self.uninitialized_out_params = set(initial_uninit_out)
                     self.block(block_node, arm_env, result_type, facts=facts)
+                    arm_uninit_sets.append(set(self.uninitialized_out_params))
+        if not expression_arms and arm_uninit_sets:
+            merged_uninit: set[str] = set()
+            for s in arm_uninit_sets:
+                merged_uninit |= s
+            self.uninitialized_out_params = merged_uninit
         return _Binding(term, result_type)

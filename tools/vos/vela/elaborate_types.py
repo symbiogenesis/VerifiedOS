@@ -258,6 +258,52 @@ class _UnionInfo:
     suffix_types: tuple[_Term, ...]
 
 
+@dataclass(frozen=True)
+class _InterfaceMethodSpec:
+    name: str
+    method_generics: int
+    generic_vars: tuple[_Term, ...]
+    param_vars: tuple[_Term, ...]
+    param_labels: tuple[str | None, ...]
+    param_modifiers: tuple[str | None, ...]
+    return_type: _Term
+    signature: _Term
+    self_var: _Term
+    nullary: bool
+    preconditions: tuple[tuple[tuple[int, ...], _Term], ...]
+    ensures_clauses: tuple[Node, ...]
+    ensures_props: tuple[_Term, ...]
+
+
+@dataclass(frozen=True)
+class _InterfaceLawSpec:
+    name: str
+    kind: str
+    param_vars: tuple[_Term, ...]
+    requires_clauses: tuple[Node, ...]
+    ensures_clauses: tuple[Node, ...]
+    req_props: tuple[_Term, ...]
+    ensures_props: tuple[_Term, ...]
+
+
+@dataclass(frozen=True)
+class _InterfaceInfo:
+    name: str
+    generic_vars: tuple[_Term, ...]
+    methods: dict[str, _InterfaceMethodSpec]
+    laws: dict[str, _InterfaceLawSpec]
+
+
+@dataclass(frozen=True)
+class _ImplInstance:
+    interface_name: str
+    generic_vars: tuple[_Term, ...]
+    target_types: tuple[_Term, ...]
+    where_constraints: tuple[tuple[str, tuple[_Term, ...]], ...]
+    methods: dict[str, _Binding]
+
+
+
 
 
 _GALLINA = {
@@ -687,8 +733,14 @@ Definition vela_char_to_nat (c : vela_char) : nat :=
   vela_char_code c.
 Definition vela_char_to_u32 (_ : vela_char) : vela_int (2 : nat) :=
   vela_mk_int (2 : nat) (vela_bits_pad 32 false vela_bnil).
+Fixpoint vela_bits_to_nat_acc (bs : vela_bits) (acc : nat) : nat :=
+  match bs with
+  | vela_bnil => acc
+  | vela_bcons b rest =>
+      vela_bits_to_nat_acc rest (Corelib.Init.Nat.add (Corelib.Init.Nat.mul 2 acc) (if b then 1 else 0))
+  end.
 Definition vela_char_from_u8 (b : vela_int (0 : nat)) : vela_char :=
-  vela_mk_char (vela_int_to_nat (0 : nat) b).
+  vela_mk_char (vela_bits_to_nat_acc (vela_int_bits (0 : nat) b) O).
 Definition vela_char_try_from_u32 (_ : vela_int (2 : nat))
     : vela_Result vela_char vela_ConversionError :=
   vela_Result_Ok vela_char vela_ConversionError (vela_mk_char O).
@@ -1086,10 +1138,10 @@ Definition vela_Slots_Read (A : Type@{vela_u0}) (cap : nat) (d : A) (s : vela_Sl
   vela_Seq_At A d (vela_Slots_Model A cap s) (vela_int_to_nat (4 : nat) idx).
 
 Definition vela_Slots_LivePrefix (A : Type@{vela_u0}) (cap : nat) (s : vela_Slots A cap) (cnt : vela_int (4 : nat)) : bool :=
-  vela_and (vela_Slots_CanRead A cap s) (vela_int_eq (4 : nat) (vela_Slots_LiveCount A cap s) cnt).
+  vela_int_eq (4 : nat) (vela_Slots_LiveCount A cap s) cnt.
 
-Definition vela_Slots_VacantRange (A : Type@{vela_u0}) (cap : nat) (s : vela_Slots A cap) (start stop : vela_int (4 : nat)) : bool :=
-  vela_and (vela_Slots_CanWrite A cap s) (vela_int_le (4 : nat) start stop).
+Definition vela_Slots_VacantRange (A : Type@{vela_u0}) (cap : nat) (_ : vela_Slots A cap) (start stop : vela_int (4 : nat)) : bool :=
+  vela_int_le (4 : nat) start stop.
 
 Definition vela_Slots_Disjoint (A : Type@{vela_u0}) (n m : nat) (a : vela_Slots A n) (b : vela_Slots A m) : bool :=
   vela_int_ne (4 : nat) (vela_Slots_Base A n a) (vela_Slots_Base A m b).
