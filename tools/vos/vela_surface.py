@@ -457,7 +457,7 @@ alias Conditional = type[match (flag) {
     true => type owned Packet,
     false => type Unit,
 }];
-trait Family<T : type[KindOf()]> {
+interface Family<T : type[KindOf()]> {
     type Item : type[UniverseOf(T)] = type[MemberType(T)];
 }
 record Packed(bool Enabled, type[FieldType(Enabled)] Value);
@@ -653,7 +653,7 @@ module KindedFamilies;
 universe u;
 alias Scoped<T : Type<u>, region 'loan> = Fn(scoped ref<'loan> T value) -> Unit;
 alias Plain<U> = U;
-trait Family<T : Type<u>> {
+interface Family<T : Type<u>> {
     type Value<U : Type<u>> : Type<u> where Formed(U);
     type Selected : Type<u> where Stable(T) = T;
     type Legacy;
@@ -680,7 +680,7 @@ public void Inspect() { Compare((type Nat), (type bool)); }
 module CallableKinds;
 universe u;
 alias Higher<F : (Fn(Type<u> value) -> Type<u>)> = F;
-trait Kinded<T : Type<u>> {
+interface Kinded<T : Type<u>> {
     type Build : (Fn(Type<u>) -> Type<u>) where Formed(T);
 }
 union Factories<T> {
@@ -810,10 +810,10 @@ public struct BoundedBuffer<T, ghost Nat capacity>
     }
 }
 public interface Storage<T> where StorageLaw(T) {
-    operation T Read() requires Readable(this) ensures Stable(result);
+    T Read() requires Readable(this) ensures Stable(result);
     struct Nested invariant InnerLaw() {}
 }
-public trait Repeatable<T, grade q : NatExact> where Admits(T, q) {
+public interface Repeatable<T, grade q : NatExact> where Admits(T, q) {
     public (Box<T, q>, Box<T, q>) Split(owned Box<T, q> value)
         requires Dup(value);
 }
@@ -826,7 +826,7 @@ public hardware Clocked where PhysicalLaw() invariant Bounded(count) {
     rule Tick() { next count = count + 1; }
 }
 private struct Empty {}
-""", ("struct", "interface", "trait", "machine", "hardware", "contract", "field", "operation", "scope")),
+""", ("struct", "interface", "machine", "hardware", "contract", "field", "function", "scope")),
     Fixture("named-handler-capabilities", """// café: repeated names retain distinct binding spans.
 module NamedHandlers;
 public Nat Nested() {
@@ -1124,14 +1124,14 @@ alias Word = u64;
 namespace Internal {
     public interface Storage<T> {
         type Handle;
-        predicate Owns(Handle handle);
-        operation void Read();
-        proof ReadLaw;
+        predicate Owns(Handle target);
+        void Read();
+        lemma ReadLaw(Handle target): Owns(target);
     }
-    public trait Eq<T> { bool Equal(T other); }
+    public interface Eq<T> { bool Equal(T other); }
     public impl Eq<u64> { public bool Equal(u64 other) { return true; } }
 }
-""", ("import", "alias", "namespace", "interface", "trait", "impl")),
+""", ("import", "alias", "namespace", "interface", "lemma", "impl")),
     Fixture("dependent-data-and-lifetimes", """module Packets;
 public record Packet<region 'source>(
     usize Length, in<'source> Span<byte> Data, ghost Nat Count)
@@ -1564,16 +1564,16 @@ NEGATIVE: tuple[tuple[str, bytes, str], ...] = (
     ("generic-callable-contract-lookahead-depth", b"module M; void F() { Box<Fn() -> Nat with "
      + b"{" * 257 + b"requires Ready();" + b"}" * 257 + b"> value = source; }", "limit"),
     ("ungrouped-callable-kind", b"module M; alias A<F : Fn() -> Nat> = F;", "syntax"),
-    ("ungrouped-associated-callable-kind", b"module M; trait F { type A : Fn() -> Nat; }", "syntax"),
+    ("ungrouped-associated-callable-kind", b"module M; interface F { type A : Fn() -> Nat; }", "syntax"),
     ("ungrouped-callable-type-expression", b"module M; definition Type<u> F() => type Fn() -> Nat;", "syntax"),
     ("typed-callable-statement-missing-body", b"module M; void F() { Fn() -> Nat =>; }", "syntax"),
     ("typed-callable-argument-missing-body", b"module M; void F() { Apply(Fn() -> Nat =>); }", "syntax"),
     ("typed-callable-return-missing-body", b"module M; void F() { let f = Fn() -> (Fn() -> Nat) =>; }", "syntax"),
     ("type-binder-missing-kind", b"module M; alias Box<T :> = T;", "syntax"),
     ("type-binder-missing-name", b"module M; alias Box<: Type<u>> = T;", "syntax"),
-    ("associated-missing-kind", b"module M; trait F { type Value :; }", "syntax"),
-    ("associated-missing-law", b"module M; trait F { type Value : Type<u> where; }", "syntax"),
-    ("associated-kind-after-law", b"module M; trait F { type Value where Stable(T) : Type<u>; }", "syntax"),
+    ("associated-missing-kind", b"module M; interface F { type Value :; }", "syntax"),
+    ("associated-missing-law", b"module M; interface F { type Value : Type<u> where; }", "syntax"),
+    ("associated-kind-after-law", b"module M; interface F { type Value where Stable(T) : Type<u>; }", "syntax"),
     ("type-expression-missing-type", b"module M; definition Type<u> F() => type;", "syntax"),
     ("type-expression-missing-component", b"module M; definition Type<u> F() => type (T,);", "syntax"),
     ("type-expression-incomplete-callable", b"module M; definition Type<u> F() => type Fn(T) ->;", "syntax"),
@@ -1596,7 +1596,7 @@ NEGATIVE: tuple[tuple[str, bytes, str], ...] = (
     ("effect-missing-effects", b"module M; effect E { Nat Get() effects; }", "syntax"),
     ("effect-missing-contract-terminator", b"module M; effect E { Nat Get() ensures Ready(result) }", "syntax"),
     ("effect-resumes-after-contract", b"module M; effect E { Nat Get() requires Ready() resumes(1); }", "syntax"),
-    ("container-missing-law", b"module M; trait Repeatable<T> where {}", "syntax"),
+    ("container-missing-law", b"module M; interface Repeatable<T> where {}", "syntax"),
     ("container-missing-invariant", b"module M; struct Cell<T> invariant {}", "syntax"),
     ("container-contract-semicolon", b"module M; interface I where Law(); {}", "syntax"),
     ("handler-missing-capability", b"module M; Nat F() { return handle (Read()) as {}; }", "syntax"),
@@ -1692,6 +1692,10 @@ NEGATIVE: tuple[tuple[str, bytes, str], ...] = (
     ("scope-lifts-leading-comma", b"module M; void F(ref S s) { scope (ref s) lifts , Clause {} }", "syntax"),
     ("scope-lifts-double-comma", b"module M; void F(ref S s) { scope (ref s) lifts A,, B {} }", "syntax"),
     ("lifts-remains-reserved", b"module M; void F() { let lifts = 1; }", "syntax"),
+    ("legacy-trait-keyword-refused", b"module M; public trait Eq<T> { bool Equal(T other); }", "syntax"),
+    ("legacy-operation-keyword-refused", b"module M; public interface Storage<T> { operation T Read(); }", "syntax"),
+    ("legacy-proof-signature-refused", b"module M; public interface Storage<T> { proof ReadLaw; }", "syntax"),
+    ("handle-keyword-parameter-refused", b"module M; public void F(Handle handle);", "syntax"),
     ("trailing-input", b"module M; public void F(); garbage", "syntax"),
     ("invalid-utf8", b"// invalid \xff\nmodule M; public void F();", "encoding"),
     ("literal-limit", b"module M; public Nat F() { return " + b"9" * 257 + b"; }", "limit"),
@@ -2647,7 +2651,7 @@ def _computed_type_roles(source: bytes, result: dict[str, Json]) -> None:
     if len(branches) != 2 or any(_object(_object(value, "computed branch").get("value"),
                                       "computed branch value").get("kind") != "type_expression" for value in branches):
         raise ValueError("surface computed type confused type injection with type application")
-    family = _named(tree, "trait", "Family")
+    family = _named(tree, "interface", "Family")
     generic = _object(_sequence(family.get("generics"), "computed kind telescope")[0], "computed kind binder")
     _computed_type(source, generic.get("type"), b"type[KindOf()]", "KindOf")
     item = _named(family, "associated_type", "Item")
@@ -3058,7 +3062,7 @@ def _kinded_family_roles(source: bytes, result: dict[str, Json]) -> None:
     bare = _object(_sequence(plain.get("generics"), "bare telescope")[0], "bare binder")
     if bare.get("mode") != "type" or bare.get("type") is not None:
         raise ValueError("surface bare generic acquired an authored kind")
-    family = _named(result.get("ast"), "trait", "Family")
+    family = _named(result.get("ast"), "interface", "Family")
     value = _named(family, "associated_type", "Value")
     _type_head(value.get("kind_annotation"), "Type", 1)
     _contract_roles(value, ["where"])
@@ -3375,7 +3379,7 @@ def _effect_resource_roles(source: bytes, result: dict[str, Json]) -> None:
 def _container_resource_roles(source: bytes, result: dict[str, Json]) -> None:
     expected = (("struct", "LocalCell", ["where", "invariant"]),
                 ("struct", "BoundedBuffer", ["invariant", "invariant", "invariant"]),
-                ("interface", "Storage", ["where"]), ("trait", "Repeatable", ["where"]),
+                ("interface", "Storage", ["where"]), ("interface", "Repeatable", ["where"]),
                 ("machine", "Counter", ["invariant"]), ("hardware", "Clocked", ["where", "invariant"]))
     for kind, name, roles in expected:
         container = _named(result.get("ast"), kind, name)
@@ -3446,7 +3450,7 @@ def _container_resource_roles(source: bytes, result: dict[str, Json]) -> None:
     if set(unlifted) != {"kind", "span", "resources", "body"}:
         raise ValueError("surface unlifted scope fabricated a lifts field")
     storage = _named(result.get("ast"), "interface", "Storage")
-    read = _named(storage, "operation", "Read")
+    read = _named(storage, "function", "Read")
     if _texts(read.get("contracts")) != ["Readable", "this", "Stable", "result"]:
         raise ValueError("surface interface law swallowed its operation contracts")
     nested = _named(storage, "struct", "Nested")

@@ -48,7 +48,7 @@ construct syntax, including syntactically valid programs with semantic errors.
 
 | Area | Syntax acceptance |
 | --- | --- |
-| Modules and abstraction | Qualified module names, imports, aliases, namespaces, public/private declarations, typed constants, interfaces/traits and implementations, abstract signatures and definitions |
+| Modules and abstraction | Qualified module names, imports, aliases, namespaces, public/private declarations, typed constants, interfaces and implementations, abstract signatures and definitions |
 | Data and dependency | Records, structs, tagged unions, fields, constructors, named views, generic types and applications, typed ghost indices, region and capture parameters, grade parameters and annotations |
 | Types and resources | Qualified and applied types, ownership, shared/exclusive loans and place-named lifetimes, ghost/tracked/scoped modifiers, function types with captures and effects, dependent binders and universe syntax |
 | Contracts | Requires, ensures, restores, where, effects, unnamed and named (`invariant Clause: EXPR`) invariants, and decreasing measures; old/final are ordinary calls |
@@ -236,11 +236,19 @@ effect Exchange<T> {
 }
 ```
 
-Struct, interface, trait, machine and hardware containers accept the same
+Struct, interface, machine and hardware containers accept the same
 declaration contracts between their generic telescope and opening brace. Their
 `contracts` arrays distinguish container laws from member contracts, for example
-`trait Repeatable<T, grade q : NatExact> where Admits(T, q) { ... }` and
-`struct LocalCell<T> invariant Closed(this) { ... }`. An `invariant` clause may
+`interface Repeatable<T, grade q : NatExact> where Admits(T, q) { ... }` and
+`struct LocalCell<T> invariant Closed(this) { ... }`. Abstract callable
+signatures inside interfaces and modules use ordinary bodyless function
+declarations (`T Read() requires Readable(this) ensures Stable(result);`), and
+interface proof laws use bodyless `lemma`/`theorem` declarations
+(`lemma ReadLaw(Handle target): Owns(target);`). The legacy `trait` and
+`operation` keywords, proposition-less `proof Name;` signature stubs, and
+`handle` parameter binders (`handle` is a reserved effect-handling keyword) are
+refused in the surface entry (`trait` and `operation` remain ordinary
+identifiers in the pure entry). An `invariant` clause may
 carry an optional identifier before a colon (`invariant InitializedPrefix: LivePrefix(this.slots, 0usize, this.length)`),
 adding a located `name` field to the `contract` node while unnamed `invariant`
 clauses omit `name`. A `scope` statement may name the invariant conjuncts it
@@ -410,7 +418,7 @@ definition Type<u> Select<T : Type<u>>(bool pair) =>
     match (pair) { true => type (T, T), false => type T, };
 alias Selected<T : Type<u>, ghost bool pair> where Stable(pair) =
     type[Select<T>(pair)];
-operation type[Select<T>(pair)] Read<T : Type<u>>(bool pair);
+type[Select<T>(pair)] Read<T : Type<u>>(bool pair);
 ```
 
 Computed types also work directly as generic arguments, as in

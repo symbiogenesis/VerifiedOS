@@ -24,7 +24,7 @@ let with_declaration_modifiers first last modifiers value =
           String "constant", List.remove_assoc "grade" fields,
           List.filter ((<>) "const") modifiers
         end else begin
-          if is_const && not (List.mem kind [String "function"; String "definition"; String "operation"]) then
+          if is_const && not (List.mem kind [String "function"; String "definition"]) then
             refuse "const modifies a function or an initialized value";
           kind, fields, modifiers
         end in
@@ -42,10 +42,10 @@ let binary first last operator left right =
 %token MODULE PUBLIC NAT BOOL LET CONST RETURN IF ELSE TRUE FALSE
 %token LPAREN RPAREN LBRACE RBRACE SEMICOLON COMMA EQUAL PLUS STAR EQ LE EOF
 %token <string> IDENT DECIMAL
-%token PRIVATE INTERNAL ASYNC RECORD STRUCT UNION INTERFACE TRAIT IMPL IMPORT ALIAS NAMESPACE AS
+%token PRIVATE INTERNAL ASYNC RECORD STRUCT UNION INTERFACE IMPL IMPORT ALIAS NAMESPACE AS
 %token OWNED MOVE IN REF OUT GHOST TRACKED SCOPED REGION CAPTURES GRADE DOMAIN
 %token REQUIRES ENSURES RESTORES WHERE EFFECTS INVARIANT DECREASES PROGRESS
-%token VIEW GROWS TYPE PREDICATE OPERATION PROOF
+%token VIEW GROWS TYPE PREDICATE PROOF
 %token EFFECT RESUMES HANDLE SHALLOW WITH RESUME DISPOSE REHANDLE
 %token AWAIT SCOPE LIFTS SPAWN COMMIT ON CANCEL VAR FOREACH WHILE MATCH CASE BREAK CONTINUE
 %token DEFINITION THEOREM LEMMA INDUCTIVE COINDUCTIVE UNIVERSE FORALL EXISTS ASSERT BY CALC
@@ -273,13 +273,6 @@ s_decl:
     { make "predicate" $startpos $endpos [("name", predicate_name); ("generics", array generics);
         ("parameters", array parameters); ("contracts", array contracts); ("definition", optional definition)]
         (generics @ parameters @ contracts @ children definition) }
-| OPERATION header=s_callable_header contracts=list(s_contract) SEMICOLON
-    { let result, operation_name, generics, parameters = header in
-      make "operation" $startpos $endpos [("name", operation_name); ("result", result.syntax);
-        ("generics", array generics); ("parameters", array parameters); ("contracts", array contracts)]
-        (result :: generics @ parameters @ contracts) }
-| PROOF proof_name=s_identifier SEMICOLON
-    { make "proof_signature" $startpos $endpos [("name", proof_name)] [] }
 | UNIVERSE universe=s_identifier SEMICOLON
     { make "universe" $startpos $endpos [("name", universe)] [] }
 | DEFINITION header=s_callable_header contracts=list(s_contract) FATARROW value=s_expression SEMICOLON
@@ -327,7 +320,7 @@ s_decl:
   LPAREN { () } | LAMBDA_OPEN { () }
 
 s_container_kind:
-  STRUCT { "struct" } | INTERFACE { "interface" } | TRAIT { "trait" }
+  STRUCT { "struct" } | INTERFACE { "interface" }
 | MACHINE { "machine" } | HARDWARE { "hardware" }
 s_sum_kind:
   UNION { "union" } | INDUCTIVE { "inductive" } | COINDUCTIVE { "coinductive" }
@@ -481,13 +474,11 @@ s_generic_type_atom:
 | value=s_computed_type { value }
 | value=s_function_type { value }
 s_parameter:
-  constant=option(CONST) value_type=s_type parameter_name=option(s_parameter_name) grade=option(s_grade)
+  constant=option(CONST) value_type=s_type parameter_name=option(s_identifier) grade=option(s_grade)
     { make "parameter" $symbolstartpos $endpos
         ([("name", (match parameter_name with None -> Null | Some value -> value));
           ("type", value_type.syntax); ("grade", optional grade)] @ const_fields constant)
         (value_type :: children grade) }
-s_parameter_name:
-  value=s_identifier { value } | HANDLE { name $startpos $endpos "handle" }
 s_grade:
   AT value=s_expression { value }
 s_contract:

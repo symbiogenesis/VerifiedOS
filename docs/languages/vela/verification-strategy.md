@@ -693,17 +693,17 @@ For the bounded-buffer example, the interface can have this schematic shape:
 interface BufferStorage {
 	type Handle;
 	type Index;
-	predicate Owns(Handle handle, Seq<byte> contents);
+	predicate Owns(Handle target, Seq<byte> contents);
 	predicate ValidIndex(Index index, Nat length);
 
-	operation Read(...);
-	operation Write(...);
-	operation WithElement(...);
+	byte Read(in Handle target, Index index);
+	void Write(ref Handle target, Index index, byte value);
+	void WithElement(ref Handle target, Index index, ...);
 
-	proof ReadReturnsSelectedElement;
-	proof WriteUpdatesSelectedElementAndPreservesFrame;
-	proof ScopedBorrowRestoresOwnership;
-	proof OperationsTerminateUnderTheirPreconditions;
+	lemma ReadReturnsSelectedElement(Handle target, Seq<byte> contents, Index index): ...;
+	lemma WriteUpdatesSelectedElementAndPreservesFrame(Handle target, Seq<byte> contents, Index index, byte value): ...;
+	lemma ScopedBorrowRestoresOwnership(Handle target, Seq<byte> contents, Index index): ...;
+	lemma OperationsTerminateUnderTheirPreconditions(Handle target, Seq<byte> contents, Index index): ...;
 }
 ```
 

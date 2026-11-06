@@ -211,10 +211,10 @@ identity comprises the resolved package instance, module path and declaration
 identity. Two package revisions with the same printed type name are distinct;
 neither structural similarity nor reflection can equate their private types.
 
-The first trait/interface implementation model uses explicit nonoverlapping
-instances. The defining package must own the trait/interface or the outer
+The first interface implementation model uses explicit nonoverlapping
+instances. The defining package must own the interface or the outer
 nominal implementing type. A bare type parameter does not establish ownership;
-foreign traits on foreign primitive types require a local nominal wrapper.
+foreign interfaces on foreign primitive types require a local nominal wrapper.
 Instance heads use nominal type constructors, rigid constants and type
 parameters, with structural unification deciding possible overlap. Arbitrary
 computed type families and proof search are unavailable in instance selection.

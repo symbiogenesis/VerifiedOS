@@ -260,7 +260,7 @@ public Result<ref<'workspace.bytes> byte, Error> ForwardSlot(ref Workspace works
 // Resource contracts use the same forms on containers and effect operations.
 public interface LoanStorage<T> where StorageLaws(T)
 {
-    operation ref<'input> T First(ref Span<T> input)
+    ref<'input> T First(ref Span<T> input)
         requires input.Length > 0
         restores Preserved(input, final(result));
 }
@@ -344,7 +344,7 @@ public alias Repeated<T : Type<u>, ghost bool repeated>
     where Repeatable(T)
     = type[RepeatedType<T>(repeated)];
 
-public operation type[RepeatedType<T>(repeated)] Repeat<T : Type<u>>(
+public type[RepeatedType<T>(repeated)] Repeat<T : Type<u>>(
     bool repeated, T value @ NatExact(1))
     where Repeatable(T);
 
@@ -374,7 +374,7 @@ public definition Nat ClassifyCharacter(char value) => match (value)
     _ => 0,
 };
 
-public trait ResourceFamily<T : Type<u>> where Representable(T)
+public interface ResourceFamily<T : Type<u>> where Representable(T)
 {
     type Output : Type<u> where Formed(T);
     predicate Ready(T value) requires Stable(value);

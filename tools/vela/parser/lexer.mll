@@ -311,7 +311,8 @@ let identifier state lexbuf =
   | _ when not state.surface -> IDENT word
   | "private" -> PRIVATE | "internal" -> INTERNAL | "async" -> ASYNC
   | "record" -> RECORD | "struct" -> STRUCT | "union" -> UNION
-  | "interface" -> INTERFACE | "trait" -> TRAIT | "impl" -> IMPL
+  | "interface" -> INTERFACE | "impl" -> IMPL
+  | "trait" -> refuse "syntax" lexbuf "traits use 'interface' declarations"
   | "import" -> IMPORT | "alias" -> ALIAS | "namespace" -> NAMESPACE | "as" -> AS
   | "owned" -> OWNED | "move" -> MOVE | "in" -> IN | "ref" -> REF | "out" -> OUT
   | "null" -> refuse "syntax" lexbuf "absence requires an explicit Option case"
@@ -321,7 +322,8 @@ let identifier state lexbuf =
   | "where" -> WHERE | "effects" -> EFFECTS | "invariant" -> INVARIANT
   | "decreases" -> DECREASES | "progress" -> PROGRESS
   | "view" -> VIEW | "grows" -> GROWS | "type" -> TYPE | "predicate" -> PREDICATE
-  | "operation" -> OPERATION | "proof" -> PROOF | "effect" -> EFFECT | "resumes" -> RESUMES
+  | "operation" -> refuse "syntax" lexbuf "abstract callable declarations omit 'operation'"
+  | "proof" -> PROOF | "effect" -> EFFECT | "resumes" -> RESUMES
   | "handle" -> HANDLE | "shallow" -> SHALLOW | "with" -> WITH | "resume" -> RESUME
   | "dispose" -> DISPOSE | "rehandle" -> REHANDLE | "await" -> AWAIT
   | "scope" -> SCOPE | "lifts" -> LIFTS | "spawn" -> SPAWN | "commit" -> COMMIT | "on" -> ON | "cancel" -> CANCEL

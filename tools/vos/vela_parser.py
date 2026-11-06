@@ -542,7 +542,7 @@ def _fixtures(compiled: Build) -> list[str]:
             or _object(_body(pure_identifier).get("name"), "pure returned identifier").get("text") != "as"):
         raise ValueError("surface match keyword changed a pure identifier")
     passed.append("pure-identifier-as")
-    for word in (b"null", b"lifts"):
+    for word in (b"null", b"lifts", b"trait", b"operation"):
         source = b"module M; public Nat " + word + b"(Nat " + word + b") { return " + word + b"; }"
         pure_identifier = parse_source(compiled, source)
         functions = _object(pure_identifier["ast"], "pure file").get("declarations")
