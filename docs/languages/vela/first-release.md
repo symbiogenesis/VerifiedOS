@@ -22,6 +22,15 @@ no authority by itself. Public interfaces fix representations, required-static
 inputs, effects and resource contracts; ordinary local inference hides routine
 derivations without weakening them.
 
+The release accepts three authoring costs for these guarantees. Ordinary `+`,
+`-` and `*` carry the representability obligations of
+[primitive semantics](#primitive-semantics): linear facts discharge
+automatically, while nonlinear facts need explicit proof or a checked, wrapping
+or saturating operation. Public `effects` lists are closed and propagate through
+every caller, with no effect polymorphism. Receiver loans start before argument
+evaluation, with no two-phase receiver borrows, and no loan is carried across
+loop iterations. [Qualification](#qualification) measures each cost.
+
 Specifications and proofs may use the admitted mathematical definitions and
 libraries in the existing kernel. A mathematical definition's expressiveness
 does not imply a runtime representation or admission to executable type
@@ -387,7 +396,7 @@ emits a term or returns an unconstrained theorem has not met this predicate.
 | Package composition | Two independently authored packages compose with fixed instances; reordered imports preserve meaning; overlap, cycles and conflicting nominal identities are diagnosed. Locked builds reproduce their source/input closure. Contract, representation, proof assumption and tool changes invalidate affected evidence before reuse. |
 | Everyday ownership | Bounded collection/iterator, `.Model` sequence-predicate/slice, `TextBuilder<capacity>` / `Format<T>` checked formatting, receiver-snapshot, selective invariant lifting (`invariant Clause: ...` / `scope (...) lifts ...`), two-step bulk relocation (`CopyRepresentation` + `TransferType<T>`), fallible-builder and error-propagation clients compile under their actual representations and the [borrow-analysis promotion contract](core-design.md#borrow-analysis-promotion); escaped views, duplicated tokens, reads of unwritten or moved-out vacant slots, early exits or whole-receiver calls while an invariant clause is lifted, stale current-content facts and lost mandatory outcomes fail at the responsible resource rule. Bounded buffer, builder and bulk-relocation proofs/certificates pass a **capacity-invariance gate**: checking at tiny static capacity ($N = 4$) and large static capacity ($N = 10^9$) produces identical obligation counts, proof-term/certificate complexity and replay cost with no per-element unfolding proportional to static capacity. |
 | Complete software path | Authored source and independent contract reach one retained backend with checked correspondence, representation and lowering; applicable final-byte, resource, observation and admission duties meet their existing owners. Report source, artifact and production evidence separately. |
-| Developer usefulness | Record annotation burden, first useful diagnostic, checking latency, code/stack/storage consequences and repair after a semantic-preserving refactor, a representation change and a real contract change on both clients. A held-out client cannot be redesigned to fit the candidate unnoticed. |
+| Developer usefulness | Record annotation burden, first useful diagnostic, checking latency, code/stack/storage consequences and repair after a semantic-preserving refactor, a representation change and a real contract change on both clients. Attribute annotation burden and repair effort separately to arithmetic representability obligations, closed `effects` lists propagated through callers, and the absence of two-phase receiver and loop-carried borrows, counting each explicit lemma, checked operation, widened effect list, snapshot, named view or restructured loop they force; these records decide whether a separately priced relaxation is warranted. A held-out client cannot be redesigned to fit the candidate unnoticed. |
 
 Hard safety, resource and admission limits are mandatory. Technical feasibility,
 recurring authoring/maintenance benefit and eventual economic adoption are
