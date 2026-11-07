@@ -6,7 +6,7 @@ and [module/package rules](first-release.md#modules-and-packages). Parsing a
 future grade, handler, async or hardware form grants no implementation commitment.
 Ordinary theorem syntax remains available to its separately scoped mathematical
 consumer. Exploratory contract claims use a distinct editor/scratch channel;
-accepted exported `requires`/`ensures` follow the [assurance contract](assurance-profiles.md).
+accepted exported `requires`/`ensures` follow the [assurance contract](extensions/assurance-profiles.md).
 
 This is the syntax contract for [Q25i](../../../PLAN.md#q-assessment-actions),
 with the selected [familiar authoring migration](#familiar-authoring-migration)
@@ -14,11 +14,11 @@ owned by Q25z. Examples and the development parser use that surface; each
 consumer retains its declared mathematical or runtime boundary. Native fixtures
 and local diagnostics supply no hosted parser or semantic qualification.
 The [language design](verification-strategy.md#an-ideal-surface) and
-[whole-system contract](unified-source-contract.md#authoring-end-state) own the
+[whole-system contract](extensions/unified-source-contract.md#authoring-end-state) own the
 required features and their meanings. This increment accepts located syntax;
 resolution, resource checking, proofs, compilation and admission remain separate.
 
-The [metaprogramming design](metaprogramming.md) owns required-static evaluation,
+The [metaprogramming design](extensions/metaprogramming.md) owns required-static evaluation,
 descriptions and generated definitions. Constant declarations use the
 [required-static constant contract](#required-static-constants). Generic static
 parameter binders, derivation registration and quotation/splicing need their own
@@ -119,7 +119,7 @@ the independent qualification fixtures exercise every feature row above.
 
 ### Composable type and resource syntax
 
-The [graded foundation](graded-foundation.md#functions-and-application) and
+The [graded foundation](extensions/graded-foundation.md#functions-and-application) and
 [borrow rules](core-design.md#loans-and-control-flow) use the same parameter,
 data and elimination forms throughout the surface:
 
@@ -162,7 +162,7 @@ supplies syntax for a future checker, not memory-safety acceptance.
 
 ### Dependent elimination and library interfaces
 
-The foundation's [dependent elimination](graded-foundation.md#dependent-data-and-elimination)
+The foundation's [dependent elimination](extensions/graded-foundation.md#dependent-data-and-elimination)
 uses the existing record, union and pattern forms. A nonempty expression match
 has comma-separated expression arms, with one optional trailing comma, under
 the [authoring migration](#familiar-authoring-migration):
@@ -266,7 +266,7 @@ identifier in the pure entry. These forms only preserve
 proposed obligations; proving invariant preservation, selective conjunct
 independence, lawful grades and operation effects remains an elaboration duty.
 
-The [handler lookup rules](handlers-async.md#handler-lookup-capture-and-return)
+The [handler lookup rules](extensions/handlers-async.md#handler-lookup-capture-and-return)
 permit an explicit name for the perform capability of a handler instance:
 `handle (body()) as chosen { ... }`. The optional `as NAME` follows the handled
 expression and also applies to `handle shallow` and `rehandle`. Each `handle` or
@@ -361,7 +361,7 @@ expose a nullable `grade` field alongside `type` and `value`. Both inferred and
 explicitly typed bindings accept the same grade expression. Product-pattern
 bindings retain their existing form; component modalities belong in their data
 types. Checking the binding's allowance, evaluation effects and subsequent uses
-remains subject to the [graded foundation](graded-foundation.md#functions-and-application).
+remains subject to the [graded foundation](extensions/graded-foundation.md#functions-and-application).
 In particular, zero demand does not erase an effectful initializer.
 
 The domain roles `carrier`, `zero`, `one`, `add`, `mul`, `admits`, `interpret`
@@ -396,7 +396,7 @@ handle (Run()) as chosen {
 
 A `disposal_clause` has a located `name` for the disposal-reason binder and a
 `body`. It composes with deep/shallow handlers and rehandlers, sharing their
-comma-delimited clause list. The [handler lifecycle](handlers-async.md#handler-lookup-capture-and-return)
+comma-delimited clause list. The [handler lifecycle](extensions/handlers-async.md#handler-lookup-capture-and-return)
 owns its intended resource context and lexical restrictions: the handler's own
 perform capability is absent in its clauses. A disposal clause describes the
 declared disposal graph; capture and ordinary return do not invoke it. Parsing neither
@@ -414,7 +414,7 @@ bounded-lookahead exhaustion. Qualify the complete syntax and pure migration cor
 
 ### Computed types and uniform elimination
 
-The stable type-valued computations of the [graded foundation](graded-foundation.md#stable-telescope-and-dependency-bookkeeping)
+The stable type-valued computations of the [graded foundation](extensions/graded-foundation.md#stable-telescope-and-dependency-bookkeeping)
 can appear wherever a type is expected, through `type[EXPR]`. A `computed_type`
 node stores the ordinary expression in its `value` field. This delimited form
 reuses calls, dependent matches, local indices and library operations:

@@ -24,11 +24,12 @@ Design entry points: [release scope](spec.md#r-18-004a),
 
 | Topic | Documents |
 | --- | --- |
-| Vela — start here | [Primary language design, purpose and examples](languages/vela/verification-strategy.md) |
+| Vela — start here | [Primary language design, purpose and examples](languages/vela/verification-strategy.md), [language reference](languages/vela/reference.md) |
 | Try Vela | [Local browser editor and expression console](languages/vela/playground.md), [host LSP setup and supported services](languages/vela/lsp-prototype.md) |
-| Vela design contracts | [Bounded first release, primitives and packages](languages/vela/first-release.md), [Unified software, proof and machine authorship](languages/vela/unified-source-contract.md), [core design](languages/vela/core-design.md), [assurance presets](languages/vela/assurance-profiles.md), [pure Vela prototype](languages/vela/vela-prototype.md), [Menhir development parser](languages/vela/vela-parser.md), [complete development surface grammar](languages/vela/surface-grammar.md) |
+| Vela design contracts | [Bounded first release, primitives and packages](languages/vela/first-release.md), [core design](languages/vela/core-design.md), [pure Vela prototype](languages/vela/vela-prototype.md), [Menhir development parser](languages/vela/vela-parser.md), [complete development surface grammar](languages/vela/surface-grammar.md) |
 | Vela workflow and routes | [Workflow contract](languages/vela/workflow-contract.md), [compiler routes](languages/vela/compiler-route-contract.md), [common style, formatting, documentation and lints](languages/vela/authoring-tools.md), [Compiler inspection, editor/debug protocols and interchange](languages/vela/tooling-protocols.md) |
-| Vela features | [Generic dependent mathematical elaboration](languages/vela/elaboration-prototype.md), [staged metaprogramming and compiler services](languages/vela/metaprogramming.md), [graded foundation](languages/vela/graded-foundation.md), [handlers and async lifecycles](languages/vela/handlers-async.md), [interior mutability](languages/vela/interior-mutability.md), [composition review](languages/vela/full-language-review.md), [loan-inference diagnostic contract](languages/vela/loan-analysis.md) |
+| Vela features | [Generic dependent mathematical elaboration](languages/vela/elaboration-prototype.md), [loan-inference diagnostic contract](languages/vela/loan-analysis.md) |
+| Vela extensions outside the first release | [Extension index](languages/vela/extensions/README.md), [unified software, proof and machine authorship](languages/vela/extensions/unified-source-contract.md), [assurance presets](languages/vela/extensions/assurance-profiles.md), [staged metaprogramming and compiler services](languages/vela/extensions/metaprogramming.md), [graded foundation](languages/vela/extensions/graded-foundation.md), [handlers and async lifecycles](languages/vela/extensions/handlers-async.md), [interior mutability](languages/vela/extensions/interior-mutability.md), [composition review](languages/vela/extensions/full-language-review.md) |
 | Interfaces | [IDL profile](languages/idl-profile.md) |
 | Typed assembly | [Language specification and VerifiedOS's CHERI-TAL instantiation](languages/typed-assembly-language.md) |
 | Authored C | [Language profile and modernization](implementation/c-language-profile.md) |
@@ -108,6 +109,7 @@ Design entry points: [release scope](spec.md#r-18-004a),
 ## Background and design assessment
 
 - [Inspirations and prior art](background/inspirations.md)
+- [Language landscape behind Vela's handler, async and surface decisions](background/language-landscape.md)
 - [Architectural alternatives](background/architectural-alternatives.md), including the [desktop elastic-domain decision](background/architectural-alternatives.md#a-general-purpose-desktop-on-a-static-machine-an-elastic-domain-inside-a-fixed-envelope-adopted-for-the-laptop)
 - [Critique](background/critique.md)
 - [Mathematical open problems and recent results](background/open-math-conjectures.md)

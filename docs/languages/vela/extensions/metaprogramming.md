@@ -1,10 +1,10 @@
 # Vela compile-time metaprogramming
 
-> Non-normative language contract refining the [primary design](verification-strategy.md#language-product-contract). The [plan](../../../PLAN.md#vela-whole-system-authoring-proposal) owns implementation stages; the [requirements register](../../requirements-register.md) governs admission. This contract supplies no implementation, new semantic anchor, kernel extension or accepted performance result.
+> Non-normative language contract refining the [primary design](../verification-strategy.md#language-product-contract). The [plan](../../../../PLAN.md#vela-whole-system-authoring-proposal) owns implementation stages; the [requirements register](../../../requirements-register.md) governs admission. This contract supplies no implementation, new semantic anchor, kernel extension or accepted performance result.
 
 ## Product and scope
 
-The [first supported release](first-release.md#release-boundary) uses ordinary
+The [first supported release](../first-release.md#release-boundary) uses ordinary
 total pure computation for required-static constants and finite specialization.
 Its bounded software path needs no general reflection API, user-defined grade
 algebra or contextual code generator. A narrowly scoped derivation may be selected
@@ -19,7 +19,7 @@ APIs like other library APIs; generation stays visible through navigation,
 diagnostics and inspectable output. The rules below constrain a selected extension
 without making the entire extension a first-release dependency.
 
-The [mathematical prototype](elaboration-prototype.md#supported-mathematical-increment)
+The [mathematical prototype](../elaboration-prototype.md#supported-mathematical-increment)
 already exercises type-valued parameters, computed types and bounded definitional
 computation. Those mechanisms alone do not expose arbitrary types' constructors,
 fields or source declarations. General introspection, generation and their
@@ -27,7 +27,7 @@ composition with ownership, effects and grades remain proposed work. The
 [frontend prerequisites](full-language-review.md#r-05-009-r-05-020-and-what-holds-the-frontend-rows)
 and applicable [software acceptance](unified-source-contract.md#software-and-proof-boundary)
 remain in force; parser support is separately commissioned in the
-[surface grammar](surface-grammar.md).
+[surface grammar](../surface-grammar.md).
 
 ## Evaluation and phase boundaries
 
@@ -38,7 +38,7 @@ inputs must resolve to admissible closed values before emitting its specializati
 an unavailable input leaves a located obligation or refusal, never an implicit
 runtime fallback. Infer routine static arguments from a declared interface; public
 requirements remain explicit. Typed constant declarations use
-[`const T Name = EXPR;`](surface-grammar.md#required-static-constants) as the
+[`const T Name = EXPR;`](../surface-grammar.md#required-static-constants) as the
 required-static value interface. The same keyword marks a constant-compatible
 function, `const T F(...)`, or a required-static value parameter,
 `T F(const U configuration, V value)`. The function remains callable at runtime;
@@ -130,7 +130,7 @@ optimization, a caller's proof or an accepted `requires`/`ensures` declaration.
 The following is a library API sketch inside a generation context. The names and
 context are illustrative, unimplemented interfaces, not additions to the current
 grammar or executable examples. Its generic call uses the selected
-[familiar authoring syntax](surface-grammar.md#familiar-authoring-migration):
+[familiar authoring syntax](../surface-grammar.md#familiar-authoring-migration):
 
 ```text
 let schema = Meta.SchemaOf<Packet<Capacity>>();
@@ -143,8 +143,8 @@ length remains represented in the generated program. The format description fixe
 the encoding independently of record layout. The codec must establish its requested
 bounds, failure and correspondence laws, and specialization must establish its
 preservation obligations. This sketch authorizes no alternate production parser:
-the [required Narcissus lowering](../../spec.md#r-05-043) and
-[independent descriptor review](../../spec.md#r-05-046) retain their subjects and
+the [required Narcissus lowering](../../../spec.md#r-05-043) and
+[independent descriptor review](../../../spec.md#r-05-046) retain their subjects and
 amendment conditions.
 
 ## Hygienic construction and composition
@@ -203,7 +203,7 @@ conversion; effectful target code remains constructed data during generation.
 
 Record resolved dependencies and the generated terms, representation decisions,
 proof obligations and source maps in the
-[source evidence package](verification-strategy.md#mechanically-produced-evidence).
+[source evidence package](../verification-strategy.md#mechanically-produced-evidence).
 Cache identities bind that complete closure; changed private layouts invalidate
 their derivations even when an exported name is unchanged. Cyclic generation,
 unresolved instances and recursive specialization without a justified finite
@@ -241,13 +241,13 @@ Compile-time derivation covers many finite serialization, dispatch and registry
 uses of runtime reflection. Data or schemas first discovered during execution
 need explicit runtime descriptors, a confined interpreter or a later build; no
 compile-time construct makes unknown information available earlier. The
-[native admission rules](../../spec.md#r-02-008) still govern executable updates.
+[native admission rules](../../../spec.md#r-02-008) still govern executable updates.
 
 Compiler services expose located syntax, resolved symbols, types, elaboration,
 dependencies, generated definitions and diagnostics to analyzers and tools. They
 complement static generation: refactoring and navigation also operate on partial
 source and whole workspaces. Reuse the same frontend services for the
-[inspection and interoperability interfaces](tooling-protocols.md#compiler-inspection-api),
+[inspection and interoperability interfaces](../tooling-protocols.md#compiler-inspection-api),
 with versioned concrete, resolved/typed, elaborated, analysis/proof and lowering
 views, bounded queries/exports and source/image identities. That contract owns
 public schemas, snapshot-scoped handles, partial-result status and consumer
@@ -270,7 +270,7 @@ dependency is incorporated, feature parity claimed or implementation commissione
 
 ## Qualification
 
-The [delivery plan](../../../PLAN.md#vela-first-release-delivery) qualifies static
+The [delivery plan](../../../../PLAN.md#vela-first-release-delivery) qualifies static
 computation with the initial software clients. Select later descriptor,
 construction or cross-feature rows only when a named consumer needs them; a
 synchronous derivation does not owe handler/async or hardware generation before
@@ -302,10 +302,10 @@ subjects and verdicts; documentation examples alone supply no executed evidence.
 | Editor/debug protocol stages | Versioned compiler-service consumption, generated-source navigation and exact-image mappings under the existing interoperability contract. |
 
 These rows partition duties, not estimates or implementation commissions. The
-[plan](../../../PLAN.md#vela-whole-system-authoring-proposal) and
+[plan](../../../../PLAN.md#vela-whole-system-authoring-proposal) and
 [reviewed pricing](full-language-review.md#reviewed-implementation-pricing) own
 scope, budgets and holds. Land the selected syntax/semantic contract and priced
 acceptance item before implementation. Complete the repository's
-[validation handoff](../../../AGENTS.md#tool-execution-and-validation) for settled
+[validation handoff](../../../../AGENTS.md#tool-execution-and-validation) for settled
 changes; hosted acceptance and generated-term checking establish only their stated
 boundaries, never automatic equivalence with another language's entire feature set.

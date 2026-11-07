@@ -1007,7 +1007,7 @@ Landed: Tier A. No rule holds what this item created: K-109 binds the file's gen
 
 ### Q25 · Design the full graded dependent language and its control and mutation rules
 
-The [full-language commitments](../languages/vela/verification-strategy.md#full-language-design-commitments), [assurance presets](../languages/vela/assurance-profiles.md) and [composition review](../languages/vela/full-language-review.md) are completed design and qualification planning, covered by Q25a–Q25d. They join graded dependent typing, handlers, structured async/cancellation and guarded mutation.
+The [full-language commitments](../languages/vela/verification-strategy.md#full-language-design-commitments), [assurance presets](../languages/vela/extensions/assurance-profiles.md) and [composition review](../languages/vela/extensions/full-language-review.md) are completed design and qualification planning, covered by Q25a–Q25d. They join graded dependent typing, handlers, structured async/cancellation and guarded mutation.
 
 Frontend commissioning remains blocked by the interpretation commitment and register acts. The bounded-pool amendment, concrete CHERI laws, metatheory, frontend/backend and target qualification remain with their owners. No executed language or production binary is supplied. Children own evidence and actuals; this parent duplicates no estimate or effort, and settled integration supplies host validation.
 
@@ -1017,7 +1017,7 @@ Landed: Tier A. The combined design and its recorded acceptance boundaries are r
 
 #### Q25a · Specify the graded dependent foundation
 
-The [foundation dossier](../languages/vela/graded-foundation.md) specifies grades, dependent contexts and constructors, structural rules and substitution, with explicit inference, specialization, ABI and source-correspondence limits. Its examples separate exact use, erasure and resource authority.
+The [foundation dossier](../languages/vela/extensions/graded-foundation.md) specifies grades, dependent contexts and constructors, structural rules and substitution, with explicit inference, specialization, ABI and source-correspondence limits. Its examples separate exact use, erasure and resource authority.
 
 At `6d0ee4e`, focused checks pass; integration reads the dossier against the strategy, synchronous core, sibling interfaces and register. Paper derivations supply no soundness theorem, concrete CHERI instance, executed negative case or qualified binary. The `GF-*` laws remain implementation obligations. Accounting: 0.2 h author/check actual; Q25d owns shared review, integration and host validation.
 
@@ -1033,7 +1033,7 @@ missing laws at Q25a's design predicate. It opens no frontend implementation.
 
 #### Q25b · Specify handlers and structured async lifecycles
 
-The [control dossier](../languages/vela/handlers-async.md) specifies handler lookup/capture, resumption/disposal and bounded represented async reactions. Cancellation arrival, decision, commit, terminal publication and reuse are distinct; suffix bounds include child-result collection before cleanup dispatch.
+The [control dossier](../languages/vela/extensions/handlers-async.md) specifies handler lookup/capture, resumption/disposal and bounded represented async reactions. Cancellation arrival, decision, commit, terminal publication and reuse are distinct; suffix bounds include child-result collection before cleanup dispatch.
 
 Authoring `9503081` and independent review `1faa273` receive integration corrections to the cancellation bound and checkpoint order. The authored traces remain conditional derivations; `HA-*` laws, target bounds and frontend admission are unimplemented. Accounting: 0.2 h author/check actual; Q25d owns shared review, integration and final host checks. No guest measurement is claimed.
 
@@ -1053,7 +1053,7 @@ the bound and checkpoint-order corrections, with all target laws still explicit.
 
 #### Q25c · Specify interior mutability and interference guardrails
 
-The [cell dossier](../languages/vela/interior-mutability.md) specifies local/dynamic-borrow interfaces, invariant access, capture/sharing, publication, quiescence and source exits. `CountCell` conserves `AddOnce` allowances through one AMO commit; capability storage remains private. Functional, race, progress and leakage claims retain separate premises and missing `MUT-*` laws.
+The [cell dossier](../languages/vela/extensions/interior-mutability.md) specifies local/dynamic-borrow interfaces, invariant access, capture/sharing, publication, quiescence and source exits. `CountCell` conserves `AddOnce` allowances through one AMO commit; capability storage remains private. Functional, race, progress and leakage claims retain separate premises and missing `MUT-*` laws.
 
 At `1f2d633`, focused checks pass; independent review and integration correct frame release and initialization/cancellation joins. Concrete CHERI witnesses and source-to-Sail correspondence remain owed; wrappers and grades supply no sharing authority. Accounting: 0.2 h author/check actual; Q25d owns shared review, integration and final host checks. No executed language or guest evidence is claimed.
 
@@ -1069,7 +1069,7 @@ protocol and qualification cases with their unmechanized obligations preserved.
 
 #### Q25d · Review the combined calculus and price its implementation
 
-The [composition dossier](../languages/vela/full-language-review.md) joins the common client, refusal cases and laws over the named byte-and-capability carrier. It supplies reviewed ownership, conditional prices and acceptance predicates for the design debts, frontend and qualification increments, retaining unpriced foundation work. It constructs no carrier inhabitant or checked metatheory.
+The [composition dossier](../languages/vela/extensions/full-language-review.md) joins the common client, refusal cases and laws over the named byte-and-capability carrier. It supplies reviewed ownership, conditional prices and acceptance predicates for the design debts, frontend and qualification increments, retaining unpriced foundation work. It constructs no carrier inhabitant or checked metatheory.
 
 Admission is arm-dependent. A calculus interpreted by elaboration into an existing anchor can use R-05-009; the authored source judgments/reductions instead propose an eighth anchor refused by R-05-019/R-05-020. Frontend rows remain uncommissioned until the interpretation commitment and clarifying register act. R-08-046's inventory classification is negative: new runtime storage needs a proposed inventory/prose amendment, ordered after frontend admission. F-354's disposition separates those acts.
 
@@ -1161,9 +1161,9 @@ states the receiver-loan exception with its evaluation order, named-view footpri
 and alias checks; ordinary arguments retain explicit modifiers. The callback
 examples use typed local bindings to retain their per-call effect capability and
 provide a place for `in`. The
-[assurance policy](../languages/vela/assurance-profiles.md#evidence-beside-the-declaration)
+[assurance policy](../languages/vela/extensions/assurance-profiles.md#evidence-beside-the-declaration)
 requires current claim status and endpoint beside rendered declarations. The
-[handler contract](../languages/vela/handlers-async.md#compositional-handler-summaries)
+[handler contract](../languages/vela/extensions/handlers-async.md#compositional-handler-summaries)
 separates whole-exploration source work, peak live frames, reserved storage and
 target cost. Existing syntax and implementation owners carry these duties.
 
@@ -1188,7 +1188,7 @@ anchor was amended.
 
 #### Q25m · Specify staged Vela metaprogramming and compiler services
 
-The [metaprogramming contract](../languages/vela/metaprogramming.md) specifies
+The [metaprogramming contract](../languages/vela/extensions/metaprogramming.md) specifies
 ordinary static computation, opt-in compiler reification/schema dictionaries and
 hygienic construction carrying dependent contexts, grades, captures, effects and
 exit resources. Static availability is separate from ghost status, erasure and
