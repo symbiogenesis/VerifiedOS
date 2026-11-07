@@ -27,22 +27,21 @@ prototype contracts:
 P implies M unless the row says otherwise, and M implies S. No marker is a
 release implementation: represented semantics, checked source correspondence,
 lowering and production qualification belong to the first-release delivery
-plan. An M marker records that the elaborator accepts and emits a construct; it
-is not evidence that every obligation reaches the kernel as stated, which
-[Q25af](../../../PLAN.md#q-assessment-actions) owns.
+plan. An M marker records that the elaborator accepts and emits a construct as
+its real kernel proposition; obligations discharged by the Python solver are
+emitted and audited in the explicit solver-trust ledger rather than accepted as
+closed ([Q25af](../../../PLAN.md#q-assessment-actions)).
 
-The spellings follow the settled surface decisions that
-[Q25ah](../../../PLAN.md#q-assessment-actions) migrates into both parser routes:
+Both parser routes enforce the settled surface spellings
+([Q25ah](../../../PLAN.md#q-assessment-actions)):
 `open (...) lifts ...` for invariant lifting, `let` or `var` on every local,
 bare nullary constructors, `Pattern => body,` arms in every match and `restores`
-with its returned-loan meaning. Until that migration lands, a P, M or S marker
-on one of these rows records support for the construct under its previous
-spelling.
+with its returned-loan meaning.
 
 Examples labeled **parsed** are accepted by
 `python tools/run.py vela-parser parse --surface FILE` at this document's
-revision; examples labeled **design** show the intended surface and may exceed
-the implemented subset or use a spelling still being migrated.
+revision; examples labeled **design** show the intended surface where a feature
+exceeds the implemented parser or elaborator subset.
 
 ## Lexical structure
 
@@ -183,7 +182,7 @@ local declaration. `let` makes the binding immutable but does not forbid writing
 through an exclusive loan it holds. Type annotation and mutability are
 independent choices ([binding table](verification-strategy.md#surface-conventions)).
 
-**Design example** (settled local spellings):
+**Parsed example** (settled local spellings):
 
 ```text
 module Reference.Bindings;
@@ -275,7 +274,7 @@ A range loop supplies its bound, a representable increment and its decreasing
 measure; only the functional invariant is authored. Every loop exit closes the
 loans opened in the iteration ([loans and control flow](core-design.md#loans-and-control-flow)).
 
-**Design example** (statement match with settled arms and bare `None`):
+**Parsed example** (statement match with settled arms and bare `None`):
 
 ```text
 module Reference.Control;
@@ -386,7 +385,7 @@ public Result<ref<'table> Value, TableFull> FindOrInsert<ghost Nat capacity>(
     ensures result is Err(_) ==> table.Model == old(table.Model);
 ```
 
-**Design example** (selective invariant lifting):
+**Parsed example** (selective invariant lifting):
 
 ```text
 module Reference.Lifting;
