@@ -79,6 +79,8 @@ _FIELDS: dict[str, set[str]] = {
     "labeled_pattern": {"label", "pattern"},
     "quantifier": {"quantifier", "parameters", "value"},
     "contract": {"role", "value"},
+    "effects": {"values"},
+    "lifetime": {"name"},
     "propagate": {"value"},
     "assert": {"value", "by"}, "proof": {"body"}, "calc": {"body"},
     "hole": {"name"},
@@ -161,7 +163,7 @@ class _Protocol:
                     raise self.error("protocol", "unterminated trivia in syntax name")
             else:
                 token = re.match(
-                    r"\?[A-Za-z_][A-Za-z_0-9]*|[A-Za-z_][A-Za-z_0-9]*|<==>|==>|&&|\|\||==|!=|<=|>=|\+=|-=|\*=|/=|%=|[.+*\-/%<>!&|^~=]",
+                    r"\?[A-Za-z_][A-Za-z_0-9]*|'[A-Za-z_][A-Za-z_0-9]*|[A-Za-z_][A-Za-z_0-9]*|<==>|==>|&&|\|\||==|!=|<=|>=|\+=|-=|\*=|/=|%=|[.+*\-/%<>!&|^~=]",
                     value[offset:],
                 )
                 if token is None:
@@ -254,8 +256,13 @@ class _Protocol:
                 or not isinstance(contracts, list)
                 or any(
                     not isinstance(item, dict)
-                    or item.get("kind") != "contract"
-                    or item.get("role") not in {"decreases", "requires", "where", "ensures", "restores"}
+                    or (
+                        item.get("kind") != "effects"
+                        and (
+                            item.get("kind") != "contract"
+                            or item.get("role") not in {"decreases", "requires", "where", "ensures", "restores"}
+                        )
+                    )
                     for item in contracts
                 )
             ):
@@ -353,6 +360,8 @@ class _Protocol:
                 if node["mode"] == "ghost":
                     cursor = self._token(node, cursor, b"ghost")
                     cursor = self._child(node, span, cursor, node["type"])
+                elif node["mode"] == "region":
+                    cursor = self._token(node, cursor, b"region")
                 elif node["mode"] != "type":
                     return
                 cursor = self._child(node, span, cursor, node["name"])
@@ -718,10 +727,30 @@ class _Protocol:
                 cursor = self._token(node, cursor, b":")
             cursor = self._child(node, span, cursor, node["value"])
         elif kind == "modified_type":
-            if node.get("lifetime") is not None:
-                return
             cursor = self._token(node, cursor, cast("str", node["modifier"]).encode())
+            if node.get("lifetime") is not None:
+                cursor = self._child(node, span, cursor, node["lifetime"])
             cursor = self._child(node, span, cursor, node["type"])
+        elif kind == "lifetime":
+            after_lt = trivia_end(self.source, cursor, block_comments=True)
+            if self.source[after_lt:after_lt + 1] == b"<":
+                cursor = self._token(node, cursor, b"<")
+                cursor = self._child(node, span, cursor, node["name"])
+                cursor = self._token(node, cursor, b">")
+            else:
+                cursor = self._child(node, span, cursor, node["name"])
+        elif kind == "effects":
+            values = node["values"]
+            if not isinstance(values, list) or not values:
+                raise self.error("protocol", "effects clause requires a non-empty list", node)
+            cursor = self._token(node, cursor, b"effects")
+            for index, value in enumerate(values):
+                if index:
+                    cursor = self._token(node, cursor, b",")
+                cursor = self._child(node, span, cursor, value)
+            after = trivia_end(self.source, cursor, block_comments=True)
+            if self.source[after:after + 1] == b",":
+                cursor = after + 1
         elif kind == "import":
             modifiers = node.get("modifiers", [])
             if not isinstance(modifiers, list) or modifiers:
@@ -869,10 +898,10 @@ class _Protocol:
             if (set(node) != {"text", "span"} or not isinstance(text, str)
                     or not (_IDENTIFIER.fullmatch(text) or text in _OPERATORS
                             or text in _ASSIGN_OPERATORS
-                            or re.fullmatch(r"\?[A-Za-z_][A-Za-z_0-9]*", text))
+                            or re.fullmatch(r"[?'][A-Za-z_][A-Za-z_0-9]*", text))
                     or self._compact_name(self.source[span[0]:span[1]]) != text):
                 raise self.error("protocol", "syntax identifier or operator differs from its source", node)
-            if ((_IDENTIFIER.fullmatch(text) or text.startswith("?"))
+            if ((_IDENTIFIER.fullmatch(text) or text.startswith(("?", "'")))
                     and (self._word(self.source[span[0] - 1:span[0]])
                          or self._word(self.source[span[1]:span[1] + 1]))):
                 raise self.error("protocol", "syntax identifier splits a source token", node)

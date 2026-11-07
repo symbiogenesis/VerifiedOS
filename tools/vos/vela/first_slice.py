@@ -1,20 +1,24 @@
 # SPDX-License-Identifier: Apache-2.0
-"""Run the Q25w Span<byte> carrier and vela-first-slice packet validator harness.
+"""Run the Q25w / Q25ag Span<byte> carrier and vela-first-slice packet validator harness.
 
 This module connects the authored Vela source (`tools/vela/examples/first_slice.vela`)
 to:
 1. Rocq elaboration (`rocq c`, `Print Assumptions`, and `rocqchk`) of the concrete
    `Span<byte>` carrier laws, `PrepareAndValidatePacket` functional and `restores`
-   contracts, and expected-byte/status scenario theorems. Obligations the elaborator
-   cannot kernel-prove reach Rocq as named solver-trust axioms carrying their real
-   statements; the audit requires exactly that ledger, and a non-empty ledger leaves
-   the slice unaccepted;
-2. The capacity-invariance gate (`N = 4` / `8` vs `N = 1,000,000,000`) proving
-   identical obligation counts, reduction steps, and proof structure;
+   contracts, format-model agreement (`SpecPacketValid`), and expected-byte/status
+   scenario theorems. Obligations the elaborator cannot kernel-prove reach Rocq as
+   named solver-trust axioms carrying their real statements; the audit requires
+   exactly that ledger, and a non-empty ledger leaves the slice unaccepted;
+2. The capacity-invariance gate (`N = 8` vs `N = 1,000,000_000`) proving identical
+   obligation counts, reduction steps, and proof structure over a capacity-wide
+   symbolic loop (`0usize..dst.Length`);
 3. Well-formed semantic negative neighbors (bounds, `in` borrow mutation, `ReadOnly`
-   mutation, invalidated tag read, overlapping `CopyPrefix`, uncontained `Restore`,
-   broken `restores` contract, wrong expected byte, and stale-input leak) that parse
-   cleanly and fail during type/proof checking for the intended semantic reason; and
+   mutation, record `in<'a> Span<byte>` field mutation, invalidated tag read,
+   overlapping `CopyPrefix`, uncontained `Restore`, broken `restores` contract,
+   returning a restored view, capability fabrication in executable code, missing
+   `writes(...)` effect, wrong expected byte, stale-input leak, and loop-frame
+   overlap) that parse cleanly and fail during type/proof checking for the intended
+   semantic reason; and
 4. AST-driven lowering of the executable declarations to Clight/C and purecap
    CHERI-RISC-V assembly, verified through CompCert (`-fverifiedos-typed -dclight`
    and `-interp`, when present) and target execution on the Sail emulator
@@ -168,6 +172,21 @@ public definition Span<byte> BadViewWrite() =>
         "cannot prove Span has valid tag and write permission (Span.CanWrite)",
     ),
     NegativeControl(
+        "mutate-readonly-record-view",
+        """module Vela.FirstSlice.NegMutateRecordView;
+public record ValidatedPacket<region 'dst>(usize CopiedBytes, in<'dst> Span<byte> PayloadView);
+public Span<byte> BadRecordViewWrite<region 'dst>(ValidatedPacket<'dst> pkt)
+    requires pkt.PayloadView.CanRead && pkt.PayloadView.Length >= 1usize
+{
+    var v = pkt.PayloadView;
+    v[0usize] = 0xAAu8;
+    return v;
+}
+""",
+        "type",
+        "cannot mutate a read-only 'in' parameter",
+    ),
+    NegativeControl(
         "read-invalidated-view",
         """module Vela.FirstSlice.NegReadInvalidated;
 public definition u8 BadInvalidRead() =>
@@ -212,6 +231,45 @@ public definition Span<byte> BadRestores(ref Span<byte> dst)
 """,
         "type",
         "assertion could not be established",
+    ),
+    NegativeControl(
+        "restore-then-return-view",
+        """module Vela.FirstSlice.NegRestoreThenReturnView;
+public Span<byte> BadReturnRestoredView(ref Span<byte> dst)
+    effects writes(dst)
+    requires dst.CanRead && dst.CanWrite && dst.Length >= 8usize
+{
+    let roView = Span.ReadOnly(Span.Slice(dst, 0usize, 4usize));
+    Span.Restore(ref dst, roView);
+    return roView;
+}
+""",
+        "type",
+        "cannot return a view borrowed from a span that was already restored",
+    ),
+    NegativeControl(
+        "capability-fabrication",
+        """module Vela.FirstSlice.NegCapabilityFabrication;
+public Span<byte> BadFabricate(usize addr)
+{
+    return Span.AllocZeroed(addr, 8usize);
+}
+""",
+        "type",
+        "Span.AllocZeroed(base, length) is a specification constructor",
+    ),
+    NegativeControl(
+        "missing-write-effect",
+        """module Vela.FirstSlice.NegMissingWriteEffect;
+public Unit BadWriteEffect(ref Span<byte> dst, in Span<byte> pkt)
+    effects reads(dst), reads(pkt)
+    requires dst.CanRead && dst.CanWrite && dst.Length >= 1usize
+{
+    dst[0usize] = 0x00u8;
+}
+""",
+        "type",
+        "callable mutates parameter 'dst' not declared in effects writes(...)",
     ),
     NegativeControl(
         "wrong-expected-byte",
@@ -323,44 +381,46 @@ def _capacity_fixture(capacity_literal: str) -> bytes:
     text = f"""module Vela.FirstSlice.CapGate;
 
 public Span<byte> PrepareSliceHeader(ref Span<byte> dst)
+    effects writes(dst)
     requires dst.CanRead
     requires dst.CanWrite
     requires dst.Length >= 8usize
+    ensures dst.Length == old(dst.Length)
     ensures result.Length == 4usize
-    ensures result.PermWrite == false
+    ensures !result.CanWrite
 {{
+    foreach (let i in 0usize..dst.Length)
+        invariant i <= dst.Length
+        invariant dst.CanRead && dst.CanWrite && dst.Base == old(dst.Base) && dst.Length == old(dst.Length)
+        decreases dst.Length - i
+    {{
+        dst[i] = 0x00u8;
+    }}
     dst[0usize] = 0x56u8;
     dst[3usize] = 0x01u8;
     let roView = Span.ReadOnly(Span.Slice(dst, 0usize, 4usize));
-    Span.Restore(ref dst, roView);
     return roView;
 }}
 
-theorem CapacityLaw()
-    ensures
-        let s0 = Span.AllocZeroed(4096usize, {capacity_literal}) in
-        let s1 = Span.Write(s0, 0usize, 0x56u8) in
-        let s2 = Span.Write(s1, 3usize, 0x01u8) in
-        (s2.Length == {capacity_literal}
-         && s2[0usize] == 0x56u8
-         && s2[3usize] == 0x01u8
-         && s2[1usize] == 0x00u8) == true
+theorem CapacityLaw(ref Span<byte> s)
+    requires s.CanRead && s.CanWrite && s.Length == {capacity_literal}
+    ensures (s.Length == {capacity_literal}
+        && s[0usize] == 0x56u8
+        && s[3usize] == 0x01u8) == true
 proof {{
-    var s = Span.AllocZeroed(4096usize, {capacity_literal});
     let roView = PrepareSliceHeader(ref s);
     assert (s.Length == {capacity_literal}
         && roView.Length == 4usize
-        && !roView.PermWrite
+        && !roView.CanWrite
         && s[0usize] == 0x56u8
-        && s[3usize] == 0x01u8
-        && s[1usize] == 0x00u8) == true;
+        && s[3usize] == 0x01u8) == true;
 }}
 """
     return text.encode("utf-8")
 
 
 def build_foundation_inventory() -> dict[str, object]:
-    """Return the explicit checked law, assumption, and blocking-dependency inventory for Q25w."""
+    """Return the explicit checked law, assumption, and blocking-dependency inventory for Q25w / Q25ag."""
     return {
         "carrier_representation": (
             "vela_Span (vela_ByteStore = nat -> vela_u8, Base, Length, Tag, PermRead, PermWrite)"
@@ -474,8 +534,10 @@ def _c_scalar_type(type_name: str) -> str:
         return "int"
     if type_name == "Span":
         return "struct vos_span_byte"
-    if type_name == "ValidationOutcome":
-        return "struct vos_ValidationOutcome"
+    if type_name == "ValidatedPacket":
+        return "struct vos_ValidatedPacket"
+    if type_name == "Result":
+        return "struct vos_Result_ValidatedPacket_ValidationError"
     if type_name in ("unit", "Unit"):
         return "void"
     raise ValueError(f"unsupported C lowering type {type_name!r}")
@@ -498,7 +560,7 @@ def _lower_union_to_c(decl: dict[str, object]) -> tuple[str, dict[str, int]]:
         raise ValueError(f"union {uname} missing AST constructors")
     lines: list[str] = []
     ctor_map: dict[str, int] = {}
-    for idx, ctor in enumerate(ctors):
+    for idx, ctor in enumerate(ctors, start=1):
         cname = _node_text(ctor.get("name"))
         ctor_map[cname] = idx
         lines.append(f"#define VOS_ERR_{cname} {idx}")
@@ -553,6 +615,9 @@ def _lower_function_to_c(
     if ret_type == "Span":
         c_ret = "void"
         c_params.extend(["struct vos_span_byte *out", "unsigned char *backing"])
+    elif ret_type == "Result":
+        c_ret = "void"
+        c_params.append("struct vos_Result_ValidatedPacket_ValidationError *out")
     elif ret_type in record_fields:
         c_ret = "void"
         c_params.append(f"struct vos_{ret_type} *out")
@@ -570,6 +635,7 @@ def _lower_function_to_c(
 
     local_spans: list[str] = []
     local_scalars: list[tuple[str, str]] = []
+    slice_parents: dict[str, str] = {}
 
     def add_local_span(vname: str) -> None:
         if vname not in local_spans and vname not in ptr_spans:
@@ -613,6 +679,11 @@ def _lower_function_to_c(
                 is_span, c_ty = infer_local_type(st)
                 if is_span:
                     add_local_span(vname)
+                    val = cast("dict[str, object]", st.get("value", {}))
+                    if _is_span_call(val, "Slice") == "Slice":
+                        args = [_unwrap_arg(a) for a in cast("list[object]", val.get("arguments", []))]
+                        if args and args[0].get("kind") == "name":
+                            slice_parents[vname] = _node_text(args[0])
                 else:
                     add_local_scalar(c_ty, vname)
             elif skind == "foreach":
@@ -757,6 +828,15 @@ def _lower_function_to_c(
                     d_ptr = span_ptr_expr(args[0])
                     s_ptr = span_ptr_expr(args[1])
                     out_lines.append(f"{indent}vos_span_copy_prefix({d_ptr}, {d_ptr}, {s_ptr}, {lower_expr(args[2])});")
+                    target_node = _unwrap_arg(args[0])
+                    if target_node.get("kind") == "unary" and _node_text(target_node.get("operator")) in ("ref", "in"):
+                        target_node = _unwrap_arg(target_node.get("value"))
+                    if target_node.get("kind") == "name":
+                        view_nm = _node_text(target_node)
+                        if view_nm in slice_parents:
+                            parent_nm = slice_parents[view_nm]
+                            p_ptr = parent_nm if parent_nm in ptr_spans else f"&{parent_nm}"
+                            out_lines.append(f"{indent}vos_span_restore({p_ptr}, {p_ptr}, {d_ptr});")
                 elif mname == "Restore":
                     p_ptr = span_ptr_expr(args[0])
                     v_ptr = span_ptr_expr(args[1])
@@ -783,10 +863,40 @@ def _lower_function_to_c(
                     out_lines.extend(lower_stmts(cast("list[dict[str, object]]", else_b.get("statements", [])), indent + "    "))
                 out_lines.append(f"{indent}}}")
             elif skind == "return":
-                val = _unwrap_arg(st.get("value"))
+                raw_val = st.get("value")
+                if raw_val is None:
+                    out_lines.append(f"{indent}return;")
+                    continue
+                val = _unwrap_arg(raw_val)
                 if ret_type == "Span":
                     out_lines.append(f"{indent}vos_span_copy_meta(out, {span_ptr_expr(val)});")
                     out_lines.append(f"{indent}return;")
+                elif ret_type == "Result":
+                    callee = cast("dict[str, object]", val.get("callee", {}))
+                    cname = _node_text(callee)
+                    r_args = [_unwrap_arg(a) for a in cast("list[object]", val.get("arguments", []))]
+                    if cname == "Err" and len(r_args) == 1:
+                        out_lines.append(f"{indent}out->is_ok = 0;")
+                        out_lines.append(f"{indent}out->err = {lower_expr(r_args[0])};")
+                        out_lines.append(f"{indent}out->ok.CopiedBytes = 0UL;")
+                        out_lines.append(f"{indent}vos_span_invalidate(&out->ok.PayloadView, dst);")
+                        out_lines.append(f"{indent}return;")
+                    elif cname == "Ok" and len(r_args) == 1:
+                        ok_inner = r_args[0]
+                        ok_args = [_unwrap_arg(a) for a in cast("list[object]", ok_inner.get("arguments", []))]
+                        fields = record_fields["ValidatedPacket"]
+                        if len(ok_args) != len(fields):
+                            raise ValueError(f"ValidatedPacket in {fname} expected {len(fields)} fields, got {len(ok_args)}")
+                        out_lines.append(f"{indent}out->is_ok = 1;")
+                        out_lines.append(f"{indent}out->err = 0;")
+                        for (f_name, f_type), arg_val in zip(fields, ok_args, strict=True):
+                            if f_type == "Span":
+                                out_lines.append(f"{indent}vos_span_copy_meta(&out->ok.{f_name}, {span_ptr_expr(arg_val)});")
+                            else:
+                                out_lines.append(f"{indent}out->ok.{f_name} = {lower_expr(arg_val)};")
+                        out_lines.append(f"{indent}return;")
+                    else:
+                        raise ValueError(f"unsupported Result return in {fname}: {val!r}")
                 elif ret_type in record_fields:
                     fields = record_fields[ret_type]
                     args = [_unwrap_arg(a) for a in cast("list[object]", val.get("arguments", []))]
@@ -819,7 +929,7 @@ def lower_to_c(source: bytes, parsed: object, *, perturb_check: int = 0) -> tupl
     """Lower the executable subset of `first_slice.vela` from its checked AST to C.
 
     Verifies that the parsed AST carries the expected executable type and callable
-    declarations (`ValidationError`, `ValidationOutcome`, `MakePacket8`,
+    declarations (`ValidationError`, `ValidatedPacket`, `WritePacket8`,
     `CopyPacketToDst`, `ComputePacketChecksum`, `PrepareAndValidatePacket`), the
     eleven carrier laws, and the seven scenario theorems before lowering the
     executable union, record, and function AST nodes into a self-contained C
@@ -828,8 +938,8 @@ def lower_to_c(source: bytes, parsed: object, *, perturb_check: int = 0) -> tupl
     decl_map = _extract_decl_map(parsed)
     required_callables = (
         ("ValidationError", "union"),
-        ("ValidationOutcome", "record"),
-        ("MakePacket8", "function"),
+        ("ValidatedPacket", "record"),
+        ("WritePacket8", "function"),
         ("CopyPacketToDst", "function"),
         ("ComputePacketChecksum", "function"),
         ("PrepareAndValidatePacket", "function"),
@@ -859,12 +969,12 @@ def lower_to_c(source: bytes, parsed: object, *, perturb_check: int = 0) -> tupl
             raise ValueError(f"first_slice AST missing executable declaration {name} ({expected_kind}), got {actual}")
 
     union_c, ctor_map = _lower_union_to_c(decl_map["ValidationError"])
-    record_c, outcome_fields = _lower_record_to_c(decl_map["ValidationOutcome"])
-    record_fields = {"ValidationOutcome": outcome_fields}
+    record_c, packet_fields = _lower_record_to_c(decl_map["ValidatedPacket"])
+    record_fields = {"ValidatedPacket": packet_fields}
     fn_c_blocks = [
         _lower_function_to_c(decl_map[fn_name], ctor_map, record_fields)
         for fn_name in (
-            "MakePacket8",
+            "WritePacket8",
             "CopyPacketToDst",
             "ComputePacketChecksum",
             "PrepareAndValidatePacket",
@@ -891,6 +1001,12 @@ struct vos_span_byte {{
 }};
 
 {record_c}
+
+struct vos_Result_ValidatedPacket_ValidationError {{
+    int is_ok;
+    int err;
+    struct vos_ValidatedPacket ok;
+}};
 
 static void vos_span_copy_meta(struct vos_span_byte *dst, struct vos_span_byte *src)
 {{
@@ -1018,35 +1134,37 @@ int main(void)
     unsigned char pkt_buf[8];
     struct vos_span_byte dst;
     struct vos_span_byte pkt;
-    struct vos_ValidationOutcome out;
+    struct vos_Result_ValidatedPacket_ValidationError out;
 
     /* 1. ValidateEmptyPacketOk: valid 0-byte payload + live frame preservation at index 8 */
     vos_span_alloc_zeroed(&dst, dst_buf, 64UL, 10UL);
     vos_span_write(&dst, &dst, 8UL, 0xC3U);
-    MakePacket8(&pkt, pkt_buf, 128UL, 0x56U, 0x00U, 0x5AU, 0x01U, 0x00U, 0x00U, 0x00U, 0x00U);
+    vos_span_alloc_zeroed(&pkt, pkt_buf, 128UL, 8UL);
+    WritePacket8(&pkt, 0x56U, 0x00U, 0x5AU, 0x01U, 0x00U, 0x00U, 0x00U, 0x00U);
     PrepareAndValidatePacket(&out, &dst, &pkt);
-    if (out.Ok != {exp(1, 1)})
+    if (out.is_ok != {exp(1, 1)})
         return 1;
-    if (out.Error != {exp(2, 0)})
+    if (out.err != {exp(2, 0)})
         return 2;
-    if (out.CopiedBytes != {exp(3, 0)}UL || out.PayloadView.length != 0UL || out.PayloadView.base != 68UL)
+    if (out.ok.CopiedBytes != {exp(3, 0)}UL || out.ok.PayloadView.length != 0UL || out.ok.PayloadView.base != 68UL)
         return 3;
-    if (out.PayloadView.tag != 1 || out.PayloadView.perm_read != 1 || out.PayloadView.perm_write != 0)
+    if (out.ok.PayloadView.tag != 1 || out.ok.PayloadView.perm_read != 1 || out.ok.PayloadView.perm_write != 0)
         return 4;
     if (dst.base != 64UL || dst.length != {exp(5, 10)}UL || dst.perm_write != 1 || vos_span_read(&dst, 8UL) != 0xC3U)
         return 5;
 
     /* 2. ValidateFullPacketOk: valid 4-byte payload [0x10, 0x20, 0x30, 0x40] */
     vos_span_alloc_zeroed(&dst, dst_buf, 64UL, 8UL);
-    MakePacket8(&pkt, pkt_buf, 128UL, 0x56U, 0x04U, 0x1EU, 0x01U, 0x10U, 0x20U, 0x30U, 0x40U);
+    vos_span_alloc_zeroed(&pkt, pkt_buf, 128UL, 8UL);
+    WritePacket8(&pkt, 0x56U, 0x04U, 0x1EU, 0x01U, 0x10U, 0x20U, 0x30U, 0x40U);
     PrepareAndValidatePacket(&out, &dst, &pkt);
-    if (out.Ok != 1 || out.Error != VOS_ERR_ValidatedOk || out.CopiedBytes != 4UL)
+    if (out.is_ok != 1 || out.err != 0 || out.ok.CopiedBytes != 4UL)
         return 6;
-    if (vos_span_read(&out.PayloadView, 0UL) != {exp(7, 0x10)}U)
+    if (vos_span_read(&out.ok.PayloadView, 0UL) != {exp(7, 0x10)}U)
         return 7;
-    if (vos_span_read(&out.PayloadView, 1UL) != 0x20U
-        || vos_span_read(&out.PayloadView, 2UL) != 0x30U
-        || vos_span_read(&out.PayloadView, 3UL) != {exp(8, 0x40)}U)
+    if (vos_span_read(&out.ok.PayloadView, 1UL) != 0x20U
+        || vos_span_read(&out.ok.PayloadView, 2UL) != 0x30U
+        || vos_span_read(&out.ok.PayloadView, 3UL) != {exp(8, 0x40)}U)
         return 8;
     if (vos_span_read(&dst, 0UL) != 0x56U || vos_span_read(&dst, 7UL) != 0x40U)
         return 9;
@@ -1054,11 +1172,12 @@ int main(void)
     /* 3. ValidatePartialPacketScrubsStaleAndTrailingBytes: 2-byte payload scrubs [6..8) and preserves frame [8..10) */
     vos_span_alloc_zeroed(&dst, dst_buf, 64UL, 10UL);
     vos_span_fill(&dst, &dst, 0UL, 10UL, 0xAAU);
-    MakePacket8(&pkt, pkt_buf, 128UL, 0x56U, 0x02U, 0x6BU, 0x01U, 0x11U, 0x22U, 0xDEU, 0xADU);
+    vos_span_alloc_zeroed(&pkt, pkt_buf, 128UL, 8UL);
+    WritePacket8(&pkt, 0x56U, 0x02U, 0x6BU, 0x01U, 0x11U, 0x22U, 0xDEU, 0xADU);
     PrepareAndValidatePacket(&out, &dst, &pkt);
-    if (out.Ok != 1 || out.CopiedBytes != 2UL || out.PayloadView.length != 2UL)
+    if (out.is_ok != 1 || out.ok.CopiedBytes != 2UL || out.ok.PayloadView.length != 2UL)
         return 10;
-    if (vos_span_read(&out.PayloadView, 0UL) != 0x11U || vos_span_read(&out.PayloadView, 1UL) != 0x22U)
+    if (vos_span_read(&out.ok.PayloadView, 0UL) != 0x11U || vos_span_read(&out.ok.PayloadView, 1UL) != 0x22U)
         return 11;
     if (vos_span_read(&dst, 6UL) != {exp(12, 0x00)}U || vos_span_read(&dst, 7UL) != 0x00U || vos_span_read(&dst, 9UL) != 0xAAU)
         return 12;
@@ -1067,29 +1186,32 @@ int main(void)
     vos_span_alloc_zeroed(&dst, dst_buf, 64UL, 8UL);
     vos_span_alloc_zeroed(&pkt, pkt_buf, 128UL, 3UL);
     PrepareAndValidatePacket(&out, &dst, &pkt);
-    if (out.Ok != 0 || out.Error != {exp(13, 1)} || out.PayloadView.tag != 0)
+    if (out.is_ok != 0 || out.err != {exp(13, 1)} || out.ok.PayloadView.tag != 0)
         return 13;
 
     /* 5. RejectBadMagic: header magic != 0x56 */
     vos_span_alloc_zeroed(&dst, dst_buf, 64UL, 8UL);
-    MakePacket8(&pkt, pkt_buf, 128UL, 0x00U, 0x02U, 0x3AU, 0x01U, 0xAAU, 0xCCU, 0x00U, 0x00U);
+    vos_span_alloc_zeroed(&pkt, pkt_buf, 128UL, 8UL);
+    WritePacket8(&pkt, 0x00U, 0x02U, 0x3AU, 0x01U, 0xAAU, 0xCCU, 0x00U, 0x00U);
     PrepareAndValidatePacket(&out, &dst, &pkt);
-    if (out.Ok != 0 || out.Error != {exp(14, 2)} || out.PayloadView.tag != 0)
+    if (out.is_ok != 0 || out.err != {exp(14, 2)} || out.ok.PayloadView.tag != 0)
         return 14;
 
     /* 6. RejectLengthOutOfBounds: rawLen == 5 > 4 */
     vos_span_alloc_zeroed(&dst, dst_buf, 64UL, 8UL);
-    MakePacket8(&pkt, pkt_buf, 128UL, 0x56U, 0x05U, 0x5FU, 0x01U, 0x10U, 0x20U, 0x30U, 0x40U);
+    vos_span_alloc_zeroed(&pkt, pkt_buf, 128UL, 8UL);
+    WritePacket8(&pkt, 0x56U, 0x05U, 0x5FU, 0x01U, 0x10U, 0x20U, 0x30U, 0x40U);
     PrepareAndValidatePacket(&out, &dst, &pkt);
-    if (out.Ok != 0 || out.Error != {exp(15, 3)} || out.PayloadView.tag != 0)
+    if (out.is_ok != 0 || out.err != {exp(15, 3)} || out.ok.PayloadView.tag != 0)
         return 15;
 
     /* 7. RejectChecksumScrubsDestinationAndRestores: bad checksum scrubs [0..8), preserves frame at 8, restores dst */
     vos_span_alloc_zeroed(&dst, dst_buf, 64UL, 10UL);
     vos_span_fill(&dst, &dst, 0UL, 10UL, 0x77U);
-    MakePacket8(&pkt, pkt_buf, 128UL, 0x56U, 0x04U, 0xFFU, 0x01U, 0x10U, 0x20U, 0x30U, 0x40U);
+    vos_span_alloc_zeroed(&pkt, pkt_buf, 128UL, 8UL);
+    WritePacket8(&pkt, 0x56U, 0x04U, 0xFFU, 0x01U, 0x10U, 0x20U, 0x30U, 0x40U);
     PrepareAndValidatePacket(&out, &dst, &pkt);
-    if (out.Ok != 0 || out.Error != {exp(16, 4)} || out.PayloadView.tag != 0)
+    if (out.is_ok != 0 || out.err != {exp(16, 4)} || out.ok.PayloadView.tag != 0)
         return 16;
     if (vos_span_read(&dst, 0UL) != {exp(17, 0x00)}U
         || vos_span_read(&dst, 4UL) != 0x00U
@@ -1101,9 +1223,10 @@ int main(void)
 
     /* 8. Overlapping-span alias control at runtime: disjoint check rejects overlapping base ranges */
     vos_span_alloc_zeroed(&dst, dst_buf, 64UL, 8UL);
-    MakePacket8(&pkt, pkt_buf, 68UL, 0x56U, 0x04U, 0x1EU, 0x01U, 0x10U, 0x20U, 0x30U, 0x40U);
+    vos_span_alloc_zeroed(&pkt, pkt_buf, 68UL, 8UL);
+    WritePacket8(&pkt, 0x56U, 0x04U, 0x1EU, 0x01U, 0x10U, 0x20U, 0x30U, 0x40U);
     PrepareAndValidatePacket(&out, &dst, &pkt);
-    if (out.Ok != 0 || out.Error != VOS_ERR_FramingShort || out.PayloadView.tag != 0)
+    if (out.is_ok != 0 || out.err != VOS_ERR_FramingShort || out.ok.PayloadView.tag != 0)
         return 19;
 
     return 0;
@@ -1536,7 +1659,7 @@ def _qualify_attempt(
 
 
 def qualify(root: Path, *, ccomp_path: Path | None = None) -> dict[str, object]:
-    """Qualify the Q25w concrete `Span<byte>` carrier and `vela-first-slice` end to end."""
+    """Qualify the Q25w / Q25ag concrete `Span<byte>` carrier and `vela-first-slice` end to end."""
     work = _work_root(root)
     with FileLock(work / "qualification.lock", timeout=5):
         latest = work / "qualification.json"

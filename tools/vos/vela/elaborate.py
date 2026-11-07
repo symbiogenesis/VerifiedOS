@@ -8,6 +8,7 @@ Fin an indexed inductive, and lookup recurses structurally on the finite index.
 """
 
 import hashlib
+import re
 from collections.abc import Callable, Sequence
 from typing import cast
 
@@ -174,6 +175,10 @@ class _Elaborator(
         self.lifted_invariants: dict[str, set[str]] = {}
         self.active_lift_scopes: int = 0
         self.in_loop_depth: int = 0
+        self.active_regions: set[str] = set()
+        self.in_executable_function: bool = False
+        self.slice_views: dict[str, str] = {}
+        self.restored_view_terms: set[_Term] = set()
         self.output: list[str] = []
         self.site: Node | None = None
         self._builtins()
@@ -950,6 +955,40 @@ class _Elaborator(
             raise self.fail("protocol", "expected a located name")
         return cast("str", raw["text"])
 
+    def lifetime_name(self, raw: object) -> str:
+        if (not isinstance(raw, dict) or not isinstance(raw.get("text"), str)
+                or not re.fullmatch(r"'[A-Za-z_][A-Za-z_0-9]*", raw["text"])):
+            raise self.fail("protocol", "expected a located region lifetime name")
+        return cast("str", raw["text"])
+
+    def _extract_regions(self, generic_nodes: list[Node]) -> tuple[list[Node], set[str]]:
+        non_region: list[Node] = []
+        regions: set[str] = set()
+        for gnode in generic_nodes:
+            self.node(gnode, "generic_parameter")
+            if gnode["mode"] == "region":
+                if gnode["type"] is not None:
+                    raise self.fail("protocol", "region generic parameter cannot carry a type bound", gnode)
+                rname = self.lifetime_name(gnode["name"])
+                if rname in regions or rname == "'_":
+                    raise self.fail("name", f"duplicate or invalid region parameter '{rname}'", gnode)
+                regions.add(rname)
+            else:
+                non_region.append(gnode)
+        return non_region, regions
+
+    def _term_contains_restored_view(self, term: _Term) -> bool:
+        if not self.restored_view_terms:
+            return False
+        w = self.whnf(term)
+        if w in self.restored_view_terms:
+            return True
+        if w.kind == "app":
+            head, args = self.spine(w)
+            if head == _constant("Span_Restore") and len(args) == 3:
+                return self._term_contains_restored_view(args[1])
+        return any(self._term_contains_restored_view(child) for child in w.args)
+
     def operator(self, raw: object) -> str:
         if not isinstance(raw, dict) or not isinstance(raw.get("text"), str) or raw["text"] not in _OPERATORS:
             raise self.fail("protocol", "expected a supported located operator")
@@ -970,6 +1009,16 @@ class _Elaborator(
     def instantiate(self, binding: _Binding, environment: dict[str, _Binding],
                     arguments: list[Node] | None = None) -> _Binding:
         term, value_type = binding.term, binding.type
+        if arguments is not None:
+            filtered_args: list[Node] = []
+            for arg in arguments:
+                if arg["kind"] == "lifetime":
+                    lt_name = self.lifetime_name(arg["name"])
+                    if lt_name != "'_" and lt_name not in self.active_regions:
+                        raise self.fail("name", f"unknown region '{lt_name}'", arg)
+                else:
+                    filtered_args.append(arg)
+            arguments = filtered_args
         if arguments is not None and len(arguments) != binding.generics:
             raise self.fail("type", f"expected {binding.generics} explicit generic arguments, got {len(arguments)}")
         for index in range(binding.generics):
@@ -1379,6 +1428,14 @@ class _Elaborator(
             self.site = node
             self.node(node, "generic_parameter")
             mode = node["mode"]
+            if mode == "region":
+                if node["type"] is not None:
+                    raise self.fail("protocol", "region generic parameter cannot carry a type bound", node)
+                rname = self.lifetime_name(node["name"])
+                if rname == "'_":
+                    raise self.fail("name", f"invalid region parameter '{rname}'", node)
+                self.active_regions.add(rname)
+                continue
             if not isinstance(mode, str) or mode not in {"type", "ghost"}:
                 raise self.fail("unsupported", f"generic mode '{mode}' requires the full frontend")
             if mode == "ghost" and node["type"] is None:
@@ -1456,7 +1513,15 @@ class _Elaborator(
         kind = node["kind"]
         if kind == "type":
             name = self.name(node["name"])
-            arguments = self.nodes(node["arguments"])
+            raw_arguments = self.nodes(node["arguments"])
+            arguments: list[Node] = []
+            for arg in raw_arguments:
+                if arg["kind"] == "lifetime":
+                    lt_name = self.lifetime_name(arg["name"])
+                    if lt_name != "'_" and lt_name not in self.active_regions:
+                        raise self.fail("name", f"unknown region '{lt_name}'", arg)
+                else:
+                    arguments.append(arg)
             if name == "_" and not arguments:
                 result = self.meta(_SORT, environment)
             elif name == "Type":
@@ -1521,9 +1586,18 @@ class _Elaborator(
             variables, extended = self.telescope(self.nodes(node["generics"]), self.nodes(node["parameters"]), environment, unit=True)
             result = self.wrap("pi", variables, self.type(self.node(node["result"]), extended))
         elif kind == "modified_type":
-            if node.get("lifetime") is not None:
-                raise self.fail("unsupported", "explicit loan lifetimes require the full frontend", node)
             modifier = node.get("modifier")
+            if node.get("lifetime") is not None:
+                if modifier not in {"in", "ref"}:
+                    raise self.fail(
+                        "unsupported",
+                        "explicit loan lifetimes are only supported on 'in' and 'ref' modifiers",
+                        node,
+                    )
+                lt_node = self.node(node["lifetime"], "lifetime")
+                lt_name = self.lifetime_name(lt_node["name"])
+                if lt_name != "'_" and lt_name not in self.active_regions:
+                    raise self.fail("name", f"unknown region '{lt_name}'", lt_node)
             if modifier == "out":
                 if not allow_out:
                     raise self.fail("type", "'out' type modifier is only permitted on callable parameters", node)

@@ -66,7 +66,15 @@ class _IntrinsicsMixin:
 
     def _is_readonly_span(self: _Elaborator, span_term: _Term) -> bool:
         root = self._root_span(span_term)
-        return root.kind == "var" and cast("int", root.value) in self.readonly_span_vars
+        if root.kind == "var" and cast("int", root.value) in self.readonly_span_vars:
+            return True
+        if root.kind == "app":
+            head, _ = self.spine(root)
+            if head.kind == "const" and isinstance(head.value, str) and head.value in self.record_projections:
+                rinfo, fidx = self.record_projections[head.value]
+                if rinfo.fields[fidx].readonly_span:
+                    return True
+        return False
 
     def _check_span_can_read(
         self: _Elaborator, span_term: _Term, environment: dict[str, _Binding], site: Node
@@ -155,6 +163,12 @@ class _IntrinsicsMixin:
                 base_t = _int_term(_INT_SPECS["usize"], 0)
                 cap_t = self.check(arg_nodes[0], _USIZE, environment)
             elif len(arg_nodes) == 2:
+                if self.in_executable_function:
+                    raise self.fail(
+                        "type",
+                        "Span.AllocZeroed(base, length) is a specification constructor and cannot fabricate a capability from an integer address in an executable function",
+                        node,
+                    )
                 base_t = self.check(arg_nodes[0], _USIZE, environment)
                 cap_t = self.check(arg_nodes[1], _USIZE, environment)
             else:
@@ -270,6 +284,7 @@ class _IntrinsicsMixin:
                     "cannot prove Span.Restore view extent is contained within parent extent",
                     node,
                 )
+            self.restored_view_terms.add(self.whnf(view_t))
             return _Binding(_apps(_constant("Span_Restore"), _U8, parent_t, view_t), span_u8)
         raise self.fail("name", f"unknown Span intrinsic 'Span.{member_name}'", node)
 

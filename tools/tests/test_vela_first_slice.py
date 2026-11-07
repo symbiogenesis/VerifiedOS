@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""Behavioral tests for the Q25w Span<byte> carrier and vela-first-slice lowering."""
+"""Behavioral tests for the Q25w / Q25ag Span<byte> carrier and vela-first-slice lowering."""
 
 import hashlib
 import tempfile
@@ -155,7 +155,7 @@ def _build_cap_gate_ast(cap_lit: str) -> tuple[bytes, Node]:
     b = _Builder("CapGate")
     b.write("\n")
     d_start = b.offset
-    b.write("public definition ")
+    b.write("public ")
     ret_ty = b.type_simple("Span", "byte")
     b.write(" ")
     fn_name = b.name("PrepareHeader")
@@ -168,6 +168,23 @@ def _build_cap_gate_ast(cap_lit: str) -> tuple[bytes, Node]:
     b.write(")")
 
     contracts: list[Node] = []
+    b.write(" ")
+    eff_start = b.offset
+    b.write("effects ")
+    w_start = b.offset
+    w_name = b.name("writes")
+    b.write("(")
+    a_start = b.offset
+    dst_arg = b.var("dst")
+    b.write(")")
+    writes_call: Node = {
+        "kind": "call",
+        "span": [w_start, b.offset],
+        "callee": {"kind": "name", "span": w_name["span"], "name": w_name},
+        "arguments": [{"kind": "argument", "span": [a_start, b.offset - 1], "label": None, "value": dst_arg}],
+    }
+    contracts.append({"kind": "effects", "span": [eff_start, b.offset], "values": [writes_call]})
+
     for role, expr_fn in (
         ("requires", lambda x: x.member(lambda y: y.var("dst"), "CanRead")),
         ("requires", lambda x: x.member(lambda y: y.var("dst"), "CanWrite")),
@@ -184,7 +201,7 @@ def _build_cap_gate_ast(cap_lit: str) -> tuple[bytes, Node]:
             lambda x: x.binary(
                 "==",
                 lambda y: y.member(lambda z: z.var("result"), "Length"),
-                lambda y: y.member(lambda z: z.var("dst"), "Length"),
+                lambda y: y.nat_lit("4", "usize"),
             ),
         ),
     ):
@@ -194,34 +211,128 @@ def _build_cap_gate_ast(cap_lit: str) -> tuple[bytes, Node]:
         c_val = expr_fn(b)
         contracts.append({"kind": "contract", "span": [c_start, b.offset], "role": role, "value": c_val})
 
-    b.write(" => ")
-    body = b.let_expr(
-        "s1",
-        lambda x: x.call_span("Write", lambda y: y.var("dst"), lambda y: y.nat_lit("0", "usize"), lambda y: y.nat_lit("0x56", "u8")),
-        lambda x: x.let_expr(
-            "roView",
-            lambda y: y.call_span(
-                "ReadOnly",
-                lambda z: z.call_span(
-                    "Slice",
-                    lambda w: w.var("s1"),
-                    lambda w: w.nat_lit("0", "usize"),
-                    lambda w: w.nat_lit("4", "usize"),
+    b.write(" ")
+    blk_start = b.offset
+    b.write("{ ")
+    fe_start = b.offset
+    b.write("foreach (let ")
+    i_name = b.name("i")
+    b.write(" in ")
+    rng_start = b.offset
+    r_lo = b.nat_lit("0", "usize")
+    b.write("..")
+    r_hi = b.member(lambda x: x.var("dst"), "Length")
+    rng_node: Node = {"kind": "range", "span": [rng_start, b.offset], "start": r_lo, "end": r_hi}
+    b.write(")")
+    fe_contracts: list[Node] = []
+    for role, expr_fn in (
+        ("invariant", lambda x: x.binary("<=", lambda y: y.var("i"), lambda y: y.member(lambda z: z.var("dst"), "Length"))),
+        (
+            "invariant",
+            lambda x: x.binary(
+                "&&",
+                lambda y: y.binary(
+                    "&&",
+                    lambda z: z.member(lambda w: w.var("dst"), "CanRead"),
+                    lambda z: z.member(lambda w: w.var("dst"), "CanWrite"),
+                ),
+                lambda y: y.binary(
+                    "==",
+                    lambda z: z.member(lambda w: w.var("dst"), "Length"),
+                    lambda z: z.nat_lit(cap_lit, "usize"),
                 ),
             ),
-            lambda y: y.call_span("Restore", lambda z: z.var("dst"), lambda z: z.var("roView")),
+        ),
+        (
+            "decreases",
+            lambda x: x.binary("-", lambda y: y.member(lambda z: z.var("dst"), "Length"), lambda y: y.var("i")),
+        ),
+    ):
+        b.write(" ")
+        lc_start = b.offset
+        b.write(role + " ")
+        lc_val = expr_fn(b)
+        fe_contracts.append({"kind": "contract", "span": [lc_start, b.offset], "role": role, "value": lc_val})
+
+    b.write(" ")
+    lbody_start = b.offset
+    b.write("{ ")
+    asgn_start = b.offset
+    idx_start = b.offset
+    dst_v = b.var("dst")
+    b.write("[")
+    idx_i = b.var("i")
+    b.write("]")
+    idx_node: Node = {"kind": "index", "span": [idx_start, b.offset], "value": dst_v, "index": idx_i}
+    b.write(" ")
+    eq_op = b.name("=")
+    b.write(" ")
+    z_lit = b.nat_lit("0x00", "u8")
+    b.write("; ")
+    asgn_stmt: Node = {
+        "kind": "assignment",
+        "span": [asgn_start, b.offset - 1],
+        "target": idx_node,
+        "operator": eq_op,
+        "value": z_lit,
+    }
+    b.write("}")
+    lbody_node: Node = {"kind": "block", "span": [lbody_start, b.offset], "statements": [asgn_stmt]}
+    fe_stmt: Node = {
+        "kind": "foreach",
+        "span": [fe_start, b.offset],
+        "name": i_name,
+        "range": rng_node,
+        "contracts": fe_contracts,
+        "body": lbody_node,
+    }
+
+    b.write(" ")
+    let_start = b.offset
+    b.write("let ")
+    ro_name = b.name("roView")
+    b.write(" = ")
+    ro_val = b.call_span(
+        "ReadOnly",
+        lambda x: x.call_span(
+            "Slice",
+            lambda y: y.var("dst"),
+            lambda y: y.nat_lit("0", "usize"),
+            lambda y: y.nat_lit("4", "usize"),
         ),
     )
     b.write(";")
+    let_stmt: Node = {
+        "kind": "let",
+        "span": [let_start, b.offset],
+        "name": ro_name,
+        "type": None,
+        "grade": None,
+        "value": ro_val,
+    }
+    b.write(" ")
+    ret_start = b.offset
+    b.write("return ")
+    ret_val = b.var("roView")
+    b.write(";")
+    ret_stmt: Node = {"kind": "return", "span": [ret_start, b.offset], "value": ret_val}
+    b.write(" }")
+    body_block: Node = {
+        "kind": "block",
+        "span": [blk_start, b.offset],
+        "statements": [fe_stmt, let_stmt, ret_stmt],
+    }
+
     b.declarations.append({
-        "kind": "definition",
+        "kind": "function",
         "span": [d_start, b.offset],
         "name": fn_name,
         "result": ret_ty,
         "generics": [],
         "parameters": [param],
         "contracts": contracts,
-        "value": body,
+        "body": body_block,
+        "cancel": None,
         "modifiers": ["public"],
     })
     return b.envelope()
@@ -265,11 +376,11 @@ def _capacity_invariance_and_contracts() -> None:
 
 
 def _negative_span_refusals() -> None:
-    def single_def(body_fn: object, *, param_mod: str | None = None, restores: bool = False) -> tuple[bytes, Node]:
+    def single_def(body_fn: object, *, param_mod: str | None = None, is_fn: bool = False) -> tuple[bytes, Node]:
         b = _Builder("Neg")
         b.write("\n")
         d_start = b.offset
-        b.write("public definition ")
+        b.write("public " if is_fn else "public definition ")
         ret_ty = b.type_simple("Span", "byte")
         b.write(" ")
         fn_name = b.name("Bad")
@@ -294,26 +405,43 @@ def _negative_span_refusals() -> None:
                 b.write("requires ")
                 c_val = expr_fn(b)
                 contracts.append({"kind": "contract", "span": [c_start, b.offset], "role": "requires", "value": c_val})
-        if restores:
+        if is_fn:
             b.write(" ")
-            c_start = b.offset
-            b.write("restores ")
-            c_val = b.var("s")
-            contracts.append({"kind": "contract", "span": [c_start, b.offset], "role": "restores", "value": c_val})
-        b.write(" => ")
-        body = cast("Node", body_fn(b) if callable(body_fn) else body_fn)
-        b.write(";")
-        b.declarations.append({
-            "kind": "definition",
-            "span": [d_start, b.offset],
-            "name": fn_name,
-            "result": ret_ty,
-            "generics": [],
-            "parameters": params,
-            "contracts": contracts,
-            "value": body,
-            "modifiers": ["public"],
-        })
+            blk_start = b.offset
+            b.write("{ ")
+            ret_start = b.offset
+            b.write("return ")
+            val = cast("Node", body_fn(b) if callable(body_fn) else body_fn)
+            b.write(";")
+            ret_stmt: Node = {"kind": "return", "span": [ret_start, b.offset], "value": val}
+            b.write(" }")
+            b.declarations.append({
+                "kind": "function",
+                "span": [d_start, b.offset],
+                "name": fn_name,
+                "result": ret_ty,
+                "generics": [],
+                "parameters": params,
+                "contracts": contracts,
+                "body": {"kind": "block", "span": [blk_start, b.offset], "statements": [ret_stmt]},
+                "cancel": None,
+                "modifiers": ["public"],
+            })
+        else:
+            b.write(" => ")
+            body = cast("Node", body_fn(b) if callable(body_fn) else body_fn)
+            b.write(";")
+            b.declarations.append({
+                "kind": "definition",
+                "span": [d_start, b.offset],
+                "name": fn_name,
+                "result": ret_ty,
+                "generics": [],
+                "parameters": params,
+                "contracts": contracts,
+                "value": body,
+                "modifiers": ["public"],
+            })
         return b.envelope()
 
     cases = (
@@ -344,6 +472,14 @@ def _negative_span_refusals() -> None:
                 param_mod="ref",
             ),
             "assertion could not be established",
+        ),
+        (
+            "capability-fabrication",
+            single_def(
+                lambda b: b.call_span("AllocZeroed", lambda x: x.nat_lit("64", "usize"), lambda x: x.nat_lit("8", "usize")),
+                is_fn=True,
+            ),
+            "Span.AllocZeroed(base, length) is a specification constructor",
         ),
     )
     for label, (raw, ast), expected_msg in cases:
@@ -393,30 +529,42 @@ def _build_executable_slice_ast(*, checksum_seed: str = "0x5A") -> Node:
     def member(recv: str, field: str) -> Node:
         return {"kind": "member", "value": nm(recv), "name": {"text": field}}
 
-    def outcome_ret(ok_val: bool, err_ctor: str, copied: Node, view_name: str) -> Node:
+    def err_ret(err_ctor: str) -> Node:
         return {
             "kind": "return",
             "value": {
                 "kind": "call",
-                "callee": nm("ValidationOutcome"),
+                "callee": nm("Err"),
+                "arguments": [{"kind": "argument", "value": nm(err_ctor)}],
+            },
+        }
+
+    def ok_ret(copied: Node, view_name: str) -> Node:
+        return {
+            "kind": "return",
+            "value": {
+                "kind": "call",
+                "callee": nm("Ok"),
                 "arguments": [
-                    {"kind": "argument", "value": {"kind": "bool", "value": ok_val}},
-                    {"kind": "argument", "value": nm(err_ctor)},
-                    {"kind": "argument", "value": copied},
-                    {"kind": "argument", "value": nm(view_name)},
+                    {
+                        "kind": "argument",
+                        "value": {
+                            "kind": "call",
+                            "callee": nm("ValidatedPacket"),
+                            "arguments": [
+                                {"kind": "argument", "value": copied},
+                                {"kind": "argument", "value": nm(view_name)},
+                            ],
+                        },
+                    }
                 ],
             },
         }
 
-    make_pkt_stmts: list[Node] = [
-        {"kind": "var", "name": {"text": "pkt"}, "type": None, "value": span_call("AllocZeroed", nm("baseAddr"), nat("8", "usize"))},
-        {"kind": "return", "value": nm("pkt")},
+    write_pkt_stmts: list[Node] = [
+        {"kind": "assignment", "target": idx("pkt", nat(str(i), "usize")), "value": nm(f"b{i}")}
+        for i in range(8)
     ]
-    for i in range(8):
-        make_pkt_stmts.insert(
-            i + 1,
-            {"kind": "assignment", "target": idx("pkt", nat(str(i), "usize")), "value": nm(f"b{i}")},
-        )
 
     copy_pkt_stmts: list[Node] = [
         {
@@ -433,7 +581,6 @@ def _build_executable_slice_ast(*, checksum_seed: str = "0x5A") -> Node:
         {"kind": "var", "name": {"text": "payloadView"}, "type": None, "value": span_call("Slice", nm("dst"), nat("4", "usize"), nm("payloadLen"))},
         {"kind": "let", "name": {"text": "pktPayload"}, "type": None, "value": span_call("Slice", nm("pkt"), nat("4", "usize"), nm("payloadLen"))},
         {"kind": "expression_statement", "value": span_call("CopyPrefix", unary("ref", nm("payloadView")), nm("pktPayload"), nm("payloadLen"))},
-        {"kind": "expression_statement", "value": span_call("Restore", unary("ref", nm("dst")), nm("payloadView"))},
     ]
 
     checksum_stmts: list[Node] = [
@@ -466,13 +613,6 @@ def _build_executable_slice_ast(*, checksum_seed: str = "0x5A") -> Node:
         {"kind": "return", "value": nm("acc")},
     ]
 
-    empty_view_let: Node = {
-        "kind": "let",
-        "name": {"text": "emptyView"},
-        "type": None,
-        "value": span_call("Invalidate", span_call("Slice", nm("dst"), nat("0", "usize"), nat("0", "usize"))),
-    }
-
     validate_stmts: list[Node] = [
         {
             "kind": "if",
@@ -481,7 +621,7 @@ def _build_executable_slice_ast(*, checksum_seed: str = "0x5A") -> Node:
                 binary("||", binary("<", member("dst", "Length"), nat("8", "usize")), binary("<", member("pkt", "Length"), nat("4", "usize"))),
                 unary("!", span_call("Disjoint", nm("dst"), nm("pkt"))),
             ),
-            "then": {"kind": "block", "statements": [empty_view_let, outcome_ret(False, "FramingShort", nat("0", "usize"), "emptyView")]},
+            "then": {"kind": "block", "statements": [err_ret("FramingShort")]},
             "else": None,
         },
         {"kind": "expression_statement", "value": span_call("Fill", unary("ref", nm("dst")), nat("0", "usize"), nat("8", "usize"), nat("0x00", "u8"))},
@@ -502,7 +642,7 @@ def _build_executable_slice_ast(*, checksum_seed: str = "0x5A") -> Node:
         {
             "kind": "if",
             "condition": binary("||", binary("!=", nm("magic"), nat("0x56", "u8")), binary("!=", nm("flags"), nat("0x01", "u8"))),
-            "then": {"kind": "block", "statements": [empty_view_let, outcome_ret(False, "BadMagicOrFlags", nat("0", "usize"), "emptyView")]},
+            "then": {"kind": "block", "statements": [err_ret("BadMagicOrFlags")]},
             "else": None,
         },
         {
@@ -512,7 +652,7 @@ def _build_executable_slice_ast(*, checksum_seed: str = "0x5A") -> Node:
                 binary("||", binary(">", nm("payloadLen"), nat("4", "usize")), binary(">", binary("+", nat("4", "usize"), nm("payloadLen")), member("pkt", "Length"))),
                 binary(">", binary("+", nat("4", "usize"), nm("payloadLen")), member("dst", "Length")),
             ),
-            "then": {"kind": "block", "statements": [empty_view_let, outcome_ret(False, "LengthOutOfBounds", nat("0", "usize"), "emptyView")]},
+            "then": {"kind": "block", "statements": [err_ret("LengthOutOfBounds")]},
             "else": None,
         },
         {
@@ -548,8 +688,7 @@ def _build_executable_slice_ast(*, checksum_seed: str = "0x5A") -> Node:
                 "kind": "block",
                 "statements": [
                     {"kind": "expression_statement", "value": span_call("Fill", unary("ref", nm("dst")), nat("0", "usize"), nat("8", "usize"), nat("0x00", "u8"))},
-                    empty_view_let,
-                    outcome_ret(False, "ChecksumRejected", nat("0", "usize"), "emptyView"),
+                    err_ret("ChecksumRejected"),
                 ],
             },
             "else": None,
@@ -560,8 +699,7 @@ def _build_executable_slice_ast(*, checksum_seed: str = "0x5A") -> Node:
             "type": None,
             "value": span_call("ReadOnly", span_call("Slice", nm("dst"), nat("4", "usize"), nm("payloadLen"))),
         },
-        {"kind": "expression_statement", "value": span_call("Restore", unary("ref", nm("dst")), nm("payloadView"))},
-        outcome_ret(True, "ValidatedOk", nm("payloadLen"), "payloadView"),
+        ok_ret(nm("payloadLen"), "payloadView"),
     ]
 
     inv = vela_first_slice.build_foundation_inventory()
@@ -580,30 +718,28 @@ def _build_executable_slice_ast(*, checksum_seed: str = "0x5A") -> Node:
                     "name": {"text": "ValidationError"},
                     "constructors": [
                         {"kind": "constructor", "name": {"text": cname}}
-                        for cname in ("ValidatedOk", "FramingShort", "BadMagicOrFlags", "LengthOutOfBounds", "ChecksumRejected")
+                        for cname in ("FramingShort", "BadMagicOrFlags", "LengthOutOfBounds", "ChecksumRejected")
                     ],
                 },
                 {
                     "kind": "record",
-                    "name": {"text": "ValidationOutcome"},
+                    "name": {"text": "ValidatedPacket"},
                     "parameters": [
-                        param("Ok", "bool"),
-                        param("Error", "ValidationError"),
                         param("CopiedBytes", "usize"),
-                        param("PayloadView", "Span"),
+                        param("PayloadView", "Span", "in"),
                     ],
                 },
                 {
                     "kind": "function",
-                    "name": {"text": "MakePacket8"},
-                    "result": ty("Span"),
-                    "parameters": [param("baseAddr", "usize"), *[param(f"b{i}", "u8") for i in range(8)]],
-                    "body": {"kind": "block", "statements": make_pkt_stmts},
+                    "name": {"text": "WritePacket8"},
+                    "result": ty("Unit"),
+                    "parameters": [param("pkt", "Span", "ref"), *[param(f"b{i}", "u8") for i in range(8)]],
+                    "body": {"kind": "block", "statements": write_pkt_stmts},
                 },
                 {
                     "kind": "function",
                     "name": {"text": "CopyPacketToDst"},
-                    "result": ty("unit"),
+                    "result": ty("Unit"),
                     "parameters": [param("dst", "Span", "ref"), param("pkt", "Span", "in"), param("payloadLen", "usize")],
                     "body": {"kind": "block", "statements": copy_pkt_stmts},
                 },
@@ -617,7 +753,7 @@ def _build_executable_slice_ast(*, checksum_seed: str = "0x5A") -> Node:
                 {
                     "kind": "function",
                     "name": {"text": "PrepareAndValidatePacket"},
-                    "result": ty("ValidationOutcome"),
+                    "result": ty("Result"),
                     "parameters": [param("dst", "Span", "ref"), param("pkt", "Span", "in")],
                     "body": {"kind": "block", "statements": validate_stmts},
                 },
@@ -643,7 +779,15 @@ def _clight_lowering_and_purecap_assembly() -> None:
     executable_ast = _build_executable_slice_ast()
     c_code, checks = vela_first_slice.lower_to_c(source, executable_ast)
     ensure(checks == 19, f"expected 19 checks in lowered C, got {checks}")
-    ensure("PrepareAndValidatePacket(" in c_code and "CopyPacketToDst(" in c_code, "missing lowered C functions")
+    ensure(
+        "PrepareAndValidatePacket(" in c_code
+        and "CopyPacketToDst(" in c_code
+        and "WritePacket8(" in c_code
+        and "struct vos_ValidatedPacket" in c_code
+        and "struct vos_Result_ValidatedPacket_ValidationError" in c_code
+        and "vos_span_restore(dst, dst, &payloadView);" in c_code,
+        "missing lowered C functions or inferred restoration",
+    )
     ensure("(unsigned int)0x5AU ^ (unsigned int)rawLen" in c_code, "expected AST-lowered 0x5AU checksum seed in C output")
 
     mutated_ast = _build_executable_slice_ast(checksum_seed="0x5B")

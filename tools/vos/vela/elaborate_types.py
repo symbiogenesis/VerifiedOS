@@ -191,6 +191,7 @@ class _RecordField:
     var: _Term
     type: _Term
     proj_const: str
+    readonly_span: bool = False
 
 
 @dataclass(frozen=True)
@@ -1103,10 +1104,10 @@ Definition vela_Span_Store (A : Type@{vela_u0}) (s : vela_Span A) : vela_ByteSto
   end.
 
 Definition vela_Span_CanRead (A : Type@{vela_u0}) (s : vela_Span A) : bool :=
-  vela_and (vela_Span_Tag A s) (vela_Span_PermRead A s).
+  vela_and (vela_Span_PermRead A s) (vela_Span_Tag A s).
 
 Definition vela_Span_CanWrite (A : Type@{vela_u0}) (s : vela_Span A) : bool :=
-  vela_and (vela_Span_Tag A s) (vela_Span_PermWrite A s).
+  vela_and (vela_Span_PermWrite A s) (vela_Span_Tag A s).
 
 Definition vela_Span_AllocZeroed (A : Type@{vela_u0}) (base cap : vela_int (4 : nat)) : vela_Span A :=
   vela_mk_span A base cap true true true vela_bs_empty.

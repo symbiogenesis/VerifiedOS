@@ -492,9 +492,17 @@ class _StatementsMixin:
                         "cannot prove Span indexed write is in bounds (index < span.Length)",
                         statement,
                     )
-                updated[rname] = _Binding(
+                new_span_b = _Binding(
                     _apps(_constant("Span_Write"), _U8, cur_b.term, idx_t, rhs_t), cur_b.type
                 )
+                updated[rname] = new_span_b
+                if rname in self.slice_views:
+                    parent_name = self.slice_views[rname]
+                    if parent_name in updated:
+                        p_b = updated[parent_name]
+                        updated[parent_name] = _Binding(
+                            _apps(_constant("Span_Restore"), _U8, p_b.term, new_span_b.term), p_b.type
+                        )
                 return updated
             if head == _constant("Slots") and len(type_args) == 2:
                 elem_t, cap_t = type_args[0], type_args[1]
@@ -646,6 +654,13 @@ class _StatementsMixin:
                     raise self.fail("type", f"cannot mutate frozen collection '{vname}'", site)
                 self.uninitialized_out_params.discard(vname)
                 updated[vname] = new_binding
+                if vname in self.slice_views:
+                    parent_name = self.slice_views[vname]
+                    if parent_name in updated:
+                        p_b = updated[parent_name]
+                        updated[parent_name] = _Binding(
+                            _apps(_constant("Span_Restore"), _U8, p_b.term, new_binding.term), p_b.type
+                        )
                 return True
             return False
         if val.get("kind") == "member" and isinstance(val.get("name"), dict) and isinstance(val.get("value"), dict):
@@ -1175,7 +1190,7 @@ class _StatementsMixin:
                         eb = else_env.get(k, orig_b)
                         if tb.term != eb.term:
                             extended[k] = _Binding(
-                                self.whnf(_term("if", orig_b.type, condition, tb.term, eb.term)),
+                                self.whnf(_term("if", orig_b.type, condition, self.whnf(tb.term), self.whnf(eb.term))),
                                 orig_b.type,
                             )
                     if then_ctrl is not None and then_ctrl == else_ctrl:
@@ -2201,6 +2216,12 @@ class _StatementsMixin:
                         else _Binding(self.check(value_node, expected, extended), expected)
                     )
                     self._consume_call_updates(extended, cur_stmt)
+                    if self._term_contains_restored_view(result.term):
+                        raise self.fail(
+                            "type",
+                            "cannot return a view borrowed from a span that was already restored",
+                            cur_stmt,
+                        )
                     if self.uninitialized_out_params:
                         uninit_list = ", ".join(sorted(self.uninitialized_out_params))
                         raise self.fail(

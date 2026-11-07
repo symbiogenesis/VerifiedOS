@@ -3822,9 +3822,8 @@ def _mutable_locals_assignments_and_bounded_loops() -> None:
     mutate_frozen.function(
         "Bad",
         _type("Unit"),
-        (),
+        (("buf", _modified("ref", _type("Span", _type("byte")))),),
         _block_stmts(
-            _var_stmt("buf", _call(_member(_variable("Span"), "AllocZeroed"), _int_lit("2", "usize"))),
             _foreach_coll(
                 "in",
                 "b",
@@ -3834,6 +3833,11 @@ def _mutable_locals_assignments_and_bounded_loops() -> None:
             _return_stmt(_unit()),
         ),
         block=True,
+        contracts=(
+            _contract("requires", _member(_variable("buf"), "CanRead")),
+            _contract("requires", _member(_variable("buf"), "CanWrite")),
+            _contract("requires", _binary("==", _member(_variable("buf"), "Length"), _int_lit("2", "usize"))),
+        ),
     )
     _refuses(mutate_frozen, "type", "frozen")
 
@@ -4639,9 +4643,8 @@ def _postfix_indexing_and_indexed_assignment() -> None:
     fixture.function(
         "ReadAndMutateAll",
         _type("u32"),
-        (),
+        (("buf", _modified("ref", _type("Span", _type("byte")))),),
         _block_stmts(
-            _var_stmt("buf", _call(_member(_variable("Span"), "AllocZeroed"), _int_lit("2", "usize"))),
             _assign_stmt(_index_expr(_variable("buf"), _int_lit("0", "usize")), "=", _int_lit("10", "byte")),
             _assign_stmt(_index_expr(_variable("buf"), _int_lit("0", "usize")), "+=", _int_lit("5", "byte")),
             _var_stmt("seq", _call(_member(_variable("Seq"), "Singleton"), _int_lit("20", "u32"))),
@@ -4677,7 +4680,12 @@ def _postfix_indexing_and_indexed_assignment() -> None:
             ),
         ),
         block=True,
-        contracts=(_contract("ensures", _binary("==", _variable("result"), _int_lit("55", "u32"))),),
+        contracts=(
+            _contract("requires", _member(_variable("buf"), "CanRead")),
+            _contract("requires", _member(_variable("buf"), "CanWrite")),
+            _contract("requires", _binary("==", _member(_variable("buf"), "Length"), _int_lit("2", "usize"))),
+            _contract("ensures", _binary("==", _variable("result"), _int_lit("55", "u32"))),
+        ),
     )
     source, response = fixture.response()
     elaborate(source, response)

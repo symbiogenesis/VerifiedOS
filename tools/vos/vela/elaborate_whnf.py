@@ -118,7 +118,8 @@ class _WhnfMixin:
                 return self.whnf(term.args[2] if condition.value else term.args[3])
             return term
         if term.kind == "unit_match":
-            scrutinee = self._expand_union_ctor(self.whnf(term.args[1]))
+            scrut_w = self.whnf(term.args[1])
+            scrutinee = self._expand_union_ctor(scrut_w)
             if scrutinee.kind == "unit":
                 self.tick(True)
                 return self.whnf(term.args[2])
@@ -128,9 +129,13 @@ class _WhnfMixin:
                 if not record_info.fields and len(rec_args) == len(record_info.generic_vars) + 1:
                     self.tick(True)
                     return self.whnf(term.args[2])
+            if scrut_w != term.args[1]:
+                self.tick(True)
+                return _Term(term.kind, term.value, (term.args[0], scrut_w, *term.args[2:]))
             return term
         if term.kind == "pair_match":
-            scrutinee = self._expand_union_ctor(self.whnf(term.args[1]))
+            scrut_w = self.whnf(term.args[1])
+            scrutinee = self._expand_union_ctor(scrut_w)
             if scrutinee.kind == "pair":
                 self.tick(True)
                 branch = term.args[2]
@@ -163,9 +168,13 @@ class _WhnfMixin:
                     branch = term.args[2]
                     inner = self.substitute(branch.args[1], cast("int", branch.value), left_val)
                     return self.whnf(self.substitute(inner.args[1], cast("int", inner.value), right_val))
+            if scrut_w != term.args[1]:
+                self.tick(True)
+                return _Term(term.kind, term.value, (term.args[0], scrut_w, *term.args[2:]))
             return term
         if term.kind == "sigT_match":
-            scrutinee = self._expand_union_ctor(self.whnf(term.args[1]))
+            scrut_w = self.whnf(term.args[1])
+            scrutinee = self._expand_union_ctor(scrut_w)
             if scrutinee.kind == "existT":
                 self.tick(True)
                 branch = term.args[2]
@@ -186,6 +195,9 @@ class _WhnfMixin:
                     branch = term.args[2]
                     inner = self.substitute(branch.args[1], cast("int", branch.value), left_val)
                     return self.whnf(self.substitute(inner.args[1], cast("int", inner.value), right_val))
+            if scrut_w != term.args[1]:
+                self.tick(True)
+                return _Term(term.kind, term.value, (term.args[0], scrut_w, *term.args[2:]))
             return term
         if term.kind in {"projT1", "projT2"}:
             pair_val = self._expand_union_ctor(self.whnf(term.args[2]))
@@ -207,7 +219,8 @@ class _WhnfMixin:
                     return self.whnf(self._build_dependent_record_tail(record_info, type_args, field_vals))
             return term
         if term.kind == "sum_match":
-            scrutinee = self._expand_union_ctor(self.whnf(term.args[1]))
+            scrut_w = self.whnf(term.args[1])
+            scrutinee = self._expand_union_ctor(scrut_w)
             if scrutinee.kind == "inl":
                 self.tick(True)
                 left_branch = term.args[2]
@@ -216,6 +229,9 @@ class _WhnfMixin:
                 self.tick(True)
                 right_branch = term.args[3]
                 return self.whnf(self.substitute(right_branch.args[1], cast("int", right_branch.value), scrutinee.args[2]))
+            if scrut_w != term.args[1]:
+                self.tick(True)
+                return _Term(term.kind, term.value, (term.args[0], scrut_w, *term.args[2:]))
             return term
         if term.kind == "nat_match":
             scrutinee = self.whnf(term.args[1])
@@ -424,13 +440,15 @@ class _WhnfMixin:
             if name == "+" and left.kind == "app" and left.args[0] == _constant("Succ"):
                 self.tick(True)
                 return _app(_constant("Succ"), self.whnf(_apps(_constant("+"), left.args[1], right)))
-            if left.kind == "bool" and name in {"&&", "||", "==>"}:
+            if left.kind == "bool" and name in {"&&", "||", "==>", "<==>"}:
                 self.tick(True)
                 if name == "&&":
                     return right if left.value else _term("bool", value=0)
                 if name == "||":
                     return _term("bool", value=1) if left.value else right
-                return right if left.value else _term("bool", value=1)
+                if name == "==>":
+                    return right if left.value else _term("bool", value=1)
+                return right if left.value else self.whnf(_app(_constant("!"), right))
             l_kind, l_pred = self._peel_nat(left)
             r_kind, r_pred = self._peel_nat(right)
             if name == "-":
@@ -569,6 +587,9 @@ class _WhnfMixin:
             if arg.kind == "int":
                 self.tick(True)
                 return _term("nat", value=max(0, cast("int", arg.value)))
+            if arg != arguments[0]:
+                self.tick(True)
+                return _app(_constant(name), arg)
             return None
         if name.startswith("int_from_") and len(arguments) == 1:
             parts = name.split("_")
@@ -579,6 +600,9 @@ class _WhnfMixin:
                 # Admitted From conversions widen exactly; any other pair keeps the
                 # kernel image's low destination bits.
                 return _int_term(dst_spec, _wrap_int(dst_spec, cast("int", arg.value)))
+            if arg != arguments[0]:
+                self.tick(True)
+                return _app(_constant(name), arg)
             return None
         if name.startswith("int_try_from_") and len(arguments) == 1:
             parts = name.split("_")
@@ -590,6 +614,9 @@ class _WhnfMixin:
                 if dst_spec.min_val <= val <= dst_spec.max_val:
                     return self._make_result_ok(dst_spec.const, ce_const, _int_term(dst_spec, val))
                 return self._make_result_err(dst_spec.const, ce_const, self._make_conv_err())
+            if arg != arguments[0]:
+                self.tick(True)
+                return _app(_constant(name), arg)
             return None
         prefix, spec_name = name.rsplit("_", 1)
         spec = _INT_SPECS.get(spec_name)
@@ -599,6 +626,9 @@ class _WhnfMixin:
         if len(arguments) == 1 and op in {"neg", "not", "wrap_neg", "sat_neg", "chk_neg"}:
             arg = self.whnf(arguments[0])
             if arg.kind != "int":
+                if arg != arguments[0]:
+                    self.tick(True)
+                    return _app(_constant(name), arg)
                 return None
             self.tick(True)
             a = cast("int", arg.value)
@@ -615,6 +645,9 @@ class _WhnfMixin:
             left = self.whnf(arguments[0])
             right = self.whnf(arguments[1])
             if left.kind != "int" or right.kind != "int":
+                if left != arguments[0] or right != arguments[1]:
+                    self.tick(True)
+                    return _apps(_constant(name), left, right)
                 return None
             self.tick(True)
             a = cast("int", left.value)
@@ -817,8 +850,8 @@ class _WhnfMixin:
             return self.whnf(
                 _apps(
                     _constant("&&"),
-                    _apps(_constant("Span_Tag"), elem, s),
                     _apps(_constant(perm_const), elem, s),
+                    _apps(_constant("Span_Tag"), elem, s),
                 )
             )
         if name in {"Span_Base", "Span_Length", "Span_Tag", "Span_PermRead", "Span_PermWrite"} and len(arguments) == 2:
@@ -826,6 +859,9 @@ class _WhnfMixin:
             s = self.whnf(arguments[1])
             s_head, s_args = self.spine(s)
             if s_head.kind != "const" or not isinstance(s_head.value, str):
+                if s != arguments[1]:
+                    self.tick(True)
+                    return _apps(_constant(name), elem, s)
                 return None
             sname = s_head.value
             if sname == "Span_AllocZeroed" and len(s_args) == 3:
@@ -869,16 +905,27 @@ class _WhnfMixin:
             if sname == "LoopState" and len(s_args) == 3:
                 self.tick(True)
                 return self.whnf(_apps(_constant(name), elem, s_args[1]))
+            if s != arguments[1]:
+                self.tick(True)
+                return _apps(_constant(name), elem, s)
             return None
         if name == "Span_Disjoint" and len(arguments) == 3:
             elem, a, b = arguments
-            ba = self.whnf(_apps(_constant("Span_Base"), elem, a))
+            a_w = self.whnf(a)
+            b_w = self.whnf(b)
+            ba = self.whnf(_apps(_constant("Span_Base"), elem, a_w))
             if ba.kind != "int":
+                if a_w != a or b_w != b:
+                    self.tick(True)
+                    return _apps(_constant("Span_Disjoint"), elem, a_w, b_w)
                 return None
-            la = self.whnf(_apps(_constant("Span_Length"), elem, a))
-            bb = self.whnf(_apps(_constant("Span_Base"), elem, b))
-            lb = self.whnf(_apps(_constant("Span_Length"), elem, b))
+            la = self.whnf(_apps(_constant("Span_Length"), elem, a_w))
+            bb = self.whnf(_apps(_constant("Span_Base"), elem, b_w))
+            lb = self.whnf(_apps(_constant("Span_Length"), elem, b_w))
             if la.kind != "int" or bb.kind != "int" or lb.kind != "int":
+                if a_w != a or b_w != b:
+                    self.tick(True)
+                    return _apps(_constant("Span_Disjoint"), elem, a_w, b_w)
                 return None
             self.tick(True)
             ba_v = cast("int", ba.value)
@@ -900,15 +947,24 @@ class _WhnfMixin:
                 self.tick(True)
                 return _int_term(_INT_SPECS["u8"], 0)
             if idx_w.kind != "int":
+                if s_w != s or idx_w != idx:
+                    self.tick(True)
+                    return _apps(_constant("Span_Read"), elem, s_w, idx_w)
                 return None
             ro = self._span_root_and_const_offset(elem, s_w)
             if ro is None:
+                if s_w != s or idx_w != idx:
+                    self.tick(True)
+                    return _apps(_constant("Span_Read"), elem, s_w, idx_w)
                 return None
             target_off = _wrap_int(_INT_SPECS["usize"], ro[1] + cast("int", idx_w.value))
             found = self._lookup_span_at_root_offset(elem, s_w, ro[0], target_off, s_w)
             if found is not None:
                 self.tick(True)
                 return found
+            if s_w != s or idx_w != idx:
+                self.tick(True)
+                return _apps(_constant("Span_Read"), elem, s_w, idx_w)
             return None
         return None
 

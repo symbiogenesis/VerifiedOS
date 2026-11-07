@@ -412,70 +412,78 @@ product acceptance by implication.
 ### First-slice component and concrete `Span<byte>` carrier <a id="first-slice-qualification"></a>
 
 [tools/vela/examples/first_slice.vela](../../../tools/vela/examples/first_slice.vela)
-authors the bounded packet/manifest validator `PrepareAndValidatePacket(ref Span<byte> dst, in Span<byte> pkt)`
-over the concrete `Span<byte>` carrier in
-[tools/vos/vela/elaborate.py](../../../tools/vos/vela/elaborate.py) and its
+authors the bounded packet/manifest validator `PrepareAndValidatePacket(ref Span<byte> dst, in Span<byte> pkt) -> Result<ValidatedPacket<'dst>, ValidationError>`
+and its slot-backed round-trip pipeline (`DecodePacketIntoFrame`,
+`PrepareSliceHeader`, `RunRoundTripPipeline`) over the concrete `Span<byte>` and
+`Slots<T, Cap>` carriers in
+[tools/vos/vela/elaborate.py](../../../tools/vos/vela/elaborate.py) and the
 CompCert Clight/C and purecap CHERI-RISC-V target harness in
 [tools/vos/vela/first_slice.py](../../../tools/vos/vela/first_slice.py).
-The slice supplies no acceptance: the
-[evidence review](../../background/critique.md#vela-evidence-and-surface-review)
-found that most of its laws, scenarios and restoration obligations reach the
-kernel as `true = true` or reflexive self-equalities, and that the slice departs
-from the synchronous design. Q25af and Q25ag own those corrections; the
-description below states what the current harness runs.
+Obligations the elaborator cannot kernel-prove reach Rocq with their real
+statements as named solver-trust axioms recorded in `solver_trust`, so
+`Print Assumptions` and the harness report kernel-proved definitions and
+solver-trusted obligations separately; a non-empty solver-trust ledger leaves
+the slice unaccepted as a closed kernel proof.
 
 - **Concrete `Span<byte>` carrier and contract obligations:** `Span<byte>` lowers
-  in the mathematical consumer to `vela_Span` (`vela_ByteStore = nat -> vela_u8`
-  paired with `Base`, `Length`, `Tag`, `PermRead`, `PermWrite` and derived
-  `CanRead` / `CanWrite` predicates). Bounded operations `Span.AllocZeroed`,
-  `Span.Read`, `Span.Write`, `Span.Fill`, `Span.Slice`, `Span.ReadOnly`,
-  `Span.Invalidate`, `Span.Disjoint`, `Span.CopyPrefix` and `Span.Restore`
-  require checked bounds, read/write capability permissions, loan-mode discipline
-  (`in Span<byte>` read-only vs `ref Span<byte>` read-write) and disjoint base
-  intervals before emitting terms. Function contracts elaborate `requires` into
-  typing premises, `restores param` into five metadata-preservation obligations
-  (`Base`, `Length`, `Tag`, `PermRead`, `PermWrite` between the post-state of
-  `param` or `result` and `old(param)`), and `ensures` into postcondition
-  obligations with `result` bound to the function body and `ref` parameters bound
-  to their exit post-states.
-- **Elaborated laws, validator and scenario theorems:** `Vela.FirstSlice` proves
-  eleven carrier laws (`LawInhabitedByteCase`, `LawAllocZeroedRead`,
+  in the mathematical consumer to `vela_Span` (`vela_ByteStore` paired with
+  `Base`, `Length`, `Tag`, `PermRead`, `PermWrite` and derived
+  `CanRead` / `CanWrite` predicates), while `Span.AllocZeroed` is restricted to
+  specification and theorem contexts so executable code cannot fabricate
+  capabilities from raw addresses. Bounded operations `Span.Read`, `Span.Write`,
+  `Span.Fill`, `Span.Slice`, `Span.ReadOnly`, `Span.Invalidate`,
+  `Span.Disjoint`, `Span.CopyPrefix` and `Span.Restore` require checked bounds,
+  read/write capability permissions, loan-mode discipline (`in Span<byte>`
+  read-only vs `ref Span<byte>` read-write), read-only enforcement on record
+  fields of type `in<'a> Span<byte>`, and disjoint base intervals before
+  emitting terms. Function contracts elaborate `requires` into typing premises,
+  automatic `ref` descriptor preservation (`restores`) into five kernel-proved
+  metadata-preservation obligations (`Base`, `Length`, `Tag`, `PermRead`,
+  `PermWrite` between the post-state of each `ref` `Span`/`Slots` parameter and
+  its entry state), and `ensures` into postcondition obligations with `result`
+  bound to the function body and `ref` parameters bound to their kernel
+  post-state images (`_post_<param>`).
+- **Elaborated laws, synchronous validator and scenario theorems:** `Vela.FirstSlice`
+  elaborates eleven carrier laws (`LawInhabitedByteCase`, `LawAllocZeroedRead`,
   `LawReadOverWriteSame`, `LawReadOverWriteOther`,
   `LawLoopFramePreservesDisjointSuffix`, `LawFillAndFrame`,
   `LawSliceMetadataAndRead`, `LawReadOnlyAndInvalidate`,
   `LawDisjointCopyAndFrame`, `LawCapacityInvarianceSmall`,
-  `LawCapacityInvarianceLarge`), elaborates imperative `MakePacket8`,
-  `CopyPacketToDst`, `ComputePacketChecksum` and `PrepareAndValidatePacket` (with
-  in-place `dst[i] = ...`, `Span.Fill(ref dst, ...)`,
-  `Span.CopyPrefix(ref payloadView, ...)`, `Span.Restore(ref dst, ...)`,
-  `foreach` loops with `invariant`/`decreases`, five `restores dst` obligations
-  and three `ensures` obligations without functional state-threading or a
-  `RestoredDst` return field), and proves seven symbolic scenario theorems
-  (`ValidateEmptyPacketOk`, `ValidateFullPacketOk`,
+  `LawCapacityInvarianceLarge`), synchronous `MakePacket8`, `CopyPacketToDst`,
+  `ComputePacketChecksum`, `PrepareAndValidatePacket`, `DecodePacketIntoFrame`,
+  `PrepareSliceHeader` and `RunRoundTripPipeline` (with `Result<..., ValidationError>`,
+  `?` propagation, fat-arrow `match`, explicit `effects writes(...)` lists,
+  returned subslice views in `ValidatedPacket<'dst>`, `Slots<FrameRecord, Cap>`
+  frame storage, `foreach` loops with `invariant`/`decreases`, automatic `ref`
+  descriptor preservation and `ensures` contracts), and seven symbolic scenario
+  theorems (`ValidateEmptyPacketOk`, `ValidateFullPacketOk`,
   `ValidatePartialPacketScrubsStaleAndTrailingBytes`, `RejectFramingShort`,
   `RejectBadMagic`, `RejectLengthOutOfBounds`,
   `RejectChecksumScrubsDestinationAndRestores`) with separation-logic framing
   (`dst[frameIdx] == old(dst[frameIdx])`) over loops and slices.
 - **End-to-end qualification (`python tools/run.py vela-parser first-slice`):**
   1. Parses `first_slice.vela` through the native Menhir `--surface` parser,
-     elaborates all 51 declarations into `FirstSlice.v`, compiles with `rocq c`,
-     verifies `Closed under the global context` via `Print Assumptions`, and
-     audits with `rocqchk`, plus a fail-closed proof-corruption negative control.
+     elaborates all declarations into `FirstSlice.v`, compiles with `rocq c`,
+     audits assumptions against the recorded `solver_trust` ledger via
+     `Print Assumptions`, and runs `rocqchk`, plus a fail-closed proof-corruption
+     negative control and an unrecorded-axiom negative control.
   2. Runs the capacity-invariance gate at $N = 8$ (`8usize`) and $N = 10^9$
-     (`1_000_000_000usize`), checking that obligation count (`9`), inference work
-     steps, reduction steps and emitted Gallina byte length are identical across
+     (`1_000_000_000usize`), checking that obligation count, inference work
+     steps, reduction steps and emitted Gallina structure are invariant across
      both capacities and that both pass `rocq c` and `rocqchk`.
-  3. Replays 13 schema-2 semantic negative controls (`oob-read`, `oob-write`,
+  3. Replays 17 schema-2 semantic negative controls (`oob-read`, `oob-write`,
      `oob-slice`, `oob-fill`, `mutate-in-borrow`, `mutate-readonly-view`,
-     `read-invalidated-view`, `overlapping-copyprefix`, `foreign-restore`,
-     `broken-restores-contract`, `wrong-expected-byte`, `stale-input-leak`,
+     `mutate-readonly-record-view`, `read-invalidated-view`,
+     `overlapping-copyprefix`, `foreign-restore`, `broken-restores-contract`,
+     `restore-then-return-view`, `capability-fabrication`,
+     `missing-write-effect`, `wrong-expected-byte`, `stale-input-leak`,
      `loop-frame-overlap`) through the native parser and confirms each fails with
      `category == "type"`.
   4. Executes the purecap CHERI-RISC-V hardware capability slice (`csetbounds`,
      `candperm`, capability round-trip and byte checks) and three hardware fault
      controls (`bounds-trap`, `perm-trap`, `tag-trap`) on `sail_riscv_sim`.
   5. Lowers the executable union, record and function AST declarations
-     (`ValidationError`, `ValidationOutcome`, `MakePacket8`, `CopyPacketToDst`,
+     (`ValidationError`, `ValidatedPacket`, `MakePacket8`, `CopyPacketToDst`,
      `ComputePacketChecksum`, `PrepareAndValidatePacket`) and their seven scenario
      drivers to CompCert Clight/C (`-fverifiedos-typed -dclight`), executes the C
      harness under both `ccomp -interp` and purecap `sail_riscv_sim`, and verifies

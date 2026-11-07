@@ -467,6 +467,16 @@ class _PatternsMixin:
             self.mutable_locals.add(bname)
         else:
             self.mutable_locals.discard(bname)
+        self.slice_views.pop(bname, None)
+        b_w = self.whnf(binding.term)
+        if b_w.kind == "app":
+            b_head, b_args = self.spine(b_w)
+            if b_head == _constant("Span_Slice") and len(b_args) == 4:
+                parent_w = self.whnf(b_args[1])
+                for env_k, env_b in extended.items():
+                    if self.whnf(env_b.term) == parent_w:
+                        self.slice_views[bname] = env_k
+                        break
         self.bind_local(extended, bname, binding)
         return extended
 

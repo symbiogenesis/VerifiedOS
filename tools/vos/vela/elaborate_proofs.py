@@ -429,14 +429,20 @@ class _ProofsMixin:
             if self._is_prop_type(domain):
                 child_facts.append(_Binding(var, domain))
             codomain = self.substitute(goal_whnf.args[1], var_id, var)
-            body_term = self._prove_proposition(
-                codomain,
-                child_env,
-                tuple(child_facts),
-                node,
-                allow_refl=allow_refl,
-                include_env=include_env,
-            )
+            dom_bool_facts = self._fact_bool_terms((_Binding(var, domain),), child_env) if self._is_prop_type(domain) else []
+            self.active_facts.extend(dom_bool_facts)
+            try:
+                body_term = self._prove_proposition(
+                    codomain,
+                    child_env,
+                    tuple(child_facts),
+                    node,
+                    allow_refl=allow_refl,
+                    include_env=include_env,
+                )
+            finally:
+                for _ in dom_bool_facts:
+                    self.active_facts.pop()
             return _term("lam", domain, body_term, value=var.value)
 
         if goal_whnf.kind == "ex":
@@ -574,6 +580,16 @@ class _ProofsMixin:
         w = self.whnf(term)
         if w.kind == "if":
             return w.args[1]
+        if w.kind in {"sum_match", "pair_match", "unit_match", "sigT_match"} and len(w.args) >= 2:
+            for child in w.args[1:]:
+                found = self._find_if_condition(child, depth + 1)
+                if found is not None:
+                    return found
+        if w.kind == "lam":
+            b_id = cast("int", w.value)
+            found = self._find_if_condition(w.args[1], depth + 1)
+            if found is not None and b_id not in self.free(found):
+                return found
         if w.kind == "app":
             _, args = self.spine(w)
             for child in args:
@@ -617,6 +633,24 @@ class _ProofsMixin:
             c_rep, did_c = self._expose_and_replace_if(w.args[1], cond, repl, depth + 1)
             if did_c or did_t or did_e:
                 return _term("if", w.args[0], c_rep, t_rep, e_rep), True
+            return w, False
+        if w.kind in {"sum_match", "pair_match", "unit_match", "sigT_match"} and len(w.args) >= 2:
+            s_rep, did_s = self._expose_and_replace_if(w.args[1], cond, repl, depth + 1)
+            new_branches: list[_Term] = []
+            did_b = False
+            for br in w.args[2:]:
+                nb, rb = self._expose_and_replace_if(br, cond, repl, depth + 1)
+                new_branches.append(nb)
+                did_b = did_b or rb
+            if did_s or did_b:
+                return _Term(w.kind, w.value, (w.args[0], s_rep, *new_branches)), True
+            return w, False
+        if w.kind == "lam":
+            b_id = cast("int", w.value)
+            if b_id not in self.free(cond) and b_id not in self.free(repl):
+                body_rep, did_body = self._expose_and_replace_if(w.args[1], cond, repl, depth + 1)
+                if did_body:
+                    return _term("lam", w.args[0], body_rep, value=b_id), True
             return w, False
         if w.kind == "app":
             head, args = self.spine(w)
@@ -678,7 +712,14 @@ class _ProofsMixin:
                 return self.proposition(node, environment)
             if operator == "==>":
                 domain = self.asserted_proposition(self.node(node["left"]), environment)
-                return self.pi(domain, self.asserted_proposition(self.node(node["right"]), environment))
+                dom_facts = self._fact_bool_terms((_Binding(_term("unit"), domain),), environment)
+                self.active_facts.extend(dom_facts)
+                try:
+                    codomain = self.asserted_proposition(self.node(node["right"]), environment)
+                finally:
+                    for _ in dom_facts:
+                        self.active_facts.pop()
+                return self.pi(domain, codomain)
         if node["kind"] == "quantifier":
             quantifier = node["quantifier"]
             if quantifier not in {"forall", "exists"}:

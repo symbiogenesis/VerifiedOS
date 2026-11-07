@@ -217,7 +217,9 @@ class _DeclarationsMixin:
                 or name in {"Type", "_", "this"} or "." in name):
             raise self.fail("name", f"duplicate or reserved declaration '{name}'", node)
         self._record_visibility(name, modifiers, node)
-        generics = self.nodes(node["generics"])
+        raw_generics = self.nodes(node["generics"])
+        generics, decl_regions = self._extract_regions(raw_generics)
+        self.active_regions = set(decl_regions)
         parameters = self.nodes(node["parameters"])
         for param_node in parameters:
             self.node(param_node, "parameter")
@@ -229,7 +231,7 @@ class _DeclarationsMixin:
             if param_node.get("const", False):
                 raise self.fail("unsupported", "record fields cannot be marked const", param_node)
             pt = self.node(param_node["type"])
-            if pt["kind"] == "modified_type":
+            if pt["kind"] == "modified_type" and pt.get("modifier") != "in":
                 raise self.fail("unsupported", f"record fields cannot have loan modifier '{pt.get('modifier')}'", param_node)
         variables, environment = self.telescope(generics, parameters, {}, unit=False)
         generic_vars = variables[:len(generics)]
@@ -348,7 +350,15 @@ class _DeclarationsMixin:
             self.output.append(f"Definition {proj_emitted} : {self.render(proj_sig)} :=\n  {self.render(proj_def)}.")
             proj_binding = _Binding(_constant(proj_emitted), proj_sig, len(generics))
             self.constants[proj_emitted] = proj_binding
-            record_fields.append(_RecordField(fname, fvar, ftype, proj_emitted))
+            record_fields.append(
+                _RecordField(
+                    fname,
+                    fvar,
+                    ftype,
+                    proj_emitted,
+                    readonly_span=cast("int", fvar.value) in self.readonly_span_vars,
+                )
+            )
 
         record_info = _RecordInfo(
             name=name,
@@ -729,7 +739,9 @@ class _DeclarationsMixin:
                 or name in {"Type", "_", "this"} or "." in name):
             raise self.fail("name", f"duplicate or reserved declaration '{name}'", node)
         is_pub = self._record_visibility(name, modifiers, node)
-        generics = self.nodes(node["generics"])
+        raw_generics = self.nodes(node["generics"])
+        generics, decl_regions = self._extract_regions(raw_generics)
+        self.active_regions = set(decl_regions)
         constructors = self.nodes(node["constructors"])
         if not constructors:
             raise self.fail("unsupported", "empty union declarations require the full frontend", node)
@@ -2112,6 +2124,10 @@ class _DeclarationsMixin:
         self.lifted_invariants.clear()
         self.active_lift_scopes = 0
         self.in_loop_depth = 0
+        self.active_regions.clear()
+        self.in_executable_function = False
+        self.slice_views.clear()
+        self.restored_view_terms.clear()
         kind = node["kind"]
         if kind == "import":
             self._import_declaration(node)
@@ -2139,6 +2155,7 @@ class _DeclarationsMixin:
         requires_clauses: list[Node] = []
         ensures_clauses: list[Node] = []
         restores_clauses: list[Node] = []
+        effects_clauses: list[Node] = []
         if kind in {"definition", "function", "theorem", "lemma"}:
             self.no_roles(node, "cancel")
             has_params_or_generics = (
@@ -2146,6 +2163,15 @@ class _DeclarationsMixin:
                 or bool(self.nodes(node["parameters"]) or self.nodes(node["generics"]))
             )
             for contract in self.nodes(node["contracts"]):
+                if contract["kind"] == "effects":
+                    if kind not in {"definition", "function"} or not has_params_or_generics:
+                        raise self.fail(
+                            "unsupported",
+                            "effects clause is only supported on parameterized functions and definitions",
+                            contract,
+                        )
+                    effects_clauses.append(contract)
+                    continue
                 self.node(contract, "contract")
                 role = contract["role"]
                 if role == "decreases":
@@ -2164,6 +2190,8 @@ class _DeclarationsMixin:
                     )
             if len(decreases_clauses) > 1:
                 raise self.fail("type", "at most one decreases clause is permitted", decreases_clauses[1])
+            if len(effects_clauses) > 1:
+                raise self.fail("type", "at most one effects clause is permitted", effects_clauses[1])
             if kind in {"theorem", "lemma"} and not ensures_clauses:
                 raise self.fail("protocol", "theorem requires at least one ensures clause", node)
         else:
@@ -2175,7 +2203,9 @@ class _DeclarationsMixin:
                 or name in {"Type", "_", "this"} or "." in name):
             raise self.fail("name", f"duplicate or reserved declaration '{name}'")
         self._record_visibility(name, modifiers, node)
-        generics = [] if kind in {"constant", "property"} else self.nodes(node["generics"])
+        raw_generics = [] if kind in {"constant", "property"} else self.nodes(node["generics"])
+        generics, decl_regions = self._extract_regions(raw_generics)
+        self.active_regions = set(decl_regions)
         parameters = [] if kind in {"alias", "constant", "property"} else self.nodes(node["parameters"])
         variables, environment = self.telescope(
             generics, parameters, {}, unit=kind not in {"alias", "constant", "property"}
@@ -2183,6 +2213,46 @@ class _DeclarationsMixin:
         if kind in {"theorem", "lemma"} and self.out_param_names:
             raise self.fail("type", "proof declarations do not accept 'out' initialization parameters", node)
         ref_param_names = set(self.mutable_locals)
+        declared_effect_writes: set[str] = set()
+        if effects_clauses:
+            eff_clause = effects_clauses[0]
+            for eff_item in self.nodes(eff_clause["values"]):
+                if eff_item["kind"] == "name" and self.name(eff_item["name"]) == "none":
+                    continue
+                if eff_item["kind"] != "call":
+                    raise self.fail(
+                        "type",
+                        "effects clause item must be reads(...), writes(...), calls(...) or none",
+                        eff_item,
+                    )
+                eff_callee = self.node(eff_item["callee"])
+                eff_name = self.name(eff_callee["name"]) if eff_callee["kind"] == "name" else ""
+                if eff_name not in {"reads", "writes", "calls"}:
+                    raise self.fail("type", f"unsupported effect clause item '{eff_name}'", eff_item)
+                eff_args = self.nodes(eff_item["arguments"])
+                if not eff_args:
+                    raise self.fail("type", f"effects {eff_name}(...) requires at least one target", eff_item)
+                for eff_arg in eff_args:
+                    self.node(eff_arg, "argument")
+                    if eff_arg["label"] is not None:
+                        raise self.fail("name", f"effects {eff_name}(...) does not accept labeled arguments", eff_arg)
+                    eff_val = self._unwrap_group(self.node(eff_arg["value"]))
+                    if eff_val["kind"] != "name":
+                        raise self.fail("type", f"effects {eff_name}(...) target must be an identifier", eff_val)
+                    t_ident = self.name(eff_val["name"])
+                    if eff_name in {"reads", "writes"}:
+                        if t_ident not in environment:
+                            raise self.fail("name", f"unknown parameter '{t_ident}' in effects {eff_name}(...)", eff_val)
+                        if eff_name == "writes":
+                            if t_ident not in ref_param_names:
+                                raise self.fail(
+                                    "type",
+                                    f"effects writes('{t_ident}') requires a 'ref' or 'out' parameter",
+                                    eff_val,
+                                )
+                            declared_effect_writes.add(t_ident)
+                    elif t_ident not in environment and t_ident not in self.globals:
+                        raise self.fail("name", f"unknown callable '{t_ident}' in effects calls(...)", eff_val)
         self.entry_env = dict(environment)
         self.final_ref_bindings = dict(environment)
         where_iface_constraints: list[tuple[_InterfaceInfo, tuple[_Term, ...], Node]] = []
@@ -2381,6 +2451,7 @@ class _DeclarationsMixin:
                 self.active_facts.extend(entry_body_facts)
                 self.used_domain_solver_in_proof = False
                 self.final_theorem_facts = ()
+                self.in_executable_function = kind == "function"
                 try:
                     if is_post_env_theorem:
                         self.in_post_env_theorem = True
@@ -2427,6 +2498,12 @@ class _DeclarationsMixin:
                     if is_recursive:
                         candidates = list(self.current_rec_candidates)
                     if kind in {"definition", "function"}:
+                        if self._term_contains_restored_view(body):
+                            raise self.fail(
+                                "type",
+                                "cannot return a view borrowed from a span that was already restored",
+                                body_node,
+                            )
                         if self.uninitialized_out_params:
                             uninit_name = min(self.uninitialized_out_params)
                             raise self.fail(
@@ -2434,6 +2511,18 @@ class _DeclarationsMixin:
                                 f"out parameter '{uninit_name}' is not initialized on all exit paths",
                                 body_node,
                             )
+                        if effects_clauses:
+                            for pname in sorted(ref_param_names):
+                                if (
+                                    pname in self.final_ref_bindings
+                                    and self.final_ref_bindings[pname].term != self.entry_env[pname].term
+                                    and pname not in declared_effect_writes
+                                ):
+                                    raise self.fail(
+                                        "type",
+                                        f"callable mutates parameter '{pname}' not declared in effects writes(...)",
+                                        effects_clauses[0],
+                                    )
                         for pname in ref_param_names:
                             if pname in self.final_ref_bindings:
                                 fin_b = self.final_ref_bindings[pname]
@@ -2448,6 +2537,7 @@ class _DeclarationsMixin:
                                         rinfo, fin_targs, fin_b.term, self.final_ref_bindings, body_node
                                     )
                 finally:
+                    self.in_executable_function = False
                     self.active_facts = saved_body_facts
                     self.current_rec_var = None
                     self.current_rec_name = None
@@ -2784,24 +2874,50 @@ class _DeclarationsMixin:
                         try:
                             ens_proof = self._prove_proposition(ens_prop, post_env, (), ens_contract)
                         except VelaError:
-                            extracted = self._extract_equality(ens_prop)
-                            proved_alt = False
-                            if extracted is not None:
-                                eq_ty_w = self.whnf(extracted[0])
-                                if (
-                                    eq_ty_w == _BOOL
-                                    and self.whnf(extracted[2]) == _term("bool", value=1)
-                                    and self._prove_bool_precondition(extracted[1], post_env)
-                                ):
-                                    proved_alt = True
-                                elif eq_ty_w == _NAT or self._int_spec(eq_ty_w) is not None:
-                                    spec = self._int_spec(eq_ty_w)
-                                    bool_facts = self._expand_bool_facts(
-                                        [*self.active_facts, *self._fact_bool_terms((), post_env)]
+                            self.reset_budget()
+                            peeled_prop = ens_prop
+                            peeled_env = dict(post_env)
+                            peeled_facts: list[_Term] = []
+                            while self.whnf(peeled_prop).kind == "pi":
+                                pw = self.whnf(peeled_prop)
+                                pid = cast("int", pw.value)
+                                if pid in self.nullary_parameters:
+                                    break
+                                pdom = pw.args[0]
+                                pvar = self.fresh(pdom)
+                                if pid in self.parameter_names:
+                                    pname = self.parameter_names[pid]
+                                    self.parameter_names[cast("int", pvar.value)] = pname
+                                    self.bind_local(peeled_env, pname, _Binding(pvar, pdom))
+                                if self._is_prop_type(pdom):
+                                    peeled_facts.extend(
+                                        self._fact_bool_terms((_Binding(pvar, pdom),), peeled_env)
                                     )
-                                    if self._prove_comparison("eq", spec, extracted[1], extracted[2], bool_facts):
+                                peeled_prop = self.substitute(pw.args[1], pid, pvar)
+                            self.active_facts.extend(peeled_facts)
+                            try:
+                                extracted = self._extract_equality(peeled_prop)
+                                proved_alt = False
+                                if extracted is not None:
+                                    eq_ty_w = self.whnf(extracted[0])
+                                    if (
+                                        eq_ty_w == _BOOL
+                                        and self.whnf(extracted[2]) == _term("bool", value=1)
+                                        and self._prove_bool_precondition(extracted[1], peeled_env)
+                                    ):
                                         proved_alt = True
+                                    elif eq_ty_w == _NAT or self._int_spec(eq_ty_w) is not None:
+                                        spec = self._int_spec(eq_ty_w)
+                                        bool_facts = self._expand_bool_facts(
+                                            [*self.active_facts, *self._fact_bool_terms((), peeled_env)]
+                                        )
+                                        if self._prove_comparison("eq", spec, extracted[1], extracted[2], bool_facts):
+                                            proved_alt = True
+                            finally:
+                                for _ in peeled_facts:
+                                    self.active_facts.pop()
                             if not proved_alt:
+                                self.reset_budget()
                                 saved_ens_m = [_Meta(m.type, m.scope, m.solution) for m in self.metas]
                                 try:
                                     ens_b = self.expression(ens_val_node, post_env)
@@ -2823,6 +2939,7 @@ class _DeclarationsMixin:
                             [*self.active_facts, *self._fact_bool_terms((), post_env)],
                             post_state_images,
                         )
+                        self.reset_budget()
                         saved_sym_m = [_Meta(m.type, m.scope, m.solution) for m in self.metas]
                         try:
                             sym_eb = self.expression(ens_val_node, sym_post_env)
