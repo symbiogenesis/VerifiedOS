@@ -138,11 +138,11 @@ public Nat Process(Nat sample) => Scale(gain: Gain, sample: sample);
         source: `module Bindings;
 
 /// Immutable locals may carry explicit type annotations.
-/// Check style to preview the explicit let spelling.
+/// Check style to inspect optional advisory findings.
 public Nat Count(bool selected)
 {
-    Nat count = 1_000;
-    bool ready = selected == true;
+    let Nat count = 1_000;
+    let bool ready = selected == true;
     if (ready)
     {
         return count;

@@ -120,8 +120,9 @@ binding:
     { make "let" $startpos $endpos
         [("name", binding_name); ("type", annotation.syntax); ("value", value.syntax)] [annotation; value] }
 | annotation=value_type binding_name=name EQUAL value=expression SEMICOLON
-    { make "typed_local" $startpos $endpos
-        [("name", binding_name); ("type", annotation.syntax); ("value", value.syntax)] [annotation; value] }
+    { let _ = annotation, binding_name, value in
+      raise (Refusal ("syntax", $startpos.Lexing.pos_cnum,
+                      "local declaration requires 'let' or 'var' before its type (write 'let T x = e;' or 'var T x = e;')")) }
 | binding_name=name EQUAL value=expression SEMICOLON
     { make "reassignment" $startpos $endpos
         [("name", binding_name); ("value", value.syntax)] [value] }
@@ -556,7 +557,9 @@ s_simple_statement:
         [("pattern", pattern.syntax); ("value", value.syntax); ("else", otherwise.syntax)]
         [pattern; value; otherwise] }
 | binding=s_typed_initializer SEMICOLON
-    { let fields, parts = binding in make "typed_local" $startpos $endpos fields parts }
+    { let _ = binding in
+      raise (Refusal ("syntax", $startpos.Lexing.pos_cnum,
+                      "local declaration requires 'let' or 'var' before its type (write 'let T x = e;' or 'var T x = e;')")) }
 | RETURN value=option(s_expression) SEMICOLON
     { make "return" $startpos $endpos [("value", optional value)] (children value) }
 | BREAK SEMICOLON { make "break" $startpos $endpos [] [] }

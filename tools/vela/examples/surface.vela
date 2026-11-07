@@ -176,8 +176,8 @@ public Result<ref<'workspace.bytes> byte, Error> First(ref Workspace workspace)
     restores result is Ok(slot) ==>
         workspace.bytes.Model == old(workspace.bytes.Model).Update(0, final(slot))
 {
-    ref Span<byte> parent = ref workspace.bytes;
-    ref byte child = ref parent[FirstOffset];
+    let ref Span<byte> parent = ref workspace.bytes;
+    let ref byte child = ref parent[FirstOffset];
     return Ok(child);
 }
 
@@ -425,9 +425,9 @@ public Nat ReadAndApply(
     requires bytes.Length > 0
     restores Valid(bytes)
 {
-    ghost Nat length @ NatExact(0) = Nat(bytes.Length);
-    ref<'bytes> byte first @ NatExact(1) = ref bytes[0usize];
-    Box<FnOnce(Nat) -> Nat> retained @ NatExact(1) = move callback;
+    let ghost Nat length @ NatExact(0) = Nat(bytes.Length);
+    let ref<'bytes> byte first @ NatExact(1) = ref bytes[0usize];
+    let Box<FnOnce(Nat) -> Nat> retained @ NatExact(1) = move callback;
     let observed @ NatExact(1) = Read(in first);
     return retained.Value(observed);
 }

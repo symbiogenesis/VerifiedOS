@@ -39,12 +39,12 @@ StyleCop or Clippy rule; neither upstream implementation is incorporated.
   and local bindings use camelCase. The formatter never renames symbols.
   Primitive spellings, lifetime identities, grade names and foreign names retain
   their defining contracts; naming is a suppressible lint, not parsing authority.
-- Introductory examples and declaration guidance use `let name = value` or
-  `let T name = value` for immutable locals, and `var name = value` or
-  `var T name = value` for mutable locals. The surface parser already accepts
-  typed `let`; bare `T name = value` remains an immutable declaration. A formatter
-  preserves the authored form, and diagnostics distinguish rebinding from a
-  write through a permitted loan.
+- Local declarations use `let name = value` or `let T name = value` for
+  immutable locals, and `var name = value` or `var T name = value` for
+  mutable locals. Both parsers refuse bare `T name = value;` local declarations
+  with a diagnostic directing authors to `let T name = value;` or `var T name = value;`.
+  A formatter preserves the authored form, and diagnostics distinguish rebinding
+  from a write through a permitted loan.
 - Declaration contracts occupy separate indented lines before the body. Long
   signatures and calls may wrap at argument boundaries with one extra indentation
   level; width is guidance, not a source acceptance limit. Keep ownership, loan,
@@ -169,27 +169,16 @@ The initial rule identities are defined here:
 | `VELA101` | A parameter or local name does not use a lower-case initial and ASCII alphanumeric words; `_` is exempt |
 | `VELA102` | A public function or constant has no attached documentation |
 | `VELA103` | An equality comparison has a Boolean literal operand |
-| `VELA104` | An immutable typed local omits an explicit `let` binding keyword |
+| ~~`VELA104`~~ | Retired (`Q25ah`): bare `T x = e;` local declarations are now refused by the parser in favor of mandatory `let T x = e;` or `var T x = e;`; the ID is never reused |
 | `VELA105` | A generic type parameter name does not use a capital initial and ASCII alphanumeric words |
 | `VELA106` | A bare pattern binder shadows an in-scope constructor or a match arm is unreachable |
 
-`VELA104` points to the original type token and explains that an unmarked typed
-local is immutable. The pure implementation covers its checked `Nat`/`bool`
-locals; wider syntax needs its own qualified compiler facts. Optional annotations
-on `let` are checked independently of the binding's immutability. Naming and
-mutability guidance does not rename a symbol or change the formatter's tokens.
-
-`vela lint --preview-bindings SOURCE` checks the exact source, reports findings
-normally and prints a candidate source containing only `let ` insertions for
-`VELA104`. It never writes source or emits an accepted artifact. Bind every
-insertion to the checked original bytes, apply insertions without normalizing
-comments/newlines, then recheck the candidate and compare its interpreted terms
-apart from source provenance before printing. Changed, invalid, unsupported or
-incomplete inputs refuse without a partial candidate. Normal allow/deny policy
-still applies; a denied finding prevents publication. This explicit command
-preview adds no LSP code-action capability. Qualification covers nested and
-shadowed locals, comments, mixed newlines/Unicode, source identity, annotation
-mismatch, suppressed/denied findings and unchanged input bytes.
+`VELA104` and `vela lint --preview-bindings` are permanently retired (`Q25ah`)
+now that local variable declarations require an explicit `let` or `var` keyword;
+the migration rewrite helper `preview_bindings` remains available for legacy
+source migration without reusing the `VELA104` rule ID. Optional type annotations
+on `let` and `var` are checked independently of the binding's mutability. Naming
+and mutability guidance does not rename a symbol or change the formatter's tokens.
 
 ### Compiler-verified "assist, don't coerce" tooling <a id="compiler-verified-assist-dont-coerce-tooling"></a>
 

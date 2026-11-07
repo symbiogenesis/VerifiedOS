@@ -473,10 +473,10 @@ class _Decoder:
             if kind == "constant_local":
                 converted.append(self._constant(raw_binding, kind, span, depth + 1))
                 continue
-            if kind not in {"let", "typed_local", "reassignment"}:
+            if kind not in {"let", "reassignment"}:
                 raise ValueError("native block has an invalid binding role")
             fields = {"name", "value"}
-            annotated = kind == "typed_local" or (isinstance(raw_binding, dict) and "type" in raw_binding)
+            annotated = isinstance(raw_binding, dict) and "type" in raw_binding
             if annotated:
                 if kind == "reassignment":
                     raise ValueError("native reassignment cannot carry a type annotation")

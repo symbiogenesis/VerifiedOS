@@ -46,8 +46,8 @@ def compile_request(request: dict[str, object], *,
     editor_services = True
     try:
         if request["action"] == "authoring":
-            findings = lint_source(source)
             preview = preview_bindings(source)
+            findings = lint_source(preview)
             return {"ok": True, "sourceHash": digest,
                     "findings": [{"code": finding.code, "message": finding.message,
                                   "line": finding.line, "column": finding.column}

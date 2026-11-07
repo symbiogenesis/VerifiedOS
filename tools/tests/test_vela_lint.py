@@ -22,7 +22,7 @@ def _findings_and_sites() -> None:
     ensure(tuple((value.code, value.line, value.column) for value in values) == expected,
            f"findings differ from independent code/site expectations: {values!r}")
     ensure(all(value.message for value in values), "a finding has no actionable message")
-    ensure(set(LINT_CODES) == {"VELA100", "VELA101", "VELA102", "VELA103", "VELA104", "VELA105", "VELA106"},
+    ensure(set(LINT_CODES) == {"VELA100", "VELA101", "VELA102", "VELA103", "VELA105", "VELA106"},
            "stable lint IDs drifted")
 
 

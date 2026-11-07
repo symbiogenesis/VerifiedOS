@@ -7,11 +7,10 @@ import stat
 import sys
 from dataclasses import dataclass
 from pathlib import Path
-from typing import BinaryIO, cast
 
 from vos.atomic import atomic_path
 from vos.vela import MAX_SOURCE_BYTES, VelaError, translate
-from vos.vela.authoring import LINT_CODES, format_source, lint_source, preview_bindings
+from vos.vela.authoring import LINT_CODES, format_source, lint_source
 
 
 @dataclass(frozen=True)
@@ -94,14 +93,6 @@ def _lint(path: Path, source: bytes, allowed: set[str], denied: set[str], *,
     return not failed
 
 
-def _preview_output(candidate: bytes) -> None:
-    binary = cast("BinaryIO | None", getattr(sys.stdout, "buffer", None))
-    if binary is None:
-        sys.stdout.write(candidate.decode("utf-8"))
-    else:
-        binary.write(candidate)
-
-
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(suggest_on_error=True, description=__doc__)
     commands = parser.add_subparsers(dest="command", required=True)
@@ -116,9 +107,6 @@ def main(argv: list[str] | None = None) -> int:
                                  help="suppress an optional lint (repeatable)")
             command.add_argument("--deny", action="append", choices=sorted(LINT_CODES), default=[],
                                  help="make an optional lint an error (repeatable)")
-        if name == "lint":
-            command.add_argument("--preview-bindings", action="store_true",
-                                 help="print a checked explicit-let candidate without writing source")
         if name in {"check", "emit"}:
             command.add_argument("--format", choices=("write", "check", "off"), default="off",
                                  help="source formatting mode (default: off; write requires explicit opt-in)")
@@ -142,10 +130,6 @@ def main(argv: list[str] | None = None) -> int:
         if args.command == "lint":
             if not _lint(path, source.data, allowed, denied):
                 return 1
-            if args.preview_bindings:
-                candidate = source.data if "VELA104" in allowed else preview_bindings(source.data)
-                _unchanged(source)
-                _preview_output(candidate)
             return 0
         formatting = "check" if args.command == "fmt" and args.check else (
             "write" if args.command == "fmt" else args.format)

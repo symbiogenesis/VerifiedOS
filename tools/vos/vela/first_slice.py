@@ -207,7 +207,6 @@ public definition Span<byte> BadRestores(ref Span<byte> dst)
     requires dst.CanRead
     requires dst.CanWrite
     requires dst.Length >= 8usize
-    restores dst
 =>
     Span.Slice(dst, 0usize, 4usize);
 """,
@@ -327,7 +326,6 @@ public Span<byte> PrepareSliceHeader(ref Span<byte> dst)
     requires dst.CanRead
     requires dst.CanWrite
     requires dst.Length >= 8usize
-    restores dst
     ensures result.Length == 4usize
     ensures result.PermWrite == false
 {{

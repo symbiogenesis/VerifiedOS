@@ -406,7 +406,7 @@ def _constant_callable_fixture(compiled: Build) -> str:
 def _typed_local_fixture(compiled: Build) -> str:
     source = (b"// caf\xc3\xa9\r\nmodule Typed;\r\npublic Nat F() { "
               b"let inferred = 1; let Nat annotated = inferred; "
-              b"Nat bare = annotated; let bool ready = true; bool selected = ready; return bare; }")
+              b"let Nat second = annotated; let bool ready = true; let bool selected = ready; return second; }")
     parsed = parse_source(compiled, source)
     tree = _object(parsed.get("ast"), "typed local file")
     declarations = tree.get("declarations")
@@ -417,10 +417,10 @@ def _typed_local_fixture(compiled: Build) -> str:
     if not isinstance(bindings, list) or len(bindings) != 5:
         raise ValueError("typed local syntax lost an immutable binding")
     for binding, kind, type_name, spelling in zip(bindings,
-            ("let", "let", "typed_local", "let", "typed_local"),
+            ("let", "let", "let", "let", "let"),
             (None, "Nat", "Nat", "bool", "bool"),
-            (b"let inferred = 1;", b"let Nat annotated = inferred;", b"Nat bare = annotated;",
-             b"let bool ready = true;", b"bool selected = ready;"), strict=True):
+            (b"let inferred = 1;", b"let Nat annotated = inferred;", b"let Nat second = annotated;",
+             b"let bool ready = true;", b"let bool selected = ready;"), strict=True):
         node = _object(binding, "typed local binding")
         start = source.index(spelling)
         if node.get("kind") != kind or node.get("span") != [start, start + len(spelling)]:
@@ -430,6 +430,13 @@ def _typed_local_fixture(compiled: Build) -> str:
                 raise ValueError("unannotated pure let acquired a fabricated annotation")
         elif _object(node.get("type"), "pure local annotation").get("name") != type_name:
             raise ValueError("pure local annotation changed its scalar type")
+    try:
+        parse_source(compiled, b"module M; public Nat F() { Nat bare = 1; return bare; }")
+    except VelaError as error:
+        if error.kind != "syntax" or "let" not in error.message or "var" not in error.message:
+            raise ValueError("bare local declaration did not produce let/var syntax refusal") from error
+    else:
+        raise ValueError("bare local declaration unexpectedly parsed in pure grammar")
     # Mismatched types are valid syntax for the existing semantic consumer.
     parse_source(compiled, b"module M; public Nat F() { let bool wrong = 1; return wrong; }")
     return "typed-immutable-locals-and-original-byte-spans"

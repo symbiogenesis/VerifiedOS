@@ -2092,6 +2092,28 @@ class _IntrinsicsMixin:
                         return self.expression(old_val_node, self.entry_env)
                     finally:
                         self.uninitialized_out_params = saved_uninit_old
+                if cname == "final" and "final" not in environment and not gen_args:
+                    if len(call_args) != 1:
+                        raise self.fail(
+                            "type",
+                            f"'final(...)' expects 1 argument, got {len(call_args)}",
+                            node,
+                        )
+                    self.node(call_args[0], "argument")
+                    if call_args[0]["label"] is not None:
+                        raise self.fail(
+                            "name",
+                            "'final(...)' does not accept labeled arguments",
+                            call_args[0],
+                        )
+                    if not self.post_env and not self.in_post_env_theorem:
+                        raise self.fail(
+                            "type",
+                            "'final(...)' requires an enclosing post-state contract",
+                            node,
+                        )
+                    final_env = {**environment, **self.post_env} if self.post_env else environment
+                    return self.expression(self.node(call_args[0]["value"]), final_env)
                 if (
                     cname not in environment
                     and cname not in self.globals

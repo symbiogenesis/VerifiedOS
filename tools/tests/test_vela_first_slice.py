@@ -179,7 +179,6 @@ def _build_cap_gate_ast(cap_lit: str) -> tuple[bytes, Node]:
                 lambda y: y.nat_lit(cap_lit, "usize"),
             ),
         ),
-        ("restores", lambda x: x.var("dst")),
         (
             "ensures",
             lambda x: x.binary(
@@ -343,7 +342,6 @@ def _negative_span_refusals() -> None:
             single_def(
                 lambda b: b.call_span("Slice", lambda x: x.var("s"), lambda x: x.nat_lit("0", "usize"), lambda x: x.nat_lit("4", "usize")),
                 param_mod="ref",
-                restores=True,
             ),
             "assertion could not be established",
         ),

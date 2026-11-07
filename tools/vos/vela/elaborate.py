@@ -164,6 +164,7 @@ class _Elaborator(
         self.current_return_type: _Term | None = None
         self.mutable_locals: set[str] = set()
         self.entry_env: dict[str, _Binding] = {}
+        self.post_env: dict[str, _Binding] = {}
         self.final_ref_bindings: dict[str, _Binding] = {}
         self.final_return_facts: list[_Term] = []
         self.in_post_env_theorem: bool = False

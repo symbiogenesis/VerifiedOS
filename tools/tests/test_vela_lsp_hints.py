@@ -121,7 +121,7 @@ def _inferred_types_scopes_and_ranges() -> None:
 
 def _explicit_annotations_and_inferred_flags() -> None:
     text = ("module Typed;\r\npublic Nat F() {\r  let Nat count = 1;\n"
-            "  bool ready = true;\r\n  let next = count + 1;\n  return next;\n}")
+            "  let bool ready = true;\r\n  let next = count + 1;\n  return next;\n}")
     source = text.encode()
     facts = inspect_source(source)
     variables = {symbol["name"]: symbol for symbol in cast("list[dict[str, object]]", facts["symbols"])

@@ -3605,6 +3605,14 @@ def _pure_sequences_and_model_reasoning() -> None:
             _contract("requires", _member(_variable("s"), "CanWrite")),
             _contract("requires", _binary(">", _member(_variable("s"), "Length"), _int_lit("0", "usize"))),
             _contract(
+                "restores",
+                _binary(
+                    "==",
+                    _member(_call("final", _variable("s")), "Model"),
+                    _call(_member(_call("old", _member(_variable("s"), "Model")), "Update"), _natural(0), _int_lit("99", "byte")),
+                ),
+            ),
+            _contract(
                 "ensures",
                 _binary(
                     "==",
@@ -3631,6 +3639,10 @@ def _pure_sequences_and_model_reasoning() -> None:
     old_outside = _Fixture("OldOutsideCallable")
     old_outside.constant("BadOld", _NAT, _call("old", _natural(1)))
     _refuses(old_outside, "type", "old")
+
+    final_outside = _Fixture("FinalOutsidePostState")
+    final_outside.constant("BadFinal", _NAT, _call("final", _natural(1)))
+    _refuses(final_outside, "type", "final")
 
     bad_pred = _Fixture("SeqAllNonPredicate")
     bad_pred.definition(

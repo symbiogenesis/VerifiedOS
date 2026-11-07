@@ -14,7 +14,7 @@ from vos.vela import (
     authoring as vela_authoring,
 )
 from vos.vela.authoring import (
-    Finding,
+    RETIRED_LINT_CODES,
     assist_effects_clause,
     assist_loan_argument,
     assist_null_conditional,
@@ -29,12 +29,11 @@ INDEPENDENT_CASES = True
 
 def _typed_local_semantics() -> None:
     sources = (b"module M;public Nat Count(){let count=1;return count;}",
-               b"module M;public Nat Count(){let Nat count=1;return count;}",
-               b"module M;public Nat Count(){Nat count=1;return count;}")
+               b"module M;public Nat Count(){let Nat count=1;return count;}")
     outputs = [translate(source).gallina.splitlines()[2:] for source in sources]
-    ensure(outputs[0] == outputs[1] == outputs[2],
+    ensure(outputs[0] == outputs[1],
            "equivalent inferred/explicit immutable bindings changed interpreted terms")
-    for source, annotation, explicit in zip(sources, (None, "Nat", "Nat"), (True, True, False), strict=True):
+    for source, annotation, explicit in zip(sources, (None, "Nat"), (True, True), strict=True):
         module = vela._Parser(vela._tokens(source)).parse()
         declaration = module.declarations[0]
         if not isinstance(declaration, vela.syntax.Function):
@@ -43,12 +42,13 @@ def _typed_local_semantics() -> None:
         ensure(isinstance(local, vela.syntax.Binding)
                and local.annotation == annotation and local.explicit_binding is explicit,
                "typed-local annotation or explicit binding identity was lost")
+    ensure(set(RETIRED_LINT_CODES) == {"VELA104"}, "VELA104 retirement set drifted")
     typed_bool = b"module M;public bool Flag(){let bool flag=true;return flag;}"
     ensure("Datatypes.true" in translate(typed_bool).gallina, "bool local annotation did not check")
 
 
 def _typed_local_refusals() -> None:
-    for declaration in (b"let Nat value=true;", b"Nat value=true;", b"let bool value=1;", b"bool value=1;"):
+    for declaration in (b"let Nat value=true;", b"let bool value=1;"):
         source = b"module M;public Nat Count(){" + declaration + b"return 0;}"
         try:
             translate(source)
@@ -57,6 +57,15 @@ def _typed_local_refusals() -> None:
                    "local annotation mismatch was not a type refusal")
         else:
             raise AssertionError("a local annotation inserted a conversion")
+    for declaration in (b"Nat value=1;", b"Nat value=true;", b"bool value=true;", b"bool value=1;"):
+        source = b"module M;public Nat Count(){" + declaration + b"return 0;}"
+        try:
+            translate(source)
+        except VelaError as error:
+            ensure(error.kind == "syntax" and "let" in error.message,
+                   "bare local declaration was not refused at parse time")
+        else:
+            raise AssertionError("bare local declaration without let/var was accepted")
     for declaration in (b"let usize count=0;", b"usize count=0;", b"var Nat count=0;"):
         try:
             translate(b"module M;public Nat Count(){" + declaration + b"return 0;}")
@@ -65,28 +74,28 @@ def _typed_local_refusals() -> None:
         else:
             raise AssertionError("the pure checker accepted represented types or mutation")
     try:
-        translate(b"module M;public Nat Count(){Nat count=0;count=1;return count;}")
+        translate(b"module M;public Nat Count(){let Nat count=0;count=1;return count;}")
     except VelaError as error:
         ensure(error.kind == "unsupported" and "immutable binding 'count'" in error.message,
-               "bare typed local did not retain its immutable reassignment diagnostic")
+               "explicit let typed local did not retain its immutable reassignment diagnostic")
     else:
-        raise AssertionError("bare typed local became mutable")
+        raise AssertionError("explicit let typed local became mutable")
 
 
 def _lint_sites_and_formatter_preservation() -> None:
+    legacy_source = ("// 😀\r\nmodule M;\rpublic Nat Count(bool flag) {\n"
+                     "    Nat count = 1;\r\n    let bool selected = flag;\n"
+                     "    if (selected) { Nat value = count; return value; }\r"
+                     "    else { Nat value = 0; return value; }\n}").encode()
+    sites = vela_authoring._bare_binding_sites(legacy_source)
+    ensure(tuple((site.line, site.column) for site in sites) == ((4, 5), (6, 21), (7, 12)),
+           f"migration site scanner lost original type-token sites: {sites!r}")
     source = ("// 😀\r\nmodule M;\rpublic Nat Count(bool flag) {\n"
-              "    Nat count = 1;\r\n    let bool selected = flag;\n"
-              "    if (selected) { Nat value = count; return value; }\r"
-              "    else { Nat value = 0; return value; }\n}").encode()
-    warnings = tuple(item for item in lint_source(source) if item.code == "VELA104")
-    ensure(tuple((item.line, item.column) for item in warnings) == ((4, 5), (6, 21), (7, 12)),
-           f"explicit-binding lint lost original type-token sites: {warnings!r}")
-    ensure(all("immutable" in item.message and "let" in item.message for item in warnings),
-           "binding advisory did not explain immutable semantics and explicit let")
+              "    let Nat count = 1;\r\n    let bool selected = flag;\n"
+              "    if (selected) { let Nat value = count; return value; }\r"
+              "    else { let Nat value = 0; return value; }\n}").encode()
     formatted = format_source(source)
-    ensure(len(tuple(item for item in lint_source(formatted) if item.code == "VELA104")) == 3,
-           "formatter inserted explicit binding keywords")
-    ensure(b"Nat count = 1;" in formatted and b"let bool selected = flag;" in formatted,
+    ensure(b"let Nat count = 1;" in formatted and b"let bool selected = flag;" in formatted,
            "formatter changed authored typed binding forms")
 
 
@@ -104,7 +113,7 @@ def _preview_preserves_exact_bytes() -> None:
     candidate = preview_bindings(source)
     ensure(candidate == expected, "binding preview changed bytes beyond independently expected let insertions")
     ensure(preview_bindings(candidate) == candidate, "binding preview is not idempotent")
-    ensure(translate(source).gallina.splitlines()[2:] == translate(candidate).gallina.splitlines()[2:],
+    ensure(translate(expected).gallina.splitlines()[2:] == translate(candidate).gallina.splitlines()[2:],
            "binding preview changed the interpreted source")
     ensure(not any(item.code == "VELA104" for item in lint_source(candidate)),
            "binding preview retained unmarked immutable bindings")
@@ -112,21 +121,25 @@ def _preview_preserves_exact_bytes() -> None:
 
 def _preview_rejects_forged_sites_and_terms() -> None:
     source = b"module M;public Nat Count(){Nat count=1;return count;}"
-    for findings in ((Finding("VELA104", "forged", 1, 1),),
-                     (Finding("VELA104", "forged", 100, 1),),
-                     (Finding("VELA104", "forged", 1, 29),) * 2):
-        with patch.object(vela_authoring, "lint_source", return_value=findings):
+    for sites in ((vela.syntax.Site(1, 1),),
+                  (vela.syntax.Site(100, 1),),
+                  (vela.syntax.Site(1, 29), vela.syntax.Site(1, 29))):
+        with patch.object(vela_authoring, "_bare_binding_sites", return_value=sites):
             try:
                 preview_bindings(source)
             except VelaError as error:
                 ensure(error.kind == "lint-preview", "forged insertion lost its source-binding refusal")
             else:
                 raise AssertionError("preview accepted a forged/duplicate source site")
-    original = translate(source)
+    expected = b"module M;public Nat Count(){let Nat count=1;return count;}"
+    original = translate(expected)
     changed = Translation(original.module, original.gallina + "changed term")
-    with patch.object(vela, "translate", side_effect=(original, changed)):
+    with (
+        patch.object(vela, "translate", side_effect=(original, changed)),
+        patch.object(vela_authoring, "_bare_binding_sites", return_value=()),
+    ):
         try:
-            preview_bindings(source)
+            preview_bindings(expected)
         except VelaError as error:
             ensure(error.kind == "lint-preview" and "interpreted terms" in error.message,
                    "changed preview terms lost their semantic refusal")

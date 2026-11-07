@@ -208,7 +208,6 @@ private Unit CopyPacketToDst(ref Span<byte> dst, in Span<byte> pkt, usize payloa
     requires payloadLen <= 4usize
     requires 4usize + payloadLen <= pkt.Length
     requires 4usize + payloadLen <= dst.Length
-    restores dst
 {
     foreach (let i in 0usize..4usize)
         invariant i <= 4usize
@@ -245,7 +244,6 @@ public ValidationOutcome PrepareAndValidatePacket(ref Span<byte> dst, in Span<by
     requires dst.CanRead
     requires dst.CanWrite
     requires pkt.CanRead
-    restores dst
     ensures result.PayloadView.PermWrite == false
     ensures result.CopiedBytes == result.PayloadView.Length
     ensures (!result.Ok ==> !result.PayloadView.Tag) == true

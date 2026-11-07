@@ -264,7 +264,14 @@ class _Parser:
             typed = (self._current().text in {"Nat", "bool"}
                      or (self._current().kind == "name" and self.tokens[self.offset + 1].kind == "name"))
             annotation = self._value_type() if typed else None
-            immutable = explicit_binding or annotation is not None
+            if not explicit_binding and annotation is not None:
+                raise self._error(
+                    "syntax",
+                    f"local declaration requires 'let' or 'var' before its type "
+                    f"(write 'let {annotation} x = e;' or 'var {annotation} x = e;')",
+                    token,
+                )
+            immutable = explicit_binding
             name = self._name()
             self._expect("=")
             value = self._expression(1)

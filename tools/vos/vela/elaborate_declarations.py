@@ -652,6 +652,7 @@ class _DeclarationsMixin:
                     *self._fact_bool_terms((), post_env),
                 ]
             )
+            self.post_env = dict(post_env)
             try:
                 for ens_idx, ens_contract in enumerate(ensures_clauses):
                     self.reset_budget()
@@ -702,6 +703,7 @@ class _DeclarationsMixin:
                         [*self.active_facts, *self._fact_bool_terms((), post_env)],
                     )
             finally:
+                self.post_env = {}
                 self.active_facts = saved_post_facts
         record_info.methods[method_name] = _RecordMethod(
             name=method_name,
@@ -1804,6 +1806,7 @@ class _DeclarationsMixin:
                             *self._fact_bool_terms((), post_env),
                         ]
                     )
+                    self.post_env = dict(post_env)
                     try:
                         for spec_ep in mspec.ensures_props:
                             sub_ep = spec_ep
@@ -1831,6 +1834,7 @@ class _DeclarationsMixin:
                                     ec,
                                 )
                     finally:
+                        self.post_env = {}
                         self.active_facts = saved_pf
 
             for lname, lspec in iface.laws.items():
@@ -2392,24 +2396,28 @@ class _DeclarationsMixin:
                             *self.final_return_facts,
                             *self._fact_bool_terms(self.final_theorem_facts, post_env),
                         ]
-                        for ens_contract in ensures_clauses:
-                            self.reset_budget()
-                            ens_prop = self.proposition(self.node(ens_contract["value"]), post_env)
-                            post_env_obligations.append((ens_prop, ens_contract))
-                            try:
-                                self._prove_proposition(
-                                    ens_prop,
-                                    post_env,
-                                    self.final_theorem_facts,
-                                    ens_contract,
-                                    allow_refl=False,
-                                    include_env=False,
-                                )
-                            except VelaError:
-                                if not self._entailed_by_theorem_facts(ens_prop, post_env):
-                                    raise self.fail(
-                                        "type", "could not discharge theorem postcondition", ens_contract
-                                    ) from None
+                        self.post_env = dict(post_env)
+                        try:
+                            for ens_contract in ensures_clauses:
+                                self.reset_budget()
+                                ens_prop = self.proposition(self.node(ens_contract["value"]), post_env)
+                                post_env_obligations.append((ens_prop, ens_contract))
+                                try:
+                                    self._prove_proposition(
+                                        ens_prop,
+                                        post_env,
+                                        self.final_theorem_facts,
+                                        ens_contract,
+                                        allow_refl=False,
+                                        include_env=False,
+                                    )
+                                except VelaError:
+                                    if not self._entailed_by_theorem_facts(ens_prop, post_env):
+                                        raise self.fail(
+                                            "type", "could not discharge theorem postcondition", ens_contract
+                                        ) from None
+                        finally:
+                            self.post_env = {}
                         body = _apps(_constant("Refl"), _BOOL, _term("bool", value=1))
                     else:
                         body = self.check(body_node, result, body_env)
@@ -2637,7 +2645,18 @@ class _DeclarationsMixin:
             if req_bool_terms and kind in {"definition", "function"}:
                 base_param_ids = tuple(cast("int", v.value) for v in [*generic_vars, *param_vars])
                 self.callable_preconditions[emitted] = [(base_param_ids, req_t) for req_t in req_bool_terms]
-            if (ensures_clauses or restores_clauses) and kind in {"definition", "function"}:
+            span_u8 = _app(_constant("Span"), _U8)
+            auto_restores_params: list[tuple[str, Node]] = []
+            if kind in {"definition", "function"}:
+                for p_node in parameters:
+                    if p_node["name"] is not None:
+                        pname = self.name(p_node["name"])
+                        if pname in ref_param_names and pname in environment:
+                            p_ty_w = self.whnf(environment[pname].type)
+                            p_head, p_args = self.spine(p_ty_w)
+                            if p_ty_w == span_u8 or (p_head == _constant("Slots") and len(p_args) == 2):
+                                auto_restores_params.append((pname, p_node))
+            if (ensures_clauses or restores_clauses or auto_restores_params) and kind in {"definition", "function"}:
                 post_env = dict(environment)
                 for pname in ref_param_names:
                     if pname in self.final_ref_bindings:
@@ -2655,8 +2674,9 @@ class _DeclarationsMixin:
                         *self._fact_bool_terms((), post_env),
                     ]
                 )
+                self.post_env = dict(post_env)
                 try:
-                    span_u8 = _app(_constant("Span"), _U8)
+                    explicitly_restored_params: set[str] = set()
                     for rest_idx, rest_contract in enumerate(restores_clauses):
                         rest_val_node = self.node(rest_contract["value"])
                         if rest_val_node["kind"] == "name":
@@ -2667,132 +2687,23 @@ class _DeclarationsMixin:
                                     f"unknown parameter '{target_param_name}' in restores clause",
                                     rest_val_node,
                                 )
-                            param_b = environment[target_param_name]
-                            param_ty_w = self.whnf(param_b.type)
-                            p_head, p_args = self.spine(param_ty_w)
-                            if param_ty_w == span_u8:
-                                if self._is_readonly_span(param_b.term):
-                                    raise self.fail(
-                                        "type",
-                                        f"restores parameter '{target_param_name}' cannot be a read-only 'in Span<byte>' borrow",
-                                        rest_val_node,
-                                    )
-                                if (
-                                    target_param_name in ref_param_names
-                                    and target_param_name in self.final_ref_bindings
-                                    and self.final_ref_bindings[target_param_name].term != param_b.term
-                                    and self.free(self.final_ref_bindings[target_param_name].term) <= post_var_ids
-                                ):
-                                    restored_span_term = self.final_ref_bindings[target_param_name].term
-                                elif self.whnf(result) == span_u8:
-                                    restored_span_term = call_term
-                                else:
-                                    res_head, _ = self.spine(self.whnf(result))
-                                    if (
-                                        res_head.kind == "const"
-                                        and isinstance(res_head.value, str)
-                                        and res_head.value in self.records_by_type
-                                        and any(rf.name == "RestoredDst" for rf in self.records_by_type[res_head.value].fields)
-                                    ):
-                                        restored_span_term = self._project_member(
-                                            post_env["result"], "RestoredDst", rest_contract
-                                        ).term
-                                    elif (
-                                        target_param_name in ref_param_names
-                                        and target_param_name in self.final_ref_bindings
-                                        and self.free(self.final_ref_bindings[target_param_name].term) <= post_var_ids
-                                    ):
-                                        restored_span_term = self.final_ref_bindings[target_param_name].term
-                                    else:
-                                        raise self.fail(
-                                            "type",
-                                            f"restores clause for '{target_param_name}' requires a Span<byte> return type or RestoredDst record field",
-                                            rest_contract,
-                                        )
-                                for field_tag, eq_ty in (
-                                    ("Base", _USIZE),
-                                    ("Length", _USIZE),
-                                    ("Tag", _BOOL),
-                                    ("PermRead", _BOOL),
-                                    ("PermWrite", _BOOL),
-                                ):
-                                    self.reset_budget()
-                                    lhs_f = _apps(_constant(f"Span_{field_tag}"), _U8, restored_span_term)
-                                    rhs_f = _apps(_constant(f"Span_{field_tag}"), _U8, param_b.term)
-                                    rest_prop = _apps(_constant("Eq"), eq_ty, lhs_f, rhs_f)
-                                    rest_proof = self._prove_proposition(rest_prop, post_env, (), rest_contract)
-                                    self._emit_obligation(
-                                        f"{emitted}_restores_{rest_idx}_{field_tag}",
-                                        post_vars,
-                                        rest_prop,
-                                        rest_proof,
-                                        rest_contract,
-                                        "descriptor preservation discharged by the untrusted solver",
-                                        len(generics),
-                                        list(self.active_facts),
-                                        post_state_images,
-                                    )
-                            elif p_head == _constant("Slots") and len(p_args) == 2:
-                                elem_t, cap_t = p_args
-                                if self._is_readonly_span(param_b.term):
-                                    raise self.fail(
-                                        "type",
-                                        f"restores parameter '{target_param_name}' cannot be a read-only 'in' borrow",
-                                        rest_val_node,
-                                    )
-                                if self.whnf(result) == param_ty_w:
-                                    restored_slots_term = call_term
-                                elif (
-                                    target_param_name in ref_param_names
-                                    and target_param_name in self.final_ref_bindings
-                                    and self.free(self.final_ref_bindings[target_param_name].term) <= post_var_ids
-                                ):
-                                    restored_slots_term = self.final_ref_bindings[target_param_name].term
-                                else:
-                                    res_head, _ = self.spine(self.whnf(result))
-                                    if (
-                                        res_head.kind == "const"
-                                        and isinstance(res_head.value, str)
-                                        and res_head.value in self.records_by_type
-                                        and any(rf.name == "RestoredDst" for rf in self.records_by_type[res_head.value].fields)
-                                    ):
-                                        restored_slots_term = self._project_member(
-                                            post_env["result"], "RestoredDst", rest_contract
-                                        ).term
-                                    else:
-                                        raise self.fail(
-                                            "type",
-                                            f"restores clause for '{target_param_name}' requires a Slots return type, ref parameter, or RestoredDst record field",
-                                            rest_contract,
-                                        )
-                                for field_tag, eq_ty in (
-                                    ("Base", _USIZE),
-                                    ("Tag", _BOOL),
-                                    ("PermRead", _BOOL),
-                                    ("PermWrite", _BOOL),
-                                ):
-                                    self.reset_budget()
-                                    lhs_f = _apps(_constant(f"Slots_{field_tag}"), elem_t, cap_t, restored_slots_term)
-                                    rhs_f = _apps(_constant(f"Slots_{field_tag}"), elem_t, cap_t, param_b.term)
-                                    rest_prop = _apps(_constant("Eq"), eq_ty, lhs_f, rhs_f)
-                                    rest_proof = self._prove_proposition(rest_prop, post_env, (), rest_contract)
-                                    self._emit_obligation(
-                                        f"{emitted}_restores_{rest_idx}_{field_tag}",
-                                        post_vars,
-                                        rest_prop,
-                                        rest_proof,
-                                        rest_contract,
-                                        "descriptor preservation discharged by the untrusted solver",
-                                        len(generics),
-                                        list(self.active_facts),
-                                        post_state_images,
-                                    )
-                            else:
-                                raise self.fail(
-                                    "type",
-                                    f"restores parameter '{target_param_name}' must have type Span<byte> or Slots<T, capacity>",
-                                    rest_val_node,
-                                )
+                            explicitly_restored_params.add(target_param_name)
+                            self._emit_param_descriptor_restores(
+                                emitted=emitted,
+                                rest_idx=rest_idx,
+                                target_param_name=target_param_name,
+                                rest_site=rest_contract,
+                                rest_name_site=rest_val_node,
+                                environment=environment,
+                                ref_param_names=ref_param_names,
+                                post_env=post_env,
+                                post_vars=post_vars,
+                                post_var_ids=post_var_ids,
+                                call_term=call_term,
+                                result=result,
+                                generics_count=len(generics),
+                                post_state_images=post_state_images,
+                            )
                         else:
                             self.reset_budget()
                             rest_prop = self.asserted_proposition(rest_val_node, post_env)
@@ -2831,6 +2742,27 @@ class _DeclarationsMixin:
                                 list(self.active_facts),
                                 post_state_images,
                             )
+                    next_rest_idx = len(restores_clauses)
+                    for target_param_name, p_node in auto_restores_params:
+                        if target_param_name in explicitly_restored_params:
+                            continue
+                        self._emit_param_descriptor_restores(
+                            emitted=emitted,
+                            rest_idx=next_rest_idx,
+                            target_param_name=target_param_name,
+                            rest_site=p_node,
+                            rest_name_site=p_node,
+                            environment=environment,
+                            ref_param_names=ref_param_names,
+                            post_env=post_env,
+                            post_vars=post_vars,
+                            post_var_ids=post_var_ids,
+                            call_term=call_term,
+                            result=result,
+                            generics_count=len(generics),
+                            post_state_images=post_state_images,
+                        )
+                        next_rest_idx += 1
                     sym_post_env = dict(environment)
                     sym_res_var = self.fresh(result)
                     sym_post_env["result"] = _Binding(sym_res_var, result)
@@ -2906,6 +2838,7 @@ class _DeclarationsMixin:
                         except VelaError:
                             self.metas = saved_sym_m
                 finally:
+                    self.post_env = {}
                     self.active_facts = saved_post_facts
         finally:
             for wk in active_where_keys:
@@ -2914,6 +2847,164 @@ class _DeclarationsMixin:
             self.out_param_names.clear()
             self.uninitialized_out_params.clear()
             self.last_call_updates.clear()
+
+    def _emit_param_descriptor_restores(
+        self: _Elaborator,
+        *,
+        emitted: str,
+        rest_idx: int,
+        target_param_name: str,
+        rest_site: Node,
+        rest_name_site: Node,
+        environment: dict[str, _Binding],
+        ref_param_names: set[str],
+        post_env: dict[str, _Binding],
+        post_vars: list[_Term],
+        post_var_ids: set[int],
+        call_term: _Term,
+        result: _Term,
+        generics_count: int,
+        post_state_images: list[tuple[_Term, _Term]],
+    ) -> None:
+        span_u8 = _app(_constant("Span"), _U8)
+        param_b = environment[target_param_name]
+        param_ty_w = self.whnf(param_b.type)
+        p_head, p_args = self.spine(param_ty_w)
+        if param_ty_w == span_u8:
+            if self._is_readonly_span(param_b.term):
+                raise self.fail(
+                    "type",
+                    f"restores parameter '{target_param_name}' cannot be a read-only 'in Span<byte>' borrow",
+                    rest_name_site,
+                )
+            if (
+                target_param_name in ref_param_names
+                and target_param_name in self.final_ref_bindings
+                and self.final_ref_bindings[target_param_name].term != param_b.term
+                and self.free(self.final_ref_bindings[target_param_name].term) <= post_var_ids
+            ):
+                restored_span_term = self.final_ref_bindings[target_param_name].term
+            elif self.whnf(result) == span_u8:
+                restored_span_term = call_term
+            else:
+                res_head, _ = self.spine(self.whnf(result))
+                if (
+                    res_head.kind == "const"
+                    and isinstance(res_head.value, str)
+                    and res_head.value in self.records_by_type
+                    and any(rf.name == "RestoredDst" for rf in self.records_by_type[res_head.value].fields)
+                ):
+                    restored_span_term = self._project_member(
+                        post_env["result"], "RestoredDst", rest_site
+                    ).term
+                elif (
+                    target_param_name in ref_param_names
+                    and target_param_name in self.final_ref_bindings
+                    and self.free(self.final_ref_bindings[target_param_name].term) <= post_var_ids
+                ):
+                    restored_span_term = self.final_ref_bindings[target_param_name].term
+                else:
+                    raise self.fail(
+                        "type",
+                        f"restores clause for '{target_param_name}' requires a Span<byte> return type or RestoredDst record field",
+                        rest_site,
+                    )
+            for field_tag, eq_ty in (
+                ("Base", _USIZE),
+                ("Length", _USIZE),
+                ("Tag", _BOOL),
+                ("PermRead", _BOOL),
+                ("PermWrite", _BOOL),
+            ):
+                self.reset_budget()
+                lhs_f = _apps(_constant(f"Span_{field_tag}"), _U8, restored_span_term)
+                rhs_f = _apps(_constant(f"Span_{field_tag}"), _U8, param_b.term)
+                rest_prop = _apps(_constant("Eq"), eq_ty, lhs_f, rhs_f)
+                rest_proof = self._prove_proposition(rest_prop, post_env, (), rest_site)
+                self._emit_obligation(
+                    f"{emitted}_restores_{rest_idx}_{field_tag}",
+                    post_vars,
+                    rest_prop,
+                    rest_proof,
+                    rest_site,
+                    "descriptor preservation discharged by the untrusted solver",
+                    generics_count,
+                    list(self.active_facts),
+                    post_state_images,
+                )
+        elif p_head == _constant("Slots") and len(p_args) == 2:
+            elem_t, cap_t = p_args
+            if self._is_readonly_span(param_b.term):
+                raise self.fail(
+                    "type",
+                    f"restores parameter '{target_param_name}' cannot be a read-only 'in' borrow",
+                    rest_name_site,
+                )
+            if (
+                target_param_name in ref_param_names
+                and target_param_name in self.final_ref_bindings
+                and self.final_ref_bindings[target_param_name].term != param_b.term
+                and self.free(self.final_ref_bindings[target_param_name].term) <= post_var_ids
+            ):
+                restored_slots_term = self.final_ref_bindings[target_param_name].term
+            elif self.whnf(result) == param_ty_w:
+                restored_slots_term = call_term
+            else:
+                res_head, _ = self.spine(self.whnf(result))
+                if (
+                    res_head.kind == "const"
+                    and isinstance(res_head.value, str)
+                    and res_head.value in self.records_by_type
+                    and any(rf.name == "RestoredDst" for rf in self.records_by_type[res_head.value].fields)
+                ):
+                    restored_slots_term = self._project_member(
+                        post_env["result"], "RestoredDst", rest_site
+                    ).term
+                elif (
+                    target_param_name in ref_param_names
+                    and target_param_name in self.final_ref_bindings
+                    and self.free(self.final_ref_bindings[target_param_name].term) <= post_var_ids
+                ):
+                    restored_slots_term = self.final_ref_bindings[target_param_name].term
+                else:
+                    raise self.fail(
+                        "type",
+                        f"restores clause for '{target_param_name}' requires a Slots return type, ref parameter, or RestoredDst record field",
+                        rest_site,
+                    )
+            for field_tag, eq_ty in (
+                ("Base", _USIZE),
+                ("Tag", _BOOL),
+                ("PermRead", _BOOL),
+                ("PermWrite", _BOOL),
+                ("Capacity", _NAT),
+            ):
+                self.reset_budget()
+                if field_tag == "Capacity":
+                    lhs_f = cap_t
+                    rhs_f = cap_t
+                else:
+                    lhs_f = _apps(_constant(f"Slots_{field_tag}"), elem_t, cap_t, restored_slots_term)
+                    rhs_f = _apps(_constant(f"Slots_{field_tag}"), elem_t, cap_t, param_b.term)
+                rest_prop = _apps(_constant("Eq"), eq_ty, lhs_f, rhs_f)
+                rest_proof = self._prove_proposition(rest_prop, post_env, (), rest_site)
+                self._emit_obligation(
+                    f"{emitted}_restores_{rest_idx}_{field_tag}",
+                    post_vars,
+                    rest_prop,
+                    rest_proof,
+                    rest_site,
+                    "descriptor preservation discharged by the untrusted solver",
+                    generics_count,
+                    list(self.active_facts),
+                    post_state_images,
+                )
+        else:
+            raise self.fail(
+                "type",
+                f"restores parameter '{target_param_name}' must have type Span<byte> or Slots<T, capacity>",
+                rest_name_site,
+            )
 
     def render(self: _Elaborator, term: _Term) -> str:
         self.tick()

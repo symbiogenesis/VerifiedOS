@@ -206,7 +206,7 @@ def _http_authoring() -> None:
         findings = cast("list[dict[str, object]]", response["findings"])
         ensure(tuple((item["code"], item["line"], item["column"]) for item in findings)
                == (("VELA100", 3, 13), ("VELA102", 3, 13), ("VELA101", 3, 22),
-                   ("VELA104", 5, 5), ("VELA103", 6, 17)),
+                   ("VELA103", 6, 17)),
                "HTTP authoring findings differ from independent lint identities and original sites")
         ensure(response["bindingPreview"] == expected,
                "binding preview changed bytes beyond the independently expected let insertion")
@@ -258,7 +258,7 @@ def _authoring_worker_refusals() -> None:
                and "findings" not in refused and "bindingPreview" not in refused,
                "failed preview producer published partial authoring success")
     digest = hashlib.sha256(source.encode()).hexdigest()
-    finding: dict[str, object] = {"code": "VELA104", "message": "use let", "line": 3, "column": 19}
+    finding: dict[str, object] = {"code": "VELA102", "message": "document public member", "line": 3, "column": 12}
     valid: dict[str, object] = {"ok": True, "sourceHash": digest, "findings": [finding],
                                "bindingPreview": source}
     malformed = [
