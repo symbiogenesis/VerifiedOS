@@ -1,8 +1,9 @@
 # Vela: Language Design, Examples and Verification Strategy
 
 This **primary Vela design document** covers purpose, developer experience,
-examples and research. Start with the [product contract](#language-product-contract)
-and [surface examples](#an-ideal-surface). Companion contracts refine the rules and
+examples and research. Start with the [product contract](#language-product-contract),
+[surface examples](#an-ideal-surface) and the [language reference](reference.md).
+Companion contracts refine the rules and
 qualification boundaries; [PLAN.md](../../../PLAN.md#language-core-proposals) owns implementation.
 
 To try the implemented pure Nat/bool fragment, launch the

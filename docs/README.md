@@ -24,7 +24,7 @@ Design entry points: [release scope](spec.md#r-18-004a),
 
 | Topic | Documents |
 | --- | --- |
-| Vela — start here | [Primary language design, purpose and examples](languages/vela/verification-strategy.md) |
+| Vela — start here | [Primary language design, purpose and examples](languages/vela/verification-strategy.md), [language reference](languages/vela/reference.md) |
 | Try Vela | [Local browser editor and expression console](languages/vela/playground.md), [host LSP setup and supported services](languages/vela/lsp-prototype.md) |
 | Vela design contracts | [Bounded first release, primitives and packages](languages/vela/first-release.md), [core design](languages/vela/core-design.md), [pure Vela prototype](languages/vela/vela-prototype.md), [Menhir development parser](languages/vela/vela-parser.md), [complete development surface grammar](languages/vela/surface-grammar.md) |
 | Vela workflow and routes | [Workflow contract](languages/vela/workflow-contract.md), [compiler routes](languages/vela/compiler-route-contract.md), [common style, formatting, documentation and lints](languages/vela/authoring-tools.md), [Compiler inspection, editor/debug protocols and interchange](languages/vela/tooling-protocols.md) |

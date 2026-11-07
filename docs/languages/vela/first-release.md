@@ -2,7 +2,9 @@
 
 This contract owns the first supported Vela software release's scope, primitive
 semantics, module boundary and required library behavior. The
-[primary design](verification-strategy.md) supplies rationale and examples;
+[primary design](verification-strategy.md) supplies rationale and examples, and
+the [language reference](reference.md) gives each construct's syntax, meaning,
+example and implementation status;
 [PLAN.md](../../../PLAN.md#vela-first-release-delivery) owns commissioning,
 budgets and delivery order. The [requirements register](../../requirements-register.md)
 remains normative for VerifiedOS. These are design decisions and acceptance
