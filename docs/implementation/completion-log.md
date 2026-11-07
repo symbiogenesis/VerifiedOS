@@ -1513,6 +1513,151 @@ not captured; both calibration columns remain `n/a`.
 Landed: Tier A. Full contract/source review, independent review and focused
 compiler/protocol/browser evidence accept this bounded local increment.
 
+<a id="q25af-make-vela-elaboration-evidence-kernel-honest"></a>
+
+#### Q25af · Make Vela elaboration evidence kernel-honest
+
+Accepted on 2026-11-07 under [R-05-020a](../spec.md#r-05-020a), the
+[evidence review](../background/critique.md#vela-evidence-and-surface-review)
+and the [primitive contract](../languages/vela/first-release.md#primitive-semantics).
+The mathematical elaborator ([tools/vos/vela/elaborate.py](../../tools/vos/vela/elaborate.py),
+[elaborate_declarations.py](../../tools/vos/vela/elaborate_declarations.py),
+[elaborate_types.py](../../tools/vos/vela/elaborate_types.py) and
+[solver_ledger.py](../../tools/vos/vela/solver_ledger.py)) emits the real
+source proposition for every contract `ensures`, `restores` and theorem
+obligation instead of substituting `true = true` or reflexive `x = x`
+tautologies. Obligations for which the elaborator constructs a kernel proof term
+or definitional computation emit closed `Definition` exports (`Closed under the
+global context`); obligations discharged only by the untrusted Python solver
+emit named `Axiom vela_solver_...` assumptions carrying the real statement
+(generalized over elaboration-local state with active facts) and record each
+entry in `solver_trust`. Exclusive `ref` parameters emit kernel post-state
+images (`_post_<param>`) so postconditions and restoration obligations state the
+callable's actual effect.
+
+In the Gallina prelude ([elaborate_types.py](../../tools/vos/vela/elaborate_types.py)),
+fixed-width integers (`u8`..`u64`, `i8`..`i64`, `usize`, `byte`) are represented
+over little-endian bit lists of width `vela_int_bits k`. Wrapping, saturating
+and checked addition, subtraction, multiplication, division, remainder, negation
+and bitwise shifts, two's-complement signed comparisons (`vela_int_slt`..`vela_int_sge`)
+and widening/narrowing/checked conversions (`vela_int_from`, `vela_int_try_from`,
+`vela_int_to_nat`, `vela_nat_to_usize`) replace the prior identity and
+placeholder definitions. Independent value controls in
+[test_vela_primitives.py](../../tools/tests/test_vela_primitives.py) and
+[test_vela_solver_ledger.py](../../tools/tests/test_vela_solver_ledger.py)
+check boundary values, signedness, overflow/zero-divisor/invalid-shift `Err`
+outcomes, non-tautological obligation types and exact `Print Assumptions`
+agreement with `solver_trust`.
+
+The original 24 h estimate, range 16–32, is retained because multi-step
+implementation and kernel-replay intervals were shared across the Q25af–Q25ai
+batch; both calibration columns remain `n/a`.
+
+Landed: Tier A. Full review of emitted obligation types, solver-trust ledger
+accounting, bit-list Gallina primitive definitions and local kernel replay.
+
+<a id="q25ag-conform-the-vela-first-slice-to-the-synchronous-design"></a>
+
+#### Q25ag · Conform the Vela first slice to the synchronous design
+
+Accepted on 2026-11-07 under the [synchronous core](../languages/vela/core-design.md#loans-and-control-flow)
+and [first-slice qualification contract](../languages/vela/first-release.md#first-slice-qualification).
+[tools/vela/examples/first_slice.vela](../../tools/vela/examples/first_slice.vela)
+and [tools/vos/vela/first_slice.py](../../tools/vos/vela/first_slice.py) conform
+to the synchronous design:
+- `PrepareAndValidatePacket(ref Span<byte> dst, in Span<byte> pkt) -> Result<ValidatedPacket<'dst>, ValidationError>`
+  validates framing, magic, payload length and checksum, scrubs destination
+  bytes, copies payload bytes through a borrowed slice, restores `dst` before
+  constructing the returned read-only payload subslice view in
+  `ValidatedPacket<region 'dst>(usize CopiedBytes, in<'dst> Span<byte> PayloadView)`,
+  and declares `effects writes(dst)` and portable `CanRead`/`CanWrite` contracts
+  plus agreement with the independent `SpecPacketValid` format predicate and
+  payload-byte/trailing-zero content postconditions.
+- `DecodePacketIntoFrame`, `PrepareSliceHeader` and `RunRoundTripPipeline`
+  exercise `Result` `?` propagation, fat-arrow `match`, `Slots<FrameRecord, Cap>`
+  frame storage and automatic `ref` descriptor preservation (`restores`), whose
+  15 metadata-preservation obligations across `PrepareAndValidatePacket`,
+  `DecodePacketIntoFrame` and `RunRoundTripPipeline` are 100% kernel-proved via
+  `bool_match` case-splitting (`Closed under the global context`), while the 22
+  remaining solver-discharged carrier/postcondition/scenario obligations are
+  recorded in `solver_trust` (`accepted: false` until kernel-proved).
+- Executable functions forbid `Span.AllocZeroed` capability fabrication,
+  `in<'a> Span<byte>` record fields forbid mutation, returning a view derived
+  from a span already restored in the same scope is rejected, and `effects`
+  clauses reject undeclared parameter writes.
+- The capacity-invariance gate (`8usize` vs `1_000_000_000usize`) ranges over a
+  capacity-wide symbolic loop (`0usize..dst.Length`) with identical obligation
+  count (`12`), reduction steps (`30`), work steps (`50538`) and emitted Gallina
+  bytes (`69010`), all 17 schema-2 negative controls fail with `category == "type"`,
+  and the AST-lowered CompCert Clight/C and purecap `sail_riscv_sim` harness
+  passes with 4 perturbed C negative controls.
+
+The original 24 h estimate, range 16–32, is retained because implementation and
+WSL qualification intervals were shared across the Q25af–Q25ai batch; both
+calibration columns remain `n/a`.
+
+Landed: Tier A. Full review of the synchronous validator, format-model
+contracts, negative controls, CompCert/Sail harness and local `vela-parser first-slice`
+qualification.
+
+<a id="q25ah-resolve-vela-surface-collisions-and-redundant-spellings"></a>
+
+#### Q25ah · Resolve Vela surface collisions and redundant spellings
+
+Accepted on 2026-11-07 under the [evidence review](../background/critique.md#vela-evidence-and-surface-review)
+and [surface grammar](../languages/vela/surface-grammar.md). Across the Menhir
+grammar ([tools/vela/parser/parser.mly](../../tools/vela/parser/parser.mly)),
+lexer ([lexer.mll](../../tools/vela/parser/lexer.mll)), pure and mathematical
+elaborators, formatter and lints:
+1. Selective record-invariant lifting uses `open (ref this) lifts Clause, ... { ... }`,
+   reserving `scope` exclusively for structured task scopes.
+2. Exclusive `ref` parameters preserve their container descriptor (`Base`,
+   `Length`, `Tag`, `PermRead`, `PermWrite`, `Capacity`) automatically as part
+   of the `ref` loan rule; explicit `restores` is reserved for returned loans
+   and restoration predicates.
+3. Local bindings require `let` or `var` (`let Type name = expr;` or
+   `let name = expr;`); C#-style keywordless `Type name = expr;` is removed from
+   the grammar.
+4. Pattern matching distinguishes nullary constructors from variable binders by
+   token shape (qualified paths `A.B` or known uppercase constructors resolve as
+   0-argument `constructor_pattern`s; lowercase identifiers bind variables),
+   retiring `VELA106` and `--preview-patterns` while keeping `VELA106` reserved.
+5. Statement `match` and expression `match` unify on fat-arrow `Pattern => body`
+   arms (`Pattern => { ... }` or `Pattern => statement;` in statement matches;
+   `Pattern => expr,` in expression matches).
+
+All examples, playground snippets, tests and documentation are migrated without
+compatibility aliases. The original 16 h estimate, range 12–20, is retained
+because implementation intervals were shared across the Q25af–Q25ai batch; both
+calibration columns remain `n/a`.
+
+Landed: Tier A. Full grammar, parser, elaborator, formatter and fixture review.
+
+<a id="q25ai-publish-the-vela-language-reference-and-separate-extension-research"></a>
+
+#### Q25ai · Publish the Vela language reference and separate extension research
+
+Accepted on 2026-11-07 under the [evidence review](../background/critique.md#vela-evidence-and-surface-review).
+[docs/languages/vela/reference.md](../languages/vela/reference.md) provides a
+single compact reference covering lexical structure, primitive types, bindings,
+callables, contracts, records/invariants, unions/patterns, interfaces, loans and
+the explicit implementation-status matrix (`pure`, `math`, `first-slice`,
+`extension`). Extension research dossiers (`graded-foundation.md`,
+`handlers-async.md`, `interior-mutability.md`, `assurance-profiles.md`,
+`metaprogramming.md`, `unified-source-contract.md`, `full-language-review.md`)
+live under `docs/languages/vela/extensions/`, dated external language comparisons
+live in [docs/background/language-landscape.md](../background/language-landscape.md),
+and [first-release.md](../languages/vela/first-release.md) and
+[workflow-contract.md](../languages/vela/workflow-contract.md) record the
+authoring and maintenance costs of arithmetic representability obligations,
+closed `effects` lists and single-tier borrow restrictions together with their
+package-trial measurement obligations.
+
+The original 12 h estimate, range 8–16, is retained because authoring intervals
+were shared across the Q25af–Q25ai batch; both calibration columns remain `n/a`.
+
+Landed: Tier A. Full document, link, example and co-read review.
+
 <a id="q26-price-the-resident-toolchain-against-the-floors-own-comparisons"></a>
 
 ### Q26 · Price the resident toolchain against the floor's own comparisons
