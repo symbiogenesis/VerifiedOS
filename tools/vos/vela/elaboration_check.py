@@ -23,6 +23,7 @@ from vos import env, proofenv, vela
 from vos.atomic import atomic_path
 from vos.vela import (
     VelaError,
+    solver_ledger,
 )
 from vos.vela import (
     elaborate as vela_elaborate,
@@ -1129,14 +1130,16 @@ def _case(compiled: vela_parser.Build, case: Fixture, directory: Path, index: in
                      encoding="utf-8", newline="")
     assumptions = _run(_opam(["rocq", "c", "-q", "-R", str(directory), "VelaElaboration", query.name]),
                        directory, directory / f"{stem}.assumptions.log", steps)
-    if [line.strip() for line in assumptions.splitlines() if line.strip()] != [
-            "Closed under the global context"] * len(audited):
-        raise ValueError(f"Vela replay {case.name}: generated exports have unqualified assumptions")
+    trusted = solver_ledger.ledger(translated.gallina)
+    reported_trust = solver_ledger.audit(assumptions, len(audited), module, trusted)
+    if reported_trust and case.pure:
+        raise ValueError(f"Vela replay {case.name}: pure translation emitted solver-trust axioms")
     artifact = directory / f"{stem}.vo"
     row.update({"category": "accepted", "module": translated.module,
                 "gallina": str(target), "gallina_sha256": _sha256(target.read_bytes()),
                 "assumptions": str(query), "assumptions_sha256": _sha256(query.read_bytes()),
                 "assumption_exports": exports,
+                "solver_trusted": [entry.as_json() for entry in trusted],
                 "observations": [list(value) for value in case.observations],
                 "library": f"VelaElaboration.{stem}", "vo": str(artifact),
                 "vo_sha256": _sha256(artifact.read_bytes())})
