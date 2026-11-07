@@ -46,8 +46,8 @@ from vos.vela.elaborate_types import (
     _apps,
     _constant,
     _int_term,
-    _term,
     _Term,
+    _term,
 )
 
 
@@ -60,11 +60,11 @@ class _Width:
 
     @property
     def lo(self) -> int:
-        return -(2 ** (self.bits - 1)) if self.signed else 0
+        return -(1 << (self.bits - 1)) if self.signed else 0
 
     @property
     def hi(self) -> int:
-        return 2 ** (self.bits - 1) - 1 if self.signed else 2 ** self.bits - 1
+        return (1 << (self.bits - 1)) - 1 if self.signed else (1 << self.bits) - 1
 
 
 _WIDTHS = {width.name: width for width in (
@@ -87,7 +87,7 @@ def _fits(width: _Width, value: int) -> bool:
 
 
 def _reduce(width: _Width, value: int) -> int:
-    return width.lo + (value - width.lo) % 2 ** width.bits
+    return width.lo + (value - width.lo) % (1 << width.bits)
 
 
 def _clamp(width: _Width, value: int) -> int:
@@ -103,11 +103,11 @@ def _remainder(a: int, b: int) -> int:
 
 
 def _pattern(width: _Width, value: int) -> int:
-    return value % 2 ** width.bits
+    return value % (1 << width.bits)
 
 
 def _from_pattern(width: _Width, bits: int) -> int:
-    return bits - 2 ** width.bits if width.signed and bits >= 2 ** (width.bits - 1) else bits
+    return bits - (1 << width.bits) if width.signed and bits >= (1 << (width.bits - 1)) else bits
 
 
 def _checked(width: _Width, exact: int) -> Outcome:
