@@ -109,6 +109,7 @@ Design entry points: [release scope](spec.md#r-18-004a),
 ## Background and design assessment
 
 - [Inspirations and prior art](background/inspirations.md)
+- [Language landscape behind Vela's handler, async and surface decisions](background/language-landscape.md)
 - [Architectural alternatives](background/architectural-alternatives.md), including the [desktop elastic-domain decision](background/architectural-alternatives.md#a-general-purpose-desktop-on-a-static-machine-an-elastic-domain-inside-a-fixed-envelope-adopted-for-the-laptop)
 - [Critique](background/critique.md)
 - [Mathematical open problems and recent results](background/open-math-conjectures.md)
