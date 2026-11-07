@@ -654,7 +654,10 @@ def _lower_function_to_c(
         if ekind == "bool":
             return "1" if node.get("value") is True else "0"
         if ekind == "name":
-            return _node_text(node)
+            vname = _node_text(node)
+            if vname in ctor_map:
+                return f"VOS_ERR_{vname}"
+            return vname
         if ekind == "unary":
             op = _node_text(node.get("operator"))
             if op in ("ref", "in"):

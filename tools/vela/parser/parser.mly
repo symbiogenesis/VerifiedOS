@@ -37,6 +37,40 @@ let with_declaration_modifiers first last modifiers value =
 let binary first last operator left right =
   make "binary" first last [("operator", operator); ("left", left.syntax);
                             ("right", right.syntax)] [left; right]
+let name_text = function
+  | Object fields -> (match List.assoc_opt "text" fields with Some (String text) -> text | _ -> "")
+  | _ -> ""
+let last_segment text =
+  match List.rev (String.split_on_char '.' text) with
+  | head :: _ -> head
+  | [] -> text
+let is_constructor_spelling text =
+  let last = last_segment text in
+  String.length last > 0 && last.[0] >= 'A' && last.[0] <= 'Z'
+let is_binder_spelling text =
+  not (String.contains text '.') && String.length text > 0
+  && (text.[0] = '_' || (text.[0] >= 'a' && text.[0] <= 'z'))
+let build_pattern first last target values =
+  let spelling = name_text target in
+  match values with
+  | None ->
+      if spelling = "_" then make "wildcard_pattern" first last [] []
+      else if is_constructor_spelling spelling then
+        make "constructor_pattern" first last [("name", target); ("arguments", Array [])] []
+      else if is_binder_spelling spelling then
+        make "binding_pattern" first last [("name", target)] []
+      else
+        raise (Refusal ("syntax", first.Lexing.pos_cnum,
+                        "pattern binder must be an unqualified lowercase or '_' identifier; constructor patterns require an uppercase constructor name"))
+  | Some [] ->
+      raise (Refusal ("syntax", first.Lexing.pos_cnum,
+                      "nullary constructor pattern '" ^ spelling ^ "()' must be written bare without '()' (write '" ^ spelling ^ "')"))
+  | Some args ->
+      if not (is_constructor_spelling spelling) then
+        raise (Refusal ("syntax", first.Lexing.pos_cnum,
+                        "constructor pattern '" ^ spelling ^ "' requires an uppercase constructor name"))
+      else
+        make "constructor_pattern" first last [("name", target); ("arguments", array args)] args
 %}
 
 %token MODULE PUBLIC NAT BOOL LET CONST RETURN IF ELSE TRUE FALSE
@@ -647,12 +681,8 @@ s_empty_match:
   MATCH LPAREN value=s_expression RPAREN motive=option(s_match_motive) LBRACE RBRACE
     { value, motive }
 s_pattern:
-  binding_name=s_identifier
-    { let wildcard = match binding_name with Object fields -> List.assoc "text" fields = String "_" | _ -> false in
-      if wildcard then make "wildcard_pattern" $startpos $endpos [] []
-      else make "binding_pattern" $startpos $endpos [("name", binding_name)] [] }
-| constructor_name=s_path values=s_pattern_arguments
-    { make "constructor_pattern" $startpos $endpos [("name", constructor_name); ("arguments", array values)] values }
+  target=s_path values=option(s_pattern_arguments)
+    { build_pattern $startpos $endpos target values }
 | value=s_product_pattern { value }
 | payload=s_literal_payload
     { let kind, fields = payload in make (kind ^ "_pattern") $startpos $endpos fields [] }
@@ -662,13 +692,15 @@ s_pattern_argument:
   pattern=s_pattern { pattern }
 | label=s_identifier COLON pattern=s_pattern
     { make "labeled_pattern" $startpos $endpos [("label", label); ("pattern", pattern.syntax)] [pattern] }
-/* A bare local name stays an inferred binder. Constructor elimination has an
-   explicit argument list, while nested patterns reuse the general grammar. */
+/* A bare local name stays an inferred binder; uppercase constructor patterns,
+   qualified constructor patterns, and product patterns use local_pattern. */
 s_local_pattern:
   value=s_product_pattern { value }
-| constructor_name=s_qualified_name(s_value_identifier) values=s_pattern_arguments
-    { make "constructor_pattern" $startpos $endpos
-        [("name", constructor_name); ("arguments", array values)] values }
+| first=s_value_identifier values=s_pattern_arguments
+    { build_pattern $startpos $endpos first (Some values) }
+| first=s_value_identifier rest=nonempty_list(s_path_segment) values=option(s_pattern_arguments)
+    { let target = name $startpos $endpos (String.concat "." (name_text first :: rest)) in
+      build_pattern $startpos $endpos target values }
 s_product_pattern:
   s_parameter_open RPAREN { make "unit_pattern" $startpos $endpos [] [] }
 | s_parameter_open value=s_pattern RPAREN

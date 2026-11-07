@@ -322,6 +322,12 @@ class _StringsMixin:
                 consume("ident")
                 ident_node: Node = {"text": ptok[1], "span": [ptok[2], ptok[3]]}
                 if is_tok("punct", "("):
+                    if not ("A" <= ptok[1][0] <= "Z"):
+                        raise self.fail(
+                            "syntax",
+                            f"constructor pattern '{ptok[1]}' requires an uppercase constructor name",
+                            container,
+                        )
                     consume("punct", "(")
                     pargs: list[Node] = []
                     if peek() is not None and not is_tok("punct", ")"):
@@ -353,11 +359,24 @@ class _StringsMixin:
                             else:
                                 break
                     rp = consume("punct", ")")
+                    if not pargs:
+                        raise self.fail(
+                            "syntax",
+                            f"nullary constructor pattern '{ptok[1]}()' must be written bare without '()' (write '{ptok[1]}')",
+                            container,
+                        )
                     return {
                         "kind": "constructor_pattern",
                         "span": [ptok[2], rp[3]],
                         "name": ident_node,
                         "arguments": pargs,
+                    }
+                if "A" <= ptok[1][0] <= "Z":
+                    return {
+                        "kind": "constructor_pattern",
+                        "span": [ptok[2], ptok[3]],
+                        "name": ident_node,
+                        "arguments": [],
                     }
                 return {"kind": "binding_pattern", "span": [ptok[2], ptok[3]], "name": ident_node}
             raise self.fail("unsupported", f"unsupported interpolation hole expression '{raw_expr}'", container)

@@ -7,7 +7,7 @@ from unittest.mock import patch
 from tests.harness import Case, ensure
 from vos import vela
 from vos.vela import VelaError
-from vos.vela.authoring import LINT_CODES, lint_source
+from vos.vela.authoring import LINT_CODES, RETIRED_LINT_CODES, lint_source
 from vos.vela.facts import MAX_SYMBOLS
 
 INDEPENDENT_CASES = True
@@ -22,8 +22,10 @@ def _findings_and_sites() -> None:
     ensure(tuple((value.code, value.line, value.column) for value in values) == expected,
            f"findings differ from independent code/site expectations: {values!r}")
     ensure(all(value.message for value in values), "a finding has no actionable message")
-    ensure(set(LINT_CODES) == {"VELA100", "VELA101", "VELA102", "VELA103", "VELA105", "VELA106"},
+    ensure(set(LINT_CODES) == {"VELA100", "VELA101", "VELA102", "VELA103", "VELA105"},
            "stable lint IDs drifted")
+    ensure(set(RETIRED_LINT_CODES) == {"VELA104", "VELA106"},
+           "retired lint IDs drifted")
 
 
 def _uses_compiler_doc_facts() -> None:

@@ -401,7 +401,7 @@ def _build_executable_slice_ast(*, checksum_seed: str = "0x5A") -> Node:
                 "callee": nm("ValidationOutcome"),
                 "arguments": [
                     {"kind": "argument", "value": {"kind": "bool", "value": ok_val}},
-                    {"kind": "argument", "value": {"kind": "call", "callee": nm(err_ctor), "arguments": []}},
+                    {"kind": "argument", "value": nm(err_ctor)},
                     {"kind": "argument", "value": copied},
                     {"kind": "argument", "value": nm(view_name)},
                 ],

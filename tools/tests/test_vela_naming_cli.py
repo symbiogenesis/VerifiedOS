@@ -13,8 +13,6 @@ from vos.vela import VelaError
 from vos.vela.authoring import (
     Finding,
     assist_refusal,
-    pattern_constructor_findings,
-    preview_pattern_constructors,
 )
 from vos.vela.mathematical import Compilation
 
@@ -54,18 +52,6 @@ def _warnings_and_allow() -> None:
                    and inspect.call_args.args == (SOURCE, TREE), "naming inspection lost exact source/tree identity")
             code, out, err = _invoke(["elaborate", str(source), "--allow", "VELA105", "--allow", "VELA105"])
             ensure(code == 0 and out == GALLINA and not err, "explicit allow failed to suppress advisory naming")
-        pattern_finding = Finding("VELA106", "bare pattern 'None' binds a new variable and shadows constructor 'None'; write 'None()' to match the constructor", 2, 12)
-        with (patch.object(cli.vela_parser, "build", return_value=object()),
-              patch.object(cli.vela_parser, "parse_source", return_value=TREE),
-              patch.object(cli.vela_mathematical, "inspect_source", return_value=Compilation("Named", GALLINA, (pattern_finding,)))):
-            code, out, err = _invoke(["elaborate", str(source)])
-            ensure(code == 0 and out == GALLINA and f"{source}:2:12: warning VELA106: {pattern_finding.message}\n" == err,
-                   "VELA106 warning lost its stable identity or original pattern position")
-            code, out, err = _invoke(["elaborate", str(source), "--allow", "VELA106"])
-            ensure(code == 0 and out == GALLINA and not err, "explicit allow failed to suppress VELA106")
-            code, out, err = _invoke(["elaborate", str(source), "--deny", "VELA106"])
-            ensure(code == 1 and not out and f"{source}:2:12: error VELA106: {pattern_finding.message}\n" == err,
-                   "explicit deny failed to reject VELA106")
         ensure(source.read_bytes() == SOURCE, "naming warning or allow rewrote authored source")
 
 
@@ -101,6 +87,9 @@ def _options_before_compilation() -> None:
             ensure(code == 2 and not out and "both allowed and denied" in err,
                    "conflicting naming policy did not fail before compilation")
         for arguments in (["elaborate", "missing.vela", "--deny", "VELA101"],
+                          ["elaborate", "missing.vela", "--allow", "VELA106"],
+                          ["elaborate", "missing.vela", "--deny", "VELA106"],
+                          ["elaborate", "missing.vela", "--preview-patterns"],
                           ["parse", "missing.vela", "--allow", "VELA105"],
                           ["elaborate-qualify", "--deny", "VELA105"]):
             code, out, err = _invoke(arguments)
@@ -108,8 +97,9 @@ def _options_before_compilation() -> None:
         ensure(not read.called and not build.called and not inspect.called,
                "refused naming options consumed source or ran the native compiler")
     code, out, err = _invoke(["elaborate", "--help"])
-    ensure(code == 0 and not err and "--allow" in out and "--deny" in out and "VELA105" in out and "VELA106" in out,
-           "mathematical elaboration help omits explicit naming/pattern enforcement")
+    ensure(code == 0 and not err and "--allow" in out and "--deny" in out and "VELA105" in out
+           and "VELA106" not in out and "--preview-patterns" not in out,
+           "mathematical elaboration help omits explicit naming enforcement or retains retired VELA106")
 
 
 def _semantic_failure_and_recovery() -> None:
@@ -151,137 +141,10 @@ def _warning_file_output() -> None:
 
 
 def _union_reachability_preview_and_refusal_assists() -> None:
-    union_src = (
-        b"module M;\n"
-        b"public union Signal { On(); Off(Nat Code); }\n"
-        b"public definition Nat Check(Signal s) => match (s) { On => 1, Off(c) => c, _ => 0 };\n"
-    )
-    on_ctor_pos = union_src.index(b"On();")
-    off_ctor_pos = union_src.index(b"Off(Nat Code);")
-    on_pat_pos = union_src.index(b"On => 1")
-    off_pat_pos = union_src.index(b"Off(c)")
-    wild_pat_pos = union_src.index(b"_ => 0")
-    union_tree: dict[str, object] = {
-        "schema": 2,
-        "ast": {
-            "kind": "surface_file",
-            "span": [0, len(union_src)],
-            "declarations": [
-                {
-                    "kind": "union",
-                    "name": {"text": "Signal", "span": [23, 29]},
-                    "constructors": [
-                        {"kind": "constructor", "name": {"text": "On", "span": [on_ctor_pos, on_ctor_pos + 2]}, "parameters": []},
-                        {"kind": "constructor", "name": {"text": "Off", "span": [off_ctor_pos, off_ctor_pos + 3]}, "parameters": [{"kind": "parameter"}]},
-                    ],
-                },
-                {
-                    "kind": "definition",
-                    "value": {
-                        "kind": "match_expression",
-                        "cases": [
-                            {
-                                "kind": "expression_case",
-                                "pattern": {"kind": "binding_pattern", "span": [on_pat_pos, on_pat_pos + 2], "name": {"text": "On", "span": [on_pat_pos, on_pat_pos + 2]}},
-                            },
-                            {
-                                "kind": "expression_case",
-                                "pattern": {
-                                    "kind": "constructor_pattern",
-                                    "span": [off_pat_pos, off_pat_pos + 6],
-                                    "name": {"text": "Off", "span": [off_pat_pos, off_pat_pos + 3]},
-                                    "arguments": [{"kind": "binding_pattern", "span": [off_pat_pos + 4, off_pat_pos + 5], "name": {"text": "c", "span": [off_pat_pos + 4, off_pat_pos + 5]}}],
-                                },
-                            },
-                            {
-                                "kind": "expression_case",
-                                "pattern": {"kind": "wildcard_pattern", "span": [wild_pat_pos, wild_pat_pos + 1]},
-                            },
-                        ],
-                    },
-                },
-            ],
-        },
-    }
-    findings = pattern_constructor_findings(union_src, union_tree)
-    ensure(
-        len(findings) == 3
-        and any("shadows constructor 'On'" in f.message for f in findings)
-        and any("unreachable" in f.message for f in findings),
-        f"union constructors were not scanned for both shadowing and exhaustiveness reachability: {findings}",
-    )
-    previewed = preview_pattern_constructors(union_src, union_tree)
-    ensure(b"On() => 1" in previewed, "preview_pattern_constructors did not rewrite bare union constructor 'On'")
-    exhausted_tree: dict[str, object] = {
-        "schema": 2,
-        "ast": {
-            "kind": "surface_file",
-            "span": [0, len(previewed)],
-            "declarations": [
-                {
-                    "kind": "union",
-                    "name": {"text": "Signal", "span": [23, 29]},
-                    "constructors": [
-                        {"kind": "constructor", "name": {"text": "On", "span": [on_ctor_pos, on_ctor_pos + 2]}, "parameters": []},
-                        {"kind": "constructor", "name": {"text": "Off", "span": [off_ctor_pos, off_ctor_pos + 3]}, "parameters": [{"kind": "parameter"}]},
-                    ],
-                },
-                {
-                    "kind": "definition",
-                    "value": {
-                        "kind": "match_expression",
-                        "cases": [
-                            {
-                                "kind": "expression_case",
-                                "pattern": {"kind": "constructor_pattern", "span": [on_pat_pos, on_pat_pos + 4], "name": {"text": "On", "span": [on_pat_pos, on_pat_pos + 2]}, "arguments": []},
-                            },
-                            {
-                                "kind": "expression_case",
-                                "pattern": {
-                                    "kind": "constructor_pattern",
-                                    "span": [off_pat_pos + 2, off_pat_pos + 8],
-                                    "name": {"text": "Off", "span": [off_pat_pos + 2, off_pat_pos + 5]},
-                                    "arguments": [{"kind": "binding_pattern", "span": [off_pat_pos + 6, off_pat_pos + 7], "name": {"text": "c", "span": [off_pat_pos + 6, off_pat_pos + 7]}}],
-                                },
-                            },
-                            {
-                                "kind": "expression_case",
-                                "pattern": {"kind": "wildcard_pattern", "span": [wild_pat_pos + 2, wild_pat_pos + 3]},
-                            },
-                        ],
-                    },
-                },
-            ],
-        },
-    }
-    exhausted_findings = pattern_constructor_findings(previewed, exhausted_tree)
-    ensure(
-        len(exhausted_findings) == 1
-        and "earlier patterns already cover this case" in exhausted_findings[0].message,
-        f"complete union constructor set did not flag trailing wildcard as unreachable: {exhausted_findings}",
-    )
-
-    with tempfile.TemporaryDirectory(prefix="vela-preview-cli-") as temporary:
-        root = Path(temporary)
-        source_file = root / "signal.vela"
-        source_file.write_bytes(union_src)
-        with (patch.object(cli.vela_parser, "build", return_value=object()),
-              patch.object(cli.vela_parser, "parse_source", return_value=union_tree) as parse_mock,
-              patch.object(cli.vela_mathematical, "inspect_source", return_value=Compilation("M", GALLINA, ()))):
-            code, out, err = _invoke(["elaborate", str(source_file), "--preview-patterns"])
-            ensure(code == 0 and out == previewed.decode("utf-8") and not err,
-                   "elaborate --preview-patterns did not emit the validated candidate source to stdout")
-            ensure(parse_mock.call_count == 2,
-                   "elaborate --preview-patterns did not re-parse the rewritten candidate before emission")
-            code, out, err = _invoke(["elaborate", str(source_file), "--preview-patterns", "--output", str(root / "out.v")])
-            ensure(code == 2 and not out and "cannot be combined" in err,
-                   "elaborate --preview-patterns did not refuse --output")
-        ensure(source_file.read_bytes() == union_src, "--preview-patterns modified the authored file in place")
-
     nc_src = b"module M;\npublic Nat Read() => pkt?.Header;\n"
     nc_err = VelaError("syntax", 2, 25, "null-conditional '?.' is not part of Vela")
     nc_repairs = assist_refusal(nc_src, nc_err)
-    ensure(nc_repairs == ("(pkt?).Header", "match (pkt) { Some(value) => value.Header, None() => todo }"),
+    ensure(nc_repairs == ("(pkt?).Header", "match (pkt) { Some(value) => value.Header, None => todo }"),
            f"assist_refusal did not return explicit Option repairs for '?.': {nc_repairs}")
 
     loan_src = b'module M;\npublic TextBuilder<16> Write(TextBuilder<16> b) => Format.Write(b, $"ok");\n'

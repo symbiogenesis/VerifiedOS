@@ -42,7 +42,7 @@ def _typed_local_semantics() -> None:
         ensure(isinstance(local, vela.syntax.Binding)
                and local.annotation == annotation and local.explicit_binding is explicit,
                "typed-local annotation or explicit binding identity was lost")
-    ensure(set(RETIRED_LINT_CODES) == {"VELA104"}, "VELA104 retirement set drifted")
+    ensure(set(RETIRED_LINT_CODES) == {"VELA104", "VELA106"}, "VELA104/VELA106 retirement set drifted")
     typed_bool = b"module M;public bool Flag(){let bool flag=true;return flag;}"
     ensure("Datatypes.true" in translate(typed_bool).gallina, "bool local annotation did not check")
 
@@ -162,7 +162,7 @@ def _assist_dont_coerce_bridges() -> None:
         raise AssertionError("loan assist accepted a non-identifier boundary")
     propagate, local_match = assist_null_conditional("Read()", "Value")
     ensure(propagate == "(Read()?).Value"
-           and local_match == "match (Read()) { Some(value) => value.Value, None() => todo }",
+           and local_match == "match (Read()) { Some(value) => value.Value, None => todo }",
            "null-conditional assist did not offer explicit propagation and local match forms")
     effects_source = b"module M;\npublic Nat ReadCount() { return 0; }\n"
     with_effects = assist_effects_clause(effects_source, 2, 24, ("Write(log)", "Read(counter)", "Read(counter)"))

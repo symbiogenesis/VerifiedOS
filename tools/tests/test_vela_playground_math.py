@@ -326,31 +326,24 @@ def _mathematical_naming_reply_validation() -> None:
             "public definition Nat Check(bool flag) => match (flag) { None => 1, _ => 0 };\n"
         )
         pattern_digest = hashlib.sha256(pattern_source.encode()).hexdigest()
-        pattern_finding: dict[str, object] = {
+        retired_finding: dict[str, object] = {
             "code": "VELA106",
-            "message": "bare pattern 'None' binds a new variable and shadows constructor 'None'; write 'None()' to match the constructor",
+            "message": "retired pattern finding",
             "line": 2,
             "column": 58,
         }
-        pattern_valid: dict[str, object] = {
+        retired_payload: dict[str, object] = {
             "ok": True,
             "sourceHash": pattern_digest,
             "module": "Pattern",
             "gallina": "actual checked-source terms",
             "editorServices": False,
-            "findings": [pattern_finding],
+            "findings": [retired_finding],
         }
-        with patch.object(playground.subprocess, "run", return_value=_process(pattern_valid)):
-            ensure(_post(server, "/api/compile", {"source": pattern_source}) == pattern_valid,
-                   "valid VELA106 pattern warning prevented mathematical compilation")
-        forged_pattern = {
-            **pattern_valid,
-            "findings": [{**pattern_finding, "column": 1}],
-        }
-        with patch.object(playground.subprocess, "run", return_value=_process(forged_pattern)):
+        with patch.object(playground.subprocess, "run", return_value=_process(retired_payload)):
             refused = _post(server, "/api/compile", {"source": pattern_source})
         ensure(refused["ok"] is False and "findings" not in refused,
-               "forged VELA106 pattern coordinates bypassed reply validation")
+               "retired VELA106 finding code bypassed reply validation")
 
 
 def _native_cli_startup() -> None:

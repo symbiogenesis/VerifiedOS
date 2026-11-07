@@ -17,7 +17,7 @@ from vos.vela import (
     parser as vela_parser,
 )
 from vos.vela.ast import Name, position
-from vos.vela.authoring import Finding, generic_type_findings, pattern_constructor_findings
+from vos.vela.authoring import Finding, generic_type_findings
 from vos.vela.elaborate import Elaboration
 
 
@@ -54,8 +54,7 @@ def inspect_source(source: bytes, parsed: object) -> Compilation:
             pending.extend(item)
     names.sort(key=lambda item: item[0])
     findings = sorted(
-        (*generic_type_findings(tuple(name for _, name in names)),
-         *pattern_constructor_findings(source, cast("dict[str, object]", ast))),
+        generic_type_findings(tuple(name for _, name in names)),
         key=lambda item: (item.line, item.column, item.code),
     )
     return Compilation(translation.module, translation.gallina, tuple(findings))

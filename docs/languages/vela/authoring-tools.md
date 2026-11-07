@@ -171,12 +171,16 @@ The initial rule identities are defined here:
 | `VELA103` | An equality comparison has a Boolean literal operand |
 | ~~`VELA104`~~ | Retired (`Q25ah`): bare `T x = e;` local declarations are now refused by the parser in favor of mandatory `let T x = e;` or `var T x = e;`; the ID is never reused |
 | `VELA105` | A generic type parameter name does not use a capital initial and ASCII alphanumeric words |
-| `VELA106` | A bare pattern binder shadows an in-scope constructor or a match arm is unreachable |
+| ~~`VELA106`~~ | Retired (`Q25ah`): constructor patterns and pattern binders are now distinguished by token shape and nullary constructors are written bare without `()`; the ID is never reused |
 
 `VELA104` and `vela lint --preview-bindings` are permanently retired (`Q25ah`)
 now that local variable declarations require an explicit `let` or `var` keyword;
 the migration rewrite helper `preview_bindings` remains available for legacy
-source migration without reusing the `VELA104` rule ID. Optional type annotations
+source migration without reusing the `VELA104` rule ID. `VELA106` and
+`vela-parser elaborate --preview-patterns` are permanently retired (`Q25ah`) now
+that uppercase constructors and lowercase or `_` binders are distinguished by token
+shape and nullary constructors are written bare (`None`, `ValidatedOk`) without `()`;
+the `VELA106` rule ID is never reused. Optional type annotations
 on `let` and `var` are checked independently of the binding's mutability. Naming
 and mutability guidance does not rename a symbol or change the formatter's tokens.
 
@@ -189,7 +193,7 @@ or diagnostic suggestion extending the `vela lint --preview-bindings` architectu
 | C# / novice habit | Why Vela refuses it | Friendliness bridge (diagnostic + checked edit) |
 | --- | --- | --- |
 | Calling `Fill(buffer, 0)` without `ref` | Ordinary loan arguments require explicit `in`/`ref`/`out` ([verification-strategy.md](verification-strategy.md#permanent-language-exclusions)) | Resolve the target parameter's mode and offer a checked insertion of `ref buffer` (`assist_loan_argument` and `assist_refusal`, or an inlay hint while typing). |
-| Writing `case None:` instead of `case None():` | Bare names in patterns bind variables; constructors require `()` ([surface-grammar.md](surface-grammar.md#concise-authoring-syntax)) | Warn when a bare pattern binder shadows an in-scope union or record constructor or when a match arm is unreachable (`VELA106`), suggesting `None()` (`preview_pattern_constructors` and `vela-parser elaborate --preview-patterns`). |
+| Writing `None()` instead of `None` | Constructors use an uppercase initial letter and binders use a lowercase letter or `_`; nullary constructors are written bare without `()` ([surface-grammar.md](surface-grammar.md#concise-authoring-syntax)) | Refuse `None()` in patterns and expressions with a direct diagnostic instructing the author to write bare `None`. |
 | Writing `Read()?.Value` | `?` is early-return propagation, not C#'s null-conditional `?.` ([surface-grammar.md](surface-grammar.md#explicit-values-loans-and-absence)) | Explain the difference from C# `?.` and offer `(Read()?).Value` (to propagate) or a `match` skeleton (to handle locally, via `assist_null_conditional` and `assist_refusal`). |
 | Omitting or under-specifying `effects` on a function | Public signatures require explicit closed `effects` ([verification-strategy.md](verification-strategy.md#surface-conventions)) | Compute the body's closed read/write/call footprint and offer a checked preview that writes or updates the explicit `effects(...)` clause in source (`assist_effects_clause`). |
 | Passing `int` where `long` or `usize` is expected | No implicit numeric widening ([first-release.md](first-release.md#primitive-semantics)) | Suggest the exact named conversion (`long.From(x)` when infallibly wider, or `usize.TryFrom(x)` when range- or sign-checked, via `suggest_numeric_conversion`). |
@@ -224,10 +228,10 @@ Use exact original identifier coordinates, preserve source and Gallina, and emit
 no naming findings for invalid or incomplete source. This is an optional style
 rule, not a type-system restriction or a naming-based resolution rule.
 
-`vela-parser elaborate SOURCE` reports `VELA105` and `VELA106` warnings by default;
-`--allow VELA105` or `--allow VELA106` suppresses the selected rule and
-`--deny VELA105` or `--deny VELA106` makes it an error before stdout emission or
-atomic output publication. Conflicting options refuse before compilation.
+`vela-parser elaborate SOURCE` reports `VELA105` warnings by default;
+`--allow VELA105` suppresses the rule and `--deny VELA105` makes it an error
+before stdout emission or atomic output publication. Conflicting options refuse
+before compilation.
 The mathematical playground displays successful compilation's bounded findings
 as warning markers and Problems entries; pure responses and mathematical
 evaluation responses retain their existing shapes. Invalid, stale, oversized or

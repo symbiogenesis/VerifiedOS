@@ -38,7 +38,7 @@ class _PatternsMixin:
             return _Pat("wild", node)
         if kind == "binding_pattern":
             name = self.name(node["name"])
-            if "." in name or name == "_" or name in seen:
+            if not name or "." in name or name == "_" or ("A" <= name[0] <= "Z") or name in seen:
                 raise self.fail("name", f"duplicate or invalid pattern binding '{name}'", node)
             seen.add(name)
             return _Pat("wild", node, names=(name,))
@@ -73,6 +73,13 @@ class _PatternsMixin:
             return result
         if kind == "constructor_pattern":
             cname = self.name(node["name"])
+            short_cname = cname.rsplit(".", 1)[-1]
+            if not short_cname or not ("A" <= short_cname[0] <= "Z"):
+                raise self.fail(
+                    "name",
+                    f"constructor pattern '{cname}' requires an uppercase constructor name",
+                    node,
+                )
             arguments = self.nodes(node["arguments"])
             if cname == "Succ":
                 if len(arguments) != 1:
@@ -143,10 +150,18 @@ class _PatternsMixin:
                         sub_patterns.append(self._parse_pattern(arg_node, seen))
                 return _Pat("union", node, value=cname, args=tuple(sub_patterns))
             if cname not in self.globals:
-                raise self.fail("name", f"unknown constructor '{cname}'", node)
+                raise self.fail(
+                    "name",
+                    f"unknown constructor '{cname}' (pattern binders must start with a lowercase letter or '_')",
+                    node,
+                )
             if cname in {"VNil", "VCons", "FZero", "FSucc"}:
                 raise self.fail("unsupported", f"indexed elimination over '{cname}' requires the full frontend", node)
-            raise self.fail("type", f"'{cname}' is not a pattern constructor", node)
+            raise self.fail(
+                "type",
+                f"'{cname}' is not a pattern constructor (pattern binders must start with a lowercase letter or '_')",
+                node,
+            )
         raise self.fail("protocol", f"unexpected pattern node '{kind}'", node)
 
     def _instantiate_generic_type(

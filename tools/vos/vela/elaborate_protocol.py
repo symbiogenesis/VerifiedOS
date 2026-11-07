@@ -577,16 +577,23 @@ class _Protocol:
         elif kind == "binding_pattern":
             name = node["name"]
             if (not isinstance(name, dict) or not isinstance(name.get("text"), str)
-                    or name["text"] == "_" or "." in name["text"]):
-                raise self.error("protocol", "binding_pattern requires a non-wildcard unqualified name", node)
+                    or not name["text"] or name["text"] == "_" or "." in name["text"]
+                    or ("A" <= name["text"][0] <= "Z")):
+                raise self.error("protocol", "binding_pattern requires a lowercase or '_' non-wildcard unqualified name", node)
             cursor = self._child(node, span, cursor, name)
         elif kind == "constructor_pattern":
+            cname = node["name"]
             arguments = node["arguments"]
+            if (not isinstance(cname, dict) or not isinstance(cname.get("text"), str)
+                    or not cname["text"].rsplit(".", 1)[-1]
+                    or not ("A" <= cname["text"].rsplit(".", 1)[-1][0] <= "Z")):
+                raise self.error("protocol", "constructor_pattern requires an uppercase constructor name", node)
             if (not isinstance(arguments, list)
                     or any(not isinstance(item, dict) or item.get("kind") not in _PATTERN_ARGUMENT_KINDS for item in arguments)):
                 raise self.error("protocol", "constructor_pattern arguments must be pattern nodes", node)
-            cursor = self._child(node, span, cursor, node["name"])
-            cursor = self._list(node, span, cursor, arguments)
+            cursor = self._child(node, span, cursor, cname)
+            if arguments:
+                cursor = self._list(node, span, cursor, arguments)
         elif kind == "labeled_pattern":
             if not isinstance(node["pattern"], dict) or node["pattern"].get("kind") not in _PATTERN_KINDS:
                 raise self.error("protocol", "labeled_pattern requires a pattern child", node)

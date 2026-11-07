@@ -335,10 +335,16 @@ def _type(name: str, *arguments: Form) -> Form:
     return form
 
 
-def _variable(name: str) -> Form:
+def _variable(name: str, *generics: Form) -> Form:
     def form(fixture: _Fixture) -> Node:
         start = fixture.offset
-        return fixture.node("name", start, name=fixture.name(name))
+        base = fixture.node("name", start, name=fixture.name(name))
+        if generics:
+            fixture.write("::<")
+            gen_nodes = fixture.forms(generics)
+            fixture.write(">")
+            return fixture.node("generic_application", start, value=base, arguments=gen_nodes)
+        return base
     return form
 
 
@@ -1674,9 +1680,12 @@ def _pat_ctor(name: str, *arguments: Form) -> Form:
     def form(fixture: _Fixture) -> Node:
         start = fixture.offset
         ctor = fixture.name(name)
-        fixture.write("(")
-        nodes = fixture.forms(arguments)
-        fixture.write(")")
+        if arguments:
+            fixture.write("(")
+            nodes = fixture.forms(arguments)
+            fixture.write(")")
+        else:
+            nodes = []
         return fixture.node("constructor_pattern", start, name=ctor, arguments=nodes)
     return form
 
@@ -2450,7 +2459,7 @@ def _union_declarations_and_elimination() -> None:
             _match_expr(
                 _variable("item"),
                 (
-                    (_pat_ctor("None"), _call("None", generics=(_NAT,))),
+                    (_pat_ctor("None"), _variable("None", _NAT)),
                     (_pat_ctor("Some", _pat_bind("v")), _call("Some", _variable("v"), generics=(_NAT,))),
                 ),
             ),
@@ -2465,13 +2474,13 @@ def _union_declarations_and_elimination() -> None:
                         _binary(
                             "==",
                             _match_expr(
-                                _call("None", generics=(_NAT,)),
+                                _variable("None", _NAT),
                                 (
-                                    (_pat_ctor("None"), _call("None", generics=(_NAT,))),
+                                    (_pat_ctor("None"), _variable("None", _NAT)),
                                     (_pat_ctor("Some", _pat_bind("v")), _call("Some", _variable("v"), generics=(_NAT,))),
                                 ),
                             ),
-                            _call("None", generics=(_NAT,)),
+                            _variable("None", _NAT),
                         )
                     ),
                 ),
@@ -2483,7 +2492,7 @@ def _union_declarations_and_elimination() -> None:
                             _match_expr(
                                 _call("Some", _variable("v"), generics=(_NAT,)),
                                 (
-                                    (_pat_ctor("None"), _call("None", generics=(_NAT,))),
+                                    (_pat_ctor("None"), _variable("None", _NAT)),
                                     (_pat_ctor("Some", _pat_bind("inner")), _call("Some", _variable("inner"), generics=(_NAT,))),
                                 ),
                             ),
@@ -2503,6 +2512,8 @@ def _union_declarations_and_elimination() -> None:
 
     for name, body, kind, fragment in (
         ("NonExhaustiveUnion", _match_expr(_variable("item"), ((_pat_ctor("None"), _natural(0)),)), "type", "non-exhaustive"),
+        ("NullaryUnionCtorCall", _match_expr(_call("None", generics=(_NAT,)), ((_pat_ctor("None"), _natural(0)), (_pat_ctor("Some", _pat_bind("v")), _variable("v")))), "type", "written bare"),
+        ("UppercaseUnknownCtorPattern", _match_expr(_variable("item"), ((_pat_ctor("UnknownUpper"), _natural(0)),)), "name", "unknown constructor"),
         ("RefutableUnionLet", _let_pattern(_pat_ctor("Some", _pat_bind("v")), _variable("item"), _variable("v")), "type", "irrefutable"),
         ("WrongUnionArity", _match_expr(
             _variable("item"),
@@ -2904,14 +2915,14 @@ def _early_return_propagation() -> None:
         (),
         _binary(
             "==",
-            _call("AddOptions", _call("None", generics=(_NAT,)), _call("Some", _natural(4))),
-            _call("None", generics=(_NAT,)),
+            _call("AddOptions", _variable("None", _NAT), _call("Some", _natural(4))),
+            _variable("None", _NAT),
         ),
         _assert(
             _binary(
                 "==",
-                _call("AddOptions", _call("None", generics=(_NAT,)), _call("Some", _natural(4))),
-                _call("None", generics=(_NAT,)),
+                _call("AddOptions", _variable("None", _NAT), _call("Some", _natural(4))),
+                _variable("None", _NAT),
             )
         ),
     )
@@ -3144,13 +3155,13 @@ def _represented_integers_and_conversions() -> None:
         _binary(
             "==",
             _call("CheckedLinear", _int_lit("20", "u8"), _int_lit("20", "u8"), _int_lit("5", "u8")),
-            _call("Err", _call("Overflow"), generics=(_type("u8"), _type("ArithmeticError"))),
+            _call("Err", _variable("Overflow"), generics=(_type("u8"), _type("ArithmeticError"))),
         ),
         _assert(
             _binary(
                 "==",
                 _call("CheckedLinear", _int_lit("20", "u8"), _int_lit("20", "u8"), _int_lit("5", "u8")),
-                _call("Err", _call("Overflow"), generics=(_type("u8"), _type("ArithmeticError"))),
+                _call("Err", _variable("Overflow"), generics=(_type("u8"), _type("ArithmeticError"))),
             )
         ),
     )
@@ -3160,13 +3171,13 @@ def _represented_integers_and_conversions() -> None:
         _binary(
             "==",
             _call(_member(_int_lit("10", "u8"), "CheckedDiv"), _int_lit("0", "u8")),
-            _call("Err", _call("ZeroDivisor"), generics=(_type("u8"), _type("ArithmeticError"))),
+            _call("Err", _variable("ZeroDivisor"), generics=(_type("u8"), _type("ArithmeticError"))),
         ),
         _assert(
             _binary(
                 "==",
                 _call(_member(_int_lit("10", "u8"), "CheckedDiv"), _int_lit("0", "u8")),
-                _call("Err", _call("ZeroDivisor"), generics=(_type("u8"), _type("ArithmeticError"))),
+                _call("Err", _variable("ZeroDivisor"), generics=(_type("u8"), _type("ArithmeticError"))),
             )
         ),
     )
@@ -3214,13 +3225,13 @@ def _represented_integers_and_conversions() -> None:
         _binary(
             "==",
             _call(_member(_variable("u8"), "TryFrom"), _int_lit("300", "u16")),
-            _call("Err", _call("OutOfRange"), generics=(_type("u8"), _type("ConversionError"))),
+            _call("Err", _variable("OutOfRange"), generics=(_type("u8"), _type("ConversionError"))),
         ),
         _assert(
             _binary(
                 "==",
                 _call(_member(_variable("u8"), "TryFrom"), _int_lit("300", "u16")),
-                _call("Err", _call("OutOfRange"), generics=(_type("u8"), _type("ConversionError"))),
+                _call("Err", _variable("OutOfRange"), generics=(_type("u8"), _type("ConversionError"))),
             )
         ),
     )
@@ -4522,7 +4533,7 @@ def _characters_conversions_patterns_and_formatting() -> None:
                         _binary(
                             "==",
                             _call(_member(_variable("char"), "TryFrom"), _int_lit("0xD800", "u32")),
-                            _call("Err", _call("OutOfRange"), generics=(_type("char"), _type("ConversionError"))),
+                            _call("Err", _variable("OutOfRange"), generics=(_type("char"), _type("ConversionError"))),
                         ),
                         _binary(
                             "&&",
@@ -4586,7 +4597,7 @@ def _structural_equality_and_seq_contains() -> None:
                         "&&",
                         _binary(
                             "!=",
-                            _call("Empty"),
+                            _variable("Empty"),
                             _call("Val", _int_lit("7", "u32")),
                         ),
                         _call(

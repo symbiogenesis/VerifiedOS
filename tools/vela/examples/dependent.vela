@@ -180,7 +180,7 @@ public union Option<TValue>
 
 public definition TValue UnwrapOr<TValue>(Option<TValue> item, TValue fallback) =>
     match (item) {
-        None() => fallback,
+        None => fallback,
         Some(Value: inner) => inner,
     };
 
@@ -193,21 +193,21 @@ public lemma UnwrapSome(Nat value, Nat fallback)
 
 public lemma OptionRoundTrip(Option<Nat> item)
     ensures (match (item) {
-        None() => None<Nat>(),
+        None => None::<Nat>,
         Some(value) => Some<Nat>(value),
     }) == item
     proof
     {
         match (item)
         {
-            case None():
-                assert (match (None<Nat>()) {
-                    None() => None<Nat>(),
+            case None:
+                assert (match (None::<Nat>) {
+                    None => None::<Nat>,
                     Some(value) => Some<Nat>(value),
-                }) == None<Nat>();
+                }) == None::<Nat>;
             case Some(value):
                 assert (match (Some<Nat>(value)) {
-                    None() => None<Nat>(),
+                    None => None::<Nat>,
                     Some(inner) => Some<Nat>(inner),
                 }) == Some<Nat>(value);
         }
@@ -224,10 +224,10 @@ public lemma PropagateSome()
     }
 
 public lemma PropagateNone()
-    ensures AddOptions(None<Nat>(), Some(4)) == None<Nat>()
+    ensures AddOptions(None::<Nat>, Some(4)) == None::<Nat>
     proof
     {
-        assert AddOptions(None<Nat>(), Some(4)) == None<Nat>();
+        assert AddOptions(None::<Nat>, Some(4)) == None::<Nat>;
     }
 
 public definition Nat AddRec(Nat left, Nat right) decreases left =>

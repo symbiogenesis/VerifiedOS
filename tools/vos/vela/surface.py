@@ -95,7 +95,7 @@ alias Count = int;
 alias Qualified = Vela.Numerics.ulong;
 definition T Identity<T>(T value) => value;
 definition Nat Choose(Option<Nat> option) => match (option) {
-    Some(value) => Identity<Nat>(value), None() => 0,
+    Some(value) => Identity<Nat>(value), None => 0,
 };
 void Calls() {
     let genericSingle = Outer(F<A, B>(7));
@@ -218,7 +218,7 @@ public void Use() {
     var Some((nested, _),) = candidate;
     match (candidate) {
         case Some(payload,): Consume(payload);
-        case None(): Empty();
+        case None: Empty();
         case fallback: Inspect(fallback);
     }
 }
@@ -276,7 +276,7 @@ public void Modes<region 'slot>(Nat value, in Nat read, ref Nat write,
     let callback = (out Nat destination) => Initialize(out destination);
     Apply(value, in read, ref write, out output, move packet);
     let present = Some(Some(value));
-    let absent = None();
+    let absent = None;
     let propagated = ReadOption()?;
     let hole = ?proof;
     let words = "null ?? ?. out";
@@ -284,8 +284,8 @@ public void Modes<region 'slot>(Nat value, in Nat read, ref Nat write,
 }
 definition Nat Consume(Option<Option<Nat>> choice) => match (choice) {
     Some(Some(n)) => n,
-    Some(None()) => 0,
-    None() => 0,
+    Some(None) => 0,
+    None => 0,
 };
 """, ("modified_type", "unary", "let", "var", "lambda",
       "call", "match_expression", "constructor_pattern", "propagate", "hole", "string")),
@@ -370,7 +370,7 @@ definition Fn(Nat value) -> Nat Callback() =>
     Fixture("expression-binding-errors-remain-syntax", """module InvalidExpressionBindings;
 definition T Duplicate(owned T owner) => let retained = move owner in (owner, retained);
 definition T Missing() => let value = value in value;
-definition T Refutable() => let Some(value) = None() in value;
+definition T Refutable() => let Some(value) = None in value;
 definition T Dropped(tracked T token) => let value @ 0 = Effectful(move token) in ();
 definition in<'local> T Escape() => let owner = Local() in in owner;
 """, ("let_expression", "let_pattern", "modified_type", "unary", "tuple", "unit")),
@@ -441,7 +441,7 @@ module LocalPatterns;
 public void Eliminate() {
     let Some(value) = optional;
     var Ready((owner, receipt)) = outcome;
-    let Result.Empty() = absent;
+    let Result.Empty = absent;
     let (Some((nested))) = wrapped;
     let Outer(Inner(deep), (item, ())) = tree;
     let ((grouped)) = source;
@@ -460,7 +460,7 @@ public void Eliminate() {
 }
 public void InvalidMeaning() {
     let Missing(duplicate, duplicate) = true;
-    var Ready() = 0;
+    var Ready(missing) = 0;
     let Some(_) = trackedToken;
     let applyWrongArity = (+)();
     let nonCallable = (~).Missing::<bool>(true, false);
@@ -955,7 +955,7 @@ alias Plain = Fn(byte) -> byte;
 public async Nat Bad(ref BorrowCell<byte> cell, tracked Permit permit) {
     let incompatible = match (cell.TryWrite()) as observed : Bytes<observed.Length> {
         Acquired(writer, debt) => (move permit, move permit),
-        BorrowConflict() => 0,
+        BorrowConflict => 0,
     };
     let escaping = match (incompatible) as erased : Never<missing> {
         _ => (scoped ref byte loan) => { await Ready(); return loan; },
@@ -1084,8 +1084,8 @@ public Result Update(ref BorrowCell<byte> cell, byte value) {
     });
     match (outcome) {
         case Updated(()): return Ok();
-        case BorrowConflict(): return Err(Conflict);
-        case CapacityExhausted(): return Err(Capacity);
+        case BorrowConflict: return Err(Conflict);
+        case CapacityExhausted: return Err(Capacity);
     }
 }
 private Result WithWrite(ref BorrowCell<byte> cell,
@@ -1095,7 +1095,7 @@ private Result WithWrite(ref BorrowCell<byte> cell,
             callback(ref writer.Value);
             cell.ReleaseWrite(move writer, move debt);
             return Ok();
-        case BorrowConflict(): return Err(Conflict);
+        case BorrowConflict: return Err(Conflict);
     }
 }
 public void Replace(ref LocalCell<Buffer> cell, owned Buffer replacement) {
@@ -1462,7 +1462,10 @@ NEGATIVE: tuple[tuple[str, bytes, str], ...] = (
     ("double-handler-comma", b"module M; Nat F() => handle (Run()) { return x => x,, };", "syntax"),
     ("grouped-singleton-not-product", b"module M; Nat F() => (value,);", "syntax"),
     ("typed-singleton-not-product", b"module M; alias X = (Nat,);", "syntax"),
-    ("qualified-constructor-without-arguments", b"module M; void F() { match (x) { case Result.None: return; } }", "syntax"),
+    ("nullary-constructor-pattern-parentheses", b"module M; void F() { match (x) { case None(): return; } }", "syntax"),
+    ("qualified-nullary-constructor-pattern-parentheses", b"module M; void F() { match (x) { case Result.None(): return; } }", "syntax"),
+    ("lowercase-constructor-pattern", b"module M; void F() { match (x) { case some(y): return; } }", "syntax"),
+    ("qualified-lowercase-pattern", b"module M; void F() { match (x) { case Result.none: return; } }", "syntax"),
     ("redundant-pattern-let", b"module M; void F() { let (let left, let right) = pair; }", "syntax"),
     ("contract-let-needs-grouping", b"module M; Nat F() requires let x = 1 in x == 1 => 1;", "syntax"),
     ("contract-quantifier-needs-grouping", b"module M; Nat F() requires forall (Nat n) => n == n => 1;", "syntax"),
@@ -1478,7 +1481,7 @@ NEGATIVE: tuple[tuple[str, bytes, str], ...] = (
     ("null-binder", b"module M; void F() { let null = value; }", "syntax"),
     ("nullable-type", b"module M; alias A = Nat?;", "syntax"),
     ("nullable-parameter", b"module M; void F(Nat? value) {}", "syntax"),
-    ("nullable-local", b"module M; void F() { let Nat? value = None(); }", "syntax"),
+    ("nullable-local", b"module M; void F() { let Nat? value = None; }", "syntax"),
     ("null-forgiving", b"module M; definition T F() => value!;", "syntax"),
     ("null-coalescing", b"module M; definition T F() => value??other;", "syntax"),
     ("null-conditional", b"module M; definition T F() => value?.Member;", "syntax"),
@@ -1522,7 +1525,9 @@ NEGATIVE: tuple[tuple[str, bytes, str], ...] = (
     ("local-constructor-doubled-comma", b"module M; void F() { var Some(x,,) = value; }", "syntax"),
     ("local-constructor-missing-initializer", b"module M; void F() { let Some(x) = ; }", "syntax"),
     ("local-constructor-grade", b"module M; void F() { let Some(x) @ q = value; }", "syntax"),
-    ("local-qualified-constructor-missing-parentheses", b"module M; void F() { let Result.Empty = value; }", "syntax"),
+    ("local-nullary-constructor-pattern-parentheses", b"module M; void F() { let Empty() = value; }", "syntax"),
+    ("local-qualified-nullary-constructor-pattern-parentheses", b"module M; void F() { let Result.Empty() = value; }", "syntax"),
+    ("local-lowercase-constructor-pattern", b"module M; void F() { let some(x) = value; }", "syntax"),
     ("local-pattern-incomplete-group", b"module M; void F() { let (let x = value; }", "syntax"),
     ("local-pattern-group-trailing-comma", b"module M; void F() { let ((x),) = value; }", "syntax"),
     ("group-pattern-missing-close", b"module M; void F() { match (x) { case (Some(value): return; } }", "syntax"),
@@ -2124,7 +2129,7 @@ def _explicit_value_roles(source: bytes, result: dict[str, Json]) -> None:
     if match.get("kind") != "match_expression" or len(cases) != len(patterns):
         raise ValueError("surface option elimination lost a tagged branch")
     for raw, expected_pattern, spelling in zip(cases, patterns,
-            (b"Some(Some(n))", b"Some(None())", b"None()"), strict=True):
+            (b"Some(Some(n))", b"Some(None)", b"None"), strict=True):
         pattern = _object(_object(raw, "option case").get("pattern"), "option pattern")
         if _recursive_pattern_shape(pattern) != expected_pattern:
             raise ValueError("surface nested option cases were flattened or changed")
@@ -2132,7 +2137,7 @@ def _explicit_value_roles(source: bytes, result: dict[str, Json]) -> None:
         if pattern.get("span") != [start, start + len(spelling)]:
             raise ValueError("surface nested option pattern original-byte span differs")
     for name, shape in (("present", ["call", "Some", [["call", "Some", ["value"]]]]),
-                        ("absent", ["call", "None", []]),
+                        ("absent", "None"),
                         ("propagated", ["propagate", ["call", "ReadOption", []]])):
         if _explicit_shape(_named(tree, "let", name).get("value")) != shape:
             raise ValueError("surface option construction/propagation acquired an implicit operation")
@@ -2335,8 +2340,8 @@ def _concise_authoring_roles(source: bytes, result: dict[str, Json]) -> None:
     if sorted(_texts(node.get("name"))[0] for node in constructors) != ["None", "Some", "Some"]:
         raise ValueError("surface explicit constructors became bare pattern binders")
     nullary = next(node for node in constructors if _texts(node.get("name")) == ["None"])
-    nullary_start = source.index(b"case None()") + len(b"case ")
-    if nullary.get("span") != [nullary_start, nullary_start + len(b"None()")]:
+    nullary_start = source.index(b"case None:") + len(b"case ")
+    if nullary.get("span") != [nullary_start, nullary_start + len(b"None")]:
         raise ValueError("surface nullary constructor span differs from its match arm")
     if _sequence(nullary.get("arguments"), "nullary constructor"):
         raise ValueError("surface nullary constructor fabricated an argument")
@@ -4212,7 +4217,7 @@ def _recursive_local_roles(source: bytes, result: dict[str, Json]) -> None:
     expected: list[tuple[str, bytes, Json]] = [
         ("let_pattern", b"Some(value)", ["constructor", "Some", [["bind", "value"]]]),
         ("var_pattern", b"Ready((owner, receipt))", ["constructor", "Ready", [["tuple", [["bind", "owner"], ["bind", "receipt"]]]]]),
-        ("let_pattern", b"Result.Empty()", ["constructor", "Result.Empty", []]),
+        ("let_pattern", b"Result.Empty", ["constructor", "Result.Empty", []]),
         ("let_pattern", b"(Some((nested)))", ["group", ["constructor", "Some", [["group", ["bind", "nested"]]]]]),
         ("let_pattern", b"Outer(Inner(deep), (item, ()))", ["constructor", "Outer", [
             ["constructor", "Inner", [["bind", "deep"]]], ["tuple", [["bind", "item"], "unit_pattern"]]]]),

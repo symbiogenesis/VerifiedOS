@@ -17,6 +17,7 @@ from tests.test_vela_elaborate import (
     _natural,
     _pat_bind,
     _pat_bool,
+    _pat_ctor,
     _pat_wild,
     _type,
     _variable,
@@ -139,48 +140,25 @@ def _invalid_source_and_protocol_never_report_partial_warnings() -> None:
 
 
 def _pattern_constructors_and_unreachable_arms() -> None:
-    fixture = _Fixture("PatternLint")
-    fixture.record("Token", ())
+    ensure("VELA106" in authoring.RETIRED_LINT_CODES and "VELA106" not in authoring.LINT_CODES,
+           "VELA106 was not recorded as permanently retired")
+    fixture = _Fixture("PatternTokenShape")
+    fixture.union("Option", (("None", ()), ("Some", (("Value", _type("Nat")),))))
     fixture.definition(
-        "ShadowAndUnreachable",
+        "UnwrapOrZero",
         _type("Nat"),
-        (("flag", _type("bool")),),
+        (("item", _type("Option")),),
         _match_expr(
-            _variable("flag"),
+            _variable("item"),
             (
-                (_pat_bind("None"), _natural(1)),
-                (_pat_bind("Token"), _natural(2)),
-                (_pat_wild(), _natural(3)),
-            ),
-        ),
-    )
-    fixture.definition(
-        "BoolExhaustive",
-        _type("Nat"),
-        (("flag", _type("bool")),),
-        _match_expr(
-            _variable("flag"),
-            (
-                (_pat_bool(True), _natural(1)),
-                (_pat_bool(False), _natural(2)),
-                (_pat_wild(), _natural(3)),
+                (_pat_ctor("None"), _natural(0)),
+                (_pat_ctor("Some", _pat_bind("value")), _variable("value")),
             ),
         ),
     )
     source, parsed = fixture.response()
     result = adapter.inspect_source(source, parsed)
-    ensure([item.code for item in result.findings] == ["VELA106", "VELA106", "VELA106", "VELA106"],
-           f"expected four VELA106 pattern warnings, got {result.findings!r}")
-    ensure("shadows constructor 'None'; write 'None()'" in result.findings[0].message,
-           "first VELA106 omitted constructor-shadowing guidance for None")
-    ensure("shadows constructor 'Token'; write 'Token()'" in result.findings[1].message,
-           "second VELA106 omitted constructor-shadowing guidance for declared record")
-    ensure("unreachable match arm after bare pattern binder 'None'" in result.findings[2].message
-           and "unreachable match arm; earlier patterns already cover this case" in result.findings[3].message,
-           "unreachable match arms did not emit VELA106")
-    previewed = authoring.preview_pattern_constructors(source, parsed)
-    ensure(b"None() => 1, Token() => 2, _ => 3" in previewed,
-           "constructor-pattern preview did not rewrite bare nullary constructor binders")
+    ensure(result.findings == (), f"expected no pattern lint findings on bare nullary constructor, got {result.findings!r}")
     wrong = _Fixture("IllTypedUnreachable")
     wrong.definition(
         "BadUnreachable",

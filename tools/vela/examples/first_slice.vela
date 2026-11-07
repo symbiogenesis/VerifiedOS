@@ -251,7 +251,7 @@ public ValidationOutcome PrepareAndValidatePacket(ref Span<byte> dst, in Span<by
     if (dst.Length < 8usize || pkt.Length < 4usize || !Span.Disjoint(dst, pkt))
     {
         let emptyView = Span.Invalidate(Span.Slice(dst, 0usize, 0usize));
-        return ValidationOutcome(false, FramingShort(), 0usize, emptyView);
+        return ValidationOutcome(false, FramingShort, 0usize, emptyView);
     }
     Span.Fill(ref dst, 0usize, 8usize, 0x00u8);
     let magic = pkt[0usize];
@@ -262,12 +262,12 @@ public ValidationOutcome PrepareAndValidatePacket(ref Span<byte> dst, in Span<by
     if (magic != 0x56u8 || flags != 0x01u8)
     {
         let emptyView = Span.Invalidate(Span.Slice(dst, 0usize, 0usize));
-        return ValidationOutcome(false, BadMagicOrFlags(), 0usize, emptyView);
+        return ValidationOutcome(false, BadMagicOrFlags, 0usize, emptyView);
     }
     if (payloadLen > 4usize || 4usize + payloadLen > pkt.Length || 4usize + payloadLen > dst.Length)
     {
         let emptyView = Span.Invalidate(Span.Slice(dst, 0usize, 0usize));
-        return ValidationOutcome(false, LengthOutOfBounds(), 0usize, emptyView);
+        return ValidationOutcome(false, LengthOutOfBounds, 0usize, emptyView);
     }
     CopyPacketToDst(ref dst, in pkt, payloadLen);
     let actualChecksum = ComputePacketChecksum(in pkt, rawLen, payloadLen);
@@ -275,11 +275,11 @@ public ValidationOutcome PrepareAndValidatePacket(ref Span<byte> dst, in Span<by
     {
         Span.Fill(ref dst, 0usize, 8usize, 0x00u8);
         let emptyView = Span.Invalidate(Span.Slice(dst, 0usize, 0usize));
-        return ValidationOutcome(false, ChecksumRejected(), 0usize, emptyView);
+        return ValidationOutcome(false, ChecksumRejected, 0usize, emptyView);
     }
     let payloadView = Span.ReadOnly(Span.Slice(dst, 4usize, payloadLen));
     Span.Restore(ref dst, payloadView);
-    return ValidationOutcome(true, ValidatedOk(), payloadLen, payloadView);
+    return ValidationOutcome(true, ValidatedOk, payloadLen, payloadView);
 }
 
 public theorem ValidateEmptyPacketOk(ref Span<byte> dst, in Span<byte> pkt, usize frameIdx)
@@ -303,7 +303,7 @@ public theorem ValidateEmptyPacketOk(ref Span<byte> dst, in Span<byte> pkt, usiz
     {
         let outcome = PrepareAndValidatePacket(ref dst, in pkt);
         assert (outcome.Ok
-            && (outcome.Error is ValidatedOk())
+            && (outcome.Error is ValidatedOk)
             && outcome.CopiedBytes == 0usize
             && outcome.PayloadView.Base == dst.Base + 4usize
             && outcome.PayloadView.Length == 0usize
@@ -348,7 +348,7 @@ public theorem ValidateFullPacketOk(
     {
         let outcome = PrepareAndValidatePacket(ref dst, in pkt);
         assert (outcome.Ok
-            && (outcome.Error is ValidatedOk())
+            && (outcome.Error is ValidatedOk)
             && outcome.CopiedBytes == 4usize
             && outcome.PayloadView.Base == dst.Base + 4usize
             && outcome.PayloadView.Length == 4usize
@@ -389,7 +389,7 @@ public theorem ValidatePartialPacketScrubsStaleAndTrailingBytes(
     {
         let outcome = PrepareAndValidatePacket(ref dst, in pkt);
         assert (outcome.Ok
-            && (outcome.Error is ValidatedOk())
+            && (outcome.Error is ValidatedOk)
             && outcome.CopiedBytes == 2usize
             && outcome.PayloadView.Length == 2usize
             && outcome.PayloadView[0usize] == b0
@@ -413,7 +413,7 @@ public theorem RejectFramingShort(ref Span<byte> dst, in Span<byte> pkt, usize i
     {
         let outcome = PrepareAndValidatePacket(ref dst, in pkt);
         assert (!outcome.Ok
-            && (outcome.Error is FramingShort())
+            && (outcome.Error is FramingShort)
             && outcome.CopiedBytes == 0usize
             && !outcome.PayloadView.Tag) == true;
         assert (dst.Base == old(dst.Base)
@@ -435,7 +435,7 @@ public theorem RejectBadMagic(ref Span<byte> dst, in Span<byte> pkt, usize frame
     {
         let outcome = PrepareAndValidatePacket(ref dst, in pkt);
         assert (!outcome.Ok
-            && (outcome.Error is BadMagicOrFlags())
+            && (outcome.Error is BadMagicOrFlags)
             && outcome.CopiedBytes == 0usize
             && !outcome.PayloadView.Tag) == true;
         assert (dst[0usize] == 0x00u8
@@ -457,7 +457,7 @@ public theorem RejectLengthOutOfBounds(ref Span<byte> dst, in Span<byte> pkt, us
     {
         let outcome = PrepareAndValidatePacket(ref dst, in pkt);
         assert (!outcome.Ok
-            && (outcome.Error is LengthOutOfBounds())
+            && (outcome.Error is LengthOutOfBounds)
             && outcome.CopiedBytes == 0usize
             && !outcome.PayloadView.Tag) == true;
         assert (dst.Length == old(dst.Length)
@@ -491,7 +491,7 @@ public theorem RejectChecksumScrubsDestinationAndRestores(
     {
         let outcome = PrepareAndValidatePacket(ref dst, in pkt);
         assert (!outcome.Ok
-            && (outcome.Error is ChecksumRejected())
+            && (outcome.Error is ChecksumRejected)
             && outcome.CopiedBytes == 0usize
             && !outcome.PayloadView.Tag) == true;
         assert (dst.Base == old(dst.Base)

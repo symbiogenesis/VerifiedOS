@@ -30,7 +30,7 @@ from vos.vela import (
 from vos.vela import (
     parser_checked as vela_parser_checked,
 )
-from vos.vela.authoring import Finding, preview_pattern_constructors
+from vos.vela.authoring import Finding
 
 
 def _publish(source: Path, destination: Path, gallina: str) -> None:
@@ -74,12 +74,10 @@ def main(argv: list[str] | None = None) -> int:
     elaborate.add_argument("source", type=Path)
     elaborate.add_argument("--output", type=Path,
                            help="atomically replace a file in an existing directory")
-    elaborate.add_argument("--allow", action="append", choices=("VELA105", "VELA106"), default=[],
+    elaborate.add_argument("--allow", action="append", choices=("VELA105",), default=[],
                            help="suppress an advisory mathematical lint (repeatable)")
-    elaborate.add_argument("--deny", action="append", choices=("VELA105", "VELA106"), default=[],
+    elaborate.add_argument("--deny", action="append", choices=("VELA105",), default=[],
                            help="make an advisory mathematical lint an error (repeatable)")
-    elaborate.add_argument("--preview-patterns", action="store_true",
-                           help="print a checked source candidate inserting () on bare nullary constructor patterns")
     support = commands.add_parser("support", help="build and kernel-check the pinned Rocq support library")
     support.add_argument("--archive", type=Path, help="use an already downloaded authenticated release archive")
     parse = commands.add_parser("parse", help="emit a complete located syntax tree as JSON")
@@ -90,20 +88,12 @@ def main(argv: list[str] | None = None) -> int:
     denied = set(getattr(args, "deny", []))
     if allowed & denied:
         parser.error("a lint cannot be both allowed and denied")
-    if getattr(args, "preview_patterns", False) and getattr(args, "output", None) is not None:
-        parser.error("--output cannot be combined with --preview-patterns")
     root = Path(__file__).resolve().parents[3]
     try:
         if args.command == "elaborate":
             source = vela_parser.read_source(args.source)
             compiled = vela_parser.build(root)
             parsed = vela_parser.parse_source(compiled, source, surface=True)
-            if args.preview_patterns:
-                candidate = preview_pattern_constructors(source, parsed)
-                candidate_parsed = vela_parser.parse_source(compiled, candidate, surface=True)
-                vela_mathematical.inspect_source(candidate, candidate_parsed)
-                sys.stdout.write(candidate.decode("utf-8"))
-                return 0
             translation = vela_mathematical.inspect_source(source, parsed)
             if not _naming(args.source, translation.findings, allowed, denied):
                 return 1

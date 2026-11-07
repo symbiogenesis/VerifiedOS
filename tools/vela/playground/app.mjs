@@ -540,7 +540,7 @@ function compilerDiagnostics(result, captured) {
     }] : findings.map((finding) => {
         const start = compilerPosition(finding.line, finding.column);
         return { range: { start, end: start }, severity: 2, message: finding.message,
-            code: finding.code, source: finding.code === "VELA106" ? "Vela pattern lint" : "Vela naming lint" };
+            code: finding.code, source: "Vela naming lint" };
     }) }, captured.generation, true);
 }
 

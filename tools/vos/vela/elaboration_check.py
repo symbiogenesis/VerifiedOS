@@ -303,12 +303,12 @@ public union Status {
 }
 public definition TValue UnwrapOr<TValue>(Option<TValue> item, TValue fallback) =>
     match (item) {
-        None() => fallback,
+        None => fallback,
         Some(Value: inner) => inner,
     };
 public definition Nat MeasureStatus(Status status) =>
     match (status) {
-        Idle() => 0,
+        Idle => 0,
         Busy(Step: current) => current,
         Split(Left: left, Right: right) => left + right,
     };
@@ -329,19 +329,19 @@ public lemma GuardedSome()
     proof { assert UnwrapGuarded(Some(5), 0) == 10; }
 public lemma OptionRoundTrip(Option<Nat> item)
     ensures (match (item) {
-        None() => None<Nat>(),
+        None => None::<Nat>,
         Some(value) => Some<Nat>(value),
     }) == item
     proof {
         match (item) {
-            case None():
-                assert (match (None<Nat>()) {
-                    None() => None<Nat>(),
+            case None:
+                assert (match (None::<Nat>) {
+                    None => None::<Nat>,
                     Some(value) => Some<Nat>(value),
-                }) == None<Nat>();
+                }) == None::<Nat>;
             case Some(value):
                 assert (match (Some<Nat>(value)) {
-                    None() => None<Nat>(),
+                    None => None::<Nat>,
                     Some(inner) => Some<Nat>(inner),
                 }) == Some<Nat>(value);
         }
@@ -444,8 +444,8 @@ public Result<Nat, bool> AddResults(Result<Nat, bool> left, Result<Nat, bool> ri
 }
 public lemma PropagateSome() ensures AddOptions(Some(3), Some(4)) == Some(7)
     proof { assert AddOptions(Some(3), Some(4)) == Some(7); }
-public lemma PropagateNone() ensures AddOptions(None<Nat>(), Some(4)) == None<Nat>()
-    proof { assert AddOptions(None<Nat>(), Some(4)) == None<Nat>(); }
+public lemma PropagateNone() ensures AddOptions(None::<Nat>, Some(4)) == None::<Nat>
+    proof { assert AddOptions(None::<Nat>, Some(4)) == None::<Nat>; }
 public lemma PropagateOk() ensures AddResults(Ok<Nat, bool>(2), Ok<Nat, bool>(5)) == Ok<Nat, bool>(7)
     proof { assert AddResults(Ok<Nat, bool>(2), Ok<Nat, bool>(5)) == Ok<Nat, bool>(7); }
 public lemma PropagateErr() ensures AddResults(Err<Nat, bool>(true), Ok<Nat, bool>(5)) == Err<Nat, bool>(true)
@@ -739,7 +739,12 @@ public lemma StepTwiceCheck()
          "public record Counter(Nat Value) { public Nat Value => 0; }", "name"),
         ("union-non-exhaustive-match",
          "public union Option<T> { None(); Some(T Value); } "
-         "definition Nat Wrong(Option<Nat> x) => match (x) { None() => 0 };", "type"),
+         "definition Nat Wrong(Option<Nat> x) => match (x) { None => 0 };", "type"),
+        ("union-nullary-constructor-call",
+         "public union Option<T> { None(); Some(T Value); } "
+         "definition Option<Nat> Wrong() => None<Nat>();", "type"),
+        ("pattern-uppercase-unknown-constructor",
+         "definition Nat Wrong(Nat x) => match (x) { UnknownUpper => 0 };", "name"),
         ("union-refutable-local-let",
          "public union Option<T> { None(); Some(T Value); } "
          "definition Nat Wrong(Option<Nat> x) => let Some(v) = x in v;", "type"),
@@ -747,7 +752,7 @@ public lemma StepTwiceCheck()
          "public union Bad { Case(); Case(Nat Value); }", "name"),
         ("union-pattern-unknown-label",
          "public union Option<T> { None(); Some(T Value); } "
-         "definition Nat Wrong(Option<Nat> x) => match (x) { None() => 0, Some(Missing: v) => v };", "name"),
+         "definition Nat Wrong(Option<Nat> x) => match (x) { None => 0, Some(Missing: v) => v };", "name"),
         ("format-write-target-alias-in-binary-hole",
          'definition TextBuilder<16> Wrong(TextBuilder<16> b) => Format.Write(ref b, $"n={Written(b) + 1:x4}");', "type"),
         ("integer-literal-overflow", "public const u8 Wrong = 300u8;", "type"),

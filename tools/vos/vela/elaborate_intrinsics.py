@@ -1779,6 +1779,8 @@ class _IntrinsicsMixin:
                 and full_path in self.globals
                 and full_path.split(".", 1)[0] not in environment
             ):
+                if full_path in self.union_ctors and not self.union_ctors[full_path][1].fields:
+                    return self.apply(self.lookup(full_path, environment), [], environment)
                 return self.lookup(full_path, environment)
             return self._project_member(
                 self.expression(recv_node, environment),
@@ -1800,6 +1802,8 @@ class _IntrinsicsMixin:
                 if self.static_forbidden is not None and id(self.records[name].ctor_binding) in self.static_forbidden:
                     raise self.fail("type", f"constant initializer depends on nonstatic binding '{name}'")
                 return self.instantiate(self.records[name].ctor_binding, environment)
+            if kind == "name" and name not in environment and name in self.union_ctors and not self.union_ctors[name][1].fields:
+                return self.apply(self.lookup(name, environment), [], environment)
             return self.lookup(name, environment)
         if kind == "group":
             return self.expression(self.node(node["value"]), environment)
@@ -1823,7 +1827,10 @@ class _IntrinsicsMixin:
                 binding = self.records[target_name].ctor_binding
             else:
                 binding = self.lookup(target_name, environment, raw=True)
-            return self.instantiate(binding, environment, self.nodes(node["arguments"]))
+            instantiated = self.instantiate(binding, environment, self.nodes(node["arguments"]))
+            if target_name not in environment and target_name in self.union_ctors and not self.union_ctors[target_name][1].fields:
+                return self.apply(instantiated, [], environment)
+            return instantiated
         if kind == "call":
             callee = self.node(node["callee"])
             call_args = self.nodes(node["arguments"])
@@ -1834,6 +1841,18 @@ class _IntrinsicsMixin:
                 base_callee = callee
                 gen_args = []
             if base_callee["kind"] == "member":
+                full_callee_path = self._dotted_member_path(base_callee)
+                if (
+                    full_callee_path is not None
+                    and full_callee_path in self.union_ctors
+                    and full_callee_path.split(".", 1)[0] not in environment
+                    and not self.union_ctors[full_callee_path][1].fields
+                ):
+                    raise self.fail(
+                        "type",
+                        f"nullary union constructor '{full_callee_path}' must be written bare without '()' (write '{full_callee_path}')",
+                        node,
+                    )
                 receiver = self.node(base_callee["value"])
                 member_name = self.name(base_callee["name"])
                 if (
@@ -2068,6 +2087,16 @@ class _IntrinsicsMixin:
                     self.metas = saved_recv_m
             if base_callee["kind"] == "name":
                 cname = self.name(base_callee["name"])
+                if (
+                    cname not in environment
+                    and cname in self.union_ctors
+                    and not self.union_ctors[cname][1].fields
+                ):
+                    raise self.fail(
+                        "type",
+                        f"nullary union constructor '{cname}' must be written bare without '()' (write '{cname}')",
+                        node,
+                    )
                 if cname == "old" and "old" not in environment and not gen_args:
                     if len(call_args) != 1:
                         raise self.fail("type", f"'old(...)' expects 1 argument, got {len(call_args)}", node)
