@@ -8,7 +8,7 @@ from vos.vela.ast import MAX_LITERAL_DIGITS
 MAX_DEPTH = 128
 MAX_WORK = 200_000
 MAX_REDUCTIONS = 20_000
-MAX_OUTPUT_BYTES = 1_048_576
+MAX_OUTPUT_BYTES = 4_194_304
 MAX_UNIVERSE = 8
 MAX_NAT_BITS = 4096
 MAX_CONSTANT_NAT = 10 ** MAX_LITERAL_DIGITS - 1
@@ -606,6 +606,166 @@ Fixpoint vela_bits_pad (n : nat) (fill : bool) (a : vela_bits) : vela_bits :=
   | S k => vela_bcons fill (vela_bits_pad k fill a)
   end.
 
+Definition vela_bits_head (a : vela_bits) : bool :=
+  match a with
+  | vela_bcons x _ => x
+  | vela_bnil => false
+  end.
+
+Definition vela_bits_tail (a : vela_bits) : vela_bits :=
+  match a with
+  | vela_bcons _ xs => xs
+  | vela_bnil => vela_bnil
+  end.
+
+Fixpoint vela_bits_snoc (a : vela_bits) (x : bool) : vela_bits :=
+  match a with
+  | vela_bnil => vela_bcons x vela_bnil
+  | vela_bcons y ys => vela_bcons y (vela_bits_snoc ys x)
+  end.
+
+Fixpoint vela_bits_init (a : vela_bits) : vela_bits :=
+  match a with
+  | vela_bnil => vela_bnil
+  | vela_bcons x xs =>
+      match xs with
+      | vela_bnil => vela_bnil
+      | vela_bcons _ _ => vela_bcons x (vela_bits_init xs)
+      end
+  end.
+
+Fixpoint vela_bits_fill (a : vela_bits) (b : bool) : vela_bits :=
+  match a with
+  | vela_bnil => vela_bnil
+  | vela_bcons _ xs => vela_bcons b (vela_bits_fill xs b)
+  end.
+
+Definition vela_bits_zero_like (a : vela_bits) : vela_bits :=
+  vela_bits_fill a false.
+
+Definition vela_bits_is_zero (a : vela_bits) : bool :=
+  vela_bits_eqb a (vela_bits_zero_like a).
+
+Definition vela_bits_neg (a : vela_bits) : vela_bits :=
+  vela_bits_sub (vela_bits_zero_like a) a.
+
+Definition vela_bits_shl1 (a : vela_bits) : vela_bits :=
+  match a with
+  | vela_bnil => vela_bnil
+  | vela_bcons _ xs => vela_bits_snoc xs false
+  end.
+
+Definition vela_bits_shr1 (fill : bool) (a : vela_bits) : vela_bits :=
+  match a with
+  | vela_bnil => vela_bnil
+  | vela_bcons _ _ => vela_bcons fill (vela_bits_init a)
+  end.
+
+Fixpoint vela_bits_shl_n (k : nat) (a : vela_bits) : vela_bits :=
+  match k with
+  | O => a
+  | S j => vela_bits_shl_n j (vela_bits_shl1 a)
+  end.
+
+Fixpoint vela_bits_shr_n (k : nat) (fill : bool) (a : vela_bits) : vela_bits :=
+  match k with
+  | O => a
+  | S j => vela_bits_shr_n j fill (vela_bits_shr1 fill a)
+  end.
+
+Fixpoint vela_bits_mul_acc (b a acc : vela_bits) : vela_bits :=
+  match b with
+  | vela_bnil => acc
+  | vela_bcons x xs =>
+      let shifted := vela_bits_shl1 acc in
+      vela_bits_mul_acc xs a (if x then vela_bits_add shifted a else shifted)
+  end.
+
+Definition vela_bits_mul (a b : vela_bits) : vela_bits :=
+  vela_bits_mul_acc b a (vela_bits_zero_like a).
+
+Fixpoint vela_bits_divmod_acc (n d r qrev : vela_bits) : @prod vela_bits vela_bits :=
+  match n with
+  | vela_bnil => @pair vela_bits vela_bits (vela_bits_rev qrev) r
+  | vela_bcons x xs =>
+      let shifted := vela_bits_snoc (vela_bits_tail r) x in
+      if vela_bits_ule d shifted
+      then vela_bits_divmod_acc xs d (vela_bits_sub shifted d) (vela_bcons true qrev)
+      else vela_bits_divmod_acc xs d shifted (vela_bcons false qrev)
+  end.
+
+Definition vela_bits_udivmod (n d : vela_bits) : @prod vela_bits vela_bits :=
+  let result :=
+    vela_bits_divmod_acc n (vela_bcons false d) (vela_bcons false (vela_bits_zero_like n)) vela_bnil
+  in
+  @pair vela_bits vela_bits
+    (@fst vela_bits vela_bits result) (vela_bits_tail (@snd vela_bits vela_bits result)).
+
+Definition vela_bits_extend (signed : bool) (a : vela_bits) : vela_bits :=
+  vela_bits_pad (vela_bits_len a) (vela_and signed (vela_bits_head a)) a.
+
+Fixpoint vela_bits_take_lsb (n : nat) (fill : bool) (a : vela_bits) : vela_bits :=
+  match n with
+  | O => vela_bnil
+  | S k =>
+      match a with
+      | vela_bnil => vela_bcons fill (vela_bits_take_lsb k fill vela_bnil)
+      | vela_bcons x xs => vela_bcons x (vela_bits_take_lsb k fill xs)
+      end
+  end.
+
+Definition vela_bits_resize (n : nat) (fill : bool) (a : vela_bits) : vela_bits :=
+  vela_bits_rev (vela_bits_take_lsb n fill (vela_bits_rev a)).
+
+Definition vela_bits_max (signed : bool) (a : vela_bits) : vela_bits :=
+  if signed then vela_bcons false (vela_bits_fill (vela_bits_tail a) true) else vela_bits_fill a true.
+
+Definition vela_bits_min (signed : bool) (a : vela_bits) : vela_bits :=
+  if signed then vela_bcons true (vela_bits_zero_like (vela_bits_tail a)) else vela_bits_zero_like a.
+
+Definition vela_bits_add_overflows (signed : bool) (a b sum : vela_bits) : bool :=
+  if signed
+  then vela_and (vela_eq_bool (vela_bits_head a) (vela_bits_head b))
+                (vela_ne_bool (vela_bits_head sum) (vela_bits_head a))
+  else vela_bits_ult sum a.
+
+Definition vela_bits_sub_overflows (signed : bool) (a b diff : vela_bits) : bool :=
+  if signed
+  then vela_and (vela_ne_bool (vela_bits_head a) (vela_bits_head b))
+                (vela_ne_bool (vela_bits_head diff) (vela_bits_head a))
+  else vela_bits_ult a b.
+
+Definition vela_bits_mul_overflows (signed : bool) (a b : vela_bits) : bool :=
+  vela_not
+    (vela_bits_eqb
+      (vela_bits_extend signed (vela_bits_mul a b))
+      (vela_bits_mul (vela_bits_extend signed a) (vela_bits_extend signed b))).
+
+Fixpoint vela_bits_to_nat_acc (bs : vela_bits) (acc : nat) : nat :=
+  match bs with
+  | vela_bnil => acc
+  | vela_bcons b rest =>
+      vela_bits_to_nat_acc rest (Corelib.Init.Nat.add (Corelib.Init.Nat.mul 2 acc) (if b then 1 else 0))
+  end.
+
+Fixpoint vela_nat_to_bits_lsb (w n : nat) : vela_bits :=
+  match w with
+  | O => vela_bnil
+  | S k => vela_bcons (Corelib.Init.Nat.odd n) (vela_nat_to_bits_lsb k (Corelib.Init.Nat.div2 n))
+  end.
+
+Definition vela_nat_to_bits (w n : nat) : vela_bits :=
+  vela_bits_rev (vela_nat_to_bits_lsb w n).
+
+Fixpoint vela_nat_shr_n (k n : nat) : nat :=
+  match k with
+  | O => n
+  | S j => vela_nat_shr_n j (Corelib.Init.Nat.div2 n)
+  end.
+
+Definition vela_nat_fits (w n : nat) : bool :=
+  Corelib.Init.Nat.eqb (vela_nat_shr_n w n) O.
+
 Definition vela_ArithmeticError : Type@{vela_u0} :=
   @sum unit (@sum unit unit).
 Definition vela_ArithmeticError_Overflow (_ : unit) : vela_ArithmeticError :=
@@ -629,10 +789,29 @@ Definition vela_int_add (tag : nat) (a b : vela_int tag) : vela_int tag :=
   vela_mk_int tag (vela_bits_add (vela_int_bits tag a) (vela_int_bits tag b)).
 Definition vela_int_sub (tag : nat) (a b : vela_int tag) : vela_int tag :=
   vela_mk_int tag (vela_bits_sub (vela_int_bits tag a) (vela_int_bits tag b)).
-Definition vela_int_mul (tag : nat) (a _ : vela_int tag) : vela_int tag := a.
-Definition vela_int_div (tag : nat) (a _ : vela_int tag) : vela_int tag := a.
-Definition vela_int_rem (tag : nat) (a _ : vela_int tag) : vela_int tag := a.
-Definition vela_int_neg (tag : nat) (a : vela_int tag) : vela_int tag := a.
+Definition vela_int_negative (tag : nat) (bs : vela_bits) : bool :=
+  vela_and (vela_tag_signed tag) (vela_bits_head bs).
+Definition vela_int_magnitude (tag : nat) (bs : vela_bits) : vela_bits :=
+  if vela_int_negative tag bs then vela_bits_neg bs else bs.
+Definition vela_int_mul (tag : nat) (a b : vela_int tag) : vela_int tag :=
+  vela_mk_int tag (vela_bits_mul (vela_int_bits tag a) (vela_int_bits tag b)).
+Definition vela_int_div (tag : nat) (a b : vela_int tag) : vela_int tag :=
+  let x := vela_int_bits tag a in
+  let y := vela_int_bits tag b in
+  if vela_bits_is_zero y then vela_mk_int tag (vela_bits_zero_like x) else
+  let q := @fst vela_bits vela_bits
+    (vela_bits_udivmod (vela_int_magnitude tag x) (vela_int_magnitude tag y)) in
+  vela_mk_int tag
+    (if vela_xorb (vela_int_negative tag x) (vela_int_negative tag y) then vela_bits_neg q else q).
+Definition vela_int_rem (tag : nat) (a b : vela_int tag) : vela_int tag :=
+  let x := vela_int_bits tag a in
+  let y := vela_int_bits tag b in
+  if vela_bits_is_zero y then a else
+  let r := @snd vela_bits vela_bits
+    (vela_bits_udivmod (vela_int_magnitude tag x) (vela_int_magnitude tag y)) in
+  vela_mk_int tag (if vela_int_negative tag x then vela_bits_neg r else r).
+Definition vela_int_neg (tag : nat) (a : vela_int tag) : vela_int tag :=
+  vela_mk_int tag (vela_bits_neg (vela_int_bits tag a)).
 Definition vela_int_and (tag : nat) (a b : vela_int tag) : vela_int tag :=
   vela_mk_int tag (vela_bits_and (vela_int_bits tag a) (vela_int_bits tag b)).
 Definition vela_int_or (tag : nat) (a b : vela_int tag) : vela_int tag :=
@@ -641,73 +820,175 @@ Definition vela_int_xor (tag : nat) (a b : vela_int tag) : vela_int tag :=
   vela_mk_int tag (vela_bits_xor (vela_int_bits tag a) (vela_int_bits tag b)).
 Definition vela_int_not (tag : nat) (a : vela_int tag) : vela_int tag :=
   vela_mk_int tag (vela_bits_not (vela_int_bits tag a)).
-Definition vela_int_shl (tag : nat) (a : vela_int tag) (_ : vela_int (4 : nat)) : vela_int tag := a.
-Definition vela_int_shr (tag : nat) (a : vela_int tag) (_ : vela_int (4 : nat)) : vela_int tag := a.
+Definition vela_shift_amount (tag : nat) (count : vela_int (4 : nat)) : option nat :=
+  let c := vela_int_bits (4 : nat) count in
+  if vela_bits_ult c (vela_nat_to_bits (vela_bits_len c) (vela_tag_bits tag))
+  then Some (vela_bits_to_nat_acc c O)
+  else None.
+Definition vela_int_shl (tag : nat) (a : vela_int tag) (count : vela_int (4 : nat)) : vela_int tag :=
+  let x := vela_int_bits tag a in
+  match vela_shift_amount tag count with
+  | Some k => vela_mk_int tag (vela_bits_shl_n k x)
+  | None => vela_mk_int tag (vela_bits_zero_like x)
+  end.
+Definition vela_int_shr (tag : nat) (a : vela_int tag) (count : vela_int (4 : nat)) : vela_int tag :=
+  let x := vela_int_bits tag a in
+  let fill := vela_int_negative tag x in
+  match vela_shift_amount tag count with
+  | Some k => vela_mk_int tag (vela_bits_shr_n k fill x)
+  | None => vela_mk_int tag (vela_bits_fill x fill)
+  end.
 Definition vela_int_eq (tag : nat) (a b : vela_int tag) : bool :=
   vela_bits_eqb (vela_int_bits tag a) (vela_int_bits tag b).
 Definition vela_int_ne (tag : nat) (a b : vela_int tag) : bool :=
   vela_not (vela_int_eq tag a b).
+Definition vela_int_key (tag : nat) (a : vela_int tag) : vela_bits :=
+  let bs := vela_int_bits tag a in
+  if vela_tag_signed tag
+  then match bs with
+       | vela_bcons msb rest => vela_bcons (vela_not msb) rest
+       | vela_bnil => vela_bnil
+       end
+  else bs.
 Definition vela_int_lt (tag : nat) (a b : vela_int tag) : bool :=
-  vela_bits_ult (vela_int_bits tag a) (vela_int_bits tag b).
+  vela_bits_ult (vela_int_key tag a) (vela_int_key tag b).
 Definition vela_int_le (tag : nat) (a b : vela_int tag) : bool :=
-  vela_bits_ule (vela_int_bits tag a) (vela_int_bits tag b).
+  vela_bits_ule (vela_int_key tag a) (vela_int_key tag b).
 Definition vela_int_gt (tag : nat) (a b : vela_int tag) : bool :=
-  vela_bits_ult (vela_int_bits tag b) (vela_int_bits tag a).
+  vela_bits_ult (vela_int_key tag b) (vela_int_key tag a).
 Definition vela_int_ge (tag : nat) (a b : vela_int tag) : bool :=
-  vela_bits_ule (vela_int_bits tag b) (vela_int_bits tag a).
+  vela_bits_ule (vela_int_key tag b) (vela_int_key tag a).
 Definition vela_int_wrap_add (tag : nat) (a b : vela_int tag) : vela_int tag :=
   vela_int_add tag a b.
 Definition vela_int_wrap_sub (tag : nat) (a b : vela_int tag) : vela_int tag :=
   vela_int_sub tag a b.
-Definition vela_int_wrap_mul (tag : nat) (a _ : vela_int tag) : vela_int tag := a.
-Definition vela_int_wrap_neg (tag : nat) (a : vela_int tag) : vela_int tag := a.
-Definition vela_int_wrap_shl (tag : nat) (a : vela_int tag) (_ : vela_int (4 : nat)) : vela_int tag := a.
-Definition vela_int_sat_add (tag : nat) (a _ : vela_int tag) : vela_int tag := a.
-Definition vela_int_sat_sub (tag : nat) (a _ : vela_int tag) : vela_int tag := a.
-Definition vela_int_sat_mul (tag : nat) (a _ : vela_int tag) : vela_int tag := a.
-Definition vela_int_sat_neg (tag : nat) (a : vela_int tag) : vela_int tag := a.
-Definition vela_int_chk_add (tag : nat) (a _ : vela_int tag)
+Definition vela_int_wrap_mul (tag : nat) (a b : vela_int tag) : vela_int tag :=
+  vela_int_mul tag a b.
+Definition vela_int_wrap_neg (tag : nat) (a : vela_int tag) : vela_int tag :=
+  vela_int_neg tag a.
+Definition vela_int_wrap_shl (tag : nat) (a : vela_int tag) (count : vela_int (4 : nat)) : vela_int tag :=
+  vela_int_shl tag a count.
+Definition vela_int_sat_add (tag : nat) (a b : vela_int tag) : vela_int tag :=
+  let x := vela_int_bits tag a in
+  let y := vela_int_bits tag b in
+  let s := vela_tag_signed tag in
+  let r := vela_bits_add x y in
+  vela_mk_int tag
+    (if vela_bits_add_overflows s x y r
+     then (if vela_int_negative tag x then vela_bits_min s x else vela_bits_max s x)
+     else r).
+Definition vela_int_sat_sub (tag : nat) (a b : vela_int tag) : vela_int tag :=
+  let x := vela_int_bits tag a in
+  let y := vela_int_bits tag b in
+  let s := vela_tag_signed tag in
+  let r := vela_bits_sub x y in
+  vela_mk_int tag
+    (if vela_bits_sub_overflows s x y r
+     then (if s then (if vela_bits_head x then vela_bits_min s x else vela_bits_max s x)
+           else vela_bits_min s x)
+     else r).
+Definition vela_int_sat_mul (tag : nat) (a b : vela_int tag) : vela_int tag :=
+  let x := vela_int_bits tag a in
+  let y := vela_int_bits tag b in
+  let s := vela_tag_signed tag in
+  vela_mk_int tag
+    (if vela_bits_mul_overflows s x y
+     then (if vela_xorb (vela_int_negative tag x) (vela_int_negative tag y)
+           then vela_bits_min s x else vela_bits_max s x)
+     else vela_bits_mul x y).
+Definition vela_int_sat_neg (tag : nat) (a : vela_int tag) : vela_int tag :=
+  let x := vela_int_bits tag a in
+  let s := vela_tag_signed tag in
+  vela_mk_int tag
+    (if s
+     then (if vela_bits_eqb x (vela_bits_min s x) then vela_bits_max s x else vela_bits_neg x)
+     else vela_bits_zero_like x).
+Definition vela_int_ok (tag : nat) (x : vela_bits) : vela_Result (vela_int tag) vela_ArithmeticError :=
+  vela_Result_Ok (vela_int tag) vela_ArithmeticError (vela_mk_int tag x).
+Definition vela_int_err (tag : nat) (e : vela_ArithmeticError)
     : vela_Result (vela_int tag) vela_ArithmeticError :=
-  vela_Result_Ok (vela_int tag) vela_ArithmeticError a.
-Definition vela_int_chk_sub (tag : nat) (a _ : vela_int tag)
+  vela_Result_Err (vela_int tag) vela_ArithmeticError e.
+Definition vela_int_chk_add (tag : nat) (a b : vela_int tag)
     : vela_Result (vela_int tag) vela_ArithmeticError :=
-  vela_Result_Ok (vela_int tag) vela_ArithmeticError a.
-Definition vela_int_chk_mul (tag : nat) (a _ : vela_int tag)
+  let x := vela_int_bits tag a in
+  let y := vela_int_bits tag b in
+  let r := vela_bits_add x y in
+  if vela_bits_add_overflows (vela_tag_signed tag) x y r
+  then vela_int_err tag (vela_ArithmeticError_Overflow tt)
+  else vela_int_ok tag r.
+Definition vela_int_chk_sub (tag : nat) (a b : vela_int tag)
     : vela_Result (vela_int tag) vela_ArithmeticError :=
-  vela_Result_Ok (vela_int tag) vela_ArithmeticError a.
-Definition vela_int_chk_div (tag : nat) (a _ : vela_int tag)
+  let x := vela_int_bits tag a in
+  let y := vela_int_bits tag b in
+  let r := vela_bits_sub x y in
+  if vela_bits_sub_overflows (vela_tag_signed tag) x y r
+  then vela_int_err tag (vela_ArithmeticError_Overflow tt)
+  else vela_int_ok tag r.
+Definition vela_int_chk_mul (tag : nat) (a b : vela_int tag)
     : vela_Result (vela_int tag) vela_ArithmeticError :=
-  vela_Result_Ok (vela_int tag) vela_ArithmeticError a.
-Definition vela_int_chk_rem (tag : nat) (a _ : vela_int tag)
+  let x := vela_int_bits tag a in
+  let y := vela_int_bits tag b in
+  if vela_bits_mul_overflows (vela_tag_signed tag) x y
+  then vela_int_err tag (vela_ArithmeticError_Overflow tt)
+  else vela_int_ok tag (vela_bits_mul x y).
+Definition vela_int_chk_div (tag : nat) (a b : vela_int tag)
     : vela_Result (vela_int tag) vela_ArithmeticError :=
-  vela_Result_Ok (vela_int tag) vela_ArithmeticError a.
+  let x := vela_int_bits tag a in
+  let y := vela_int_bits tag b in
+  let s := vela_tag_signed tag in
+  if vela_bits_is_zero y then vela_int_err tag (vela_ArithmeticError_ZeroDivisor tt) else
+  if vela_and s (vela_and (vela_bits_eqb x (vela_bits_min s x)) (vela_bits_eqb y (vela_bits_fill y true)))
+  then vela_int_err tag (vela_ArithmeticError_Overflow tt)
+  else vela_Result_Ok (vela_int tag) vela_ArithmeticError (vela_int_div tag a b).
+Definition vela_int_chk_rem (tag : nat) (a b : vela_int tag)
+    : vela_Result (vela_int tag) vela_ArithmeticError :=
+  if vela_bits_is_zero (vela_int_bits tag b)
+  then vela_int_err tag (vela_ArithmeticError_ZeroDivisor tt)
+  else vela_Result_Ok (vela_int tag) vela_ArithmeticError (vela_int_rem tag a b).
 Definition vela_int_chk_neg (tag : nat) (a : vela_int tag)
     : vela_Result (vela_int tag) vela_ArithmeticError :=
-  vela_Result_Ok (vela_int tag) vela_ArithmeticError a.
-Definition vela_int_chk_shl (tag : nat) (a : vela_int tag) (_ : vela_int (4 : nat))
+  let x := vela_int_bits tag a in
+  let s := vela_tag_signed tag in
+  if (if s then vela_bits_eqb x (vela_bits_min s x) else vela_not (vela_bits_is_zero x))
+  then vela_int_err tag (vela_ArithmeticError_Overflow tt)
+  else vela_int_ok tag (vela_bits_neg x).
+Definition vela_int_chk_shl (tag : nat) (a : vela_int tag) (count : vela_int (4 : nat))
     : vela_Result (vela_int tag) vela_ArithmeticError :=
-  vela_Result_Ok (vela_int tag) vela_ArithmeticError a.
-Definition vela_int_chk_shr (tag : nat) (a : vela_int tag) (_ : vela_int (4 : nat))
+  let x := vela_int_bits tag a in
+  match vela_shift_amount tag count with
+  | None => vela_int_err tag (vela_ArithmeticError_InvalidShift tt)
+  | Some k =>
+      let r := vela_bits_shl_n k x in
+      if vela_bits_eqb (vela_bits_shr_n k (vela_int_negative tag r) r) x
+      then vela_int_ok tag r
+      else vela_int_err tag (vela_ArithmeticError_Overflow tt)
+  end.
+Definition vela_int_chk_shr (tag : nat) (a : vela_int tag) (count : vela_int (4 : nat))
     : vela_Result (vela_int tag) vela_ArithmeticError :=
-  vela_Result_Ok (vela_int tag) vela_ArithmeticError a.
-Definition vela_int_to_nat (tag : nat) (_ : vela_int tag) : nat := O.
+  match vela_shift_amount tag count with
+  | None => vela_int_err tag (vela_ArithmeticError_InvalidShift tt)
+  | Some _ => vela_Result_Ok (vela_int tag) vela_ArithmeticError (vela_int_shr tag a count)
+  end.
+Definition vela_int_to_nat (tag : nat) (a : vela_int tag) : nat :=
+  let bs := vela_int_bits tag a in
+  if vela_int_negative tag bs then O else vela_bits_to_nat_acc bs O.
 Definition vela_int_from (src dst : nat) (x : vela_int src) : vela_int dst :=
   let bs := vela_int_bits src x in
-  let fill :=
-    if vela_tag_signed src then
-      match bs with
-      | vela_bcons msb _ => msb
-      | vela_bnil => false
-      end
-    else false
-  in
-  vela_mk_int dst (vela_bits_pad (Corelib.Init.Nat.sub (vela_tag_bits dst) (vela_bits_len bs)) fill bs).
+  vela_mk_int dst (vela_bits_resize (vela_tag_bits dst) (vela_int_negative src bs) bs).
 Definition vela_int_try_from (src dst : nat) (x : vela_int src)
     : vela_Result (vela_int dst) vela_ConversionError :=
-  vela_Result_Ok (vela_int dst) vela_ConversionError (vela_int_from src dst x).
-Definition vela_int_try_from_Nat (dst : nat) (_ : nat)
+  let c := vela_int_from src dst x in
+  if vela_and
+       (vela_int_eq src (vela_int_from dst src c) x)
+       (vela_eq_bool (vela_int_negative src (vela_int_bits src x)) (vela_int_negative dst (vela_int_bits dst c)))
+  then vela_Result_Ok (vela_int dst) vela_ConversionError c
+  else vela_Result_Err (vela_int dst) vela_ConversionError (vela_ConversionError_OutOfRange tt).
+Definition vela_int_try_from_Nat (dst : nat) (n : nat)
     : vela_Result (vela_int dst) vela_ConversionError :=
-  vela_Result_Ok (vela_int dst) vela_ConversionError (vela_mk_int dst vela_bnil).
+  let w := vela_tag_bits dst in
+  if vela_nat_fits (if vela_tag_signed dst then Corelib.Init.Nat.pred w else w) n
+  then vela_Result_Ok (vela_int dst) vela_ConversionError (vela_mk_int dst (vela_nat_to_bits w n))
+  else vela_Result_Err (vela_int dst) vela_ConversionError (vela_ConversionError_OutOfRange tt).
 
 Inductive vela_char : Type@{vela_u0} :=
 | vela_mk_char : nat -> vela_char.
@@ -731,22 +1012,27 @@ Definition vela_char_ge (a b : vela_char) : bool :=
   Corelib.Init.Nat.leb (vela_char_code b) (vela_char_code a).
 Definition vela_char_to_nat (c : vela_char) : nat :=
   vela_char_code c.
-Definition vela_char_to_u32 (_ : vela_char) : vela_int (2 : nat) :=
-  vela_mk_int (2 : nat) (vela_bits_pad 32 false vela_bnil).
-Fixpoint vela_bits_to_nat_acc (bs : vela_bits) (acc : nat) : nat :=
-  match bs with
-  | vela_bnil => acc
-  | vela_bcons b rest =>
-      vela_bits_to_nat_acc rest (Corelib.Init.Nat.add (Corelib.Init.Nat.mul 2 acc) (if b then 1 else 0))
-  end.
+Definition vela_char_to_u32 (c : vela_char) : vela_int (2 : nat) :=
+  vela_mk_int (2 : nat) (vela_nat_to_bits 32 (vela_char_code c)).
 Definition vela_char_from_u8 (b : vela_int (0 : nat)) : vela_char :=
   vela_mk_char (vela_bits_to_nat_acc (vela_int_bits (0 : nat) b) O).
-Definition vela_char_try_from_u32 (_ : vela_int (2 : nat))
+Definition vela_char_scalar_bits (bs : vela_bits) : bool :=
+  vela_and
+    (vela_bits_ule bs (vela_x0 (vela_x0 (vela_x1 (vela_x0 (vela_xf (vela_xf (vela_xf (vela_xf vela_bnil)))))))))
+    (vela_or
+      (vela_bits_ult bs (vela_x0 (vela_x0 (vela_x0 (vela_x0 (vela_xd (vela_x8 (vela_x0 (vela_x0 vela_bnil)))))))))
+      (vela_bits_ult (vela_x0 (vela_x0 (vela_x0 (vela_x0 (vela_xd (vela_xf (vela_xf (vela_xf vela_bnil)))))))) bs)).
+Definition vela_char_try_from_u32 (v : vela_int (2 : nat))
     : vela_Result vela_char vela_ConversionError :=
-  vela_Result_Ok vela_char vela_ConversionError (vela_mk_char O).
+  let bs := vela_int_bits (2 : nat) v in
+  if vela_char_scalar_bits bs
+  then vela_Result_Ok vela_char vela_ConversionError (vela_mk_char (vela_bits_to_nat_acc bs O))
+  else vela_Result_Err vela_char vela_ConversionError (vela_ConversionError_OutOfRange tt).
 Definition vela_char_try_from_Nat (n : nat)
     : vela_Result vela_char vela_ConversionError :=
-  vela_Result_Ok vela_char vela_ConversionError (vela_mk_char n).
+  if vela_and (vela_nat_fits 32 n) (vela_char_scalar_bits (vela_nat_to_bits 32 n))
+  then vela_Result_Ok vela_char vela_ConversionError (vela_mk_char n)
+  else vela_Result_Err vela_char vela_ConversionError (vela_ConversionError_OutOfRange tt).
 
 Definition vela_u8_zero : vela_int (0 : nat) :=
   vela_mk_int (0 : nat) (vela_bits_pad 8 false vela_bnil).
@@ -969,8 +1255,8 @@ Definition vela_Written (capacity : nat) (builder : vela_TextBuilder capacity) :
   | vela_text_builder _ _ used => used
   end.
 
-Definition vela_nat_to_usize (_ : nat) : vela_int (4 : nat) :=
-  vela_mk_int (4 : nat) (vela_bits_pad 64 false vela_bnil).
+Definition vela_nat_to_usize (n : nat) : vela_int (4 : nat) :=
+  vela_mk_int (4 : nat) (vela_nat_to_bits 64 n).
 
 Inductive vela_Seq (A : Type@{vela_u0}) : Type@{vela_u0} :=
 | vela_Seq_Empty : vela_Seq A

@@ -1,18 +1,18 @@
 # Vela Whole-System Authoring Contract
 
-> Non-normative replacement criteria extending the [primary Vela design and examples](verification-strategy.md).
-> [PLAN.md](../../../PLAN.md#vela-whole-system-authoring-proposal) owns proposal stages;
-> the [requirements register](../../requirements-register.md) governs admission until
+> Non-normative replacement criteria extending the [primary Vela design and examples](../verification-strategy.md).
+> [PLAN.md](../../../../PLAN.md#vela-whole-system-authoring-proposal) owns proposal stages;
+> the [requirements register](../../../requirements-register.md) governs admission until
 > explicit amendments accept replacements. This contract supplies no implementation
 > or agreement theorem.
 
 ## Authoring end state
 
-The [first supported Vela release](first-release.md#release-boundary) delivers
+The [first supported Vela release](../first-release.md#release-boundary) delivers
 bounded synchronous software, contracts and usable proof interfaces through one
 retained backend. Its acceptance does not depend on self-hosting, a new native
 compiler, complete proof-language replacement, ISA-model migration or hardware
-authorship. The [delivery plan](../../../PLAN.md#vela-first-release-delivery)
+authorship. The [delivery plan](../../../../PLAN.md#vela-first-release-delivery)
 requires a complete useful software path and an independent client first.
 
 Whole-system authorship is a later product option: Vela may author software,
@@ -70,7 +70,7 @@ Initially elaborate into admitted interpretations, reconstruct evidence in
 Rocq/CIC and lower supported explicit-memory code through the selected compiler;
 generated Clight is permitted. Replacing the required verified-C or Rust producer
 needs duty-by-duty register/prose amendments under the
-[compiler replacement contract](compiler-route-contract.md#conditional-amendment-and-reviewer-requirements).
+[compiler replacement contract](../compiler-route-contract.md#conditional-amendment-and-reviewer-requirements).
 Language unification and source-neutral admission alone retire neither.
 
 The following evidence is needed before handwritten C and component VST scripts
@@ -89,7 +89,7 @@ can retire:
   progress, adversarial-context isolation, permitted leakage and resource bounds
   wherever the component's accepted claim includes them.
 
-The [foundation map](../../hardware/cheri-foundation-map.md#required-connections)
+The [foundation map](../../../hardware/cheri-foundation-map.md#required-connections)
 owns missing concrete laws; generic separation logic or surface syntax supplies
 no CHERI instance. VST may remain internal. Its replacement needs sound rules and
 connections to the admitted machine logic, preserving every discharged obligation.
@@ -117,13 +117,13 @@ costs. The first software release keeps one retained backend; it owes no new
 native compiler or self-compilation result. Retained-producer interoperation
 remains available throughout qualification/migration.
 
-Development uses the [Menhir route](verification-strategy.md#development-parser-and-grammar)
+Development uses the [Menhir route](../verification-strategy.md#development-parser-and-grammar)
 with a reviewed grammar and located AST, preserving separate lexer, parsing,
 elaboration and source-correspondence duties. The selected native Vela compiler
 includes its parser; verified bootstrap accounts for Menhir development/seed dependencies
 until retirement preserves accepted grammar and source meaning.
 
-Select [LSP, DAP and DWARF interoperability](tooling-protocols.md) according to
+Select [LSP, DAP and DWARF interoperability](../tooling-protocols.md) according to
 actual compiler/editor and execution-backend consumers. The initial software
 release requires useful diagnostics, navigation, formatting and proof inspection;
 it does not wait for every debugger or export adapter.
@@ -171,7 +171,7 @@ application. R-05-023a decompilation/final validation remains required until a
 register/prose amendment admits composed substitutes; compiler assertions cannot
 certify output.
 
-The [Plinth/Plutus design comparison](verification-strategy.md#compilation-and-executable-models)
+The [Plinth/Plutus design comparison](../verification-strategy.md#compilation-and-executable-models)
 informs this separation of pass implementation, relation and proof. A composed
 record identifies each actual input/output, pass and checked theorem application;
 its interfaces preserve the facts later passes consume. A missing step or
@@ -208,7 +208,7 @@ Qualify commercial use, distribution and resident rebuilding for the complete
 source/proof/helper/runtime closure. Independent infrastructure may use project
 terms; adapted passes retain their terms. CompCert/LLVM independence and removal
 of non-commercial dependencies require closure audit and consumer retirement under
-the [compiler replacement duties](compiler-route-contract.md#conditional-amendment-and-reviewer-requirements).
+the [compiler replacement duties](../compiler-route-contract.md#conditional-amendment-and-reviewer-requirements).
 
 ## Machine model
 
@@ -230,7 +230,7 @@ reviewed scope decision; silently omitting a difficult operation is no replaceme
 Supply one admitted machine closure, parameterized by actual platform variation,
 with explicit configuration, core class and hart identities. Every consumer resolves
 that closure and declared instances, without private transcriptions. Resolve the
-[canonical term's open configuration question](../../assurance/canonical-machine-term.md#2-generation-identity)
+[canonical term's open configuration question](../../../assurance/canonical-machine-term.md#2-generation-identity)
 before migration: a term fixed to one hart cannot stand for all compositions.
 
 Prove full-selected-scope agreement with pinned Sail-generated definitions, with
@@ -257,7 +257,7 @@ rules and cycles/schedules.
 Its semantics/compiler need checked connections to the admitted hardware interpretation
 and exact synthesis input. Initial Kami/Kôika elaboration or RTL generation is
 permitted; generation alone meets neither connection. The
-[RTL boundary](../../assurance/rtl-correspondence-boundary.md) distinguishes source
+[RTL boundary](../../../assurance/rtl-correspondence-boundary.md) distinguishes source
 circuit theorems from synthesized artifacts.
 
 Simulator/RTL may share hardware definitions, and architecture/hardware may share
@@ -272,7 +272,7 @@ netlist audits keep independent artifact checks; circuit theorems imply no physi
 
 ## Migration and retirement
 
-The [proposal ownership](../../../PLAN.md#vela-whole-system-authoring-proposal)
+The [proposal ownership](../../../../PLAN.md#vela-whole-system-authoring-proposal)
 records conditional stages after the first software release. A successful
 software release starts no migration automatically. For an explicitly selected
 whole-system replacement, the technical transition criteria are:
@@ -297,7 +297,7 @@ whole-system replacement, the technical transition criteria are:
    identities for retained historical results. Remove active dual maintenance and
    update provenance, gates and the trust-base inventory in the same transition.
 
-The amendment dossier follows [the register amendment process](../../spec.md#r-18-034).
+The amendment dossier follows [the register amendment process](../../../spec.md#r-18-034).
 It reviews the anchor identity and provenance rules R-05-019 through R-05-019c,
 R-05-020's replacement conditions, and all affected source-correspondence,
 primitive, binary-validation and hardware obligations. In particular it accounts

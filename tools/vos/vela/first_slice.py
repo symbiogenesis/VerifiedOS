@@ -1,11 +1,14 @@
 # SPDX-License-Identifier: Apache-2.0
-"""Qualify the Q25w Span<byte> carrier and vela-first-slice packet validator.
+"""Run the Q25w Span<byte> carrier and vela-first-slice packet validator harness.
 
 This module connects the authored Vela source (`tools/vela/examples/first_slice.vela`)
 to:
 1. Rocq elaboration (`rocq c`, `Print Assumptions`, and `rocqchk`) of the concrete
    `Span<byte>` carrier laws, `PrepareAndValidatePacket` functional and `restores`
-   contracts, and expected-byte/status scenario theorems;
+   contracts, and expected-byte/status scenario theorems. Obligations the elaborator
+   cannot kernel-prove reach Rocq as named solver-trust axioms carrying their real
+   statements; the audit requires exactly that ledger, and a non-empty ledger leaves
+   the slice unaccepted;
 2. The capacity-invariance gate (`N = 4` / `8` vs `N = 1,000,000,000`) proving
    identical obligation counts, reduction steps, and proof structure;
 3. Well-formed semantic negative neighbors (bounds, `in` borrow mutation, `ReadOnly`
@@ -38,6 +41,7 @@ from vos import env, proofenv
 from vos.atomic import atomic_path
 from vos.vela import (
     VelaError,
+    solver_ledger,
 )
 from vos.vela import (
     elaborate as vela_elaborate,
@@ -395,7 +399,7 @@ def build_foundation_inventory() -> dict[str, object]:
             "RejectLengthOutOfBounds",
             "RejectChecksumScrubsDestinationAndRestores",
         ],
-        "global_assumptions": "Closed under the global context (0 axioms)",
+        "global_assumptions": "exactly the solver-trust ledger recorded at qualification",
         "blocking_dependencies": {
             "Q35b / Q35o / Q35p": (
                 "Canonical Sail machine term rv64d.v refuses Rocq 9.3.0 compilation at "
@@ -1365,9 +1369,8 @@ def _qualify_attempt(
         directory / "FirstSlice.assumptions.log",
         steps,
     )
-    assumption_lines = [line.strip() for line in assumptions_out.splitlines() if line.strip()]
-    if assumption_lines != ["Closed under the global context"] * len(audited):
-        raise ValueError("FirstSlice.v exports have unqualified axioms or assumptions")
+    trusted = solver_ledger.ledger(translated.gallina)
+    reported_trust = solver_ledger.audit(assumptions_out, len(audited), module, trusted)
 
     _run(
         _opam(["rocqchk", "-R", str(directory), "VelaFirstSlice", "VelaFirstSlice.FirstSlice"]),
@@ -1501,13 +1504,23 @@ def _qualify_attempt(
             "perturbed_controls": perturbed_runs,
         })
 
+    inventory = build_foundation_inventory()
+    inventory["solver_trusted_obligations"] = [entry.as_json() for entry in trusted]
+    inventory["global_assumptions"] = (
+        "Closed under the global context (0 axioms)" if not trusted
+        else f"{len(trusted)} solver-trusted axioms; no other assumptions"
+    )
     return {
+        # Harness steps ran; acceptance additionally needs an empty solver-trust ledger.
         "status": "passed",
+        "accepted": not trusted,
         "source": str(source_path),
         "source_sha256": _sha256(source),
         "gallina": str(gallina_path),
         "gallina_sha256": _sha256(gallina_path.read_bytes()),
-        "kernel_checked": True,
+        "kernel_checked": not trusted,
+        "solver_trusted_count": len(trusted),
+        "solver_trusted_axioms": reported_trust,
         "assumption_exports_count": len(exports),
         "proof_corruption_refused": True,
         "capacity_invariance": cap_gate,
@@ -1517,7 +1530,7 @@ def _qualify_attempt(
         "lowered_c_sha256": _sha256(c_path.read_bytes()),
         "purecap_cheri_runs": purecap_runs,
         "compcert_sail": ccomp_evidence,
-        "inventory": build_foundation_inventory(),
+        "inventory": inventory,
     }
 
 

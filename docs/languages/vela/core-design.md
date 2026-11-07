@@ -160,7 +160,7 @@ also remains distinct from the production algorithm choice.
 | --- | --- |
 | Source facts | Checked correspondence relates resolved places, field partitions, control edges, call effects and transitive captures to the exact elaborated computation. Unknown overlap remains a proof goal; names, pointer inequality and library spelling create no separation fact. |
 | Loan ends and exits | Checked derivations discharge split, parent suspension and restoration at every reachable exit. Independent source cases cover returned-view success versus restored-owner error, nested reborrows, moved captures, disjoint fields and premature parent reuse. Each invalid neighbor reaches its resource rule after parsing and with an inhabited entry state. |
-| Mutation and dependent facts | Writes and transitive call effects transform the current resource predicate. Reusing a current-content fact requires a checked preservation or re-establishment step; immutable historical snapshots stay stable without granting current access. Fresh authorized reads after a value-changing overwrite succeed, a stale equality fails, and a proved-disjoint field fact survives. For a selected library operation that changes represented length at fixed capacity, an old length-three bound used at index two after shortening to one fails; an unsupported operation supplies no semantic negative. The [snapshot and invalidation contract](interior-mutability.md#snapshots-and-dependent-indices) owns this distinction; selecting Ante-style local aliases still requires its separately gated extension. |
+| Mutation and dependent facts | Writes and transitive call effects transform the current resource predicate. Reusing a current-content fact requires a checked preservation or re-establishment step; immutable historical snapshots stay stable without granting current access. Fresh authorized reads after a value-changing overwrite succeed, a stale equality fails, and a proved-disjoint field fact survives. For a selected library operation that changes represented length at fixed capacity, an old length-three bound used at index two after shortening to one fails; an unsupported operation supplies no semantic negative. This row states the release rule; the extension's [snapshot and invalidation design](extensions/interior-mutability.md#snapshots-and-dependent-indices) develops it for cells, and selecting Ante-style local aliases still requires that separately gated extension. |
 | Control and demand | Bounded loops establish their invariant at entry and every back edge, closing local descendants as specified above; acyclic unrolling supplies no loop evidence. Transitive capture checking respects the selected fixed usage modes. General grade checking, suspension, cyclic captures and broader loan escape retain their extension boundaries and require their own checked rules before support is claimed. |
 
 The [first-release qualification](first-release.md#qualification) consumes these
@@ -180,7 +180,7 @@ Effects are closed read/write/call footprints with no allocation, including tran
 
 Generators record inputs, environment and outputs for typing, proof and
 source-correspondence checks. Conversion executes only total pure definitions.
-The [staged metaprogramming contract](metaprogramming.md) separates required-static
+The [staged metaprogramming contract](extensions/metaprogramming.md) separates required-static
 inputs from ghost/erased indices and use grades, and requires generated terms to
 retain their dependent context, captures, effects and exit resources. Its broader
 reflection and generation facilities are outside this synchronous fixture's
@@ -346,7 +346,7 @@ The blocking `Ready` entailment must close nested readers, preserve copied bytes
 Q21a's broad trial remains uncommissioned. Its conditional
 syntax/frontend/diagnostic/fixture estimates exclude this unpriced foundation.
 The interpretation commitment now selects checked elaboration into the existing
-anchor; the [composition review](full-language-review.md#r-05-009-r-05-020-and-what-holds-the-frontend-rows)
+anchor; the [composition review](extensions/full-language-review.md#r-05-009-r-05-020-and-what-holds-the-frontend-rows)
 records its acceptance boundary. Rocq output or a SourcePackage sketch supplies
 no concrete law or source correspondence. The
 [first-release delivery plan](../../../PLAN.md#vela-first-release-delivery) owns

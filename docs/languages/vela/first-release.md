@@ -2,7 +2,9 @@
 
 This contract owns the first supported Vela software release's scope, primitive
 semantics, module boundary and required library behavior. The
-[primary design](verification-strategy.md) supplies rationale and examples;
+[primary design](verification-strategy.md) supplies rationale and examples, and
+the [language reference](reference.md) gives each construct's syntax, meaning,
+example and implementation status;
 [PLAN.md](../../../PLAN.md#vela-first-release-delivery) owns commissioning,
 budgets and delivery order. The [requirements register](../../requirements-register.md)
 remains normative for VerifiedOS. These are design decisions and acceptance
@@ -21,6 +23,15 @@ actual resource interpretation; an erased token or numeric annotation supplies
 no authority by itself. Public interfaces fix representations, required-static
 inputs, effects and resource contracts; ordinary local inference hides routine
 derivations without weakening them.
+
+The release accepts three authoring costs for these guarantees. Ordinary `+`,
+`-` and `*` carry the representability obligations of
+[primitive semantics](#primitive-semantics): linear facts discharge
+automatically, while nonlinear facts need explicit proof or a checked, wrapping
+or saturating operation. Public `effects` lists are closed and propagate through
+every caller, with no effect polymorphism. Receiver loans start before argument
+evaluation, with no two-phase receiver borrows, and no loan is carried across
+loop iterations. [Qualification](#qualification) measures each cost.
 
 Specifications and proofs may use the admitted mathematical definitions and
 libraries in the existing kernel. A mathematical definition's expressiveness
@@ -60,13 +71,14 @@ general reflection/generation, concurrent interior mutation, native self-hosting
 ISA replacement or hardware authorship. Async and one-shot control capture need
 a separately accepted consumer and their own resource/lowering slice.
 
-The [extended grade dossier](graded-foundation.md),
-[control dossier](handlers-async.md), [mutation dossier](interior-mutability.md),
-[metaprogramming design](metaprogramming.md) and
-[whole-system contract](unified-source-contract.md) retain their extension
-obligations. Selecting an extension requires a named client, a comparison with
+The [extension designs](extensions/README.md), including the
+[extended grade dossier](extensions/graded-foundation.md),
+[control dossier](extensions/handlers-async.md), [mutation dossier](extensions/interior-mutability.md),
+[metaprogramming design](extensions/metaprogramming.md) and
+[whole-system contract](extensions/unified-source-contract.md), retain their extension
+obligations and define no part of this release. Selecting an extension requires a named client, a comparison with
 the supported subset, a bounded implementation/qualification budget and a
-decision predicate. Grading follows the [incremental selection protocol](graded-foundation.md#extension-selection-and-qualification),
+decision predicate. Grading follows the [incremental selection protocol](extensions/graded-foundation.md#extension-selection-and-qualification),
 with type-use accounting and generated usability tools justified separately.
 A proposal's syntax or a demonstration assembled to exercise
 the proposal is insufficient evidence of product need. Its omission changes no
@@ -203,8 +215,12 @@ operation; missing locked inputs produce an incomplete-build result.
 
 The initial import graph is acyclic and imports are explicit. Cycles report the
 cycle rather than depending on traversal order. Modules have no runtime
-initializers; required-static initialization uses the
-[bounded staging rules](metaprogramming.md#evaluation-and-phase-boundaries).
+initializers. Required-static initialization evaluates ordinary total pure
+definitions: each required-static input must resolve to an admissible closed
+value when its use is specialized, or the build reports a located obligation or
+refusal with no runtime fallback. [`const` declarations](surface-grammar.md#required-static-constants)
+spell the interface, and [the core's staging rules](core-design.md#refinement-effects-and-staging)
+bound conversion and erasure.
 Qualified names resolve independently of import order. Duplicate local/imported
 bindings are errors unless an explicit alias distinguishes them. A public nominal
 identity comprises the resolved package instance, module path and declaration
@@ -256,7 +272,7 @@ element bodies discharge in the
 rather than open quantifier instantiation or polymorphic LINQ dispatch. No
 runtime `IQueryable<T>` or reflection-based expression-tree interface is
 introduced; contract checking inspects `Seq<T>` predicate lambdas statically, and
-compile-time query specialization belongs to [bounded staging](metaprogramming.md#evaluation-and-phase-boundaries).
+compile-time query specialization is an extension under the [staging design](extensions/metaprogramming.md#evaluation-and-phase-boundaries).
 Iterators carry their bounds and loan contracts; they do not require ordinary
 users to reconstruct a separation-logic proof at each element. Codecs retain the
 platform's required format-description and
@@ -382,7 +398,7 @@ emits a term or returns an unconstrained theorem has not met this predicate.
 | Package composition | Two independently authored packages compose with fixed instances; reordered imports preserve meaning; overlap, cycles and conflicting nominal identities are diagnosed. Locked builds reproduce their source/input closure. Contract, representation, proof assumption and tool changes invalidate affected evidence before reuse. |
 | Everyday ownership | Bounded collection/iterator, `.Model` sequence-predicate/slice, `TextBuilder<capacity>` / `Format<T>` checked formatting, receiver-snapshot, selective invariant lifting (`invariant Clause: ...` / `open (...) lifts ...`), two-step bulk relocation (`CopyRepresentation` + `TransferType<T>`), fallible-builder and error-propagation clients compile under their actual representations and the [borrow-analysis promotion contract](core-design.md#borrow-analysis-promotion); escaped views, duplicated tokens, reads of unwritten or moved-out vacant slots, early exits or whole-receiver calls while an invariant clause is lifted, stale current-content facts and lost mandatory outcomes fail at the responsible resource rule. Bounded buffer, builder and bulk-relocation proofs/certificates pass a **capacity-invariance gate**: checking at tiny static capacity ($N = 4$) and large static capacity ($N = 10^9$) produces identical obligation counts, proof-term/certificate complexity and replay cost with no per-element unfolding proportional to static capacity. |
 | Complete software path | Authored source and independent contract reach one retained backend with checked correspondence, representation and lowering; applicable final-byte, resource, observation and admission duties meet their existing owners. Report source, artifact and production evidence separately. |
-| Developer usefulness | Record annotation burden, first useful diagnostic, checking latency, code/stack/storage consequences and repair after a semantic-preserving refactor, a representation change and a real contract change on both clients. A held-out client cannot be redesigned to fit the candidate unnoticed. |
+| Developer usefulness | Record annotation burden, first useful diagnostic, checking latency, code/stack/storage consequences and repair after a semantic-preserving refactor, a representation change and a real contract change on both clients. Attribute annotation burden and repair effort separately to arithmetic representability obligations, closed `effects` lists propagated through callers, and the absence of two-phase receiver and loop-carried borrows, counting each explicit lemma, checked operation, widened effect list, snapshot, named view or restructured loop they force; these records decide whether a separately priced relaxation is warranted. A held-out client cannot be redesigned to fit the candidate unnoticed. |
 
 Hard safety, resource and admission limits are mandatory. Technical feasibility,
 recurring authoring/maintenance benefit and eventual economic adoption are

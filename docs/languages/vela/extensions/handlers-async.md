@@ -1,6 +1,6 @@
 # Handlers and structured async lifecycle rules
 
-> Non-normative Q25b extension contract. Start with the [primary Vela design and examples](verification-strategy.md) and the [first-release boundary](first-release.md#release-boundary). The [requirements register](../../requirements-register.md) governs, and the [delivery plan](../../../PLAN.md#vela-first-release-delivery) owns commissioning. These rules and missing laws supply no implemented language, checked metatheory, accepted axiom or admitted binary.
+> Non-normative Q25b extension contract. Start with the [primary Vela design and examples](../verification-strategy.md) and the [first-release boundary](../first-release.md#release-boundary). The [requirements register](../../../requirements-register.md) governs, and the [delivery plan](../../../../PLAN.md#vela-first-release-delivery) owns commissioning. These rules and missing laws supply no implemented language, checked metatheory, accepted axiom or admitted binary.
 
 ## Boundary and shared resource interface
 
@@ -10,7 +10,7 @@ Async computations own dormant state and may compose sequentially or create stru
 
 ### Interpretation commitment
 
-Every judgment, transition and equation in this dossier denotes an obligation about the checked elaboration's image in an existing semantic anchor under [R-05-020a](../../spec.md#r-05-020a). `Interpret(e)` is the selected anchor computation together with its checked source correspondence; ownership and frame predicates are interpreted by the existing resource logic. The syntax below specifies what an untrusted elaborator must construct and the kernel must check. It supplies no independent source reduction, accepted source typechecker, new memory semantics or eighth anchor. Capture, substitution, return, erasure and progress laws must quantify over those interpreted computations and their actual representations. A checked CIC term alone establishes neither source correspondence nor a concrete CHERI law. The [composition review](full-language-review.md#r-05-009-r-05-020-and-what-holds-the-frontend-rows) retains the implementation and evidence gates.
+Every judgment, transition and equation in this dossier denotes an obligation about the checked elaboration's image in an existing semantic anchor under [R-05-020a](../../../spec.md#r-05-020a). `Interpret(e)` is the selected anchor computation together with its checked source correspondence; ownership and frame predicates are interpreted by the existing resource logic. The syntax below specifies what an untrusted elaborator must construct and the kernel must check. It supplies no independent source reduction, accepted source typechecker, new memory semantics or eighth anchor. Capture, substitution, return, erasure and progress laws must quantify over those interpreted computations and their actual representations. A checked CIC term alone establishes neither source correspondence nor a concrete CHERI law. The [composition review](full-language-review.md#r-05-009-r-05-020-and-what-holds-the-frontend-rows) retains the implementation and evidence gates.
 
 The [graded foundation](graded-foundation.md#resource-and-computation-interface) owns the stable telescope `Gamma`, use vectors `u` and `v`, binder dependency rows and resource context `Delta`. Its `Capture`, `Dup`, `Dispose`, `Suspend`, `Transfer` and `Share` require concrete resource-logic laws; grade constraints alone supply no memory predicate or ownership token.
 
@@ -32,14 +32,14 @@ Suspend(Delta_k, frame, lifetime, Delta_resumed)
 
 Effectful arguments use explicit call-by-value sequencing: `bind x <- c; call f(x)` evaluates `c` once, with its trace and resource transition. Zero use does not erase effects; repeated use does not reevaluate the argument. The foundation's pure scaling rules and open call-by-value bridge govern this distinction. Multiple resumption repeats only the captured continuation under its contract.
 
-The [synchronous core](core-design.md#loans-and-control-flow) embeds without handler capture or suspended frames, retaining ordinary returns, resource-indexed errors and loan restoration. Fallible cleanup and suspended loans require additional laws. Relevant precedents are:
+The [synchronous core](../core-design.md#loans-and-control-flow) embeds without handler capture or suspended frames, retaining ordinary returns, resource-indexed errors and loan restoration. Fallible cleanup and suspended loans require additional laws. Relevant precedents are:
 
 | Source | Result and transfer limit |
 | --- | --- |
 | [Soundly Handling Linearity](https://arxiv.org/abs/2307.09383v2), POPL 2024 | Relates continuation use to retained linear resources and exposes the motivating soundness bug. Pen-and-paper proofs; Links-fork artifact under GPL-3.0-or-later; no checked development. |
 | [Affect](https://iris-project.org/pdfs/2025-popl-affect.pdf), POPL 2025 | Iris/Rocq semantic type soundness over Hazel, separating one-shot/multi-shot continuations, including storage in mutable references. No verified checker or inference algorithm. |
 
-The [strategy](verification-strategy.md#effect-handlers-sharing-and-protocol-logics) surveys relational, stack-switching, sharing and disposal logics. None proves this graded dependent CHERI combination or models its preassigned immovable frames.
+The [strategy](../verification-strategy.md#effect-handlers-sharing-and-protocol-logics) surveys relational, stack-switching, sharing and disposal logics. None proves this graded dependent CHERI combination or models its preassigned immovable frames.
 
 ## Handler lookup, capture and return
 
@@ -54,7 +54,7 @@ A handler capability is a shared duplicable loan on its frame, authorizing only 
 - Track retained capabilities transitively. A use site requires every capture in scope, including a closure read through a cell. Operation argument/reply types cannot carry a capability bound inside the body. Effekt's [capture discipline](https://effekt-lang.org/tour/captures) likewise requires captures in scope when unboxing.
 - An operation argument may lend the clause part of the body's frames, resolved against `k`'s current invocation frame. End that loan before resume, clone, rehandle or dispose; neither `Dup`, rehandle nor the reply retains it.
 
-A handler installed by an effect-polymorphic function cannot intercept operations through its capability parameters. This excludes Zhang and Myers' accidental handling and preserves parametric reasoning. It applies the [object-capability rule](../../spec.md#r-04-003) to effects and permits constant-time lookup by slot, independent of nesting.
+A handler installed by an effect-polymorphic function cannot intercept operations through its capability parameters. This excludes Zhang and Myers' accidental handling and preserves parametric reasoning. It applies the [object-capability rule](../../../spec.md#r-04-003) to effects and permits constant-time lookup by slot, independent of nesting.
 
 Proof reuse still needs a simulation: Affect/Hazel selects the first enclosing matching handler and captures non-matching ones, unlike capability-directed lookup. The checked named/lexical-instance precedents establish different results:
 
@@ -103,9 +103,9 @@ Continuations/scopes own frames; handles supply only declared operations, and dr
 
 For one-shot control, capture transfers the existing frame ownership once and `Suspend` preserves its stable locations. It needs no clone template or shallow delimiter hole. The following frame-relative construction is a representation candidate for the deferred cloning/rehandling extension, not an extra first-async requirement: a handled body's delimiter-to-running frames form its capture segment. Every internal reference uses its delimiter's invocation-frame base from entry, including nested handler capabilities and a deep delimiter. Capture moves no reference; `Dup` copies the template into a fresh clone frame without rewriting. Activation resolves references to slot plus incarnation through that frame's capability. A shallow delimiter is the rehandler-filled hole. For nested segments, specialization fixes each reference's enclosing invocation-frame base and nesting bound; the inner activation retains those base capabilities. Absolute references may name only storage outside all enclosing segments, shared under its actual permission. An absolute capability into a copied segment would still authorize the template and fails `Capture`, `Suspend` and, for multi-shot use, `Dup`.
 
-Stack-address designs need different copying machinery: Lexa aborts multi-shot resumption containing a handler and permits only one stack segment with no simultaneous copies because stale-reference scanning is costly ([Virtualizing Continuations](https://cs.uwaterloo.ca/~yizhou/papers/multilexa-pldi2026.pdf)). The [strategy](verification-strategy.md#general-handlers-with-resource-safe-resumptions) records Effekt's active-copy global pointer and Virtualizing Continuations' software memory-management unit.
+Stack-address designs need different copying machinery: Lexa aborts multi-shot resumption containing a handler and permits only one stack segment with no simultaneous copies because stale-reference scanning is costly ([Virtualizing Continuations](https://cs.uwaterloo.ca/~yizhou/papers/multilexa-pldi2026.pdf)). The [strategy](../verification-strategy.md#general-handlers-with-resource-safe-resumptions) records Effekt's active-copy global pointer and Virtualizing Continuations' software memory-management unit.
 
-Task PC states refine R-08-046's frame-pool lifecycle. The [IDL profile](../idl-profile.md#43-the-ring-schema-and-its-lifecycle) and [RingContract.v](../../../proofs/RingContract.v) separately own request-slot states and terminal statuses. Task completion, ring reclamation and reader release remain distinct.
+Task PC states refine R-08-046's frame-pool lifecycle. The [IDL profile](../../idl-profile.md#43-the-ring-schema-and-its-lifecycle) and [RingContract.v](../../../../proofs/RingContract.v) separately own request-slot states and terminal statuses. Task completion, ring reclamation and reader release remain distinct.
 
 | Source event | Frame and scope transition |
 | --- | --- |
@@ -192,7 +192,7 @@ Existing runtimes illustrate distinct spawn/cleanup choices:
 | [Trio](https://trio.readthedocs.io/en/stable/reference-core.html) | Child inherits nursery cancellation scopes and runs to its first cancellable checkpoint, which raises `Cancelled`. |
 | [Swift SE-0504](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0504-task-cancellation-shields.md) | Outside a shield, `addTask` creates an immediately cancelled child; `addTaskUnlessCancelled` starts none. A shield starts children uncancelled. |
 
-Kotlin's [`NonCancellable`](https://kotlinlang.org/api/kotlinx.coroutines/kotlinx-coroutines-core/kotlinx.coroutines/-non-cancellable/) recommends wrapping cleanup children in `coroutineScope`. Vela instead gives marked registration one `cancelled` result without body effects and writes cleanup sequentially. [R-05-065](../../spec.md#r-05-065) prefers sequential cleanup over a speed-only concurrency mechanism; its longer `B_cleanup` must fit the terminal bound. Declared service requests may still overlap waits by submission before await.
+Kotlin's [`NonCancellable`](https://kotlinlang.org/api/kotlinx.coroutines/kotlinx-coroutines-core/kotlinx.coroutines/-non-cancellable/) recommends wrapping cleanup children in `coroutineScope`. Vela instead gives marked registration one `cancelled` result without body effects and writes cleanup sequentially. [R-05-065](../../../spec.md#r-05-065) prefers sequential cleanup over a speed-only concurrency mechanism; its longer `B_cleanup` must fit the terminal bound. Declared service requests may still overlap waits by submission before await.
 
 | Exit | Resource and control duty |
 | --- | --- |
@@ -213,7 +213,7 @@ This section is retained for the deferred multi-shot search extension. Its neste
 
 A public higher-order handler contract states the source-work and live-frame
 bounds needed by its callers. Ordinary ghost parameters and `requires`/`ensures`
-carry these summaries; the [BestScore example](verification-strategy.md#handlers-with-accountable-continuations)
+carry these summaries; the [BestScore example](../verification-strategy.md#handlers-with-accountable-continuations)
 uses an illustrative `SearchBudget` library record with natural-number `Work` and
 `Frames` fields. The summary binds the callback model, captures, selected handler
 clauses and resumption strategy. It covers every permitted reply history, including
@@ -238,10 +238,10 @@ declared representation; it is not the total number of resumptions.
 
 These source summaries grant no pool authority or physical capacity. Lowering
 connects them to frame layouts, reserved slots and bytes, including unused
-reservations and metadata under [R-08-045](../../spec.md#r-08-045), with exhaustion
-handled under [R-08-047](../../spec.md#r-08-047). Target cost and storage still come
-from [R-05-102](../../spec.md#r-05-102) and
-[R-08-017](../../spec.md#r-08-017)'s shared derivation; a source step is not a target
+reservations and metadata under [R-08-045](../../../spec.md#r-08-045), with exhaustion
+handled under [R-08-047](../../../spec.md#r-08-047). Target cost and storage still come
+from [R-05-102](../../../spec.md#r-05-102) and
+[R-08-017](../../../spec.md#r-08-017)'s shared derivation; a source step is not a target
 cycle. The bounds below retain scheduled gaps, external waits and cleanup costs.
 
 Qualification under `HA-resume-dispose`, `HA-suspend-scope` and
@@ -276,9 +276,9 @@ The sums conservatively serialize children and include activation gaps; overlap 
 
 A directly awaited helper contributes its work, waiting and checkpoint distance to the enclosing task's path once, either expanded into `C/G/D` or through a proved subgraph summary. It is not another child term. Its cleanup contributes to the enclosing `B_cleanup`; nested masks and the depth-bounded cleanup sequence enter the same decision and tail bounds. Refuse an accounting that omits helper storage/work, resets the caller's mask allowance, or counts an inlined helper and its summary twice.
 
-A witness states units and fits these sums to the interface terminal declaration and composition slot/cadence/capacity checks. [RingContract.v](../../../proofs/RingContract.v) supplies service `cancellation_interval`/`op_max_to_terminal` arithmetic; [CopyRingService.v](../../../proofs/CopyRingService.v) supplies cleanup/held-reference declarations. Neither connects Vela frames, waits or execution to that arithmetic; no target constants are measured here.
+A witness states units and fits these sums to the interface terminal declaration and composition slot/cadence/capacity checks. [RingContract.v](../../../../proofs/RingContract.v) supplies service `cancellation_interval`/`op_max_to_terminal` arithmetic; [CopyRingService.v](../../../../proofs/CopyRingService.v) supplies cleanup/held-reference declarations. Neither connects Vela frames, waits or execution to that arithmetic; no target constants are measured here.
 
-The [timing/progress survey](verification-strategy.md#research-that-changes-the-experiments) records donors whose response-time WCET parameters or liveness fairness are premises. This profile grants neither those coefficients nor general scheduler fairness.
+The [timing/progress survey](../verification-strategy.md#research-that-changes-the-experiments) records donors whose response-time WCET parameters or liveness fairness are premises. This profile grants neither those coefficients nor general scheduler fairness.
 
 Progress assumes admitted WCET, activation cadence, live generations, bounded device service/quiescence and control delivery. An unbounded/unavailable peer requires a bounded failure/teardown branch or refusal of hard progress. Hardware faults have separate recovery bounds. Missed progress assumptions never establish completion or release ownership.
 
@@ -286,7 +286,7 @@ Progress assumes admitted WCET, activation cadence, live generations, bounded de
 
 ## First async service qualification
 
-The [first-release qualification](first-release.md#qualification) and [delivery plan](../../../PLAN.md#vela-first-release-delivery) must first establish the synchronous component, its concrete representation and a separate library client. The first async extension then selects a real bounded request service over those proved primitives. Before implementation, freeze its actual packet/operation format, represented capacities and cleanup reserve, independent valid/invalid byte fixtures, complete result/resource contract, service generation/commit interface and target evidence endpoint. A storage pattern alone is no valid-message witness. Neither a shared counter nor general handlers are prerequisites unless that service uses them.
+The [first-release qualification](../first-release.md#qualification) and [delivery plan](../../../../PLAN.md#vela-first-release-delivery) must first establish the synchronous component, its concrete representation and a separate library client. The first async extension then selects a real bounded request service over those proved primitives. Before implementation, freeze its actual packet/operation format, represented capacities and cleanup reserve, independent valid/invalid byte fixtures, complete result/resource contract, service generation/commit interface and target evidence endpoint. A storage pattern alone is no valid-message witness. Neither a shared counter nor general handlers are prerequisites unless that service uses them.
 
 The service exercises a reusable sequential async helper and one structured child. A second child is introduced only for the scope-failure/ordering fixture, with all outcomes fixed before implementation. Every accepted input has an inhabited concrete entry state, and all resource claims are checked over the elaboration image. The initial acceptance set is:
 
@@ -320,7 +320,7 @@ These symbolic, conditionally inhabited paper derivations are retained design fi
 | Spawn after the latch | Within one parent activation, the parent's bounded segment reaches an admitted observation site that is not a checkpoint, discovers child 1's recorded `Failed` outcome and latches the scope's bit; the same segment then reaches a `spawn`. Activations are cooperative under R-07-037a, so nothing else can latch the bit mid-segment. Registration binds child 2's frame and completion record and marks it; its first activation takes the unstarted path, restores its inputs and records one `Cancelled` result with no body event. The parent's next checkpoint enters cleanup, which joins both children, registers none and returns the indexed failed and cancelled outcomes. |
 | Capacity and timeout | Full frame capacity gives `CapacityExhausted(pool)` and the unchanged dormant computation. A client wait timeout leaves an already-spawned task in its scope. A scoped timeout requests cancellation and joins under `B_terminal`, including a committed child's normal-completion branch. |
 
-The combined Q25d client is a deferred cross-feature research fixture. It prepares an initialized private packet and an immutable snapshot under the [synchronous core's copy-once contract](core-design.md#composed-qualification-fixture), then registers a bounded child. Its pure choice handler runs the repeatable graded callback on that snapshot; the packet owner and frame permission stay outside the multi-shot delimiter. The child accesses the guarded scalar `CountCell(c,g)` only through the [mutability dossier](interior-mutability.md)'s `commit_add(handle, AddOnce(c,g,k,n), n)`. The linear `AddOnce` authorization is outside every repeatable capture. Its conserved allowance proves the aggregate count representable. This optional fixture supplies no critical-path requirement for the synchronous release or the first async service.
+The combined Q25d client is a deferred cross-feature research fixture. It prepares an initialized private packet and an immutable snapshot under the [synchronous core's copy-once contract](../core-design.md#composed-qualification-fixture), then registers a bounded child. Its pure choice handler runs the repeatable graded callback on that snapshot; the packet owner and frame permission stay outside the multi-shot delimiter. The child accesses the guarded scalar `CountCell(c,g)` only through the [mutability dossier](interior-mutability.md)'s `commit_add(handle, AddOnce(c,g,k,n), n)`. The linear `AddOnce` authorization is outside every repeatable capture. Its conserved allowance proves the aggregate count representable. This optional fixture supplies no critical-path requirement for the synchronous release or the first async service.
 
 One concrete data witness has capacity `N = 4`, admitted length `n = 2`, source bytes `[1,2]` and the initialized private destination `[1,2,0,0]`. The pure repeatable callback receives the immutable prefix snapshot and a represented Boolean, returning a scalar without touching the packet owner. The handler resumes on `false` and `true`, giving two source callback events by that contract. A `Ready` parser result additionally needs an actual valid-header witness for the selected encoding; the byte pattern here witnesses storage, ownership and the local counter path, not unspecified parser validity. This retained fixture supplies neither a selected packet format nor branch expectations, so its combined parser case is not inhabited. Its concrete resource inhabitant remains a `GF-resource` prerequisite under the [foundation and pricing review](full-language-review.md#reviewed-implementation-pricing); no assumed inhabitant can open implementation.
 
@@ -366,7 +366,7 @@ Every row below is a theorem obligation over `Interpret` and the selected existi
 | `HA-lowering-erasure` | Prove PC-graph simulation of checkpoints, slot-directed capability selection, return transformations and indexed exits; erasure preserves executable tags/effects. One-shot capture preserves stable frames. For the deferred cloning/rehandling representation, establish delimiter-relative references from handler entry, including nested segments and handler links/capabilities, so capture moves none and `Dup` rewrites none. Resolve them against each invocation frame and fresh incarnation, including shallow delimiter holes and finite-set rehandler dispatch. Moving or, when supported, cloning effects across checkpoint, commit or handler boundaries needs preservation laws. Connect actual graph cost/storage, TAL derivation and pinned Sail. |
 | `HA-combined-embedding` | First instantiate the resource interface with the real bounded async service, its direct helper, structured child and intended outcome/cleanup negatives. Prove that the no-suspension restriction retains the synchronous core's interpreted behavior and exit predicates. A later cell or multi-shot extension additionally instantiates its own selected protocol and combined client; the retained Q25d counter/graded-search fixture is deferred until those features are commissioned. |
 
-Q25d reviews and assigns these missing laws once. Existing concrete/target debts remain with the [foundation map](../../hardware/cheri-foundation-map.md) and [compiler contract](compiler-route-contract.md); naming a law supplies no evidence, estimate or implementation gate.
+Q25d reviews and assigns these missing laws once. Existing concrete/target debts remain with the [foundation map](../../../hardware/cheri-foundation-map.md) and [compiler contract](../compiler-route-contract.md); naming a law supplies no evidence, estimate or implementation gate.
 
 | Requirement boundary | Exact disposition owed before dependent implementation |
 | --- | --- |

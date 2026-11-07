@@ -235,8 +235,9 @@ def _capacity_invariance_and_contracts() -> None:
     large_elab, large_state = vela_elaborate._checked_elaboration(large_src, large_ast)
 
     ensure(
-        len(small_state.output) == len(large_state.output) == 7,
-        f"expected 7 emitted definitions (1 body + 5 restores + 1 ensures), got {len(small_state.output)}",
+        len(small_state.output) == len(large_state.output) == 8,
+        "expected 8 emitted definitions (1 body + 1 post-state image + 5 restores + 1 ensures), "
+        f"got {len(small_state.output)}",
     )
     ensure(
         small_state.work == large_state.work and small_state.reductions == large_state.reductions,
@@ -252,6 +253,16 @@ def _capacity_invariance_and_contracts() -> None:
             f"missing restores obligation for {field_tag}",
         )
     ensure("vela_d0_PrepareHeader_ensures_0" in small_elab.gallina, "missing ensures_0 obligation")
+    ensure(
+        "Corelib.Init.Datatypes.bool Corelib.Init.Datatypes.true Corelib.Init.Datatypes.true" not in small_elab.gallina,
+        "an obligation reached the kernel as true = true",
+    )
+    for line in small_elab.gallina.splitlines():
+        if line.startswith("Definition vela_d0_PrepareHeader_restores_0_"):
+            ensure(
+                "vela_d0_PrepareHeader_post_dst" in line,
+                f"restores obligation does not state the callable's post-state image: {line[:120]}",
+            )
 
 
 def _negative_span_refusals() -> None:

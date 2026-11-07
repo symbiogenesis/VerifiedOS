@@ -6,7 +6,7 @@
 
 Q19c, Q20b and Q20c are canceled in [PLAN.md](../../../PLAN.md); their roles below belong to the retained protocol. Re-entry needs a concrete consumer blocked by the existing route, checked foundations, a usable environment, priced missing work and a finite stop threshold in a new suffixed checklist item. Q2b/Q3b, M1, M6 and M7 retain their backend, proof, admission and final-artifact duties.
 
-The [whole-system proposal](unified-source-contract.md) separately covers proof, ISA and hardware authorship and Sail retirement. This software trial targets the pinned Sail model; it qualifies neither a replacement model nor a hardware backend.
+The [whole-system proposal](extensions/unified-source-contract.md) separately covers proof, ISA and hardware authorship and Sail retirement. This software trial targets the pinned Sail model; it qualifies neither a replacement model nor a hardware backend.
 
 ## First-release qualification and adoption
 

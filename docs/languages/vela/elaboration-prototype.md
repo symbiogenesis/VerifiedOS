@@ -6,8 +6,8 @@
 extension of the [pure prototype](vela-prototype.md). Its source means the emitted
 CIC term. It introduces no independent source semantics, production frontend,
 machine representation, resource interpretation or binary admission. The
-[full-language hold](full-language-review.md#r-05-009-r-05-020-and-what-holds-the-frontend-rows)
-and [unified-source acceptance](unified-source-contract.md) remain outstanding.
+[full-language hold](extensions/full-language-review.md#r-05-009-r-05-020-and-what-holds-the-frontend-rows)
+and [unified-source acceptance](extensions/unified-source-contract.md) remain outstanding.
 Land this contract and its checklist predicate before implementation.
 
 The pure checker, schema-1 protocol and parser migration comparison retain
@@ -16,7 +16,7 @@ entry point and schema 2, with no second surface parser. Generated Gallina is an
 untrusted proposal until the pinned Rocq kernel checks it. A source digest binds
 bytes; it supplies no source-correspondence theorem.
 
-The [staged metaprogramming design](metaprogramming.md) extends the intended
+The [staged metaprogramming design](extensions/metaprogramming.md) extends the intended
 language beyond this increment. Type-valued parameters, definitional reduction
 and the compositional constant interface support the bounded mathematical fragment.
 General descriptor reflection, generated declaration APIs and composition with

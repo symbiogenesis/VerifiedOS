@@ -3,8 +3,8 @@
 This is [Q25j's](../../../PLAN.md#q-assessment-actions) bounded experimental
 contract. It commissions inference over supplied flow facts, independently of
 source elaboration. The [core loan rules](core-design.md#loans-and-control-flow),
-[capture rules](graded-foundation.md#functions-and-application) and
-[frontend disposition](full-language-review.md#r-05-009-r-05-020-and-what-holds-the-frontend-rows)
+[capture rules](extensions/graded-foundation.md#functions-and-application) and
+[frontend disposition](extensions/full-language-review.md#r-05-009-r-05-020-and-what-holds-the-frontend-rows)
 retain their meanings and prerequisites. This diagnostic supplies no source
 acceptance, checked interpretation, memory-safety theorem or machine law.
 
@@ -103,7 +103,7 @@ extraction from the Menhir tree.
 
 ## Acceptance
 
-The design inputs have separate jobs. [Ante-style invalidation](interior-mutability.md#ante-as-a-candidate-for-static-invalidation)
+The design inputs have separate jobs. [Ante-style invalidation](extensions/interior-mutability.md#ante-as-a-candidate-for-static-invalidation)
 distinguishes address validity from current-content facts;
 [Granule/Gerty and the graded foundation](verification-strategy.md#reading-the-graded-type-claims)
 inform lawful demand without creating memory permission;
@@ -168,7 +168,7 @@ A comparison commissioned through the existing
 reviewed client behavior, expected decisions and the compared guarantee
 endpoints. Pin the compiler/analyzer revision and configuration, explicitly
 distinguishing original Polonius from Polonius Alpha. Pin the selected
-[Ante design](interior-mutability.md#ante-as-a-candidate-for-static-invalidation)
+[Ante design](extensions/interior-mutability.md#ante-as-a-candidate-for-static-invalidation)
 and identify its implemented subset; a design example supplies no compiler
 verdict. Supplied graph diagnostics and source checking have different endpoints.
 

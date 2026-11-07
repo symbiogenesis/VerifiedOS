@@ -473,7 +473,7 @@ class _WhnfMixin:
             n_w = self.whnf(arguments[0])
             if n_w.kind == "nat":
                 self.tick(True)
-                return _int_term(_INT_SPECS["usize"], cast("int", n_w.value))
+                return _int_term(_INT_SPECS["usize"], _wrap_int(_INT_SPECS["usize"], cast("int", n_w.value)))
         if name in {"eq_unit", "ne_unit"} and len(arguments) == 2:
             self.tick(True)
             return _term("bool", value=1 if name == "eq_unit" else 0)
@@ -576,7 +576,9 @@ class _WhnfMixin:
             arg = self.whnf(arguments[0])
             if arg.kind == "int":
                 self.tick(True)
-                return _int_term(dst_spec, cast("int", arg.value))
+                # Admitted From conversions widen exactly; any other pair keeps the
+                # kernel image's low destination bits.
+                return _int_term(dst_spec, _wrap_int(dst_spec, cast("int", arg.value)))
             return None
         if name.startswith("int_try_from_") and len(arguments) == 1:
             parts = name.split("_")
@@ -688,8 +690,8 @@ class _WhnfMixin:
             if op == "chk_rem":
                 if b == 0:
                     return self._make_result_err(spec.const, ae_const, self._make_arith_err("ZeroDivisor"))
-                if spec.signed and a == spec.min_val and b == -1:
-                    return self._make_result_err(spec.const, ae_const, self._make_arith_err("Overflow"))
+                # CheckedRem(MIN, -1) is Ok(0): the remainder is representable even
+                # though the matching quotient is not.
                 return self._make_result_ok(spec.const, ae_const, _int_term(spec, _trunc_rem(a, b)))
             if op == "chk_shl":
                 if not 0 <= b < spec.bits:

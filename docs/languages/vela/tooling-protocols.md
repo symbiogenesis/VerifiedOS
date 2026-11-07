@@ -72,7 +72,7 @@ from `core-diagnostics`. The existing Rocq editor and
 [R-05-018a workflow](../../spec.md#r-05-018a) retain their own subject and scope;
 their qualification is not Vela-server qualification.
 
-The [compiler-service contract](metaprogramming.md#compiler-services-and-runtime-information)
+The [compiler-service contract](extensions/metaprogramming.md#compiler-services-and-runtime-information)
 constrains versioned semantic snapshots selected for analysis, refactoring and generation
 clients. Diagnostics and navigation connect a generated definition to its request,
 generator, concrete instantiation and source inputs; debug mappings additionally
@@ -188,7 +188,7 @@ Vela to implement. [ESTree](https://github.com/estree/estree) describes JavaScri
 syntax; [Clang's interfaces](https://clang.llvm.org/docs/Tooling.html) expose
 Clang-specific information with different stability boundaries. Define Vela's
 public views through versioned schemas owned by the compiler services in
-[the metaprogramming contract](metaprogramming.md#compiler-services-and-runtime-information).
+[the metaprogramming contract](extensions/metaprogramming.md#compiler-services-and-runtime-information).
 Do not expose an accidental serialization of implementation objects as a stable API.
 
 | View | Information to expose for the declared supported subset |
