@@ -3435,24 +3435,31 @@ def _foreach_coll(mode: str, var_name: str, collection: Form, body_stmts: tuple[
     return form
 
 
-def _scope_lifts(resources: tuple[Form, ...], lifts: tuple[str, ...],
-                 body_stmts: tuple[Form, ...]) -> Form:
+def _open_lifts(resources: tuple[Form, ...], lifts: tuple[str, ...],
+                body_stmts: tuple[Form, ...]) -> Form:
+    def form(fixture: _Fixture) -> Node:
+        start = fixture.offset
+        fixture.write("open (")
+        res_nodes = fixture.forms(resources)
+        fixture.write(") lifts ")
+        lift_nodes: list[Node] = []
+        for index, lift_name in enumerate(lifts):
+            if index:
+                fixture.write(", ")
+            lift_nodes.append(fixture.name(lift_name))
+        fixture.write(" ")
+        body_node = _block_stmts(*body_stmts)(fixture)
+        return fixture.node("open_invariant", start, resources=res_nodes, lifts=lift_nodes, body=body_node)
+    return form
+
+
+def _task_scope(resources: tuple[Form, ...], body_stmts: tuple[Form, ...]) -> Form:
     def form(fixture: _Fixture) -> Node:
         start = fixture.offset
         fixture.write("scope (")
         res_nodes = fixture.forms(resources)
-        fixture.write(")")
-        lift_nodes: list[Node] = []
-        if lifts:
-            fixture.write(" lifts ")
-            for index, lift_name in enumerate(lifts):
-                if index:
-                    fixture.write(", ")
-                lift_nodes.append(fixture.name(lift_name))
-        fixture.write(" ")
+        fixture.write(") ")
         body_node = _block_stmts(*body_stmts)(fixture)
-        if lifts:
-            return fixture.node("scope", start, resources=res_nodes, lifts=lift_nodes, body=body_node)
         return fixture.node("scope", start, resources=res_nodes, body=body_node)
     return form
 
@@ -3880,7 +3887,7 @@ def _record_invariants_and_selective_lifting() -> None:
         (("w", _type("Window")),),
         _block_stmts(
             _var_stmt("cur", _variable("w")),
-            _scope_lifts(
+            _open_lifts(
                 (_ref_arg(_variable("cur")),),
                 ("Ordered", "ConsistentSpan"),
                 (
@@ -3955,7 +3962,7 @@ def _record_invariants_and_selective_lifting() -> None:
         (),
         _block_stmts(
             _var_stmt("p", _call("Pair", _int_lit("1", "u32"), _int_lit("5", "u32"))),
-            _scope_lifts(
+            _open_lifts(
                 (_ref_arg(_variable("p")),),
                 ("Ordered",),
                 (_assign_stmt(_member(_variable("p"), "A"), "=", _int_lit("10", "u32")),),
@@ -3979,7 +3986,7 @@ def _record_invariants_and_selective_lifting() -> None:
         (),
         _block_stmts(
             _var_stmt("p", _call("Pair", _int_lit("1", "u32"), _int_lit("5", "u32"))),
-            _scope_lifts(
+            _open_lifts(
                 (_ref_arg(_variable("p")),),
                 ("Ordered",),
                 (_let_stmt("x", _call("ReadA", _variable("p"))),),
@@ -4002,12 +4009,32 @@ def _record_invariants_and_selective_lifting() -> None:
         (),
         _block_stmts(
             _var_stmt("p", _call("Pair", _int_lit("1", "u32"), _int_lit("5", "u32"))),
-            _scope_lifts((_ref_arg(_variable("p")),), ("Missing",), ()),
+            _open_lifts((_ref_arg(_variable("p")),), ("Missing",), ()),
             _return_stmt(_variable("p")),
         ),
         block=True,
     )
     _refuses(unknown_clause, "name", "Missing")
+
+    # Structured task scopes keep the `scope` keyword; they are design-only syntax.
+    task_scope = _Fixture("TaskScopeIsNotInvariantLifting")
+    task_scope.record(
+        "Pair",
+        (("A", _type("u32")), ("B", _type("u32"))),
+        contracts=(_invariant_contract(_binary("<=", _member(_variable("this"), "A"), _member(_variable("this"), "B")), "Ordered"),),
+    )
+    task_scope.function(
+        "Bad",
+        _type("Pair"),
+        (),
+        _block_stmts(
+            _var_stmt("p", _call("Pair", _int_lit("1", "u32"), _int_lit("5", "u32"))),
+            _task_scope((_ref_arg(_variable("p")),), ()),
+            _return_stmt(_variable("p")),
+        ),
+        block=True,
+    )
+    _refuses(task_scope, "unsupported", "'scope' is outside mathematical elaboration")
 
 
 def _vacant_slots_and_two_step_relocation() -> None:

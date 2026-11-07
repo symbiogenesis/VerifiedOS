@@ -517,7 +517,7 @@ public BoundedRange UpdateRange()
     ensures result.Low == 5u32 && result.High == 9u32
 {
     var r = BoundedRange(1u32, 3u32);
-    scope (ref r) lifts Ordered {
+    open (ref r) lifts Ordered {
         r.Low = 5u32;
         r.High = 9u32;
     }

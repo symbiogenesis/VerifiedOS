@@ -181,7 +181,7 @@ The supported increment includes:
   collection-freeze checks.
 - Named and unnamed `record` invariants (`invariant [Clause:] expr`), verified
   on construction, `with` updates and field mutations, together with selective
-  invariant lifting (`scope (ref target, ...) lifts Clause, ... { ... }`) that
+  invariant lifting (`open (ref target, ...) lifts Clause, ... { ... }`) that
   refuses target escape or early exit until lifted clauses are restored at scope
   exit.
 - Vacant-slot storage (`Slots<T, capacity>`, `Slots.AllocVacant`, `Slots.Write`,

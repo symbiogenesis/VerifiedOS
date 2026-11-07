@@ -135,7 +135,7 @@ The only escaping local loan is a shared view into one statically named borrowed
 The [ownership library contract](first-release.md#ownership-libraries) supplies
 the practical presentation: bounded iteration and spans, fixed `out`
 initialization on every normal return, named `invariant Clause: ...` conjuncts
-with selective `scope (ref ...) lifts Clause, ... { ... }` invariant lifting
+with selective `open (ref ...) lifts Clause, ... { ... }` invariant lifting
 (opening only the named conjuncts into a linear `CloseDebt` in `Delta`, keeping
 unlifted conjuncts active across disjoint or non-invalidating field writes,
 refusing early exits, suspension or whole-receiver calls while the debt is open,

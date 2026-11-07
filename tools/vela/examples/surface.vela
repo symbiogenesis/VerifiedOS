@@ -290,7 +290,7 @@ public struct BoundedBuffer<T, ghost Nat capacity>
         effects writes(this), writes(destination)
         ensures destination.Model == old(this.Model) && this.length == 0usize
     {
-        scope (ref this, ref destination) lifts InitializedPrefix, VacantSuffix
+        open (ref this, ref destination) lifts InitializedPrefix, VacantSuffix
         {
             CopyRepresentation(
                 source: in this.slots,

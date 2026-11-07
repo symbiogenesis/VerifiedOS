@@ -369,7 +369,7 @@ public RangeWindow RebalanceWindow()
     ensures result.Low == 4u32 && result.High == 9u32
 {
     var window = RangeWindow(2u32, 5u32);
-    scope (ref window) lifts Ordered
+    open (ref window) lifts Ordered
     {
         window.Low = 4u32;
         window.High = 9u32;

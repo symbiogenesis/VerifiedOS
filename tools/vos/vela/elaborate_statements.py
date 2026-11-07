@@ -757,19 +757,19 @@ class _StatementsMixin:
             raise self.fail("protocol", "expected a syntax list", statement)
         lift_names = [] if lift_raw is None else [self.name(ln) for ln in lift_raw]
         if len(lift_names) != len(set(lift_names)):
-            raise self.fail("name", "duplicate record invariant clause in scope lifts list", statement)
+            raise self.fail("name", "duplicate record invariant clause in open lifts list", statement)
         loaned_records: list[tuple[str, _RecordInfo, list[_Term]]] = []
         seen_targets: set[str] = set()
         for loan_node in loan_nodes:
             self.node(loan_node, "unary")
             tname, is_ref = self._extract_ref_or_var_name(loan_node)
             if not is_ref or tname is None:
-                raise self.fail("type", "scope header requires 'ref <variable>' loan targets", loan_node)
+                raise self.fail("type", "open header requires 'ref <variable>' loan targets", loan_node)
             if tname in seen_targets:
-                raise self.fail("type", f"duplicate 'ref {tname}' loan in scope header", loan_node)
+                raise self.fail("type", f"duplicate 'ref {tname}' loan in open header", loan_node)
             seen_targets.add(tname)
             if tname not in extended:
-                raise self.fail("name", f"unknown identifier '{tname}' in scope header", loan_node)
+                raise self.fail("name", f"unknown identifier '{tname}' in open header", loan_node)
             if tname in self.uninitialized_out_params:
                 raise self.fail(
                     "type",
@@ -787,7 +787,7 @@ class _StatementsMixin:
             head, type_args = self.spine(rec_type)
             if head.kind != "const" or not isinstance(head.value, str) or head.value not in self.records_by_type:
                 raise self.fail(
-                    "type", f"scope invariant lifting requires a record target, got '{tname}'", loan_node
+                    "type", f"open invariant lifting requires a record target, got '{tname}'", loan_node
                 )
             rinfo = self.records_by_type[head.value]
             loaned_records.append((tname, rinfo, type_args))
@@ -800,7 +800,7 @@ class _StatementsMixin:
             if not matching:
                 raise self.fail(
                     "name",
-                    f"none of the loaned records in scope declare named invariant clause '{cname}'",
+                    f"none of the loaned records in open declare named invariant clause '{cname}'",
                     statement,
                 )
         saved_mutable = set(self.mutable_locals)
@@ -1069,7 +1069,7 @@ class _StatementsMixin:
                     statement_facts.extend(sub_facts)
                     self.active_facts.extend(self._fact_bool_terms(sub_facts, extended))
                     continue
-                if kind == "scope":
+                if kind == "open_invariant":
                     extended = self._elaborate_scope_statement(
                         statement, extended, (*facts, *statement_facts)
                     )
@@ -1195,7 +1195,7 @@ class _StatementsMixin:
                             "cannot return from a callable while a record invariant is lifted in an enclosing scope",
                             statement,
                         )
-                    raise self.fail("unsupported", "early return inside a loop or scope block is not supported", statement)
+                    raise self.fail("unsupported", "early return inside a loop or open block is not supported", statement)
                 raise self.fail("unsupported", f"statement '{kind}' requires the full frontend", statement)
             return extended, None
         finally:
@@ -1773,7 +1773,7 @@ class _StatementsMixin:
             return then_b or else_b
         if kind in {"let_else", "var_else"}:
             return self._contains_break_statement(self.node(node["else"]))
-        if kind == "scope":
+        if kind == "open_invariant":
             return self._contains_break_statement(self.node(node["body"]))
         return False
 
@@ -1924,7 +1924,7 @@ class _StatementsMixin:
                         return lifted
                     extended = self._elaborate_expression_statement(statement, extended)
                     continue
-                if kind == "scope":
+                if kind == "open_invariant":
                     extended = self._elaborate_scope_statement(
                         statement, extended, (*active_facts, *statement_facts)
                     )
@@ -2283,7 +2283,7 @@ class _StatementsMixin:
             if (
                 statements
                 and statements[-1]["kind"]
-                in {"assignment", "expression_statement", "scope", "foreach", "foreach_collection", "while"}
+                in {"assignment", "expression_statement", "open_invariant", "foreach", "foreach_collection", "while"}
                 and expected is not None
                 and self.whnf(expected) == _UNIT
             ):

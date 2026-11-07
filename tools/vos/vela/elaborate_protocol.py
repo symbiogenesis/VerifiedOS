@@ -66,7 +66,7 @@ _FIELDS: dict[str, set[str]] = {
     "foreach_collection": {"name", "type", "mode", "collection", "contracts", "body"},
     "while": {"condition", "contracts", "body"},
     "break": set(), "continue": set(),
-    "scope": {"resources", "body"},
+    "open_invariant": {"resources", "lifts", "body"},
     "if": {"condition", "then", "else"},
     "match": {"value", "motive", "cases"}, "case": {"pattern", "statements"},
     "match_expression": {"value", "motive", "cases"},
@@ -475,26 +475,25 @@ class _Protocol:
         elif kind in {"break", "continue"}:
             cursor = self._token(node, cursor, cast("str", kind).encode())
             cursor = self._token(node, cursor, b";")
-        elif kind == "scope":
+        elif kind == "open_invariant":
             resources = node["resources"]
             if not isinstance(resources, list) or not resources:
-                raise self.error("protocol", "scope requires a non-empty resource list", node)
+                raise self.error("protocol", "open requires a non-empty resource list", node)
             if not isinstance(node["body"], dict) or node["body"].get("kind") != "block":
-                raise self.error("protocol", "scope requires a block body", node)
-            cursor = self._token(node, cursor, b"scope")
+                raise self.error("protocol", "open requires a block body", node)
+            cursor = self._token(node, cursor, b"open")
             cursor = self._list(node, span, cursor, resources)
-            lifts = node.get("lifts")
-            if lifts is not None:
-                if not isinstance(lifts, list) or not lifts:
-                    raise self.error("protocol", "scope lifts must be a non-empty identifier list", node)
-                cursor = self._token(node, cursor, b"lifts")
-                for index, item in enumerate(lifts):
-                    if index:
-                        cursor = self._token(node, cursor, b",")
-                    cursor = self._child(node, span, cursor, item)
-                after_lifts = trivia_end(self.source, cursor, block_comments=True)
-                if self.source[after_lifts:after_lifts + 1] == b",":
-                    cursor = after_lifts + 1
+            lifts = node["lifts"]
+            if not isinstance(lifts, list) or not lifts:
+                raise self.error("protocol", "open lifts must be a non-empty identifier list", node)
+            cursor = self._token(node, cursor, b"lifts")
+            for index, item in enumerate(lifts):
+                if index:
+                    cursor = self._token(node, cursor, b",")
+                cursor = self._child(node, span, cursor, item)
+            after_lifts = trivia_end(self.source, cursor, block_comments=True)
+            if self.source[after_lifts:after_lifts + 1] == b",":
+                cursor = after_lifts + 1
             cursor = self._child(node, span, cursor, node["body"])
         elif kind == "return":
             cursor = self._token(node, cursor, b"return")
@@ -880,7 +879,7 @@ class _Protocol:
             else (
                 {"name"}
                 if kind == "contract"
-                else ({"lifts"} if kind == "scope" else ({"modifiers"} if kind == "import" else set()))
+                else ({"modifiers"} if kind == "import" else set())
             )
         )
         if (set(node) - optional != {"kind", "span", *fields}

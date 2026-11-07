@@ -15,7 +15,7 @@ owners, declared field projections, named invariant clauses, shared/exclusive
 loans and parent links, and also provides a schema-2 surface AST lowering pass
 (`lower_function`, `lower_module`, `analyze_function`, `analyze_module`).
 Events describe borrowing, access, resource moves, binding capture environments,
-uses, per-conjunct invariant opening and closing (`scope ... lifts`),
+uses, per-conjunct invariant opening and closing (`open ... lifts`),
 outcome-specific returns and unsupported suspension boundaries. Each
 operation's facts are explicit inputs: a library call does not obtain authority
 from its name. Boxes, optional values, cells, callbacks and protocol wrappers use

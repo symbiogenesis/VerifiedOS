@@ -2219,7 +2219,7 @@ class _FunctionLowerer:
             self.handles = saved_handles
             return join if any_fallthrough else None
 
-        if kind == "scope":
+        if kind == "open_invariant":
             target_expr = _ast_node(stmt["target"])
             lifts = tuple(_id_text(item) for item in _ast_nodes(stmt.get("lifts", [])))
             targets: list[str] = []

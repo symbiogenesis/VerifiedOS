@@ -722,10 +722,10 @@ def _surface_ast_to_loan_graph_lowering() -> None:
         }
 
     # Module with BoundedBuffer struct (fields, views, invariants) and functions:
-    # 1. RelocateInto: selective `scope (ref this, ref destination) lifts InitializedPrefix, VacantSuffix`
+    # 1. RelocateInto: selective `open (ref this, ref destination) lifts InitializedPrefix, VacantSuffix`
     # 2. DisjointViews: borrows `in this.Entries` and `ref this.Tail` simultaneously (no conflict)
     # 3. ConflictingViewWrite: borrows `in this.Entries` then mutates `this.slots` (suspended-parent)
-    # 4. EarlyExitInScope: `let ... else { return; }` inside `scope (ref this) lifts InitializedPrefix`
+    # 4. EarlyExitInScope: `let ... else { return; }` inside `open (ref this) lifts InitializedPrefix`
     # 5. ManyBranchesAndLoop: 9 sequential `if` statements + `foreach_collection` loop
     # 6. ReceiverAliasCall: `Format.Write(ref builder, $"len={builder.Length}")` (suspended-parent)
     if_chain = [
@@ -793,7 +793,7 @@ def _surface_ast_to_loan_graph_lowering() -> None:
                             "contracts": [],
                             "body": [
                                 {
-                                    "kind": "scope",
+                                    "kind": "open_invariant",
                                     "target": {
                                         "kind": "tuple",
                                         "elements": [borrow_expr("ref", ident("this")), borrow_expr("ref", ident("destination"))],
@@ -890,7 +890,7 @@ def _surface_ast_to_loan_graph_lowering() -> None:
                             "contracts": [],
                             "body": [
                                 {
-                                    "kind": "scope",
+                                    "kind": "open_invariant",
                                     "target": borrow_expr("ref", ident("this")),
                                     "lifts": [id_node("InitializedPrefix")],
                                     "body": [
@@ -1006,7 +1006,7 @@ def _surface_ast_to_loan_graph_lowering() -> None:
             in {(issue.kind, issue.resources) for issue in path.issues}
             for path in early_scope.paths
         ),
-        "let-else early return inside `scope ... lifts` did not report unclosed-invariant",
+        "let-else early return inside `open ... lifts` did not report unclosed-invariant",
     )
 
     many_branches = reports["BoundedBuffer.ManyBranchesAndLoop"]

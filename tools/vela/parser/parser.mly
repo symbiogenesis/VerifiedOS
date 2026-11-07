@@ -47,7 +47,7 @@ let binary first last operator left right =
 %token REQUIRES ENSURES RESTORES WHERE EFFECTS INVARIANT DECREASES PROGRESS
 %token VIEW GROWS TYPE PREDICATE PROOF
 %token EFFECT RESUMES HANDLE SHALLOW WITH RESUME DISPOSE REHANDLE
-%token AWAIT SCOPE LIFTS SPAWN COMMIT ON CANCEL VAR FOREACH WHILE MATCH CASE BREAK CONTINUE
+%token AWAIT SCOPE OPEN LIFTS SPAWN COMMIT ON CANCEL VAR FOREACH WHILE MATCH CASE BREAK CONTINUE
 %token DEFINITION THEOREM LEMMA INDUCTIVE COINDUCTIVE UNIVERSE FORALL EXISTS ASSERT BY CALC
 %token MACHINE HARDWARE STATE REGISTER TRANSITION RULE WHEN NEXT SCHEDULE CYCLE
 %token FN FNMUT FNONCE IS CARRIER ZERO ONE ADD MUL ADMITS INTERPRET LAWS
@@ -565,9 +565,11 @@ s_simple_statement:
 | ASSERT value=s_expression justification=s_assert_tail
     { let by_node, parts = justification in
       make "assert" $startpos $endpos [("value", value.syntax); ("by", by_node)] (value :: parts) }
-| SCOPE LPAREN values=comma_list(s_expression) RPAREN clauses=option(s_lifts) body=s_block
-    { let lifted = match clauses with None -> [] | Some names -> [("lifts", Array names)] in
-      make "scope" $startpos $endpos ([("resources", array values)] @ lifted @ [("body", body.syntax)]) (body :: values) }
+| SCOPE LPAREN values=comma_list(s_expression) RPAREN body=s_block
+    { make "scope" $startpos $endpos [("resources", array values); ("body", body.syntax)] (body :: values) }
+| OPEN LPAREN values=comma_list(s_expression) RPAREN clauses=s_lifts body=s_block
+    { make "open_invariant" $startpos $endpos [("resources", array values); ("lifts", Array clauses);
+        ("body", body.syntax)] (body :: values) }
 | MATCH LPAREN value=s_expression RPAREN motive=option(s_match_motive) LBRACE cases=nonempty_list(s_match_case) RBRACE
     { make "match" $startpos $endpos [("value", value.syntax); ("motive", optional motive);
         ("cases", array cases)] (value :: children motive @ cases) }

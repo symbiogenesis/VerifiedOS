@@ -815,13 +815,13 @@ public struct BoundedBuffer<T, ghost Nat capacity>
         effects writes(this), writes(destination)
         ensures destination.length == old(this.length) && this.length == 0usize
     {
-        scope (ref this, ref destination) lifts InitializedPrefix, VacantSuffix {
+        open (ref this, ref destination) lifts InitializedPrefix, VacantSuffix {
             CopyRepresentation(source: in this.slots, destination: ref destination.slots, count: this.length);
             TransferType<T>(source: ref this.slots, destination: ref destination.slots, count: this.length);
             destination.length = this.length;
             this.length = 0usize;
         }
-        scope (ref this) lifts LengthBound, {
+        open (ref this) lifts LengthBound, {
             Touch(in this.length);
         }
         scope (ref destination) {
@@ -846,7 +846,7 @@ public hardware Clocked where PhysicalLaw() invariant Bounded(count) {
     rule Tick() { next count = count + 1; }
 }
 private struct Empty {}
-""", ("struct", "interface", "machine", "hardware", "contract", "field", "function", "scope")),
+""", ("struct", "interface", "machine", "hardware", "contract", "field", "function", "open_invariant", "scope")),
     Fixture("named-handler-capabilities", """// café: repeated names retain distinct binding spans.
 module NamedHandlers;
 public Nat Nested() {
@@ -1710,10 +1710,13 @@ NEGATIVE: tuple[tuple[str, bytes, str], ...] = (
     ("named-invariant-missing-value", b"module M; struct S invariant Clause: {}", "syntax"),
     ("named-requires-disallowed", b"module M; void F() requires Clause: true {}", "syntax"),
     ("named-ensures-disallowed", b"module M; void F() ensures Clause: true {}", "syntax"),
-    ("scope-lifts-missing-clauses", b"module M; void F(ref S s) { scope (ref s) lifts {} }", "syntax"),
-    ("scope-lifts-leading-comma", b"module M; void F(ref S s) { scope (ref s) lifts , Clause {} }", "syntax"),
-    ("scope-lifts-double-comma", b"module M; void F(ref S s) { scope (ref s) lifts A,, B {} }", "syntax"),
+    ("open-lifts-missing-clauses", b"module M; void F(ref S s) { open (ref s) lifts {} }", "syntax"),
+    ("open-lifts-leading-comma", b"module M; void F(ref S s) { open (ref s) lifts , Clause {} }", "syntax"),
+    ("open-lifts-double-comma", b"module M; void F(ref S s) { open (ref s) lifts A,, B {} }", "syntax"),
+    ("open-without-lifts", b"module M; void F(ref S s) { open (ref s) { Touch(in s); } }", "syntax"),
+    ("scope-lifts-retired", b"module M; void F(ref S s) { scope (ref s) lifts Clause { Touch(in s); } }", "syntax"),
     ("lifts-remains-reserved", b"module M; void F() { let lifts = 1; }", "syntax"),
+    ("open-is-reserved", b"module M; void F() { let open = 1; }", "syntax"),
     ("legacy-trait-keyword-refused", b"module M; public trait Eq<T> { bool Equal(T other); }", "syntax"),
     ("legacy-operation-keyword-refused", b"module M; public interface Storage<T> { operation T Read(); }", "syntax"),
     ("legacy-proof-signature-refused", b"module M; public interface Storage<T> { proof ReadLaw; }", "syntax"),
@@ -3438,15 +3441,17 @@ def _container_resource_roles(source: bytes, result: dict[str, Json]) -> None:
         _exact_span(source, clause, spelling)
         _exact_span(source, _object(clause.get("name"), "invariant clause name"), clause_name.encode())
     relocate = _named(buffer, "function", "RelocateInto")
+    opened = [node for node in nodes(relocate) if node.get("kind") == "open_invariant"]
     scopes = [node for node in nodes(relocate) if node.get("kind") == "scope"]
-    if len(scopes) != 3:
-        raise ValueError("surface selective-lifting fixture lost a scope block")
-    lifted_pair, lifted_trailing, unlifted = scopes
+    if len(opened) != 2 or len(scopes) != 1:
+        raise ValueError("surface selective-lifting fixture lost an open or task-scope block")
+    lifted_pair, lifted_trailing = opened
+    unlifted = scopes[0]
     for scope_node, expected_lifts, spelling in (
         (
             lifted_pair,
             ["InitializedPrefix", "VacantSuffix"],
-            b"scope (ref this, ref destination) lifts InitializedPrefix, VacantSuffix {\n"
+            b"open (ref this, ref destination) lifts InitializedPrefix, VacantSuffix {\n"
             b"            CopyRepresentation(source: in this.slots, destination: ref destination.slots, count: this.length);\n"
             b"            TransferType<T>(source: ref this.slots, destination: ref destination.slots, count: this.length);\n"
             b"            destination.length = this.length;\n"
@@ -3456,25 +3461,25 @@ def _container_resource_roles(source: bytes, result: dict[str, Json]) -> None:
         (
             lifted_trailing,
             ["LengthBound"],
-            b"scope (ref this) lifts LengthBound, {\n            Touch(in this.length);\n        }",
+            b"open (ref this) lifts LengthBound, {\n            Touch(in this.length);\n        }",
         ),
     ):
         if set(scope_node) != {"kind", "span", "resources", "lifts", "body"}:
-            raise ValueError("surface lifted scope changed its required AST fields")
+            raise ValueError("surface open block changed its required AST fields")
         _exact_span(source, scope_node, spelling)
         lifts = [_object(item, "lifted clause name")
                  for item in _sequence(scope_node.get("lifts"), "lifted clause names")]
         if [_texts(item) for item in lifts] != [[name] for name in expected_lifts]:
-            raise ValueError("surface scope lifts list changed its clause names or order")
-        scope_start = _sequence(scope_node.get("span"), "lifted scope span")[0]
+            raise ValueError("surface open lifts list changed its clause names or order")
+        scope_start = _sequence(scope_node.get("span"), "open block span")[0]
         if type(scope_start) is not int:
-            raise ValueError("surface lifted scope lacks an integer start offset")
+            raise ValueError("surface open block lacks an integer start offset")
         for item, clause_name in zip(lifts, expected_lifts, strict=True):
             clause_offset = source.index(clause_name.encode(), scope_start)
             if item.get("span") != [clause_offset, clause_offset + len(clause_name)]:
                 raise ValueError("surface lifted clause identifier lost its exact UTF-8 byte span")
     if set(unlifted) != {"kind", "span", "resources", "body"}:
-        raise ValueError("surface unlifted scope fabricated a lifts field")
+        raise ValueError("surface task scope fabricated a lifts field")
     storage = _named(result.get("ast"), "interface", "Storage")
     read = _named(storage, "function", "Read")
     if _texts(read.get("contracts")) != ["Readable", "this", "Stable", "result"]:
