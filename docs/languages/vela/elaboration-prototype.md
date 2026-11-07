@@ -88,15 +88,15 @@ The supported increment includes:
   optional declaration-order `label: pattern` arguments), optional dependent
   `as name : Type` motives, and irrefutable `let (a, b) = ...` or
   `let RecordName(...) = ...` destructuring in blocks and `let ... in ...`
-  expressions. Advisory `VELA106` warns when a bare pattern binder shadows an
-  in-scope constructor or when a match arm is unreachable, while unreachable
-  arms are still typechecked against the match result type.
+  expressions. Constructors and binders in patterns are distinguished by token
+  shape (uppercase initial letter for constructors and lowercase letter or `_`
+  for binders), and nullary constructors are written bare without `()`.
 - Conditional `if (cond) a else b` expressions (`if_expression`), Boolean
   `expr is Pattern` tests, flow-refined `if (expr is Pattern)` statements and
   expressions (binding `Pattern`'s variables in the `then` branch), scoped
   early-exit `let Pattern = expr else { return ...; }` (`let_else`) guards in
   blocks and `assert ... by { ... }` proof blocks, and postfix `expr?`
-  early-return propagation over 2-variant `Option<T>` (`None()`, `Some(v)`) and
+  early-return propagation over 2-variant `Option<T>` (`None`, `Some(v)`) and
   `Result<T, E>` (`Err(e)`, `Ok(v)`) unions.
 - Nominal `record Name(T1 Field1, ...)` and `union Name { Case1(...); ... }`
   declarations with primary-constructor fields and tagged sum variants (lowering

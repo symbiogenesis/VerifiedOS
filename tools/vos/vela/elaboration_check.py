@@ -181,9 +181,9 @@ definition Nat Predecessor(Nat value) =>
 Nat Classify((bool, Nat) item) {
     let (flag, count) = item;
     match ((flag, count)) {
-        case (true, 0): return 1;
-        case (true, Succ(rest)): return rest + 2;
-        case (false, _): return 0;
+        (true, 0) => return 1;
+        (true, Succ(rest)) => return rest + 2;
+        (false, _) => return 0;
     }
 }
 lemma PredecessorStep(Nat value) ensures Predecessor(Succ(value)) == value proof {
@@ -196,14 +196,14 @@ definition bool Flip(bool flag) =>
     };
 lemma BoolInvolution(bool flag) ensures Flip(Flip(flag)) == flag proof {
     match (flag) {
-        case true: assert Flip(Flip(true)) == true;
-        case false: assert Flip(Flip(false)) == false;
+        true => assert Flip(Flip(true)) == true;
+        false => assert Flip(Flip(false)) == false;
     }
 }
 lemma PairEta<TLeft, TRight>((TLeft, TRight) pair)
     ensures pair == (Fst(pair), Snd(pair)) proof {
     match (pair) as whole : type[Eq(whole, (Fst(whole), Snd(whole)))] {
-        case (left, right): assert (left, right) == (Fst((left, right)), Snd((left, right)));
+        (left, right) => assert (left, right) == (Fst((left, right)), Snd((left, right)));
     }
 }
 """),
@@ -334,12 +334,12 @@ public lemma OptionRoundTrip(Option<Nat> item)
     }) == item
     proof {
         match (item) {
-            case None:
+            None =>
                 assert (match (None::<Nat>) {
                     None => None::<Nat>,
                     Some(value) => Some<Nat>(value),
                 }) == None::<Nat>;
-            case Some(value):
+            Some(value) =>
                 assert (match (Some<Nat>(value)) {
                     None => None::<Nat>,
                     Some(inner) => Some<Nat>(inner),
@@ -355,36 +355,36 @@ public definition Nat AddRec(Nat a, Nat b) decreases a =>
     };
 public Nat DoubleRec(Nat n) decreases n {
     match (n) {
-        case 0:
+        0 =>
             return 0;
-        case Succ(k):
+        Succ(k) =>
             return Succ(Succ(DoubleRec(k)));
     }
 }
 public lemma AddZeroRight(Nat n) ensures n + 0 == n
     proof {
         match (n) {
-            case 0:
+            0 =>
                 assert 0 + 0 == 0;
-            case Succ(k):
+            Succ(k) =>
                 assert Succ(k) + 0 == Succ(k) by AddZeroRight(k);
         }
     }
 public lemma AddSuccRight(Nat a, Nat b) ensures a + Succ(b) == Succ(a + b)
     proof {
         match (a) {
-            case 0:
+            0 =>
                 assert 0 + Succ(b) == Succ(0 + b);
-            case Succ(k):
+            Succ(k) =>
                 assert Succ(k) + Succ(b) == Succ(Succ(k) + b) by AddSuccRight(k, b);
         }
     }
 public theorem AddComm(Nat a, Nat b) ensures a + b == b + a
     proof {
         match (a) {
-            case 0:
+            0 =>
                 assert 0 + b == b + 0 by AddZeroRight(b);
-            case Succ(k):
+            Succ(k) =>
                 assert Succ(k) + b == b + Succ(k) by {
                     assert Succ(k + b) == Succ(b + k) by AddComm(k, b);
                     assert b + Succ(k) == Succ(b + k) by AddSuccRight(b, k);
@@ -394,9 +394,9 @@ public theorem AddComm(Nat a, Nat b) ensures a + b == b + a
 public lemma DoubleIsAddSelf(Nat n) ensures DoubleRec(n) == n + n
     proof {
         match (n) {
-            case 0:
+            0 =>
                 assert DoubleRec(0) == 0 + 0;
-            case Succ(k):
+            Succ(k) =>
                 assert DoubleRec(Succ(k)) == Succ(k) + Succ(k) by {
                     assert Succ(Succ(DoubleRec(k))) == Succ(Succ(k + k)) by DoubleIsAddSelf(k);
                     assert k + Succ(k) == Succ(k + k) by AddSuccRight(k, k);

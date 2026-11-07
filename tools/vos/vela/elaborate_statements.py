@@ -2159,6 +2159,8 @@ class _StatementsMixin:
                     new_cases: list[Node] = []
                     for arm in self.nodes(statement["cases"]):
                         arm_stmts = self.nodes(arm["statements"])
+                        if len(arm_stmts) == 1 and arm_stmts[0]["kind"] == "block":
+                            arm_stmts = self.nodes(arm_stmts[0]["statements"])
                         if arm_stmts and arm_stmts[-1]["kind"] == "return":
                             new_cases.append(arm)
                         else:

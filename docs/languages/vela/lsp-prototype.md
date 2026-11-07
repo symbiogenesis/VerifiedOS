@@ -225,7 +225,7 @@ corresponding compiler facts before advertising those services. This increment
 does not commission a second surface parser or a source borrow checker.
 
 Immutable-binding reassignment diagnostics identify the binding and explain
-`let`/unmarked type-first immutability and explicit `var` reassignment. The pure
+`let` immutability and explicit `var` reassignment. The pure
 producer states that mutation requires the wider surface; it grants no accepted
 mutable program or source borrow verdict. A write through an exclusive loan is
 distinct from rebinding its immutable descriptor. Diagnostics and locations must

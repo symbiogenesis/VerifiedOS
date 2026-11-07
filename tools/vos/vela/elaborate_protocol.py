@@ -549,8 +549,12 @@ class _Protocol:
                 cursor = self._list(node, span, cursor, cases, b"{", b"}")
             else:
                 cursor = self._token(node, cursor, b"{")
-                self._sequence_envelope(node, span, "cases", cursor, b"}")
-                return
+                for item in cases:
+                    cursor = self._child(node, span, cursor, item)
+                    after = trivia_end(self.source, cursor, block_comments=True)
+                    if self.source[after:after + 1] == b",":
+                        cursor = after + 1
+                cursor = self._token(node, cursor, b"}")
         elif kind == "match_motive":
             cursor = self._token(node, cursor, b"as")
             cursor = self._child(node, span, cursor, node["name"])
@@ -559,9 +563,8 @@ class _Protocol:
         elif kind == "case":
             if not isinstance(node["pattern"], dict) or node["pattern"].get("kind") not in _PATTERN_KINDS:
                 raise self.error("protocol", "match arm requires a pattern node", node)
-            cursor = self._token(node, cursor, b"case")
             cursor = self._child(node, span, cursor, node["pattern"])
-            cursor = self._token(node, cursor, b":")
+            cursor = self._token(node, cursor, b"=>")
             self._sequence_envelope(node, span, "statements", cursor)
             return
         elif kind == "expression_case":

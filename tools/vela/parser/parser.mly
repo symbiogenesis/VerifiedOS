@@ -81,7 +81,7 @@ let build_pattern first last target values =
 %token REQUIRES ENSURES RESTORES WHERE EFFECTS INVARIANT DECREASES PROGRESS
 %token VIEW GROWS TYPE PREDICATE PROOF
 %token EFFECT RESUMES HANDLE SHALLOW WITH RESUME DISPOSE REHANDLE
-%token AWAIT SCOPE OPEN LIFTS SPAWN COMMIT ON CANCEL VAR FOREACH WHILE MATCH CASE BREAK CONTINUE
+%token AWAIT SCOPE OPEN LIFTS SPAWN COMMIT ON CANCEL VAR FOREACH WHILE MATCH BREAK CONTINUE
 %token DEFINITION THEOREM LEMMA INDUCTIVE COINDUCTIVE UNIVERSE FORALL EXISTS ASSERT BY CALC
 %token MACHINE HARDWARE STATE REGISTER TRANSITION RULE WHEN NEXT SCHEDULE CYCLE
 %token FN FNMUT FNONCE IS CARRIER ZERO ONE ADD MUL ADMITS INTERPRET LAWS
@@ -547,17 +547,25 @@ s_block:
 
 /* Matched and unmatched statements make nearest-else association structural. */
 s_statement:
-  value=s_closed_statement { value } | value=s_open_statement { value }
-s_closed_statement:
-  value=s_simple_statement { value }
-| IF s_open_paren condition=s_expression RPAREN yes=s_closed_statement ELSE no=s_closed_statement
+  value=s_statement_with(s_simple_statement) { value }
+s_statement_with(simple):
+  value=s_closed_statement_with(simple) { value } | value=s_open_statement_with(simple) { value }
+s_closed_statement_with(simple):
+  value=simple { value }
+| IF s_open_paren condition=s_expression RPAREN yes=s_closed_statement_with(simple) ELSE no=s_closed_statement_with(simple)
     { make "if" $startpos $endpos [("condition", condition.syntax); ("then", yes.syntax); ("else", no.syntax)] [condition; yes; no] }
-s_open_statement:
-  IF s_open_paren condition=s_expression RPAREN yes=s_statement
+s_open_statement_with(simple):
+  IF s_open_paren condition=s_expression RPAREN yes=s_statement_with(simple)
     { make "if" $startpos $endpos [("condition", condition.syntax); ("then", yes.syntax); ("else", Null)] [condition; yes] }
-| IF s_open_paren condition=s_expression RPAREN yes=s_closed_statement ELSE no=s_open_statement
+| IF s_open_paren condition=s_expression RPAREN yes=s_closed_statement_with(simple) ELSE no=s_open_statement_with(simple)
     { make "if" $startpos $endpos [("condition", condition.syntax); ("then", yes.syntax); ("else", no.syntax)] [condition; yes; no] }
 s_simple_statement:
+  value=s_nonempty_simple_statement { value }
+| parts=s_empty_match
+    { let value, motive = parts in
+      make "match" $startpos $endpos [("value", value.syntax); ("motive", optional motive);
+        ("cases", Array [])] (value :: children motive) }
+s_nonempty_simple_statement:
   value=s_block { value }
 | CONST value_type=s_type constant_name=s_identifier EQUAL value=s_expression SEMICOLON
     { make "constant_local" $startpos $endpos [("name", constant_name); ("type", value_type.syntax);
@@ -610,10 +618,6 @@ s_simple_statement:
 | MATCH LPAREN value=s_expression RPAREN motive=option(s_match_motive) LBRACE cases=nonempty_list(s_match_case) RBRACE
     { make "match" $startpos $endpos [("value", value.syntax); ("motive", optional motive);
         ("cases", array cases)] (value :: children motive @ cases) }
-| parts=s_empty_match
-    { let value, motive = parts in
-      make "match" $startpos $endpos [("value", value.syntax); ("motive", optional motive);
-        ("cases", Array [])] (value :: children motive) }
 | NEXT target=s_postfix EQUAL value=s_expression SEMICOLON
     { make "next" $startpos $endpos [("target", target.syntax); ("value", value.syntax)] [target; value] }
 | target=s_statement_expression operator=s_assignment value=s_expression SEMICOLON
@@ -667,8 +671,9 @@ s_assignment:
 | MINUS_ASSIGN { name $startpos $endpos "-=" } | STAR_ASSIGN { name $startpos $endpos "*=" }
 | SLASH_ASSIGN { name $startpos $endpos "/=" } | MOD_ASSIGN { name $startpos $endpos "%=" }
 s_match_case:
-  CASE pattern=s_pattern COLON statements=list(s_statement)
-    { make "case" $startpos $endpos [("pattern", pattern.syntax); ("statements", array statements)] (pattern :: statements) }
+  pattern=s_pattern FATARROW statement=s_statement_with(s_nonempty_simple_statement) option(COMMA)
+    { make "case" $startpos $endpos(statement)
+        [("pattern", pattern.syntax); ("statements", array [statement])] [pattern; statement] }
 s_match_motive:
   AS scrutinee=s_identifier COLON value_type=s_type
     { make "match_motive" $startpos $endpos [("name", scrutinee); ("type", value_type.syntax)] [value_type] }

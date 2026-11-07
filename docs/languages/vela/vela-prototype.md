@@ -83,8 +83,7 @@ parameters:= parameter (',' parameter)* ','?
 parameter := 'const'? type name
 type      := 'Nat' | 'bool'
 block     := '{' binding* exit '}'
-binding   := 'let' type? name '=' expression ';'
-           | type name '=' expression ';' | constant
+binding   := 'let' type? name '=' expression ';' | constant
 constant  := 'const' type name '=' expression ';'
 exit      := 'return' expression ';'
            | 'if' '(' expression ')' block 'else' block
@@ -113,8 +112,8 @@ labeled suffix; each label must name the next declared parameter. Reordered,
 duplicate or unknown labels, omitted arguments and positional arguments after a
 label are refused. Labels preserve once-only left-to-right evaluation and do
 not change the emitted application. Local annotations must match the initializer's
-`Nat` or `bool` type exactly; unannotated locals infer it. Bare typed locals are
-immutable too and receive advisory `VELA104`, preferring an explicit `let`.
+`Nat` or `bool` type exactly; unannotated locals infer it. Bare `type name = expression;`
+locals are refused as syntax, directing authors to explicit `let`.
 Duplicate functions, parameters, local bindings in an active
 scope (including active parameters) and unbound values are errors. Function and
 value namespaces are separate. Equality returns `bool`. Natural arithmetic,

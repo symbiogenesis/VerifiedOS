@@ -990,11 +990,11 @@ retain their qualified parser/frontend prerequisites.
 | `T Name(...) => expression;` | A value-returning operation with the same checking as a single return block; the shorthand alone asserts no purity or permission. |
 | `definition T Name(...) => expression;` | A mathematical definition using the same expression-body marker, with its mathematical interpretation and representation boundary retained. Constant values and type aliases continue to use `=`. |
 | `Name<T>(arguments)`, `Name::<T>` | An ordinary generic call and an explicit generic application, respectively. The latter also supplies a generic callable as a value. The [migration contract](surface-grammar.md#familiar-authoring-migration) fixes token-only disambiguation and retains the explicit form when needed. |
-| `let (owner, receipt) = pair;`, `case Ok(value): ...` | Bare pattern names bind values. Constructors use parentheses, including a nullary `None()`; `_` discards only where its resource rules permit. |
-| `match (value) { Some(item) => item, None() => fallback, }` | Expression-match arms omit `case` and use commas, with an optional final comma. Statement matches retain `case Pattern:`. Both forms keep exhaustive elimination, dependent motives and resource checking. |
+| `let (owner, receipt) = pair;`, `Ok(value) => ...` | Lowercase pattern names bind values and uppercase names are constructors. Nullary constructors are written bare without `()`, including `None`; `_` discards only where its resource rules permit. |
+| `match (value) { Some(item) => item, None => fallback, }` | Both expression-match and statement-match arms use `Pattern => body` without `case`, with commas between expression arms and optional trailing commas. Both forms keep exhaustive elimination, dependent motives and resource checking. |
 | `owned T`, `move x` | A consuming parameter, and the call-site spelling that supplies one. The moved-from binding is unusable afterwards. |
 | `in T`, `ref T`, `out T` | Shared-read, initialized-exclusive and initialization-exclusive loans. Ordinary arguments repeat the mode; member-call syntax supplies the declared receiver loan. None is a freely copyable authority token. |
-| `Option<T>`, `Some(value)`, `None()` | Explicit optional data and its two tagged cases; payload use accounts for presence and absence. |
+| `Option<T>`, `Some(value)`, `None` | Explicit optional data and its two tagged cases; payload use accounts for presence and absence. |
 | `"""..."""` | A single-line or indentation-stripped multi-line raw string literal denoting exact static UTF-8 bytes without escape processing or heap allocation. |
 | `Format.Write(ref builder, $"...")` | Allocation-free checked formatting into an explicit `ref TextBuilder<capacity>` or `ref Span<byte>`, resolving a coherent static `Format<T>` instance per `{hole}` (no heap allocation, runtime reflection or ambient locale) and returning `Result<usize, CapacityError>`. |
 | `*p`, `&place`, `p + n`, `p[i]` | Explicit dereference, address/loan derivation, pointer offset and indexing, under checked representation and access contracts. |
@@ -1028,11 +1028,10 @@ availability are separate choices:
 | `var usize count = ReadCount();` | Explicit | Mutable | Runtime |
 | `const Nat Limit = 16;` | Explicit | Immutable | Required static |
 
-The surface parser already accepts typed `let`; making the four `let`/`var`
-forms prominent changes the teaching convention, not binding semantics. Bare
-`usize count = ReadCount();` remains an accepted immutable declaration. Show
-`let` explicitly in introductory examples and diagnostics so choosing a type
-annotation does not conceal that distinction. A prototype that lacks a type or
+The four `let`/`var` forms make mutability and type inference orthogonal; bare
+`usize count = ReadCount();` without `let` or `var` is refused as syntax,
+directing authors to `let usize count = ReadCount();` or `var usize count = ReadCount();`.
+A prototype that lacks a type or
 mutation feature must still report its supported-subset boundary.
 
 An immutable binding cannot be reassigned. It may hold an exclusive loan that
@@ -1051,7 +1050,7 @@ public definition Nat ValueOrZero(Option<Nat> optional) =>
     match (optional)
     {
         Some(value) => Identity<Nat>(value),
-        None() => 0,
+        None => 0,
     };
 ```
 
@@ -1128,8 +1127,8 @@ acceptance. The development parser does not implement a type or borrow checker.
   whose contract accounts for failure, representation and effects. Whenever Vela
   refuses a C# shortcut, the [assist-don't-coerce tooling](authoring-tools.md#compiler-verified-assist-dont-coerce-tooling)
   offers a verified, source-preserving edit or diagnostic suggestion (inserting explicit
-  `in`/`ref`/`out` loan modifiers, suggesting `T.From(x)` or `T.TryFrom(x)`, warning
-  with `VELA106` when a bare pattern binder shadows a constructor or is unreachable,
+  `in`/`ref`/`out` loan modifiers, suggesting `T.From(x)` or `T.TryFrom(x)`, refusing
+  `None()` in favor of bare `None` when a nullary constructor is written with `()`,
   and offering `(Read()?).Value` or a `match` skeleton instead of `?.`).
   Inferring a literal's type, a generic argument or a proof does not convert an
   already typed value. Kernel definitional equality remains equality; checked
@@ -1140,8 +1139,8 @@ acceptance. The development parser does not implement a type or borrow checker.
   qualification distinguishes operators, callable arrows, generic applications,
   patterns, local declarations and the nearest enclosing `else`. Checked parser
   correctness, completeness and lexer correctness remain separate obligations.
-- **No implicit mutation or unrestricted shared mutation.** `let` and unmarked
-  type-first locals are immutable; only `var` permits local reassignment.
+- **No implicit mutation or unrestricted shared mutation.** `let` locals are
+  immutable and bare `T x = e;` locals are refused; only `var` permits local reassignment.
   Parameter bindings are immutable by default. Binding immutability does not
   manufacture deep immutability or write permission: changing referenced storage
   requires an explicit exclusive loan or a sealed cell operation with its proved
@@ -1153,7 +1152,7 @@ acceptance. The development parser does not implement a type or borrow checker.
   capabilities, conflicting non-atomic access and CAS.
 - **No implicit nullability or unchecked optional extraction.** A type acquires
   no extra absent case by default, including a reference or capability type. Write
-  `Option<T>` for the ordinary tagged union with `Some(T)` and `None()` cases;
+  `Option<T>` for the ordinary tagged union with `Some(T)` and `None` cases;
   construct a case explicitly. There is no universal `null` literal, `T?` type
   suffix, null-forgiving operator or automatic `T`/`Option<T>` conversion.
   Consuming the payload requires exhaustive elimination or checked evidence that
@@ -1258,11 +1257,13 @@ The caller's loan ends at the view's last use, branch by branch:
 ```text
 match (ParsePrefix(in frame))
 {
-	case Ok(packet):
+	Ok(packet) => {
 		Forward(in packet.Payload);          // frame stays shared-borrowed until this last use
-	case Err(error):
+	},
+	Err(error) => {
 		frame.Clear();                       // no view exists on this branch, so frame is writable
 		Report(error);
+	},
 }
 ```
 
@@ -1541,9 +1542,9 @@ public async Result<TaskOutcome<Delivery<n>>, Busy<n>> Serve<ghost Nat n>(
 		let dormant = Accept(move packet, in counter, move allowance);   // constructed, not yet run
 		match (spawn dormant)                                          // binds a declared frame and completion record
 		{
-			case Spawned(task):
+			Spawned(task) =>
 				return Ok(await task);                                 // transfer the complete terminal outcome after joining
-			case Full(unstarted, verdict):
+			Full(unstarted, verdict) =>
 				return Err(Busy(verdict, move unstarted));             // exhaustion returns every input
 		}
 	}                                                                  // an early exit cancels, then joins, every child

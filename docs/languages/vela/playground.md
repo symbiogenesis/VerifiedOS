@@ -127,7 +127,7 @@ The JSON API is same-origin POST with `Authorization: Bearer TOKEN`:
 | `/api/lsp` | `{ "session": "opaque-id", "message": LSP_OBJECT }` | `{ "messages": [LSP_OBJECT] }` |
 | `/api/compile` | `{ "source": "UTF-8 text" }` | `{ "ok": true, "sourceHash": "sha256", "module": "name", "gallina": "text", "editorServices": true or false, "findings": [] }` |
 | `/api/evaluate` | `{ "source": "UTF-8 text", "expression": "text", "valueType": "Nat or bool" }` | `{ "ok": true, "sourceHash": "sha256", "valueType": "Nat or bool", "value": "decimal or true/false" }` |
-| `/api/authoring` | `{ "source": "UTF-8 text" }` | `{ "ok": true, "sourceHash": "sha256", "findings": [{ "code": "VELA104", "message": "text", "line": 1, "column": 1 }], "bindingPreview": "UTF-8 candidate" }` |
+| `/api/authoring` | `{ "source": "UTF-8 text" }` | `{ "ok": true, "sourceHash": "sha256", "findings": [{ "code": "VELA101", "message": "text", "line": 1, "column": 1 }] }` |
 
 Compiler refusals return `ok: false`, the original `sourceHash`, and an `error`
 object containing `kind`, `message`, `line` and `column`. Coordinates are
@@ -142,8 +142,8 @@ authoring requests remain limited to supported pure source. Mathematical refusal
 also include the elaborator's `protocol` and `inference` categories.
 
 Successful compilation returns `findings`, a list of
-`{ "code": "VELA105" or "VELA106", "message": "text", "line": 1, "column": 1 }`
-naming and pattern warnings in source order. Require at most 8,192 findings, exact keys, known code,
+`{ "code": "VELA105", "message": "text", "line": 1, "column": 1 }`
+naming warnings in source order. Require at most 8,192 findings, exact keys, known code,
 nonempty text and original source positions. Duplicate, unordered, malformed
 or oversized findings refuse the result. Warnings do not prevent Gallina output;
 failed compilation returns no findings. Pure compilation returns an empty list;
@@ -167,18 +167,13 @@ playground using the existing [authoring tools](authoring-tools.md) and
 [pure navigation facts](lsp-prototype.md#pure-navigation-increment). Keep the
 pure Nat/bool scope and all existing transport and stale-result constraints.
 
-An explicit authoring check calls `lint_source` and `preview_bindings` in the
+An explicit authoring check calls `lint_source` in the
 same bounded isolated worker used by compilation. Return advisory VELA100 through
-VELA104 findings at original one-based compiler positions and the producer's
-rechecked explicit-binding candidate. Validate the complete response, known
-codes, original-source positions, at most 8,192 findings and the compiler's
-source-byte bound for the candidate. Refuse malformed, incomplete, oversized or
+VELA103 findings at original one-based compiler positions. Validate the complete response, known
+codes, original-source positions and at most 8,192 findings. Refuse malformed, incomplete, oversized or
 failed producer results; an unavailable inspection is never a clean lint result.
 No checker, parser or edit inference is duplicated in the browser. A check
-changes no source. Render the candidate separately and apply it only through an
-explicit action against the unchanged captured buffer. Applying it is a single
-undoable editor edit; plain-text mode also offers recovery of the prior buffer.
-Invalidate findings, preview and apply authority on edits and reconnection.
+changes no source. Invalidate findings on edits and reconnection.
 
 A visible symbol outline queries the existing document-symbol service. Selecting
 a symbol shows its existing plain-text hover, including documentation, and its

@@ -134,7 +134,7 @@ data and elimination forms throughout the surface:
   at least two components and may nest. Type, value and pattern nodes preserve
   their distinct roles (`type` for `Unit`, `unit`, `unit_pattern`, `tuple_type`,
   `tuple`, `tuple_pattern`). A product pattern uses existing binding patterns:
-  `case (owner, receipt): ...`. Local elimination uses
+  `(owner, receipt) => ...`. Local elimination uses
   `let (owner, receipt) = value;`, with an explicit pattern node;
   `var` supports the same shape. A bare `_` is a `wildcard_pattern`, whose
   permission to discard a resource is an elaboration obligation.
@@ -479,15 +479,16 @@ Assignment, range, propagation and keyword computations are not operator values.
 
 Local elimination reuses constructor and recursive patterns:
 `let Some(value) = optional;` and
-`var Ready((owner, receipt)) = outcome;`. Qualified constructors and
-explicit empty argument lists are accepted. A single parenthesized pattern groups
+`var Ready((owner, receipt)) = outcome;`. Qualified constructors are
+accepted. A single parenthesized pattern groups
 it, producing `group_pattern` with a `pattern` child; products still require at
 least two components. Grouping works in local elimination, match arms and pattern
 tests. Local pattern bindings retain `let_pattern`/`var_pattern` with `pattern`
-and `value` fields. A bare local name retains the existing inferred binding form;
-a local constructor pattern requires parentheses, as in `let Ready() = outcome;`.
-Bare pattern names bind; constructor patterns require parentheses even for a
-nullary case, such as `None()`. Component grades remain in their data types. Refutability, constructor arity,
+and `value` fields. A bare lowercase local name retains the existing inferred binding form;
+a local nullary constructor pattern uses a qualified uppercase path, as in `let Result.Empty = outcome;`.
+Lowercase or `_` pattern names bind, and uppercase names are constructors; nullary
+constructors are written bare without `()`, such as `None`, while empty-argument
+constructor patterns `None()` are refused. Component grades remain in their data types. Refutability, constructor arity,
 exhaustiveness, ownership and resource disposal are elaboration obligations, so
 syntactically valid mistakes still parse.
 
@@ -571,8 +572,8 @@ once-only receiver evaluation, argument order and overlap remain semantic
 obligations. A call rejected for an overlapping argument or an ineligible receiver
 still parses; the parser neither chooses a view nor delays a loan.
 
-`let`, `var` and unmarked type-first locals retain distinct existing AST roles;
-unmarked locals mean immutable bindings. `Option<T>`, `Some(value)`, `None()` and
+`let` and `var` locals retain distinct existing AST roles, and bare `T name = value;`
+local declarations are refused as syntax (`let` or `var` is mandatory). `Option<T>`, `Some(value)`, `None` and
 their constructor patterns use ordinary library syntax. Reserve bare `null` in
 the surface lexer and refuse it as syntax, without changing pure tokenization.
 Refuse `T?` annotations, null-forgiving postfix `!`, `??` and `?.`. Existing
@@ -650,9 +651,9 @@ implicit conversion, ownership transfer, effect, disposal or proof authority.
 - Local bindings use `let name = value` or `let T name = value` for immutable
   bindings, and `var name = value` or `var T name = value` for mutable bindings.
   The optional annotation chooses type inference independently of mutability.
-  The existing unmarked `T name = value` remains immutable; examples and
-  reassignment diagnostics prefer the explicit symmetric forms. Binding
-  immutability does not prohibit a
+  Bare `T name = value` local declarations without `let` or `var` are refused as
+  syntax, directing authors to `let T name = value;` or `var T name = value;`.
+  Binding immutability does not prohibit a
   write through an eligible exclusive loan, and the pure prototype reports its
   unsupported mutation boundary without claiming a source borrow judgment.
 
@@ -689,19 +690,21 @@ implicit conversion, ownership transfer, effect, disposal or proof authority.
   includes callable, constructor and pattern argument lists. Empty lists with
   a comma and doubled commas are refused. Products keep at least two elements;
   `(value,)` acquires no new tuple or grouping meaning.
-- Bare unqualified names in patterns bind values; `_` remains a discard whose
-  resource admissibility requires checking. Constructors always have explicit
-  argument parentheses, including a nullary `None()` or `BorrowConflict()`.
-  Thus local elimination is `let (owner, receipt) = pair;` or
-  `let Ready(buffer, receipt) = outcome;`, and a match may use
-  `Ok(value) => value,` in an expression match or `case Ok(value):` in a statement
-  match. The outer local keyword selects binding mutability.
-  Located binding/constructor/product nodes have distinct roles.
-  No capitalization, symbol-table or import-dependent interpretation is allowed;
-  when a bare pattern binder shadows an in-scope union or record constructor (such
-  as `case None:` instead of `case None():`) or leaves a later match arm
-  unreachable, the [assist-don't-coerce lint `VELA106`](authoring-tools.md#compiler-verified-assist-dont-coerce-tooling)
-  warns and offers `None()`.
+- Pattern binders and constructors are distinguished by token shape without
+  symbol-table or import-dependent lookup: an unqualified lowercase identifier
+   binds a value, `_` remains a discard whose resource admissibility requires
+  checking, and an identifier whose final segment begins with an ASCII uppercase
+  letter is a constructor (`None`, `BorrowConflict`, `Some(x)`, `Result.Empty`).
+  Nullary constructors are written bare without `()` in patterns and expressions;
+  empty-argument constructor patterns `Ctor()` (such as `None()`) and uppercase
+  pattern binders are refused as syntax. Thus local elimination is
+  `let (owner, receipt) = pair;` or `let Ready(buffer, receipt) = outcome;`, and
+  both expression and statement matches use `Pattern => ...` arms without `case`
+  (`Ok(value) => value,` in an expression match or `Ok(value) => { ... },` /
+  `Ok(value) => return value;` in a statement match). The outer local keyword
+  selects binding mutability. Located binding/constructor/product nodes have
+  distinct roles (`VELA106` is permanently retired under `Q25ah` and never
+  reused).
 
 Acceptance requires independently expected AST roles, original UTF-8 spans,
 precedence, nesting/resource boundaries and malformed neighbors for every form.
@@ -742,8 +745,9 @@ hosted parser, kernel and production qualification retain their existing owners.
 
 **Bindings and aliases.** Documentation, diagnostics and editor examples present
 `let [T] name = value` and `var [T] name = value`, where `[T]` here means an
-optional type annotation, not literal source brackets. Unmarked typed locals
-remain immutable and accepted. Preserve existing local AST kinds, annotations,
+optional type annotation, not literal source brackets. Bare `T name = value;`
+local declarations without `let` or `var` are refused as syntax (`VELA104` is
+permanently retired under `Q25ah` and never reused). Preserve existing local AST kinds, annotations,
 grades, destructuring and the distinction between rebinding and writing through
 an exclusive loan. The [primitive contract](first-release.md#primitive-semantics)
 owns the exact integer aliases exported by `Vela.Numerics`. They require ordinary
@@ -753,12 +757,13 @@ implicit conversions, numeric suffixes, default integer types or changes to
 arithmetic. Alias identity, range, layout and operator selection must agree
 with the underlying fixed-width type.
 
-**Expression arms and mathematical bodies.** A nonempty expression match uses
-`PATTERN => EXPR` arms separated by commas, allowing one trailing comma.
-It has no `case` keyword and no semicolon between arms. Empty matches retain
-their existing rules; `{,}`, doubled commas, missing separators and a mixture
-of expression and statement arm syntax are refused. Statement matches retain
-`case PATTERN:` and their statement bodies. Preserve located `match_expression`,
+**Match arms and mathematical bodies.** Nonempty expression and statement matches
+both use `PATTERN => ...` arms without a `case` keyword (`PATTERN => EXPR`
+separated by commas with an optional trailing comma in expression matches, and
+`PATTERN => { ... }` or `PATTERN => STMT` with optional trailing commas in
+statement matches; `case PATTERN:` is refused as syntax). Empty matches retain
+their existing rules; `{,}`, doubled commas, missing separators and legacy `case`
+arms are refused. Preserve located `match`, `case`, `match_expression`,
 `expression_case`, `match_motive`, `pattern` and `value` roles, scrutinee
 evaluation once, branch order, exhaustive elimination, dependent substitution
 and resource accounting. An incomplete match or a branch that discards a
@@ -828,8 +833,8 @@ after successful parsing where their token shape is valid.
 Retain independently frozen old-source baselines, migrate the checked-in
 examples and fixtures together, and compare corresponding syntax roles and
 elaborated terms apart from exact source provenance. The promoted surface
-refuses legacy expression-arm and mathematical-body spellings; it has no silent
-fallback parser. Explicit `::<...>` and immutable unmarked typed locals remain
+refuses legacy `case` match-arm, bare `T x = e;` local and mathematical-body spellings; it has no silent
+fallback parser. Explicit `::<...>` remains
 supported as specified above. Update every source-validating AST consumer,
 formatter, diagnostic and editor projection that reads the changed syntax;
 each revalidates exact source bytes rather than accepting stale spans or facts.
@@ -986,16 +991,13 @@ lists, `effects` clauses and `set` accessors are syntax refusals on properties,
 guaranteeing that `a.B` is always a total, allocation-free, effect-free read of `a`.
 
 **Pure typed locals and binding guidance.** Both pure syntax routes accept
-`let Nat count = value;`, `let bool ready = value;` and the immutable bare forms
-`Nat count = value;` and `bool ready = value;`. The annotation must equal the
+`let Nat count = value;` and `let bool ready = value;`, and refuse bare
+`Nat count = value;` and `bool ready = value;` as syntax. The annotation must equal the
 initializer's checked type; it grants no coercion or mutation. In schema 1 an
-annotated `let` adds a located `type` field to its existing local node; an
-unmarked annotation uses `typed_local` with `name`, `type`, `value`. Unannotated
+annotated `let` adds a located `type` field to its existing local node; unannotated
 `let` keeps its existing shape. The shared pure binding records the optional
 annotation independently of its value. Wider types and mutable locals retain
-their unsupported-feature diagnostics. The [binding lint and preview](authoring-tools.md#lint-policy)
-prefer explicit `let`, preserve original formatting and never change binding
-semantics. The formatter preserves whichever accepted spelling was authored.
+their unsupported-feature diagnostics. The formatter preserves whichever accepted spelling was authored.
 
 **Qualification.** Independently expected fixtures cover both pure local routes,
 annotation mismatch, shadowing, original UTF-8 spans, comments/mixed newlines and

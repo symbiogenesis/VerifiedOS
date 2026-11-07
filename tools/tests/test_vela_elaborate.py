@@ -1780,9 +1780,8 @@ def _match_stmt(value: Form, arms: tuple[tuple[Form, Form], ...],
         for pat, body in arms:
             fixture.write(" ")
             case_start = fixture.offset
-            fixture.write("case ")
             pat_node = pat(fixture)
-            fixture.write(": ")
+            fixture.write(" => ")
             if assert_arms:
                 stmt_node = body(fixture)
                 case_nodes.append(fixture.node("case", case_start, pattern=pat_node, statements=[stmt_node]))

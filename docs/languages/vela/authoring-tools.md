@@ -54,10 +54,10 @@ StyleCop or Clippy rule; neither upstream implementation is incorporated.
   change parentheses or synthesize proof, resource or disposal operations.
 
 The [selected syntax](surface-grammar.md#familiar-authoring-migration)
-uses comma-separated expression-match
-arms without `case`, `=>` for ordinary and mathematical function expression
-bodies, and ordinary `F<T>(arguments)` generic calls. Statement `case Pattern:`
-arms, constant/type-alias `=` and explicit `::<...>` applications retain their
+uses `Pattern => ...` arms without `case` in both expression and statement
+matches, `=>` for ordinary and mathematical function expression
+bodies, and ordinary `F<T>(arguments)` generic calls. Constant/type-alias `=`
+and explicit `::<...>` applications retain their
 own roles. Numeric aliases follow their [standard module's scope and identity](first-release.md#primitive-semantics);
 the formatter does not rename width types or synthesize imports.
 The explicit source migration owns token-changing rewrites, with preview,

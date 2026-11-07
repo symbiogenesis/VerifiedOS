@@ -327,7 +327,8 @@ let identifier state lexbuf =
   | "handle" -> HANDLE | "shallow" -> SHALLOW | "with" -> WITH | "resume" -> RESUME
   | "dispose" -> DISPOSE | "rehandle" -> REHANDLE | "await" -> AWAIT
   | "scope" -> SCOPE | "open" -> OPEN | "lifts" -> LIFTS | "spawn" -> SPAWN | "commit" -> COMMIT | "on" -> ON | "cancel" -> CANCEL
-  | "var" -> VAR | "foreach" -> FOREACH | "while" -> WHILE | "match" -> MATCH | "case" -> CASE
+  | "var" -> VAR | "foreach" -> FOREACH | "while" -> WHILE | "match" -> MATCH
+  | "case" -> refuse "syntax" lexbuf "match arms use 'Pattern => body' without 'case'"
   | "break" -> BREAK | "continue" -> CONTINUE | "definition" -> DEFINITION
   | "theorem" -> THEOREM | "lemma" -> LEMMA | "inductive" -> INDUCTIVE
   | "coinductive" -> COINDUCTIVE | "universe" -> UNIVERSE | "forall" -> FORALL

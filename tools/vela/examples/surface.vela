@@ -191,9 +191,9 @@ public Result<Unit, BorrowError> ReplaceByte(ref BorrowCell<byte> cell, byte val
     });
     match (outcome)
     {
-        case Updated(()): return Ok(());
-        case BorrowConflict: return Err(Conflict);
-        case CapacityExhausted: return Err(Capacity);
+        Updated(()) => return Ok(());
+        BorrowConflict => return Err(Conflict);
+        CapacityExhausted => return Err(Capacity);
     }
 }
 

@@ -354,13 +354,13 @@ the type is inferred or explicit. These familiar spellings retain Vela's rules:
 
 | Surface | Vela meaning to explain |
 | --- | --- |
-| `let T value`, bare `T value` | Immutable binding; writing through an eligible exclusive loan is a separate operation |
+| `let T value` | Immutable binding (bare `T value = ...;` is refused, directing authors to `let` or `var`); writing through an eligible exclusive loan is a separate operation |
 | `var T value` | Mutable binding, with no implicit shared-write permission |
 | `in`, `ref`, `out` | Explicit shared-read, initialized-exclusive and initialization-exclusive loans; ordinary calls repeat their mode, and [assist-don't-coerce tooling](authoring-tools.md#compiler-verified-assist-dont-coerce-tooling) offers a checked insertion of `in`/`ref`/`out` (such as `ref buffer`) when omitted |
 | `out T` with a fallible result | `T` is initialized on every normal return, including errors; partial construction uses outcome-indexed owned storage |
 | Labeled arguments | Labels name the next declared parameter, preserving dependent substitution and left-to-right evaluation; no reordering or defaults |
 | `int` and ordinary arithmetic | Explicitly imported exact alias; representability obligations and checked-result alternatives retain the primitive contract, and conversion diagnostics suggest `long.From(x)` when infallibly wider or `usize.TryFrom(x)` when range-checked |
-| `Option<T>`, `None()` and propagation | Absence is an explicit case (`case None():` / `None() => ...`, with `VELA106` warning if bare `None` shadows the constructor or makes later arms unreachable); `?` is early-return propagation rather than C# `?.`, so member access after propagation writes `(Read()?).Value` or a local `match` |
+| `Option<T>`, `None` and propagation | Absence is an explicit case (`None => ...` in both expression and statement `match`, with nullary constructors written bare without `()`); `?` is early-return propagation rather than C# `?.`, so member access after propagation writes `(Read()?).Value` or a local `match` |
 | Explicit `effects(...)` on public functions | Public signatures declare a closed read/write/call footprint; when omitted or under-specified, the compiler computes the body's closed footprint and offers a checked source-preserving `effects(...)` preview |
 | `if (cond) a else b` (instead of `cond ? a : b`) | Conflict-free conditional expression with mandatory `else` (avoiding ternary `?` ambiguity with postfix propagation and prefix holes), desugaring to the same exhaustive Boolean elimination and resource join as a two-arm `match` |
 | `Accepted(packet: p, receipt: r)` | Optional declaration-order field labels in constructor patterns, symmetric with labeled call arguments and requiring no symbol-table lookup during parsing |

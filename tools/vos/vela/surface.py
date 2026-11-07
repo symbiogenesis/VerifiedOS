@@ -217,9 +217,9 @@ public void Use() {
     let (owner, receipt) = pair;
     var Some((nested, _),) = candidate;
     match (candidate) {
-        case Some(payload,): Consume(payload);
-        case None: Empty();
-        case fallback: Inspect(fallback);
+        Some(payload,) => Consume(payload);
+        None => Empty();
+        fallback => Inspect(fallback);
     }
 }
 public Nat OperatorContract() requires (+) => 0;
@@ -384,12 +384,12 @@ public void Compose() {
     let empty = () => ();
     let values = (0007, 0xAfu8, "café", '\\n', true, false);
     match (token) {
-        case 0007: return;
-        case 0xAfu8: return;
-        case "café": return;
-        case '\\n': return;
-        case true: return;
-        case false: return;
+        0007 => return;
+        0xAfu8 => return;
+        "café" => return;
+        '\\n' => return;
+        true => return;
+        false => return;
     }
 }
 definition bool Nested() => forall (Nat outer) => exists (Nat inner) => outer == inner;
@@ -454,7 +454,7 @@ public void Eliminate() {
     var Core.Box<Nat> mutableAnnotated @ q = source;
     let ref<'source> Core.Box<Nat> loanAnnotated = source;
     let Core.Result.Ready(qualified) = source;
-    match (optional) { case (Some((matched))): return; }
+    match (optional) { (Some((matched))) => return; }
     let tested = optional is (Some((testedValue)));
     return;
 }
@@ -528,9 +528,9 @@ definition Nat Parse(Text text) => match (text) {
 };
 public void Inspect(Text text) {
     match (text) {
-        case "" : return;
-        case '\\' : return;
-        case Token(('(', "closed")) : return;
+        "" => return;
+        '\\' => return;
+        Token(('(', "closed")) => return;
     }
 }
 """, ("character_pattern", "string_pattern", "match_expression", "match", "tuple_pattern", "constructor_pattern")),
@@ -904,8 +904,8 @@ public Vec<byte, packet.Length> Unpack(owned Packed packet) {
 }
 public Nat Inspect(owned Selection selected) {
     match (move selected) as choice : Nat {
-        case Ready(payload): return payload.Length;
-        case Rejected(debt): Close(move debt); return 0;
+        Ready(payload) => return payload.Length;
+        Rejected(debt) => { Close(move debt); return 0; },
     }
 }
 public Nat Nested(bool flag) {
@@ -986,10 +986,10 @@ public Unit Consume((owned Buffer, (tracked Permit, Unit)) package) {
     let (owner, (receipt, ())) = package;
     var (left, right) = (1, 2);
     match ((move owner, (move receipt, ()))) {
-        case (live, (token, ())):
+        (live, (token, ())) =>
             Finish(move live, move token);
     }
-    match (left) { case _: return (); }
+    match (left) { _ => return (); }
 }
 """, ("tuple_type", "group_type", "type", "tuple", "unit", "tuple_pattern",
       "unit_pattern", "wildcard_pattern", "let_pattern", "var_pattern")),
@@ -1070,9 +1070,10 @@ public Initialized<n> Prepare<ghost Nat n>(owned Buffer<byte, n, Empty> buffer,
 }
 public void Inspect(owned Packed<byte> packet) {
     match (packet) {
-        case Packed(length, storage, evidence):
+        Packed(length, storage, evidence) => {
             Observe(length, in storage);
             Dispose(move storage);
+        },
     }
 }
 """, ("record", "union", "modified_type", "lifetime", "contract", "is", "let")),
@@ -1083,19 +1084,20 @@ public Result Update(ref BorrowCell<byte> cell, byte value) {
         return ();
     });
     match (outcome) {
-        case Updated(()): return Ok();
-        case BorrowConflict: return Err(Conflict);
-        case CapacityExhausted: return Err(Capacity);
+        Updated(()) => return Ok();
+        BorrowConflict => return Err(Conflict);
+        CapacityExhausted => return Err(Capacity);
     }
 }
 private Result WithWrite(ref BorrowCell<byte> cell,
     in Fn(scoped ref byte selected) -> Unit callback) {
     match (cell.TryWrite()) {
-        case Acquired(writer, debt):
+        Acquired(writer, debt) => {
             callback(ref writer.Value);
             cell.ReleaseWrite(move writer, move debt);
             return Ok();
-        case BorrowConflict: return Err(Conflict);
+        },
+        BorrowConflict => return Err(Conflict);
     }
 }
 public void Replace(ref LocalCell<Buffer> cell, owned Buffer replacement) {
@@ -1126,7 +1128,7 @@ on cancel { Close(move value); }
     Fixture("resource-errors-remain-syntax", """module InvalidResources;
 public async void Invalid(ref BorrowCell<Buffer> cell, tracked Permit permit) {
     let copied = (move permit, move permit);
-    match (copied) { case _: return; }
+    match (copied) { _ => return; }
     let ghost Nat oldLength = cell.Snapshot().Length;
     let changed = cell.Replace(move replacement);
     Use(cell[oldLength]);
@@ -1197,8 +1199,8 @@ public void Fill(ref Span<byte> target) {
         if (seen == 3) { continue; } else { break; }
     }
     match (Parse(in target)) {
-        case Ok(packet): Forward(in packet.Data);
-        case Err(error): Report(error);
+        Ok(packet) => Forward(in packet.Data);
+        Err(error) => Report(error);
     }
     if (true) return;
     return;
@@ -1300,8 +1302,8 @@ public async Result Serve(ref Frames frames, owned Packet packet) {
     scope (ref frames) {
         let dormant = Accept(move packet);
         match (spawn dormant) {
-            case Spawned(task): return Ok(await task);
-            case Full(unstarted, verdict): return Err(move unstarted);
+            Spawned(task) => return Ok(await task);
+            Full(unstarted, verdict) => return Err(move unstarted);
         }
     }
 }
@@ -1331,8 +1333,8 @@ public theorem Witness() ensures exists (Nat n) => n == 0;
     Fixture("represented-numeric-patterns", """module Patterns;
 public bool IsLow(byte value) {
     match (value) {
-        case 0u8: return true;
-        case 0b01: return false;
+        0u8 => return true;
+        0b01 => return false;
     }
 }
 """, ("match", "return")),
@@ -1462,10 +1464,10 @@ NEGATIVE: tuple[tuple[str, bytes, str], ...] = (
     ("double-handler-comma", b"module M; Nat F() => handle (Run()) { return x => x,, };", "syntax"),
     ("grouped-singleton-not-product", b"module M; Nat F() => (value,);", "syntax"),
     ("typed-singleton-not-product", b"module M; alias X = (Nat,);", "syntax"),
-    ("nullary-constructor-pattern-parentheses", b"module M; void F() { match (x) { case None(): return; } }", "syntax"),
-    ("qualified-nullary-constructor-pattern-parentheses", b"module M; void F() { match (x) { case Result.None(): return; } }", "syntax"),
-    ("lowercase-constructor-pattern", b"module M; void F() { match (x) { case some(y): return; } }", "syntax"),
-    ("qualified-lowercase-pattern", b"module M; void F() { match (x) { case Result.none: return; } }", "syntax"),
+    ("nullary-constructor-pattern-parentheses", b"module M; void F() { match (x) { None() => return; } }", "syntax"),
+    ("qualified-nullary-constructor-pattern-parentheses", b"module M; void F() { match (x) { Result.None() => return; } }", "syntax"),
+    ("lowercase-constructor-pattern", b"module M; void F() { match (x) { some(y) => return; } }", "syntax"),
+    ("qualified-lowercase-pattern", b"module M; void F() { match (x) { Result.none => return; } }", "syntax"),
     ("redundant-pattern-let", b"module M; void F() { let (let left, let right) = pair; }", "syntax"),
     ("contract-let-needs-grouping", b"module M; Nat F() requires let x = 1 in x == 1 => 1;", "syntax"),
     ("contract-quantifier-needs-grouping", b"module M; Nat F() requires forall (Nat n) => n == n => 1;", "syntax"),
@@ -1530,7 +1532,7 @@ NEGATIVE: tuple[tuple[str, bytes, str], ...] = (
     ("local-lowercase-constructor-pattern", b"module M; void F() { let some(x) = value; }", "syntax"),
     ("local-pattern-incomplete-group", b"module M; void F() { let (let x = value; }", "syntax"),
     ("local-pattern-group-trailing-comma", b"module M; void F() { let ((x),) = value; }", "syntax"),
-    ("group-pattern-missing-close", b"module M; void F() { match (x) { case (Some(value): return; } }", "syntax"),
+    ("group-pattern-missing-close", b"module M; void F() { match (x) { (Some(value) => return; } }", "syntax"),
     ("local-constructor-pattern-depth", b"module M; void F() { let " + b"Some(" * 257
      + b"value" + b")" * 257 + b" = source; }", "limit"),
     ("local-group-pattern-depth", b"module M; void F() { let " + b"(" * 257
@@ -1558,7 +1560,7 @@ NEGATIVE: tuple[tuple[str, bytes, str], ...] = (
     ("effect-family-law-semicolon", b"module M; effect E where Ready(); { Nat Get(); }", "syntax"),
     ("literal-pattern-missing-arrow", b'module M; Nat F() { return match (x) { "ready" 1, }; }', "syntax"),
     ("literal-pattern-unterminated-string", b'module M; Nat F() { return match (x) { "ready => 1, }; }', "syntax"),
-    ("literal-pattern-empty-character", b"module M; void F() { match (x) { case '' : return; } }", "syntax"),
+    ("literal-pattern-empty-character", b"module M; void F() { match (x) { '' => return; } }", "syntax"),
     ("empty-match-missing-group-close", b"module M; definition T F() => (match (x) {};", "syntax"),
     ("empty-match-missing-motive-name", b"module M; definition T F() => (match (x) as : T {});", "syntax"),
     ("empty-match-missing-motive-type", b"module M; definition T F() => (match (x) as p : {});", "syntax"),
@@ -1641,6 +1643,9 @@ NEGATIVE: tuple[tuple[str, bytes, str], ...] = (
     ("empty-expression-match-missing-body", b"module M; public Nat F() { return match (x); }", "syntax"),
     ("expression-match-colon-arm", b"module M; public Nat F() { return match (x) { case _ : 0; }; }", "syntax"),
     ("expression-match-mixed-arms", b"module M; public Nat F() { return match (x) { true => 0, case false : 1; }; }", "syntax"),
+    ("statement-match-case-colon-arm", b"module M; public void F() { match (x) { case Ok(v): return; } }", "syntax"),
+    ("statement-match-case-arrow-arm", b"module M; public void F() { match (x) { case Ok(v) => return; } }", "syntax"),
+    ("statement-match-colon-arm", b"module M; public void F() { match (x) { Ok(v): return; } }", "syntax"),
     ("expression-match-missing-value", b"module M; public Nat F() { return match (x) { _ => , }; }", "syntax"),
     ("expression-match-missing-comma", b"module M; public Nat F() { return match (x) { true => 0 false => 1 }; }", "syntax"),
     ("match-motive-depth", b"module M; public Nat F() { return match (x) as p : "
@@ -1664,8 +1669,8 @@ NEGATIVE: tuple[tuple[str, bytes, str], ...] = (
     ("missing-product-value", b"module M; public void F() { let (x, y) = ; }", "syntax"),
     ("product-type-depth", b"module M; alias P = " + b"(Nat," * 257
      + b"Nat" + b")" * 257 + b";", "limit"),
-    ("product-pattern-depth", b"module M; public void F() { match (p) { case "
-     + b"(x," * 257 + b"()" + b")" * 257 + b": return; } }", "limit"),
+    ("product-pattern-depth", b"module M; public void F() { match (p) { "
+     + b"(x," * 257 + b"()" + b")" * 257 + b" => return; } }", "limit"),
     ("graded-lambda-lookahead-depth", b"module M; public void F() { let f = (Nat n @ "
      + b"(" * 257 + b"q" + b")" * 257 + b") => n; }", "limit"),
     ("grade-callback-block-lookahead-depth", b"module M; public void F() { let f = (Nat x @ Grade.Of((Nat n) => "
@@ -1676,7 +1681,7 @@ NEGATIVE: tuple[tuple[str, bytes, str], ...] = (
     ("incomplete-record", b"module M; public record Packet(Nat Count", "syntax"),
     ("incomplete-handler", b"module M; public Nat F() { return handle (G()) { return x =>", "syntax"),
     ("missing-effect-result", b"module M; public effect E { Choose() resumes(1); }", "syntax"),
-    ("missing-match-colon", b"module M; public void F() { match (x) { case Ok(x) return; } }", "syntax"),
+    ("missing-match-colon", b"module M; public void F() { match (x) { Ok(x) return; } }", "syntax"),
     ("incomplete-cancel", b"module M; public async Nat F() { return 0; } on cancel", "syntax"),
     ("unterminated-string", b'module M; public void F() { let text = "unterminated', "syntax"),
     ("unterminated-raw-string", b'module M; public void F() { let text = """unterminated ""; }', "syntax"),
@@ -1691,7 +1696,7 @@ NEGATIVE: tuple[tuple[str, bytes, str], ...] = (
     ("interpolated-whitespace-specifier", b'module M; public void F() { Format.Write(ref b, $"spec {x: x2}"); }', "syntax"),
     ("interpolated-unescaped-close-brace", b'module M; public void F() { Format.Write(ref b, $"bad }"); }', "syntax"),
     ("interpolated-unclosed-hole", b'module M; public void F() { Format.Write(ref b, $"bad {x"); }', "syntax"),
-    ("interpolated-pattern-disallowed", b'module M; public void F() { match (x) { case $"bad {y}": return; } }', "syntax"),
+    ("interpolated-pattern-disallowed", b'module M; public void F() { match (x) { $"bad {y}" => return; } }', "syntax"),
     ("interpolated-hole-delimiter-limit", b'module M; public void F() { Format.Write(ref b, $"{'
      + b"(" * 256 + b"x" + b")" * 256 + b'}"); }', "limit"),
     ("unterminated-comment", b"module M; /* unterminated {", "syntax"),
@@ -2340,7 +2345,7 @@ def _concise_authoring_roles(source: bytes, result: dict[str, Json]) -> None:
     if sorted(_texts(node.get("name"))[0] for node in constructors) != ["None", "Some", "Some"]:
         raise ValueError("surface explicit constructors became bare pattern binders")
     nullary = next(node for node in constructors if _texts(node.get("name")) == ["None"])
-    nullary_start = source.index(b"case None:") + len(b"case ")
+    nullary_start = source.index(b"None =>")
     if nullary.get("span") != [nullary_start, nullary_start + len(b"None")]:
         raise ValueError("surface nullary constructor span differs from its match arm")
     if _sequence(nullary.get("arguments"), "nullary constructor"):

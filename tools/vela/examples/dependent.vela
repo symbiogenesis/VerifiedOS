@@ -52,9 +52,9 @@ public lemma DoubleNegation(bool flag)
     {
         match (flag)
         {
-            case true:
+            true =>
                 assert Flip(Flip(true)) == true;
-            case false:
+            false =>
                 assert Flip(Flip(false)) == false;
         }
     }
@@ -200,12 +200,12 @@ public lemma OptionRoundTrip(Option<Nat> item)
     {
         match (item)
         {
-            case None:
+            None =>
                 assert (match (None::<Nat>) {
                     None => None::<Nat>,
                     Some(value) => Some<Nat>(value),
                 }) == None::<Nat>;
-            case Some(value):
+            Some(value) =>
                 assert (match (Some<Nat>(value)) {
                     None => None::<Nat>,
                     Some(inner) => Some<Nat>(inner),
@@ -242,9 +242,9 @@ public lemma AddZeroRight(Nat value)
     {
         match (value)
         {
-            case 0:
+            0 =>
                 assert 0 + 0 == 0;
-            case Succ(previous):
+            Succ(previous) =>
                 assert Succ(previous) + 0 == Succ(previous) by AddZeroRight(previous);
         }
     }
@@ -255,9 +255,9 @@ public lemma AddSuccRight(Nat left, Nat right)
     {
         match (left)
         {
-            case 0:
+            0 =>
                 assert 0 + Succ(right) == Succ(0 + right);
-            case Succ(previous):
+            Succ(previous) =>
                 assert Succ(previous) + Succ(right) == Succ(Succ(previous) + right) by AddSuccRight(previous, right);
         }
     }
@@ -268,9 +268,9 @@ public theorem AddComm(Nat left, Nat right)
     {
         match (left)
         {
-            case 0:
+            0 =>
                 assert 0 + right == right + 0 by AddZeroRight(right);
-            case Succ(previous):
+            Succ(previous) =>
                 assert Succ(previous) + right == right + Succ(previous) by
                 {
                     assert Succ(previous + right) == Succ(right + previous) by AddComm(previous, right);
