@@ -1,52 +1,15 @@
 # SPDX-License-Identifier: Apache-2.0
-"""The model's own machine-readable view of itself, and what may be asked of it.
+"""Parse the Sail documentation bundle (`tools/generated/sail_riscv_model.json`) and supplemental source identity.
 
-Sail emits a bundle describing everything it typechecked: every function, mapping,
-`val`, type, register and `let`, each with its source text, the file it is written in
-and the line it starts on, plus an incomplete md5 map of input files. The
-curated model already built that bundle on the way to every other artifact and nothing
-read it, while `tools/vos/` carried four regex parsers over the same Sail. That is the
-two-copies-of-one-parse defect this repository exists to catch, sitting in the tools
-that catch it.
+The bundle (`version == 1`, `embedding == "plain"`) records Sail declarations
+(`functions`, `mappings`, `vals`, `types`, `registers`, `lets`) with `{contents, file, loc}`
+slots (`loc` is `[start_line, start_bol, start_char, end_line, end_bol, end_char]` in UTF-8
+byte offsets) and an incomplete MD5 map of input files.
 
-**This module is a parse and never a decision**, as everywhere else in this package.
-What the values must be and which disagreements matter belongs to the checks.
-
-## What the schema is, and what it is not
-
-The bundle is `version` 1 with `embedding` `plain`, and a version other than 1 is
-refused rather than read: the shapes below are that version's, and a reader that
-guessed at a later one would report about fields it invented. Ten maps hang off the
-top level, and under `--doc-embed plain --doc-embed-with-location` every source slot is
-`{contents, file, loc}` with `loc` the six-element `[line, bol, char, line, bol, char]`
-Sail writes, whose first element is the 1-based line a finding sends a person to.
-
-The one thing a reader must not assume is provenance. **The bundle carries no `git`
-key**: the locked Sail emits none where `git` fails, which the bundle command
-arranges, so the artifact does not record the commit it came from, and nothing here
-may say which revision it describes. Its recorded md5 detects stale files in that
-map, but cannot bind files it omits. The supplemental source identity binds the
-unchanged bundle bytes, the project bytes and every source the owning Sail project
-lists. It uses the canonical term's existing SHA-256 manifest contract. The host
-checks these recorded owners; the guest comparison regenerates both artifacts.
-
-## Portable library locations
-
-Of the files the emitter hashes, most are keyed relative to `model/model/` and
-resolve in this checkout. Most of the rest are the Sail library's own, keyed by the
-**absolute host path** they were read from, under the selected switch's
-`share/sail/lib/`; the others, `COMPILER_FILES`, are compiled into Sail itself and
-keyed by bare name.
-`canonicalize_library` relocates only these hash keys from the selected switch to
-`LIBRARY_PREFIX`, retaining source text, locations and every digest. Both publication
-and guest comparison use this transformation and compact UTF-8 JSON with a final
-newline. An absolute hash key outside the selected library, or one escaping it,
-fails before publication. A changed library digest still fails the byte comparison.
-
-The tracked artifact keeps the canonical prefix regardless of the emitter's opam
-root. `library_owners` fails closed on any other absolute prefix. Host readers do not
-consult `env.opam_root()`: the host need not have the guest toolchain installed, and
-both readers must decide the same thing about the same tracked bytes.
+Because the bundle omits a `git` key and omits some project sources from its MD5 map,
+`tools/generated/sail_riscv_sources.json` binds the bundle SHA-256, `riscv.sail_project`,
+and all project-selected `.sail` sources. `canonicalize_library` rewrites absolute switch
+library paths under `share/sail/` to `LIBRARY_PREFIX`.
 """
 
 import hashlib
@@ -61,23 +24,12 @@ from vos import env, rocqterm
 from vos.jsonutil import unique_object
 
 BUNDLE_NAME = "sail_riscv_model.json"
-
-# Tracked, and under `tools/` rather than under `model/`. `model/` is `-text` in
-# .gitattributes and vendored byte-identically from its upstream pin, so a generated
-# artifact there would break both properties at once; `tools/` already carries four
-# directories that are inputs to the tools rather than commands, and this is a fifth of
-# exactly that kind. Neither placement adds a top-level directory to AGENTS.md's map.
 BUNDLE = f"tools/generated/{BUNDLE_NAME}"
 
-# Sail's documentation emitter omits some project sources from its MD5 map.
-# This supplemental view leaves the upstream bundle unchanged and records the
-# complete list the owning project compiler selects, using the canonical term's
-# existing SHA-256 manifest contract.
 SOURCE_IDENTITY_NAME = "sail_riscv_sources.json"
 SOURCE_IDENTITY = f"tools/generated/{SOURCE_IDENTITY_NAME}"
 SOURCE_IDENTITY_FORMAT = "verifiedos-sail-sources-1"
 
-# What a hashes key and a source slot's `file` are relative to.
 SOURCE_ROOT = "model/model"
 PROJECT_FILE = f"{SOURCE_ROOT}/riscv.sail_project"
 
@@ -86,59 +38,29 @@ _RESERVED = frozenset(("CON", "PRN", "AUX", "NUL", "CONIN$", "CONOUT$",
                        *(f"{prefix}{digit}" for prefix in ("COM", "LPT")
                          for digit in "123456789¹²³")))
 
-# The only version whose shapes are written down here.
 VERSION = 1
 
-# Public navigation kinds share the emitter's maps with the specific accessors.
 DECLARATION_KINDS = (("functions", "function"), ("mappings", "mapping"),
                      ("vals", "val"), ("types", "type"),
                      ("registers", "register"), ("lets", "let"))
 type Location = tuple[int, int, int, int, int, int]
 
-# The tracked artifact uses the canonical guest root on both host and guest readers.
-# Its switch name comes from the same owner that selects the compiler for emission.
 LIBRARY_PREFIX = f"/root/.opam/{env.SAIL_SWITCH}/share/sail/"
 
-# The files the locked Sail compiles into itself rather than reads from a path. Its
-# implicit `corelib` project names one, `files __virtual corelib.sail`, and the emitter
-# hashes it under that bare name, which reads like a model source. Neither the checkout
-# nor the switch carries it, so no host reader resolves it; the guest half's byte
-# comparison still binds its digest, the emitter recording it afresh on every run.
+# Files compiled into Sail itself (`files __virtual corelib.sail`) rather than read from disk.
 COMPILER_FILES = frozenset({"corelib.sail"})
 
-# The maps this reader knows how to open, and the key each one's members are indexed by
-# inside its own entry. `spans` and `anchors` are top-level too and nothing here reads
-# them, so they are absent by decision rather than by oversight.
 _TOP_LEVEL = ("version", "embedding", "hashes", "functions", "mappings", "vals",
               "types", "registers", "lets", "anchors", "spans")
 
-# The call every assembly clause puts between the mnemonic and its first operand, as the
-# bundle spells it: an `app` node whose id is this. A clause with none spells a mnemonic
-# and nothing else.
 OPERAND_SEP = "spc"
-
-# A Sail string literal arrives with its quotes, `"\"amoswap\""`, because the node
-# carries the literal's own source spelling rather than its value.
 _QUOTED_RE = re.compile(r'^"(.*)"$', re.DOTALL)
-
-# The literals of a body this reader has only as text, which is the one assembly clause
-# the emitter leaves unstructured. Not a general Sail parse: one scan for quoted runs in
-# one string, which is what a lower bound on that clause's spelling is made of.
 _TEXT_LITERAL_RE = re.compile(r'"([^"]*)"')
-
-# An `enum` declaration's member list, which the emitter carries as the declaration's own
-# source text rather than as a structured member array. One scan for the braces, because
-# what is inside them is a comma-separated run of names and nothing else in this corpus.
 _ENUM_RE = re.compile(r"^\s*enum\s+\w+\s*=\s*\{(.*)\}\s*$", re.DOTALL)
 
 
 class BundleError(RuntimeError):
-    """The bundle is there and is not the artifact this reader was written against.
-
-    Raised rather than returned, because every caller here is a check whose whole
-    subject is the bundle: a reader that answered `None` for a version it does not know
-    would let a rule report agreement between a document and a shape it never read.
-    """
+    """Raised when the Sail bundle or source identity is malformed or out of date."""
 
 
 @dataclass(frozen=True)
@@ -195,8 +117,7 @@ def _source_slot(raw: object, label: str) -> Source:
 
 @dataclass(frozen=True)
 class Site:
-    """Where a definition is written, as a finding has to name it: a repository-relative
-    path and the 1-based line a person opens."""
+    """Repository-relative path and 1-based line number of a Sail definition."""
 
     file: str
     line: int
@@ -208,16 +129,12 @@ class Site:
 
 @dataclass(frozen=True)
 class Spelled:
-    """One `mapping clause assembly`, and every mnemonic it can spell.
+    """One `mapping clause assembly` and the mnemonics it spells.
 
-    `exact` is the whole of the difference between this and the skeleton parse it
-    replaces. Where the emitter gives the clause's right-hand side as structured
-    patterns, every mapping in the mnemonic is resolved against its own literal arms and
-    `mnemonics` is the finished set, which **over**-approximates: a cross product admits
-    combinations a joint constraint elsewhere in the model forbids. Where it does not,
-    `mnemonics` is the clause's string literals in order and nothing else, which
-    **under**-approximates exactly as the skeleton did. A rule reading this owes the
-    direction out loud, because the two are not two strengths of one claim.
+    When `exact` is true, `mnemonics` is the cross-product expansion of structured
+    right-hand-side patterns (an over-approximation when guards restrict combinations).
+    When `exact` is false, `mnemonics` concatenates the clause's literal strings in order
+    (an under-approximation).
     """
 
     ctor: str
@@ -228,7 +145,7 @@ class Spelled:
 
 @dataclass(frozen=True)
 class Decoded:
-    """One name the model's decode surface can decode a word to, and where it says so."""
+    """One constructor name reachable from an `encdec*` mapping clause."""
 
     ctor: str
     site: Site
@@ -236,18 +153,15 @@ class Decoded:
 
 
 def _quoted(value: str) -> str | None:
-    """A Sail string literal's value, or `None` where the node is not one."""
+    """Unquote a Sail string literal, or return `None` if `value` is not quoted."""
     found = _QUOTED_RE.match(value)
     return str(found.group(1)) if found else None
 
 
 class Bundle:
-    """One emitted bundle, opened once and asked many questions.
+    """Parsed Sail documentation bundle.
 
-    Every accessor below either answers or raises `BundleError`. Nothing returns a
-    quietly empty answer for a name the model does not carry: a renamed or deleted
-    definition is the defect this whole item exists to turn from a silent no-match into a
-    named finding, so a lookup that misses says which name missed.
+    Accessors raise `BundleError` when a requested declaration is missing or malformed.
     """
 
     def __init__(self, raw: dict[str, Any], path: str = BUNDLE) -> None:
@@ -265,8 +179,6 @@ class Bundle:
         self.embedding: str = str(raw["embedding"])
         self._raw = raw
 
-    # -- the maps, each as the emitter indexes it -------------------------------------
-
     def _map(self, name: str) -> dict[str, Any]:
         got = self._raw[name]
         if not isinstance(got, dict):
@@ -276,7 +188,7 @@ class Bundle:
 
     @property
     def hashes(self) -> dict[str, str]:
-        """Every file the emitter recorded, against its emitted MD5."""
+        """Map each recorded file key to its emitted MD5 digest."""
         out: dict[str, str] = {}
         for key, entry in self._map("hashes").items():
             digest = entry.get("md5") if isinstance(entry, dict) else None
@@ -286,23 +198,19 @@ class Bundle:
         return out
 
     def owners(self) -> dict[str, str]:
-        """The files this checkout carries, keyed by their repository-relative path.
+        """Return repository-relative paths in the emitter's MD5 map.
 
-        This is the emitter's incomplete MD5 map. Use `read_source_identity` for
-        freshness against every source selected by the owning project.
+        Use `read_source_identity` to check freshness against all project sources.
         """
         return {f"{SOURCE_ROOT}/{key}": digest for key, digest in self.hashes.items()
                 if not key.startswith("/") and key not in COMPILER_FILES}
 
     def compiler_owners(self) -> dict[str, str]:
-        """The files the compiler carries inside itself, keyed as the emitter names them."""
+        """Return virtual compiler-built files (`COMPILER_FILES`) from the MD5 map."""
         return {key: digest for key, digest in self.hashes.items() if key in COMPILER_FILES}
 
     def library_owners(self) -> dict[str, str]:
-        """The Sail library files keyed by their canonical absolute locations.
-
-        Emission relocates the selected library prefix; readers reject other roots.
-        """
+        """Return Sail library files keyed by their canonical `LIBRARY_PREFIX` paths."""
         out: dict[str, str] = {}
         for key, digest in self.hashes.items():
             if not key.startswith("/"):
@@ -366,8 +274,6 @@ class Bundle:
                 out.append(Reference(kind, name, target, target_kind, file or None, loc[0], loc[1]))
         return out
 
-    # -- definitions, by name ---------------------------------------------------------
-
     def _site(self, slot: dict[str, Any]) -> Site:
         file, loc = slot.get("file"), slot.get("loc")
         if not isinstance(file, str) or not isinstance(loc, list) or not loc:
@@ -376,20 +282,14 @@ class Bundle:
         return Site(f"{SOURCE_ROOT}/{file}", int(loc[0]))
 
     def type_text(self, name: str) -> str:
-        """A type synonym's own declaration, as the model writes it.
-
-        The text rather than the value, because the value is one `= <n>` extraction
-        further in and the callers each want their own. What this buys over a scan of
-        the file is that a renamed or deleted declaration raises here instead of
-        matching nothing there.
-        """
+        """Return a `type` declaration's source text."""
         entry = self._map("types").get(name)
         if not isinstance(entry, dict) or not isinstance(entry.get("type"), dict):
             raise BundleError(f"the model declares no type {name}")
         return str(entry["type"].get("contents", ""))
 
     def let_text(self, name: str) -> str:
-        """A top-level `let`'s own declaration, on the same terms as `type_text`."""
+        """Return a top-level `let` declaration's full source text."""
         entry = self._map("lets").get(name)
         source = entry.get("let", {}).get("source") if isinstance(entry, dict) else None
         if not isinstance(source, dict):
@@ -397,13 +297,7 @@ class Bundle:
         return str(source.get("contents", ""))
 
     def let_value(self, name: str) -> str:
-        """A top-level `let`'s right-hand side alone.
-
-        Beside `let_text` rather than instead of it, because the two answer different
-        questions: a rule holding the *declaration* wants the whole line it would send a
-        person to, and an evaluator wants the expression without the name and the type
-        annotation in front of it, which no split of the declaration recovers reliably.
-        """
+        """Return a top-level `let` declaration's right-hand-side expression text."""
         entry = self._map("lets").get(name)
         exp = entry.get("let", {}).get("exp") if isinstance(entry, dict) else None
         if not isinstance(exp, dict):
@@ -411,29 +305,15 @@ class Bundle:
         return str(exp.get("contents", ""))
 
     def has(self, kind: str, name: str) -> bool:
-        """Whether the model declares `name` in one of the bundle's maps.
-
-        One predicate over a named map rather than four `has_*`, because the caller that
-        needs it is resolving a name against every kind in turn and a fixed set of
-        accessors would decide the order here instead of there.
-        """
+        """Return whether `name` exists in map `kind`."""
         return name in self._map(kind)
 
     def registers(self) -> frozenset[str]:
-        """Every register the model declares.
-
-        The set an evaluator asks *is this machine state*, which is the one question
-        that can be answered soundly without reading the state itself.
-        """
+        """Return all declared register names."""
         return frozenset(self._map("registers"))
 
     def enum_members(self) -> dict[str, tuple[str, int]]:
-        """Each enum member, against the enum that declares it and its position in it.
-
-        The position is what makes `vector_support_level >= Full` decidable: the model
-        orders an enum by declaration and compares members with the ordering operators,
-        so a reader carrying names alone could not answer the comparison at all.
-        """
+        """Map each non-scattered enum member to `(enum_name, declaration_ordinal)`."""
         out: dict[str, tuple[str, int]] = {}
         for name, entry in self._map("types").items():
             slot = entry.get("type") if isinstance(entry, dict) else None
@@ -447,15 +327,7 @@ class Bundle:
         return out
 
     def constructor_bodies(self, name: str) -> dict[str, str]:
-        """One function's clauses keyed by the constructor each matches.
-
-        The reading `function_bodies` cannot give, and the one `execute` needs: its
-        clauses match an instruction's constructor with its arguments, an `app` pattern
-        rather than an `id`, so the family is keyed by a name that is not a parameter.
-        What a caller wants from it is the body, because the body is where the model
-        says how a field is *read* -- `sign_extend(imm)` against `zero_extend(uimm)` --
-        which the encoding does not state and the printer only displays.
-        """
+        """Map constructor names to clause body texts for an `app`-patterned function (such as `execute`)."""
         entry = self._map("functions").get(name)
         found = entry.get("function") if isinstance(entry, dict) else None
         clauses = found if isinstance(found, list) else [found]
@@ -474,19 +346,7 @@ class Bundle:
         return out
 
     def scattered_members(self) -> frozenset[str]:
-        """Every name a function clause matches its family on.
-
-        The one reading left for a `scattered enum`, whose members the bundle carries
-        nowhere else: `extension` is declared `scattered enum extension` and its members
-        arrive one `enum clause` at a time across the tree, so the type entry is the
-        declaration and nothing more. What does carry them is the family that dispatches
-        on them, `hartSupports` having one clause per extension, so the members are read
-        off the dispatch rather than off the type.
-
-        **Their order is not recoverable this way and must not be invented.** A reader
-        wanting to compare two of them with `<` is asking a question this answer cannot
-        support, which is why they are handed out unordered.
-        """
+        """Return all single-identifier patterns matched by multi-clause functions (such as `hartSupports`)."""
         out: set[str] = set()
         for name in self._map("functions"):
             clauses = self.function_bodies(name)
@@ -496,37 +356,16 @@ class Bundle:
         return frozenset(out)
 
     def clauses(self, name: str) -> list[dict[str, Any]]:
-        """One mapping's clauses, as the emitter wrote them.
-
-        The public reading of the same walk every accessor above takes privately, for
-        the one caller whose subject *is* a clause's shape rather than a value read out
-        of it: what an `encdec` clause places where is not a question this module can
-        answer for it without becoming that caller.
-        """
+        """Return the raw clause dicts for mapping `name`."""
         return self._clauses(name)
 
     def function_clauses(self, name: str) -> list[tuple[str, str, Site]]:
-        """One function's clauses, as `(the pattern's id, the body's text, the site)`.
-
-        The pattern is structured, so a clause of `hartSupports` hands back `Ext_Zvl64b`
-        without the caller writing a pattern for the head; the body is text, because
-        what a caller asks of it is an expression and not a name.
-        """
+        """Return `(pattern_id, body_text, site)` for each clause of function `name`."""
         return [(names[0] if len(names) == 1 else "", body, site)
                 for names, body, site in self.function_bodies(name)]
 
     def function_bodies(self, name: str) -> list[tuple[tuple[str, ...], str, Site]]:
-        """The same, with every parameter the clause names rather than only the first.
-
-        Two shapes reach here and the emitter spells them apart: a one-parameter clause
-        carries an `id` pattern and a several-parameter one carries a `tuple`. A reader
-        that knew only the first shape sees a two-parameter function as a function with
-        no clauses at all, which is a lookup that misses rather than a value that is
-        wrong, and is why this sits beside `function_clauses` rather than inside it.
-
-        A function declared with exactly one clause is written by the emitter as the
-        clause itself rather than as a list of one, so both are read.
-        """
+        """Return `(param_names, body_text, site)` for each clause of function `name`."""
         entry = self._map("functions").get(name)
         found = entry.get("function") if isinstance(entry, dict) else None
         clauses = found if isinstance(found, list) else [found]
@@ -545,8 +384,6 @@ class Bundle:
                         self._site(source if isinstance(source, dict) else body)))
         return out
 
-    # -- mappings ---------------------------------------------------------------------
-
     def mapping_names(self) -> list[str]:
         return sorted(self._map("mappings"))
 
@@ -558,14 +395,7 @@ class Bundle:
         return [c for c in clauses if isinstance(c, dict)]
 
     def mapping_literals(self, name: str) -> tuple[str, ...] | None:
-        """Every string a mapping's arms can produce, or `None` where one arm produces
-        no literal at all.
-
-        `None` rather than a short list, because a mapping one of whose arms is decided
-        elsewhere cannot be enumerated: taking the arms that do carry a literal would
-        hand back a set that reads complete and is not, which is the failure mode the
-        whole of this item is about.
-        """
+        """Return the string literals produced by every arm of mapping `name`, or `None` if any arm is non-literal."""
         out: list[str] = []
         for clause in self._clauses(name):
             found = [value for side in ("left", "right")
@@ -578,8 +408,7 @@ class Bundle:
         return tuple(out) if out else None
 
     def _expand(self, node: dict[str, Any]) -> tuple[str, ...] | None:
-        """Every string one pattern of a mnemonic can be, or `None` where it is decided
-        by something this reader cannot enumerate."""
+        """Expand a literal or mapping-call pattern node into its string choices, or `None`."""
         kind = node.get("type")
         if kind == "literal":
             value = _quoted(str(node.get("value", "")))
@@ -591,15 +420,7 @@ class Bundle:
         return None
 
     def assembly(self) -> list[Spelled]:
-        """Every `mapping clause assembly`, with the mnemonics each can spell.
-
-        The mnemonic is the run of patterns before the operand separator, and each is
-        expanded against the mapping that decides it. A clause the emitter hands back
-        with no structured right-hand side keeps the older reading, its own string
-        literals in order, and says so in `exact`: one such clause is not a reason to
-        drop the exactness of the other two hundred, and it is not a reason to claim it
-        either.
-        """
+        """Return `Spelled` records for every `mapping clause assembly`."""
         out: list[Spelled] = []
         for clause in self._clauses("assembly"):
             left = clause.get("left")
@@ -619,7 +440,7 @@ class Bundle:
         return out
 
     def _spell(self, right: dict[str, Any]) -> tuple[str, ...] | None:
-        """One clause's finished mnemonics, or `None` where a part is not enumerable."""
+        """Expand the mnemonic patterns before `spc` on a structured `assembly` right-hand side."""
         parts = (right.get("patterns") if right.get("type") == "string_append"
                  else [right])
         if not isinstance(parts, list):
@@ -639,14 +460,10 @@ class Bundle:
         spellings: list[str] = [""]
         for choices in options:
             spellings = [head + tail for head in spellings for tail in choices]
-        # ordered rather than a set, because a finding names the mnemonic it found and
-        # the run's output must not depend on a hash seed
         return tuple(dict.fromkeys(spellings))
 
     def _text_skeleton(self, clause: dict[str, Any]) -> tuple[str, ...]:
-        """The one reading left for a clause the emitter does not structure: its string
-        literals in order, concatenated, which is a lower bound on what it spells and
-        never a claim about the characters between them."""
+        """Concatenate quoted literals before `spc()` when a clause's right-hand side is unstructured."""
         body = clause.get("body") or clause.get("source")
         text = str(body.get("contents", "")) if isinstance(body, dict) else ""
         head = text.split(f"{OPERAND_SEP}()")[0]
@@ -655,16 +472,7 @@ class Bundle:
         return out
 
     def decoded(self, prefix: str = "encdec") -> list[Decoded]:
-        """Every name the model's decode surface can decode a word to.
-
-        Two shapes and one reading, where the file scan needed two patterns. A whole
-        clause is the form where the mapping is `encdec` itself and its left side names
-        an instruction constructor; the form's identity is a field value where the clause
-        is shared and a named `encdec_*` mapping says which value means which form. Both
-        are arms of a mapping here, so both come out of one walk, and a numeric arm
-        carries no id and contributes nothing rather than contributing a digit run that
-        looked like a name to a backwards scan.
-        """
+        """Return all `app`/`id` names referenced by mappings starting with `prefix`."""
         out: list[Decoded] = []
         for name in self.mapping_names():
             if not name.startswith(prefix):
@@ -685,14 +493,7 @@ class Bundle:
 
 
 def _names(pattern: object) -> tuple[str, ...] | None:
-    """One clause's parameter names, or `None` where the pattern is none of the shapes.
-
-    Three shapes: a clause taking nothing carries the unit literal, one taking a single
-    argument carries an `id`, and one taking several carries a `tuple`. The first is
-    easy to miss and its absence is not benign: `get_sew()` and `keccak_unit_present()`
-    are both nullary, and a reader that could not read them reports them unreadable
-    where they are in fact machine state.
-    """
+    """Extract parameter names from a unit `()`, `id`, or `tuple` pattern node."""
     if not isinstance(pattern, dict):
         return None
     if pattern.get("type") == "literal" and str(pattern.get("value", "")) == "()":

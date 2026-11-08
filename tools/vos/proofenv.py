@@ -1,17 +1,10 @@
 # SPDX-License-Identifier: Apache-2.0
-"""The share of the build environment the proof gate runs on, kept out of env.py.
+"""Build-environment subset imported by the proof gate.
 
-The gate's implementation identity is every checkout module Python runs to import it,
-which [cli/proofs.py's `_gate_modules`](cli/proofs.py#_gate_modules) derives from
-import statements,
-and a change to any of those modules invalidates every cached proof object and kernel
-verdict. [env.py](env.py) changes for model, opam and CI reasons the gate never reads,
-so what the gate calls, directly and through [receipts.py](receipts.py) and
-[corpus.py](corpus.py), lives here instead: where a lane's guest outputs land and on
-which filesystem, the prover and its kernel re-checker, the git overlay a lane needs,
-and the worker limits sized from cores and memory. This module imports nothing from
-`vos`, and env.py binds every public name here as its own, so env.py's readers reach
-each one there unchanged.
+The proof gate's implementation identity includes every checkout module imported by
+[cli/proofs.py](cli/proofs.py#_gate_modules). Keeping proof-gate environment helpers
+here avoids invalidating cached proof objects and kernel verdicts when [env.py](env.py)
+changes for model, opam, or CI reasons.
 """
 
 import os
@@ -23,39 +16,22 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
 
-# Where every lane's build trees live, a constant rather than a literal at its use
-# because `run.py provision` wants it without standing env.py's `Environment` up.
 BUILD_ROOT = Path("/root/build")
 
-# The filesystem types that reach across the OS boundary: a Windows drive mounted into
-# the guest, which is 9p under WSL 2, drvfs under WSL 1 and virtiofs where a newer WSL is
-# told to use it, and a network share. A path on one of these is read or written across
-# the boundary on every call, which env.py's module docstring measures, so a guest
-# loop's output may not sit on one: that is the placement rule tools/README.md states,
-# which `run.py provision` probes.
+# Cross-OS and network filesystems unsuitable for guest build outputs.
 CROSS_OS_FILESYSTEMS: frozenset[str] = frozenset({"9p", "drvfs", "virtiofs", "cifs", "smb3"})
 
-# The filesystems that do not outlive the instance, so a build tree or a log on one is
-# gone when the guest idle-terminates: the ground env.py's `LOG_ROOT` gives for never
-# being /tmp.
+# Volatile filesystems that do not survive WSL idle termination.
 VOLATILE_FILESYSTEMS: frozenset[str] = frozenset({"tmpfs", "ramfs"})
 
-# Where the kernel says what is mounted where, read by `filesystem`.
 MOUNTINFO = Path("/proc/self/mountinfo")
 
-# The OCaml release the project's switches build on, all but the CertiRocq oracle's,
-# which env.py's findlib pin holds there, and the lock snapshots the switches import.
 OCAML_VERSION = "5.4.1"
 OPAM_LOCKS = Path(__file__).resolve().parents[1] / "opam"
 
-# The prover the gate compiles and checks with, and the project switch holding it;
-# env.py states what holds the release where it is.
 ROCQ_VERSION = "9.3.0"
 ROCQ_SWITCH = f"verifiedos-rocq-{ROCQ_VERSION}-ocaml-{OCAML_VERSION}"
 
-# What creates that switch, as the argv a tool runs rather than as the sentence a person
-# reads: `rocq_command` prints it to a caller that has no prover and `run.py provision`
-# runs it, and a recipe stated twice is the defect these tools exist to catch.
 ROCQ_INSTALL: tuple[tuple[str, ...], ...] = (
     ("opam", "switch", "create", ROCQ_SWITCH, "--repos=rocq-released,default",
      "--empty", "--no-switch", "-y"),
@@ -65,12 +41,7 @@ ROCQ_INSTALL: tuple[tuple[str, ...], ...] = (
 
 
 def install_line(steps: tuple[tuple[str, ...], ...]) -> str:
-    """A recipe as a person types it, composed from the argv a tool would run.
-
-    One owner and two readers: the message that names an absent switch, and the
-    provisioner that stands one up. Written the other way round, a message and a
-    command are two copies of one recipe and only one of them is ever run.
-    """
+    """Format an opam installation step sequence as a shell command line."""
     return " && ".join(shlex.join(step) for step in steps)
 
 
@@ -79,10 +50,7 @@ def _env_path(name: str, default: Path) -> Path:
 
 
 def _gitdir_pointer(root: Path) -> str | None:
-    """The target a linked checkout's `.git` pointer file names, `None` where `.git`
-    is a directory, absent, or unreadable. The raw spelling is returned rather than a
-    parsed path, because the two readers want different halves of it: `lane_of` the
-    worktree's name, `git_dir` the administrative path."""
+    """Return the `gitdir:` target from `root/.git` if `.git` is a pointer file."""
     dot_git = root / ".git"
     if not dot_git.is_file():
         return None
@@ -96,32 +64,11 @@ def _gitdir_pointer(root: Path) -> str | None:
 
 
 def lane_of(root: Path, *, declared: bool = True) -> str:
-    """Which build lane this checkout owns, empty for the primary worktree.
+    """Return the build lane name for `root` (`""` for the primary checkout).
 
-    Four things collide when two checkouts drive one toolchain: the build tree, the
-    log, the SMT memo cache, and the simulator every later loop reads back out of the
-    build tree. The first is loud, cmake refusing outright to point an existing cache
-    at a second source directory; the fourth is silent, and is the one that matters,
-    because `sweep`, `corpus`, `trace-diff`, `devicetree` and `reference` all read
-    `build_dir/c_emulator/sail_riscv_sim` and none of them can tell whose model it was
-    generated from. A lane per checkout is what makes those answers this checkout's.
-
-    A linked worktree is recognized by `.git` being a *file* whose `gitdir:` names a
-    directory under the primary checkout's `.git/worktrees/`, and the lane is the last
-    component of it, which is git's own name for the worktree and unique within the
-    repository by construction. A submodule's `.git` is a file too and points into
-    `.git/modules/` instead, which is why the test names the parent component rather
-    than merely the file type. An absent `.git`, an exported tree, and the container
-    lanes all answer the primary, which is the state every path here already assumed.
-
-    The pointer is written with forward slashes by git on Windows and read here on
-    both lanes, so it is parsed as a pure posix path after the other separator is
-    normalized out rather than as this platform's `Path`.
-
-    `VOS_LANE` declares a lane outright, which is how a container lane with no `.git`
-    pointer gets one, and `declared=False` reads past it: `run.py worktree` reports
-    the identity git gives a checkout, and an override set in the parent's shell would
-    otherwise name every lane it hands out after itself.
+    A linked worktree's `.git` file points into `<primary>/.git/worktrees/<name>`,
+    whereas a submodule's `.git` file points into `.git/modules/`. When `declared`
+    is true, `$VOS_LANE` overrides `.git` discovery.
     """
     if declared:
         override = os.environ.get("VOS_LANE")
@@ -135,9 +82,7 @@ def lane_of(root: Path, *, declared: bool = True) -> str:
 
 
 def _cpus() -> int:
-    """The cores this process may actually run on, which is what a job count wants.
-    `os.process_cpu_count` honours the affinity mask on every platform that has one, so
-    the guest's twelve stay twelve and a pinned run sees only what it was given."""
+    """Return the number of CPUs available to the current process."""
     return os.process_cpu_count() or 1
 
 
@@ -157,16 +102,13 @@ def _read_mem_available_mb() -> int | None:
     return None
 
 
-# The proof gate's per-worker planning budgets in MiB, which `proof_jobs` states the
-# basis of.
 PROOF_COMPILE_WORKER_MIB = 1024
 PROOF_KERNEL_WORKER_MIB = 10240
 
 
 @dataclass(frozen=True)
 class Workers:
-    """A worker limit and what it was sized from: the usable CPUs and the MemAvailable
-    reading in MiB, `None` where /proc/meminfo gave none."""
+    """Worker limit and the CPU and `MemAvailable` readings used to compute it."""
 
     jobs: int
     cpus: int
@@ -218,9 +160,7 @@ def proof_jobs(*, kernel: bool = False) -> int:
 
 
 def proof_workers(*, kernel: bool = False) -> Workers:
-    """`proof_jobs`'s limit with the CPU count and MemAvailable reading it was sized
-    from, which the gate logs beside each phase's limit, so a run's log records the
-    memory its kernel budget was held against."""
+    """Return the worker limit and resource readings for a proof compile or kernel phase."""
     return size_workers(PROOF_KERNEL_WORKER_MIB if kernel else PROOF_COMPILE_WORKER_MIB,
                         fallback=1 if kernel else 4,
                         label="kernel" if kernel else "compile/audit")
@@ -232,8 +172,7 @@ def worker_jobs(memory_mb: int, *, fallback: int = 1, label: str = "worker") -> 
 
 
 def size_workers(memory_mb: int, *, fallback: int = 1, label: str = "worker") -> Workers:
-    """`worker_jobs`'s limit with the CPU count and MemAvailable reading it was sized
-    from, read once so the limit and what it reports agree."""
+    """Compute worker limits from usable CPUs and `MemAvailable`."""
     cpus = _cpus()
     available = _read_mem_available_mb()
     if available is None:
@@ -245,42 +184,22 @@ def size_workers(memory_mb: int, *, fallback: int = 1, label: str = "worker") ->
 
 
 def build_root() -> Path:
-    """Where every lane's build trees live.
-
-    Public because `run.py provision` asks the layout a question without standing an
-    `Environment` up: env.py's `load` raises the stack limit, applies the opam
-    environment and prepends the pinned solver, none of which a probe of where the
-    caches are has any business doing.
-    """
+    """Return the guest build root (`$VOS_BUILD_ROOT` or `/root/build`)."""
     return _env_path("VOS_BUILD_ROOT", BUILD_ROOT)
 
 
 def lane_dir(root: Path, lane: str) -> Path:
-    """One lane's directory under a build root: the root itself for the primary
-    worktree, `lane-<name>` beneath it for a linked one. The composition is written
-    here once, for env.py's `Environment.lane_root` and for the two readers that have
-    no `Environment`: `run.py rtl install` standing a toolchain up, and `run.py
-    worktree` naming where a lane's guest outputs will land before the lane has built
-    anything."""
+    """Return `root / f"lane-{lane}"` for a named lane, or `root` for the primary checkout."""
     return root / f"lane-{lane}" if lane else root
 
 
 def lane_root(lane: str) -> Path:
-    """Where the named lane's guest outputs land, under this machine's build root."""
+    """Return the guest build directory for `lane`."""
     return lane_dir(build_root(), lane)
 
 
 def mount_type(mountinfo: str, path: PurePosixPath | str) -> str:
-    """The filesystem type of the mount holding `path`, read out of one mountinfo
-    text, or `""` where no mount point is a prefix of it.
-
-    Pure, so a test can hand it the text of a machine it is not running on. The
-    longest mount point that is a prefix of the path wins, which is the kernel's own
-    resolution, and a mount point matches only at a separator so `/mnt/c` does not
-    claim `/mnt/cd`. The path need not exist: a build root no build has created yet is
-    still on the mount that will hold it. A mount point carrying a space or a backslash
-    arrives octal-escaped in mountinfo and is decoded before the comparison.
-    """
+    """Return the filesystem type of the longest mount-point prefix of `path` in `mountinfo`."""
     wanted = PurePosixPath(path).as_posix()
     best, kind = -1, ""
     for line in mountinfo.splitlines():
@@ -298,11 +217,7 @@ def mount_type(mountinfo: str, path: PurePosixPath | str) -> str:
 
 
 def filesystem(path: Path | str) -> str:
-    """The filesystem type under `path` on this machine, `""` where the kernel's mount
-    table cannot be read, which is the win32 lane's answer and the right one: the
-    question is which side of the OS boundary a guest path sits on, and only the guest
-    can say. `CROSS_OS_FILESYSTEMS` and `VOLATILE_FILESYSTEMS` are what a reader holds
-    the answer against."""
+    """Return the filesystem type mounted at `path` (`""` when `/proc/self/mountinfo` is unavailable)."""
     try:
         text = MOUNTINFO.read_text(encoding="utf-8")
     except OSError:
@@ -311,20 +226,12 @@ def filesystem(path: Path | str) -> str:
 
 
 def opam_root() -> Path:
-    """Where the switches live. Public because more than one prover switch is reached
-    from this repository now: the proof gate's, and the CertiRocq oracle's that
-    [vos/gallina.py](gallina.py) compiles the Gallina front in."""
+    """Return the opam root directory (`$OPAMROOT` or `~/.opam`)."""
     return _env_path("OPAMROOT", Path.home() / ".opam")
 
 
 def rocq_command() -> list[str]:
-    """The prover as an argument list, for the proof gate rather than for a model loop.
-
-    Both halves are resolved here rather than assumed by the caller. Rocq 9 ships no
-    `coqc` at any version, its switch holding `rocq`, `rocq.byte`, and `rocqchk` and
-    nothing else, so compilation is spelled `rocq c`; and ROCQ_SWITCH is not the switch
-    env.py's `_apply_opam_env` puts on PATH, so a bare `rocq` finds nothing.
-    """
+    """Resolve the `rocq c` compiler command from `$VOS_ROCQ`, `ROCQ_SWITCH`, or `PATH`."""
     override = os.environ.get("VOS_ROCQ")
     if bool(override):
         return [override, "c"]
@@ -339,18 +246,7 @@ def rocq_command() -> list[str]:
 
 
 def rocqchk_command() -> list[str]:
-    """The prover's own kernel re-checker, as an argument list.
-
-    Resolved the three ways `rocq_command` resolves the compiler and separately from
-    it, so a lane that overrides one may override the other: `$VOS_ROCQCHK`, then the
-    pinned switch, then PATH. It ships in ROCQ_SWITCH beside `rocq` rather than in a
-    package of its own, which is why an absence is answered with that switch's install
-    line: a tree with `rocq` and no `rocqchk` is a switch built some other way, not a
-    missing dependency this repository states a second recipe for.
-
-    It takes no subcommand where `rocq c` takes one: the binary still announces itself
-    as `coqchk` and its usage is `coqchk <options> modules`.
-    """
+    """Resolve the `rocqchk` kernel re-checker command from `$VOS_ROCQCHK`, `ROCQ_SWITCH`, or `PATH`."""
     override = os.environ.get("VOS_ROCQCHK")
     if bool(override):
         return [override]
@@ -365,35 +261,10 @@ def rocqchk_command() -> list[str]:
 
 
 def git_dir(root: Path) -> Path | None:
-    """This checkout's git administrative directory, where a lane needs it translated
-    before the guest can use it at all. `None` means there is nothing to translate.
+    """Return the guest-translated git administrative directory when `root/.git` holds a Windows path.
 
-    A linked worktree's `.git` is a file holding an absolute path to that directory, and
-    one created by the *host's* git writes a Windows path into it. Inside the guest that
-    path is not absolute, so git appends it to the worktree and looks for
-    `/mnt/c/.../VerifiedOS-inst/C:/Users/.../worktrees/VerifiedOS-inst`, which is
-    nowhere: every `git` run inside a lane fails with `not a git repository`, exit 128.
-
-    What that costs is not cosmetic. cmake's `git describe` is one of those runs, so it
-    fails at configure and the emulator stamps itself `unknown commit`, which is the
-    exact state M0.10 exists to end and which building in a worktree silently restores.
-    `run.py model reference` is the gate that catches it, and in a lane it caught it.
-
-    `wslpath` does the translation rather than a rule about `/mnt`, because the mount
-    root is configurable and the tool that knows it ships with the guest. A pointer that
-    is already usable, a primary worktree, and a lane with no `wslpath` to ask all
-    answer `None`, which leaves the behaviour exactly as it was.
-
-    The pointer is read through `_gitdir_pointer` rather than parsed again here, which
-    is what makes that function's *two readers* true of `lane_of` and of this: written out
-    twice, the file test, the read and the `gitdir:` prefix were one fact in two places
-    and the pair could have stopped agreeing about which files are pointers at all.
-
-    `VOS_GIT_DIR` names the directory outright and is read at call time like every
-    other override here. It is the route left open where the translation cannot be
-    made, a guest with no `wslpath` answering `None` above and every `git` in that lane
-    then failing, and it is how a test drives `git_env` below over a checkout that
-    needs no translating.
+    Linked worktrees created by Windows `git` store a Windows drive path in `.git`,
+    which fails inside WSL unless translated with `wslpath` and passed via `GIT_DIR`.
     """
     override = os.environ.get("VOS_GIT_DIR")
     if bool(override):
@@ -414,46 +285,16 @@ def git_dir(root: Path) -> Path | None:
 
 
 def git_overlay(admin: Path, root: Path) -> dict[str, str]:
-    """What a child must be told before it can run `git` in a checkout whose
-    administrative directory is `admin`. Laid over the child's own environment and
-    never exported globally, for the reason env.py's `stage` states of its `add_env`.
+    """Return `GIT_DIR` and `GIT_WORK_TREE` environment bindings for `admin` and `root`.
 
-    **`GIT_DIR` alone is half an answer and the missing half is not cosmetic.** With no
-    `GIT_WORK_TREE`, git takes the child's own working directory as the tree, and a
-    child asking about this repository rarely stands at its root: cmake runs
-    `git describe --tags --always --dirty --broken` in `model/cmake`, which is
-    `project_version.cmake`'s own `WORKING_DIRECTORY`. The index is then read against
-    that directory, every tracked path in it is missing, and `--dirty` fires whatever
-    the lane's state is. Measured from that directory over a checkout `git status
-    --porcelain` reports empty: the pair answers the commit alone, `GIT_DIR` by itself
-    answers the same commit with `-dirty` appended and lists every tracked path as
-    ` D`, and no environment at all answers the commit alone because git's own
-    discovery finds the tree the child is standing in.
-
-    An always-on marker is not a conservative one. The emulator's revision is what
-    every downstream artifact records itself against, and a suffix that cannot be
-    absent cannot report the lane that is genuinely edited, which is the only thing it
-    is there to say.
-
-    The work tree is the repository root rather than the model tree, because the
-    revision being stamped is this repository's: a curation edit outside `model/` moves
-    it exactly as one inside does.
-
-    Separate from `git_env` below because this half is a composition over two paths and
-    that half is a reading of a checkout: a case can decide the composition against
-    real `git` over a throwaway tree, where deciding it through the reading would mean
-    setting a process-global override while the rest of the suite runs in threads
-    beside it.
+    Setting `GIT_DIR` without `GIT_WORK_TREE` causes `git` invocations in subdirectories
+    (such as CMake's `git describe` in `model/cmake`) to treat the subdirectory as the
+    working tree and falsely report `-dirty`.
     """
     return {"GIT_DIR": str(admin), "GIT_WORK_TREE": str(root)}
 
 
 def git_env(root: Path) -> dict[str, str]:
-    """The overlay this checkout needs, empty where it needs none.
-
-    Empty is the primary worktree's answer and the host's, where git's own discovery
-    finds the tree from the directory the child stands in; a lane read from the guest
-    is where it is not, and `git_dir` above states why.
-    """
+    """Return the `GIT_DIR`/`GIT_WORK_TREE` overlay needed for `root` (`{}` if none)."""
     admin = git_dir(root)
     return {} if admin is None else git_overlay(admin, root)

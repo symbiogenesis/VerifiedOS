@@ -1,35 +1,11 @@
 # SPDX-License-Identifier: Apache-2.0
-"""The canonical machine term: what the model's Rocq target emits, and what names it.
+"""Receipt and provenance helpers for the Sail-emitted canonical Rocq machine term.
 
-R-05-019b makes the Rocq definitions Sail's own backend emits from the frozen model the
-one term the Iris-over-Sail logic and the RTL refinement quantify over, and
-[the canonical-term record](../../docs/assurance/canonical-machine-term.md) states how
-it is emitted and what identifies it. `run.py model rocq` runs the model's own
-`generated_rocq_rv64d` target in the lane's tree and writes this module's receipt
-beside the two files the target emits. This module holds the parses and the identity;
-the command holds the lock, the configure and the build.
-
-**Stale outputs are deleted before anything else.** The model's generation graph
-tracks a content-based toolchain identity. This command additionally requires a new
-emission for the canonical term's run-specific receipt. A refused run deletes what
-it emitted as well, so no output stands without its receipt.
-
-**The target must read the frozen profile.** The emission fixes every configuration
-leaf into the term, hart identity included, so a tree configured from a target that
-names another file emits another machine's term (F-478 in the findings register). The
-command reads the configured Sail command back out of the tree's own ninja file and
-refuses one whose `--config` is not this checkout's primary composition, and it
-refuses a run whose configuration or sources changed while Sail read them.
-
-**What the receipt binds, and what it does not.** The Sail binary, its Rocq plugin and
-the solver by SHA-256; every `.sail` file under the Sail library directory, which is
-more than the term includes and binds the implicit inclusions with the rest; the
-source list the project file yields, each file by SHA-256 and the list by the
-aggregate the record states; the configuration, the project file and the target's
-CMake file; the command; both outputs; and the names of the term's `Axiom`
-declarations. It is a record of one run, not a compile: whether the term compiles at
-the locked prover, and which assumptions the kernel checker reads in its closure, are
-the record's owed readings and nothing here decides them.
+See [docs/assurance/canonical-machine-term.md](../../docs/assurance/canonical-machine-term.md)
+(R-05-019b). `run.py model rocq` builds `generated_rocq_rv64d` (`rv64d.v` and
+`rv64d_types.v`) and writes `receipt.json` binding the Sail binary, Rocq plugin, Z3
+solver, Sail library `.sail` files, project-selected model sources, profile
+configuration, emitted files, and `Axiom` declarations.
 """
 
 import hashlib
@@ -43,8 +19,6 @@ from typing import NotRequired, TypedDict
 
 from vos import receipts
 
-# The target, the stem it passes to `-o`, and the two files it writes under the tree's
-# `rocq/` directory, as model/model/CMakeLists.txt states them.
 TARGET = "generated_rocq_rv64d"
 STEM = "rv64d"
 OUTPUTS = (f"{STEM}.v", f"{STEM}_types.v")
@@ -52,16 +26,11 @@ OUTPUT_DIR = "rocq"
 RECEIPT = "receipt.json"
 FORMAT = "verifiedos-rocq-term-1"
 
-# The Rocq backend's plugin, relative to the directory `sail --dir` names, which is the
-# switch's `share/sail`.
+# Rocq backend plugin relative to `sail --dir` (`share/sail`).
 PLUGIN = Path("..") / "libsail" / "plugins" / "sail_plugin_coq.cmxs"
 
-# Where the sources Sail lists sit, relative to the checkout: the project file's paths
-# are relative to the directory it is in.
 MODEL_SOURCES = "model/model"
 
-# An `Axiom` declaration opening a line, which is the form the backend writes for a
-# function the model declares and does not define for the target.
 AXIOM = re.compile(r"^Axiom\s+([A-Za-z_][A-Za-z0-9_']*)", re.MULTILINE)
 
 PREDICATES = {
@@ -77,11 +46,11 @@ PREDICATES = {
 
 
 class TermError(ValueError):
-    """A run this module refuses, named at what it read rather than at the build."""
+    """Raised when canonical-term generation inputs or toolchain state are invalid."""
 
 
 class FileIdentity(TypedDict):
-    """One emitted file: its digest, its size and its line count."""
+    """Digest, byte size, and line count of an emitted file."""
 
     sha256: str
     bytes: int
@@ -89,7 +58,7 @@ class FileIdentity(TypedDict):
 
 
 class Manifest(TypedDict):
-    """A set of files by digest, with their count and aggregate."""
+    """File digest map with file count and aggregate SHA-256."""
 
     files: int
     aggregate: str
@@ -97,14 +66,14 @@ class Manifest(TypedDict):
 
 
 class Named(TypedDict):
-    """One file named by its path and digest."""
+    """Single file path and SHA-256 digest."""
 
     path: str
     sha256: str
 
 
 class Inputs(TypedDict):
-    """What the emission reads from the checkout."""
+    """Checkout inputs read during canonical-term emission."""
 
     sources: Manifest
     configuration: Named
@@ -113,8 +82,7 @@ class Inputs(TypedDict):
 
 
 class Tool(TypedDict):
-    """One executable or plugin: where it was, its digest and, for a binary, its
-    version line."""
+    """Executable or plugin path, SHA-256 digest, and version line."""
 
     path: str
     sha256: str
@@ -122,7 +90,7 @@ class Tool(TypedDict):
 
 
 class Toolchain(TypedDict):
-    """The selected Sail, its Rocq plugin, the solver and the Sail library."""
+    """Selected Sail binary, Rocq plugin, Z3 solver, and Sail library manifest."""
 
     sail: Tool
     rocq_plugin: Tool
@@ -142,12 +110,12 @@ class GeneratorIdentity(TypedDict):
 
 
 def output_dir(tree: Path) -> Path:
-    """Where the target writes the term in a build tree."""
+    """Return the `rocq/` output directory inside build `tree`."""
     return tree / OUTPUT_DIR
 
 
 def clear(tree: Path) -> list[str]:
-    """Delete the term's outputs and receipt from a tree, naming what was there."""
+    """Delete any existing term outputs and receipt from `tree` and return their filenames."""
     removed: list[str] = []
     for name in (*OUTPUTS, RECEIPT):
         path = output_dir(tree) / name
@@ -158,13 +126,7 @@ def clear(tree: Path) -> list[str]:
 
 
 def target_command(listing: str) -> list[str]:
-    """The Sail argv of the target's emission, out of `ninja -t commands`.
-
-    Exactly one command of the target's closure writes the Rocq output directory; none,
-    or two, is a tree this module cannot read rather than a guess between them. CMake
-    writes an && chain containing the working directory, generation guards and Sail.
-    Only the segment carrying the exact emission option is the recorded Sail argv.
-    """
+    """Extract the unique Sail argv containing `--rocq-output-dir` from `ninja -t commands` output."""
     found: list[list[str]] = []
     for line in listing.splitlines():
         if "--rocq-output-dir" not in line:
@@ -185,7 +147,7 @@ def target_command(listing: str) -> list[str]:
 
 
 def option(argv: list[str], flag: str) -> str:
-    """The value one flag carries, refusing a command that carries it other than once."""
+    """Return the argument following `flag` in `argv`, requiring `flag` to appear exactly once."""
     at = [i for i, arg in enumerate(argv) if arg == flag]
     if len(at) != 1 or at[0] + 1 >= len(argv):
         raise TermError(f"the target's command carries {flag} {len(at)} time(s), "
@@ -194,7 +156,7 @@ def option(argv: list[str], flag: str) -> str:
 
 
 def require_profile(argv: list[str], profile: Path) -> None:
-    """Refuse a configured target that does not emit at the frozen profile."""
+    """Verify that `argv` is a `--rocq` emission configured against `profile`."""
     configured = option(argv, "--config")
     if Path(configured).resolve() != profile.resolve():
         raise TermError(f"stale configuration: the configured target emits at "
@@ -205,33 +167,31 @@ def require_profile(argv: list[str], profile: Path) -> None:
 
 
 def axioms(text: str) -> list[str]:
-    """The names the term declares as axioms, in the order it declares them."""
+    """Return all top-level `Axiom` names declared in `text` in source order."""
     return [found.group(1) for found in AXIOM.finditer(text)]
 
 
 def file_identity(path: Path) -> FileIdentity:
-    """One emitted file's identity."""
+    """Compute `FileIdentity` (`sha256`, `bytes`, `lines`) for `path`."""
     data = path.read_bytes()
     return {"sha256": hashlib.sha256(data).hexdigest(), "bytes": len(data),
             "lines": data.count(b"\n")}
 
 
 def aggregate(digests: dict[str, str]) -> str:
-    """The record's aggregate over a set of files: the SHA-256 of `<sha256>  <path>`
-    lines sorted by path, each ending in a newline."""
+    """Compute the SHA-256 over sorted `<sha256>  <path>\\n` lines."""
     text = "".join(f"{digests[path]}  {path}\n" for path in sorted(digests))
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
 def manifest(digests: dict[str, str]) -> Manifest:
-    """A set of files with its count and aggregate."""
+    """Build a `Manifest` from `digests`."""
     ordered = dict(sorted(digests.items()))
     return {"files": len(ordered), "aggregate": aggregate(ordered), "sha256": ordered}
 
 
 def listed_sources(sail: str, model_dir: Path) -> list[str]:
-    """The source files the project file selects, relative to its directory, in the
-    order Sail lists them."""
+    """Return the `.sail` files selected by `riscv.sail_project` in compiler order."""
     done = subprocess.run([sail, "riscv.sail_project", "--all-modules",
                            "--list-files-separated", ";"],
                           cwd=model_dir / "model", capture_output=True, encoding="utf-8",
@@ -245,7 +205,7 @@ def listed_sources(sail: str, model_dir: Path) -> list[str]:
 
 
 def inputs(root: Path, listed: list[str], profile: Path) -> Inputs:
-    """What one emission reads from the checkout, by digest."""
+    """Build the `Inputs` manifest for `listed` sources and `profile`."""
     model_dir = root / MODEL_SOURCES
 
     def named(path: Path) -> Named:
@@ -261,7 +221,7 @@ def inputs(root: Path, listed: list[str], profile: Path) -> Inputs:
 
 
 def plugin_directories(share: Path) -> list[Path]:
-    """The native search directories Sail 0.20.3 loads, in loader order."""
+    """Return the native plugin search directories loaded by Sail 0.20.3."""
     if "SAIL_NO_PLUGINS" in os.environ:
         raise TermError("SAIL_NO_PLUGINS disables the canonical Rocq plugin")
     override = os.environ.get("SAIL_PLUGIN_DIR")
@@ -282,15 +242,7 @@ def plugin_directories(share: Path) -> list[Path]:
 
 
 def loaded_plugins(share: Path) -> list[Path]:
-    """Every native plugin selected by the loader, retaining enumeration order.
-
-    Sail loads every .cmxs returned by Sys.readdir in each selected directory;
-    another plugin can also register a backend, so binding only the coq filename
-    cannot identify the emission. os.scandir reads the same native enumeration.
-    Leading-dot-only names have no extension in OCaml; hidden names with a
-    non-dot prefix do. These pre/post inventories bind stable inputs, not an
-    atomic observation of Dynlink execution.
-    """
+    """Return every `.cmxs` plugin loaded by Sail in `os.scandir` order."""
     loaded = []
     for directory in plugin_directories(share):
         with os.scandir(directory) as entries:
@@ -300,12 +252,7 @@ def loaded_plugins(share: Path) -> list[Path]:
 
 
 def selected_plugin(share: Path) -> Path:
-    """The unique named Rocq plugin among the loader's complete population.
-
-    Relative override paths would name different plugins from identity and
-    emission working directories. Duplicate candidates load twice rather than
-    choosing one. Neither selection has an unambiguous canonical identity.
-    """
+    """Return the unique `sail_plugin_coq.cmxs` path among `loaded_plugins(share)`."""
     candidates = [path for path in loaded_plugins(share) if path.name == PLUGIN.name]
     if len(candidates) != 1 or not candidates[0].is_file():
         raise TermError(f"Sail's selected directories contain {len(candidates)} Rocq "
@@ -336,7 +283,7 @@ def generator_identity(sail: str) -> GeneratorIdentity:
 
 
 def toolchain(sail: str, z3: str) -> Toolchain:
-    """The selected Sail with its plugin and library, and the solver, by digest."""
+    """Record the `Toolchain` manifest for `sail`, its plugins/library, and `z3`."""
     share = Path(_output([sail, "--dir"]).strip())
     if not share.is_absolute():
         raise TermError("sail --dir must name an absolute library directory")
@@ -357,7 +304,7 @@ def toolchain(sail: str, z3: str) -> Toolchain:
 
 
 def revision(root: Path, git_env: dict[str, str]) -> dict[str, object]:
-    """The checkout's commit, and whether its model differs from that commit."""
+    """Return `root`'s `HEAD` commit hash and whether `model/` has uncommitted changes."""
     env = {**os.environ, **git_env}
     head = subprocess.run(["git", "rev-parse", "HEAD"], cwd=root, capture_output=True,
                           encoding="utf-8", check=False, timeout=60, env=env)
@@ -372,7 +319,7 @@ def revision(root: Path, git_env: dict[str, str]) -> dict[str, object]:
 def receipt(*, command: list[str], tools: Toolchain, read: Inputs,
             checkout: dict[str, object], tree: Path, started: str, finished: str,
             elapsed: float) -> dict[str, object]:
-    """The generation identity of the term a run left in `tree`."""
+    """Build the receipt payload for the canonical Rocq term emitted in `tree`."""
     main = output_dir(tree) / OUTPUTS[0]
     names = axioms(main.read_text(encoding="utf-8", errors="replace"))
     return {
@@ -392,8 +339,7 @@ def receipt(*, command: list[str], tools: Toolchain, read: Inputs,
 
 
 def placeheld(argv: list[str], tree: Path, root: Path) -> list[str]:
-    """The command with the lane's tree and the checkout written as placeholders, so
-    two lanes' receipts state one command."""
+    """Replace `tree` and `root` paths in `argv` with `<tree>` and `<checkout>` placeholders."""
     out: list[str] = []
     for arg in argv:
         held = arg

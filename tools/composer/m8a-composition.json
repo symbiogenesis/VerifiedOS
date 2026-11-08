@@ -56,7 +56,7 @@
         },
         {
           "path": "tools/vos/proofenv.py",
-          "sha256": "8554680f83eacb10085c9c35a1e7951c66129fe409bb5bcb845df1baa40d8c28"
+          "sha256": "1d51bdb83c1f09f675e5eec631016ca25ba16c4001e1dca75ec3ddd30f82b4f1"
         },
         {
           "path": "tools/vos/prooflex.py",
@@ -109,7 +109,7 @@
         },
         {
           "path": "tools/vos/asm.py",
-          "sha256": "f2e54ad9ddc6ac06cd8a16011a5f710ce34840f6e4f4b451666bd85b83d1f27d"
+          "sha256": "89aa4fd77963291609a6756bc872c97f26aca61a4815fa0727a54b756da7de0b"
         },
         {
           "path": "tools/vos/atomic.py",
@@ -133,7 +133,7 @@
         },
         {
           "path": "tools/vos/dialect.py",
-          "sha256": "cc528d7e322b892085014866cdb0371b26369f14d45dbf7fde2ed68da9013f10"
+          "sha256": "65fe9d83f372d22b71363759f67884f2fc500c40da6f06739a2bb51314d2ea49"
         },
         {
           "path": "tools/vos/dialectgen.py",
@@ -165,7 +165,7 @@
         },
         {
           "path": "tools/vos/proofenv.py",
-          "sha256": "8554680f83eacb10085c9c35a1e7951c66129fe409bb5bcb845df1baa40d8c28"
+          "sha256": "1d51bdb83c1f09f675e5eec631016ca25ba16c4001e1dca75ec3ddd30f82b4f1"
         },
         {
           "path": "tools/vos/prooflex.py",
@@ -185,11 +185,11 @@
         },
         {
           "path": "tools/vos/rocqterm.py",
-          "sha256": "ffe7a4cdac6ce9f841e7e28076389ca450a6ac26027c773f7ca8410a71999270"
+          "sha256": "615415810520768480e6e41e3b20bb183bd33f638c5b0321711c37fb5084fa07"
         },
         {
           "path": "tools/vos/sailbundle.py",
-          "sha256": "e027a8adadb129c0e37dcd97c5101615c26bf2c1b2a4eb883c1371fbf9221683"
+          "sha256": "d54f4ec96fceba911cd252c8ee666e05aabbc580731322ac2a21025219797acd"
         },
         {
           "path": "tools/vos/sailexpr.py",
@@ -197,7 +197,7 @@
         },
         {
           "path": "tools/vos/trace.py",
-          "sha256": "2c2886f75998e7e828034f39864e1850ccecf0b8c6be8dcb189bc23d184f852d"
+          "sha256": "a445fb0a2b225b7bfe621ab9957a9c2131c515dbcade633b27a33e10466ad8b8"
         }
       ]
     }
@@ -486,7 +486,7 @@
         },
         {
           "path": "tools/vos/asm.py",
-          "sha256": "f2e54ad9ddc6ac06cd8a16011a5f710ce34840f6e4f4b451666bd85b83d1f27d"
+          "sha256": "89aa4fd77963291609a6756bc872c97f26aca61a4815fa0727a54b756da7de0b"
         },
         {
           "path": "tools/vos/atomic.py",
@@ -550,7 +550,7 @@
         },
         {
           "path": "tools/vos/dialect.py",
-          "sha256": "cc528d7e322b892085014866cdb0371b26369f14d45dbf7fde2ed68da9013f10"
+          "sha256": "65fe9d83f372d22b71363759f67884f2fc500c40da6f06739a2bb51314d2ea49"
         },
         {
           "path": "tools/vos/dialectgen.py",
@@ -606,7 +606,7 @@
         },
         {
           "path": "tools/vos/proofenv.py",
-          "sha256": "8554680f83eacb10085c9c35a1e7951c66129fe409bb5bcb845df1baa40d8c28"
+          "sha256": "1d51bdb83c1f09f675e5eec631016ca25ba16c4001e1dca75ec3ddd30f82b4f1"
         },
         {
           "path": "tools/vos/prooflex.py",
@@ -626,11 +626,11 @@
         },
         {
           "path": "tools/vos/rocqterm.py",
-          "sha256": "ffe7a4cdac6ce9f841e7e28076389ca450a6ac26027c773f7ca8410a71999270"
+          "sha256": "615415810520768480e6e41e3b20bb183bd33f638c5b0321711c37fb5084fa07"
         },
         {
           "path": "tools/vos/sailbundle.py",
-          "sha256": "e027a8adadb129c0e37dcd97c5101615c26bf2c1b2a4eb883c1371fbf9221683"
+          "sha256": "d54f4ec96fceba911cd252c8ee666e05aabbc580731322ac2a21025219797acd"
         },
         {
           "path": "tools/vos/sailexpr.py",
@@ -642,12 +642,12 @@
         },
         {
           "path": "tools/vos/trace.py",
-          "sha256": "2c2886f75998e7e828034f39864e1850ccecf0b8c6be8dcb189bc23d184f852d"
+          "sha256": "a445fb0a2b225b7bfe621ab9957a9c2131c515dbcade633b27a33e10466ad8b8"
         }
       ],
       "descriptor": {
         "path": "tools/composer/packages/composer.json",
-        "sha256": "e85dfd89e7f610377eb08699c23c6f11492de5a187295f53421920f5ed41a680"
+        "sha256": "5397099e433a88c683896480d542618cf54b5d37220ff41f524a00b2bbacfbed"
       },
       "artifact_slot": "composer-artifact",
       "entry": null,
@@ -734,7 +734,7 @@
         },
         {
           "path": "tools/vos/asm.py",
-          "sha256": "f2e54ad9ddc6ac06cd8a16011a5f710ce34840f6e4f4b451666bd85b83d1f27d"
+          "sha256": "89aa4fd77963291609a6756bc872c97f26aca61a4815fa0727a54b756da7de0b"
         },
         {
           "path": "tools/vos/atomic.py",
@@ -758,7 +758,7 @@
         },
         {
           "path": "tools/vos/dialect.py",
-          "sha256": "cc528d7e322b892085014866cdb0371b26369f14d45dbf7fde2ed68da9013f10"
+          "sha256": "65fe9d83f372d22b71363759f67884f2fc500c40da6f06739a2bb51314d2ea49"
         },
         {
           "path": "tools/vos/dialectgen.py",
@@ -794,7 +794,7 @@
         },
         {
           "path": "tools/vos/proofenv.py",
-          "sha256": "8554680f83eacb10085c9c35a1e7951c66129fe409bb5bcb845df1baa40d8c28"
+          "sha256": "1d51bdb83c1f09f675e5eec631016ca25ba16c4001e1dca75ec3ddd30f82b4f1"
         },
         {
           "path": "tools/vos/prooflex.py",
@@ -814,11 +814,11 @@
         },
         {
           "path": "tools/vos/rocqterm.py",
-          "sha256": "ffe7a4cdac6ce9f841e7e28076389ca450a6ac26027c773f7ca8410a71999270"
+          "sha256": "615415810520768480e6e41e3b20bb183bd33f638c5b0321711c37fb5084fa07"
         },
         {
           "path": "tools/vos/sailbundle.py",
-          "sha256": "e027a8adadb129c0e37dcd97c5101615c26bf2c1b2a4eb883c1371fbf9221683"
+          "sha256": "d54f4ec96fceba911cd252c8ee666e05aabbc580731322ac2a21025219797acd"
         },
         {
           "path": "tools/vos/sailexpr.py",
@@ -830,12 +830,12 @@
         },
         {
           "path": "tools/vos/trace.py",
-          "sha256": "2c2886f75998e7e828034f39864e1850ccecf0b8c6be8dcb189bc23d184f852d"
+          "sha256": "a445fb0a2b225b7bfe621ab9957a9c2131c515dbcade633b27a33e10466ad8b8"
         }
       ],
       "descriptor": {
         "path": "tools/composer/packages/admission.json",
-        "sha256": "a8e689df7aa7bf49bee8ce4a1542b1d20f168175b33d6742f5160b31b31df9b4"
+        "sha256": "8649889818c642a0a0cf6d8556d8aabc13b0335207b99466a6616dcc24aaa032"
       },
       "artifact_slot": "admission-artifact",
       "entry": null,
