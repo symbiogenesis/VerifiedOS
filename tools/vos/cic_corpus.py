@@ -1,49 +1,17 @@
 # SPDX-License-Identifier: Apache-2.0
-"""What the shipped proof corpus actually asks a CIC checker to decide.
+"""CIC feature and dependency parser for the proof corpus; see
+[docs/assurance/cic-checker-qualification.md](../../docs/assurance/cic-checker-qualification.md#corpus-and-source-qualification).
 
-M6.2b-0's [corpus and source qualification](../../docs/assurance/cic-checker-qualification.md#corpus-and-source-qualification)
-step wants a feature and dependency report over the real proofs rather than a
-handwritten count of surface `Fixpoint` declarations. This module is the parse half of
-that report: every reading below is a stated predicate over text Rocq itself printed,
-and nothing here guesses a feature a query did not show.
-
-**Three readings, and they decide different things.** The *kernel* reading is
-`Print All Dependencies`, which walks each compiled global's body, the bodies of `Qed`
-constants included, and its type, and names each dependency under one of four headings. The *declaration*
-reading is `About`, which says whether a constant is universe polymorphic, whether it is
-opaque, and what kind of object it is. The *term* reading is `Print` under
-`Set Printing All`, whose notation-free output is where a `fix` binder, a mutual block
-and a dependent `match` become visible at all. A source-text reading stands beside
-them, counting the vernaculars a file spells, and it is kept separate on purpose: a
-`Fixpoint` a proof never uses is a line in a file and not an obligation on a checker.
-
-**Each term-level predicate over-approximates in a declared direction**, because a
-printer is not a parser and this module refuses to pretend otherwise:
-
-- `fix-binder` and `cofix-binder` are the tokens `fix` and `cofix` printed outside an
-  identifier. Under `Set Printing All` there is no notation that can spell either.
-- `fix-binders-multiple` is two or more such binders in one printed declaration. That
-  is nesting wherever the second sits inside the first's body, and it is two siblings
-  wherever it does not; the report does not separate them, and a reader who needs the
-  distinction opens the constant.
-- `fix-binder-mutual` is the `for <name>` selector Rocq prints at the end of a mutual
-  block and nowhere else. A mutual block prints one `fix` token, so this reading and
-  the preceding one are independent.
-- `match-dependent-return` is a `match` head carrying an `as` or `in` token before its
-  `return` or `with`. Those clauses are printed exactly when the elimination's return
-  predicate is annotated, which is the shape a checker has to typecheck; a `let ... in`
-  inside an unparenthesized scrutinee would also satisfy it, which is the direction
-  this errs in.
-- The primitive readings are name membership, over both the printed declaration and the
-  dependency closure, so a primitive reached only through a library constant still
-  counts.
-
-**What no reading here decides is whether conversion is required.** A constant whose
-closure holds no transparent constant cannot need delta reduction of one, and that is
-the only conversion statement this module makes. The converse does not follow: a
-transparent dependency may be used at its name alone. Deciding the positive case means
-rechecking the corpus with those constants sealed, which is M6.2b-0's own experiment
-and not a figure this report may quote.
+Combines three Rocq query readings with a source-vernacular count:
+- **Kernel dependencies (`Print All Dependencies`)**: partitions each global's transitive
+  dependencies into `axioms`, `variables`, `opaque`, and `transparent`.
+- **Declaration metadata (`About`)**: extracts symbol kind, opacity, and universe mode
+  (`monomorphic`, `template`, or `polymorphic`).
+- **Term features (`Print` under `Set Printing All`)**: conservative token predicates over
+  notation-free printed declarations (`fix-binder`, `cofix-binder`, `fix-binders-multiple`,
+  `fix-binder-mutual`, `match`, `match-dependent-return`, and `PRIMITIVES`).
+- **Source vernaculars**: sentence-level counts of `SOURCE_VERNACULARS` and attribute
+  modifiers in `.v` files (ignoring `Fail` and `Succeed`).
 """
 
 import re
@@ -51,9 +19,7 @@ from dataclasses import dataclass, field
 
 from vos.proofs import VOID, decorations, sentences
 
-# The four headings `Print All Dependencies` prints, and the key each one lands under.
-# The command prints nothing else, and a fifth heading is a Rocq change this parse has
-# to see rather than skip, which is why an unknown heading refuses.
+# Headings printed by `Print All Dependencies` mapped to `Dependencies` keys.
 SECTIONS: dict[str, str] = {
     "Axioms:": "axioms",
     "Variables:": "variables",
@@ -62,13 +28,10 @@ SECTIONS: dict[str, str] = {
 }
 CLOSED = "Closed under the global context"
 
-# The marker a query writes before each answer, so a block belongs to the constant it
-# was asked about rather than to whichever answer happened to precede it.
+# Delimiter prefix emitted before each query response block.
 MARKER = "VOS_CIC_CORPUS|"
 
-# Notations off, elision off, wrapping off. `Set Printing Universes` is deliberately
-# absent: it decorates every sort in every printed term, and the universe fact this
-# report needs is per constant and comes from `About` instead.
+# Rocq display settings for notation-free, unwrapped `Print` queries.
 QUERY_SETTINGS = """\
 Set Printing All.
 Set Printing Depth 1000000.
@@ -76,9 +39,7 @@ Set Printing Width 1000000.
 """
 
 QUALIFIED = re.compile(r"[\w'][\w']*(?:\.[\w'][\w']*)*")
-# A heading and an entry are told apart by the space before the colon, which the
-# printer is consistent about: `Opaque constants:` carries none and `usesax :` does.
-# Without that, a heading Rocq gained would read as a dependency named after it.
+# Headings have no space before `:`, whereas dependency entries have `ident :`.
 _HEADING = re.compile(r"^([^\s:](?:[^:]*[^\s:])?):$")
 _ENTRY = re.compile(r"^([\w'][\w']*(?:\.[\w'][\w']*)*)\s+:")
 _EXPANDS = re.compile(r"^Expands to:\s+(\w+)\s+(\S+)")
@@ -88,8 +49,7 @@ _COFIX = re.compile(r"(?<![\w'])cofix(?![\w'])")
 _FOR = re.compile(r"(?<![\w'])for\s+[\w']+")
 _MATCH = re.compile(r"(?<![\w'])match(?![\w'])")
 
-# Where a primitive shows itself: in a printed declaration, or in a closure name. The
-# spellings are the ones Rocq's own libraries carry for the four primitive families.
+# Rocq standard-library module prefixes for the four primitive type families.
 PRIMITIVES: dict[str, tuple[str, ...]] = {
     "primitive-int63": ("Uint63", "Int63", "PrimInt63"),
     "primitive-float64": ("PrimFloat", "Float64", "SpecFloat"),
@@ -97,34 +57,22 @@ PRIMITIVES: dict[str, tuple[str, ...]] = {
     "primitive-string": ("PString", "PrimString"),
 }
 
-# The vernaculars the source reading counts. Kept flat and named, because a count over
-# a file is a count over a file: it says what an author wrote, never what a proof uses.
+# Vernaculars counted in the source-text reading.
 SOURCE_VERNACULARS: tuple[str, ...] = (
     "Section", "End", "Module", "Fixpoint", "CoFixpoint", "Inductive", "CoInductive",
     "Record", "Variant", "Axiom", "Parameter", "Primitive", "Polymorphic",
     "Monomorphic", "Cumulative", "NonCumulative", "Equations", "Program",
 )
-# One of them, as a whole word where a sentence's decorations end.
 _VERNACULAR = re.compile("(?:" + "|".join(SOURCE_VERNACULARS) + r")\b")
 
-# What may stand before a sentence's vernacular is the shared lexer's decoration grammar
-# (vos/proofs.py), any number of each: a proof's bullets, control flags, and quoted and
-# legacy attributes. Five of the legacy attributes are counted vernaculars in their own
-# right, and a quoted attribute can spell the same five, `#[program]` and
-# `#[universes(polymorphic)]` being two; each is counted wherever it stands, and so is
-# the vernacular it decorates, so `Polymorphic Inductive` is one of each rather than a
-# modifier standing for nothing. `Fail` and `Succeed` keep nothing the sentence declares,
-# so a sentence under either counts neither its vernacular nor its modifiers, as no
-# kernel reading could find a declaration it never kept.
+# Attribute patterns for extracting counted modifiers from [proofs.py](proofs.py) sentence decorations.
 _QUOTED = re.compile(r'"[^"]*"')
 _UNIVERSES = re.compile(r"\buniverses\s*\(([^()]*)\)")
 _SETTING = re.compile(r"\b(program|polymorphic|cumulative)\b(?:\s*=\s*(yes|no)\b)?")
 
 
 def _attribute_modifiers(attributes: str) -> list[str]:
-    """The counted modifiers one quoted attribute list spells: `program`, and
-    `polymorphic` and `cumulative` inside `universes(...)`, where `=no` spells the
-    opposite modifier. A string value is no setting, so strings are blanked first."""
+    """Extract counted vernacular modifiers (`Program`, `Polymorphic`/`Monomorphic`, `Cumulative`/`NonCumulative`) from `#[...]` attributes."""
     bare = _QUOTED.sub('""', attributes)
     found = ["Program" for setting in _SETTING.finditer(_UNIVERSES.sub("", bare))
              if setting.group(1) == "program" and setting.group(2) != "no"]
@@ -138,29 +86,21 @@ def _attribute_modifiers(attributes: str) -> list[str]:
 
 
 class ParseError(ValueError):
-    """A native response cannot support this reading."""
+    """Raised when Rocq query output does not match the expected grammar."""
 
 
-# One constant's transitive closure, split the way Rocq splits it: one list per key of
-# `SECTIONS`. A mapping rather than a record because the headings are data here, the
-# parse placing an entry under whichever heading opened it.
 type Dependencies = dict[str, list[str]]
 
-# The headings whose members are constants rather than declared assumptions, which is
-# the split the conversion reading and the primitive reading both walk.
+# Dependency categories holding global constants rather than section variables.
 CLOSURE_KEYS: tuple[str, ...] = ("axioms", "opaque", "transparent")
 
 
 def empty_dependencies() -> Dependencies:
-    """A closure with every heading present and none of them populated."""
+    """Return an empty `Dependencies` dictionary with all `SECTIONS` keys initialized."""
     return {key: [] for key in SECTIONS.values()}
 
 
-# The three universe sentences `About` writes, longest first so that the template form
-# is read as itself rather than as the plain one it ends with. Template polymorphism is
-# its own answer here because it is its own rule in the kernel: an inductive's sort is
-# computed from its arguments' rather than quantified, which a profile decision has to
-# admit or exclude by name and cannot fold into either of the other two.
+# Universe polymorphism suffixes reported by `About` (longest match first).
 UNIVERSE_SENTENCES: tuple[tuple[str, str], ...] = (
     ("is not universe polymorphic", "monomorphic"),
     ("is template universe polymorphic", "template"),
@@ -170,7 +110,7 @@ UNIVERSE_SENTENCES: tuple[tuple[str, str], ...] = (
 
 @dataclass(frozen=True)
 class About:
-    """What `About` says a symbol is: its kind, its opacity and its universes."""
+    """Symbol kind, expansion, universe mode, and opacity parsed from `About`."""
 
     kind: str
     expands_to: str
@@ -179,13 +119,13 @@ class About:
 
     @property
     def universe_polymorphic(self) -> bool:
-        """Whether the symbol's universes are quantified or computed rather than fixed."""
+        """Return whether universes are `polymorphic` or `template` rather than `monomorphic`."""
         return self.universes != "monomorphic"
 
 
 @dataclass
 class Constant:
-    """One enumerated symbol and every reading this module makes of it."""
+    """Classified CIC symbol record combining `About`, dependency closure, and term features."""
 
     name: str
     type: str = ""
@@ -198,11 +138,7 @@ class Constant:
 
 
 def blocks(stdout: str, keys: list[str]) -> dict[str, str]:
-    """Split one query's output into the answer each marker introduced.
-
-    The keys are supplied rather than discovered, so a missing answer is a refusal
-    here and not a shorter dictionary a caller reads as an empty result.
-    """
+    """Split `MARKER`-delimited query output into blocks keyed by `keys`, rejecting missing or extra keys."""
     found: dict[str, list[str]] = {}
     current: str | None = None
     for line in stdout.splitlines():
@@ -227,20 +163,7 @@ def blocks(stdout: str, keys: list[str]) -> dict[str, str]:
 
 
 def parse_dependencies(text: str) -> Dependencies:
-    """`Print All Dependencies`, read for names and refusing a shape it cannot place.
-
-    An entry is `name : type`, and the type is what the printer wraps: over several
-    lines, indented or not, and the command marks no end. So an entry opens at an
-    unindented line whose first token is a qualified identifier followed by whitespace
-    and a colon, and every other line belongs to the type above it. That is safe in the
-    one direction that matters, a printed type carrying no `ident :` in that position:
-    a binder's colon follows the bound name inside the line, `forall x : nat`, where
-    this reading wants the line's own first token.
-
-    Three shapes refuse, because each would otherwise pass as a closure this saw all
-    of: a silent query, a heading Rocq gained that this cannot place, and an entry or
-    a continuation standing before any heading.
-    """
+    """Parse `Print All Dependencies` output into `Dependencies`, failing closed on unknown headings or unframed lines."""
     out = empty_dependencies()
     stripped = text.strip()
     if not stripped:
@@ -273,12 +196,7 @@ def parse_dependencies(text: str) -> Dependencies:
 
 
 def parse_about(text: str) -> About:
-    """`About`, read for the three facts it states about a symbol.
-
-    Opacity is `n/a` where the symbol carries none, an inductive type being the case
-    this corpus supplies; a constant that states neither is a printer change and
-    refuses here rather than defaulting to transparent.
-    """
+    """Parse `About` output for symbol kind, expansion, universe mode, and opacity."""
     universes: str | None = None
     opacity: str | None = None
     expands: tuple[str, str] | None = None
@@ -308,12 +226,7 @@ def parse_about(text: str) -> About:
 
 
 def dependent_matches(text: str) -> int:
-    """Printed `match` heads carrying an `as` or an `in` clause.
-
-    The scan starts after each `match` token and stops at the first `return` or `with`
-    outside every bracket it has opened, which is where the head ends. The module
-    docstring states the direction this errs in.
-    """
+    """Count printed `match` heads that carry a top-level `as` or `in` clause before `return` or `with`."""
     count = 0
     for hit in _MATCH.finditer(text):
         depth = 0
@@ -348,7 +261,7 @@ def dependent_matches(text: str) -> int:
 
 
 def term_features(declaration: str) -> list[str]:
-    """Every term-level feature the printed declaration shows, as declared predicates."""
+    """Return term-level feature tags observed in a printed `declaration`."""
     found: list[str] = []
     fixes = len(_FIX.findall(declaration))
     cofixes = len(_COFIX.findall(declaration))
@@ -368,27 +281,14 @@ def term_features(declaration: str) -> list[str]:
 
 
 def primitive_features(*texts: str) -> list[str]:
-    """The primitive families named anywhere in the supplied texts."""
+    """Return primitive family tags whose module prefixes appear in `texts`."""
     joined = "\n".join(texts)
     return [name for name, spellings in PRIMITIVES.items()
             if any(spelling in joined for spelling in spellings)]
 
 
 def source_declarations(text: str) -> dict[str, int]:
-    """What one proof source spells, counted over sentences rather than over lines.
-
-    A source reading, and it decides nothing about the compiled corpus: it is here so
-    a profile decision can see the distance between what an author wrote and what the
-    kernel reading above found a proof to use.
-
-    It counts the vernacular a sentence opens with and nothing inside the sentence,
-    after every decoration standing before it, and the counted modifiers among those
-    decorations; a sentence under `Fail` or `Succeed` keeps nothing it declares and
-    counts nothing. Mutual recursion is deliberately absent from this reading and is left
-    to the term reading's `for` selector: a `Fixpoint` block's own `with` and a
-    `match`'s are the same token at this level, and a count that reads every `Fixpoint`
-    as mutual is a figure with no predicate behind it.
-    """
+    """Count `SOURCE_VERNACULARS` and attribute modifiers across non-`Fail`/`Succeed` sentences in `text`."""
     counts = dict.fromkeys(SOURCE_VERNACULARS, 0)
     for sentence in sentences(text):
         found, at = decorations(sentence)
@@ -411,12 +311,7 @@ def source_declarations(text: str) -> dict[str, int]:
 
 def classify(name: str, typ: str, about: About, dependencies: Dependencies,
              declaration: str | None) -> Constant:
-    """One symbol's complete record, from the readings actually taken of it.
-
-    `declaration` is None where the term reading was refused, which the module's
-    bound on one query's output can do; the record then says so by carrying
-    `term-reading-unavailable` rather than reporting the absence of a feature.
-    """
+    """Build a `Constant` record from `about`, `dependencies`, and optional printed `declaration`."""
     closure = [member for key in CLOSURE_KEYS for member in dependencies[key]]
     if declaration is None:
         features = ["term-reading-unavailable", *primitive_features(*closure)]
@@ -442,20 +337,13 @@ def classify(name: str, typ: str, about: About, dependencies: Dependencies,
 
 
 def local_names(names: list[str], stems: set[str]) -> tuple[list[str], list[str]]:
-    """A closure split into this corpus's own constants and everything else.
-
-    `Print All Dependencies` prints the shortest unambiguous name, so a foreign member
-    arrives as `andb` or `Nat.add` rather than under its library's full path. Ownership
-    is therefore decided by the first component against the corpus's own module stems,
-    which is exact in the direction that matters: a corpus constant is always printed
-    under its module, that being the qualification this query is run without importing.
-    """
+    """Partition `names` into corpus-local symbols (first component in `stems`) and external symbols."""
     local = [name for name in names if name.split(".", 1)[0] in stems]
     return local, [name for name in names if name.split(".", 1)[0] not in stems]
 
 
 def totals(constants: list[Constant]) -> dict[str, int]:
-    """Every figure the report states about the corpus, each one a count of records."""
+    """Aggregate feature, kind, opacity, and universe counts across `constants`."""
     counted: dict[str, int] = {"constants": len(constants)}
     for constant in constants:
         for feature in constant.features:

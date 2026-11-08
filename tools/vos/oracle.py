@@ -1,61 +1,12 @@
 # SPDX-License-Identifier: Apache-2.0
-"""The model-as-oracle vector generator: a domain description in, a Sail harness out.
+"""Model-as-oracle Sail harness generator for [tools/oracle-specs/](../oracle-specs/)
+and [cli/oracle.py](cli/oracle.py).
 
-Model-as-oracle campaigns share three parts: a list of model sources, Sail that
-picks inputs and prints answers, and a text comparison. This module owns the
-formatters, shift register and probe printing. Simple JSON specs also use its
-domain loops. The RTL campaign supplies typed printing declarations and retains
-its domain-specific helpers and ordered sweep schedule separately, so sharing
-mechanics does not replace an exhaustive campaign with a sampled one.
-
-Simple campaigns declare their questions in a JSON spec under
-[tools/oracle-specs/](../oracle-specs/) naming the model sources to compile, and one
-or more *probes*: a line kind, the parameters a probe takes and how the domain walks
-them, the Sail that calls the model with them, and the expressions to print. What
-comes out is a Sail harness that prints one line per vector, which
-[run.py oracle](cli/oracle.py) compiles against those sources and runs. **The vectors
-cross as text**, which is M2.1's discipline and R1a's: no adapter sits between the two
-implementations, neither is compiled against the other's types, and a disagreement
-names a line a person reads on both sides.
-
-**Which of the tree's two findings this answers.** M0.12's, that its corpus found an
-encoding defect the `$[test]` harness structurally cannot, a `$[test]` calling
-`execute` on an already-decoded instruction and so never seeing a mis-encoded word. A
-probe here calls a Sail function at a domain this file walks, so what it reaches is
-decided by the domain and not by what a property happens to be written about. The
-other finding, M0.8d's, belongs to [run.py seed](cli/seed.py) and is answered there.
-
-**Nothing here decides anything.** It picks inputs and formats answers; every value
-right of an arrow is the model's, and a line the spec cannot print is a line the
-oracle does not reach.
-
-## The domain, which is the half worth declaring
-
-Each parameter says how the sweep walks it, and the three answers are the three R1a
-needed:
-
-* `all` walks every value of the parameter's own width, which is what makes a sweep
-  **exhaustive over its own domain**. R1a had two: decode over the whole 19-bit bounds
-  encoding, and `perms_narrow` over all 4,096 masks `candperm` can hand it.
-* `draw` takes the parameter from a maximal-length 36-bit shift register, which is the
-  sampled sweep. The register is per probe and its seed is in the spec, so a run is
-  reproducible and two runs of one spec produce the same bytes.
-* `table` walks an explicit list of Sail literals, which is how the edges a sweep off
-  entropy alone does not reach are named rather than hoped for. R1a's own measurement
-  is why the shape exists: a defect inside `setCapBounds`'s exponent-increment branch
-  reproduced 647,179 sampled vectors and was killed only by the 840 lines of a
-  deliberate corner.
-
-A probe may mix them: R1a's decode sweep is exhaustive over three fields with the
-address riding the shift register, which is `all`, `all`, `all`, `draw`.
-
-## The line format
-
-One vector per line, `<kind> <inputs> -> <outputs>`, every field lowercase hex with no
-prefix at a width fixed by the field rather than by the value in it, so a reproducing
-implementation holding each field in a variable of that width prints the same digits
-with a bare `%x`. Lines opening with `#` are commentary. It is R1a's format unchanged,
-which is deliberate: the RTL lane's census and comparison read it already.
+Parses JSON oracle specifications (`sources` and `probes`), emits deterministic Sail
+harnesses with fixed-width lowercase hex formatters (`hex_<n>`), a 36-bit maximal-length
+LFSR (`x^36 + x^25 + 1`), and parameter sweeps (`all`, `draw`, `table`), and compiles
+and runs them via [sailrig.py](sailrig.py) to produce `<kind> <inputs> -> <outputs>`
+vector files.
 """
 
 import json
@@ -67,40 +18,21 @@ from typing import TypedDict
 
 from vos import sailrig
 
-# Where the specs live, relative to the repository root. One file per spec, named for
-# the spec, so `run.py oracle vectors --spec keccak` and `tools/oracle-specs/keccak.json`
-# are the same word twice and never two.
 SPECS = "tools/oracle-specs"
-
-# The tool a reader runs to regenerate a harness, written into every emitted file, and
-# this lane's working directory and vector file under the lane root. Named here rather
-# than in the CLI because two tools drive this rig and neither may have its own name
-# for where the other one's output went.
 TOOL = "tools/run.py oracle"
 WORK = "oracle"
 VECTORS = "vectors.txt"
 
-# What a `show` token may be: `h<n>` prints n hex nibbles, `b1` prints a bool as one
-# digit. Held to a closed vocabulary rather than passed through, because a token this
-# module cannot read would otherwise reach the generated Sail as a call to a function
-# nothing defines, and fail several hundred lines from the spec that wrote it.
+# Format token pattern: `h<n>` (1..32 hex digits) or `b1` (boolean digit).
 SHOW = re.compile(r"^(?:h(\d{1,2})|b1)$")
 
-# A kind is the first token of every line the probe writes, and the RTL lane's census
-# reads it back with `^([a-z]+) `. Held to that shape here so a spec cannot emit a line
-# that census counts as commentary.
+# Probe line-prefix identifier pattern.
 KIND = re.compile(r"^[a-z]+$")
 
-# A Sail identifier, for a parameter name that has to survive into generated code.
+# Sail identifier pattern for probe parameter names.
 IDENT = re.compile(r"^[a-z][a-z0-9_]*$")
 
-# Names a parameter may not take, and the reason the list exists rather than the reason
-# each member is on it: a parameter's name reaches the generated Sail as a binder, so a
-# collision is a syntax error several hundred lines from the spec that caused it, and it
-# reads as a defect in the emitter. `inc` and `dec` are the pair that found this, being
-# Sail's bitvector order keywords and an entirely natural name for a step. The rest are
-# the keywords a parameter name might plausibly want and the names this module emits
-# for itself.
+# Sail keywords and harness-internal identifiers disallowed as probe parameter names.
 RESERVED = frozenset({
     "and", "as", "assert", "bitfield", "bitone", "bitzero", "bool", "by", "cast",
     "catch", "constraint", "dec", "default", "do", "effect", "else", "end", "enum",
@@ -110,27 +42,21 @@ RESERVED = frozenset({
     "register", "repeat", "return", "scattered", "sizeof", "struct", "then", "throw",
     "to", "true", "try", "type", "undefined", "union", "unit", "until", "val", "var",
     "where", "while",
-    # and this module's own, which the emitted sweep binds beside the parameters
     "b1", "hex", "lfsr36", "main", "nib", "rep", "seed",
 })
 
-# The shift register's width, and the polynomial x^36 + x^25 + 1. Maximal length, so a
-# `draw` parameter walks 2^36 - 1 distinct values before it repeats. The width is 36
-# because that is the address width the format this technique was first used on
-# carries; a parameter wider than one draw takes two, which `_draw` composes.
+# Width of the `x^36 + x^25 + 1` maximal-length shift register (`lfsr36`).
 LFSR_BITS = 36
 
-# The widest parameter a `draw` can fill, being two draws concatenated. A wider one is
-# refused at parse rather than emitted as Sail that does not typecheck.
+# Maximum bit width of a `draw` parameter (two `lfsr36` draws concatenated).
 DRAW_MAX = 2 * LFSR_BITS
 
-# The widest field the hex formatters are emitted for. 32 nibbles is 128 bits, which is
-# twice the frozen capability and wider than anything the model returns whole.
+# Maximum nibble width supported by `hex_<n>` formatters (128 bits).
 HEX_MAX = 32
 
 
 class ParamRow(TypedDict, total=False):
-    """One parameter of a probe, as the spec file writes it."""
+    """JSON schema for a probe parameter entry."""
 
     name: str
     width: int
@@ -140,14 +66,14 @@ class ParamRow(TypedDict, total=False):
 
 
 class ShowRow(TypedDict, total=False):
-    """One printed answer: the Sail expression, and how wide a field it fills."""
+    """JSON schema for a printed output expression entry."""
 
     expr: str
     show: str
 
 
 class ProbeRow(TypedDict, total=False):
-    """One probe of a spec, as the spec file writes it."""
+    """JSON schema for a single probe in an oracle spec."""
 
     kind: str
     what: str
@@ -159,7 +85,7 @@ class ProbeRow(TypedDict, total=False):
 
 
 class SpecRow(TypedDict, total=False):
-    """One spec file, whole."""
+    """JSON schema for an oracle spec file."""
 
     name: str
     what: str
@@ -170,7 +96,7 @@ class SpecRow(TypedDict, total=False):
 
 @dataclass(frozen=True)
 class Param:
-    """One parameter, parsed: its Sail name, its width, and how the sweep walks it."""
+    """Validated probe parameter descriptor."""
 
     name: str
     width: int
@@ -180,14 +106,13 @@ class Param:
 
     @property
     def size(self) -> int:
-        """How many values this parameter contributes to the nest, which is only
-        meaningful for the two that are loops."""
+        """Return the loop iteration count for an `all` or `table` parameter."""
         return len(self.rows) if self.over == "table" else 1 << self.width
 
 
 @dataclass(frozen=True)
 class Show:
-    """One printed answer."""
+    """Printed Sail expression and its `SHOW` format token."""
 
     expr: str
     show: str
@@ -195,12 +120,7 @@ class Show:
 
 @dataclass(frozen=True)
 class Printer:
-    """One model call and its wire fields, independent of input scheduling.
-
-    Argument types and input expressions are explicit because some campaigns
-    derive a printed tag from a decoded value, or interleave several calls for
-    one selected input. No schedule or second random generator belongs here.
-    """
+    """Typed Sail probe printer specification (`probe_<kind>`)."""
 
     kind: str
     arguments: tuple[tuple[str, str], ...]
@@ -212,7 +132,7 @@ class Printer:
 
 @dataclass(frozen=True)
 class Probe:
-    """One line kind: what it calls, over what domain, and what it prints."""
+    """Validated probe specification."""
 
     kind: str
     what: str
@@ -224,8 +144,7 @@ class Probe:
 
     @property
     def vectors(self) -> int:
-        """How many lines this probe writes, which is arithmetic over its own domain
-        and is what lets a spec state its size without running the model."""
+        """Return the total number of vector lines emitted by this probe."""
         total = self.repeat
         for param in self.params:
             if param.over in ("all", "table"):
@@ -235,7 +154,7 @@ class Probe:
 
 @dataclass(frozen=True)
 class Spec:
-    """One oracle: the model sources to compile against, and the probes to run."""
+    """Validated oracle specification."""
 
     name: str
     what: str
@@ -249,8 +168,7 @@ class Spec:
 
 
 class SpecError(ValueError):
-    """A spec this module refuses, named at the spec rather than at the Sail error its
-    emission would have produced."""
+    """Raised when an oracle spec or `Printer` declaration is invalid."""
 
 
 def spec_path(root: Path, name: str) -> Path:
@@ -258,7 +176,7 @@ def spec_path(root: Path, name: str) -> Path:
 
 
 def names(root: Path) -> list[str]:
-    """Every spec in the repository, sorted, so a listing is stable."""
+    """Return sorted oracle spec names under `root / SPECS`."""
     directory = root / SPECS
     if not directory.is_dir():
         return []
@@ -266,7 +184,7 @@ def names(root: Path) -> list[str]:
 
 
 def load(root: Path, name: str) -> Spec:
-    """One spec, parsed and refused by name where it is malformed."""
+    """Load and validate `root / SPECS / f"{name}.json"`."""
     path = spec_path(root, name)
     if not path.is_file():
         raise SpecError(f"there is no spec at {path}")
@@ -280,13 +198,7 @@ def load(root: Path, name: str) -> Spec:
 
 
 def parse(name: str, raw: SpecRow) -> Spec:
-    """A decoded spec file, held to the shape this module emits from.
-
-    Every refusal names the spec's own field. The alternative is a Sail file that does
-    not typecheck for a reason a reader has to work back from the emitted code to the
-    line of JSON that produced it, which is the seam this whole module exists to close
-    for the two implementations it puts either side of a text file.
-    """
+    """Validate decoded JSON `raw` for spec `name` and return a `Spec`."""
     stated = raw.get("name", "")
     if stated != name:
         raise SpecError(f"the spec in {name}.json calls itself {stated!r}; the file "
@@ -332,12 +244,7 @@ def _probe(spec: str, row: ProbeRow) -> Probe:
 
 
 def _statement(spec: str, kind: str, line: str) -> str:
-    """One body statement, held to being one.
-
-    The generator joins statements with its own separator, so a line that carries a
-    trailing `;` would emit a double separator and a Sail parse error in generated
-    code. Refused here, where the spec's own line is what the message names.
-    """
+    """Validate a single Sail body statement, rejecting trailing semicolons."""
     text = line.rstrip()
     if text.endswith(";"):
         raise SpecError(f"{spec}/{kind}: body statement {line!r} ends in `;`; the "
@@ -390,8 +297,7 @@ def _show(spec: str, kind: str, row: ShowRow) -> Show:
 
 
 def _nibbles(spec: str, kind: str, show: str) -> int:
-    """How many hex digits a show token spends, 0 for the bool. Refuses the token this
-    module cannot emit a formatter for."""
+    """Return the hex digit count for `show` (`0` for `"b1"`), or raise `SpecError`."""
     found = SHOW.match(show)
     if not found:
         raise SpecError(f"{spec}/{kind}: `{show}` is not a show token; a token is "
@@ -405,18 +311,11 @@ def _nibbles(spec: str, kind: str, show: str) -> int:
     return width
 
 
-# =====================================================================================
-# the emission
-# =====================================================================================
+# --- Sail harness emission --------------------------------------------------
 
 
 def harness(spec: Spec, tool: str) -> str:
-    """The Sail harness for one spec, whole and deterministic.
-
-    Deterministic to the byte, because a caller compares two runs of it: a seeded
-    defect is killed by the vectors moving, and a harness that varied between two
-    emissions would make every line move for a reason that is not the defect.
-    """
+    """Render the deterministic Sail harness source for `spec`."""
     widest = max(_widths(spec), default=1)
     parts = [_preamble(spec, tool), _formatters(widest)]
     parts.extend(_probe_sail(probe) for probe in spec.probes)
@@ -425,8 +324,7 @@ def harness(spec: Spec, tool: str) -> str:
 
 
 def _widths(spec: Spec) -> list[int]:
-    """Every hex field width the harness prints, so the formatters emitted are the ones
-    used and no more."""
+    """Return all hex nibble widths used across `spec.probes`."""
     found: list[int] = []
     for probe in spec.probes:
         found.extend(int(p.show[1:]) for p in probe.params if p.show != "b1")
@@ -453,12 +351,7 @@ def _preamble(spec: Spec, tool: str) -> str:
 
 
 def _formatters(widest: int) -> str:
-    """The hex ladder and the bool, emitted to the width the spec actually spends.
-
-    Stated per width rather than derived at run time, so the digits a field occupies
-    are a property of the field and not of the value in it, which is what lets the
-    other implementation print the same digits with a bare `%x`.
-    """
+    """Emit `nib`, `hex_1`..`hex_{widest}`, `b1`, and `lfsr36` Sail definitions."""
     out = ["// The formatters. Fixed width, lowercase, no prefix.",
            "",
            "function nib(n : bits(4)) -> string = match n {",
@@ -488,22 +381,14 @@ def _formatters(widest: int) -> str:
 
 
 def _fmt(show: str, expr: str) -> str:
-    """One field, as the Sail that prints it.
-
-    The hex formatters are emitted at whole nibbles and a great many of the model's own
-    types are not, `CapLenBits` being 37 bits printed in ten digits, so every hex field
-    is zero-extended into its formatter here rather than in the spec. The widening is
-    arithmetic about two widths and not a decision somebody makes, and a spec writing
-    it by hand would then be a spec that could get it wrong; a field *wider* than its
-    formatter is still a Sail constraint failure, which is the loud answer wanted.
-    """
+    """Return the Sail formatting call (`b1(...)` or `hex_<n>(zero_extend(...))`) for `expr`."""
     if show == "b1":
         return f"b1({expr})"
     return f"hex_{int(show[1:])}(zero_extend({expr}))"
 
 
 def _probe_sail(probe: Probe) -> str:
-    """One probe: the call that prints a line, and the nest that walks its domain."""
+    """Emit the printer function, lookup tables, and sweep function for `probe`."""
     return "\n".join([_probe_fn(probe), "", *_tables(probe), _sweep(probe), ""])
 
 
@@ -516,11 +401,7 @@ def _probe_fn(probe: Probe) -> str:
 
 
 def printer_functions(printers: tuple[Printer, ...]) -> str:
-    """Emit the shared formatters, shift register and typed probe functions.
-
-    Authored schedules use this same printer as the JSON harness. Malformed
-    declarations refuse before a partial harness is returned.
-    """
+    """Validate `printers` and emit the shared formatters, `lfsr36`, and `probe_<kind>` functions."""
     if not printers:
         raise SpecError("a campaign with no printers would print nothing")
     seen: set[str] = set()
@@ -565,12 +446,7 @@ def _printer_function(printer: Printer) -> str:
 
 
 def _tables(probe: Probe) -> list[str]:
-    """The literal tables a `table` parameter walks, one function each.
-
-    A `match` over the index with the last row as the wildcard, which is the shape the
-    Sail typechecker wants: an index this cannot place is the last row rather than an
-    incomplete match, and the loop that drives it never hands one.
-    """
+    """Emit `tbl_<kind>_<param>` index-match functions for `table` parameters in `probe`."""
     out: list[str] = []
     for param in probe.params:
         if param.over != "table":
@@ -586,12 +462,7 @@ def _tables(probe: Probe) -> list[str]:
 
 
 def _draw(param: Param) -> list[str]:
-    """The statements that fill one drawn parameter, one draw or two.
-
-    Two where the parameter is wider than the register, taking the high bits from the
-    first draw and the whole of the second below them, which is the composition the
-    hand-written rig made at the one width it needed and this makes at every width.
-    """
+    """Emit `lfsr36` step statements to populate drawn parameter `param` (1 or 2 draws)."""
     if param.width <= LFSR_BITS:
         return ["seed = lfsr36(seed)",
                 f"let {param.name} : bits({param.width}) = "
@@ -604,8 +475,7 @@ def _draw(param: Param) -> list[str]:
 
 
 def _sweep(probe: Probe) -> str:
-    """The loop nest for one probe: every `all` and `table` parameter a loop, the drawn
-    ones taken inside it, and the repeat innermost."""
+    """Emit `sweep_<kind>()` nesting `all`/`table` loops around `repeat` and `draw` steps."""
     inner: list[str] = []
     for param in probe.params:
         if param.over == "all":
@@ -646,18 +516,11 @@ def _main(spec: Spec) -> str:
     return "function main() -> unit = {\n  " + ";\n  ".join(calls) + "\n}\n"
 
 
-# =====================================================================================
-# the run
-# =====================================================================================
+# --- execution helpers ------------------------------------------------------
 
 
 def work_dir(lane_root: Path, spec: str) -> Path:
-    """Where one spec builds and runs in this lane.
-
-    Under the lane root and never in the checkout: the file a run produces is derived
-    from the checkout rather than part of it, and two worktrees running at once must
-    not write one path.
-    """
+    """Return (and create) the build/run directory `lane_root / WORK / spec`."""
     path = lane_root / WORK / spec
     path.mkdir(parents=True, exist_ok=True)
     return path
@@ -665,13 +528,7 @@ def work_dir(lane_root: Path, spec: str) -> Path:
 
 def generate(root: Path, spec: Spec, work: Path, out: list[str], *,
              model_root: Path | None = None) -> Path | None:
-    """Emit the harness for one spec, compile it against the spec's sources, run it,
-    and hand back the vector file.
-
-    `model_root` is where the spec's sources are read from, defaulting to the checkout.
-    A caller holding a mutated copy of the model passes its own tree, which is what
-    lets [run.py seed](cli/seed.py) point this at a defect without writing into `model/`.
-    """
+    """Emit, compile, and run the Sail harness for `spec`, returning the generated `vectors.txt` path."""
     base = root if model_root is None else model_root
     work.mkdir(parents=True, exist_ok=True)
     harness_path = work / f"{spec.name}.sail"

@@ -137,11 +137,11 @@
         },
         {
           "path": "tools/vos/dialectgen.py",
-          "sha256": "6d1b8632bc1c9a74a54ed6bf700c339f680f2654b7106c702b5896528436fa39"
+          "sha256": "db3c6a6982fd62e5826e7224e920b50c8409fc64a893110a165063e884e05519"
         },
         {
           "path": "tools/vos/encdec.py",
-          "sha256": "f57fa890840a0cebd4504c82360315d045deaeedd0de16a90a0d18675674bad8"
+          "sha256": "a1ac805757fb2de1b762ff596cbf66910f89907d8a3ead49cf6d44f22007559c"
         },
         {
           "path": "tools/vos/env.py",
@@ -554,11 +554,11 @@
         },
         {
           "path": "tools/vos/dialectgen.py",
-          "sha256": "6d1b8632bc1c9a74a54ed6bf700c339f680f2654b7106c702b5896528436fa39"
+          "sha256": "db3c6a6982fd62e5826e7224e920b50c8409fc64a893110a165063e884e05519"
         },
         {
           "path": "tools/vos/encdec.py",
-          "sha256": "f57fa890840a0cebd4504c82360315d045deaeedd0de16a90a0d18675674bad8"
+          "sha256": "a1ac805757fb2de1b762ff596cbf66910f89907d8a3ead49cf6d44f22007559c"
         },
         {
           "path": "tools/vos/env.py",
@@ -647,7 +647,7 @@
       ],
       "descriptor": {
         "path": "tools/composer/packages/composer.json",
-        "sha256": "2cc6465edfce0ed4075abb29ca2a8542cd9b26e586d884d4ace4ff901875e953"
+        "sha256": "2df88e5f160c518527f8109367d8dcd48b0274cd52c43fedbef229b1099fdabf"
       },
       "artifact_slot": "composer-artifact",
       "entry": null,
@@ -762,11 +762,11 @@
         },
         {
           "path": "tools/vos/dialectgen.py",
-          "sha256": "6d1b8632bc1c9a74a54ed6bf700c339f680f2654b7106c702b5896528436fa39"
+          "sha256": "db3c6a6982fd62e5826e7224e920b50c8409fc64a893110a165063e884e05519"
         },
         {
           "path": "tools/vos/encdec.py",
-          "sha256": "f57fa890840a0cebd4504c82360315d045deaeedd0de16a90a0d18675674bad8"
+          "sha256": "a1ac805757fb2de1b762ff596cbf66910f89907d8a3ead49cf6d44f22007559c"
         },
         {
           "path": "tools/vos/env.py",
@@ -835,7 +835,7 @@
       ],
       "descriptor": {
         "path": "tools/composer/packages/admission.json",
-        "sha256": "00900625c99270e27411d32527a64c2bf18ff7e58962d33d29e6972cff830eb2"
+        "sha256": "8d1aa62cd9790f2d642176e2b973c366f82513c500e3ccd89cc3cba7bb32da7d"
       },
       "artifact_slot": "admission-artifact",
       "entry": null,

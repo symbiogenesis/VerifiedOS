@@ -1,9 +1,10 @@
 # SPDX-License-Identifier: Apache-2.0
-"""Pinned RISC-V test suites, verified snapshots and safe copies.
+"""Pinned RISC-V test-suite manifest verification and descriptor-verified copying.
 
-Manifest bytes follow the model's download declaration. Every consumer selects
-files from the same verified snapshot; copying retains that snapshot's identity
-until the destination itself verifies. Build and donor policy belongs to callers.
+Reads the pinned release and tarball SHA-256 digests from
+[model/test/CMakeLists.txt](../../model/test/CMakeLists.txt), verifies extracted suites
+against their `.manifest` listings, and copies verified regular files while preserving
+descriptor identity `(st_dev, st_ino, st_size)`.
 """
 
 import errno
@@ -19,7 +20,7 @@ from typing import NamedTuple, cast
 
 
 def test_corpus_version(model_root: Path) -> str:
-    """The release declared by the model, shared by configure and corpus consumers."""
+    """Return the `TEST_DOWNLOAD_VERSION` declared in `model_root/test/CMakeLists.txt`."""
     source = model_root / "test/CMakeLists.txt"
     try:
         text = source.read_text(encoding="utf-8")
@@ -35,12 +36,7 @@ def test_corpus_version(model_root: Path) -> str:
 
 
 def test_corpus_digests(model_root: Path, version: str) -> dict[str, str]:
-    """The SHA-256 the model records for each tarball of one release, by tarball name.
-
-    Fail-closed like `test_corpus_version`: a digest line of the release that is not a
-    well-formed 64-hex declaration, or a tarball declared twice, is refused rather than
-    passed over, since a suite whose digest went unread would go unverified.
-    """
+    """Return `{tarball_name: sha256}` declared for `version` in `model_root/test/CMakeLists.txt`."""
     source = model_root / "test/CMakeLists.txt"
     try:
         text = source.read_text(encoding="utf-8")
@@ -58,58 +54,48 @@ def test_corpus_digests(model_root: Path, version: str) -> dict[str, str]:
     return digests
 
 
-# model/test/CMakeLists.txt's download_riscv_tests writes this manifest beside
-# each verified suite and redownloads the suite on a configure-time mismatch.
-# Format: tarball digest, then file SHA-256/path pairs sorted by path bytes.
-# CMake rejects symlinks and names containing `;` or `\` through unhashed lines.
-# corpus_listing reproduces the format for lane seeding, sweep and trace-diff.
-# It also marks FIFOs and device nodes unhashed, hashing only descriptors
-# verified as regular files.
-# Build receipts use pinned_suite, so recording a build checks that the Python
-# and CMake listings agree.
+# Manifest suffix written beside each extracted suite by `download_riscv_tests` in
+# [model/test/CMakeLists.txt](../../model/test/CMakeLists.txt).
 CORPUS_MANIFEST_SUFFIX = ".manifest"
 
 
 def corpus_manifest(suite: Path) -> Path:
-    """Where the manifest of an extracted suite lives: beside it, not inside it."""
+    """Return the `.manifest` sibling path for `suite`."""
     return suite.with_name(suite.name + CORPUS_MANIFEST_SUFFIX)
 
 
 def _unreadable(err: OSError) -> None:
-    """`os.walk` passes over a directory it cannot read unless told otherwise, and a
-    listing that skipped one would no longer describe the whole tree."""
+    """Raise `os.walk` directory read errors rather than silently skipping subtrees."""
     raise err
 
 
 class _CorpusEntry(NamedTuple):
-    """One entry of a suite as the walk finds it, before any file is read."""
+    """Single suite entry discovered during directory traversal."""
 
-    relative: str  # the path relative to the suite, as a listing line spells it
+    relative: str
     path: Path
-    regular: bool  # whether the name, its final link not followed, is a regular file
+    regular: bool
 
 
 class _Hashed(NamedTuple):
-    """A regular file as one read of it found it."""
+    """Digest and descriptor identity `(device, inode, size)` of a regular file."""
 
-    digest: str  # the SHA-256 of the bytes read
-    device: int  # the device and inode of the descriptor they were read through
+    digest: str
+    device: int
     inode: int
-    size: int  # how many bytes were read, to the end of the file
+    size: int
 
 
 class VerifiedSuite(NamedTuple):
-    """A suite as `verify_test_corpus` found it agreeing with its manifest."""
+    """Suite directory verified against its `.manifest` listing."""
 
     suite: Path
-    manifest: bytes  # the manifest's bytes, as they were read and compared
-    files: dict[str, _Hashed]  # each file by its listed path, in the listing's order
+    manifest: bytes
+    files: dict[str, _Hashed]
 
 
 def _corpus_entries(suite: Path) -> list[_CorpusEntry]:
-    """Every entry of `suite` a listing has a line for, sorted by its relative path's
-    bytes, as the walk finds them: a file, a symbolic link, or a node of another kind,
-    and no file opened."""
+    """Return all entries under `suite` sorted by relative path bytes without opening files."""
     entries: list[tuple[bytes, _CorpusEntry]] = []
     for directory, dirs, files in os.walk(suite, onerror=_unreadable):
         for name in (*dirs, *files):
@@ -125,19 +111,18 @@ def _corpus_entries(suite: Path) -> list[_CorpusEntry]:
 
 
 def _listed(text: str) -> bytes:
-    """A listing's text as its bytes: a name that is not UTF-8 keeps the bytes it has."""
+    """Encode `text` as UTF-8 with `surrogateescape` so non-UTF-8 filenames round-trip."""
     return text.encode("utf-8", "surrogateescape")
 
 
 def _listing_head(suite: Path, tarball_sha256: str) -> str:
-    """The first line of `suite`'s listing, which records its tarball's digest."""
+    """Return the header line of `suite`'s manifest listing."""
     return f"tarball {suite.name}.tar.gz sha256 {tarball_sha256}\n"
 
 
 def _hashed_listing(suite: Path, tarball_sha256: str,
                     entries: list[_CorpusEntry]) -> tuple[bytes, dict[str, _Hashed]]:
-    """The listing of `entries`, reading each file only through `_regular_digest`, and
-    what that read found of each file it hashed, by listed path."""
+    """Render the manifest bytes for `entries` and collect `_Hashed` records by relative path."""
     lines = [_listing_head(suite, tarball_sha256)]
     files: dict[str, _Hashed] = {}
     for entry in entries:
@@ -151,28 +136,17 @@ def _hashed_listing(suite: Path, tarball_sha256: str,
 
 
 def corpus_listing(suite: Path, tarball_sha256: str) -> bytes:
-    """The listing `download_riscv_tests` records for `suite`, rendered from the tree."""
+    """Render the `download_riscv_tests` manifest bytes for `suite`."""
     return _hashed_listing(suite, tarball_sha256, _corpus_entries(suite))[0]
 
 
-# Where available, these flags prevent FIFO blocking, following a final symlink
-# and acquiring a controlling terminal if the path changes after lstat.
-# They cannot prevent all device-open side effects; _open_regular checks the
-# path's kind before opening and verifies the descriptor's kind and identity.
-# Windows relies on those checks alone; O_BINARY preserves file bytes.
+# Descriptor open flags that avoid FIFO blocking, symlink following, and terminal acquisition.
 _REGULAR_ONLY = (os.O_RDONLY | getattr(os, "O_NONBLOCK", 0) | getattr(os, "O_NOFOLLOW", 0)
                  | getattr(os, "O_NOCTTY", 0) | getattr(os, "O_BINARY", 0))
 
 
 def _open_regular(path: Path | str) -> int | None:
-    """A read descriptor on `path` when it is a regular file, and None when it is not.
-
-    The name is asked first, without following a final link, and nothing it reports as
-    another kind is opened, since opening a device node can act on the device. The
-    opened descriptor must then be a regular file and the very file the name reported,
-    by device and inode, so an entry replaced between the two is refused as well. An
-    `OSError` from either question, `FileNotFoundError` among them, is the caller's.
-    """
+    """Open `path` as a read-only regular file, verifying `lstat`/`fstat` type and `(st_dev, st_ino)` agreement."""
     named = os.lstat(path)
     if not stat.S_ISREG(named.st_mode):
         return None
@@ -195,10 +169,7 @@ def _open_regular(path: Path | str) -> int | None:
 
 
 def _regular_digest(path: Path) -> _Hashed | None:
-    """The SHA-256 of `path`, read through a descriptor that is a regular file, with that
-    descriptor's device and inode and the length read, and None when `_open_regular`
-    finds it is not one: an entry replaced after the listing's check by name is listed
-    unhashed rather than waited on or read without end."""
+    """Hash `path` through `_open_regular`, returning its `_Hashed` record or `None` if non-regular."""
     fd = _open_regular(path)
     if fd is None:
         return None
@@ -208,29 +179,24 @@ def _regular_digest(path: Path) -> _Hashed | None:
         return _Hashed(digest, held.st_dev, held.st_ino, stream.tell())
 
 
-# A hashed listing line, `<sha256>  <path>`, and the path it records.
 _HASHED_LINE = re.compile(rb"[0-9a-f]{64}  (.*)", re.DOTALL)
 
 
 def _recorded_path(line: bytes) -> bytes:
-    """The path a manifest's hashed line records, and a line of any other shape whole,
-    which then names no entry of the tree."""
+    """Extract the relative path bytes from a `<sha256>  <path>` manifest line, or return `line` unchanged."""
     found = _HASHED_LINE.fullmatch(line)
     return line if found is None else cast("bytes", found.group(1))
 
 
 def _non_regular(suite: Path) -> ValueError:
-    """The refusal of a suite holding an entry that is not a regular file."""
+    """Build the `ValueError` for a suite containing a symlink or non-regular entry."""
     return ValueError(f"{suite} holds a symbolic link or other non-regular entry, which "
                       "no manifest configure writes holds; configure downloads it again")
 
 
 def _disagreement(suite: Path, manifest: Path, held: list[bytes], kept: list[bytes],
                   found: list[bytes], *, cut: bool = False) -> ValueError:
-    """The refusal at the first line where `kept`, the manifest's lines `held` as they
-    are compared, differs from `found`, the tree's. `cut` says the read stopped at its
-    bound rather than at the manifest's end, so the last line held is only as much of
-    that line as was read."""
+    """Build the `ValueError` reporting the first line where `kept` and `found` diverge."""
     where = next((i for i, (a, b) in enumerate(zip(kept, found, strict=False)) if a != b),
                  min(len(kept), len(found)))
     manifest_line, tree_line = (
@@ -243,33 +209,11 @@ def _disagreement(suite: Path, manifest: Path, held: list[bytes], kept: list[byt
 
 
 def verify_test_corpus(suite: Path, tarball_sha256: str) -> VerifiedSuite:
-    """Refuse a suite unless it is what its manifest records for this tarball digest,
-    and answer what agreed: the manifest's bytes, and each file's SHA-256 with the
-    device and inode of the descriptor it was hashed through and the length hashed.
+    """Verify `suite` against its sibling `.manifest` and `tarball_sha256`, returning a `VerifiedSuite`.
 
-    The manifest is read only when its name and its opened descriptor are one regular
-    file, which is what configure writes, so a manifest standing as a FIFO, a device
-    node or a symbolic link is refused rather than waited on or read without end,
-    whichever reader asks: the donor seeding, the sweep, trace-diff and the build
-    receipt.
-
-    The tree is walked before any file of it is read. An entry that is not a regular
-    file is refused, and then the walked paths are held to the ones the manifest
-    records, so an entry it does not list, or a listed one that is gone, is refused
-    before a file is hashed. No more of the manifest is read than the listing of those
-    paths is long and one byte, so a regular manifest longer than that, a sparse one
-    among them, disagrees rather than being read until memory runs out. Only then is
-    each file hashed and the whole listing compared. A file under a listed name is
-    hashed whatever its length, since the listing records no sizes: an oversized one,
-    a sparse one among them, is read in full before it is found to disagree. That
-    residual is the listing format's, which `riscv_tests_listing` in
-    model/test/CMakeLists.txt owns.
-
-    The answer is what a reader after the verification goes by, rather than the tree's
-    names, which can change once it returns: the seeding copies only the files it
-    lists, each while it is still the file that verified, and writes their manifest
-    from the bytes that verified; the sweep, trace-diff and the build receipt choose
-    their inputs from the files it lists, and the receipt records the digests it read.
+    Rejects non-regular manifest or tree entries before hashing, bounds the manifest
+    read to the expected byte length of the walked path listing, and verifies every
+    listed file's SHA-256 through `_open_regular`.
     """
     manifest = corpus_manifest(suite)
     if suite.is_symlink() or not suite.is_dir():
@@ -293,7 +237,6 @@ def verify_test_corpus(suite: Path, tarball_sha256: str) -> VerifiedSuite:
             raise _non_regular(suite)
         head = _listed(_listing_head(suite, tarball_sha256))
         paths = [_listed(entry.relative) for entry in entries]
-        # each file's line is its digest in hex, two spaces, its path and a newline
         length = len(head) + sum(64 + 2 + len(path) + 1 for path in paths)
         try:
             recorded = handle.read(length + 1)
@@ -316,8 +259,7 @@ def verify_test_corpus(suite: Path, tarball_sha256: str) -> VerifiedSuite:
 
 
 def pinned_suite(directory: Path, model_root: Path) -> VerifiedSuite:
-    """Select the declared release even when older or newer donor caches coexist, and
-    only a suite that is the verified extraction its manifest records, as it verified."""
+    """Verify and return the `riscv-tests` suite at the release pinned in `model_root`."""
     version = test_corpus_version(model_root)
     suite = directory / "test" / version / "riscv-tests"
     if not suite.is_dir():
@@ -329,11 +271,7 @@ def pinned_suite(directory: Path, model_root: Path) -> VerifiedSuite:
 
 
 def verified_inputs(verified: VerifiedSuite, pattern: str) -> dict[Path, str]:
-    """The files at the top of `verified`'s suite whose names match the glob `pattern`,
-    other than the `.dump` disassemblies beside them, in path order, each with the
-    SHA-256 its verification read. They are chosen from what verified rather than from
-    the tree as it stands, so an entry added after the verification is not among them,
-    and none is read again to choose it."""
+    """Return `{path: sha256}` for top-level non-`.dump` files in `verified` matching `pattern`."""
     chosen = {verified.suite / relative: hashed.digest
               for relative, hashed in verified.files.items()
               if "/" not in relative and fnmatch.fnmatchcase(relative, pattern)
@@ -342,8 +280,7 @@ def verified_inputs(verified: VerifiedSuite, pattern: str) -> dict[Path, str]:
 
 
 def sweep_corpus(directory: Path, model_root: Path, xlen: str = "64") -> dict[Path, str]:
-    """The nonempty physical-variant suite selected by both the runner and its receipt,
-    each input with the SHA-256 its suite's verification read."""
+    """Return `{path: sha256}` for the verified `rv{xlen}*-p-*` ELF suite under `directory`."""
     verified = pinned_suite(directory, model_root)
     elves = verified_inputs(verified, f"rv{xlen}*-p-*")
     if not elves:
@@ -352,25 +289,12 @@ def sweep_corpus(directory: Path, model_root: Path, xlen: str = "64") -> dict[Pa
 
 
 def sweep_inputs(directory: Path, model_root: Path, xlen: str = "64") -> list[Path]:
-    """The nonempty physical-variant suite selected by both the runner and its receipt."""
+    """Return the sorted paths of the verified `rv{xlen}*-p-*` ELF suite under `directory`."""
     return list(sweep_corpus(directory, model_root, xlen))
 
 
 def copy_verified_suite(suite: Path, into: Path, digest: str) -> None:
-    """Copy `suite` and its manifest to `into`, publishing only a copy that verifies.
-
-    The donor is verified before it is copied as well as after. A FIFO is waited on and
-    a character device such as a `/dev/zero` node is read without end, so a donor
-    holding either would stall the command standing the lane up; the listing the
-    verification renders reads no non-regular entry and refuses a suite holding one.
-    The donor can still change between that verification and the copy, so the copy is
-    made from what the verification answered rather than from the donor's names: its
-    manifest is written from the bytes that verified, and only the files that verified
-    are copied, each by `_copy_regular_file` and only while it is the file that
-    verified, so an entry added since is not copied and one replaced or grown since is
-    refused before more of it is read than verified. The copy is verified before it is
-    published.
-    """
+    """Verify `suite` against `digest`, copy its verified files and manifest into a staging directory, re-verify, and rename to `into`."""
     verified = verify_test_corpus(suite, digest)
     into.parent.mkdir(parents=True, exist_ok=True)
     staging = Path(tempfile.mkdtemp(prefix=f".{into.name}-seed-", dir=into.parent))
@@ -388,22 +312,11 @@ def copy_verified_suite(suite: Path, into: Path, digest: str) -> None:
         shutil.rmtree(staging, ignore_errors=True)
 
 
-# How much of a donor's file one read of the seeding's copy asks for.
 _COPY_CHUNK = 1 << 20
 
 
 def _copy_regular_file(source: Path, destination: Path, verified: _Hashed) -> None:
-    """Copy `source` to the new file `destination` as `copy2` would, reading it only
-    while it is the regular file `verified` records.
-
-    The descriptor read from is the one whose kind `_open_regular` checked, so a FIFO is
-    not waited on and a device is not read. It must also be the very file that verified,
-    by device, inode and length, so a donor entry replaced or resized since is refused
-    before any of it is read, and the read stops one byte past the verified length, so
-    a file grown after its length was asked is refused rather than read to its end.
-    What is refused raises `ValueError` and leaves no destination. Mode and times are
-    kept from the descriptor, as `copy2` keeps them.
-    """
+    """Copy `source` to `destination` through `_open_regular`, enforcing `verified`'s `(device, inode, size)`."""
     fd = _open_regular(source)
     if fd is None:
         raise ValueError(f"{source} is not a regular file; the donor changed after it "

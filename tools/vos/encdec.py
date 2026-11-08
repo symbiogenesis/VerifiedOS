@@ -1,47 +1,11 @@
 # SPDX-License-Identifier: Apache-2.0
-"""Every form the model decodes, resolved out of its own `encdec` and `assembly` clauses.
+"""Extract instruction encodings and assembly spellings from the Sail model's `encdec`
+and `assembly` mapping clauses.
 
-[dialect.py](dialect.py) was one row per mnemonic **transcribed** from these clauses, and
-the transcription is what this module removes. What it produces is the same fact from the
-one artifact that owns it: for each mnemonic the model can spell, the bits its encoding
-fixes, where each operand sits in the word, and the guard the clause is admitted under.
-
-**This module is a parse and never a decision.** Whether a guard admits a form, which
-configuration that is resolved at, and what an assembler does with a form whose guard it
-cannot decide are all [dialectgen.py](dialectgen.py)'s.
-
-## The join, and the one non-obvious step in it
-
-`encdec` says how a form is encoded and `assembly` says how it is spelled, and the two
-are related by the **constructor** they share. Neither alone is a row: `encdec` gives the
-bits and no name, `assembly` gives the name and no bits.
-
-Both clauses match the same constructor positionally, so position *is* the variable's
-identity across the two, and that is the step a reader skips at its peril. A clause whose
-left pattern fixes an argument by naming a constructor, `SHIFTIOP(shamt, rs1, rd, SLLI)`,
-is one encoding of three the shared `assembly` clause spells, and a reader that took the
-mnemonic mapping's arms without the binding hands back `slli`, `srli` and `srai` all
-carrying `slli`'s funct7. Measured on this model: without the binding **49** mnemonics
-come back with two or three candidate encodings, every one of them a row the transcribed
-table already had, so the defect is invisible in the count and lethal in the bytes.
-
-The same positional reading carries three more facts for free. A variable that is a
-selector on one side and a plain field on the other has its field bits **fixed by the
-mnemonic** (`sh1add.uw` against `sh2add.uw` is two values of one two-bit field, not two
-opcodes). A left pattern of the shape `imm @ 0b0` states the implicit immediate scaling
-structurally, so the branch and jump shift-by-one is recovered rather than transcribed.
-And a mnemonic mapping and an encoding mapping over the same position are quantified
-**jointly**, which is what makes `amoswap.d.aqrl` one row of a cross product rather than
-a spelling somebody wrote out.
-
-## What it over-approximates, said out loud
-
-An enumeration of the cross product admits combinations the `encdec` clause forbids. The
-model spells a load `"l" ^ width_mnemonic(width) ^ maybe_u(is_unsigned)` and rules out
-the unsigned doubleword in the guard rather than in the spelling, so the product contains
-`ldu`, which the model decodes nowhere. That is why every form here carries its guard
-verbatim: this module hands back what the clauses *spell*, and refusing what the machine
-cannot decode is the caller's, on the ground the caller states.
+Joins `encdec` and `assembly` clauses by shared AST constructor and positional
+arguments to produce candidate `Form` records (mnemonic, fixed word/mask, operand bit
+placements, syntax tokens, parameter bindings, and verbatim `when` guard text).
+Admission and guard evaluation belong to [dialectgen.py](dialectgen.py).
 """
 
 import re
@@ -51,43 +15,23 @@ from typing import Any
 
 from .sailbundle import SOURCE_ROOT, Bundle, Site
 
-# The call an `assembly` clause puts between the mnemonic and its first operand, and the
-# one it puts between operands. `opt_spc` is optional whitespace inside an operand and
-# carries no value at all.
+# Separator mapping calls in `assembly` clauses (`spc` ends the mnemonic, `sep` separates operands).
 MNEMONIC_END = "spc"
 OPERAND_SEP = "sep"
 OPTIONAL_SPACE = "opt_spc"
 
-# The guard's own text begins after this word in the clause's source. The bundle carries
-# no structured guard node, so the text is the whole of what a reader has.
 _WHEN_RE = re.compile(r"\bwhen\b(.*)$", re.DOTALL)
-
-# A wavedrom row: the field's width and its name, which is quoted where the field is a
-# name and a hex literal where it is a constant. This is where a bare `id` on the right
-# of an `encdec` clause gets its width, there being nothing else that carries it.
 _WAVE_RE = re.compile(r"\{\s*bits:\s*(\d+),\s*name:\s*(?:'([^']*)'|0[xX][0-9a-fA-F]+|\d+)")
-
-# A Sail bit literal, as the emitter spells one inside a pattern node.
 _BITS_RE = re.compile(r"^0b([01_]+)$")
 
 
 class UnreadableError(RuntimeError):
-    """One clause this reader does not resolve, named where it is met.
-
-    Raised per clause and caught by the walk rather than escaping it: a model with one
-    clause this reader has no rule for still yields every other clause, and the residue
-    is a finding the caller counts rather than a run that stopped.
-    """
+    """Raised when an `encdec` or `assembly` clause has an unsupported structure."""
 
 
 @dataclass(frozen=True)
 class Piece:
-    """One run of an operand's bits, and where in the word it lands.
-
-    Four numbers rather than two because a RISC-V immediate is scattered: the B-type
-    displacement reaches the word in four runs, and a placement stated as a single
-    shift could not say so.
-    """
+    """Contiguous bit slice mapping source operand bits `[src_hi:src_lo]` to instruction bits `[word_hi:word_lo]`."""
 
     word_hi: int
     word_lo: int
@@ -97,15 +41,7 @@ class Piece:
 
 @dataclass(frozen=True)
 class Operand:
-    """One operand of one form: the model's own name for it, how the model prints it,
-    and where its bits go.
-
-    `width` is the *value's* rather than the field's. A branch displacement is thirteen
-    bits with its low bit implicitly zero, which the clause states as `imm @ 0b0` on its
-    left and encodes as twelve bits on its right; carrying the field's twelve would lose
-    the shift that makes the value an address. The shift itself needs no field of its
-    own, being the lowest source bit no piece reaches.
-    """
+    """Instruction operand descriptor: model variable name, printer mapping, value bit width, and bit `pieces`."""
 
     name: str
     printer: str
@@ -114,21 +50,13 @@ class Operand:
 
     @property
     def align(self) -> int:
-        """What the value must be a multiple of, which is one for every operand the
-        encoding carries whole and two for a displacement it shifts."""
+        """Return the required byte/bit alignment factor (`1 << min(piece.src_lo)`)."""
         return 1 << min(piece.src_lo for piece in self.pieces)
 
 
 @dataclass(frozen=True)
 class Form:
-    """One mnemonic the model spells, with the encoding it spells it at.
-
-    `word` and `mask` are the constant half: `word` is what the encoding fixes and `mask`
-    says which bits it fixes, so that a caller can hold `word` against an encoder's
-    output without asking which bits were operands. `syntax` is the operand run as the
-    model prints it, one token per printed thing, so that a reader can see the spelling
-    without re-walking the clause.
-    """
+    """Candidate instruction form joined from an `encdec` clause and an `assembly` clause."""
 
     mnemonic: str
     ctor: str
@@ -142,7 +70,7 @@ class Form:
 
 
 def _bits(text: str) -> tuple[int, int] | None:
-    """A bit literal's value and width, or `None` where the text is not one."""
+    """Parse a `0b...` literal into `(int_value, bit_width)`, or return `None`."""
     found = _BITS_RE.match(text)
     if not found:
         return None
@@ -155,12 +83,7 @@ def _quoted(text: str) -> str | None:
 
 
 def _widths(wavedrom: str) -> dict[str, int]:
-    """Each named field's width, off the clause's own wavedrom row.
-
-    The one place a bare `id` on the right of an `encdec` clause carries its width. A
-    name appearing twice keeps the first row's width, the wavedrom being ordered and the
-    duplicate being the same field drawn twice.
-    """
+    """Extract `{field_name: bit_width}` from an `encdec` clause's `right_wavedrom` string."""
     out: dict[str, int] = {}
     for bits, name in _WAVE_RE.findall(wavedrom or ""):
         if name:
@@ -169,14 +92,7 @@ def _widths(wavedrom: str) -> dict[str, int]:
 
 
 def _spans(pieces: list[tuple[str, object, int]]) -> dict[str, int]:
-    """Each scattered field's width, taken from the highest source bit the encoding
-    reads of it.
-
-    The second answer to the same question the wavedrom answers, and it is needed rather
-    than redundant: a field the encoding places in runs is drawn under the *runs'* names
-    (`imm[9..4]`), so the whole field's own name appears in no wavedrom row and a reader
-    with only that source cannot size a store's displacement or a branch's.
-    """
+    """Infer `{field_name: bit_width}` for scattered fields from their highest referenced bit index."""
     out: dict[str, int] = {}
     for kind, payload, _ in pieces:
         if kind != "field":
@@ -187,13 +103,7 @@ def _spans(pieces: list[tuple[str, object, int]]) -> dict[str, int]:
 
 
 def arm_key(node: object) -> tuple[object, ...] | None:
-    """A mapping arm's pattern as a comparable key, or `None` where it is not one shape.
-
-    Four shapes and all four are load-bearing: a bare id (`SLLI`), a literal (a width),
-    a tuple (`maybe_aqrl(aq, rl)`) and a struct (`mul_mnemonic`'s record pattern).
-    Handling only the first two loses the whole atomic cross product and the four
-    multiply forms.
-    """
+    """Convert a mapping arm pattern (`id`, `literal`, `tuple`, `struct`, or `app`) into a hashable key."""
     if not isinstance(node, dict):
         return None
     kind = node.get("type")
@@ -225,11 +135,7 @@ type Arms = dict[tuple[object, ...], object]
 
 def _sided(clause: dict[str, Any], *, bits: bool
            ) -> tuple[tuple[object, ...], object, int] | None:
-    """One arm read as `(key, value, width)`, whichever side carries the literal.
-
-    `width` is the bit literal's and is zero for a string one, which is what lets the
-    caller hold a bit mapping's arms to one width without a second walk.
-    """
+    """Extract `(pattern_key, literal_value, bit_width)` from whichever side of `clause` holds a literal."""
     for value_side, key_side in (("right", "left"), ("left", "right")):
         node = clause.get(value_side)
         if not isinstance(node, dict) or node.get("type") != "literal":
@@ -250,48 +156,32 @@ def _sided(clause: dict[str, Any], *, bits: bool
 
 
 class Surface:
-    """The model's decode surface, joined once and asked for its forms.
-
-    Built around a bundle rather than around a path, because the caller that wants this
-    already holds one: the generated-artifact rule opens the bundle to decide whether it
-    is still the model's, and reading a second copy to answer a second question would be
-    the two-copies defect one file over.
-    """
+    """Join engine over a Sail `Bundle`'s `encdec`, `assembly`, and helper mappings."""
 
     def __init__(self, bundle: Bundle) -> None:
         self.bundle = bundle
         self._bit_arms: dict[str, Arms | None] = {}
         self._str_arms: dict[str, Arms | None] = {}
 
-    # -- the two mapping readings ----------------------------------------------------
+    # -- mapping arm lookups ---------------------------------------------------------
 
     def _arms(self, name: str) -> list[dict[str, Any]]:
         return self.bundle.clauses(name)
 
     def bit_arms(self, name: str) -> Arms | None:
-        """A mapping every arm of which produces a bit literal of one width, keyed by the
-        arm's pattern. `None` where any arm does not, which is what tells a walk that the
-        application is an operand field rather than a selector."""
+        """Return `{arm_key: int_bits}` if every arm of mapping `name` yields a uniform-width bit literal."""
         if name not in self._bit_arms:
             self._bit_arms[name] = self._read_arms(name, bits=True)
         return self._bit_arms[name]
 
     def str_arms(self, name: str) -> Arms | None:
-        """The same, for a mapping every arm of which produces a string literal."""
+        """Return `{arm_key: str_value}` if every arm of mapping `name` yields a string literal."""
         if name not in self._str_arms:
             self._str_arms[name] = self._read_arms(name, bits=False)
         return self._str_arms[name]
 
     def _read_arms(self, name: str, *, bits: bool) -> Arms | None:
-        """One mapping's arms, keyed by the side that is *not* the literal being read.
-
-        A Sail mapping is bidirectional and its clauses are written in whichever
-        direction reads better, so the literal sits on either side: `encdec_vlewidth`
-        writes `VLE8 <-> 0b000` and `encdec_nfields` writes `0b000 <-> 1`. A reader that
-        looked only at the right-hand side would take the second for a mapping with no
-        literal arms at all and fall through to reading `nf` as an operand field, which
-        silently drops every segment and unit-stride vector access the model has.
-        """
+        """Read bidirectional mapping `name` into `{pattern_key: literal_value}`."""
         if not self.bundle.has("mappings", name):
             return None
         out: Arms = {}
@@ -309,16 +199,14 @@ class Surface:
         return out
 
     def arm_width(self, name: str) -> int:
-        """One bit mapping's arm width. Called only where `bit_arms` answered, which is
-        what makes the single width an invariant here rather than a lookup that can
-        miss."""
+        """Return the uniform bit width of bit-literal mapping `name`."""
         for clause in self._arms(name):
             found = _sided(clause, bits=True)
             if found is not None:
                 return found[2]
         raise UnreadableError(f"{name} has no bit-literal arm after all")
 
-    # -- the walk over one clause's right-hand side ----------------------------------
+    # -- right-hand-side encoding walk -----------------------------------------------
 
     def _walk(self, node: dict[str, Any], widths: dict[str, int],
               out: list[tuple[str, object, int]]) -> None:
@@ -363,10 +251,7 @@ class Surface:
                 return
             out.append(("select", (name, tuple(_argument_names(args))), width))
             return
-        # A mapping whose arms are not literals is the model's own register encoding:
-        # `encdec_reg` and `encdec_vreg` are functions of the register, so what the
-        # clause places here is the operand itself. Without this fallback only 8 of the
-        # 253 clauses resolve; with it, 252 do.
+        # Non-literal single-argument mappings (`encdec_reg`, `encdec_vreg`, etc.) encode operand fields.
         if len(args) == 1 and args[0].get("type") == "id":
             field = str(args[0].get("id"))
             if field in widths:
@@ -374,15 +259,10 @@ class Surface:
                 return
         raise UnreadableError(f"no reading for the application {name}")
 
-    # -- the join --------------------------------------------------------------------
+    # -- `encdec` / `assembly` join --------------------------------------------------
 
     def forms(self) -> tuple[list[Form], list[str]]:
-        """Every form the model spells, and the clauses this reader did not resolve.
-
-        Both halves are returned because the residue is the finding: a clause dropped
-        silently is a mnemonic an assembler will refuse for no stated reason, which is
-        exactly the failure the transcription this replaces was capable of.
-        """
+        """Join `encdec` and `assembly` clauses into `(forms, unread_residue)`."""
         assembly = {ctor: clause for clause in self._arms("assembly")
                     if (ctor := _constructor(clause)) is not None}
         out: list[Form] = []
@@ -423,12 +303,7 @@ class Surface:
 
     def _constraints(self, bound: _Binding, pieces: list[tuple[str, object, int]],
                      run: list[dict[str, Any]]) -> list[_Constraint]:
-        """Every mapping that decides a position, from both sides of the join.
-
-        The encoding's selectors and the mnemonic's spellings are collected into one
-        list because they are one quantification: a position both of them read is read
-        once, which is what makes `amoswap.d.aqrl` a row rather than a coincidence.
-        """
+        """Collect encoding bit-selector and mnemonic string-selector constraints over argument positions."""
         out: list[_Constraint] = []
         for kind, payload, _ in pieces:
             if kind != "select":
@@ -455,8 +330,7 @@ class Surface:
              pieces: list[tuple[str, object, int]], run: list[dict[str, Any]],
              printed: list[dict[str, Any]], constraints: list[_Constraint],
              assignment: dict[int, tuple[object, ...]]) -> Form | None:
-        """One consistent assignment of every selector, as one row, or `None` where the
-        clause's own left pattern rules that assignment out."""
+        """Build a `Form` for `assignment`, or return `None` if `assignment` conflicts with `bound.fixed`."""
         if any(assignment.get(at, key) != key for at, key in bound.fixed.items()):
             return None
         word, mask, placed = self._encode(bound, pieces, constraints, assignment)
@@ -478,12 +352,7 @@ class Surface:
                 constraints: list[_Constraint],
                 assignment: dict[int, tuple[object, ...]]
                 ) -> tuple[int, int, dict[int, list[Piece]]]:
-        """The word this assignment fixes, and where every unfixed field lands.
-
-        The third case is the one a reader invents at its peril: a field the *encoding*
-        leaves free that the *mnemonic* has decided is a constant, not an operand, and
-        treating it as an operand leaves `sh1add.uw` and `sh3add.uw` sharing a word.
-        """
+        """Compute `(word, mask, placed_pieces)` for `assignment`, treating mnemonic-fixed fields as constants."""
         word = mask = 0
         placed: dict[int, list[Piece]] = {}
         at = 32
@@ -516,25 +385,11 @@ class Surface:
         return word, mask, placed
 
 
-# --- the positional binding, which is the join's own step ---------------------------
+# --- positional constructor argument binding ----------------------------------------
 
 
 class _Binding:
-    """One constructor's argument positions, read from both clauses at once.
-
-    Position is the variable's identity across the two clauses, so this holds the maps
-    that let one side's name be looked up by the other's: which name the encoding calls
-    each position, which name the spelling calls it, and which positions either side has
-    fixed to a value outright.
-
-    One argument may be spelled by several names on the encoding side, and that is the
-    shape a reader most easily gets wrong. A jump's displacement is written
-    `CJAL(imm_19 @ imm_7_0 @ imm_8 @ imm_18_13 @ imm_12_9 @ 0b0, cd)`: five names and a
-    zero bit are one twenty-one-bit operand, permuted, with the implicit shift stated by
-    the literal. So `parts` carries each name's offset **inside the argument's value**,
-    which is what turns the permutation and the shift into arithmetic instead of two
-    more facts to transcribe.
-    """
+    """Positional correspondence between a constructor's `encdec` and `assembly` left-hand patterns."""
 
     def __init__(self, encoding: dict[str, Any], spelling: dict[str, Any],
                  widths: dict[str, int]) -> None:
@@ -552,14 +407,7 @@ class _Binding:
 
     def _bind_encoding(self, at: int, node: dict[str, Any], used: frozenset[str],
                        widths: dict[str, int]) -> None:
-        """One position of the encoding's own left pattern.
-
-        A bare `id` is a *variable* only where the clause's own right-hand side reads it;
-        where it does not, the id is a constructor and the position is fixed. That test
-        is the whole of the 49-row defect: `SHIFTIOP(shamt, rs1, rd, SLLI)` names `SLLI`
-        exactly once, and a reader that took every id for a variable takes three
-        encodings for one.
-        """
+        """Bind argument position `at` from `encdec`'s left pattern as variable slices or a fixed constructor key."""
         parts = _composite(node)
         if parts is not None and all(name in used or name == "" for name, _ in parts):
             offset = 0
@@ -605,7 +453,7 @@ class _Binding:
 
 @dataclass(frozen=True)
 class _Constraint:
-    """One mapping over one or more argument positions, and the arms it admits."""
+    """Mapping selector constraint over one or more constructor argument positions."""
 
     side: str
     name: str
@@ -615,20 +463,10 @@ class _Constraint:
 
 def _assignments(constraints: list[_Constraint]
                  ) -> list[dict[int, tuple[object, ...]]]:
-    """Every assignment of positions to arm keys that every constraint agrees on.
-
-    A product over the arms rather than over the positions, because a constraint may
-    read two positions at once (`maybe_aqrl(aq, rl)`) and the agreement test is then
-    between constraints rather than inside one.
-    """
+    """Return all position-to-arm-key assignments satisfying every constraint in `constraints`."""
     if not constraints:
         return [{}]
-    # Constraints over the *same* positions are intersected before the product rather
-    # than filtered after it, and on this model that is the difference between a walk
-    # and a wait: an atomic's operation is decided by its mnemonic mapping and by its
-    # encoding mapping both, so a product that enumerated the two independently walks
-    # eighty-one pairings of nine to keep nine, and the same happens on the width and on
-    # the two ordering bits, twenty thousand combinations against five hundred.
+    # Intersect constraints over identical position tuples before taking the Cartesian product.
     grouped: dict[tuple[int, ...], list[dict[int, tuple[object, ...]]]] = {}
     for constraint in constraints:
         here: list[dict[int, tuple[object, ...]]] = []
@@ -649,7 +487,7 @@ def _assignments(constraints: list[_Constraint]
 
 
 def _spread(key: tuple[object, ...], width: int) -> list[tuple[object, ...]] | None:
-    """One arm key over `width` positions, or `None` where it does not cover them."""
+    """Unpack `key` across `width` argument positions, or return `None` if arity mismatches."""
     if width == 1:
         return [key]
     if key and key[0] == "tuple" and len(key) - 1 == width:
@@ -665,13 +503,7 @@ def _merge(into: dict[int, tuple[object, ...]],
 def _selected(constraints: list[_Constraint], side: str, name: str,
               positions: tuple[int, ...],
               assignment: dict[int, tuple[object, ...]]) -> int:
-    """The bits one selector's chosen arm lays down.
-
-    Keyed on the **positions** as well as the mapping's name, which is not a refinement:
-    one clause applies `bool_bit` twice, once to the acquire flag and once to release,
-    and a lookup by name alone gives both bits the first one's value. Measured, that
-    silently mislabels every `.aq` form as `.aqrl` and every `.rl` form as unordered.
-    """
+    """Return the bit pattern selected by `(side, name, positions)` under `assignment`."""
     for constraint in constraints:
         if constraint.side != side or constraint.name != name \
                 or constraint.positions != positions:
@@ -691,14 +523,7 @@ def _spread_back(constraint: _Constraint,
 
 def _bindings(bound: _Binding,
               assignment: dict[int, tuple[object, ...]]) -> tuple[tuple[str, str], ...]:
-    """Each of the form's arguments the mnemonic and the encoding between them have
-    fixed, spelled as the model spells it.
-
-    This is what makes the clause's own guard *decidable* for one row rather than for
-    the whole clause: `valid_load_encdec(width, is_unsigned)` is a fact about the
-    doubleword-unsigned combination, and a reader without the binding could only carry
-    the guard forward as text.
-    """
+    """Return `(field_name, literal_or_id_spelling)` pairs fixed by `bound` and `assignment`."""
     out: list[tuple[str, str]] = []
     for name, (at, _offset) in sorted(bound.parts.items()):
         key = assignment.get(at, bound.fixed.get(at))
@@ -709,12 +534,7 @@ def _bindings(bound: _Binding,
 
 def _spell(bound: _Binding, run: list[dict[str, Any]], constraints: list[_Constraint],
            assignment: dict[int, tuple[object, ...]]) -> str:
-    """The mnemonic this assignment spells, part by part.
-
-    Matched on positions beside the mapping's name for the reason `_selected` states: a
-    clause may apply one mapping to two different arguments, and a lookup by name alone
-    would spell both from the first.
-    """
+    """Assemble the mnemonic string for `assignment` across `run`."""
     out: list[str] = []
     for part in run:
         if part.get("type") == "literal":
@@ -740,7 +560,7 @@ def _spell(bound: _Binding, run: list[dict[str, Any]], constraints: list[_Constr
     return "".join(out)
 
 
-# --- reading one clause's parts -----------------------------------------------------
+# --- clause AST helpers -------------------------------------------------------------
 
 
 def _constructor(clause: dict[str, Any]) -> str | None:
@@ -761,20 +581,14 @@ def _patterns(clause: dict[str, Any]) -> list[dict[str, Any]]:
 
 
 def _variable(node: dict[str, Any]) -> tuple[str, int] | None:
-    """A left pattern that is one named variable, or `None`."""
+    """Return `(ident, 0)` if `node` is a single `id` pattern, else `None`."""
     if node.get("type") == "id":
         return (str(node.get("id")), 0)
     return None
 
 
 def _composite(node: dict[str, Any]) -> list[tuple[str, int]] | None:
-    """A left pattern as the runs its value is made of, most significant first.
-
-    Each run is a name and a width, with the width `0` where the name's own declaration
-    carries it and the name `""` where the run is a literal. Both cases are real: a
-    branch writes `imm @ 0b0`, one named run over one anonymous zero, and a jump writes
-    five named runs over one.
-    """
+    """Decompose an `id` or `vector_concat` left pattern into `(field_name, zero_pad_width)` slices, MSB first."""
     if node.get("type") == "id":
         return [(str(node.get("id")), 0)]
     if node.get("type") != "vector_concat":
@@ -795,12 +609,7 @@ def _composite(node: dict[str, Any]) -> list[tuple[str, int]] | None:
 
 
 def _referenced(node: object) -> frozenset[str]:
-    """Every name a clause's right-hand side reads.
-
-    The test that separates a variable from a constructor in a left pattern, and it is a
-    whole-subtree walk rather than a top-level scan because a name can sit three
-    applications deep.
-    """
+    """Return all identifier names referenced anywhere in AST subtree `node`."""
     out: set[str] = set()
     _collect(node, out)
     return frozenset(out)
@@ -821,12 +630,7 @@ def _collect(node: object, out: set[str]) -> None:
 
 def _split_spelling(clause: dict[str, Any]
                     ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
-    """One assembly clause's mnemonic run and its printed operand run, split at `spc()`.
-
-    A clause with no separator is a mnemonic and no operands, which is what every
-    zero-operand form is: the split is on the token rather than on a count, so a form
-    that grows an operand moves the split with it.
-    """
+    """Split an `assembly` clause's right-hand side at `spc()` into `(mnemonic_parts, operand_parts)`."""
     right = clause.get("right")
     if not isinstance(right, dict):
         raise UnreadableError("the assembly clause has no structured right-hand side")
@@ -842,10 +646,6 @@ def _split_spelling(clause: dict[str, Any]
         if not seen and part.get("type") == "app" and part.get("id") == MNEMONIC_END:
             seen = True
             continue
-        # Whitespace inside the operand run, of both kinds. `opt_spc` is optional and
-        # `spc` is not, and neither carries a value: the indexed access is spelled
-        # `cs1[rs2 << scale]` with a `spc()` on each side of the shift, which a reader
-        # taking every application for an operand reads as an operand printing nothing.
         if seen and part.get("type") == "app" \
                 and part.get("id") in (OPTIONAL_SPACE, MNEMONIC_END):
             continue
@@ -854,8 +654,7 @@ def _split_spelling(clause: dict[str, Any]
 
 
 def _syntax(printed: list[dict[str, Any]]) -> tuple[str, ...]:
-    """The operand run as the model prints it: the mapping that prints each operand, the
-    separators, and the punctuation between them, one token each."""
+    """Extract the sequence of operand printer names, `","` separators, and punctuation literals from `printed`."""
     out: list[str] = []
     for part in printed:
         if part.get("type") == "literal":
@@ -870,19 +669,7 @@ def _syntax(printed: list[dict[str, Any]]) -> tuple[str, ...]:
 
 def _operands(bound: _Binding, printed: list[dict[str, Any]],
               placed: dict[int, list[Piece]]) -> tuple[Operand, ...]:
-    """The operands in the order the model prints them.
-
-    Print order rather than encoding order, because the print order is the *source*
-    order an assembler reads and the encoding order is an artifact of the word's layout.
-    A printed thing whose bits the encoding fixed is not an operand at all and is left
-    out here, having become part of the constant.
-
-    A printer taking several arguments prints **one** operand, and the one that does it
-    is `vsetvli`'s: `vtype_assembly(vtr, ma, ta, sew, lmul)` is five encoded fields and
-    one number a program writes. So its pieces are joined into one value in the order
-    the encoding lays them down, which is exactly the eleven-bit `vtype` image, taken
-    out of the model rather than declared beside it.
-    """
+    """Build `Operand` descriptors in print order, joining multi-field printers (such as `vtype_assembly`) in encoding order."""
     out: list[Operand] = []
     for part in printed:
         if part.get("type") != "app" or part.get("id") == OPERAND_SEP:
@@ -910,12 +697,7 @@ def _operands(bound: _Binding, printed: list[dict[str, Any]],
 
 
 def _joined(pieces: list[Piece]) -> list[Piece]:
-    """Several arguments' placements read as one value's, most significant first.
-
-    The order is the encoding's own, which is what makes the joined value the one the
-    model would print: `vtype_assembly`'s five fields are adjacent in the word and their
-    concatenation *is* the `vtype` image a program writes.
-    """
+    """Concatenate multiple field `Piece`s into a single source value ordered from highest word bit to lowest."""
     out: list[Piece] = []
     at = sum(piece.word_hi - piece.word_lo + 1 for piece in pieces)
     for piece in sorted(pieces, key=lambda p: p.word_hi, reverse=True):
@@ -927,15 +709,7 @@ def _joined(pieces: list[Piece]) -> list[Piece]:
 
 
 def _covered(word: int, mask: int, operands: tuple[Operand, ...]) -> None:
-    """Every bit of the word is either fixed or reachable by exactly one operand.
-
-    Raised rather than asserted, and it is the check this whole join most needs to
-    survive `python -O`. Two silent defects land here and nowhere else: a field the
-    mnemonic decided but the encoding left free, which leaves two mnemonics sharing one
-    word, and a field the encoding places that the clause never prints, which leaves an
-    instruction with bits no operand can set. Both assemble cleanly and run as a
-    different program.
-    """
+    """Verify that `mask` and `operands` partition all 32 instruction bits without overlap or unmasked `word` bits."""
     reached = 0
     for operand in operands:
         for piece in operand.pieces:
@@ -951,8 +725,7 @@ def _covered(word: int, mask: int, operands: tuple[Operand, ...]) -> None:
 
 
 def _argument_names(args: list[dict[str, Any]]) -> list[str]:
-    """The variable names one application reads, flattening the single tuple argument a
-    two-variable mapping takes (`maybe_aqrl((aq, rl))`)."""
+    """Extract variable names from application `args`, flattening a single tuple argument (`maybe_aqrl((aq, rl))`)."""
     if len(args) == 1 and args[0].get("type") == "tuple":
         args = [part for part in args[0].get("patterns", []) if isinstance(part, dict)]
     out: list[str] = []
@@ -981,7 +754,7 @@ def _site(clause: dict[str, Any]) -> Site:
     return Site(f"{SOURCE_ROOT}/{file}", int(loc[0]))
 
 
-# --- small narrowings, each stated where the invariant is relied on -----------------
+# --- payload narrowings -------------------------------------------------------------
 
 
 def _integer(payload: object) -> int:
@@ -1009,12 +782,7 @@ def _field(payload: object) -> tuple[str, int, int]:
 
 
 def _literal_of(key: tuple[object, ...], width: int) -> int:
-    """An arm key as the constant it fixes a field to.
-
-    Fail-closed on any other shape: a key that is a constructor rather than a literal
-    names a value this reader has no bits for, and guessing zero would encode a form the
-    model spells differently.
-    """
+    """Convert a `"lit"` arm key into an integer fitting within `width` bits."""
     if len(key) == 2 and key[0] == "lit":
         text = str(key[1])
         found = _bits(text)

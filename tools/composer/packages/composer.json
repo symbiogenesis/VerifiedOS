@@ -136,11 +136,11 @@
     },
     {
       "path": "tools/vos/dialectgen.py",
-      "sha256": "6d1b8632bc1c9a74a54ed6bf700c339f680f2654b7106c702b5896528436fa39"
+      "sha256": "db3c6a6982fd62e5826e7224e920b50c8409fc64a893110a165063e884e05519"
     },
     {
       "path": "tools/vos/encdec.py",
-      "sha256": "f57fa890840a0cebd4504c82360315d045deaeedd0de16a90a0d18675674bad8"
+      "sha256": "a1ac805757fb2de1b762ff596cbf66910f89907d8a3ead49cf6d44f22007559c"
     },
     {
       "path": "tools/vos/env.py",
