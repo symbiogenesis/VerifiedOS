@@ -74,68 +74,35 @@ _CAPTURING_RECEIPTS: dict[str, str] = {
 # These sites retain measured or external editions, or record identifiers that
 # resemble object ids. They do not state this repository's current top-level pin.
 SITE_RESIDUE: dict[tuple[str, str], str] = {
-    **{(f"docs/implementation/retained-evidence/submodules-{date}/hardware.json", ident):
-       f"the {name} edition retained by the dated 2026-10-31 source reading or "
-       "used as the preceding side of the 2026-11-03 comparison, not the current gitlink"
-       for date in ("20261031", "20261103")
-       for ident, name in {
-           "6c85882513bb12711cdcbea69a1a7eb065a37f1a": "Mocha",
-           "41049e9deb40e0602cd5272c40398be380ae2637": "OpenTitan",
-           "cafaeae02c014456a99247b68788d31b7516a252": "CHERIoT-Ibex",
-       }.items()},
-    **{(f"docs/implementation/retained-evidence/submodules-{date}/hardware.json", ident):
-       f"the {name} edition retained by the dated 2026-11-03 source reading or "
-       "used as the preceding side of the 2026-11-08 comparison, not the current gitlink"
-       for date in ("20261103", "20261108")
+    **{("docs/implementation/retained-evidence/submodules-20261108/hardware.json", ident):
+       f"the {name} edition used as the preceding side of the 2026-11-08 comparison, "
+       "not the current gitlink"
        for ident, name in {
            "e11c586bba52d5697433ffa377cecdb21bb581d9": "Mocha",
            "3fb20a7df713996fab9375cb60886dc1fd5e825f": "OpenTitan",
-       }.items()},
-    **{(f"docs/implementation/retained-evidence/submodules-{date}/hardware.json", ident):
-       f"the {name} edition retained by the dated 2026-10-31 source reading or "
-       "used as the preceding side of the 2026-11-08 comparison, not the current gitlink"
-       for date in ("20261031", "20261108")
-       for ident, name in {
            "adffef3267a1ffc9b9715fb33b5e7f863416d787": "tag-controller",
            "f4515520c0045bb8ef1e72d46ed82499a6ac5f18": "Ibex",
        }.items()},
-    **{(f"docs/implementation/retained-evidence/submodules-{date}/model.json",
-        "80985afd8164c31902181d41885e06e2df6dfe6d"):
-       "the Katamaran edition retained by the dated 2026-10-31 source reading or "
-       "used as the preceding side of the 2026-11-03 comparison, not the current gitlink"
-       for date in ("20261031", "20261103")},
-    **{(f"docs/implementation/retained-evidence/submodules-{date}/model.json",
-        "f9dbb2ae5a6bffb1d733d0146f3c0188fda65660"):
-       "the Katamaran edition retained by the dated 2026-11-03 source reading or "
-       "used as the preceding side of the 2026-11-08 comparison, not the current gitlink"
-       for date in ("20261103", "20261108")},
-    **{(f"docs/implementation/retained-evidence/submodules-{date}/model.json",
-        "a83603b6995428b9df2c464f98e18a7b0ae488fe"):
-       "the sail-riscv edition retained by the dated 2026-10-31 source reading or "
-       "used as the preceding side of the 2026-11-08 comparison, not the current gitlink"
-       for date in ("20261031", "20261108")},
+    ("docs/implementation/retained-evidence/submodules-20261108/model.json",
+     "f9dbb2ae5a6bffb1d733d0146f3c0188fda65660"):
+        "the Katamaran edition used as the preceding side of the 2026-11-08 comparison, "
+        "not the current gitlink",
+    ("docs/implementation/retained-evidence/submodules-20261108/model.json",
+     "a83603b6995428b9df2c464f98e18a7b0ae488fe"):
+        "the sail-riscv edition used as the preceding side of the 2026-11-08 comparison, "
+        "not the current gitlink",
     ("docs/implementation/retained-evidence/submodules-20261108/model.json",
      "c9b1cd0234d7d4ee839b8d07bad7db601e6a5a40"):
         "the preceding sail-katamaran-backend edition in the exact 2026-11-08 comparison URL, "
         "not the selected reference gitlink",
-    ("docs/implementation/retained-evidence/submodules-20261103/llvm-project.json",
-     "8b066788f709ce1815a2b1ffe01639e98487bb65"):
-        "the preceding LLVM edition in the exact 2026-11-03 comparison URL, "
-        "not the selected reference gitlink",
-    **{(f"docs/implementation/retained-evidence/submodules-{date}/llvm-project.json",
-        "7e4047e8c6f5a23cdf5174251051895e97bebb75"):
-       "the LLVM edition retained by the dated 2026-11-03 source reading or "
-       "used as the preceding side of the 2026-11-08 comparison, not the current gitlink"
-       for date in ("20261103", "20261108")},
-    ("docs/implementation/retained-evidence/submodules-20261103/s2n-bignum.json",
-     "573ea98f6a2eea3172f6146f83b86b9e526ce2dd"):
-        "the preceding s2n-bignum edition in the exact 2026-11-03 comparison URL, "
-        "not the selected reference gitlink",
-    **{(f"docs/implementation/retained-evidence/submodules-{date}/s2n-bignum.json",
-        "56152cdb51f47ef9f63b179cda0a8b7518379240"):
-       "the s2n-bignum edition retained by the dated 2026-11-03 source reading or "
-       "used as the preceding side of the 2026-11-08 comparison, not the current gitlink"
-       for date in ("20261103", "20261108")},
+    ("docs/implementation/retained-evidence/submodules-20261108/llvm-project.json",
+     "7e4047e8c6f5a23cdf5174251051895e97bebb75"):
+        "the LLVM edition used as the preceding side of the 2026-11-08 comparison, "
+        "not the current gitlink",
+    ("docs/implementation/retained-evidence/submodules-20261108/s2n-bignum.json",
+     "56152cdb51f47ef9f63b179cda0a8b7518379240"):
+        "the s2n-bignum edition used as the preceding side of the 2026-11-08 comparison, "
+        "not the current gitlink",
     **{("docs/assurance/proof-reuse/systems.md", ident): reason
        for ident, reason in {
            "3fe5d0a957a95c27cff204e729a5e96a3e3217ad":
@@ -173,20 +140,6 @@ SITE_RESIDUE: dict[tuple[str, str], str] = {
                "the Rust pointer-simplification correction proposed for comparison, "
                "not the later selected compiler-reference gitlink",
        }.items()},
-    **{("docs/implementation/retained-evidence/submodules-20261031/hardware.json", ident):
-       f"the previous {name} edition in its exact upstream comparison URL, "
-       "not the newly selected reference gitlink"
-       for ident, name in {
-           "f9bacf5d6a9d91b1dc00cfd2228c88fc17eae93c": "Mocha",
-           "c974f0c64e73c97e6b61bae1ea67a25a62ed1e5f": "tag-controller",
-           "10738f384903ad7f7405a452ad41d6b8da23d2bb": "OpenTitan",
-           "1b29dae8866e6c0f0a3cd9dead53a77b4f45e357": "Ibex",
-           "531ca2ec439fe3fa89bd6f60ae8f256bc0b9b241": "CHERIoT-Ibex",
-       }.items()},
-    ("docs/implementation/retained-evidence/submodules-20261031/model.json",
-     "c3b7ecff27c1a6e8ed058d5aca362df1e2f63311"):
-        "the rejected Perennial branch tip lacking the selected PoWER interface, "
-        "not the retained source gitlink",
     **{(file, ident):
        f"the Katamaran PR's GitHub Actions {kind} identifier, not a commit"
        for file in (

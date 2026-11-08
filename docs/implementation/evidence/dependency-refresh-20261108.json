@@ -2775,24 +2775,6 @@
     "preparation": "Locked prepare python passed for tools/vos/checks/pins.py, tools/vos/checks/interims.py and tools/vos/cli/quickchick.py.",
     "scope": "Focused helper/control checks only; no full host, guest or proof suite."
   },
-  "preceding_source_readings": [
-    {
-      "path": "submodules-20261103/hardware.json",
-      "sha256": "1b2e805c1cb401ba6b1f0caf29f76331678a952a3631c023645c5cf99cf09247"
-    },
-    {
-      "path": "submodules-20261103/model.json",
-      "sha256": "bc5ffc8782188d50d2a80fb28a0eeb16bdc5b96721237933fd2fb93d999e2331"
-    },
-    {
-      "path": "submodules-20261103/llvm-project.json",
-      "sha256": "1d473ede59fe12f9ca68ac7d401f6e4421cfede282c20d533b167c63fe8b0307"
-    },
-    {
-      "path": "submodules-20261103/s2n-bignum.json",
-      "sha256": "85c4efcc340cc99bcc4d2de63a52a72eec434110a33e4d18193bc7a0f2121a02"
-    }
-  ],
   "upstream_reference_census": {
     "path": "submodules-20261108/census.json",
     "sha256": "0d6ea182ce2be10c4c4d7dba7aeb4454cddf6ad71c3aa3367216bb0e2466d38c"
