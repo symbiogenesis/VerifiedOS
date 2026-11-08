@@ -503,6 +503,43 @@ neither a test count nor discovery of a production bug is the success criterion.
 Otherwise retain useful explicit regressions and record rejection or unresolved
 prerequisites without promoting the candidate into the ordinary tool closure.
 
+`python tools/run.py vela generated-tests` ([`generated_tests.py`](../../../tools/vos/vela/generated_tests.py))
+qualifies `hypothesis==6.170.14` and `sortedcontainers==2.4.0` under the
+`2026-10-31T07:17:33Z` dependency cooldown recorded in
+[THIRD-PARTY.md](../../../THIRD-PARTY.md) inside a disposable Python 3.14 virtual
+environment on both Windows ARM64 (Python `3.14.10`, `_native` SHA-256
+`b7722a385d97a5ce0e0a5800770516ce5557f4abed4503b12b7f8e6c6a202c3b`, 4.7 s wall
+time) and Ubuntu ARM64 (Python `3.14.7`, `_native` SHA-256
+`1a25e29e9b879fb3de4bdd805e11d416dc8a4fc62d2f81472095fbfa8630ea61`, 3.0 s wall
+time). Under deterministic seed `20261107` (`max_examples=64`,
+`stateful_step_count=32`, `max_document_bytes=4096`, `timeout_seconds=60`,
+`database=None`, `derandomize=True`), the campaign passes all four subjects
+(`source_coordinates`: 848 examples; `synchronous_overlays` and
+`supported_requests`: 3,224 state-machine steps; `pure_formatting`: 64 examples)
+against [`OracleTextModel`](../../../tools/vos/vela/generated_tests.py),
+[`OracleOverlayModel`](../../../tools/vos/vela/generated_tests.py) and
+[`FormatTemplate`](../../../tools/vos/vela/generated_tests.py), kills all three
+executable seeded defects (`utf16-codepoint-confusion`,
+`edit-against-original-document`, and held-out
+`publish-early-edit-before-rollback`), and shrinks nonminimal failing traces
+(`21 -> 10` coordinate-case units and `8 -> 2` overlay actions) into explicit
+JSON-serializable replays verified by
+[`test_vela_generated_tests.py`](../../../tools/tests/test_vela_generated_tests.py)
+under the existing `Case` runner. Compared with the frozen manual baseline
+([`test_vela_lsp.py`](../../../tools/tests/test_vela_lsp.py),
+[`test_vela_lsp_services.py`](../../../tools/tests/test_vela_lsp_services.py) and
+[`test_vela_format.py`](../../../tools/tests/test_vela_format.py)), the state-machine
+rules and structural shrinker replace bespoke multi-step edit/invalidation/recovery
+sequence construction and reduce 8-step failing traces to 2-step minimal replays
+automatically. Because `hypothesis==6.170.14` is licensed under `MPL-2.0` and
+ships a compiled Rust/PyO3 `_native` extension whose wheel metadata omits
+separate crate license notices for its 14-crate Rust closure, the project
+declines promoting `hypothesis` into the permanent
+[`tools/pyproject.toml`](../../../tools/pyproject.toml) and
+[`tools/uv.lock`](../../../tools/uv.lock) closure, keeps `vela generated-tests` as an
+isolated on-demand qualification command, and retains the independent models,
+fault controls and shrunk explicit regression cases in the Apache-2.0 test suite.
+
 [QCheck](https://github.com/c-cube/qcheck) is an alternative for a separately
 selected native OCaml consumer; no OCaml framework is added beside Hypothesis
 without such a consumer. The parser first uses its

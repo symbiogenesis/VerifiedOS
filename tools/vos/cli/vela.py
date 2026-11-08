@@ -2,6 +2,7 @@
 """Format, lint and check pure Vela, or emit its unqualified Gallina translation."""
 
 import argparse
+import json
 import os
 import stat
 import sys
@@ -11,6 +12,13 @@ from pathlib import Path
 from vos.atomic import atomic_path
 from vos.vela import MAX_SOURCE_BYTES, VelaError, translate
 from vos.vela.authoring import LINT_CODES, format_source, lint_source
+from vos.vela.generated_tests import (
+    DEFAULT_MAX_EXAMPLES,
+    DEFAULT_SEED,
+    DEFAULT_STEP_COUNT,
+    DEFAULT_TIMEOUT_SECONDS,
+    qualify_isolated_campaign,
+)
 
 
 @dataclass(frozen=True)
@@ -115,7 +123,30 @@ def main(argv: list[str] | None = None) -> int:
         if name == "emit":
             command.add_argument("--output", type=Path,
                                  help="atomically replace a file in an existing directory")
+    generated = commands.add_parser(
+        "generated-tests",
+        help="qualify isolated Hypothesis generated development tests (Q25x)",
+    )
+    generated.add_argument("--seed", type=int, default=DEFAULT_SEED)
+    generated.add_argument("--max-examples", type=int, default=DEFAULT_MAX_EXAMPLES)
+    generated.add_argument("--step-count", type=int, default=DEFAULT_STEP_COUNT)
+    generated.add_argument("--timeout", type=int, default=DEFAULT_TIMEOUT_SECONDS)
     args = parser.parse_args(argv)
+    if args.command == "generated-tests":
+        root = Path(__file__).resolve().parents[3]
+        try:
+            report = qualify_isolated_campaign(
+                root,
+                seed=args.seed,
+                max_examples=args.max_examples,
+                step_count=args.step_count,
+                timeout_seconds=args.timeout,
+            )
+        except Exception as error:
+            print(f"generated-tests:1:1: campaign: {error}", file=sys.stderr)
+            return 1
+        print(json.dumps(report, indent=2, sort_keys=True))
+        return 0
     allowed = set(getattr(args, "allow", []))
     denied = set(getattr(args, "deny", []))
     if allowed & denied:
