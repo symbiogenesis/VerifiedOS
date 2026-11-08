@@ -318,6 +318,71 @@ def _ratio(pairs: list[tuple[str, float, float]]) -> float | None:
     return sum(a for _, _, a in pairs) / estimated if estimated else None
 
 
+def _marked_table(
+    raw: str,
+    start_marker: str,
+    end_marker: str,
+    header: str,
+    rule: str,
+    *,
+    marker_err: str,
+    order_err: str,
+    header_err: str,
+    findings: list[str],
+) -> tuple[int, int, str, list[str]] | None:
+    """Locate a uniquely marked Markdown table and return `(start, end, body, rows)`."""
+    markers = [list(re.finditer(rf"(?m)^{re.escape(marker)}(?=\r?$)", raw))
+               for marker in (start_marker, end_marker)]
+    if any(len(hits) != 1 for hits in markers) or any(
+            raw.count(marker) != 1 for marker in (start_marker, end_marker)):
+        findings.append(f"{PLAN}: {marker_err}")
+        return None
+    start, end = markers[0][0].end(), markers[1][0].start()
+    if start >= end:
+        findings.append(f"{PLAN}: {order_err}")
+        return None
+    body = raw[start:end]
+    lines = body.strip().splitlines()
+    if lines[:2] != [header, rule]:
+        findings.append(f"{PLAN}: {header_err}")
+        return None
+    return start, end, body, lines[2:]
+
+
+def _row_cells(line: str, columns: int, *, non_empty: bool = False) -> list[str] | None:
+    """Split a Markdown pipe row into `columns` stripped cells, or `None` if malformed."""
+    cells = line.split("|")
+    if len(cells) != columns + 2 or cells[0].strip() or cells[-1].strip():
+        return None
+    stripped = [cell.strip() for cell in cells[1:-1]]
+    if non_empty and not all(stripped):
+        return None
+    return stripped
+
+
+def _replace_table(
+    ctx: Context,
+    result: figures.LineResult,
+    raw: str,
+    span: tuple[int, int, str],
+    table: str,
+    *,
+    fixed_msg: str,
+    stale_msg: str,
+) -> figures.LineResult:
+    """Compare `table` with `span` and rewrite `PLAN` under `ctx.fix` or record `stale_msg`."""
+    start, end, body = span
+    newline = "\r\n" if body.startswith("\r\n") else "\n"
+    expected = newline + table.replace("\n", newline) + newline
+    if body != expected:
+        if ctx.fix:
+            ctx.fixed[PLAN] = raw[:start] + expected + raw[end:]
+            result.fixed.append(f"fixed: {PLAN}: {fixed_msg}")
+        else:
+            result.findings.append(f"{PLAN}: {stale_msg}")
+    return result
+
+
 def _summary_table(values: dict[str, str]) -> str:
     """The summary has one row per measure, independent of narrative wording."""
     return "\n".join([SUMMARY_HEADER, SUMMARY_RULE,
@@ -333,30 +398,24 @@ def _summary_results(ctx: Context, values: dict[str, str]) -> figures.LineResult
     """
     result = figures.LineResult()
     raw = ctx.text(PLAN)
-    markers = [list(re.finditer(rf"(?m)^{re.escape(marker)}(?=\r?$)", raw))
-               for marker in (SUMMARY_START, SUMMARY_END)]
-    if any(len(hits) != 1 for hits in markers) or any(
-            raw.count(marker) != 1 for marker in (SUMMARY_START, SUMMARY_END)):
-        result.findings.append(f"{PLAN}: estimate summary requires one start marker "
-                               "and one end marker, each on its own line")
+    marked = _marked_table(
+        raw, SUMMARY_START, SUMMARY_END, SUMMARY_HEADER, SUMMARY_RULE,
+        marker_err=("estimate summary requires one start marker and one end marker, "
+                    "each on its own line"),
+        order_err="estimate summary markers are out of order",
+        header_err="estimate summary has a missing or malformed header",
+        findings=result.findings)
+    if marked is None:
         return result
-    start, end = markers[0][0].end(), markers[1][0].start()
-    if start >= end:
-        result.findings.append(f"{PLAN}: estimate summary markers are out of order")
-        return result
-    body = raw[start:end]
-    lines = body.strip().splitlines()
-    if lines[:2] != [SUMMARY_HEADER, SUMMARY_RULE]:
-        result.findings.append(f"{PLAN}: estimate summary has a missing or malformed header")
-        return result
+    start, end, body, rows = marked
     current: dict[str, str] = {}
     keys: list[str] = []
-    for line in lines[2:]:
-        cells = line.split("|")
-        if len(cells) != 4 or cells[0].strip() or cells[-1].strip():
+    for line in rows:
+        cells = _row_cells(line, 2)
+        if cells is None:
             result.findings.append(f"{PLAN}: malformed estimate summary row: {line}")
             continue
-        key, value = (cell.strip() for cell in cells[1:-1])
+        key, value = cells
         keys.append(key)
         pattern = SUMMARY_FIELDS.get(key, LEGACY_SUMMARY_FIELDS.get(key))
         if pattern is None or not pattern.fullmatch(value):
@@ -371,17 +430,12 @@ def _summary_results(ctx: Context, values: dict[str, str]) -> figures.LineResult
                                "and check --fix before migration")
     if result.findings or not values:
         return result
-    newline = "\r\n" if body.startswith("\r\n") else "\n"
-    expected = newline + _summary_table(values if legacy else current | values).replace("\n", newline) + newline
-    if body == expected:
-        return result
-    if ctx.fix:
-        ctx.fixed[PLAN] = raw[:start] + expected + raw[end:]
-        result.fixed.append(f"fixed: {PLAN}: estimate summary from its item and record owners")
-    else:
-        result.findings.append(f"{PLAN}: estimate summary disagrees with its owners; "
-                               "run check --fix to regenerate the table")
-    return result
+    return _replace_table(
+        ctx, result, raw, (start, end, body),
+        _summary_table(values if legacy else current | values),
+        fixed_msg="estimate summary from its item and record owners",
+        stale_msg=("estimate summary disagrees with its owners; "
+                   "run check --fix to regenerate the table"))
 
 
 def _calibration_table(fits: dict[str, Fit]) -> str:
@@ -411,29 +465,23 @@ def _calibration_results(ctx: Context, fits: dict[str, Fit], *,
     """
     result = figures.LineResult()
     raw = ctx.text(PLAN)
-    markers = [list(re.finditer(rf"(?m)^{re.escape(marker)}(?=\r?$)", raw))
-               for marker in (CALIBRATION_START, CALIBRATION_END)]
-    if any(len(hits) != 1 for hits in markers) or any(
-            raw.count(marker) != 1 for marker in (CALIBRATION_START, CALIBRATION_END)):
-        result.findings.append(f"{PLAN}: calibration results require one start marker "
-                               "and one end marker, each on its own line")
+    marked = _marked_table(
+        raw, CALIBRATION_START, CALIBRATION_END, CALIBRATION_HEADER, CALIBRATION_RULE,
+        marker_err=("calibration results require one start marker and one end marker, "
+                    "each on its own line"),
+        order_err="calibration result markers are out of order",
+        header_err="calibration results have a missing or malformed header",
+        findings=result.findings)
+    if marked is None:
         return result
-    start, end = markers[0][0].end(), markers[1][0].start()
-    if start >= end:
-        result.findings.append(f"{PLAN}: calibration result markers are out of order")
-        return result
-    body = raw[start:end]
-    lines = body.strip().splitlines()
-    if lines[:2] != [CALIBRATION_HEADER, CALIBRATION_RULE]:
-        result.findings.append(f"{PLAN}: calibration results have a missing or malformed header")
-        return result
+    start, end, body, rows = marked
     keys: list[tuple[str, str]] = []
-    for line in lines[2:]:
-        cells = line.split("|")
-        if len(cells) != 8 or cells[0].strip() or cells[-1].strip():
+    for line in rows:
+        cells = _row_cells(line, 6)
+        if cells is None:
             result.findings.append(f"{PLAN}: malformed calibration result row: {line}")
             continue
-        mode, pool, count, estimated, actual, ratio = (cell.strip() for cell in cells[1:-1])
+        mode, pool, count, estimated, actual, ratio = cells
         keys.append((mode, pool))
         if (not re.fullmatch(r"\d+", count)
                 or not HOURS_RE.fullmatch(estimated) or not HOURS_RE.fullmatch(actual)
@@ -445,59 +493,41 @@ def _calibration_results(ctx: Context, fits: dict[str, Fit], *,
                                "each measurement mode and pool, including its All row")
     if result.findings or not valid_records:
         return result
-    newline = "\r\n" if body.startswith("\r\n") else "\n"
-    expected = newline + _calibration_table(fits).replace("\n", newline) + newline
-    if body == expected:
-        return result
-    if ctx.fix:
-        ctx.fixed[PLAN] = raw[:start] + expected + raw[end:]
-        result.fixed.append(f"fixed: {PLAN}: calibration results from each mode's record")
-    else:
-        result.findings.append(f"{PLAN}: calibration results disagree with the records; "
-                               "run check --fix to regenerate the table")
-    return result
+    return _replace_table(
+        ctx, result, raw, (start, end, body), _calibration_table(fits),
+        fixed_msg="calibration results from each mode's record",
+        stale_msg=("calibration results disagree with the records; "
+                   "run check --fix to regenerate the table"))
 
 
 def _work_order_results(ctx: Context, order: workorder.WorkOrder) -> figures.LineResult:
     """Regenerate only the marked table; reject missing markers and authored text."""
     result = figures.LineResult()
     raw = ctx.text(PLAN)
-    markers = [list(re.finditer(rf"(?m)^{re.escape(marker)}(?=\r?$)", raw))
-               for marker in (workorder.START, workorder.END)]
-    if any(len(hits) != 1 for hits in markers) or any(
-            raw.count(marker) != 1 for marker in (workorder.START, workorder.END)):
-        result.findings.append(f"{PLAN}: work-order view requires one start and end marker")
+    marked = _marked_table(
+        raw, workorder.START, workorder.END, workorder.HEADER, workorder.RULE,
+        marker_err="work-order view requires one start and end marker",
+        order_err="work-order view markers are out of order",
+        header_err="work-order view has a malformed header",
+        findings=result.findings)
+    if marked is None:
         return result
-    start, end = markers[0][0].end(), markers[1][0].start()
-    if start >= end:
-        result.findings.append(f"{PLAN}: work-order view markers are out of order")
-        return result
-    body = raw[start:end]
-    lines = body.strip().splitlines()
-    if lines[:2] != [workorder.HEADER, workorder.RULE]:
-        result.findings.append(f"{PLAN}: work-order view has a malformed header")
-        return result
+    start, end, body, rows = marked
     keys: list[str] = []
-    for line in lines[2:]:
-        cells = line.split("|")
-        if len(cells) != 5 or cells[0].strip() or cells[-1].strip() or any(
-                not cell.strip() for cell in cells[1:-1]):
+    for line in rows:
+        cells = _row_cells(line, 3, non_empty=True)
+        if cells is None:
             result.findings.append(f"{PLAN}: malformed work-order view row: {line}")
         else:
-            keys.append(cells[1].strip())
+            keys.append(cells[0])
     if len(keys) != len(set(keys)):
         result.findings.append(f"{PLAN}: duplicate work-order view row")
     if result.findings or order.findings:
         return result
-    newline = "\r\n" if body.startswith("\r\n") else "\n"
-    expected = newline + order.table().replace("\n", newline) + newline
-    if body != expected:
-        if ctx.fix:
-            ctx.fixed[PLAN] = raw[:start] + expected + raw[end:]
-            result.fixed.append(f"fixed: {PLAN}: dispatch view from explicit leaf and artifact owners")
-        else:
-            result.findings.append(f"{PLAN}: work-order view disagrees with its owners")
-    return result
+    return _replace_table(
+        ctx, result, raw, (start, end, body), order.table(),
+        fixed_msg="dispatch view from explicit leaf and artifact owners",
+        stale_msg="work-order view disagrees with its owners")
 
 
 def run(ctx: Context) -> None:
