@@ -85,7 +85,7 @@ Before dispatch, follow that procedure to create or verify isolation and provide
 
 Implementation starts only after the item's [contract and acceptance predicate](PLAN.md#checklist-conventions) are landed; unrelated work may proceed. Wait for necessary local builds through `run.py model wait` or `run.py rtl wait` and use the command's completion verdict.
 
-**Inspect hunks before staging by path; never use `git add -A`.** Run `git status --short` and `git diff -- <path>` before staging. Investigate unexpected paths and leave another session's hunks to their owner, even inside a file you edited. The integrator owns shared instructions, arithmetic repair, and the final gate for the settled batch.
+**Put logical changes into individual commits, and inspect hunks before staging by path; never use `git add -A`.** Run `git status --short` and `git diff -- <path>` before staging. Investigate unexpected paths and leave another session's hunks to their owner, even inside a file you edited. The integrator owns shared instructions, arithmetic repair, and the final gate for the settled batch.
 
 ## Running and changing tools
 
