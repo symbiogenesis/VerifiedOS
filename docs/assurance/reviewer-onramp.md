@@ -26,7 +26,7 @@ The [register preamble](../requirements-register.md#how-to-read-this) owns the p
 
 Counts and collected sets belong to their defining artifacts. Use the checker to detect stale derived figures; review the source of a figure instead of recounting its copies. A missing generator or an incorrectly chosen source still needs a finding.
 
-Resolve section references by reading their targets. K-13 establishes only that some document has the numbered heading; it cannot decide which document the sentence intended.
+Resolve section references by reading their targets. K-12 checks that each linked heading or anchor exists; it cannot decide whether the sentence meant that section.
 
 ## 4. The co-read ledger, and what blessing means
 
