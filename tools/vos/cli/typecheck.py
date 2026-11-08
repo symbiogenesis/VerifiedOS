@@ -140,12 +140,16 @@ def _parse_ty(text: str) -> list[tuple[str, str]]:
 
 
 def _parse_ruff(text: str) -> list[tuple[str, str]]:
-    """Parse `ruff` concise diagnostic lines (`path:line:col: CODE message`)."""
+    """Parse `ruff` concise diagnostic lines (`path:line:col: CODE message` or `invalid-syntax:`)."""
     findings: list[tuple[str, str]] = []
     for line in text.splitlines():
         head, _, rest = line.partition(": ")
         code, _, message = rest.partition(" ")
-        if not head or not code or not code[0].isalpha() or not code[-1].isdigit():
+        if code == "invalid-syntax:":
+            code = "invalid-syntax"
+        elif not code or not code[0].isalpha() or not code[-1].isdigit():
+            continue
+        if not head:
             continue
         findings.append((code, f"{head} {message}"))
     return findings

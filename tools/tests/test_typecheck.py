@@ -33,14 +33,14 @@ _STUB_PIN = "9.9.9"
 
 def _parse_ty() -> None:
     text = (
-        "checks/meta.py:10:5: error[unresolved-import] Cannot resolve import `nope`\n"
+        "checks/meta.py:10:5: error[import-not-found] Cannot resolve imported module `nope`\n"
         "vos/corpus.py:2:1: warning[unused-ignore-comment] Unused `ty: ignore`\n"
         "Found 2 diagnostics\n"
         "All checks passed!\n"
     )
     found = typecheck._parse_ty(text)
     ensure(found == [
-        ("unresolved-import", "checks/meta.py:10:5 Cannot resolve import `nope`"),
+        ("import-not-found", "checks/meta.py:10:5 Cannot resolve imported module `nope`"),
         ("unused-ignore-comment", "vos/corpus.py:2:1 Unused `ty: ignore`"),
     ], f"ty's concise lines parsed as {found!r}")
 
@@ -57,14 +57,16 @@ def _parse_ruff() -> None:
     text = (
         "test.py:3:1: ANN001 Missing type annotation for `x`\n"
         "vos/env.py:7:9: F401 `os` imported but unused\n"
+        "broken.py:1:5: invalid-syntax: Expected an identifier\n"
         "warning: The top-level linter settings are deprecated\n"
-        "Found 2 errors.\n"
+        "Found 3 errors.\n"
         "\n"
     )
     found = typecheck._parse_ruff(text)
     ensure(found == [
         ("ANN001", "test.py:3:1 Missing type annotation for `x`"),
         ("F401", "vos/env.py:7:9 `os` imported but unused"),
+        ("invalid-syntax", "broken.py:1:5 Expected an identifier"),
     ], f"ruff's concise lines parsed as {found!r}")
 
 
@@ -333,14 +335,14 @@ def _refused_settings(fixtures: list[str | None], policy: str = "ty") -> None:
 
 def _ty_settings_refuse_rules() -> None:
     _refused_settings([_HELD, '[rules]\nall = "warn"\n' + _HELD,
-                       *(_ALL_ERROR + f'unresolved-import = "{severity}"\n' + _HELD
+                       *(_ALL_ERROR + f'import-not-found = "{severity}"\n' + _HELD
                          for severity in ("ignore", "error"))])
 
 
 def _ty_settings_refuse_overrides() -> None:
     first = '\n[[overrides]]\ninclude = ["vos/**"]\n'
     second = '\n[[overrides]]\ninclude = ["tests/**"]\n'
-    rules = '\n[overrides.rules]\nunresolved-import = "ignore"\n'
+    rules = '\n[overrides.rules]\nimport-not-found = "ignore"\n'
     _refused_settings([
         _ADMITTED + first + second + rules,
         _ADMITTED + first + '\n[overrides.rules]\nall = "error"\n',
@@ -997,7 +999,8 @@ def _suppressions_reported_beside_the_run() -> None:
     isort = '[lint]\nselect = ["I001"]\n'
     for config, text, code, count in ((lint, body, "ANN001", 2),
                                       (upgrade, annotated, "UP006", 1),
-                                      (isort, unsorted, "I001", 1)):
+                                      (isort, unsorted, "I001", 1),
+                                      (lint, "x =\n", "invalid-syntax", 1)):
         rep = ruff_run(config, text)
         ensure(rep.findings == count and rep.out[0] == f"FAIL ruff: {count} lint finding(s):"
                and f"{code}: 1" in "\n".join(rep.out),
@@ -1313,7 +1316,7 @@ def _imports_fail_closed() -> None:
     # A ruff.toml the scan cannot read a non-empty list of module names from is one
     # finding and scans nothing; a module that spells a banned name and cannot be read
     # or parsed is a finding. A module spelling no banned name is not parsed, its syntax
-    # being ruff's E9 finding.
+    # being ruff's invalid-syntax finding.
     for config, expected in ((None, "cannot be read"),
                              ('[lint\n', "cannot be read"),
                              ('[lint]\nselect = ["ANN"]\n', "to None;"),
@@ -1460,7 +1463,7 @@ def _ty_unresolved(modules: list[str]) -> set[str]:
            f"each ty run must give a verdict: {rep.out!r} {verdicts.call_args_list!r}")
     found = [finding for call in verdicts.call_args_list
              for finding in cast("list[tuple[str, str]]", call.args[3])]
-    ensure(all(code == "unresolved-import" for code, _ in found),
+    ensure(all(code == "import-not-found" for code, _ in found),
            f"an import alone must give no finding but an unresolved one: {found!r}")
     return {modules[int(text.partition(" ")[0].rsplit(":", 2)[1]) - 1] for _, text in found}
 

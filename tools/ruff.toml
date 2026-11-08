@@ -16,7 +16,7 @@ select = [
     "I",      # import order, so a guarded import cannot drift out of its group
     "E4",     # imports: E402 keeps the deliberate post-sys.path imports annotated
     "E7",     # statement-level errors: comparisons to None/True, bare `l` names
-    "E9",     # syntax and IO errors
+    "E9",     # IO errors; syntax errors are reported unconditionally as invalid-syntax
     "ANN",    # annotation coverage, the group ty cannot supply
     "B",      # bugbear: zip without strict, mutable defaults, loop-variable capture
     "A",      # a name shadowing a builtin
@@ -82,7 +82,7 @@ mypy-init-return = false
 # typeshed stubs it for both: neither ty run sees an import of one fail, and it fails at
 # run time on the platform that lacks it. A banned name covers its submodules. A module
 # ty resolves under neither platform, such as `_overlapped` or `_posixshmem`, is ty's own
-# `unresolved-import` finding and is not listed, and a module whose import fails for want
+# `import-not-found` finding and is not listed, and a module whose import fails for want
 # of one that did not load and that configure records as built, missing or disabled, any
 # state but n/a, one a build left out for want of an optional library or whose shared
 # library is absent at run time, is the build's rather than the platform's and is not
