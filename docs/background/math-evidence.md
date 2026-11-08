@@ -307,7 +307,7 @@ Sorted reference payload SHA-256: `23b690105f12b96f3ef7a997cf508a5b775e70bcaf077
 | [tools/vos/proof_staging.py](../../tools/vos/proof_staging.py) | `ab0615ff765fa486883a2f9846bc7660efe7ef225d562dfe5a0a800addf8d32c` |
 | [tools/vos/proofenv.py](../../tools/vos/proofenv.py) | `1d51bdb83c1f09f675e5eec631016ca25ba16c4001e1dca75ec3ddd30f82b4f1` |
 | [tools/vos/prooflex.py](../../tools/vos/prooflex.py) | `d3cc29a77d0f9b214afeaa4bb7b54a8ffefac77e04bc7881ff5d25f237731913` |
-| [tools/vos/proofs.py](../../tools/vos/proofs.py) | `fb53cdb3b596ee5918c6c4111c1f247f157e6ec0ae5dd8a1b4cbf244ca3e8e8c` |
+| [tools/vos/proofs.py](../../tools/vos/proofs.py) | `e97b1c3c7ae00098c9204396b27897eabdfc13cb4636d8daf4361421de51c226` |
 | [tools/vos/python_dependencies.py](../../tools/vos/python_dependencies.py) | `f7fc844fcb85635dd45532ccd510aca2c743ca18b2bd6a55a1f32fe0591fed15` |
 | [tools/vos/receipts.py](../../tools/vos/receipts.py) | `25bbf0b0288363f3b1fe9b0eff3616839dce7d61720814fe2f350f1fbba8d822` |
 

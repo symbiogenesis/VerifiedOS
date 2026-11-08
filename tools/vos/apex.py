@@ -1,61 +1,10 @@
 # SPDX-License-Identifier: Apache-2.0
-"""The apex statement's Vocabulary record, read once and shared.
+"""Lexical parser for [ApexTheorem.v's `Vocabulary`](../../proofs/ApexTheorem.v#Vocabulary) record and its consumers.
 
-[ApexTheorem.v's Vocabulary](../../proofs/ApexTheorem.v#Vocabulary)
-is the coverage checklist R-18-031(a) requires: every
-side-property some seam consumes or concludes is a Prop field of the record, and a
-field nothing instantiates is an uncovered obligation with exactly one name. Two
-tools ask the same question of it. The checker holds
-[field-bindings.md](../../docs/assurance/field-bindings.md) against the fields
-and their consumers; [the blast command](cli/blast.py) answers what an edit re-opens.
-Parsed twice they would be one fact restated by hand, which is the defect both tools
-exist to catch, so the parse is here and neither carries a copy of it.
-
-**What this reads is what the source spells, which is why it is Python and not a
-prover.** A record's field list and the field reads inside a definition body are
-tokens the author wrote, not terms anything elaborates. `Compute` is conversion, and a
-field name is not a term conversion reduces to, so an artifact printing its own field
-names would be quoting its own syntax back through a reflection plugin: the same
-lexical fact through a heavier machine, and an import into a file whose own prose says
-it depends on nothing beyond the prelude. The proof gate independently inventories
-compiled constants and audits their assumptions; source-authored print commands
-do not decide its verdict. This lexical analysis runs on the host wave with
-no toolchain in reach instead, which is what lets K-42, K-43 and K-44 be decided by the
-push workflow on a runner with no Rocq and no submodule. What a term *means* is the
-guest lane's, and `run.py proofs` is where it is asked.
-
-**The parse is total over what the record declares, and that is the shape rather
-than a flourish.** The failure this file must not have is the quiet one: a field
-added to the record that the reader does not match is an obligation with no name at
-all, and no floor sees it, because a floor counts members and the count is merely one
-short. So the body is cut at every top-level `;` and every piece is read, a piece
-that will not read is handed back in `unread` for the caller to report, and which
-pieces are Prop fields falls out of the types rather than out of a second pattern
-that could disagree with the first. The same reasoning fixes the two anchors that
-used to decide by spelling: the body is found by matching braces rather than by a
-lazy `}.`, which a brace inside the record would have ended early, and a field read
-is `<anything>.(field)` rather than `v.(field)`, so a definition that names its
-record argument something else is read instead of silently contributing nothing.
-
-**The consumer half is read twice and the two readings are held together.** The same
-quiet failure has a second shape on this side: `v.(f)` abbreviates the projection `f`
-applied to `v`, so a seam written `f v` consumes the field in Gallina and not in any
-scan for the abbreviation, which leaves one consumer cell short and the view agreeing
-with it. So each body is also read for the field names it mentions outside an
-assignment, and a body whose two readings differ is `unread` rather than answered from
-whichever is longer. Both callers refuse on a non-empty `unread`, which is the only
-answer available: a parse that cannot say what a body consumes cannot narrow the
-answer to what it happened to see.
-
-**Two spellings Rocq admits are read or refused, never skipped.** A definition under a
-decoration, `#[local] Definition` or `Time Definition`, is the same body and is read as
-one, over the decoration grammar and the comment lexing the shared lexer writes once
-for every reader ([proofs.py](proofs.py)); a count taken wider than the reading makes a
-definition under `Fail` or `Succeed`, on its line or on one above it, a residue rather
-than a definition nobody saw, the flag keeping nothing it states. A record value
-completed from a base, `{| v with f := x |}`, consumes by projection every field it does
-not assign and names none of them, so a body that may carry one is `unread` rather than
-answered from the fields it happens to spell.
+Shared by [field-bindings.md](../../docs/assurance/field-bindings.md) checks (K-42..K-44)
+and [`run.py blast`](cli/blast.py). Parses every top-level declaration in `Vocabulary`
+and cross-checks explicit record projections (`v.(f)`) against bare field-name mentions
+in `Definition` bodies, reporting any unparsed declaration or mismatch in `unread`.
 """
 
 import re
@@ -66,68 +15,41 @@ from pathlib import Path
 from vos.proofs import CONTROL_PREFIXES, sentence_ends, strip_comments, void_flag
 
 APEX = "proofs/ApexTheorem.v"
-
-# The type that makes a declaration one of the checklist's obligations.
 PROP = "Prop"
 
-# Locate the header, then match braces so nested braces cannot truncate the record.
 _RECORD_OPEN_RE = re.compile(r"Record\s+Vocabulary\s*:\s*Type\s*:=\s*\{")
 _BRACE_RE = re.compile(r"[{}]")
 
-# Split declarations at semicolons outside brackets, scanning only delimiters.
 _DELIM_RE = re.compile(r"[;(){}\[\]]")
 _OPENERS = "({["
 _CLOSERS = ")}]"
 
-# One declaration, as the name it binds and the type it binds it at. Anything the
-# record states that is not of that shape is `unread` rather than skipped.
 _DECL_RE = re.compile(r"(?s)^\s*(\w+)\s*:\s*(\S.*?)\s*$")
-
-# Every identifier a type mentions, for the coercion whose type cites the Prop fields
-# it carries.
 _WORD_RE = re.compile(r"\w+")
 
-# Accept the shared lexer's Definition prefixes. proofs.void_flag rejects Fail
-# and Succeed, including flags on preceding lines, leaving an unread declaration.
-# proofs.sentence_ends finds each body's terminator while respecting strings.
 _DEFINITION_RE = re.compile(r"(?m)^" + CONTROL_PREFIXES + r"Definition\s+(\w+)")
-
-# Count Definition keywords independently of the supported header grammar.
-# A count mismatch exposes unsupported or rejected declarations as unread.
 _DEFINITION_HEAD_RE = re.compile(r"(?<![\w'])Definition(?![\w'])")
 
-# Record updates such as `{| v with f := x |}` implicitly read unnamed fields.
-# Reject bodies with more `with` than `match` tokens; neither field scan can
-# enumerate those implicit reads.
+# Reject record-update syntax (`{| v with f := x |}`), which implicitly reads unnamed fields.
 _WITH_RE = re.compile(r"(?<![\w'])with(?![\w'])")
 _MATCH_RE = re.compile(r"(?<![\w'])match(?![\w'])")
 
-# Compare explicit projections (`v.(f)`) with field-name occurrences outside
-# assignments. Bare applications (`f v`) can expose reads the first scan misses.
-# Treat any disagreement as unread rather than silently omitting a consumer.
-# Exclude assignment occurrences, not names: `f := f v` still reads f on the right.
 _FIELD_READ_RE = re.compile(r"\w+\.\((\w+)\)")
 _ASSIGNED_RE = re.compile(r"\b(\w+)\s*:=")
 
 
 @dataclass
 class ApexRecord:
-    fields: list[str] = field(default_factory=list)          # Prop fields, in declaration order
+    fields: list[str] = field(default_factory=list)          # Prop fields in declaration order
     field_set: set[str] = field(default_factory=set)
-    consumers: dict[str, list[str]] = field(default_factory=dict)   # field -> what touches it
+    consumers: dict[str, list[str]] = field(default_factory=dict)   # field -> consumer names
     def_fields: dict[str, list[str]] = field(default_factory=dict)  # definition -> fields read
-    declarations: int = 0          # every declaration the record makes, read or not
-    # Unparsed declarations or bodies, with diagnostics for the caller. A nonempty
-    # list requires a finding; a partial parse cannot establish complete coverage.
+    declarations: int = 0
     unread: list[str] = field(default_factory=list)
 
 
 def _body(raw: str) -> str | None:
-    """The Vocabulary record's body, or None where the record is not there to read.
-
-    Brace-matched rather than lazily terminated, so the answer is the record's whole
-    body or nothing at all, and never a prefix of it.
-    """
+    """Return the brace-matched body of `Record Vocabulary : Type := { ... }`, or `None`."""
     opened = _RECORD_OPEN_RE.search(raw)
     if opened is None:
         return None
@@ -140,11 +62,7 @@ def _body(raw: str) -> str | None:
 
 
 def _split(inner: str) -> list[str]:
-    """The record body cut at every `;` that is not inside a bracket.
-
-    The last declaration carries no separator, so the tail is a piece like the rest;
-    an empty piece is the trailing `;` some records write and is not one.
-    """
+    """Split `inner` at top-level `;` delimiters outside brackets."""
     out: list[str] = []
     depth = start = 0
     for delim in _DELIM_RE.finditer(inner):
@@ -161,14 +79,13 @@ def _split(inner: str) -> list[str]:
 
 
 def _quote(piece: str) -> str:
-    """One declaration as a finding names it: whitespace flattened and cut short."""
+    """Flatten whitespace in `piece` and truncate to 60 characters for diagnostics."""
     flat = " ".join(piece.split())
     return flat if len(flat) <= 60 else flat[:57] + "..."
 
 
 def read(path: Path) -> ApexRecord:
-    # Comments as Rocq's lexer reads them: nested, a string inside one read whole, and
-    # each a separator, so `Local(* c *)Definition` is the decorated definition it is.
+    """Parse `Vocabulary` fields and their consumers from `path` (`proofs/ApexTheorem.v`)."""
     raw = strip_comments(path.read_text(encoding="utf-8"))
     ends = sentence_ends(raw)
 
@@ -196,15 +113,12 @@ def read(path: Path) -> ApexRecord:
     rec.field_set = set(rec.fields)
     rec.consumers = {f: [] for f in rec.fields}
 
-    # a field whose type cites Prop fields consumes them, which is what a coercion is
+    # Record fields whose types reference `Prop` fields act as coercion consumers.
     for name, kind in declared:
         for word in _WORD_RE.findall(kind):
             if word in rec.field_set and word != name:
                 rec.consumers[word].append(name)
 
-    # every Definition consuming a field through the record value, in body order, and
-    # none that a control flag on its line or above it keeps nothing of; a head opening
-    # inside the body above, on a line of a string there, is no head
     definitions: list[tuple[str, str]] = []
     read_to = 0
     for found in _DEFINITION_RE.finditer(raw):

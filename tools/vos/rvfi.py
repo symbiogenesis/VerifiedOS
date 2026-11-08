@@ -1,91 +1,31 @@
 # SPDX-License-Identifier: Apache-2.0
-"""RVFI-DII on the wire, and what one packet says in the commit trace's grammar.
+"""RVFI-DII wire protocol and projection to [differential-corpus.md](../../docs/assurance/differential-corpus.md) (§4) commit records.
 
-Two formats meet in this module and only one of them is this repository's.
-
-**RVFI-DII is TestRIG's.** It is two structures over one socket: an eight-byte
-*instruction* packet the verification engine sends to the implementation, and an
-*execution* packet the implementation sends back for each instruction it
-retires. The field names, the byte offsets, the two command values and the
-64 KiB-at-0x80000000 memory contract are `RVFI-DII.md`'s, read at the commit
-[THIRD-PARTY.md](../../THIRD-PARTY.md) pins `upstream/TestRIG` at. The
-**version-2** packet is not in that document, which describes v1 alone; it is
-read from the model's own [core/rvfi_dii_v2.sail](../../model/model/core/rvfi_dii_v2.sail)
-and [core/rvfi_dii.sail](../../model/model/core/rvfi_dii.sail), which are the
-format's only written statement, and TestRIG's own issue tracker records that
-the v2 protocol is undocumented.
-
-**The commit trace is this repository's**, versioned in
-[docs/assurance/differential-corpus.md](../../docs/assurance/differential-corpus.md) §4 and parsed
-by [trace.py](trace.py). It is the dialect the corpus is versioned against and
-the one every executor of the frozen profile emits.
-
-**This repository carries a dialect of the standard packet rather than an
-extension of it, and the ground is that the standard packet cannot be extended
-to carry the schema.** The widening M0.12 made *is* inside the standard packet:
-`rvfi_rd_tag` is one bit taken from the Integer extension's padding and the
-memory masks carry the access's tag one bit above its byte mask, both of which
-fit the CHERI-widened fields upstream already sized. What does not fit is
-structural rather than a field short: the packet is fixed-size and holds **one**
-memory access per instruction, so `cbo.zero`'s block write and `cloadtags`'
-eight granule reads have no form in it at all; it has **no field** for the four
-capability registers outside the merged file, upstream's own
-`cheri_scr_read_write_data_available` bit being declared and unimplemented; and
-its trap byte is a boolean where the schema's `T` record carries the cause. A
-format that must grow a variable-length effect list, a fifth register file and a
-cause field is a different grammar, not a longer packet. So the record stream
-carries the whole schema, the packet carries the subset it can, and `records`
-below is the projection between them, which is the only place the two are held
-to say the same thing.
-
-**Version 1 cannot carry the widening at all**, which is why every loop here
-negotiates v2. `rvfi_get_exec_packet_v1` truncates the 32-bit masks to 8 bits,
-and the tag of an eight-byte capability access sits at bit 8, so the truncation
-deletes exactly the bit M0.12 added; and v1 has no `rd_tag` field to copy into.
-A v1 conversation is therefore a conversation about an integer machine.
-
-**Byte order is little-endian and it is the emulator's rather than a choice.**
-The instruction packet is read straight into a `mach_bits` by
-[rvfi_dii.cpp](../../model/c_emulator/rvfi_dii.cpp), and every execution packet
-leaves through `mpz_export(..., -1, 1, 0, 0, ...)`, whose `-1` is
-least-significant word first at a word size of one byte. Both are the host's
-order on the little-endian hosts this lane runs on, and neither is negotiated.
+Implements the 8-byte RVFI-DII instruction packet, version-1 (88-byte) and version-2
+([core/rvfi_dii_v2.sail](../../model/model/core/rvfi_dii_v2.sail) + integer/memory
+extensions) execution packets in little-endian byte order, and the lossy projection
+between fixed-size RVFI packets and the commit-trace record grammar ([trace.py](trace.py)).
 """
 
 from dataclasses import dataclass, replace
 from typing import Final
 
-# --- the instruction packet ------------------------------------------------
-#
-#   struct RVFI_DII_Instruction_Packet {   // 8 bytes
-#      Bit8  padding;   // [7]
-#      Bit8  rvfi_cmd;  // [6]
-#      Bit16 rvfi_time; // [5 - 4]
-#      Bit32 rvfi_insn; // [0 - 3]
-#   }
+# 8-byte RVFI-DII instruction packet (`insn[31:0]`, `time[47:32]`, `cmd[55:48]`, `pad[63:56]`).
 DII_BYTES: Final = 8
 
-# The two commands RVFI-DII.md defines, and the third the model answers to.
 CMD_END_OF_TRACE: Final = 0
 CMD_INSTRUCTION: Final = 1
-# `v`, which selects the wire format. It is not in RVFI-DII.md: the model
-# implements it (`rvfi_dii.cpp`'s `case 'v'`) and it is how a v2 conversation is
-# entered once the probe below says v2 is available.
+# Non-standard command implemented in `rvfi_dii.cpp` (`case 'v'`) to select wire version.
 CMD_SET_VERSION: Final = ord("v")
 
-# An EndOfTrace whose instruction word is the ASCII "VERS" is a version probe
-# rather than a reset. The reply is a v1-shaped packet whose halt byte says
-# which formats the implementation has.
+# EndOfTrace with `insn == 0x56455253` ("VERS") probes supported RVFI-DII wire versions.
 VERSION_PROBE: Final = 0x56455253
 HALT_V1_ONLY: Final = 0x01
 HALT_V2_CAPABLE: Final = 0x03
 
-# What the model writes back when a `v` command is accepted: eight ASCII bytes
-# and the selected version as a little-endian 64-bit word.
 VERSION_REPLY: Final = b"version="
 VERSION_REPLY_BYTES: Final = 16
 
-# --- the execution packets -------------------------------------------------
 EXEC_V1_BYTES: Final = 88
 EXEC_V2_BYTES: Final = 64
 EXT_INTEGER_BYTES: Final = 40
@@ -95,27 +35,15 @@ MAGIC_V2: Final = b"trace-v2"
 MAGIC_INTEGER: Final = b"int-data"
 MAGIC_MEMORY: Final = b"mem-data"
 
-# Which extension follows the v2 packet, by the bit that announces it. Only the
-# first two are implemented upstream; the other five are declared bits with no
-# struct behind them, which is the half of the format the commit trace exists
-# to carry.
 AVAILABLE_INTEGER: Final = 0
 AVAILABLE_MEMORY: Final = 1
 
-# The address field of a commit-trace memory record is printed at the model's
-# own physical-address width, `(physaddrbits_len() + 3) / 4` hexadecimal digits,
-# where the RVFI packet zero-extends the same address to 64 bits. That width is
-# the *type* `physaddrbits`' and not the frozen profile's 36-bit space, which is
-# a property of the composition rather than of the model's address type, so it
-# is sixteen digits and the two formats agree here by accident of width rather
-# than by construction. It is a default and not a constant: `testrig.py bridge`
-# measures it off the records it is comparing against, which is the only reading
-# of it that cannot go stale.
+# Default hexadecimal digit width for physical addresses (`(physaddrbits_len() + 3) // 4`).
 PHYSADDR_DIGITS: Final = 16
 
 
 def dii(insn: int, *, cmd: int = CMD_INSTRUCTION, time: int = 0) -> bytes:
-    """One instruction packet, as the eight bytes that go on the wire."""
+    """Encode an 8-byte little-endian RVFI-DII instruction packet."""
     if not 0 <= insn < (1 << 32):
         raise ValueError(f"an instruction word is 32 bits, got {insn:#x}")
     if not 0 <= cmd < (1 << 8):
@@ -130,11 +58,7 @@ def instruction(insn: int, *, time: int = 0) -> bytes:
 
 
 def end_of_trace() -> bytes:
-    """Reset the implementation: registers, memory, and the PC back to 0x80000000.
-
-    Every trace ends with one, and it is what makes each candidate stream a run
-    of its own rather than a continuation of the last.
-    """
+    """Encode an `EndOfTrace` reset packet."""
     return dii(0, cmd=CMD_END_OF_TRACE)
 
 
@@ -148,17 +72,7 @@ def select_version(version: int) -> bytes:
 
 @dataclass(frozen=True)
 class Execution:
-    """One retired instruction as the implementation reported it.
-
-    Frozen because a seeded defect is a *second* packet derived from this one
-    rather than a mutation of it: an executor that edits its own report in place
-    is one whose reference trace cannot be shown afterwards.
-
-    `wire` is the format the packet arrived in, and it is carried because two of
-    the fields below cannot be believed from a v1 packet: `rd_tag` has no v1
-    field at all, and `mem_rmask`/`mem_wmask` arrive truncated to their byte
-    halves, so the tag bit above the mask is gone rather than clear.
-    """
+    """Decoded RVFI-DII execution packet (`wire` = 1 or 2)."""
 
     wire: int
     order: int = 0
@@ -187,13 +101,7 @@ class Execution:
 
     @property
     def retired(self) -> bool:
-        """Whether this packet reports an instruction rather than an acknowledgement.
-
-        A halt byte is set on the packet the model answers `EndOfTrace` with and
-        on the one it answers the version probe with, neither of which is a
-        retirement; under direct instruction injection the model never halts of
-        its own accord, so there is no third reading of the byte to lose.
-        """
+        """True if this packet reports a retired instruction (`halt == 0`)."""
         return self.halt == 0
 
 
@@ -202,7 +110,7 @@ def _u(data: bytes, at: int, size: int) -> int:
 
 
 def decode_v1(data: bytes) -> Execution:
-    """The 88-byte packet of RVFI-DII.md, at the byte offsets that document states."""
+    """Decode an 88-byte RVFI-DII v1 execution packet."""
     if len(data) != EXEC_V1_BYTES:
         raise ValueError(f"a v1 execution packet is {EXEC_V1_BYTES} bytes, got {len(data)}")
     return Execution(
@@ -231,12 +139,7 @@ def decode_v1(data: bytes) -> Execution:
 
 
 def v2_trace_size(head: bytes) -> int:
-    """How many bytes the whole v2 reply is, read out of its own first 64.
-
-    The model always returns a maximum-size main packet and states the real
-    length in the packet, leaving the emulator to send only that much: the
-    caller therefore reads this many bytes and not a fixed number.
-    """
+    """Return the total v2 packet length (in bytes) declared in its 64-byte header."""
     if len(head) < EXEC_V2_BYTES:
         raise ValueError(f"a v2 packet's head is {EXEC_V2_BYTES} bytes, got {len(head)}")
     if head[0:8] != MAGIC_V2:
@@ -245,13 +148,7 @@ def v2_trace_size(head: bytes) -> int:
 
 
 def decode_v2(data: bytes) -> Execution:
-    """The 512-bit packet of `rvfi_dii_v2.sail`, with the extensions it announces.
-
-    The extensions follow the main packet in the order their availability bits
-    are numbered, which is the order `send_trace` writes them in, and each opens
-    with a magic the decode holds it to: an extension read at the wrong offset
-    would otherwise decode as plausible values rather than as a finding.
-    """
+    """Decode a v2 execution packet (`rvfi_dii_v2.sail`) and its attached extensions."""
     size = v2_trace_size(data)
     if len(data) != size:
         raise ValueError(f"a v2 packet states {size} bytes and {len(data)} arrived")
@@ -297,9 +194,7 @@ def _with_integer(packet: Execution, ext: bytes) -> Execution:
         rd_addr=_u(ext, 32, 1),
         rs1_addr=_u(ext, 33, 1),
         rs2_addr=_u(ext, 34, 1),
-        # Bit 280 of the extension, which is bit 0 of byte 35: the one bit of a
-        # capability the integer reading of a register cannot show (R-15-007i),
-        # taken from the packet's own padding at M0.12.
+        # Bit 280 (byte 35, bit 0) carries destination capability tag `rd_tag` (R-15-007i).
         rd_tag=bool(ext[35] & 1),
     )
 
@@ -319,20 +214,12 @@ def _with_memory(packet: Execution, ext: bytes) -> Execution:
 
 
 def mask_access(mask: int) -> tuple[int, bool] | None:
-    """The width in bytes and the tag an access mask carries, or `None` for no access.
+    """Decode an `rvfi_mask_with_tag` bitmask into `(width_bytes, tag_bit)`, or `None` if 0.
 
-    `rvfi_mask_with_tag` sets bits 0 through *w* − 1 for the bytes of a *w*-byte
-    access and bit *w* where that access carried a validity tag, so a mask is a
-    low run of ones whose length is either the width or the width plus one. The
-    two readings are told apart by **the widths being powers of two**: a run of
-    nine is an eight-byte tagged access because nine is not a width.
-
-    The one length that is ambiguous is two, which is a two-byte untagged access
-    and also a one-byte tagged one, and it is decided the first way because the
-    tag granule is eight bytes (R-15-203): no access narrower than a granule can
-    carry a tag, so the second reading names an access this machine has no form
-    for. That ambiguity is the encoding's and is stated here rather than
-    repaired, a repair being a second opinion about a wire format.
+    `rvfi_mask_with_tag` sets bits `0..w-1` for a `w`-byte access and bit `w` when the
+    access carries a capability tag. Power-of-two widths disambiguate `w` from `w + 1`
+    (length 2 is always a 2-byte untagged access because the capability tag granule is
+    8 bytes per R-15-203).
     """
     if mask == 0:
         return None
@@ -348,34 +235,16 @@ def mask_access(mask: int) -> tuple[int, bool] | None:
     raise ValueError(f"an access mask of {ones} bytes names no width this machine has")
 
 
-# The order effects are written in under their instruction, on both sides of any
-# comparison a packet takes part in. **A packet is a structure and not a
-# sequence**: it has one memory-read field group, one memory-write group and one
-# destination-register group, and no field anywhere saying which happened first.
-# The commit trace does carry that order, being a stream of callbacks in the
-# order the model fired them, so a comparison that kept it would be comparing
-# something only one side has. Both sides are therefore put in this order, which
-# is the model's own for the instruction that has all three: an atomic reads,
-# writes, and then writes its destination.
+# Canonical per-instruction effect order (`R`, `W`, `X`) used when comparing unordered
+# RVFI packet fields against ordered commit-trace records.
 EFFECT_ORDER: Final = ("R", "W", "X")
 
-# The one record kind an executor may carry beyond the packet's. The RTL's own RVFI
-# record has a cause where the packet has a boolean (rtltrace.py), so a comparison
-# against it keeps the `T` record rather than eliding it; the `S` and `C` records
-# stay out of every view, neither port having a field for them. A carried kind sits
-# after the three above under its instruction, on both sides of the comparison: the
-# placement is a convention the view and the projection share, not a claim about
-# the order the model fires its callbacks in.
+# Additional record kinds an executor port may carry beyond standard RVFI (`T` on RTL RVFI).
 CARRIABLE: Final = ("T",)
 
 
 def records(packet: Execution, *, addr_digits: int = PHYSADDR_DIGITS) -> list[str]:
-    """One packet, in the commit trace's record grammar.
-
-    This is the projection §4's schema and the standard packet meet at, and it
-    is deliberately lossy in the direction the packet is: the `S`, `C` and `T`
-    records have no fields here and nothing is invented for them.
-    """
+    """Project `packet` into commit-trace record lines (`I`, `R`, `W`, `X`)."""
     out = [f"I {packet.order} {packet.pc_rdata:016X} {packet.insn:08X}"]
     for kind, mask, value in (("R", packet.mem_rmask, packet.mem_rdata),
                               ("W", packet.mem_wmask, packet.mem_wdata)):
@@ -393,12 +262,7 @@ def records(packet: Execution, *, addr_digits: int = PHYSADDR_DIGITS) -> list[st
 
 @dataclass(frozen=True)
 class Elided:
-    """What a commit stream loses on its way into the packet's shape.
-
-    Counted rather than dropped in silence: these four numbers are the size of
-    the gap between the two formats over the run that was actually driven, which
-    is the only honest way to say how far a packet-only executor can be compared.
-    """
+    """Counts of commit-trace records omitted when projecting to an RVFI packet view."""
 
     scr: int = 0
     csr: int = 0
@@ -418,17 +282,10 @@ class Elided:
 
 def packet_view(commit: list[str], *,
                 carried: frozenset[str] = frozenset()) -> tuple[list[str], Elided]:
-    """A normalized commit stream cut down to what an RVFI packet could have said.
+    """Project a normalized commit-trace stream to the subset representable in RVFI packets.
 
-    Every record the packet cannot carry is removed and counted, so that a
-    comparison between a packet stream and a commit stream is a comparison over
-    the fields both formats have rather than a divergence at the first `S`. What
-    survives is re-ordered into `EFFECT_ORDER` under its instruction, for the
-    reason stated there.
-
-    `carried` names the kinds of `CARRIABLE` the executor being compared reports
-    as well, which are then kept, placed after `EFFECT_ORDER`, and not counted as
-    elided. The default is the standard packet's view and is the one K-85 holds.
+    Strips and counts `S`, `C`, `T` (unless in `carried`), and secondary `R`/`W` records
+    per instruction, and orders surviving effects in `EFFECT_ORDER` (+ `carried`).
     """
     unknown = carried - frozenset(CARRIABLE)
     if unknown:
@@ -456,8 +313,6 @@ def packet_view(commit: list[str], *,
         elif kind == "X":
             group["X"].append(record)
         elif group[kind]:
-            # The packet holds one read and one write, so a second of either is
-            # an effect it has no field for rather than a record it disagrees on.
             counts[kind] += 1
         else:
             group[kind].append(record)
@@ -467,14 +322,7 @@ def packet_view(commit: list[str], *,
 
 
 def address_digits(view: list[str]) -> int:
-    """How wide a memory record writes its address, measured off the records.
-
-    The commit trace prints the model's own physical-address width and a packet
-    zero-extends to 64 bits, so a projection has to be rendered at whatever the
-    run actually wrote. Measuring beats restating: the width is a property of the
-    configuration, and a copy of it at a caller would be a second place for it to
-    be wrong. A view with no memory record answers the default.
-    """
+    """Infer the hexadecimal address width from the first `R` or `W` record in `view`."""
     for record in view:
         if record[0] in "RW":
             return len(record.split()[1])

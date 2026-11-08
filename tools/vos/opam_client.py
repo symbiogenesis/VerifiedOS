@@ -1,34 +1,10 @@
 # SPDX-License-Identifier: Apache-2.0
-"""The reviewed opam client, and the package repositories every project switch reads.
+"""Reviewed opam client release, root format, and repository initialization.
 
-Guest bootstrap downloads a client and a developer's guest carries one of its own, and
-the two have to agree for a reason no switch lock records: a Sail switch reports the
-client that built it in its version string, `sail @ opam-v<client> <release>`, so one
-lock built under two clients yields two identities. This module is the one owner of
-the client's reviewed release and its per-architecture SHA-256 values, which
-[guest bootstrap](../ci/bootstrap_guest.py) verifies its download against and
-[`run.py provision`](cli/provision.py) holds the installed client to, of the one
-route both take to install it, and of the one route both take to create a root on the
-package repositories. A client is
-replaced deliberately rather than repaired: a client rewrites a root whose format is
-older than its own to its own format, one way, after which an earlier client cannot
-read it. Not every release raises the format, so the reviewed client's is recorded
-here beside its release rather than inferred from the version.
-
-The locks fix package versions but not the metadata they were resolved from, which the
-repositories publish and revise in place. What a root was resolved against is its
-repositories' URLs and the `stamp` each one's `repo` file carries, and both readers
-record them. They are read from the root's own files rather than by running opam,
-because a client newer than the root's format would upgrade the root to answer.
-
-The route has system prerequisites of its own, which this module also owns, because
-`opam init` refuses to create a root without them and every switch recipe then fails
-in a root that does not stand.
-
-Guest CI's download cache must hash this file, and its installed-toolchain cache this
-module's release, SHA-256 values, root format, repositories and root-creation route,
-which guest bootstrap's recipe identity reads, because an opam root restored under
-another client is another root.
+Both [guest bootstrap](../ci/bootstrap_guest.py) and [`run.py provision`](cli/provision.py)
+share this module's pinned release, per-architecture SHA-256 digests, root format, package
+repositories, and initialization commands so that Sail switches (`sail @ opam-v<client>`)
+and opam roots stay identical across CI and developer environments.
 """
 
 import re
@@ -40,55 +16,29 @@ from vos import receipts
 
 OPAM_VERSION = "2.6.1"
 
-# The root format the reviewed client writes, the `opam-root-version` a root it creates
-# or rewrites declares; 2.6.0's release notes record raising it to 2.6. Guest bootstrap
-# holds a root it initializes to this, and `run.py provision` reads it to say whether
-# moving a developer's root to the reviewed client rewrites that root.
+# Root format (`opam-root-version`) written by the reviewed client.
 OPAM_ROOT_FORMAT = "2.6"
 
-# The release's asset suffix and its SHA-256, per `platform.machine()`. Each matches
-# the digest GitHub publishes for the asset and the opam dev team's signature over
-# it, which THIRD-PARTY.md records as reviewed.
+# Per-architecture release asset suffix and reviewed SHA-256 digest (`THIRD-PARTY.md`).
 OPAM_HASHES: dict[str, tuple[str, str]] = {
     "aarch64": ("arm64", "8b24ef2f3f44a31763f54878454fb52afa1f2db7e00abed58b8d4e7ee7e290a6"),
     "x86_64": ("x86_64", "b533d393a6967150d6ef41cb3d71e147e93ecbabeb59e921aa412c0ae79ebe3d"),
 }
 
-# The repositories a root is initialized with, the first as `opam init`'s default and
-# the rest added unselected; the prover switch names both in its `--repos`.
+# Repositories configured on root initialization (`default` selected, others `--dont-select`).
 OPAM_REPOSITORIES: tuple[tuple[str, str], ...] = (
     ("default", "https://opam.ocaml.org"),
     ("rocq-released", "https://rocq-prover.org/opam/released"),
 )
 
-# The one route that creates a root, in the root `OPAMROOT` names: a bare `opam init`
-# on the first repository, with no shell setup and no opamrc, then every other
-# repository added unselected, each switch naming the repositories it resolves from.
-# Guest bootstrap, in its private root, and `run.py provision --install-opam` run it
-# where no root stands. Over a root in the shape `root_resumable` reads, both run the
-# route's remaining steps, `remaining_route`, which complete that root, and the
-# route's first step never runs over it: `opam init` over a root that stands reports
-# it already initialized, fetches nothing and exits 0, but rewrites the root's
-# `opam-init` scripts and, since `--no-setup` implies `--disable-shell-hook`, removes
-# any shell-hook scripts there. Nor is the route inert over a finished root: adding a
-# repository the root already carries at that URL keeps its configuration but fetches
-# it again, refreshing its metadata and stamp, and removes that repository from the
-# root, its configuration and its metadata, where the fetch fails.
+# Commands to initialize a fresh opam root at `OPAMROOT` and register repositories.
 CREATE_ROOT: tuple[tuple[str, ...], ...] = (
     ("opam", "init", "--bare", "--no-setup", "--no-opamrc", "-y", *OPAM_REPOSITORIES[0]),
     *(("opam", "repository", "add", name, url, "--dont-select", "-y")
       for name, url in OPAM_REPOSITORIES[1:]),
 )
 
-# The Debian and Ubuntu packages `CREATE_ROOT` needs on the machine it runs on. The
-# reviewed client's `opam init` refuses to create a root, exiting 50 before it writes
-# one, unless curl or wget, tar, unzip and bwrap are on PATH: bwrap because the root it
-# creates sandboxes package builds. curl is the download tool here, and it fetches the
-# HTTPS repositories against the certificate store `ca-certificates` carries, which the
-# distribution's curl library only recommends. GNU patch, diff and getconf are not
-# among them, because this client computes and applies patches itself and does not
-# require getconf. Guest bootstrap installs these, and `run.py provision` probes and
-# installs each ahead of the opam row.
+# Debian/Ubuntu packages required on PATH/system before running `CREATE_ROOT`.
 ROOT_PREREQUISITES: tuple[str, ...] = ("bubblewrap", "ca-certificates", "curl", "tar", "unzip")
 
 _CONFIGURED_RE = re.compile(r'"([^"\r\n]+)"\s*\{\s*"([^"\r\n]+)"')
@@ -97,20 +47,13 @@ _FORMAT_RE = re.compile(r'(?m)^opam-root-version:\s*"([^"\r\n]*)"')
 
 
 def release_url(architecture: str) -> str:
-    """Where the reviewed release's binary for one asset suffix is published."""
+    """Return the GitHub release URL for the reviewed opam binary on `architecture`."""
     return (f"https://github.com/ocaml/opam/releases/download/{OPAM_VERSION}/"
             f"opam-{OPAM_VERSION}-{architecture}-linux")
 
 
 def install(destination: Path, machine: str) -> None:
-    """Put the reviewed client for `machine` at `destination`, executable.
-
-    The one install route, which guest bootstrap takes into its private root and
-    `run.py provision --install-opam` onto a machine with no client. The download is
-    verified against the reviewed SHA-256 before it is published at `destination`, and
-    a file already there is kept only when it is that client: any other is refused
-    rather than replaced.
-    """
+    """Download, SHA-256-verify, and mark executable the reviewed opam binary for `machine`."""
     if machine not in OPAM_HASHES:
         raise ValueError(f"no reviewed opam binary for {machine}")
     architecture, expected = OPAM_HASHES[machine]
@@ -119,7 +62,7 @@ def install(destination: Path, machine: str) -> None:
 
 
 def root_format(root: Path) -> str:
-    """The format a root's own `config` declares, empty where it states none."""
+    """Read `opam-root-version` from `<root>/config` (or `""` if absent/unreadable)."""
     try:
         found = _FORMAT_RE.search((root / "config").read_text(encoding="utf-8"))
     except OSError:
@@ -128,20 +71,15 @@ def root_format(root: Path) -> str:
 
 
 def root_exists(root: Path) -> bool:
-    """Whether a root stands at `root`, which opam marks by the root's `config` file:
-    `opam init` initializes a directory without one, and every other command refuses it
-    as no root."""
+    """Return True if `<root>/config` exists."""
     return (root / "config").is_file()
 
 
-# A run of non-digits followed by a run of ASCII digits, either possibly empty.
 _RUN_RE = re.compile(r"([^0-9]*)([0-9]*)")
 
 
 def _weight(char: str) -> int:
-    """A character's place in a non-digit run, where the run's end weighs 0: `~` before
-    the end, the ASCII letters after it in code order, then every other character in code
-    order."""
+    """Return the Debian version-ordering weight for a non-digit character."""
     if char == "~":
         return -1
     if "A" <= char <= "Z" or "a" <= char <= "z":
@@ -150,25 +88,19 @@ def _weight(char: str) -> int:
 
 
 def _compare_text(x: str, y: str) -> int:
-    """-1, 0 or 1 as non-digit run `x` orders before, with or after `y`, character by
-    character by `_weight`, each run's end weighing 0 against the other's character."""
+    """Compare non-digit runs `x` and `y` under Debian version ordering (-1, 0, or 1)."""
     a, b = [*map(_weight, x), 0], [*map(_weight, y), 0]
     return (a > b) - (a < b)
 
 
 def _compare_number(x: str, y: str) -> int:
-    """-1, 0 or 1 as digit run `x` is less than, equal to or greater than `y` by value,
-    an empty run counting as zero. Without leading zeros the shorter run is the smaller,
-    and runs of one length order as their digits do, so no run is too long to compare."""
+    """Compare ASCII digit runs `x` and `y` numerically (-1, 0, or 1), with `""` as 0."""
     a, b = x.lstrip("0"), y.lstrip("0")
     return ((len(a), a) > (len(b), b)) - ((len(a), a) < (len(b), b))
 
 
 def _compare_part(x: str, y: str) -> int:
-    """-1, 0 or 1 as one component of a version orders before, with or after the same
-    component of another: their leading non-digit runs, then the digit runs after them,
-    and so on in turn until a pair differs, a string that ends first continuing as empty
-    runs."""
+    """Compare version components `x` and `y` across alternating non-digit and digit runs."""
     for (x_text, x_digits), (y_text, y_digits) in zip_longest(
             _RUN_RE.findall(x), _RUN_RE.findall(y), fillvalue=("", "")):
         if order := _compare_text(x_text, y_text) or _compare_number(x_digits, y_digits):
@@ -177,30 +109,13 @@ def _compare_part(x: str, y: str) -> int:
 
 
 def _components(version: str) -> tuple[str, str]:
-    """A version's upstream version and its revision, the text after its last `-`, the
-    revision empty where the version has none."""
+    """Split `version` at the last `-` into `(upstream, revision)`."""
     upstream, hyphen, revision = version.rpartition("-")
     return (upstream, revision) if hyphen else (version, "")
 
 
 def compare_versions(x: str, y: str) -> int:
-    """-1, 0 or 1 as version `x` orders before, with or after version `y`.
-
-    Implements Debian's version ordering (Debian Policy 5.6.12), which opam applies to
-    version strings. The upstream versions are compared, then the revisions on a tie, an
-    absent revision comparing as `0`. Each component reads as
-    alternating runs of non-digits and of ASCII digits: digit runs compare by value, an
-    empty run as zero, and non-digit runs character by character, `~` before everything,
-    even the run's end, then the run's end, then the ASCII letters, then every other
-    character, letters and the rest each in ASCII order.
-
-    The opam manual defers the ordering's details to Debian's definition. The revision
-    is what follows the last `-`, as Debian Policy reads it, so `1.0-a` orders before
-    `1.0a`. No epoch is read: the manual slices the whole version string into runs, and
-    the reviewed client orders `:`, which opam's version grammar admits in no version,
-    as any other non-letter, so this does too. A character outside ASCII, which neither
-    document admits in a version, orders as a non-letter by its code point.
-    """
+    """Compare version strings `x` and `y` using opam/Debian Policy 5.6.12 ordering (-1, 0, 1)."""
     for x_part, y_part in zip(_components(x), _components(y), strict=True):
         if order := _compare_part(x_part, y_part):
             return order
@@ -208,25 +123,17 @@ def compare_versions(x: str, y: str) -> int:
 
 
 def newer_than_reviewed(fmt: str) -> bool:
-    """Whether a stated root format is newer than `OPAM_ROOT_FORMAT` by opam's own
-    ordering. The reviewed client still reads such a root, but refuses every command
-    that takes its write lock as "more recent than this version of opam", a switch
-    creation among them."""
+    """Return True if root format `fmt` is newer than `OPAM_ROOT_FORMAT`."""
     return bool(fmt) and compare_versions(fmt, OPAM_ROOT_FORMAT) > 0
 
 
 def older_than_reviewed(fmt: str) -> bool:
-    """Whether a stated root format is older than `OPAM_ROOT_FORMAT` by opam's own
-    ordering, a prerelease of it among them. The reviewed client rewrites such a root to
-    its own format, one way, so moving the root to it is a deliberate, recorded step."""
+    """Return True if root format `fmt` is older than `OPAM_ROOT_FORMAT`."""
     return bool(fmt) and compare_versions(fmt, OPAM_ROOT_FORMAT) < 0
 
 
 def root_gaps(root: Path) -> list[str]:
-    """What a root that stands lacks of one the reviewed client can use as `CREATE_ROOT`
-    makes it, as clauses: a stated format no newer than `OPAM_ROOT_FORMAT`, each of
-    `OPAM_REPOSITORIES` at its URL, and each of those with its metadata stamp read, as
-    `initialized_repositories` holds a root just created. Empty for a complete root."""
+    """List format, repository, or metadata-stamp gaps in an existing opam root."""
     fmt = root_format(root)
     gaps: list[str] = []
     if not fmt:
@@ -248,30 +155,8 @@ def root_gaps(root: Path) -> list[str]:
 
 
 def root_resumable(root: Path) -> bool:
-    """Whether a standing root is in the shape `CREATE_ROOT` leaves after its leading
-    steps, which the route's remaining steps, `remaining_route`, complete: in
-    `OPAM_ROOT_FORMAT`, configured with exactly the route's leading repositories, at
-    least the one `opam init` fetched, each at its owned URL, the first with its stamp
-    read, and at least one owned repository not yet fetched, either not configured or
-    configured with its stamp unread.
-
-    A later repository configured with its stamp unread is what an interrupted step
-    leaves: `opam repository add` writes the repository's configuration before it
-    fetches and removes that configuration only where the fetch returns a failure, so
-    a step stopped during its fetch leaves the repository configured and unfetched. The
-    same step run again keeps that configuration and fetches the repository.
-
-    The shape is what is read, not how the root came to be: a root a developer
-    initialized by hand on the first repository alone is in it too, and the remaining
-    steps complete that root the same way, leaving its shell setup as it stands.
-
-    A root whose first repository's stamp is unread is not one, though the route's first
-    step can leave one: `opam init` writes the root's configuration before its first
-    fetch and removes the root on a failed fetch only where its directory was absent or
-    empty when it started. No remaining step fetches the first repository, which only
-    `opam init` adds, and `opam init` over a root that stands fetches nothing, so that
-    repository would stay unread and the root as incomplete as it was found.
-    """
+    """Return True if `root` is a partially initialized `OPAM_ROOT_FORMAT` root that
+    `remaining_route` can complete without running `opam init`."""
     if not root_exists(root) or root_format(root) != OPAM_ROOT_FORMAT:
         return False
     found = repositories(root)
@@ -283,13 +168,7 @@ def root_resumable(root: Path) -> bool:
 
 
 def remaining_route(root: Path) -> tuple[tuple[str, ...], ...]:
-    """The steps of `CREATE_ROOT` a root at `root` still lacks: the whole route where no
-    root stands, and otherwise each `opam repository add` whose repository the root does
-    not already carry at that URL with its stamp read, never `opam init`, which over a
-    standing root rewrites its `opam-init` scripts and removes any shell-hook scripts
-    there. An add of a repository the root configures at that URL but has not fetched
-    keeps that configuration and fetches it. Over a root in the shape `root_resumable`
-    reads, these steps complete it."""
+    """Return the `CREATE_ROOT` commands still needed to complete `root`."""
     if not root_exists(root):
         return CREATE_ROOT
     fetched = {(repo["name"], repo["url"]) for repo in repositories(root) if repo["stamp"]}
@@ -297,8 +176,7 @@ def remaining_route(root: Path) -> tuple[tuple[str, ...], ...]:
 
 
 def initialized_format(root: Path) -> str:
-    """The format of a root the reviewed client just initialized, refused unless it is
-    `OPAM_ROOT_FORMAT`, so the recorded format cannot drift from the client unseen."""
+    """Verify and return `root`'s format after initialization (`OPAM_ROOT_FORMAT`)."""
     found = root_format(root)
     if found != OPAM_ROOT_FORMAT:
         raise ValueError(f"{root} declares root format {found or 'none'}, not the "
@@ -307,7 +185,7 @@ def initialized_format(root: Path) -> str:
 
 
 def _repo_file(root: Path, name: str) -> str:
-    """One repository's `repo` file, kept as a directory or as opam's tarred form."""
+    """Read `<root>/repo/<name>/repo` or its `<name>.tar.gz` archive member."""
     unpacked = root / "repo" / name / "repo"
     if unpacked.is_file():
         return unpacked.read_text(encoding="utf-8", errors="replace")
@@ -328,10 +206,7 @@ def _repo_file(root: Path, name: str) -> str:
 
 
 def repositories(root: Path) -> list[dict[str, str]]:
-    """Every repository a root is configured with: its name, its URL and the stamp its
-    metadata carries, in the root's own order. Empty where the root configures none,
-    and a stamp is empty where it cannot be read, because a report on a developer's root
-    says what it found rather than refusing."""
+    """Read configured repositories (`name`, `url`, `stamp`) from `<root>/repo/repos-config`."""
     try:
         text = (root / "repo" / "repos-config").read_text(encoding="utf-8")
     except OSError:
@@ -343,17 +218,12 @@ def repositories(root: Path) -> list[dict[str, str]]:
     return found
 
 
-# A root config's `installed-switches` field, one quoted name or a bracketed list of them.
 _SWITCHES_RE = re.compile(r'(?m)^installed-switches:\s*(\[[^\]]*\]|"[^"\r\n]*")')
 _QUOTED_RE = re.compile(r'"([^"\r\n]*)"')
 
 
 def root_switches(root: Path) -> list[str]:
-    """Every switch a root's own `config` lists in its `installed-switches` field, the list
-    `opam switch list` answers from, in the root's order; empty where it lists none or
-    cannot be read. Read from the file rather than through opam, because over a root whose
-    format upgrade cannot be made in memory the reviewed client lists no switch without
-    first upgrading the root."""
+    """Read `installed-switches` from `<root>/config` without invoking opam."""
     try:
         found = _SWITCHES_RE.search((root / "config").read_text(encoding="utf-8"))
     except OSError:
@@ -362,13 +232,7 @@ def root_switches(root: Path) -> list[str]:
 
 
 def initialized_repositories(root: Path) -> list[dict[str, str]]:
-    """`repositories` over a root just initialized on `OPAM_REPOSITORIES`, refused unless
-    it is configured with exactly those names and URLs and every one's stamp was read.
-
-    A record of what the snapshots were resolved against is evidence only when it is
-    complete; `repositories` reads an unreadable configuration as none and an unread
-    stamp as empty, which a record would otherwise carry as though it were the answer.
-    """
+    """Verify that `root` has `OPAM_REPOSITORIES` configured with non-empty metadata stamps."""
     found = repositories(root)
     configured = sorted((repo["name"], repo["url"]) for repo in found)
     if configured != sorted(OPAM_REPOSITORIES):

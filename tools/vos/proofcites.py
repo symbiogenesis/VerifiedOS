@@ -1,19 +1,9 @@
 # SPDX-License-Identifier: Apache-2.0
-"""Requirement citations, discharge annotations and source declaration names.
+"""Requirement citations, discharge annotations, and source declaration names in `proofs/*.v`.
 
-The host reads citations lexically, resolving their ids against the live register.
-Generated requirement-header regions are excluded: a manifest cannot select its own
-membership, and legacy transcriptions cannot turn their references into authored cites.
-The delimiters and region validation are shared with the header generator and K-108.
-
-A discharge annotation claims that the following statement answers named requirements.
-Marker-level validation rejects malformed annotations, enclosing comments and strings.
-The native guest audit resolves each claim to a compiled symbol, checks its type is a
-proposition, and enumerates its assumptions. Whether that proposition expresses the
-requirement is still the specification review gate's judgment.
-
-The source-name reader strips comments and reads declaration vernacular. It supports
-host navigation; it is not the native inventory the assumption gate relies on.
+Extracts requirement tokens outside derived header blocks (`(*| BEGIN derived ... |*)`),
+parses `(*| discharges: R-... |*)` annotations above theorem statements (`STATEMENTS`),
+and lists top-level defined names (`DEFINERS`) for host-side checks and navigation.
 """
 
 import re
@@ -36,112 +26,40 @@ from vos.proofs import (
 )
 from vos.register import REQ_TOKEN_RE
 
-# The shipped proof artifacts, as the directory holding them and the kind they are.
 PROOFS = "proofs"
 SUFFIX = ".v"
 
-# The delimiters a derived header region is written between, and the marker both of them
-# open with. Each is a whole Gallina comment, so a region sits inside the header comment
-# it belongs to as a nested one, and neither delimiter carries a requirement id itself.
-# They are declared here rather than at either reader because three things spell them,
-# the exclusion below, the rule holding it, and the writer that will fill a region in.
+# Derived header region delimiters (`checks/citations.py` K-108).
 DERIVED_BEGIN = "(*| BEGIN derived: cited entries |*)"
 DERIVED_END = "(*| END derived |*)"
 DERIVED_MARK = "(*|"
 
-# Both delimiters in one pattern, the BEGIN's label admitted and never required. The
-# marker count is compared against the number of matches, so a delimiter respelled past
-# this pattern is a fault rather than a region silently stopping being one.
 _DERIVED_RE = re.compile(r"\(\*\|\s*(BEGIN|END)\s+derived\s*(?::[^|\r\n]*)?\|\*\)")
-
-# The other construct spelled in this marker, and the reason the stray count subtracts
-# it. `(*|` is coqdoc's delimiter rather than this repository's, so the region is not
-# its only occupant: a discharge annotation above a constant is written in it too, and
-# was here first. Counting every marker as an attempted delimiter therefore reported
-# each of those as a region nothing excludes, which is a rule whose premise its own
-# tree had already falsified. Subtracting the well-formed ones keeps what the stray
-# count is for, a BEGIN or an END respelled past `_DERIVED_RE` leaving a region
-# unexcluded with nothing said, and widens it by one honest case: an annotation
-# misspelled past this pattern is a marker in neither set and is reported here rather
-# than read as prose by everything.
 _ANNOTATION_RE = re.compile(r"\(\*\|\s*discharges:[^|\r\n]*\|\*\)")
 
-# The vernaculars whose sentence binds a top-level name, the shared lexer's
-# `DECLARATIONS`. It is deliberately *not* `cli/proofs.py`'s `DEFINERS`, and the
-# difference is the question each list answers rather than a second copy of one answer:
-# that one is the shape a non-vacuity witness takes, a closed definition typed at a
-# carrier record, so a `Fixpoint`, an `Inductive` and a `Record` are outside it by
-# construction. An index of what a file *defines* wants all three, a record declaration
-# being as much a constant of the file as a lemma is.
 DEFINERS = DECLARATIONS
-
-# What a definition may open with and still be the same definition: the shared lexer's
-# control flags and quoted and legacy attributes, of which `Fail` and `Succeed` keep
-# nothing the definition states. Public because [the citations check](checks/citations.py)
-# composes a pattern of its own over the same opening, and what precedes a vernacular is
-# one fact: written twice it becomes two, and the second one goes stale the first time a
-# keyword is added to either. A sentence the split leaves after a proof's bullet, brace or
-# goal selector opens with that too, each a command of its own, which this module's own
-# readers take (`CONTROL_PREFIXES`) and the citations check does not: a bulleted line of
-# prose is the shape a transcription's list takes, and its first word is no command.
 MODIFIERS = VERNAC_CONTROL
 _DEFINED_RE = re.compile(rf"^({CONTROL_PREFIXES})(?:{'|'.join(DEFINERS)})\s+([\w']+)")
 
-# `STATEMENTS`, the shared lexer's, are the vernaculars whose sentence *states*
-# something, which is the set a discharge may sit above: Rocq 9.3's theorem keywords and
-# `Example`, the table the proof gate's witness scan reads. It is a subset of `DEFINERS`
-# and the difference is the whole content of the distinction this module keeps: a
-# `Definition`, a `Fixpoint`, an `Inductive` or a `Record` introduces a term, and a term
-# answers no obligation, where a `Theorem` and its six synonyms assert one. `Example` is
-# in because Rocq treats it as a `Definition` whose body is a proof script and this
-# repository writes its known-answer checks that way, so an `Example` is a sentence
-# somebody proved and can be claimed against an entry; `Instance` is out because what it
-# asserts is a class membership the elaborator fills in, and a claim on it would be a
-# claim about a resolution rather than about a statement.
-
-# The marker a discharge annotation opens with. Every occurrence of it in a proof
-# artifact is an attempt at an annotation, which is what makes a malformed one a fault
-# rather than a comment this parse walks past. It is a literal, so the scan for it is
-# `str.find` rather than a pattern: over the shipped tree that is one C-level pass
-# costing about the same as the citation half's own `findall`.
 DISCHARGE_OPEN = "(*|"
-
-# The word the annotation states its claim with, held here so that the pattern below and
-# every message about a malformed annotation spell it once.
 DISCHARGE_WORD = "discharges"
 
-# The annotation and the sentence beneath it, as two anchored matches, the second where
-# the first ends. The id list may not span lines, which is what bounds the `[^|\r\n]*`
-# run to the line it opens on rather than to the rest of a two-megabyte artifact; nothing
-# but horizontal space may follow the closing marker, and no blank line is admitted
-# between the two, because a discharge that floats above an empty line names whichever
-# sentence happens to come next. The annotation is read in the source, and the sentence
-# in the source with its comments blanked at their own offsets, so a comment between a
-# decoration and the vernacular is the separator Rocq's lexer reads.
+# Match a `(*| discharges: ... |*)` line and the immediately following vernacular head.
 _DISCHARGE_RE = re.compile(
     rf"\(\*\|[^\S\r\n]*{DISCHARGE_WORD}:(?P<ids>[^|\r\n]*)\|\*\)[^\S\r\n]*\r?\n")
 _CLAIMED_RE = re.compile(
     rf"[^\S\r\n]*{CONTROL_PREFIXES}(?P<vernac>[A-Za-z]+)[^\S\r\n]+(?P<name>[\w']+)")
 
-# One annotation's whole content: the constant it sits above, and the entries that
-# constant claims to answer. Repeats inside one list are the caller's to notice; the
-# order is the file's, because a ledger written in it reads down the artifact.
 type Claim = tuple[str, list[str]]
 
 
 def is_source(rel: str) -> bool:
-    """Whether a repository-relative path is one of the shipped proof artifacts."""
+    """Return True if `rel` is a `.v` file under `proofs/`."""
     return rel.startswith(f"{PROOFS}/") and rel.endswith(SUFFIX)
 
 
 def on_disk(root: Path) -> list[str]:
-    """Every proof artifact the working tree holds, as relative paths in name order.
-
-    The working tree and not the git index, and the two readers want opposite things.
-    A rule decides about the corpus, which is what the index carries, so it takes its
-    subject from there; a query answers for the person editing, whose new artifact is
-    not staged yet and whose question is about the file in front of them.
-    """
+    """Return sorted relative paths of `proofs/*.v` files in the working tree."""
     directory = root / PROOFS
     if not directory.is_dir():
         return []
@@ -149,14 +67,7 @@ def on_disk(root: Path) -> list[str]:
 
 
 def read(root: Path, rels: list[str]) -> tuple[list[tuple[str, str]], list[str]]:
-    """The named artifacts as `(path, text)` pairs, and why any of them could not be.
-
-    A path that is not on disk is one the caller's own listing has outrun, a peer
-    session's deletion landing between the listing and the read; a path that is there
-    and will not decode is a finding, because a proof artifact this tool cannot open is
-    one whose citations nothing decides. Both come back rather than being raised, so the
-    caller reports them under its own rule instead of ending in a traceback.
-    """
+    """Read `(rel, text)` pairs for `rels`, returning any missing/decode faults separately."""
     pairs: list[tuple[str, str]] = []
     faults: list[str] = []
     for rel in rels:
@@ -175,15 +86,10 @@ def read(root: Path, rels: list[str]) -> tuple[list[tuple[str, str]], list[str]]
 
 @dataclass(frozen=True)
 class Derived:
-    """One artifact's derived regions, and why its delimiters could not be read.
+    """Balanced derived-header character spans `(start, end)` or delimiter faults.
 
-    `spans` are the character ranges between a BEGIN and the END that closes it,
-    delimiters excluded; `faults` is why there are none. **The two are exclusive by
-    construction**, and that is the whole safety property: an artifact whose
-    delimiters do not balance yields no span at all, so a BEGIN nobody closed excludes
-    nothing and the citation reading above it goes on reading the file whole rather
-    than agreeing quietly with every one of no citations. The fault is what the caller
-    reports; swallowing it would be the failure this exclusion is capable of.
+    `spans` is empty whenever `faults` is non-empty so malformed delimiters never
+    silently exclude citations.
     """
 
     spans: tuple[tuple[int, int], ...] = ()
@@ -191,23 +97,12 @@ class Derived:
 
 
 def line_at(text: str, offset: int) -> int:
-    """The 1-based line an offset falls on, for a finding somebody has to go and read."""
+    """Return the 1-based line number of `offset` in `text`."""
     return text.count("\n", 0, offset) + 1
 
 
 def derived(text: str) -> Derived:
-    """Every derived region one artifact carries, or why its delimiters do not read.
-
-    One whole-text pass behind a substring pre-test, which is what keeps it free on the
-    artifacts carrying no region: `DERIVED_MARK` is a C-level scan and the pattern is
-    spent only where a marker is actually there.
-
-    **Four ways the delimiters fail to read, and each is a fault rather than a span
-    quietly dropped.** A BEGIN inside an open region, an END no BEGIN opened, a BEGIN
-    the file never closes, and a marker that is neither delimiter, which is what a
-    respelled or mistyped one leaves behind and is the one of the four that would
-    otherwise leave a region unexcluded with nothing said.
-    """
+    """Parse `(*| BEGIN/END derived |*)` spans in `text` and report any delimiter faults."""
     if DERIVED_MARK not in text:
         return Derived()
 
@@ -246,44 +141,22 @@ def derived(text: str) -> Derived:
 
 
 def ids(text: str, region: Derived | None = None) -> list[str]:
-    """Every requirement citation one artifact makes, in the order it makes them.
-
-    Repeats are kept: how often an artifact argues from an entry is the caller's to
-    count, and a set here would silently answer a different question.
-
-    A derived reference manifest or legacy transcription is skipped, so its generated
-    ids cannot select their own membership on the next regeneration. An artifact whose
-    delimiters do not balance carries no region here, so the whole of it is read and
-    the imbalance is `derived`'s fault for the caller to report.
-
-    `region` is that parse where the caller has already made it, and the parameter is
-    the scan's shape rather than a convenience: the exclusion costs one whole-text pass
-    per artifact, and the citations group's two rules would otherwise each pay for it
-    over the same bytes. A caller with nothing to hand over passes nothing.
-    """
+    """Return all requirement IDs cited in `text` outside balanced `Derived` spans."""
     if region is None:
         region = derived(text)
     if not region.spans:
-        # `findall` over a pattern with no group hands back the whole matches, which are
-        # strings; the cast says so, where rebuilding the list to prove it would be a
-        # Python-level pass over every hit for nothing.
         return cast("list[str]", REQ_TOKEN_RE.findall(text))
     return [m.group() for m in REQ_TOKEN_RE.finditer(text)
             if not any(start <= m.start() < end for start, end in region.spans)]
 
 
 def cited_within(text: str, span: tuple[int, int]) -> list[str]:
-    """Every requirement id one derived region names, in the order it names them."""
+    """Return all requirement IDs cited within `span` of `text`."""
     return cast("list[str]", REQ_TOKEN_RE.findall(text, span[0], span[1]))
 
 
 class ParseCache:
-    """One invocation's lexical facts, keyed by immutable source text.
-
-    Readers still acquire their current bytes and own their membership and read
-    failures. Repeated text shares delimiter and citation scans; a same-size edit
-    is a different input, and malformed delimiters retain their original faults.
-    """
+    """Per-invocation cache of `Derived` spans and cited requirement IDs keyed by source text."""
 
     def __init__(self) -> None:
         self._regions: dict[str, Derived] = {}
@@ -301,19 +174,14 @@ class ParseCache:
 
 
 def _void(decorated: str) -> str | None:
-    """The control flag keeping nothing, `Fail` or `Succeed`, among a run of decorations."""
+    """Return `'Fail'` or `'Succeed'` if present in `decorated`."""
     found, _ = decorations(decorated)
     return next((str(decoration.group("word")) for decoration in found
                  if decoration.group("word") in VOID), None)
 
 
 def names(text: str) -> list[str]:
-    """Every top-level constant one artifact defines, in declaration order.
-
-    Comments are stripped first, so a vernacular written inside the header prose no
-    more defines a constant than it would compile as one, and a definition under `Fail`
-    or `Succeed` defines none either.
-    """
+    """Return top-level constant names defined in `text` (excluding `Fail`/`Succeed`)."""
     found: list[str] = []
     for sentence in sentences(text):
         m = _DEFINED_RE.match(sentence)
@@ -323,13 +191,7 @@ def names(text: str) -> list[str]:
 
 
 def _listed(body: str) -> tuple[list[str], str | None]:
-    """The annotation's id list, or why it is not one.
-
-    Comma-separated and nothing else, so a list is read as a list rather than scanned
-    for whatever happens to look like an id in it. The difference is the case the
-    scanning reading gets wrong: `discharges: R-07-015 and the rest` yields one id under
-    a `findall` and reports nothing, where the author wrote a sentence and meant two.
-    """
+    """Parse a comma-separated list of distinct requirement IDs, or return a fault message."""
     found: list[str] = []
     for token in body.split(","):
         word = token.strip()
@@ -349,35 +211,10 @@ def _listed(body: str) -> tuple[list[str], str | None]:
 
 
 def discharges(text: str) -> tuple[list[Claim], list[str]]:
-    """Every discharge annotation one artifact makes, and the ones it could not read.
-
-    The claims come back in the order the file makes them and the faults in the order it
-    commits them, each naming the line a person has to go and visit. Both are returned
-    rather than raised, on the same ground `read` above states about a file that will
-    not decode: a rule reports what it could not read, and an artifact carrying one
-    mistyped annotation still yields the rest of its claims.
-
-    Five things are refused and each is worded as itself, because they are five
-    different edits. A marker that shares its line with code before it is not the form
-    at all. A marker whose annotation will not parse is a mistyped one. An id list that
-    is not a comma-separated list of distinct requirement ids claims something this parse
-    cannot name. An annotation above a vernacular outside `STATEMENTS` is a claim on a
-    term rather than on a sentence, which renders perfectly and reads as correct. And one
-    above a statement under `Fail` or `Succeed` is a claim on a sentence the file keeps
-    nothing of, the flag standing on the statement's line or above the annotation, which
-    is a comment and separates nothing (proofs.void_flag). The statement is read under
-    any decoration of the shared lexer's grammar, comments as separators.
-
-    The line a fault names is accumulated across the scan rather than counted from the
-    start of the file at each hit, which is one pass over the text for the whole walk
-    instead of one per marker: the tree the host wave reads is two and a half megabytes,
-    and the annotations are expected to number in the hundreds.
-    """
+    """Parse `(symbol_name, requirement_ids)` discharge claims and syntax faults from `text`."""
     claims: list[Claim] = []
     faults: list[str] = []
     depths = marker_depths(text, DISCHARGE_OPEN) if DISCHARGE_OPEN in text else {}
-    # the source with its comments blanked at their own offsets, and its sentence ends,
-    # read once and only for a file carrying an annotation
     blanked: tuple[str, list[int]] | None = None
     at, line = 0, 1
     while (mark := text.find(DISCHARGE_OPEN, at)) >= 0:
@@ -425,20 +262,12 @@ def discharges(text: str) -> tuple[list[Claim], list[str]]:
 
 
 def citations(pairs: list[tuple[str, str]]) -> dict[str, set[str]]:
-    """The citation index: each artifact against the requirements it names."""
+    """Map each `(rel, text)` pair to the set of requirement IDs it cites."""
     return {rel: set(ids(text)) for rel, text in pairs}
 
 
 def claims(pairs: list[tuple[str, str]]) -> tuple[dict[str, list[Claim]], list[str]]:
-    """The discharge index: each artifact against what its constants claim to answer.
-
-    The faults of every artifact are gathered into one list rather than kept per file,
-    because their one reader reports them under a single rule and each already names the
-    artifact it came from. A constant annotated twice in one file is a fault here rather
-    than two claims, since the two annotations are two answers to the question *what
-    does this constant claim*, and a ledger built over both would carry the constant
-    twice against whichever union of ids the second annotation happened to write.
-    """
+    """Map each `(rel, text)` pair to its deduplicated discharge `Claim` list and collect faults."""
     index: dict[str, list[Claim]] = {}
     faults: list[str] = []
     for rel, text in pairs:
@@ -458,10 +287,10 @@ def claims(pairs: list[tuple[str, str]]) -> tuple[dict[str, list[Claim]], list[s
 
 
 def constants(pairs: list[tuple[str, str]]) -> dict[str, list[str]]:
-    """The definition index: each artifact against the constants it binds, in order."""
+    """Map each `(rel, text)` pair to the list of top-level constants it defines."""
     return {rel: names(text) for rel, text in pairs}
 
 
 def citing(index: dict[str, set[str]], ident: str) -> list[str]:
-    """The artifacts citing one requirement, in the index's own order."""
+    """Return the artifact paths in `index` that cite requirement `ident`."""
     return [rel for rel, cited in index.items() if ident in cited]

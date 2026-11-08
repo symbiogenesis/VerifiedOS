@@ -64,7 +64,7 @@
         },
         {
           "path": "tools/vos/proofs.py",
-          "sha256": "fb53cdb3b596ee5918c6c4111c1f247f157e6ec0ae5dd8a1b4cbf244ca3e8e8c"
+          "sha256": "e97b1c3c7ae00098c9204396b27897eabdfc13cb4636d8daf4361421de51c226"
         },
         {
           "path": "tools/vos/python_dependencies.py",
@@ -173,7 +173,7 @@
         },
         {
           "path": "tools/vos/proofs.py",
-          "sha256": "fb53cdb3b596ee5918c6c4111c1f247f157e6ec0ae5dd8a1b4cbf244ca3e8e8c"
+          "sha256": "e97b1c3c7ae00098c9204396b27897eabdfc13cb4636d8daf4361421de51c226"
         },
         {
           "path": "tools/vos/python_dependencies.py",
@@ -614,7 +614,7 @@
         },
         {
           "path": "tools/vos/proofs.py",
-          "sha256": "fb53cdb3b596ee5918c6c4111c1f247f157e6ec0ae5dd8a1b4cbf244ca3e8e8c"
+          "sha256": "e97b1c3c7ae00098c9204396b27897eabdfc13cb4636d8daf4361421de51c226"
         },
         {
           "path": "tools/vos/python_dependencies.py",
@@ -647,7 +647,7 @@
       ],
       "descriptor": {
         "path": "tools/composer/packages/composer.json",
-        "sha256": "5397099e433a88c683896480d542618cf54b5d37220ff41f524a00b2bbacfbed"
+        "sha256": "2cc6465edfce0ed4075abb29ca2a8542cd9b26e586d884d4ace4ff901875e953"
       },
       "artifact_slot": "composer-artifact",
       "entry": null,
@@ -802,7 +802,7 @@
         },
         {
           "path": "tools/vos/proofs.py",
-          "sha256": "fb53cdb3b596ee5918c6c4111c1f247f157e6ec0ae5dd8a1b4cbf244ca3e8e8c"
+          "sha256": "e97b1c3c7ae00098c9204396b27897eabdfc13cb4636d8daf4361421de51c226"
         },
         {
           "path": "tools/vos/python_dependencies.py",
@@ -835,7 +835,7 @@
       ],
       "descriptor": {
         "path": "tools/composer/packages/admission.json",
-        "sha256": "8649889818c642a0a0cf6d8556d8aabc13b0335207b99466a6616dcc24aaa032"
+        "sha256": "00900625c99270e27411d32527a64c2bf18ff7e58962d33d29e6972cff830eb2"
       },
       "artifact_slot": "admission-artifact",
       "entry": null,

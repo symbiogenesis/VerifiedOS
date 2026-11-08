@@ -1,73 +1,14 @@
 # SPDX-License-Identifier: Apache-2.0
-"""What a mutation run decides, spelled once for every oracle that runs one.
+"""Mutation-run verdicts, scope accounting, journaling, and reporting.
 
-Five loops in this tree seed a defect and ask whether something noticed, and before
-this module they agreed about the method and disagreed about everything a reader
-sees: each carried its own tallies, its own report and its own arithmetic from
-verdicts to an exit code. That is one engine written five times, and the failure
-mode is the quiet one: an accounting that drifts between loops reads like two
-different measurements of two different things.
-
-So the vocabulary lives here and the loops keep only what is theirs, which is the
-oracle. `vos/mutate.py` generates a population where the checker's selftest authors
-one, and that difference is real and stays; what a *verdict* is does not depend on
-where the mutant came from.
-
-## Four verdicts about a mutant, and why the fourth is not the third
-
-**Killed** is a mutant that reached the oracle and moved its answer. **Survived** is
-one that reached the oracle and did not, and it is the finding this whole method
-exists to produce: the oracle does not decide about that site.
-
-**Stillborn** is a mutant that never reached the oracle at all, because it did not
-compile. Nothing was decided about the oracle by it, so it is counted, reported, and
-deliberately **not** a finding, and the score is over the live population. Counting
-stillborn mutants as kills is the standard way a mutation score is inflated, which is
-why they are counted apart rather than dropped.
-
-**Unseeded** is a mutant that never reached the oracle either, and it is a finding,
-which is the one place a reader has to be careful. The two are not the same verdict
-and merging them would lose the distinction that matters. A stillborn mutant is a
-fact about the *subject*: the seed was applied and the result did not build, which is
-an ordinary outcome of walking a source with an operator table that cannot know which
-sites type. An unseeded mutant is a fact about the *case*: the seed did not apply,
-so the artifact it was written against has moved and the case has stopped asking
-anything. A generated population regenerates itself against whatever the source now
-holds and cannot go unseeded; an authored one can, and would go on reporting its rule
-live for exactly as long as nobody looked. That is why the population that can drift
-is the one whose third verdict fails the run.
-
-The two are therefore produced by different loops rather than by one loop's taste. A
-generated oracle yields stillborn mutants and never unseeded ones. The two authored
-oracles yield unseeded ones and never stillborn ones, because neither compiles
-anything: the checker's is a subprocess that always runs, and the gate over the
-deferred instruments is a check group's own run over a context. `summarize` carries
-both verdicts because it is one report over every population, not because any loop is
-expected to produce the other's.
-
-## The fifth, which is about the run
-
-**Undecided** is a mutant whose oracle was asked and gave no answer: a compile did not
-end inside the time the run gives one, so the run stopped it, a signal ended one, or the
-oracle ended on something that decides nothing about the mutant, and the run went on to
-the next. It is a fact about neither the subject nor the case but about the run and the
-machine under it, and it is a finding, because a population with an unanswered member
-was not decided: a run reporting `ok` over it would quote a verdict nobody reached. It
-is never a kill, a stop being no answer, never a survivor, nothing having been seen to
-hold, and never stillborn, no compile having been seen to fail. The Gallina lane yields
-it, where a compile reaches gallina's per-file limit or a signal ends the prover, and
-under QuickChick where a drawn set's program built and then ended on memory or stack
-running out, a signal, a program that could not run, or a status nobody can classify.
-
-## The report, and the second copy that survives the process
-
-`summarize` is printed once, at the end, which is right for a run that ends. A
-whole-population run over the prover is hours of prover, and the way it stops is a
-teardown of the guest distribution underneath it: the run dies at member 460 and says
-nothing about the 459 it had already decided, so the prover time is spent and the
-answers go with the VM. `Journal` is that second copy, one line per verdict, flushed
-as it is written. Nothing about the report moves: it stays accumulated, printed whole,
-and in population order, and the journal is a record of what was decided and when.
+Verdicts:
+- `killed`: reached the oracle and changed its output.
+- `survived`: reached the oracle without changing its output (finding).
+- `stillborn`: failed to compile before reaching the oracle (counted separately, not a
+  finding; live score excludes stillborn mutants).
+- `unseeded`: authored seed did not apply to the target artifact (finding).
+- `undecided`: oracle timed out, died on a signal, or produced an unclassifiable status
+  (finding).
 """
 
 from dataclasses import dataclass
@@ -75,7 +16,6 @@ from pathlib import Path
 from threading import Lock
 from typing import Protocol
 
-# The five verdicts, spelled once.
 KILLED = "killed"
 SURVIVED = "survived"
 STILLBORN = "stillborn"
@@ -84,13 +24,7 @@ UNDECIDED = "undecided"
 
 
 class Seeded(Protocol):
-    """What a verdict needs of the thing it is about, and the whole of it.
-
-    One line naming the defect well enough that a reader can go and look at it.
-    `mutate.Mutant` spells that as its site and its rewrite; an authored case has no
-    site and spells it as the rule it is aimed at and the defect in words. Nothing
-    else here reads anything else off a mutant, so nothing else is required.
-    """
+    """Protocol for a generated or authored mutant."""
 
     @property
     def what(self) -> str: ...
@@ -98,21 +32,7 @@ class Seeded(Protocol):
 
 @dataclass(frozen=True)
 class Scope:
-    """How much of a population a run covered, and what it left behind.
-
-    A narrowed run is evidence about the mutants it ran and about nothing else, and the
-    way that goes wrong is silence rather than error: a report stating its verdicts and
-    not its scope reads as a whole-population run at every later citation, and the
-    citation is what a completion note quotes. So the scope travels with the verdicts,
-    is printed whether or not it is whole, and is repeated on the closing line, because
-    the closing line is the one that gets copied.
-
-    `left` names the axis a reader can act on rather than listing the absent mutants; a
-    caller that knows its population's axes fills it and one that does not leaves it
-    empty. Being partial is not a finding and does not fail a run: `--limit` and
-    `--sample` are legitimate and the point here is that their result cannot be quoted
-    as something it is not.
-    """
+    """Population coverage of a mutation run."""
 
     whole: int
     ran: int
@@ -123,19 +43,11 @@ class Scope:
         return self.ran < self.whole
 
     def decided(self, ran: int) -> Scope:
-        """The same scope over what a run actually reached.
-
-        `ran` is filled where the population is picked, which is before any verdict
-        exists, and for two of the three oracles here that is also what gets decided.
-        The third can stop early: the `$[test]` loop writes into the checkout and stops
-        the moment it cannot verify its own restore, and a scope taken from the picking
-        would then close on a line stating a run larger than the verdicts under it,
-        which is the same misquotation `stated` exists to refuse one level up.
-        """
+        """Return a copy updated with the count of mutants actually evaluated."""
         return Scope(whole=self.whole, ran=ran, left=self.left)
 
     def stated(self) -> str:
-        """The scope as one clause, for the closing line to carry."""
+        """Format the scope clause for summary headers and closing lines."""
         if not self.partial:
             return f"over the whole population of {self.whole} mutant(s)"
         return (f"over {self.ran} of {self.whole} mutant(s), which is a sample and "
@@ -144,13 +56,7 @@ class Scope:
 
 @dataclass(frozen=True)
 class Verdict:
-    """One mutant, run: what the oracle decided and on how much.
-
-    `moved` is the size of the movement where the oracle measures one, in whatever
-    unit that oracle counts, and zero where it does not: an oracle whose answer is a
-    vector set says how much of it moved, and one whose answer is a rule firing has
-    nothing to say beyond that it fired.
-    """
+    """Oracle outcome for a single mutant."""
 
     mutant: Seeded
     outcome: str
@@ -159,38 +65,7 @@ class Verdict:
 
 
 class Journal:
-    """A run's verdicts written down as they are decided, for the run that does not end.
-
-    **What it is for is the run that is killed rather than the run that fails.** A
-    failing run reports: `summarize` prints its findings and the loop exits 1. A run
-    whose distribution is torn down under it prints nothing at all, and a population
-    that costs a prover run per member is exactly the run that outlives its lane. The
-    report is unmoved by this and stays the artifact a completion note quotes; what is
-    added is a file that is complete up to the moment the process stopped.
-
-    **The head carries the scope and the tail carries the close.** How large the
-    population is and how much of it this run picked are both known before the first
-    mutant, so a reader of a file with no closing line still knows what fraction of what
-    those verdicts are, which is the discipline `Scope` states for the report. The
-    closing line's *absence* is the record: a journal that ends without one is a run
-    that never reached its report.
-
-    **One file, opened per verdict, under a lock.** Opening and closing around each
-    line is the flush: nothing sits in a buffer waiting for an exit that may not come,
-    and the cost is one `open` against a mutant that costs a compiler or a prover. The
-    lock is because the Gallina lane shards its population across several trees at
-    once, so the lines land in completion order where the report is in population
-    order; that is the difference between the two artifacts rather than a defect in
-    this one.
-
-    **A note is not a verdict.** A loop may also write down what a verdict cost as it
-    goes, the Gallina lane each compile's file and wall seconds, every line of a note
-    opening `-- `, which neither a verdict line, opening on its number, nor the head or
-    the closing line, opening `== `, does. A run stopped mid-mutant thereby still says
-    which mutant it was on and what it had compiled. The closing line counts undecided
-    verdicts apart from decided ones, an undecided mutant being one nothing was decided
-    about.
-    """
+    """Incremental line-flushed verdict log for long-running mutation campaigns."""
 
     def __init__(self, path: Path) -> None:
         self.path = path
@@ -199,11 +74,7 @@ class Journal:
         self._undecided = 0
 
     def start(self, subject: str, oracle_name: str, scope: Scope) -> str:
-        """Open the file on this run's head, and say where it is.
-
-        The line handed back is for the run's own first line: a journal nobody is told
-        about is a journal nobody reads after the run that would have named it died.
-        """
+        """Initialize the journal file with the run header and return a status banner."""
         self.path.parent.mkdir(parents=True, exist_ok=True)
         self._write("w", [f"== {subject} against the {oracle_name} oracle",
                           f"   scope: {scope.stated()}",
@@ -214,13 +85,7 @@ class Journal:
                 "run that does not finish still says what it decided")
 
     def record(self, verdict: Verdict, about: str = "") -> Verdict:
-        """Write one verdict down and hand it back, so a loop journals and keeps in one
-        expression rather than in two statements that can drift apart.
-
-        `about` names what the verdict is about where its `what` may not: two mutants
-        rewriting one token on one line read alike, and trees journalling at once
-        interleave their lines. Where it is given it is written as a note directly
-        before the verdict, naming the verdict's number, in the same write."""
+        """Append `verdict` (and optional `about` note) to the journal and return it."""
         with self._lock:
             self._n += 1
             if verdict.outcome == UNDECIDED:
@@ -231,13 +96,12 @@ class Journal:
         return verdict
 
     def note(self, text: str) -> None:
-        """Write a note that is not a verdict as it happens, every line of it opening
-        `-- `, so a reason the prover gave over several lines reads as no verdict."""
+        """Append `-- `-prefixed diagnostic note lines to the journal."""
         with self._lock:
             self._write("a", [f"-- {line}" for line in text.splitlines() or [""]])
 
     def close(self, code: int) -> None:
-        """The closing line, which is what a truncated journal is missing."""
+        """Write the completion footer line with decided/undecided counts and exit code."""
         undecided = f", {self._undecided} undecided" if self._undecided else ""
         self._write("a", [f"== complete: {self._n - self._undecided} verdict(s) decided"
                           f"{undecided}, exit {code}"])
@@ -248,36 +112,14 @@ class Journal:
 
 
 def findings_in(verdicts: list[Verdict]) -> int:
-    """How many of a run's verdicts are findings, which is what its verdict stands on.
-
-    Written here rather than at each caller because two callers now read it: the loops
-    exit on it through `summarize`, and the quarantine's gate counts findings into a
-    `Reporter` that also carries its rules, its floors, its registry and its tests. Two
-    readings of one arithmetic is the drift this module exists to remove, so `summarize`
-    takes its own exit code from here as well.
-
-    A survivor, an unseeded mutant and an undecided one are each a finding; a stillborn
-    one is not, for the reasons stated at the top of this module. A population with
-    nothing live in it at all, and nothing unseeded or undecided to say why, is one
-    finding about the *run* rather than one about any member, and it is the floor an
-    empty population falls through.
-    """
+    """Count failing verdicts (`survived`, `unseeded`, `undecided`), or 1 if none are live."""
     counted = sum(1 for v in verdicts if v.outcome in (SURVIVED, UNSEEDED, UNDECIDED))
     live = any(v.outcome in (KILLED, SURVIVED) for v in verdicts)
     return counted + (0 if live or counted else 1)
 
 
 def chosen[T](population: list[T], limit: int, sample: int) -> list[T]:
-    """Which of a population to run, and the two ways of narrowing it.
-
-    `--limit` takes a prefix, which is the right shape while iterating on one operator.
-    `--sample` takes evenly spaced members, which is the right shape for a
-    measurement: a prefix of an operator-ordered population is one operator's mutants
-    and says nothing about the rest.
-
-    Generic in the member, because what narrows a population does not read it: an
-    authored case narrows the same way a generated mutant does.
-    """
+    """Select a `--sample` stride or `--limit` prefix of `population`."""
     if sample and sample < len(population):
         step = len(population) / sample
         return [population[int(n * step)] for n in range(sample)]
@@ -285,57 +127,19 @@ def chosen[T](population: list[T], limit: int, sample: int) -> list[T]:
 
 
 def shard[T](population: list[T], parts: int) -> list[list[T]]:
-    """A population split `parts` ways, for that many workers to run at once.
-
-    **Exhaustive by construction, whatever the counts are.** Every member lands in
-    exactly one part because the strides `i`, `i + n`, `i + 2n` partition the indices,
-    so there is no arithmetic here that could leave a member out and no list anybody
-    has to keep in step with the population. That is the property a hand-assembled
-    partition lacks: an operator list written out by hand is where a whole kind of
-    defect goes unrun and nothing says so.
-
-    Striding rather than slicing into contiguous blocks, because a generated population
-    is in operator order and the operators do not cost the same. A contiguous split
-    hands one worker every member of the slowest operator; a stride interleaves them,
-    and the parts finish together without anyone having measured a member.
-    """
+    """Partition `population` into `parts` strided shards to balance operator cost."""
     return [population[i::parts] for i in range(parts)]
 
 
 def unshard[T](parts: list[list[T]]) -> list[T]:
-    """`shard` undone: the members back in population order.
-
-    Read round-robin by position, which is exactly the inverse of the stride. What it
-    is for is that a run's report should not depend on which worker finished first,
-    the population order being the order a reader compares two runs in.
-    """
+    """Reconstruct population order from strided shards produced by `shard`."""
     return [part[k] for k in range(max((len(p) for p in parts), default=0))
             for part in parts if k < len(part)]
 
 
 def summarize(out: list[str], verdicts: list[Verdict], subject: str,
               oracle_name: str, scope: Scope | None = None) -> int:
-    """The one report shape every loop shares, and the exit code it implies.
-
-    Four of the five verdicts decide the code and they decide it for the reasons
-    stated above: a survivor, an unseeded mutant and an undecided one are each a
-    finding, and a stillborn one is not. The score is over the live population, which
-    is the only population the oracle was asked about.
-
-    The unseeded and undecided counts are printed only where there is one, so a loop
-    that cannot produce the verdict reports exactly what it reported before this module
-    carried it, and a loop that can makes it conspicuous the moment it does.
-
-    `scope` says how much of the population those verdicts are about, and it is stated
-    twice on purpose: once in the header block a reader skims and once on the closing
-    line, which is the line a completion note copies. A loop that passes none reports
-    what it reported before, so the scope is an addition to this report and never a
-    silent change to one.
-
-    The code itself is `findings_in`'s, so that a caller counting findings for a
-    reporter of its own and this function's exit code cannot disagree about which
-    verdicts are findings.
-    """
+    """Append the mutation summary report to `out` and return the exit code (0 or 1)."""
     killed = [v for v in verdicts if v.outcome == KILLED]
     survived = [v for v in verdicts if v.outcome == SURVIVED]
     still = [v for v in verdicts if v.outcome == STILLBORN]
@@ -367,27 +171,18 @@ def summarize(out: list[str], verdicts: list[Verdict], subject: str,
 
     found = bool(findings_in(verdicts))
     if unseeded:
-        # first, because it is the sharper of the two findings: a survivor says the
-        # oracle is not deciding, and an unseeded mutant says nobody asked it to
         out.append(f"FAIL {len(unseeded)} of {len(verdicts)} mutant(s) seeded nothing, "
                    f"so the {oracle_name} oracle was never asked about them:")
         out.extend(f"       {v.mutant.what}: {v.detail}" for v in unseeded)
     if survived:
         out.append(f"FAIL {len(survived)} of {live} live mutant(s) survived the "
                    f"{oracle_name} oracle, so it does not reach the site:")
-        # with the detail, on every verdict alike: a survivor is repaired differently
-        # depending on how it survived, and the checker's oracle draws the sharpest of
-        # those lines, between a run that reported nothing and a run that died before
-        # it could report
         out.extend(f"       {v.mutant.what}: {v.detail}" for v in survived)
     if undecided:
         out.append(f"FAIL {len(undecided)} of {len(verdicts)} mutant(s) went undecided, "
                    f"the {oracle_name} oracle giving no answer about them:")
         out.extend(f"       {v.mutant.what}: {v.detail}" for v in undecided)
     if not live and not unseeded and not undecided:
-        # the vacuous pass every floor here exists to catch, and the floor an empty
-        # population falls through: a run with nothing live measured the compiler, or
-        # measured nothing at all
         out.append(f"FAIL every one of {len(verdicts)} mutant(s) was stillborn, so the "
                    f"{oracle_name} oracle decided nothing")
     if found:

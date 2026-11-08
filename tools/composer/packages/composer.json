@@ -196,7 +196,7 @@
     },
     {
       "path": "tools/vos/proofs.py",
-      "sha256": "fb53cdb3b596ee5918c6c4111c1f247f157e6ec0ae5dd8a1b4cbf244ca3e8e8c"
+      "sha256": "e97b1c3c7ae00098c9204396b27897eabdfc13cb4636d8daf4361421de51c226"
     },
     {
       "path": "tools/vos/python_dependencies.py",
