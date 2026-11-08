@@ -1,31 +1,11 @@
 # SPDX-License-Identifier: Apache-2.0
-"""Every command this repository's tools offer, and the lane each one runs in.
+"""Command table and lane routing for [tools/run.py](../run.py).
 
-There used to be seventeen executables under `tools/`, and using them meant knowing
-which file answered which question and which of the two lanes it ran in. That is the
-whole of what this table removes: one entry point, [run.py](../run.py), reads it,
-and a command is a name rather than a path.
-
-Each module under [vos/cli/](cli/__init__.py) is what one of those executables was,
-less its own preamble and its own `__main__` block: it keeps its docstring, its
-argparse, and its `main(argv)`, so `run.py <name> --help` is the help that command
-always printed. Nothing about what a command decides moved with it.
-
-**The lane is data here rather than a thing the caller remembers.** The document
-gates run on the Windows host and the model, RTL and prover loops run inside WSL,
-where the toolchain lives. A guest command asked for on the host is re-launched
-through `wsl` by `run.py` rather than refused, so the two lanes are one command
-surface; a `host_ok` subcommand is the exception that answers on either lane,
-because it reads a file rather than driving a toolchain.
-
-The table lives outside the `vos.cli` package because importing a command module
-runs that package's initializer. A row added here therefore changes no command's
-import closure, which is what the proof gate's implementation identity reads.
-
-`tools/check.py` is the one command that is still its own file as well as a name
-here, and the reason is that the normative documents cite that path: the register,
-the coverage matrix, the crown jewels, the field bindings and the findings register
-all say what `tools/check.py` decides, so the path is load-bearing and stays.
+Each [`Command`](#Command) entry binds a CLI command name to its module under
+[vos/cli/](cli/__init__.py) (or [check.py](../check.py)), its summary, its execution
+lane (`"host"` or `"guest"`), and any `host_ok` subcommands that can run on the host
+without invoking the WSL guest toolchain. Keeping this table outside `vos.cli` avoids
+importing `vos.cli.__init__` when inspecting command metadata.
 """
 
 from dataclasses import dataclass, field

@@ -1,52 +1,15 @@
 # SPDX-License-Identifier: Apache-2.0
-"""The findings register, the notes' own findings blocks, and the relation between them.
+"""Parse and cross-check [docs/assurance/findings-register.md](../../docs/assurance/findings-register.md),
+[PLAN.md](../../PLAN.md), and [docs/implementation/completion-log.md](../../docs/implementation/completion-log.md).
 
-Three artifacts, one relation. `PLAN.md` carries every item
-and, for a landed one, a single line and a link; `docs/implementation/completion-log.md` carries the
-note each landed item recorded, under a heading spelling the item's label, and a note
-records a finding under a count with its bullets beneath it or as a bullet that opens
-`Finding`; `docs/assurance/findings-register.md` gives that finding an id, a type, the item that
-raised it, and a disposition. This module reads all three and states where they
-disagree, so that the rule over them and any later tool asking the same question share
-one parse rather than two.
-
-**The block's size is its bullets and never its own word.** A note writes `Six
-findings.` above six of them, and holding the register against that word would let a
-note that lies about itself carry a register that agrees with the lie. So the size is
-counted from the bullets and the word is held against the count, which is the
-ordinary arithmetic-is-recomputed discipline applied to a document's own enumeration.
-
-**A leading word that is not a count is prose and not a malformed block.** One note
-opens a paragraph `Environment findings, booked for later lanes.` and carries three
-findings inside it; the note states them in prose rather than under a count, so the
-register indexes them by hand and marks them `in prose`. Reading that bullet as a
-block this parse could not count would make a permanent finding out of a shape the
-register already declares it does not hold. What keeps the reading fail-closed
-instead is the comparison itself: a count word this alternation stops recognizing
-takes its whole block out of the notes' side, and the entries indexing it are then
-entries naming findings the note no longer records, which is a finding either way.
-
-**The log is held total against the plan's landed items in both directions.** A
-landed or struck item with no entry is a note that was never written or was lost in
-the move, and an entry naming no landed item is a note whose item was struck or
-renamed under it; each is named rather than left to be met. Blocks are read in both
-documents, because an open item's note still lives in the plan, and a block there is
-attributed to the item it sits under exactly as one in the log is attributed to the
-heading it sits under.
-
-**A landed item keeps one summary line and its link, and nothing else.** The plan's
-checklist conventions move a landed item's note into the log, leaving its header line,
-one summary line and a link to its own log entry. What a move leaves behind is the
-note, or part of it, still standing under the item: a second summary bullet, a
-bullet nested under the summary, the summary wrapped onto another line, or the header
-continued onto one. Each is named with the lines to visit, and so is a summary whose
-link reaches another item's entry or none. A child item's lines are the child's, held
-when the child is landed and never when it is open.
-
-The register's own template is fenced, and a fence displays text rather than
-declaring anything, so the fenced spans are dropped before either pattern runs. That
-is the same rule `vos/corpus.py` states for every document the checker reads, applied
-here because this parse takes text rather than a `Document`.
+Validates that:
+- Every finding entry in `REGISTER` has a valid `TYPES` kind, `Raised` item, `DISPOSITIONS`
+  state, and existing `Restates` target.
+- Every landed or struck item in `PLAN` has a single summary bullet linking to its own
+  entry in `LOG`, and `LOG` entries correspond 1-to-1 with landed/struck `PLAN` items.
+- Every numbered findings block (`"<Word> findings."`) in `PLAN` or `LOG` matches its
+  nested bullet count, and the non-prose entries in `REGISTER` for each item match the
+  total findings recorded in that item's note.
 """
 
 import re
@@ -60,53 +23,31 @@ REGISTER = "docs/assurance/findings-register.md"
 PLAN = "PLAN.md"
 LOG = "docs/implementation/completion-log.md"
 
-# The closed vocabularies. A type says what a reader does with the finding and a
-# disposition says whether anything is owed; an entry carrying neither in the words
-# the register declares is an entry this parse cannot place, which is a finding rather
-# than an entry quietly dropped from the comparison.
 TYPES = ("owed-act", "upstream-defect", "method", "measurement")
 DISPOSITIONS = ("open", "closed", "standing")
 
-
-# An entry head, and the three property lines under it. The head's id is three digits
-# with an optional letter, which is what makes the register's fenced `F-nnn` template
-# unreadable as an entry even before the fence is dropped.
 _ENTRY_RE = re.compile(r"^\*\*(?P<id>F-\d{3}[a-z]?)\*\* (?P<kind>[a-z-]+): (?P<what>\S.*)$")
 _PROP_RE = re.compile(r"^· (?P<name>Raised|Disposition|Restates): (?P<value>\S.*)$")
 _RAISED_RE = re.compile(r"^(?P<item>[^,]+?)(?P<prose>, in prose)?$")
 _STATE_RE = re.compile(r"^(?P<state>[a-z-]+)")
 
-# The count words a note spells its blocks with, capitalized as a note writes them.
-# The table is `vos.figures`'s own word form rather than a second list, because the two
-# are the same convention: a note states a count in words and this reads it back, so a
-# hand-kept table here is a copy free to stop where the convention does not. It stops
-# where that one stops, at ninety-nine, past which a document states digits.
+# Capitalized English number words (`One`..`Ninety-nine`) from [figures.py](figures.py).
 _COUNTS = {figures.words(n).capitalize(): n for n in range(1, 100)}
 
-# A checklist item, checked, unchecked, or struck. The label runs to the first middot,
-# which is where the plan separates an item's id from its name; an item with no middot
-# at all is its own label, `Initial check/emit/FAST tooling` being the one such.
 _ITEM_RE = re.compile(r"^[^\S\r\n]*\* (?:\[(?P<box>[ x])\] |(?P<struck>~~))\*\*(?P<label>[^*\r\n]+?)\*\*")
-# A log entry's heading: the item's label as the plan writes it, one heading level
-# below the section it sits in and two below the log's own title, a child item of a
-# split milestone sitting one level below its parent. A section heading is two hashes
-# and is not an entry.
 _LOG_ITEM_RE = re.compile(r"^#{3,6} (?P<label>\S[^\r\n]*?)[ \t]*$")
-# Longest first, so `Twenty-three` is read as itself rather than as a `Twenty` whose
-# alternative then fails on the hyphen and takes the block out of the reading with it.
+# Longest words first so hyphenated numbers (`Twenty-three`) match before their prefixes (`Twenty`).
 _BLOCK_RE = re.compile(r"^(?P<ind>[^\S\r\n]*)\* \*{0,2}(?P<word>"
                        + "|".join(sorted(_COUNTS, key=len, reverse=True))
                        + r") findings\b")
 _SINGLE_RE = re.compile(r"^(?P<ind>[^\S\r\n]*)\* \*{0,2}Finding[,:]")
 _BULLET_RE = re.compile(r"^(?P<ind>[^\S\r\n]*)\* ")
-# A link from a landed item's summary line into the log. The link text is the
-# author's: most cells write `note` and a few `completion evidence`.
 _LOG_LINK_RE = re.compile(r"\]\(docs/implementation/completion-log\.md#(?P<anchor>[^()\s]+)\)")
 
 
 @dataclass(frozen=True)
 class Entry:
-    """One register entry, as the document states it."""
+    """Parsed entry from [docs/assurance/findings-register.md](../../docs/assurance/findings-register.md)."""
 
     ident: str
     kind: str
@@ -119,7 +60,7 @@ class Entry:
 
 @dataclass
 class Index:
-    """The findings register: whether it is there at all, and what it carries."""
+    """Parsed findings register contents and any structural errors."""
 
     present: bool = False
     entries: list[Entry] = field(default_factory=list)
@@ -128,10 +69,7 @@ class Index:
 
 @dataclass(frozen=True)
 class Block:
-    """One findings block of a note: which document and line it is at, whose it is,
-    how many bullets it carries, and what its own word claims. `declared` is zero for
-    the singleton form, which states no count and carries exactly the one finding its
-    bullet is."""
+    """Findings bullet block in `PLAN` or `LOG` (`declared == 0` for a singleton `Finding:` bullet)."""
 
     doc: str
     item: str
@@ -142,9 +80,7 @@ class Block:
 
 @dataclass
 class Plan:
-    """The notes' side: every item label the plan carries, the landed and struck ones
-    among them, the items the completion log carries an entry for with the fragment
-    each entry's heading declares, and every findings block either document records."""
+    """Checklist items, completion-log headings/anchors, and findings blocks from `PLAN` and `LOG`."""
 
     present: bool = False
     log_present: bool = False
@@ -156,11 +92,7 @@ class Plan:
 
 
 def _unfenced(text: str) -> list[str]:
-    """The document's lines with every fenced span blanked.
-
-    Blanked rather than removed, so that a line number is the document's own and a
-    finding sends a reader to the line the register writes.
-    """
+    """Return lines of `text` with fenced code blocks blanked out to preserve line numbers."""
     lines = text.split("\n")
     return ["" if fenced else line
             for line, fenced in zip(lines, fence_lines(lines), strict=True)]
@@ -171,14 +103,11 @@ def _head(label: str) -> str:
 
 
 def parse(text: str) -> Index:
-    """The register, entry by entry, with everything malformed named."""
+    """Parse `REGISTER` text into an `Index`, recording malformed entries."""
     index = Index(present=bool(text))
     if not text:
         return index
 
-    # One walk. A head opens a record and every property line after it fills that
-    # record, first spelling winning, so a `·` line standing outside any entry is read
-    # by nothing and a repeated one cannot overwrite the entry's own.
     records: list[tuple[re.Match[str], int, dict[str, str]]] = []
     for i, line in enumerate(_unfenced(text)):
         head = _ENTRY_RE.match(line)
@@ -231,12 +160,7 @@ def parse(text: str) -> Index:
 
 
 def _block_size(lines: list[str], start: int, indent: int) -> int:
-    """How many bullets a block header at `start` has under it.
-
-    A bullet deeper than the header is a member, at the first such depth; one at the
-    header's depth or shallower ends the block, as does any other content at or above
-    it. Blank lines and a member's own continuation lines are neither.
-    """
+    """Count direct child bullets under the findings block header at `lines[start]`."""
     size = 0
     depth = -1
     for line in lines[start + 1:]:
@@ -257,12 +181,7 @@ def _block_size(lines: list[str], start: int, indent: int) -> int:
 
 
 def _blocks(doc: str, lines: list[str], item_at: dict[int, str]) -> list[Block]:
-    """Every findings block of one document, attributed to the item whose span it is in.
-
-    `item_at` gives, for each line that opens an item, that item's label head; a block
-    belongs to the last item opened above it, and one above every item belongs to
-    nobody, which the comparison then skips as an item the plan does not carry.
-    """
+    """Extract all `Block`s from `lines` and attribute each to the preceding item in `item_at`."""
     blocks: list[Block] = []
     item = ""
     for i, line in enumerate(lines):
@@ -282,13 +201,7 @@ def _blocks(doc: str, lines: list[str], item_at: dict[int, str]) -> list[Block]:
 
 
 def plan(text: str, log: str = "") -> Plan:
-    """The checklist's items, the log's entries, and every findings block either carries.
-
-    The plan is read for every item, the landed and struck ones noted apart; the log is
-    read for its entry headings, and both are read for blocks. An absent plan yields a
-    `Plan` that is not present, and the comparison then says so once rather than once
-    per entry; an absent log is recorded the same way and reported the same way.
-    """
+    """Parse checklist items and findings blocks from `PLAN` (`text`) and `LOG` (`log`)."""
     read = Plan(present=bool(text), log_present=bool(log))
     if not text:
         return read
@@ -324,16 +237,7 @@ def _indent(line: str) -> int:
 
 
 def shapes(text: str, read: Plan) -> list[str]:
-    """Every landed or struck item keeping more than a header, one summary line and a
-    link to its own completion-log entry.
-
-    An item's span is every line indented deeper than its bullet, up to the first
-    non-blank line that is not. The span's first bullets are the item's direct
-    children: exactly one is the summary, and the rest must be child items, whose own
-    lines are skipped here and read at the child. Any other non-blank line in the span
-    is a finding. An absent plan, or one with no landed item this parse can read, is
-    one finding, so the rule cannot pass over nothing.
-    """
+    """Report landed or struck items in `PLAN` that violate the single-summary-line + `LOG`-link convention."""
     if not text:
         return [f"{PLAN} is not in the checker's corpus, so no landed item's shape is "
                 "read"]
@@ -391,7 +295,7 @@ def shapes(text: str, read: Plan) -> list[str]:
 
 
 def counted(read: Plan) -> dict[str, int]:
-    """How many findings each item's note records, over the blocks it declares."""
+    """Return `{item_label: total_findings_bullets}` across all `Block`s in `read`."""
     per: dict[str, int] = {}
     for block in read.blocks:
         per[block.item] = per.get(block.item, 0) + block.size
@@ -399,7 +303,7 @@ def counted(read: Plan) -> dict[str, int]:
 
 
 def indexed(index: Index) -> dict[str, int]:
-    """How many entries name each item, over the entries the notes count."""
+    """Return `{item_label: entry_count}` across non-prose entries in `index`."""
     per: dict[str, int] = {}
     for entry in index.entries:
         if not entry.in_prose:
@@ -408,7 +312,7 @@ def indexed(index: Index) -> dict[str, int]:
 
 
 def disagreements(index: Index, read: Plan) -> list[str]:
-    """Everything the sides do not agree on, in the order a reader repairs it."""
+    """Return all findings-register, completion-log, and block-count disagreements between `index` and `read`."""
     if not index.present:
         return [f"{REGISTER} is not in the checker's corpus, so no finding the plan "
                 "records is indexed by anything"]
@@ -436,7 +340,7 @@ def disagreements(index: Index, read: Plan) -> list[str]:
     have, want = indexed(index), counted(read)
     for item in sorted(set(have) | set(want)):
         if item not in read.items:
-            continue        # already named above, and once is enough
+            continue
         mine, theirs = have.get(item, 0), want.get(item, 0)
         if mine != theirs:
             found.append(f"{item}'s note records {theirs} finding(s) and the register "

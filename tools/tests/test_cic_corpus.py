@@ -1,12 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""The corpus reading's predicates, each against text Rocq actually prints.
-
-Every fixture here is a transcription of output the pinned Rocq 9.3.0 produced for a
-probe of the same shape, because a parse held against text nobody printed is a parse of
-an imagined format. Each case pairs the positive reading with the shape that must not
-satisfy it: a non-dependent `match` beside a dependent one, a single `fix` beside a
-mutual block, a closure with a transparent member beside one without.
-"""
+"""Unit tests for [`vos/cic_corpus.py`](../vos/cic_corpus.py) against pinned Rocq 9.3.0 output fixtures."""
 
 import subprocess
 import tempfile

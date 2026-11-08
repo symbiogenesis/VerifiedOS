@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""Dispatch the instrument switch route, and read one of its runs back.
+"""Dispatch the instrument switch workflow and verify its run artifacts.
 
     python tools/run.py instrument-ci dispatch --revision SHA [--base-revision SHA]
                                                [--build install|recipe] [--sample N]
@@ -9,32 +9,16 @@
     python tools/run.py instrument-ci read --run ID [--parent REV]
                                            [--closing COMMIT --closing-path PATH ...]
 
-[instrument-switches.yml](../../../.github/workflows/instrument-switches.yml) builds and
-checks QuickChick's switch on GitHub-hosted runners, and
-[its contract](../../ci/README.md#instrument-switch-route) states what a run decides.
-`fanout` never runs this command, and nothing here dispatches Host or Guest CI.
+[`instrument-switches.yml`](../../../.github/workflows/instrument-switches.yml) builds and
+validates the QuickChick switch on GitHub-hosted runners per the
+[instrument switch route contract](../../ci/README.md#instrument-switch-route).
 
-**Raw `dispatch` decides nothing about what it sends.** Every refusal is the plan job's,
-read from the run's `plan.json`, so a dispatch this command would have refused locally
-could not hide a plan that accepts it. It puts a nonce in the run's title, journals
-its intent under that nonce before its one POST, and recovers an interrupted dispatch
-by finding the run whose title carries the nonce, never by posting again.
-`--revision-from` resolves a local Git ref to a full commit SHA before journalling
-and posting it. This convenience checks no hosted acceptance condition; raw
-`--revision` still sends literal inputs for plan refusal qualification.
-
-**`read` trusts nothing it downloads.** Each artifact's redirect is followed without
-credentials, saved under `out/instrument-ci/<run id>/` and extracted only there, a
-member whose path is absolute or climbs out of its directory, two members landing on one
-another, a member that cannot be read or an archive larger than the route's bound
-refusing it; each member is held to the staging allowlist and each
-recorded input to the run. It re-joins the artifacts and holds the result to the run's
-own report, prints the verdict with the run's URL, tested revisions, runner images and
-step durations and peaks, and says whether the run is closing evidence: whether the
-route inputs at the candidate's tested revision, and the route's own files at the
-dispatching commit, are unchanged at the closing parent, and, given the closing commit,
-whether its own diff touches only the tracked lock at the export's SHA-256 and the paths
-the owning item's closing landing names.
+- `dispatch` journals its intent under a nonce before sending one POST, and `--resume`
+  recovers an interrupted dispatch by matching the nonce in the workflow run's title
+  without posting again.
+- `read` downloads and extracts run artifacts under `out/instrument-ci/<run id>/` (with
+  path, collision, size, and allowlist validation), re-joins them against `report.json`,
+  and checks whether the run qualifies as closing evidence.
 """
 
 import argparse
@@ -64,17 +48,13 @@ WORKFLOW_NAME = WORKFLOW_FILE.removesuffix(".yml")
 OUT = "out/instrument-ci"
 DISPATCHES = "dispatches"
 NONCE_RE = re.compile(r"[0-9a-f]{16}")
-# GitHub creates a dispatched run after its intent reaches disk; recovery also accepts
-# a run stamped this much earlier, in case the local clock runs ahead.
 CLOCK_SKEW = timedelta(seconds=60)
-# Statuses with which GitHub refused a dispatch outright, so no run exists for it.
 REJECTED = frozenset({400, 401, 403, 404, 409, 410, 422, 429})
-# The top-level packages under tools/ whose imports the closure follows.
 PACKAGES: tuple[str, ...] = ("vos", "ci")
 
 
 class Client(Protocol):
-    """What this command asks of GitHub: one JSON request, and an artifact's redirect."""
+    """GitHub API client protocol for JSON requests and artifact download redirects."""
 
     def request(self, method: str, path: str,
                 payload: dict[str, object] | None = None) -> dict[str, object]: ...
@@ -86,13 +66,12 @@ class _Refused(urllib.request.HTTPRedirectHandler):
     @override
     def redirect_request(self, req: urllib.request.Request, fp: object, code: int,
                          msg: str, headers: object, newurl: str) -> None:
-        # The redirect is read, never followed, so the token stays with GitHub's API.
+        # Read the redirect Location without forwarding the GitHub API token.
         return None
 
 
 class GitHub(fanout_ci.GitHub):
-    """Fanout's REST client, with the one read it lacks: where an artifact's download
-    redirects to, read from the authenticated response and never followed with it."""
+    """[`fanout_ci.GitHub`](../fanout_ci.py#GitHub) extended with `location` for artifact redirects."""
 
     def location(self, path: str) -> str:
         request = urllib.request.Request(
@@ -115,12 +94,10 @@ class GitHub(fanout_ci.GitHub):
 
 
 def fetch(url: str, limit: int) -> bytes:
-    """An artifact's bytes from the address its redirect named, fetched with no
-    credentials and refused past `limit` bytes."""
+    """Download up to `limit` bytes from HTTPS `url` without credentials."""
     parsed = urllib.parse.urlsplit(url)
     if parsed.scheme != "https" or not bool(parsed.hostname):
         raise fanout_ci.CIError("an artifact redirect must name an https address")
-    # An https address only, carrying no credential of ours.
     request = urllib.request.Request(url, headers={"User-Agent": "VerifiedOS-instrument-ci"})  # noqa: S310
     try:
         with urllib.request.urlopen(request, timeout=120) as response:  # noqa: S310
@@ -148,18 +125,17 @@ def _instant(value: object) -> datetime | None:
 
 
 def title_for(nonce: str, title: str, revision: str, ref: str) -> str:
-    """The title input: the nonce first, so the run's title names it, then the caller's
-    title or the revision asked for."""
+    """Format the workflow `title` input prefixed with `ic-<nonce>`."""
     return f"ic-{nonce} {title or revision or ref}".strip()
 
 
 def display_title(title: str) -> str:
-    """The run title GitHub shows for a title input, as the workflow's run-name forms it."""
+    """Format the GitHub workflow run `display_title` for `title`."""
     return f"{WORKFLOW_NAME}:{title}"
 
 
 def dispatch_inputs(args: argparse.Namespace, nonce: str) -> dict[str, str]:
-    """The inputs sent, exactly as given: every one the caller named, and the title."""
+    """Build the workflow dispatch `inputs` dictionary from `args` and `nonce`."""
     given = (("revision", args.revision), ("base_revision", args.base_revision),
              ("build", args.build), ("sample", args.sample))
     found: dict[str, str] = {key: value for key, value in given if value is not None}
@@ -172,7 +148,7 @@ def journal_dir(root: Path) -> Path:
 
 
 def pending(root: Path) -> list[dict[str, object]]:
-    """Every journalled dispatch whose POST was sent and whose run is not yet known."""
+    """Return journalled dispatches in `intent` phase whose workflow run ID is unknown."""
     found: list[dict[str, object]] = []
     directory = journal_dir(root)
     for path in sorted(directory.glob("*.json")) if directory.is_dir() else []:
@@ -191,7 +167,7 @@ def _run_url(repo: str, run_id: int) -> str:
 
 
 def post(client: Client, root: Path, repo: str, record: dict[str, object]) -> dict[str, object]:
-    """Journal the intent, then post the one dispatch it names."""
+    """Journal `record` in `intent` phase and POST the workflow dispatch."""
     record["phase"] = "intent"
     record["requested"] = _now()
     _save(root, record)
@@ -215,8 +191,7 @@ def post(client: Client, root: Path, repo: str, record: dict[str, object]) -> di
 
 
 def recover(client: Client, root: Path, repo: str, record: dict[str, object]) -> dict[str, object]:
-    """Find the run an interrupted dispatch started by the nonce in its title, among the
-    runs created after its intent, and never post again."""
+    """Locate the workflow run matching `record['nonce']` without re-posting."""
     if record.get("phase") != "intent":
         return record
     earliest = _instant(record.get("requested"))
@@ -297,7 +272,7 @@ def cmd_dispatch(args: argparse.Namespace) -> int:
 
 
 def member_refusal(name: str) -> str | None:
-    """Why an archive member's path may not be extracted: absolute, or climbing out."""
+    """Return a refusal reason if archive member `name` is absolute or contains `..`."""
     posix = name.replace("\\", "/")
     if not posix or posix.startswith("/") or re.match(r"^[A-Za-z]:", posix):
         return f"member {name!r} has an absolute path"
@@ -307,8 +282,7 @@ def member_refusal(name: str) -> str | None:
 
 
 def collisions(names: Sequence[str]) -> list[str]:
-    """Members landing on one another after extraction normalizes path separators and
-    dot components, including case aliases and a file that is another's directory."""
+    """Return collisions among `names` after casefolding and path normalization."""
     found: list[str] = []
     seen: dict[str, str] = {}
     paths = [(name, PurePosixPath(name.replace("\\", "/")).as_posix().casefold())
@@ -327,19 +301,12 @@ def collisions(names: Sequence[str]) -> list[str]:
     return found
 
 
-# What reading a member raises where its archive is malformed: a bad CRC, an unsupported
-# compression, an encrypted member, or a truncated stream.
 _UNREADABLE = (zipfile.BadZipFile, NotImplementedError, RuntimeError, ValueError, EOFError,
                OSError)
 
 
 def extract(data: bytes, target: Path, limit: int = route.ARCHIVE_LIMIT) -> list[str]:
-    """Extract one artifact's archive into `target` alone, or refuse it whole: a member
-    whose path is absolute or climbs out, two members that would land on one another,
-    members totalling more than `limit` bytes, a member that cannot be read, or one
-    outside the staging allowlist or carrying a Wasm or ELF header or a NUL byte. The
-    members are written beside `target` and moved into place whole, so a refused archive
-    leaves nothing extracted."""
+    """Validate and atomically extract zip archive `data` into `target`, returning any refusals."""
     try:
         archive = zipfile.ZipFile(io.BytesIO(data))
     except zipfile.BadZipFile, zipfile.LargeZipFile, ValueError, EOFError:
@@ -401,9 +368,7 @@ def _pages(client: Client, path: str, key: str) -> list[dict[str, object]]:
 
 
 def needs_from_jobs(jobs: Sequence[dict[str, object]]) -> dict[str, object]:
-    """The join's `needs` as GitHub would hand it over, from the jobs' conclusions: a
-    matrix job fails where one of its runs failed, is cancelled where one was, and
-    succeeds only where every run did."""
+    """Reconstruct the `join` job's `needs` mapping from `jobs` conclusions."""
     grouped: dict[str, list[str]] = {}
     for job in jobs:
         name = str(job.get("name", "")).split(" (", 1)[0]
@@ -438,7 +403,7 @@ def _git_text(checkout: Path, *args: str) -> str:
 
 
 def _module_of(path: str) -> tuple[str, bool]:
-    """A tools/ path's module name, and whether it is a package's initializer."""
+    """Return `(dotted_module_name, is_package_init)` for a `tools/` Python file."""
     parts = PurePosixPath(path).relative_to("tools").with_suffix("").parts
     if parts[-1] == "__init__":
         return ".".join(parts[:-1]), True
@@ -446,8 +411,7 @@ def _module_of(path: str) -> tuple[str, bool]:
 
 
 def _module_files(module: str, tree: set[str]) -> list[str]:
-    """The files importing `module` runs: each enclosing package's initializer and the
-    module's own file, as far as the tree carries them."""
+    """Return tracked files in `tree` that importing `module` loads."""
     parts = module.split(".")
     files = [f"tools/{'/'.join(parts[:depth])}/__init__.py" for depth in range(1, len(parts))]
     own = f"tools/{'/'.join(parts)}"
@@ -456,8 +420,7 @@ def _module_files(module: str, tree: set[str]) -> list[str]:
 
 
 def imports_of(source: str, module: str, package: bool) -> set[str]:
-    """Every module under `PACKAGES` a source imports, anywhere in it, a deferred or a
-    type-checking import included, which errs toward a larger closure."""
+    """Return all modules under `PACKAGES` imported anywhere in `source`."""
     found: set[str] = set()
     for node in ast.walk(ast.parse(source)):
         if isinstance(node, ast.Import):
@@ -475,8 +438,7 @@ def imports_of(source: str, module: str, package: bool) -> set[str]:
 
 
 def import_closure(checkout: Path, revision: str, roots: Iterable[str]) -> set[str]:
-    """The files of the transitive `vos` and `ci` import closure of `roots` at a
-    revision, read from that revision's sources without running them."""
+    """Return the transitive `vos` and `ci` import closure of `roots` at `revision`."""
     tree = set(_git_text(checkout, "ls-tree", "-r", "--name-only", revision, "--", "tools")
                .splitlines())
     seen: set[str] = set()
@@ -498,29 +460,24 @@ def import_closure(checkout: Path, revision: str, roots: Iterable[str]) -> set[s
 
 
 def side_inputs(checkout: Path, revision: str) -> list[str]:
-    """The route inputs at a side's revision: those the contract names and the import
-    closure of every module the route runs there."""
+    """Return sorted route inputs and `SIDE_ROOTS` import closure at `revision`."""
     return sorted({*route.ROUTE_INPUTS, *import_closure(checkout, revision, route.SIDE_ROOTS)})
 
 
 def route_files(checkout: Path, revision: str) -> list[str]:
-    """The route's own files at the dispatching commit, with their import closure."""
+    """Return sorted route files and `ROUTE_ROOTS` import closure at `revision`."""
     return sorted({*route.ROUTE_FILES, *import_closure(checkout, revision, route.ROUTE_ROOTS)})
 
 
 def differing(checkout: Path, left: str, right: str, paths: Sequence[str]) -> list[str]:
-    """The paths among `paths` whose bytes differ between two revisions, which is what
-    `git diff --quiet left right -- paths` decides."""
+    """Return paths in `paths` that differ between `left` and `right`."""
     return [line for line in _git_text(checkout, "diff", "--name-only", left, right, "--",
                                        *paths).splitlines() if line]
 
 
 def closing_refusals(checkout: Path, closing: str, inputs: Sequence[str],
                      allowed: Sequence[str], export_sha256: str | None) -> list[str]:
-    """Why a closing commit's own diff refuses the run as its evidence: a route input it
-    touches other than the tracked lock, at the export's SHA-256, and the paths the
-    owning item's closing landing names. The inputs are those at the tested revision
-    and the closing commit's own, so a module a named path newly imports is one."""
+    """Check that `closing` only touches `route.LOCK` (at `export_sha256`) and `allowed` paths."""
     refusals: list[str] = []
     inputs = sorted({*inputs, *side_inputs(checkout, closing)})
     touched = differing(checkout, f"{closing}^1", closing, inputs)
@@ -538,7 +495,7 @@ def closing_refusals(checkout: Path, closing: str, inputs: Sequence[str],
 
 
 def _commit_of(checkout: Path, revision: str) -> str | None:
-    """The commit a revision names in the checkout, None where it names none."""
+    """Resolve `revision` to a commit SHA in `checkout`, or return None."""
     done = _git(checkout, "rev-parse", "--verify", "--quiet", "--end-of-options",
                 f"{revision}^{{commit}}")
     found = done.stdout.decode("utf-8", "replace").strip()
@@ -551,7 +508,7 @@ def _receipt(directory: Path | None) -> dict[str, object] | None:
 
 def input_refusals(run: dict[str, object], run_id: int,
                    plan: dict[str, object] | None) -> list[str]:
-    """What makes a run's plan disagree with the run GitHub reports."""
+    """Return discrepancies between GitHub's `run` metadata and `plan.json`."""
     refusals: list[str] = []
     if run.get("path") != f".github/workflows/{WORKFLOW_FILE}":
         refusals.append(f"run {run_id} is not a run of {WORKFLOW_FILE}")
@@ -592,11 +549,9 @@ def _durations(report: dict[str, object]) -> list[str]:
 
 
 def download(client: Client, run_id: int, base: Path) -> tuple[dict[str, Path], list[str]]:
-    """Every artifact of a run saved and extracted under `base`, by name, and every
-    refusal that kept one out."""
+    """Download and extract all artifacts for `run_id` under `base`."""
     found: dict[str, Path] = {}
     refusals: list[str] = []
-    # An earlier reading's extraction never stands in for an artifact this one refuses.
     if (base / "artifacts").exists():
         shutil.rmtree(base / "artifacts")
     for artifact in _pages(client, f"actions/runs/{run_id}/artifacts", "artifacts"):
@@ -629,16 +584,13 @@ def _rows(value: object) -> dict[str, object] | None:
 
 
 def _differing(a: dict[str, object], b: dict[str, object]) -> list[str]:
-    """The keys present in only one of two objects or bound to different values."""
+    """Return sorted keys that differ between `a` and `b`."""
     return [key for key in sorted(set(a) | set(b))
             if key not in a or key not in b or a[key] != b[key]]
 
 
 def report_differences(joined: dict[str, object], report: dict[str, object]) -> list[str]:
-    """Where the run's `report.json` and the re-join of its artifacts disagree: the
-    verdict, the refusals, a job's own fields and each step row of a job, so a report
-    whose verdicts agree names the rows that differ, as those of a report an earlier
-    revision of the route joined do."""
+    """Return field names where `joined` (`report.json`) and re-joined `report` differ."""
     found = [name for name in ("verdict", "refusals") if joined.get(name) != report.get(name)]
     theirs, ours = _rows(joined.get("jobs")), _rows(report.get("jobs"))
     if theirs is None or ours is None:
@@ -658,7 +610,7 @@ def report_differences(joined: dict[str, object], report: dict[str, object]) -> 
 
 def read_run(client: Client, checkout: Path, run_id: int, *, parent: str | None,
              closing: str | None, closing_paths: Sequence[str]) -> tuple[list[str], bool]:
-    """The reading's lines, and whether every record the run left held."""
+    """Download, re-join, and validate `run_id`, returning `(report_lines, passed)`."""
     run = client.request("GET", f"actions/runs/{run_id}")
     if run.get("id") != run_id:
         raise fanout_ci.CIError("GitHub returned another run")
@@ -722,7 +674,7 @@ def read_run(client: Client, checkout: Path, run_id: int, *, parent: str | None,
 def closing_evidence(checkout: Path, report: dict[str, object], plan: dict[str, object],
                      by_key: dict[str, Path], *, parent: str | None, closing: str | None,
                      closing_paths: Sequence[str]) -> tuple[list[str], list[str]]:
-    """Why the run is not closing evidence, empty where it is, and the comparisons."""
+    """Verify closing-evidence obligations and return `(refusals, comparison_lines)`."""
     refusals: list[str] = []
     lines: list[str] = []
     request = (route.as_object(plan.get("request", {}))

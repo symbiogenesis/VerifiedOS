@@ -1,18 +1,10 @@
 # SPDX-License-Identifier: Apache-2.0
-"""bank-dse.py against a fixture composition, and the live tree's standing facts.
+"""Unit tests for [bank-dse.py](../bank-dse.py) against a synthetic fixture and the live tree.
 
-The tool's design point is self-restraint: it scores what the composition fixes and
-admits nothing while the droop coefficients are pending, and its verdict sentence
-says so. No checker rule holds that sentence, so this module is its gate: the exact
-wording is pinned against a fixture whose arithmetic is derivable by hand, one row
-per candidate, with the strict-below deadline boundary and the divides-region test
-each sat exactly on their edge. The two FAIL paths are pinned too: a configuration
-short of a figure is named figure by figure (all eight are guarded), and a contract
-with no candidate set is a finding rather than an empty table.
-
-The fixture cases run a copy of the live sources materialized into a sandbox tree,
-because the tool derives its root from its own file; the live-tree case runs the
-tool where it stands and only reads.
+Verifies per-candidate row arithmetic, the strict `<` deadline boundary, the exact
+region-division check, the pending-columns and residuals blocks, the non-admission
+verdict sentence, and the failure diagnostics when configuration figures or the
+contract candidate set are missing.
 """
 
 import subprocess

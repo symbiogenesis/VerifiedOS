@@ -1,35 +1,16 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: Apache-2.0
-"""Read what every compiled proof constant elaborates to, and compare two readings.
+"""Record and compare elaborated constant readings across compiled proof modules.
 
-`record` reads a passing compile of the proof sources, and only one. By default it is
-the proof gate's staged compile in this lane, whose native receipt must record a
-passing run and names every staged source and object by digest. `--sources DIR`
-instead copies the proof sources in DIR, such as a base revision's or a candidate's,
-into a scratch directory of this lane and compiles them there as the gate does, so an
-object compiled anywhere else, stale or current, is never read as a source's meaning.
-For each module it enumerates the constants with the audit's own `Search`, then asks
-`Check` and `About` of every one and `Print` of each transparent constant and
-inductive, three prover processes per module, and writes one JSON reading that
-[proof-reading.schema.json](../../proof-reading.schema.json) describes.
-[vos/proofreading.py](../proofreading.py) states what the reading holds and the two
-normalizations it makes.
-
-`compare BASE CANDIDATE` exits 0 only when every compared entry of the two readings
-is identical, and otherwise names each difference: the reader, an added or removed
-module or constant, and every field that differs.
-
-**Outside the proof gate's identity by construction.** The gate's implementation is
-the set of modules `run.py proofs` imports, and none of them imports this one, so this
-command can change without invalidating a cached proof object. It imports the audit's
-inventory and the gate's flags and workspace rather than restating them.
-
-**It reads only what the compile made, and changes nothing it reads.** Every source
-and object in the directory must carry the digest the receipt, or the compile this
-command ran, recorded for it, when the read begins and again when it ends. Queries
-compile in a scratch directory of this lane, removed afterwards. Any prover diagnostic,
-a query answer larger than `--max-bytes` and anything the parse cannot place each
-refuse the reading, and a refused reading writes nothing.
+- `record`: queries a passing proof compile (by default the proof gate's staged compile
+  in this lane, or a fresh scratch compile of `--sources DIR`) with `Search`, `Check`,
+  `About`, and `Print` for transparent constants and inductives, and writes a JSON
+  reading conforming to [proof-reading.schema.json](../../proof-reading.schema.json)
+  ([vos/proofreading.py](../proofreading.py)). Verifies source and object digests
+  before and after reading and refuses on any prover diagnostic or output exceeding
+  `--max-bytes`.
+- `compare BASE CANDIDATE`: compares two readings and reports any module, constant, or
+  field differences.
 """
 
 import argparse
@@ -50,19 +31,12 @@ from vos.corpus import find_root
 
 READING = "out/proof-reading.json"
 
-# One query's answer, in bytes. Transparent bodies print without notations, and one
-# derived decidable equality alone runs past a megabyte, yet no module's answer comes
-# near this; the bound exists so that a pathological one refuses the reading rather
-# than exhausting memory, as the CIC corpus exporter's does.
+# Per-query output byte ceiling.
 MAX_QUERY_BYTES = 64 * 1024 * 1024
 
 
 def _query(objects: Path, scratch: Path, name: str, text: str, bound: int) -> str:
-    """One prover process over the objects, its answer refused on any diagnostic.
-
-    The answer goes to a file and its size decides before it is read, as in the CIC
-    corpus exporter, so the bound is a bound on memory as well as on the reading.
-    """
+    """Run one Rocq query against `objects`, refusing on any diagnostic or oversized output."""
     source = scratch / f"{name}.v"
     source.write_text(text, encoding="utf-8", newline="")
     answer = scratch / f"{name}.out"
@@ -85,7 +59,7 @@ def _query(objects: Path, scratch: Path, name: str, text: str, bound: int) -> st
 
 def read_module(objects: Path, scratch: Path, module: str,
                 bound: int = MAX_QUERY_BYTES) -> dict[str, proofreading.Entry]:
-    """Every constant of one compiled module, read in three prover processes."""
+    """Read all constants of one compiled module in three prover queries."""
     proofreading.check_module(module)
     inventory = proofreading.query_module("Inventory", module)
     listed = _query(objects, scratch, inventory, proofaudit.inventory_query(module), bound)
@@ -123,7 +97,7 @@ def _prover() -> tuple[str, str]:
 
 
 def modules_in(objects: Path, named: list[str] | None = None) -> list[str]:
-    """The modules to read: every source the directory holds, or the ones named."""
+    """Return sorted module names to read, verifying each `.v` and `.vo` exists."""
     present = sorted(path.stem for path in objects.glob("*.v"))
     chosen = sorted(set(named)) if bool(named) else present
     missing = sorted(set(chosen) - set(present))
@@ -139,25 +113,19 @@ def modules_in(objects: Path, named: list[str] | None = None) -> list[str]:
 
 
 def _snapshot(objects: Path) -> dict[str, str]:
-    """Every source and object in the directory, which a read must leave as it found."""
+    """Snapshot `.v` and `.vo` digests in `objects`."""
     return receipts.snapshot(objects, [*objects.glob("*.v"), *objects.glob("*.vo")])
 
 
 def _scratch(root: Path, prefix: str) -> tempfile.TemporaryDirectory[str]:
-    """A directory of this lane's native build area, removed when it is closed."""
+    """Create a temporary directory inside this lane's native build area."""
     lane = env.lane_root(env.lane_of(root)) / "proof-reading"
     lane.mkdir(parents=True, exist_ok=True)
     return tempfile.TemporaryDirectory(prefix=prefix, dir=lane)
 
 
 def gate_objects(root: Path) -> tuple[Path, dict[str, str]]:
-    """The proof gate's staged compile, and the digests its native receipt passed.
-
-    The receipt names each staged source among its inputs and each object among its
-    outputs, relative to the gate's workspace; they are returned relative to the staged
-    directory, where `record` holds the files to them. A lane whose last run failed, or
-    whose staged files have moved since the run that passed, has nothing to read.
-    """
+    """Return the proof gate's staged directory and its passed receipt digests."""
     work = proofs_cli.workspace(root)
     native = work / proofs_cli.RECEIPT
     try:
@@ -173,8 +141,6 @@ def gate_objects(root: Path) -> tuple[Path, dict[str, str]]:
     inputs, outputs = receipt.get("inputs"), receipt.get("outputs")
     if not isinstance(inputs, dict) or not isinstance(outputs, dict):
         raise proofreading.ReadingError(f"{native} names no inputs and outputs")
-    # The gate's own reading of its receipt: every input under the staged directory is
-    # a staged source, and every output is its object.
     prefix = f"{proofs_cli.PROOFS}/"
     recorded = {**cast("dict[str, str]", inputs), **cast("dict[str, str]", outputs)}
     passed = {name.removeprefix(prefix): digest for name, digest in recorded.items()
@@ -185,17 +151,7 @@ def gate_objects(root: Path) -> tuple[Path, dict[str, str]]:
 
 
 def compile_sources(sources: Path, objects: Path, jobs: int) -> dict[str, str]:
-    """Copy a directory's proof sources into `objects` and compile them as the gate does.
-
-    Only the sources are copied, so an object beside them is never read. A copy holding
-    anything the gate refuses before compiling refuses here before anything compiles: a
-    token the shared lexer cannot follow, a coinductive form or a token hiding one, a
-    loaded file or plugin, a module body the native inventory cannot enumerate, or a
-    reset of a setting the gate pins. The copies then compile under the gate's flags,
-    wave by wave in their own dependency order, and a compile that exits nonzero or
-    prints anything refuses. The result is the digest of every copy and object, which
-    is the compile `record` may read.
-    """
+    """Copy `.v` sources from `sources` into `objects`, audit and compile them in dependency waves, and return their digests."""
     found = sorted(sources.glob("*.v"))
     if not found:
         raise proofreading.ReadingError(f"{sources} holds no proof source to compile")
@@ -214,7 +170,7 @@ def compile_sources(sources: Path, objects: Path, jobs: int) -> dict[str, str]:
                 + "; ".join(refused)[:2000])
     try:
         ordered = proofs.waves(copies)
-    except SystemExit as error:  # the gate's own refusal of a Require cycle
+    except SystemExit as error:
         raise proofreading.ReadingError(str(error)) from error
 
     def one(source: Path) -> str:
@@ -236,12 +192,7 @@ def compile_sources(sources: Path, objects: Path, jobs: int) -> dict[str, str]:
 
 def record(root: Path, objects: Path, passed: dict[str, str], named: list[str] | None,
            jobs: int, bound: int = MAX_QUERY_BYTES) -> proofreading.Reading:
-    """One complete reading of a passing compile's modules, or a refusal.
-
-    `passed` is the digest of every source and object the compile made, as its receipt
-    or its own run recorded them, relative to `objects`. The directory must hold
-    exactly those files when the read begins and again when it ends.
-    """
+    """Record a complete reading of compiled modules in `objects`, verifying digests match `passed` before and after."""
     modules = modules_in(objects, named)
     before = _snapshot(objects)
     if before != passed:

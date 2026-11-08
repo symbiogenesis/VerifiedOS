@@ -1,43 +1,30 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: Apache-2.0
-"""Score every candidate second-class bank count against the arithmetic that exists.
+"""Score candidate second-class bank counts against coefficient-free shape constraints.
 
 R-15-247p admits bank granularity against three quantities jointly: the island
-bandwidth ceiling §11 consumes, the read energy per bit that bitline capacitance sets,
-and the R-15-247g simultaneous-activation envelope, with the droop envelope a hard
-admission constraint and the other two objectives. Six of the seven coefficients those
-three need are pending on a measurement nobody has taken, which
-docs/hardware/bank-count-dse-contract.md states one row at a time.
+bandwidth ceiling (§11), the read energy per bit (bitline capacitance), and the
+R-15-247g simultaneous-activation droop envelope (a hard admission constraint). Six of
+the seven required coefficients are pending macro measurement, as documented in
+[docs/hardware/bank-count-dse-contract.md](../../docs/hardware/bank-count-dse-contract.md).
 
-So this tool is not the search. It is the part of the search that can be run before the
-coefficients arrive: the shape constraints a candidate must satisfy whatever the
-coefficients turn out to be, computed from the composition rather than copied from it,
-with every coefficient-dependent column printing the symbol it waits on. **It admits
-nothing**, and its verdict line says so, because a hard constraint with no operands
-prunes nothing and a report that quietly stopped saying that would be the instrument
-turning into the answer.
+This tool computes the shape constraints a candidate must satisfy regardless of those
+coefficients (bank size, refresh sweep vs. deadline, discharge dwell, and exact region
+division), printing the pending symbol for every coefficient-dependent column and
+reporting that no candidate is admitted while the droop-envelope coefficients remain
+pending.
 
-Exit 0 where the tree is consistent, 1 on a finding. It may be run from anywhere: the
-repository root is found from this file, never from the working directory.
+Exit 0 when the configuration and contract are consistent, 1 on a finding.
 """
 
 # ruff: noqa: N999
-# The one rule this file has to differ on, and the reason: every command-line tool in
-# this repository is named with a hyphen, and every one of them sat in `tools/`, which
-# is not a package, so the name was never a module name. The quarantine is a package,
-# because K-83 holds an import of it and an import needs something to name, so ruff now
-# reads this script's filename as a module name and refuses the hyphen. The alternative
-# was to rename the command, which would be the tool's user-facing name changed to suit
-# a lint rule about a module nothing imports.
+# Allow hyphenated CLI script name inside the `quarantine` package.
 
 import argparse
 import sys
 from pathlib import Path
 
-# The tools import `vos` without being installed, so each puts `tools/` on the path
-# first; a tool inside the quarantine puts the directory *above* its own there, which
-# is the one that carries both `vos` and this package. Every import below this line is
-# deliberately not at the top.
+# Put `tools/` on `sys.path` so both `vos` and `quarantine` can be imported directly.
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from quarantine import banks
@@ -45,8 +32,7 @@ from vos.corpus import find_root
 
 
 def _cycles(n: int) -> str:
-    """A cycle count comma-grouped, so the eleven-digit figures the table carries can
-    be told apart at a glance."""
+    """Format a cycle count with comma separators."""
     return f"{n:,}"
 
 

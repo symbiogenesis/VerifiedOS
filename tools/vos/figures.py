@@ -1,26 +1,13 @@
 # SPDX-License-Identifier: Apache-2.0
-"""Derived figures: how one is spelled, found, compared, and repaired.
+"""Number-word formatting, rounding, literal-anchored regex search, and claim resolution/repair for derived figures.
 
-A *claim* is a file, a pattern capturing a stated figure alone, and the value that
-figure must read. That is the unit wherever a figure is asserted in a sentence of its
-own and may be asserted in several. Where instead one sentence carries four derived
-figures at once, the unit is the sentence: the pattern is anchored to the line, each
-figure is a named group, and the sentence is owed exactly one site for the same
-reason a total is.
-
-Comparison is on the figure, not on its spelling: commas and capitals are formatting,
-and the register writes 1275 where the checklist writes 1,070.3. A site that states
-the right figure in the other document's format is therefore not a finding, and a
-repair still normalizes it, because the rewrite is driven by the literal text.
-
-A claim is *found* by its phrase rather than by its pattern. Nearly all of a claim is
-literal prose, the figure beside it being one short token, and a pattern that opens on
-that token has no literal prefix for the regex engine to seek: it is tried at every
-offset of a document that runs to hundreds of kilobytes, and backtracks at most of
-them. The phrase is read back out of the pattern by `anchor` and found by substring
-search, which is a word-at-a-time scan in C, and the pattern is then run only in a
-window around each occurrence. The answer is the pattern's own; only the order of the
-search is different.
+Provides:
+- Count-word and numeric formatting helpers ([`words`](#words), [`format_hours`](#format_hours),
+  [`share`](#share), [`percent`](#percent), [`quantize`](#quantize)).
+- Literal-substring anchored regex search ([`anchor`](#anchor), [`find_all`](#find_all))
+  so lookaround-heavy claim patterns scan only windows around their longest literal phrase.
+- Single-figure ([`resolve_claim`](#resolve_claim)) and multi-figure sentence
+  ([`resolve_line`](#resolve_line)) checking and `--fix` rewriting.
 """
 
 import re
@@ -28,8 +15,6 @@ from dataclasses import dataclass, field
 from decimal import ROUND_HALF_UP, Decimal
 from typing import TYPE_CHECKING
 
-# `Context` lives in `vos.checks`, which imports this module. Guarded, so the
-# annotations below cost no import at run time and no cycle at any time.
 if TYPE_CHECKING:
     from .checks import Context
 
@@ -39,9 +24,7 @@ _TENS = {2: "twenty", 3: "thirty", 4: "forty", 5: "fifty",
 
 
 def words(n: int) -> str:
-    """The word form of a count, so a claim may read as prose without becoming
-    unmaintainable. Past ninety-nine there is no word form worth writing and the
-    document is required to state the figure in digits."""
+    """Return the English word form for `0 <= n < 100`, raising `ValueError` for `n >= 100`."""
     if n < 20:
         return _ONES[n]
     if n < 100:
@@ -51,8 +34,7 @@ def words(n: int) -> str:
 
 
 def distinctive(n: int) -> str | None:
-    """The spelling of a quantity distinctive enough not to collide with ordinary
-    prose: a word form of eleven or more, or three digits and up."""
+    """Return the word form (`11 <= n < 100`) or digit string (`n >= 100`), or `None` for `n < 11`."""
     if n >= 100:
         return str(n)
     if n >= 11:
@@ -61,7 +43,7 @@ def distinctive(n: int) -> str | None:
 
 
 def restore_case(found: str, expected: str) -> str:
-    """A sentence's own capital is the sentence's, not the figure's."""
+    """Capitalize `expected` if `found` begins with an uppercase letter."""
     if found[:1].isupper() and found[:1].isalpha():
         return expected[:1].upper() + expected[1:]
     return expected
@@ -72,14 +54,13 @@ def same_figure(a: str, b: str) -> bool:
 
 
 def format_hours(v: float) -> str:
-    """Hours read as they are written, the trailing .0 dropped."""
+    """Format hours to one decimal place, dropping a trailing `.0`."""
     r = round(v, 1)
     return f"{r:,.0f}" if r == int(r) else f"{r:,.1f}"
 
 
 def share(v: float, total: float, digits: int) -> float:
-    """A percentage, rounded away from zero so a share never reads as smaller than it
-    is by the accident of a tie."""
+    """Return `v / total * 100` rounded `ROUND_HALF_UP` to `digits` decimal places."""
     if total == 0:
         return 0.0
     quantum = Decimal(1).scaleb(-digits)
@@ -91,38 +72,23 @@ def percent(v: float, total: float, digits: int) -> str:
 
 
 def quantize(v: float, digits: int) -> str:
-    """A derived ratio at a fixed number of decimals, rounded the way `share` rounds.
-
-    `share` is that rule over a percentage. A ratio that is not a percentage, megabytes
-    of tag plane per gigabyte of data being the one this exists for, wants the same rule
-    and not a second one: away from zero, so a tie never reads smaller than it is.
-    """
+    """Format `v` rounded `ROUND_HALF_UP` to `digits` decimal places with thousands separators."""
     quantum = Decimal(1).scaleb(-digits)
     return f"{Decimal(v).quantize(quantum, rounding=ROUND_HALF_UP):,.{digits}f}"
 
 
-# How much room a claim's pattern is given on either side of its phrase. A claim
-# captures one figure standing beside that phrase, so the whole construct is a fragment
-# of a single sentence and this is two orders of magnitude more than one needs. A match
-# reaching an edge is one the window may have cut, and the document is then read whole
-# rather than a partial reading reported.
+# Search window radius around each occurrence of `anchor(pattern)`.
 WINDOW = 4096
 
-# What the phrase reading refuses rather than guesses at: a choice, where neither side
-# is required; a negative lookaround, whose text must be absent rather than present; any
-# other group, which a quantifier outside it may delete entire; and a counted
-# repetition, whose bounds are not text at all.
+# Regex constructs that prevent extracting a guaranteed literal substring (`|`, non-positive-lookaround groups, group quantifiers, `{m,n}`).
 _UNREAD_RE = re.compile(r"(?<!\\)\|" r"|(?<!\\)\((?!\?=|\?<=)" r"|\)[?*{]" r"|(?<!\\)\{")
 _FLAGS_RE = re.compile(r"\(\?[aiLmsux]+\)")
 _METACHARACTERS = set(r".^$*+?()[]{}|\\")
-# sets rather than strings, so that the empty string the end of a pattern hands back is
-# a member of neither
 _DELETES_WHAT_PRECEDES = frozenset("?*{")
 
 
 def _class_end(pattern: str, i: int) -> int:
-    """One past the `]` closing the character class that opens at `i`. A `^` may lead
-    the class and a `]` written first inside it is a literal, so neither closes it."""
+    """Return the index one past the `]` closing the character class starting at `i`."""
     j = i + 1 + (pattern[i + 1:i + 2] == "^")
     j += pattern[j:j + 1] == "]"
     while j < len(pattern) and pattern[j] != "]":
@@ -131,17 +97,8 @@ def _class_end(pattern: str, i: int) -> int:
 
 
 def anchor(pattern: str) -> str:
-    """The longest phrase the pattern must match verbatim, or "" where it must match
-    none.
-
-    Only what is certainly required is read. A run of literal characters ends at every
-    metacharacter, at an escape naming a class rather than a character, and around any
-    character a quantifier could delete or repeat; a positive lookaround's text counts,
-    because it stands in the document beside the match whether the match consumes it or
-    not. A pattern built from anything `_UNREAD_RE` names is answered "", which the
-    caller reads as a pattern with no phrase to find it by.
-    """
-    body = _FLAGS_RE.sub("", pattern)       # a flag group carries no text of its own
+    """Return the longest literal substring that every match of `pattern` (or its positive lookarounds) must contain, or `""`."""
+    body = _FLAGS_RE.sub("", pattern)
     if _UNREAD_RE.search(body):
         return ""
 
@@ -150,10 +107,6 @@ def anchor(pattern: str) -> str:
     while i < len(body):
         char, width, literal = body[i], 1, False
         if char == "\\":
-            # an escape stands for the character it names, unless that character is a
-            # letter or a digit, which is how a class or an assertion is spelled; a
-            # hex escape (\xXX, \uXXXX, \UXXXXXXXX) names one character whose digits
-            # are its spelling and not document text, so they are consumed with it
             char, width = body[i + 1:i + 2], 2
             literal = not char.isalnum()
             if char in "xuU":
@@ -168,8 +121,6 @@ def anchor(pattern: str) -> str:
         follows = body[i + width:i + width + 1]
         if literal and follows not in _DELETES_WHAT_PRECEDES:
             run += char
-            # a `+` keeps the character it repeats and separates it from the next, which
-            # the document need not carry immediately after
             literal = follows != "+"
         if not literal:
             best, run = max(best, run, key=len), ""
@@ -179,14 +130,7 @@ def anchor(pattern: str) -> str:
 
 
 def find_all(pattern: str, raw: str) -> list[re.Match[str]]:
-    """Every match, reached through the pattern's phrase wherever it has one.
-
-    The phrase proposes the sites and the pattern decides them, so this is the pattern's
-    own answer and only the order of the search differs. Windows that overlap are merged,
-    so a site lying in two of them is decided once and the matches stay in the order the
-    document reads; a match reaching the edge of its window is one the window may have
-    cut, and the document is read whole instead of trusting the fragment.
-    """
+    """Return all matches of `pattern` in `raw`, pre-filtering to `WINDOW`-byte windows around `anchor(pattern)` when non-empty."""
     compiled = re.compile(pattern)
     phrase = anchor(pattern)
     if not phrase:

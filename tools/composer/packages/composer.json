@@ -56,7 +56,7 @@
     },
     {
       "path": "tools/vos/__init__.py",
-      "sha256": "f4212439e361dd2a6d2b25d97c82b6ba6ab8aa4cf3814a69023d8a745b11d49c"
+      "sha256": "f4bf65b676335680ed2e74c496374a83a2d37380cb6bc32a0af94d192c788e36"
     },
     {
       "path": "tools/vos/acvp.py",
@@ -68,7 +68,7 @@
     },
     {
       "path": "tools/vos/asm.py",
-      "sha256": "f2e54ad9ddc6ac06cd8a16011a5f710ce34840f6e4f4b451666bd85b83d1f27d"
+      "sha256": "89aa4fd77963291609a6756bc872c97f26aca61a4815fa0727a54b756da7de0b"
     },
     {
       "path": "tools/vos/atomic.py",
@@ -104,7 +104,7 @@
     },
     {
       "path": "tools/vos/cli/__init__.py",
-      "sha256": "88ea3c2dfee96e384128d6dacfff3bf975cee97d17e4363bf7cf84721d7d4980"
+      "sha256": "7534add566beaf4238b417f39c85073f72b7be917f42ab6009768fe194d8284f"
     },
     {
       "path": "tools/vos/compiler_component.py",
@@ -112,7 +112,7 @@
     },
     {
       "path": "tools/vos/compiler_diff.py",
-      "sha256": "4189e591ecd11bee4672c26656a8ed1645ed4fbccd0bb8586759dbde6e4e6b9a"
+      "sha256": "6721079d2d47e5dbdb93e8ac40947b1da7259d65c8b9c7bc1eb9d9daaed0cfca"
     },
     {
       "path": "tools/vos/compiler_provenance.py",
@@ -124,27 +124,27 @@
     },
     {
       "path": "tools/vos/config.py",
-      "sha256": "da0b4c7caae9104cd462c370eed3bb3bf4dd2ff6504328fa30f2aced8f278e53"
+      "sha256": "5170e6144e97114abb19a7ac7cdb0a8cd393d836adb6fe3d3f97a56fe67785a6"
     },
     {
       "path": "tools/vos/corpus.py",
-      "sha256": "0a5ae1dd52c7fbf0e6f2fd26903ce261c478928a94d07023c64fa9fd3be089b2"
+      "sha256": "a7d012ee4da10d5fff06b0d8b8b7011e53115baa8be9c3bc633b579c1df79ffb"
     },
     {
       "path": "tools/vos/dialect.py",
-      "sha256": "cc528d7e322b892085014866cdb0371b26369f14d45dbf7fde2ed68da9013f10"
+      "sha256": "65fe9d83f372d22b71363759f67884f2fc500c40da6f06739a2bb51314d2ea49"
     },
     {
       "path": "tools/vos/dialectgen.py",
-      "sha256": "6d1b8632bc1c9a74a54ed6bf700c339f680f2654b7106c702b5896528436fa39"
+      "sha256": "db3c6a6982fd62e5826e7224e920b50c8409fc64a893110a165063e884e05519"
     },
     {
       "path": "tools/vos/encdec.py",
-      "sha256": "f57fa890840a0cebd4504c82360315d045deaeedd0de16a90a0d18675674bad8"
+      "sha256": "a1ac805757fb2de1b762ff596cbf66910f89907d8a3ead49cf6d44f22007559c"
     },
     {
       "path": "tools/vos/env.py",
-      "sha256": "53d87fcd904db53c0c81359f2999be4290fbdb518fa987cc9d035e4271742dcc"
+      "sha256": "c42ed53ffe87480e46decda34c8b80b78f513cf66bbd0d7623055201d0b07be4"
     },
     {
       "path": "tools/vos/extracted_proofs.py",
@@ -160,7 +160,7 @@
     },
     {
       "path": "tools/vos/jsonc.py",
-      "sha256": "df9c6cfddd90e0d1ec7aecd7bbe12f6facc25bb8512ce0d5d705b0f4956cd916"
+      "sha256": "b2eec47f4fe73284e7cd69799c8b0405053e79a4bed146faa2fabd4d320f0d7a"
     },
     {
       "path": "tools/vos/jsonutil.py",
@@ -188,7 +188,7 @@
     },
     {
       "path": "tools/vos/proofenv.py",
-      "sha256": "8554680f83eacb10085c9c35a1e7951c66129fe409bb5bcb845df1baa40d8c28"
+      "sha256": "1d51bdb83c1f09f675e5eec631016ca25ba16c4001e1dca75ec3ddd30f82b4f1"
     },
     {
       "path": "tools/vos/prooflex.py",
@@ -196,7 +196,7 @@
     },
     {
       "path": "tools/vos/proofs.py",
-      "sha256": "fb53cdb3b596ee5918c6c4111c1f247f157e6ec0ae5dd8a1b4cbf244ca3e8e8c"
+      "sha256": "e97b1c3c7ae00098c9204396b27897eabdfc13cb4636d8daf4361421de51c226"
     },
     {
       "path": "tools/vos/python_dependencies.py",
@@ -208,11 +208,11 @@
     },
     {
       "path": "tools/vos/rocqterm.py",
-      "sha256": "ffe7a4cdac6ce9f841e7e28076389ca450a6ac26027c773f7ca8410a71999270"
+      "sha256": "615415810520768480e6e41e3b20bb183bd33f638c5b0321711c37fb5084fa07"
     },
     {
       "path": "tools/vos/sailbundle.py",
-      "sha256": "e027a8adadb129c0e37dcd97c5101615c26bf2c1b2a4eb883c1371fbf9221683"
+      "sha256": "d54f4ec96fceba911cd252c8ee666e05aabbc580731322ac2a21025219797acd"
     },
     {
       "path": "tools/vos/sailexpr.py",
@@ -224,7 +224,7 @@
     },
     {
       "path": "tools/vos/trace.py",
-      "sha256": "2c2886f75998e7e828034f39864e1850ccecf0b8c6be8dcb189bc23d184f852d"
+      "sha256": "a445fb0a2b225b7bfe621ab9957a9c2131c515dbcade633b27a33e10466ad8b8"
     }
   ],
   "interfaces": [

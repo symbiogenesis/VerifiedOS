@@ -1,28 +1,13 @@
 # SPDX-License-Identifier: Apache-2.0
-"""The ring emitter's two owners, and K-89's fail-closed reading of them.
+"""Unit tests for [`vos/ring.py`](../vos/ring.py) and K-89 ([`checks/ring.py`](../vos/checks/ring.py)).
 
-`vos/ring.py` is the only tool in this directory whose output a rule holds byte
-for byte, so what is worth pinning here is not the bytes, which K-89 already decides,
-but the four claims the emitter makes about *where they came from*.
-
-The first is that the states the artifact carries are read out of the register's own
-sentences rather than off positions in its chain: a figure computed as an ordinal
-difference is true of today's register and stays true of one it no longer describes,
-which is this repository's *computation that encodes its own answer*. The first two
-cases move a state and require the figure to move with it.
-
-The second is that an owner the emitter cannot read is refused rather than
-mis-emitted, at each of the shapes `owned()` and `declaration()` name. A world's DMA
-declaration is part of that surface: it is refused where it disagrees with the world
-it sits in rather than emitted into a campaign that then decides nothing.
-
-The third is that each world takes a scope of its own and states the whole campaign at
-its own constants, so a second world is a second instantiation and never a second
-generator.
-
-The fourth is K-89's own: a generator that raises is that rule's finding and never that
-rule's crash. `checks/ring.py` catches the emitter's refusal and every other exception
-alike, and a test injects an unexpected emitter failure to exercise that last arm.
+Verifies that:
+1. Lifecycle state skips are derived from the register's named states rather than fixed
+   ordinal offsets.
+2. Malformed register entries or world DMA declarations raise `RingError`.
+3. Multiple worlds instantiate independent scoped campaigns.
+4. K-89 catches `RingError` and unexpected emitter exceptions as findings rather than
+   crashing.
 """
 
 import json

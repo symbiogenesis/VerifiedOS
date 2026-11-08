@@ -1,31 +1,23 @@
 # SPDX-License-Identifier: Apache-2.0
-"""views: what each derived view carries, in both directions.
+"""Check derived views against the requirements register (`K-14`..`K-17`, `K-29`, `K-49`, `K-74`, `K-76`, `K-95`).
 
-A derived view restates requirements that live in the register. That is the shape
-which produced D-03 and D-10, the same set stated twice with different membership.
-The reverse direction is the one that earns its keep: on first run it found eight
-omissions in isa-profile.md, five of them the §15.12 timing contracts.
+Each derived view in `VIEWS` declares its governing requirement and membership criteria
+(owned §15 subsections via `secs`, requirement body matches via `body`, coverage-matrix
+cells, CSR bank rows, or `CJ-` targets). `K-49` verifies that every declared view file
+exists, and `K-14`..`K-17` and `K-29` verify that each view carries every member its
+criteria select. (Reverse citation resolution belongs to [names.py](names.py).)
 
-A view declares what it must carry, either by owning §15 subsections (`secs`) or by a
-pattern matched against requirement bodies anywhere in the register (`body`). That
-every id a view cites resolves is the names group's business, not this one's: a view
-is not a special case of the vocabulary, it is the only place membership is also owed
-in the other direction.
+For [docs/assurance/coverage-matrix.md](../../../docs/assurance/coverage-matrix.md):
+- `K-74` verifies that every cell's discharge mode is in the matrix's declared
+  vocabulary and that every `residual` cell cites a §17 entry (`R-17-001a`).
+- `K-95` computes each cell's standing (`authored`, `partial`, or `not authored`) from
+  the `CJ-` target rows in [docs/assurance/crown-jewels.md](../../../docs/assurance/crown-jewels.md)
+  reached via requirement `Trace:` lines, and rewrites stale cells under `--fix`.
 
-The matrix is the one view whose rows say something a citation check cannot read. A
-cell states how a pair is carried in one column and by what in the next, and whether
-the cited entry carries what the column claims is a reading. One mode is the exception
-and K-74 takes it: R-17-001a fixes the answer for `residual` by naming the section that
-books it, so that column's claim has a membership question behind it.
-
-The mode column says what the construction claims and nothing about whether anything
-discharges it yet, and K-95 is the column that does. A cell's requirements each trace
-to the crown-jewel targets they constrain, the inventory gives each of those targets
-its rows and each row a status, and the cell's standing is that status lifted over the
-rows it reaches: `authored` where every one exists, `not authored` where none does,
-`partial` between. It is written into the matrix by `--fix` and never by hand, so a
-cell reading `proved` over specifications nobody has authored says so in the next
-column, in the inventory's own vocabulary rather than in a fourth mode.
+For [docs/hardware/absence-contract.md](../../../docs/hardware/absence-contract.md),
+`K-76` checks bidirectional coverage between the contract's `A-*` identifiers and
+[rtl/synthesis-provenance.md](../../../rtl/synthesis-provenance.md), and verifies every
+named synthesis setting against the RTL configuration package (`R-15-103`).
 """
 
 import re
@@ -35,9 +27,6 @@ from typing import TYPE_CHECKING, NotRequired, TypedDict
 from vos import provenance
 from vos.register import COVERAGE_MATRIX, REQ_TOKEN_RE, Artifacts, Register, cj_class
 
-# [Context](__init__.py#Context) lives in this package, which imports this module in turn.
-# Guarded, so the annotation below costs no import at run time: under PEP 649 an
-# annotation is not evaluated unless something asks for it, and nothing here does.
 if TYPE_CHECKING:
     from . import Context
 
@@ -45,13 +34,7 @@ HEADING = "=== views: what each derived view carries, both directions ==="
 
 
 class View(TypedDict):
-    """One row of `VIEWS`, declared so that the table is read as what it is.
-
-    Written as a `dict` per row this was `dict[str, str | list[str] | bool]`, and
-    every read of it came back as that union: `re.compile(v["body"])` was compiling
-    a value that might be a list, and nothing objected. A typo in a key was not a
-    finding either, it was a view that quietly declared nothing and passed.
-    """
+    """Declaration of a derived view and its membership criteria in `VIEWS`."""
 
     file: str
     governing: str
@@ -62,10 +45,7 @@ class View(TypedDict):
     cells: NotRequired[bool]
 
 
-# The declared views. The floors group holds every register citation in this table
-# against the register, because these are citations living in a .py and so reaching
-# no other rule: renumber a subsection and a view's membership silently narrows to
-# nothing while the check over it goes on reporting that everything is carried.
+# Declared views; the floors group checks every register citation in this table.
 VIEWS: list[View] = [
     View(file="docs/hardware/isa-profile.md", governing="R-15-001a",
          secs=["15.1", "15.3", "15.4", "15.5", "15.6", "15.7", "15.8",
@@ -75,34 +55,21 @@ VIEWS: list[View] = [
     View(file="docs/assurance/crown-jewels.md", governing="R-17-016a",
          body=r"crown.jewel spec", targets=True),
     View(file="docs/assurance/coverage-matrix.md", governing="R-17-001b", cells=True),
-    # the freeze's second act is the one place a requirement defers its own decision
-    # to a measurement, so the entries naming that deferral are what the contract must
-    # carry: each either puts a choice into the measured act or states the act's
-    # gating artifacts
+    # Entries deferring decisions to the freeze measurement or stating its gating artifacts.
     View(file="docs/implementation/contracts/freeze-measurement.md", governing="R-15-014a",
          body=r"R-15-014a|the freeze from measurement|re-derived at the freeze"),
-    # the welded block size is one parameter four instructions share, so what the
-    # constraint document must carry is the entries that decide any of them: the
-    # instructions themselves, the granule and codeword they are quantized against,
-    # and the two classes the geometry has to satisfy at once
+    # Entries constraining the shared welded CBO block size, cache line, validity tag, and ECC codeword.
     View(file="docs/hardware/block-geometry-constraint.md", governing="R-15-014a",
          body=r"welded CBO block|CBO block of R-15-007q|allocates whole lines|"
               r"one validity tag per|atomic write unit is the ECC codeword"),
-    # the bank count is admitted against three quantities and constrained by the
-    # schedule wrapped around it, so what the contract must carry is the entry that
-    # names the three, the envelope one of them is, the cadence rules the schedule
-    # answers to, and the measurement every coefficient waits on
+    # Entries governing second-class bank granularity, discharge/refresh schedule, and retention bounds.
     View(file="docs/hardware/bank-count-dse-contract.md", governing="R-15-247p",
          body=r"Bank granularity on the second class|"
               r"Bank discharge and refresh phases are fixed and staggered|"
               r"Retention figures are lower bounds|"
               r"repaired megabit-class macro|"
               r"whole-bound to islands"),
-    # the macro architecture is the input to the measurement R-15-247m names, so
-    # what the view must carry is the entries that fix what the macro is: the tag
-    # plane in the array, the codeword as the write unit, the discharge through the
-    # write devices and its completion read, the phase schedule, the register slave
-    # that drives both, and the measurement every figure is owed to
+    # Entries fixing the second-class macro architecture feeding the R-15-247m measurement.
     View(file="docs/hardware/second-class-macro-architecture.md", governing="R-15-247m",
          body=r"Validity tags are native to each class's own array|"
               r"No sub-granule write exists at the array|"
@@ -111,10 +78,7 @@ VIEWS: list[View] = [
               r"Bank discharge and refresh phases are fixed and staggered|"
               r"No instruction is added for discharge|"
               r"Per-class usable density, the retention floor"),
-    # the source model is what R-15-241a's four obligations are stated against and
-    # what none of them holds, so what the contract must carry is the four that
-    # consume it, the boot ordering that consumes the budget derived from it, and
-    # the residual the model's own tests cannot see
+    # Entries consuming or bounding the R-15-241a TRNG physical source model.
     View(file="docs/hardware/trng-source-model-contract.md", governing="R-15-241a",
          body=r"start-up health tests over a fixed sample budget|"
               r"vetted non-keyed cryptographic conditioner|"
@@ -125,36 +89,19 @@ VIEWS: list[View] = [
 ]
 
 
-# The discharge vocabulary, read from the one sentence of §3 that declares it, and the
-# section a residual is booked in. Both are located by pattern, so the sets they yield
-# are members of the floors group's enumerations.
+# Discharge modes declared in §3 of the coverage matrix, and §17 residual bookings.
 _CM_VOCAB_LEAD = "The modes are "
 _CM_MODE_RE = re.compile(r"\*\*([a-z][a-z-]*)\*\* where")
 _SEC17_RE = re.compile(r"R-17-\d")
 
 
 def _discharge(lines: list[str], cells: dict[str, str]) -> tuple[list[str], int, list[str]]:
-    """The modes the matrix declares, how many cells book a residual, and every cell
-    whose mode its own citations do not answer.
+    """Validate coverage-matrix discharge modes and §17 residual bookings (`K-74`).
 
-    A cell says how the pair is carried and then by what, and nothing held the two
-    columns against each other: K-16 asks only that some requirement be cited, so
-    `residual` standing over nothing but discharging entries reads exactly like a booked
-    remainder. R-17-001a fixes the answer for that one mode, a pair carrying *either a
-    requirement that discharges it or a §17 residual that books it*, and which section
-    an entry sits in is a membership question. That is the substitution this rule is:
-    whether a cited entry carries what the cell claims is a reading no rule reaches, and
-    whether a cell claiming §17 books its remainder cites §17 is not.
-
-    Only that direction. A cell citing a §17 entry need not be a residual, because §17
-    carries seams and compositions as well as bookings, and `B-06` by `P-5` is one:
-    proved and detected over two seam entries, with nothing booked away.
-
-    Fail-closed on the reading rather than on the claim. The mode column is placed
-    against the vocabulary its own document declares, so a mode this rule cannot place
-    stops the comparison for that cell instead of passing over it as a cell carrying no
-    residual, and a matrix declaring no vocabulary this rule can read is one finding
-    rather than sixty-three silent passes.
+    Returns `(vocab, residual_count, gaps)`. Every cell's mode must belong to the
+    vocabulary declared in the matrix, and every cell with mode `residual` must cite at
+    least one `R-17-*` entry (`R-17-001a`). Fails closed when the vocabulary or row
+    columns cannot be parsed.
     """
     vocab: list[str] = []
     for line in lines:
@@ -217,15 +164,11 @@ class Standing:
 
 
 def _inventory(art: Artifacts) -> tuple[dict[str, list[int]], dict[int, str | None], int]:
-    """Every CJ- target's inventory rows, and every row's status class.
+    """Map each `CJ-` target to its inventory rows and each row to its status class.
 
-    A specification target reaches its rows through the inventory's own target
-    column, and a theorem target through the premises its row names, because a theorem
-    is proven against a specification and its standing is that specification's. The
-    third value is how many theorem targets resolved to any row at all, which is the
-    floor under the second reading: `CJ-ADMIT-IMPL` names no inventory row by design,
-    so an empty premise set is not a finding per target, and a theorem table this rule
-    can no longer read would leave every theorem-only cell reaching nothing.
+    Specification targets map directly to the inventory rows naming them; theorem
+    targets map to the premise rows listed in the theorem table's last column. The
+    third return value counts how many theorem targets resolved to at least one row.
     """
     rows_of: dict[str, list[int]] = {}
     status: dict[int, str | None] = {}
@@ -254,29 +197,12 @@ def _inventory(art: Artifacts) -> tuple[dict[str, list[int]], dict[int, str | No
 
 
 def _standing(ctx: Context, reg: Register, art: Artifacts) -> Standing:
-    """K-95: every cell's standing is the inventory's, and `--fix` writes it.
+    """Compute each coverage-matrix cell's standing from the crown-jewel inventory (`K-95`).
 
-    The mode column says how the pair is carried and the citations say by what, and
-    neither says whether any of it exists: a cell reading `proved` over a theorem whose
-    specification is `not authored` in the inventory is a pair discharged by nothing,
-    and the matrix had no column in which to say so. This is that column, and it is
-    computed rather than authored, because a standing somebody wrote is a claim that
-    stops being true the day a row of the inventory moves.
-
-    The reading is a join of three artifacts, each by name: a cell's citations resolve
-    to entries, each entry's trace names the targets it constrains, and the inventory
-    gives each target its rows and each row a status. What is lifted from a row to a
-    cell is the inventory's own vocabulary: a cell whose rows are all authored stands
-    `authored`, one whose rows are none of them authored or partial stands
-    `not authored`, and everything between stands `partial`. A cell reaching no row is
-    a finding rather than a cell with nothing to say, and a cell reaching a row whose
-    status is in no class is left to K-25, which already reports that row, and is not
-    written from a class this rule cannot place.
-
-    Repaired rather than reported, on the counts group's ground: the value is
-    arithmetic over three enumerations the tool already reads, so a person retyping it
-    would be copying a derived fact. The shape is not repaired: a row short of the
-    sixth column is reported, the column being the header's to declare.
+    Joins each cell's cited requirements to their `Trace:` targets and the inventory
+    rows those targets reach: all `authored` -> `authored`, neither `authored` nor
+    `partial` -> `not authored`, otherwise `partial`. Rewrites stale standing cells
+    when `ctx.fix` is set.
     """
     result = Standing()
     rows_of, status, result.premises = _inventory(art)
@@ -338,28 +264,13 @@ _ABSENCE_ID_RE = re.compile(r"\*\*(A-\d+[a-z]?)\*\*")
 
 
 def _provenance(ctx: Context) -> list[str]:
-    """Every absence bound to a build, and every binding the package states.
+    """Check bidirectional bindings between the absence contract, provenance record, and RTL config (`K-76`).
 
-    The absence contract enumerates structures whose absence is claimed and
-    R-15-103 requires the imported-core half of it to be discharged by a state
-    enumeration *plus* the synthesis-configuration provenance, "so the absence is
-    bound to a build, not to a reading". Nothing owned that second half. A
-    parameter set written into a checklist cell is prose: it reads exactly the
-    same the day the configuration moves under it, and the cell goes on saying
-    which parameters take which absence long after one of them has stopped.
-
-    Three directions, because the record can fail in three different ways and
-    each is a different repair. An absence the record does not carry is claimed
-    and bound to nothing. A row naming an identifier the contract does not
-    declare is a binding for an absence nobody claims, which is the shape a
-    renumbering leaves. And a setting the configuration package does not state at
-    that value is a record describing a build that is not this one, which is the
-    failure the whole instrument exists to prevent and the only one of the three
-    that a reader of either file alone cannot see.
-
-    Fail-closed on the reading. An absent record, an absent configuration package
-    and a contract this rule can find no identifiers in are each one finding
-    rather than a comparison quietly made against nothing.
+    Verifies that every `A-*` identifier in
+    [docs/hardware/absence-contract.md](../../../docs/hardware/absence-contract.md) is
+    bound in [rtl/synthesis-provenance.md](../../../rtl/synthesis-provenance.md), every
+    provenance row names a declared absence and a valid binding (`setting = value` or
+    grounded `n/a`), and every named setting matches the RTL configuration package.
     """
     record = provenance.read(ctx.root)
     contract = ctx.text(ABSENCE_CONTRACT)

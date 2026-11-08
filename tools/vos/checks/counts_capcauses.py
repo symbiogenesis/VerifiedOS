@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""K-104 regenerates the adapter's exception section from its Sail definitions."""
+"""Check and regenerate the Sail adapter's capability exception section (`K-104`, via [vos/capcauses.py](../capcauses.py))."""
 
 from typing import TYPE_CHECKING
 

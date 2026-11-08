@@ -1,43 +1,9 @@
 # SPDX-License-Identifier: Apache-2.0
-"""The image composer, and the two of §4's three inputs it produces.
+"""Bundle-placement composer for [freeze-measurement.md](../../docs/implementation/contracts/freeze-measurement.md) (§4).
 
-M1.4 excludes general dynamic linking, so *the linker* here is an
-image composer, which [image.py](image.py) already is for the emulator's ELF. What this
-module adds is the half [the measurement contract](../../docs/implementation/contracts/freeze-measurement.md)'s
-§4 declares and M1.8b joins into its one table: the **link map** from S5, one row per
-site with the bundle and slot that carry it, and the **encoded image** from S7 as its
-bytes beside a per-site entry-and-escape table.
-
-The third input is the sidecar stream, and it is deliberately not here. Its
-`operand_class` and `producer` columns are the emitter's *intent*, which is why §4 has
-the backend label them before assembly rather than have an analyzer infer them after it;
-an assembler inventing those labels would be a label inferred over a measurement, which
-is the failure that whole schema exists to prevent. It is M1.2's.
-
-## The dictionary is empty, and the report that says so is the honest one
-
-FD-1 states that it has no default arm, because the dictionary *is* the encoding: a
-composer that left S6 out and called it a variant would be selecting by omission. So the
-default dictionary here is **empty**, and under an empty dictionary every site is a
-two-slot verbatim escape, which is exactly what the canonical 32-bit stream this
-composer already lays down is. Every row's `entry` is then `-` and its `escape` is `1`,
-and the analyzer's stratified hit rate reads zero.
-
-That is a true statement about a machine nobody has selected a dictionary for, not a
-degenerate one: FD-1 has not run, no dictionary exists to select from, and a composer
-that selected one would be an instrument grading its own homework. What this produces is
-the *wiring* the sweep needs, with the geometry and the dictionary both parameters of the
-run.
-
-## The geometry is a parameter of the run and never a verdict
-
-§8 declares the candidate set `(h, k)` in {(16,3), (16,7), (16,15)} at `w = 16`, and §6's
-FD-2 states **no default arm**, its own section giving the ground: the candidates are
-three geometries of one format, so nothing is carried or dropped, and the reference
-instantiation is the item's provisional value under R-15-014a rather than a fallback the
-freeze could take. So `Geometry` carries the reference instantiation as its default and this
-module says, here and in what it emits, that a run at 128 bits is a run at a declared
-parameter and not a freeze verdict. A caller sweeping FD-2 passes the other two.
+Produces the S5 link map (`link-map.tsv`) and S7 per-site entry/escape table (`image-sites.tsv`)
+alongside the raw canonical image (`image.bin`) for a given bundle `Geometry` and dictionary.
+The sidecar stream (`operand_class` and `producer`) is emitted upstream before assembly.
 """
 
 from dataclasses import dataclass
@@ -49,12 +15,9 @@ from .asm import CANONICAL_BITS, Site
 
 @dataclass(frozen=True)
 class Geometry:
-    """One bundle geometry: header bits, slots per bundle, and slot width.
+    """Bundle geometry (`header` bits, `slots` per bundle, `width` bits per slot).
 
-    The defaults are §6's reference instantiation and are **not** a default arm: FD-2
-    declares none, so what this carries is the one instantiation the contract names in
-    prose, spelled as a parameter so that a sweep passes the others and a report can say
-    which was used.
+    Defaults to the provisional reference instantiation `(16, 7, 16)` (R-15-014a).
     """
 
     header: int = 16
@@ -76,18 +39,13 @@ class Geometry:
 
     @property
     def escape_slots(self) -> int:
-        """How many slots one verbatim instruction costs.
-
-        Derived rather than declared, so that a sweep at another slot width cannot leave
-        this saying two: a canonical instruction is `CANONICAL_BITS` wide and a slot
-        carries `width` of them, rounded up.
-        """
+        """Number of slots required to encode one verbatim `CANONICAL_BITS` instruction."""
         return -(-CANONICAL_BITS // self.width)
 
 
 @dataclass(frozen=True)
 class Placed:
-    """One site after packing: where it landed, and how it was encoded."""
+    """Bundle/slot placement and dictionary encoding for one instruction `Site`."""
 
     site: Site
     bundle: int
@@ -98,7 +56,7 @@ class Placed:
 
 @dataclass
 class Composition:
-    """One composed image: its bytes, its placed sites, and the geometry it used."""
+    """Composed image bytes, placed sites, and bundle geometry."""
 
     geometry: Geometry
     placed: list[Placed]
@@ -106,20 +64,14 @@ class Composition:
 
     @property
     def hit_rate(self) -> float:
-        """The aggregate hit rate, which R-15-036k forbids quoting alone.
-
-        Here so that a caller can see it is zero and say why, never so that a report can
-        print it on its own: §9 enforces the prohibition mechanically and the stratified
-        rate is the analyzer's to compute from the sidecar labels this composer does not
-        have.
-        """
+        """Unstratified dictionary hit rate across placed sites (diagnostic only; R-15-036k)."""
         if not self.placed:
             return 0.0
         return sum(1 for row in self.placed if not row.escape) / len(self.placed)
 
 
 def _dictionary(dictionary: dict[int, int] | None, width: int) -> dict[int, int]:
-    """Validate the finite canonical-word dictionary before computing any placement."""
+    """Validate that `dictionary` maps 32-bit canonical words to contiguous `width`-bit indices."""
     if dictionary is None:
         return {}
     if not isinstance(dictionary, dict):
@@ -138,20 +90,7 @@ def _dictionary(dictionary: dict[int, int] | None, width: int) -> dict[int, int]
 
 def compose(sites: list[Site], image: bytes, geometry: Geometry | None = None,
             dictionary: dict[int, int] | None = None) -> Composition:
-    """Pack an assembled image's sites into bundles, at one geometry.
-
-    `dictionary` maps a site's complete canonical word to its integer dictionary index.
-    Resolved registers and immediates are part of that word. The **empty** dictionary
-    is the default for the reason this module's docstring states. A site the dictionary
-    does not carry takes an escape, which costs `escape_slots` slots and reproduces the
-    canonical word verbatim. Malformed and ambiguous dictionaries refuse before packing.
-
-    The image's bytes are carried through rather than re-encoded, because the bundle
-    format is not implemented in the model and an image this composer packed would be one
-    the emulator could not fetch (see [dialect.py](dialect.py)'s own statement of that
-    absence). What is produced is therefore the *placement* the freeze measures, over the
-    stream the emulator actually runs.
-    """
+    """Pack assembled `sites` into bundles under `geometry` and `dictionary` (default empty)."""
     geometry = geometry or Geometry()
     table = _dictionary(dictionary, geometry.width)
     placed: list[Placed] = []
@@ -171,7 +110,7 @@ def compose(sites: list[Site], image: bytes, geometry: Geometry | None = None,
 
 
 def link_map(composition: Composition) -> str:
-    """S5's link map, under the header §4's schema fixes."""
+    """Format the S5 `link-map.tsv` table."""
     lines = [freezeschema.header(freezeschema.LINK_MAP_FIELDS)]
     lines += [freezeschema.row(freezeschema.LINK_MAP_FIELDS, {
         "site_id": row.site.site_id,
@@ -183,13 +122,7 @@ def link_map(composition: Composition) -> str:
 
 
 def image_sites(composition: Composition) -> str:
-    """The composer's per-site entry-and-escape table, under §4's header.
-
-    `escape` is written `1` and `0` rather than `true` and `false` because the analyzer
-    reads `-`, the empty cell, `0` and `false` as false and everything else as true, and
-    a producer writing the one spelling that is unambiguous under that reading is the
-    producer that cannot be misread if the reading is ever widened.
-    """
+    """Format the S7 `image-sites.tsv` per-site entry/escape table."""
     lines = [freezeschema.header(freezeschema.IMAGE_SITE_FIELDS)]
     lines += [freezeschema.row(freezeschema.IMAGE_SITE_FIELDS, {
         "site_id": row.site.site_id,
@@ -200,20 +133,12 @@ def image_sites(composition: Composition) -> str:
 
 
 def emit(composition: Composition, into: Path) -> list[tuple[str, int]]:
-    """Write the two inputs this composer produces, and the image beside them.
-
-    Returns `(path, size)` per file written, so that a caller reports what it produced
-    rather than restating the paths it asked for. The directory is created; the sidecar
-    stream is not written, and its absence is what a `freeze-report.py` run will name.
-    """
+    """Write `link-map.tsv`, `image-sites.tsv`, and `image.bin` to `into`; return `(path, size)`."""
     into.mkdir(parents=True, exist_ok=True)
     out: list[tuple[str, int]] = []
     for name, text in (("link-map.tsv", link_map(composition)),
                        ("image-sites.tsv", image_sites(composition))):
         path = into / name
-        # `newline=""` and explicit UTF-8, which is this directory's own convention: a
-        # stream the analyzer splits on `\n` must not acquire a `\r` from the host it
-        # was written on.
         with path.open("w", encoding="utf-8", newline="") as handle:
             handle.write(text)
         out.append((str(path), len(text.encode("utf-8"))))

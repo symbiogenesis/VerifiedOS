@@ -1,57 +1,23 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: Apache-2.0
-"""Emit the ring contract's generated interface artifact from its two owners.
+"""Emit the ring contract's generated interface artifact ([proofs/RingContract.v](../../proofs/RingContract.v)) from its two owners.
 
     tools/run.py ring emit    # writes proofs/RingContract.v
     tools/run.py ring check   # re-emits and compares, byte for byte
 
-The typed IDL profile's section 4.3 says the common ring schema and lifecycle are
-content of the wire-format mapping, and that a ring-bearing declaration is compiled
-to a generated interface artifact carrying three parts: the Coq interface skeleton,
-the composition-time constants, and the conformance campaign. This is the compiler
-for the one part of that pipeline a Gallina front can emit today.
+Owners:
+- [interfaces/ring-reference.json](../../interfaces/ring-reference.json): composition-time
+  worlds, ring constants, encoding widths, operation sets, declared records, and optional
+  DMA declarations.
+- [docs/requirements-register.md](../../docs/requirements-register.md): status set
+  (R-12-093), lifecycle states (R-12-094), full-ring result (R-12-095), and cancellation
+  answers (R-12-097).
 
-**Two owners, and neither is this file.** The declaration
-[interfaces/ring-reference.json](../../interfaces/ring-reference.json) owns
-everything a composition fixes. The register owns the two closed enumerations the
-artifact carries, R-12-093's status set and R-12-094's lifecycle states, plus
-R-12-095's full-ring result and R-12-097's cancellation answers; those are read out
-of the register's own entry lines rather than transcribed here, so a member added at
-either entry moves the artifact's bytes and a generator carrying its own copy of a
-list the register states is the defect this arrangement exists to prevent.
-
-**The declaration carries worlds and the artifact carries one block apiece.** A
-Gallina file has one top-level scope, and two worlds each declaring an `op` cannot
-both hold it, so the first world the declaration lists is emitted at the file's own
-scope and every further world inside a module named from its own world name. That
-order is the declaration's: moving a world moves the artifact, and the artifact's
-consumers, [CopyRingService.v](../../proofs/CopyRingService.v) and
-[DescriptorCheck.v](../bedrock2-lowering/DescriptorCheck.v), name the file-scope
-world's constants unqualified. Every block is emitted by this one function of the
-declaration, so a world states its own campaign at its own constants and no bound is
-authored twice.
-
-**The DMA clauses are a world's declaration and not a second campaign.** A world
-declaring `dma` gets part 4, which is R-12-100 read at the artifact: the permission
-each declared direction requires of the session-table capability, the complete extent
-validated before the transfer starts and never reinterpreted after, one validation
-charged per declared segment, and R-12-099's *old capabilities dead* as a hold that
-ends at terminal completion, held beside a hold that ends at reclamation and fails.
-A world declaring no `dma` carries none of it, which is what makes part 4 the
-difference between the two worlds rather than a restatement of the first.
-
-**What the artifact is not.** It is not a proof of the ring contract: the campaign is
-a set of obligations decided by computation over the declared constants, which is the
-fail-closed reading of R-18-037's *no interface world declaring rings is admitted
-before its campaign runs*. A declaration whose constants break an obligation fails to
-compile the artifact. The canonical SPSC and typestate proofs that entry also names are
-not here and are not claimed, and neither is its lost-wakeup exclusion over the ring's
-memory: the artifact carries R-12-096's decision rule over two reads of the producer
-index, held to the exclusion beside a consumer that skips the recheck and fails it, so
-the exclusion is a property one rule satisfies and another does not rather than one
-rule's body unfolded. Nothing here reaches the machine: whether an engine presents its
-capability to the fabric is a run's answer over a second bus initiator, and this model
-has one hart.
+The first world in the declaration is emitted at top-level file scope (consumed unqualified
+by [CopyRingService.v](../../proofs/CopyRingService.v) and
+[DescriptorCheck.v](../bedrock2-lowering/DescriptorCheck.v)); subsequent worlds are emitted
+in dedicated Gallina modules. Worlds declaring `dma` also emit Part 4 (R-12-100 and
+R-12-099 obligations).
 """
 
 import json
@@ -196,12 +162,7 @@ class World(TypedDict):
 class Declaration(TypedDict):
     worlds: list[World]
 
-# The register's own spellings, found where each entry states them. A backticked
-# lower-case identifier is how that document writes a wire token, the arrow chain is
-# how it writes an ordered lifecycle, and each of the two steps the artifact carries
-# past that chain is named in the sentence of the entry that fixes it; no pattern here
-# is this file's invention and every one of them fails closed below rather than
-# yielding an empty enumeration or a state this file chose.
+# Patterns matching wire tokens, closed sets, and lifecycle chains in register entries.
 _TOKEN_RE = re.compile(r"`([a-z][a-z_]*)`")
 _CLOSED_SET_RE = re.compile(r"closed common set \(([^)]*)\)")
 _CHAIN_RE = re.compile(r"([A-Z][a-z]+(?: → [A-Z][a-z]+)+)")
@@ -210,19 +171,17 @@ _UNSTARTED_RE = re.compile(r"a target still ([A-Z][a-z]+)")
 
 
 class RingError(Exception):
-    """An owner did not carry what the emitter reads out of it."""
+    """Raised when an owner is missing required ring-contract declarations."""
 
 
 def _ordered(names: list[str]) -> list[str]:
-    """The names in first-appearance order, each once. An entry writes one token
-    twice where its sentence needs it twice, and the enumeration is still one."""
+    """Deduplicate `names` in first-appearance order."""
     return list(dict.fromkeys(names))
 
 
 @dataclass(frozen=True)
 class Owned:
-    """The four enumerations the register owns, read from its own entry lines, and the
-    three states its own sentences name inside two of them."""
+    """Register-owned enumerations and lifecycle boundary states."""
 
     statuses: list[str]
     states: list[str]

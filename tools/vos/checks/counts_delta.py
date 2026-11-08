@@ -1,12 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""counts, the freeze delta: a closed enumeration, and the instrument over it.
-
-R-15-014a closes the freeze's second act by enumerating its delta, and the freeze
-measurement contract is what quantifies over that enumeration: a §1 row instruments
-an item, a §10 bullet declares one out of the instrument's reach. Every item is owed
-exactly one of the two, and the contract's own restatements of the enumeration's size
-and its split are read against the register's count rather than against each other.
-"""
+"""Check that [freeze-measurement.md](../../../docs/implementation/contracts/freeze-measurement.md) accounts for every item in `R-15-014a`'s closed freeze delta (`K-70`)."""
 
 import re
 from typing import TYPE_CHECKING
@@ -14,44 +7,27 @@ from typing import TYPE_CHECKING
 from vos import figures
 from vos.register import REQ_TOKEN_RE
 
-# [Context](__init__.py#Context) lives in this package, which imports this module in turn.
-# Guarded, so the annotation below costs no import at run time: under PEP 649 an
-# annotation is not evaluated unless something asks for it, and nothing here does.
 if TYPE_CHECKING:
     from . import Context
 
-# K-70: the freeze's closed delta and the instrument that quantifies over it.
 CONTRACT = "docs/implementation/contracts/freeze-measurement.md"
 DELTA_OWNER = "R-15-014a"
 
-# The markers the entry enumerates its delta with, in the order it writes them. The
-# run is read rather than a count, so an item inserted, renumbered, or dropped moves
-# the sequence and is a finding rather than a quietly shorter list.
 DELTA_MARKS = ("i", "ii", "iii", "iv", "v", "vi", "vii", "viii", "ix", "x", "xi", "xii")
 
 DELTA_MARK_RE = re.compile(r"\(([ivx]+)\)")
-# a §1 row opens its first cell with the marker of the item it instruments, and
-# "(iv, continued)" is the one row carrying a second half of a single item
+# §1 rows open with the marker of the item they instrument (including "(iv, continued)").
 INSTRUMENT_ROW_RE = re.compile(r"(?m)^\| \(([ivx]+)[,)]")
-# What separates a boundary declaration from everything else §10 owes elsewhere. Every
-# bullet in that section cites requirements; only the ones saying an item is not this
-# instrument's are declaring a delta item out of the report's reach, and reading the
-# section by citation alone would let a bullet that merely mentions a governing
-# requirement stand in for the declaration that never happened.
+# Phrase distinguishing §10 delta-boundary bullets from other §10 bullets that cite requirements.
 BOUNDARY_MARK = "not this instrument's"
 
-# The contract's own restatements of the delta's shape, each read against the
-# enumeration and none of them rewritten. Every one stands inside a sentence that
-# states the split in words beside the figure, so a token substitution would leave the
-# prose describing a partition it no longer carries: this is the judgment side of the
-# arithmetic-and-judgment split, and the repair is a person's sentence.
 DELTA_TOTAL_RE = re.compile(r"delta is closed at ([\w-]+) enumerated items")
 DELTA_SPLIT_RE = re.compile(
     r"\*\*([\w-]+) of the ([\w-]+) are measured against generated output\*\*")
 DELTA_REST_RE = re.compile(r"The remaining ([\w-]+) are re-derived at that same act")
 DELTA_BOUND_RE = re.compile(r"Two of R-15-014a's ([\w-]+) delta items")
 
-# pattern, the group carrying the figure, which figure it is, and what it states
+# (pattern, capture_group, count_key, description)
 DELTA_FIGURES: list[tuple[re.Pattern[str], int, str, str]] = [
     (DELTA_TOTAL_RE, 1, "total", "the delta's size where the measured act is introduced"),
     (DELTA_SPLIT_RE, 1, "instrumented", "the share §1 instruments"),
@@ -62,11 +38,10 @@ DELTA_FIGURES: list[tuple[re.Pattern[str], int, str, str]] = [
 
 
 def _delta_items(body: str) -> list[tuple[str, frozenset[str]]]:
-    """R-15-014a's enumerated delta: each marker, with the requirements it names.
+    """Return `(marker, requirement_ids)` for each `(i)`-style item in `R-15-014a`.
 
-    An item runs from its own marker to the next, and the last runs to the end of its
-    own sentence, because the enumeration is followed by the amendment clause whose
-    citation belongs to no item.
+    Each item spans from its marker to the next marker (or to the end of its sentence
+    for the final item, excluding the trailing amendment clause).
     """
     marks = list(DELTA_MARK_RE.finditer(body))
     items: list[tuple[str, frozenset[str]]] = []
@@ -81,7 +56,7 @@ def _delta_items(body: str) -> list[tuple[str, frozenset[str]]]:
 
 
 def _section(raw: str, heading: str) -> str:
-    """One `## ` section of a document, from its heading to the next one."""
+    """Return the slice of `raw` from `heading` to the next `## ` heading."""
     at = raw.find(heading)
     if at < 0:
         return ""
@@ -90,39 +65,15 @@ def _section(raw: str, heading: str) -> str:
 
 
 def freeze_delta(ctx: Context) -> None:
-    """K-70: every item of R-15-014a's closed delta, accounted for exactly once.
+    """K-70: every item of `R-15-014a`'s closed freeze delta is accounted for once in [freeze-measurement.md](../../../docs/implementation/contracts/freeze-measurement.md).
 
-    The freeze's second act has a delta the register closes by enumeration, and the
-    freeze measurement contract is the instrument that quantifies over it: its §1 table
-    attaches a decision to each item it measures, and its §10 bullets declare the items
-    it does not reach and say where they are decided instead. Between the two the
-    enumeration must be covered, because the contract's own gate rejects a report in
-    which a delta item has no decision row. Nothing held that: the register grew a ninth
-    item and the contract went on saying eight, with every citation still resolving, the
-    view still carrying every bearing requirement, and the run green.
-
-    **Membership is by marker on one side and by governing requirement on the other**,
-    which is not a preference. A §1 row opens with the item's own `(i)`-style marker, so
-    it names the item exactly; a §10 bullet is prose about a boundary and carries no
-    marker, so what identifies the item there is the set of requirements the register's
-    item names, held by containment. That is why the boundary bullets are selected by
-    the sentence that declares them rather than by citation alone: §10 also owes things
-    elsewhere, and those bullets cite governing requirements too, so a bullet mentioning
-    R-15-031a would otherwise stand in for a boundary declaration nobody wrote.
-
-    **Both directions, and both are real.** An item the contract accounts for nowhere is
-    the defect above. An item it accounts for twice is the opposite one: a report that
-    both owes a decision row and refuses to carry one.
-
-    **Fail-closed in the reading.** An enumeration that is not a run of the markers this
-    rule reads, a contract that is absent, and a §1 or §10 that cannot be found are each
-    a finding and stop the comparison, so a reworded entry or a renumbered section
-    cannot take the check down with it and leave the rule passing over nothing.
-
-    **Reported and never repaired.** The five restated figures each stand inside a
-    sentence that also states the split in words, so rewriting a token would leave the
-    prose describing a partition it no longer carries; which sentence is right is the
-    same judgment K-61 asks for, and it is a person's.
+    Checks that:
+    1. Every enumerated `(i)`..`(n)` item in `R-15-014a` is either instrumented by a §1
+       table row (matched by marker) or declared out of reach by a §10 boundary bullet
+       containing `BOUNDARY_MARK` (matched by requirement-set containment), and never
+       both.
+    2. Every count-word restatement of the total, instrumented, and bounded counts in
+       `DELTA_FIGURES` matches the partition.
     """
     rep, reg = ctx.rep, ctx.reg
     label = "delta item(s) the freeze contract does not account for exactly once:"

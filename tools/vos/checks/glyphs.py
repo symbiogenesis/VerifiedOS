@@ -1,29 +1,10 @@
 # SPDX-License-Identifier: Apache-2.0
-"""glyphs: the encoding damage a rendered read does not catch.
+"""Check all tracked UTF-8 files (including gzip-compressed evidence) for mojibake and `U+FFFD` (`K-41`).
 
-The other groups check what a document says. This one checks what it is made of:
-mojibake is UTF-8 read as some single-byte encoding, and a replacement character is
-what a decoder leaves where it gave up. Both render without complaint, so the fault
-survives a rendered read and is worth catching the moment it lands.
-
-Damage is reported per file with the lines to visit, and never repaired: a mangled
-character can only be restored by whoever knows what it was.
-
-The window is the **whole git index** rather than the `.md` corpus every other group
-reads, and that follows from the rule being absolute. The fault is a property of a
-file's bytes and not of its prose, so a comment in Sail, in assembly, or in JavaScript
-carries it exactly as a paragraph does, and a rule stated with no carve-out that
-silently stopped at one suffix would be a carve-out nobody had to audit. A file the
-index carries that is not UTF-8 is skipped rather than reported, because the fault
-cannot be stated over bytes that are not text. Retained gzip evidence is expanded
-before that reading, so compression preserves checks on its original text.
-Submodule contents never arrive here at
-all: a gitlink carries no file of its own, so an upstream's bytes are out of reach by
-construction rather than by an exemption.
-
-Every character this module hunts is built from its code point rather than typed. Half
-of them are C1 control characters no editor renders, and typing the rest would put the
-very damage this module reports into the file that reports it.
+Scans every UTF-8 file in the Git index for replacement characters (`U+FFFD`) and
+multi-byte UTF-8 sequences misdecoded as Latin-1 or CP1252. Non-UTF-8 binary files are
+skipped; `.gz` files under `docs/implementation/retained-evidence/` are decompressed
+before scanning. `K-41` is never auto-repaired.
 """
 
 import re
@@ -36,9 +17,6 @@ from vos.report import sites
 
 from .interims import archive_needles
 
-# [Context](__init__.py#Context) lives in this package, which imports this module in turn.
-# Guarded, so the annotation below costs no import at run time: under PEP 649 an
-# annotation is not evaluated unless something asks for it, and nothing here does.
 if TYPE_CHECKING:
     from . import Context
 
@@ -46,14 +24,13 @@ HEADING = "=== glyphs: encoding damage ==="
 
 REPLACEMENT = chr(0xFFFD)
 
-# A lead byte of a multi-byte UTF-8 sequence, read as Latin-1 or CP1252.
+# Lead bytes of multi-byte UTF-8 sequences when misdecoded as Latin-1 or CP1252.
 LEAD_BYTES = (0xC2, 0xC3, 0xE2, 0xF0)
 
-# The continuation byte that follows it, read the same way: the whole high half of both
-# encodings, so the mangling of any character is caught and not just the common ones.
+# Continuation code points in Latin-1 (C1 block) and CP1252.
 CONTINUATION_RANGES = (
-    (0x0080, 0x00BF),                        # Latin-1's C1 block, read as itself
-    (0x0152, 0x0153), (0x0160, 0x0161),      # CP1252's own additions, in code order
+    (0x0080, 0x00BF),
+    (0x0152, 0x0153), (0x0160, 0x0161),
     (0x0178, 0x0178), (0x017D, 0x017E),
     (0x0192, 0x0192), (0x02C6, 0x02C6), (0x02DC, 0x02DC),
     (0x2013, 0x2014), (0x2018, 0x201A), (0x201C, 0x201E),
@@ -71,22 +48,12 @@ MOJIBAKE_RE = re.compile(
     "[" + _character_class(CONTINUATION_RANGES) + "]"
     "|" + REPLACEMENT)
 
-# Every alternative the pattern has begins with one of these, so a document carrying
-# none of them carries no damage and need not be scanned at all. Both branches are read
-# off the pattern's own constants rather than restated, so the shortcut cannot come to
-# admit a character the pattern would have caught. Nearly every document takes it, and
-# the scan is a twentieth of what it was.
+# Fast-path prefix characters shared by all `MOJIBAKE_RE` alternatives.
 MOJIBAKE_MARKS = (*(chr(b) for b in LEAD_BYTES), REPLACEMENT)
 
 
 def _lines_carrying(raw: str, offsets: Iterable[int]) -> list[int]:
-    """One entry per line, however many hits it carries: the repair is one visit.
-
-    Regex hits arrive in source order, so newline accounting advances with them
-    instead of scanning the entire prefix for every damaged character. Such a
-    reading touches at most the source length. Other offset orders retain the
-    prefix reader's result by restarting the count when an offset moves back.
-    """
+    """Return deduplicated 1-based line numbers for `offsets` in `raw`."""
     found: list[int] = []
     last = -1
     at = line = 0

@@ -1,35 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
-"""The verification engine: it generates DII streams, drives an implementation
-over RVFI-DII, adjudicates what comes back, and shrinks a counterexample.
-
-TestRIG's own phrasing is the whole of the design: *vengines generate one or
-more DII streams of instruction traces, and consume one or more RVFI streams of
-execution traces*. This module is that role, in the one language this directory
-carries, and it is a **binding** rather than a second TestRIG: what it holds is
-the protocol and the shrinker, and everything it decides about behaviour it
-decides through [trace.py](trace.py)'s adjudicator, which is the one this
-repository already had.
-
-Three things the corpus cannot do at all, and they are why this exists:
-
-- **The sequence is under control.** A DII stream is instructions, not a
-  program: nothing is fetched, so there is no layout, no linker, and no
-  requirement that the stream be reachable code.
-- **A counterexample shrinks.** `shrink` below is delta debugging over the
-  stream, and it re-runs the implementation on each candidate rather than
-  reasoning about which instruction mattered.
-- **Generation does not depend on a person choosing what to write next**, which
-  is the argument M2.1's 21,546 vectors and R1a's 658,659 already made here.
-
-**What it does not have is a second executor.** M2's CHERI-QEMU fork is struck
-and the RTL is R1b's, so today the second side is this one under a **seeded
-defect**: `DEFECTS` below are packet-level mutations standing for the ways a
-second implementation of the frozen profile gets an answer wrong, and each is
-written so that most instructions do not expose it. That is what makes shrinking
-a real measurement rather than a demonstration over a stream where every
-instruction is a witness. When R2 supplies the RTL's `rvfi` port, `Session`
-below is what it connects to and nothing else here changes.
-"""
+"""RVFI-DII verification engine: DII stream generation, socket session driving,
+packet-level seeded defect injection, commit-trace adjudication via
+[trace.py](trace.py), and `ddmin` counterexample shrinking."""
 
 import random
 import socket
@@ -44,21 +16,14 @@ from vos import dialect, rvfi, trace
 
 MASK64: Final = (1 << 64) - 1
 
-# The reset entry point RVFI-DII fixes, `rvfi_handler::get_entry`, which is also
-# the address TestRIG's 64 KiB memory contract puts memory at.
+# RVFI-DII reset entry point (`rvfi_handler::get_entry`) and base of the 64 KiB TestRIG RAM window.
 ENTRY: Final = 0x8000_0000
 
-# Where a generated stream puts the data it touches. It is inside the frozen
-# profile's RAM and is reached through a capability derived from the reset root,
-# because there is no default data capability and no integer-addressed access on
-# this machine (R-15-001c): an integer base register would be read as an
-# untagged capability and fault.
+# Scratch RAM window accessed via a capability derived from the reset root in `x1`.
 DATA: Final = ENTRY + 1024
 
-# The registers a generated stream is allowed to write. `x1` is never among them
-# because reset hands it the root **data** capability, which is the only store
-# authority a stream has and which `x1` being the link register already makes
-# fragile (M0.12's second finding).
+# Writable register pools for generated streams (`x1` is preserved because reset
+# places the root data capability there).
 INTEGERS: Final = tuple(range(5, 16))
 CAPABILITIES: Final = tuple(range(16, 24))
 ADDRESS_REG: Final = 24
@@ -66,12 +31,7 @@ AUTHORITY_REG: Final = 25
 
 _ROOT = 1
 
-# --- what a generated stream may contain -----------------------------------
-#
-# Every mnemonic below is a row of [dialect.py](dialect.py), so a stream is
-# encoded by the same table the corpus assembles through rather than by a second
-# encoder written here.
-
+# Mnemonics from [dialect.py](dialect.py) used by stream templates.
 _RR = ("add", "sub", "sll", "slt", "sltu", "xor", "srl", "sra", "or", "and",
        "addw", "subw", "sllw", "srlw", "sraw",
        "mul", "mulh", "mulhsu", "mulhu", "div", "divu", "rem", "remu",
@@ -83,7 +43,7 @@ _RR = ("add", "sub", "sll", "slt", "sltu", "xor", "srl", "sra", "or", "and",
 
 _RI = ("addi", "slti", "sltiu", "xori", "ori", "andi", "addiw")
 
-# The shift-immediate forms, with the width of the shift amount each admits.
+# Shift-immediate mnemonics paired with their shift-amount bit widths.
 _SHIFTS = (("slli", 6), ("srli", 6), ("srai", 6), ("rori", 6), ("slli.uw", 6),
            ("bclri", 6), ("bexti", 6), ("binvi", 6), ("bseti", 6),
            ("slliw", 5), ("srliw", 5), ("sraiw", 5), ("roriw", 5))
@@ -91,8 +51,7 @@ _SHIFTS = (("slli", 6), ("srli", 6), ("srai", 6), ("rori", 6), ("slli.uw", 6),
 _UNARY = ("clz", "ctz", "cpop", "sext.b", "sext.h", "clzw", "ctzw", "cpopw",
           "zext.h", "rev8", "orc.b", "brev8")
 
-# The capability inspections and derivations, split by what they take. Every one
-# of them writes a register, which is what makes a tag observable at all.
+# Capability inspections and derivations grouped by operand signature.
 _CAP2 = ("cgetperm", "cgettype", "cgetbase", "cgetlen", "cgettag", "cgetsealed",
          "cgetoffset", "cgetaddr", "cgettop", "cmove", "csealentry")
 _CAP3 = ("csetaddr", "cincoffset", "candperm", "csetoffset", "csub", "cseqx",
@@ -103,23 +62,14 @@ _LOADS = (("lb", 1), ("lh", 2), ("lw", 4), ("ld", 8),
           ("lbu", 1), ("lhu", 2), ("lwu", 4))
 _STORES = (("sb", 1), ("sh", 2), ("sw", 4), ("sd", 8))
 
-# The frozen dialect's own capability load and store, which are what puts a tag
-# in memory and takes one back out.
 _CAP_LOAD = "lc"
 _CAP_STORE = "sc"
 
 
 class Choices:
-    """A seeded source of decisions, so a run reproduces from its seed alone.
-
-    One class rather than a bare `random.Random` at every site, because the
-    generator's whole reproducibility claim rests on there being exactly one
-    stream of decisions and one place it is seeded.
-    """
+    """Deterministic PRNG wrapper for reproducible stream generation."""
 
     def __init__(self, seed: int) -> None:
-        # Not a cryptographic generator and not asked to be: what it seeds is a
-        # test stream whose only requirement is that the same seed replays it.
         self._rng = random.Random(seed)  # noqa: S311
 
     def below(self, bound: int) -> int:
@@ -133,26 +83,13 @@ class Choices:
 
 
 def _seed_value(rd: int, pick: Choices, out: list[int]) -> None:
-    """Put an arbitrary 64-bit-ish value in `rd`.
-
-    Every register is the null capability at reset, so a stream that opens with
-    arithmetic is arithmetic over zeroes and exercises one point of every
-    operation's domain. The upper immediate is kept below 2^19 so that `lui`'s
-    sign extension does not put the value in the negative half by construction;
-    the `addi` beside it reaches the negative half on its own, which is what the
-    W-form defect needs a witness for.
-    """
+    """Seed `rd` with `lui` (imm < 2^19) followed by a signed 12-bit `addi`."""
     out.append(dialect.encode("lui", [rd, pick.below(1 << 19)], 0))
     out.append(dialect.encode("addi", [rd, rd, pick.signed(12)], 0))
 
 
 def _authority(out: list[int]) -> None:
-    """Derive a store authority at `DATA` from the reset root.
-
-    Four instructions and no immediate wider than twelve bits: one, shifted to
-    the entry point, offset to the data window, and turned into a capability by
-    `csetaddr` off the root the reset put in `x1`.
-    """
+    """Derive a store capability at `DATA` in `AUTHORITY_REG` from the reset root in `x1`."""
     out.append(dialect.encode("addi", [ADDRESS_REG, 0, 1], 0))
     out.append(dialect.encode("slli", [ADDRESS_REG, ADDRESS_REG, 31], 0))
     out.append(dialect.encode("addi", [ADDRESS_REG, ADDRESS_REG, DATA - ENTRY], 0))
@@ -185,13 +122,7 @@ def _cap(pick: Choices) -> int:
 
 
 def _mem(pick: Choices) -> int:
-    """One access through the derived authority.
-
-    The offset is a multiple of eight inside a 256-byte window, so a capability
-    access is aligned by construction and every access lands in the same page.
-    Alignment is not a rule of the protocol; it is what keeps a generated stream
-    exercising the access rather than the alignment trap over and over.
-    """
+    """Encode an 8-byte-aligned load or store within the 256-byte window at `DATA`."""
     offset = 8 * pick.below(32)
     kind = pick.below(4)
     if kind == 0:
@@ -205,15 +136,9 @@ def _mem(pick: Choices) -> int:
     return dialect.encode(_CAP_STORE, [pick.among(CAPABILITIES), offset, AUTHORITY_REG], 0)
 
 
-# The words a stream must not contain, and the reason is the packet rather than
-# the machine. `cbo.zero` writes a 64-byte block and `cloadtags` reads eight
-# granules, and `rvfi_write` and `rvfi_read` raise an internal error above
-# sixteen bytes: the packet has one memory access per instruction and no form
-# for a block, so under `--rvfi-dii` those instructions **stop the emulator**
-# rather than reporting something narrower. The commit trace carries them and
-# the packet does not, which is exactly what
-# [docs/assurance/differential-corpus.md](../../docs/assurance/differential-corpus.md) §5 says, seen
-# from the side that has to generate around it.
+# Block-memory instructions (`cbo.zero`, `cbo.scrub`, `cloadtags`) exceed RVFI-DII's
+# 16-byte single-access packet limit and abort the emulator under `--rvfi-dii`; see
+# [docs/assurance/differential-corpus.md](../../docs/assurance/differential-corpus.md).
 _BLOCK_MASK: Final = ~(0x1F << 15) & 0xFFFFFFFF
 _BLOCK_WORDS: Final = frozenset({
     dialect.encode("cbo.zero", [AUTHORITY_REG], 0) & _BLOCK_MASK,
@@ -224,7 +149,7 @@ _BLOCK_FUNCT5: Final = frozenset({0b10010, 0b10011})
 
 
 def blocked(word: int) -> bool:
-    """Whether a word is one of the block operations the RVFI packet cannot carry."""
+    """Return whether `word` encodes a block memory operation unsupported by RVFI-DII packets."""
     if (word & _BLOCK_MASK) in _BLOCK_WORDS:
         return True
     if (word & 0x7F) != _CHERI_OPCODE or (word >> 25) != 0b1111111:
@@ -233,17 +158,7 @@ def blocked(word: int) -> bool:
 
 
 def _random_word(pick: Choices) -> int:
-    """A uniformly random word that is a 32-bit instruction and not a block operation.
-
-    The low two bits are forced to `11` because this profile excludes `C` and
-    fixes ILEN at 32, so a word without them is not an instruction this machine
-    has: three quarters of a uniform draw would be words that allocate to no
-    encoding, and a stream that did not force them would spend most of itself on
-    the illegal-instruction path. What the model does with such a word is no
-    longer open, and the forcing is no longer standing in for that: the fetch
-    reads no length out of those two bits, so both emitters report the whole
-    word and the trap value is the whole word (M0.20, postlude/fetch.sail).
-    """
+    """Draw a uniformly random 32-bit instruction word (`bits[1:0] == 0b11`) excluding block ops."""
     while True:
         word = pick.below(1 << 32) | 0b11
         if not blocked(word):
@@ -251,20 +166,14 @@ def _random_word(pick: Choices) -> int:
 
 
 class Body(Protocol):
-    """What every template's per-instruction generator is."""
+    """Per-instruction generator callback for a stream template."""
 
     def __call__(self, pick: Choices) -> int: ...
 
 
 @dataclass(frozen=True)
 class Template:
-    """A named way of generating a stream: a preamble, then a body repeated.
-
-    The preamble is a property of the machine rather than of the template's
-    taste. On a purecap machine with no default data capability the authority a
-    memory access needs does not exist until a stream derives one, and every
-    register holds the null capability until a stream puts something in it.
-    """
+    """DII stream template: register/authority preamble flags and per-instruction body generator."""
 
     name: str
     what: str
@@ -309,7 +218,7 @@ TEMPLATES: Final[dict[str, Template]] = {
 
 
 def generate(template: str, seed: int, count: int) -> list[int]:
-    """A DII stream: the template's preamble, then `count` generated instructions."""
+    """Generate a DII stream consisting of `template`'s preamble and `count` body instructions."""
     if template not in TEMPLATES:
         raise ValueError(f"no template {template!r}; there are {', '.join(TEMPLATES)}")
     chosen = TEMPLATES[template]
@@ -319,15 +228,11 @@ def generate(template: str, seed: int, count: int) -> list[int]:
     return stream
 
 
-# --- the socket ------------------------------------------------------------
+# --- RVFI-DII socket session -----------------------------------------------
 
 
 class Session:
-    """One conversation with one implementation over one RVFI-DII socket.
-
-    The implementation is the **server** and the engine is the client, which is
-    TestRIG's own arrangement and is why the emulator prints a port and waits.
-    """
+    """Client connection to an RVFI-DII server socket."""
 
     def __init__(self, sock: socket.socket) -> None:
         self._sock = sock
@@ -347,21 +252,7 @@ class Session:
         return data
 
     def _quickack(self) -> None:
-        """Acknowledge at once rather than on a timer.
-
-        This is worth 47 ms per instruction and the arithmetic behind that is
-        the point rather than the number. A v2 reply is **two or three separate
-        writes**, the packet and each extension the model announces, and the
-        emulator's socket is Nagle-governed: the second write waits for the
-        first to be acknowledged. Nothing here has anything to send back until
-        the whole reply has arrived, so the kernel has nothing to piggyback the
-        acknowledgement on and holds it for the delayed-acknowledgement timer,
-        which is where the 47 ms comes from and why it is the same 47 ms
-        whatever the instruction was. `TCP_NODELAY` on this side does not reach
-        it: the write being held is the *implementation's*. Quick
-        acknowledgement is one-shot in Linux's stack, so it is re-armed after
-        every read rather than set once at connect.
-        """
+        """Re-arm `TCP_QUICKACK` after each read so multi-write v2 replies do not stall on delayed ACKs."""
         self._sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_QUICKACK, 1)
 
     def _packet(self) -> rvfi.Execution:
@@ -372,15 +263,7 @@ class Session:
         return rvfi.decode_v2(head + self._read(size - rvfi.EXEC_V2_BYTES))
 
     def negotiate(self) -> int:
-        """Ask which wire formats the implementation has, and take the widest.
-
-        The probe is an `EndOfTrace` whose instruction word is the ASCII "VERS",
-        which is a reset in every field a reader can see and a question by
-        convention. The reply is a v1-shaped packet whose halt byte is 1 for an
-        implementation that has only v1 and 3 for one that also has v2; the
-        second is then selected with a `v` command and acknowledged by an
-        eight-byte string and the version.
-        """
+        """Probe supported RVFI-DII wire versions (`"VERS"`) and select v2 when supported."""
         self._send(rvfi.version_probe())
         answer = rvfi.decode_v1(self._read(rvfi.EXEC_V1_BYTES))
         if answer.halt != rvfi.HALT_V2_CAPABLE:
@@ -398,13 +281,7 @@ class Session:
         return 2
 
     def drive(self, stream: Sequence[int]) -> list[rvfi.Execution]:
-        """Inject one stream, collect what it retired, and reset.
-
-        The `EndOfTrace` at the end is what makes each stream a run of its own:
-        it resets registers, memory and the PC, so the next candidate a shrinker
-        sends is not a continuation of the last. Its acknowledgement carries the
-        halt byte and is not a retirement, so it is read and dropped.
-        """
+        """Inject `stream`, collect retired execution packets, and send `EndOfTrace` to reset state."""
         packets: list[rvfi.Execution] = []
         for word in stream:
             self._send(rvfi.instruction(word))
@@ -414,34 +291,20 @@ class Session:
         return [p for p in packets if p.retired]
 
     def close(self) -> None:
-        """Close, which the implementation reads as EOF and exits on."""
+        """Close the socket so the RVFI-DII server exits on EOF."""
         self._file.close()
         self._sock.close()
 
 
 def free_port() -> int:
-    """A port nothing is listening on, for an implementation that binds one.
-
-    The emulator takes the port as an argument and `--rvfi-dii` refuses zero, so
-    the engine has to choose. Binding and closing leaves a window in which
-    something else could take it, which `connect` below reports rather than
-    hangs on.
-    """
+    """Return an ephemeral loopback TCP port number."""
     with socket.socket() as probe:
         probe.bind(("127.0.0.1", 0))
         return int(probe.getsockname()[1])
 
 
 def connect(port: int, child: subprocess.Popen[bytes], *, timeout: float = 30.0) -> Session:
-    """Connect once the implementation is listening, or say why it never was.
-
-    There is no readiness event to wait on: the emulator announces its port on a
-    stdout that is block-buffered into a pipe, and that same pipe is where the
-    commit trace goes, so the announcement does not arrive until the run is
-    over. What is polled instead is the thing actually being waited for, and the
-    child is checked on every attempt so that an implementation that died is
-    reported as dead rather than as slow.
-    """
+    """Poll `127.0.0.1:port` until `child` accepts a connection, or fail if `child` exits or times out."""
     deadline = time.monotonic() + timeout
     while True:
         if child.poll() is not None:
@@ -456,40 +319,16 @@ def connect(port: int, child: subprocess.Popen[bytes], *, timeout: float = 30.0)
                     f"nothing was listening on port {port} within {timeout:g}s") from None
             time.sleep(0.02)
         else:
-            # The conversation is one eight-byte question and one short answer
-            # per instruction, which is the shape Nagle's algorithm delays: with
-            # it on, a stream is paced by the peer's delayed acknowledgement
-            # rather than by either machine, and a shrinker that re-runs the
-            # stream hundreds of times pays that on every packet of every run.
             sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
             return Session(sock)
 
 
 def spawn(simulator: Path, profile: Path, port: int, log: IO[bytes], *,
           trace_output: Path | None = None) -> subprocess.Popen[bytes]:
-    """The curated emulator, in the role of an RVFI-DII implementation.
+    """Launch the Sail emulator as an RVFI-DII server on `port`.
 
-    `--disable-trap-loop-detection` is passed because the detector is a property
-    of a *program*: under direct instruction injection the engine chooses what
-    executes next, so a stream of instructions that each trap is a stream the
-    engine meant to send and not a machine that has stopped making progress.
-
-    `--trace-commit` is passed where the caller wants both dialects out of one
-    run. The two callback classes are registered independently, so the packets
-    go over the socket and the records go to the trace log at the same time and
-    say the same thing about the same step, which is what makes the two formats
-    comparable without a second run to align against.
-
-    **The trace goes to a file of its own and never to the shared stream**, and
-    that is a correctness requirement rather than tidiness. The commit trace's
-    default destination is `stdout`, which is block-buffered into a pipe, while
-    the emulator's RVFI diagnostics go to an unbuffered `stderr`; and the
-    end-of-trace acknowledgement is printed verbosely whatever `--trace-rvfi`
-    says, `rvfi_dii.cpp` passing `trace_version != 0` where every other call
-    site passes the flag. Captured on one descriptor the diagnostic lands inside
-    whichever record the stdout buffer had half-written, which is a torn record
-    rather than a lost one, so a reader sees a *divergence* about a run that
-    agreed.
+    When `trace_output` is given, `--trace-commit` writes directly to that file so
+    buffered stdout commit records and unbuffered stderr RVFI diagnostics never interleave.
     """
     argv = [str(simulator), "--config", str(profile), "--rvfi-dii", str(port),
             "--disable-trap-loop-detection"]
@@ -498,11 +337,11 @@ def spawn(simulator: Path, profile: Path, port: int, log: IO[bytes], *,
     return subprocess.Popen(argv, stdout=log, stderr=log)
 
 
-# --- the seeded second executor --------------------------------------------
+# --- seeded packet-level defects -------------------------------------------
 
 
 class Mutation(Protocol):
-    """What a seeded defect is: one packet in, one packet out."""
+    """Packet-level mutation modeling an executor defect."""
 
     def __call__(self, packet: rvfi.Execution) -> rvfi.Execution: ...
 
@@ -584,7 +423,7 @@ DEFECTS: Final[dict[str, Defect]] = {
 
 
 def seeded(packets: Sequence[rvfi.Execution], defect: Defect) -> list[rvfi.Execution]:
-    """The same run as a second executor carrying `defect` would have reported it."""
+    """Apply `defect` to every packet in `packets`."""
     return [defect.apply(packet) for packet in packets]
 
 
@@ -593,13 +432,7 @@ def seeded(packets: Sequence[rvfi.Execution], defect: Defect) -> list[rvfi.Execu
 
 def project(packets: Sequence[rvfi.Execution], *,
             addr_digits: int = rvfi.PHYSADDR_DIGITS) -> list[str]:
-    """A packet stream as commit-trace records, in the schema's own grammar.
-
-    The projection is handed to [trace.py](trace.py)'s normalizer rather than
-    used raw, which is what holds it to that grammar: a record the normalizer
-    does not recognize would otherwise be dropped, and a projection quietly
-    losing records is a rig that agrees about less than it says it does.
-    """
+    """Project `packets` into normalized commit-trace records, rejecting lines outside `COMMIT_RE`."""
     lines: list[str] = []
     for packet in packets:
         lines.extend(rvfi.records(packet, addr_digits=addr_digits))
@@ -613,7 +446,7 @@ def project(packets: Sequence[rvfi.Execution], *,
 def adjudicate(reference: Sequence[rvfi.Execution], candidate: Sequence[rvfi.Execution],
                *, addr_digits: int = rvfi.PHYSADDR_DIGITS,
                context: int = 4) -> trace.Verdict:
-    """Two implementations' packets, walked until they disagree."""
+    """Adjudicate two RVFI packet streams after projecting both into commit-trace records."""
     return trace.adjudicate(project(reference, addr_digits=addr_digits),
                             project(candidate, addr_digits=addr_digits), context)
 
@@ -623,21 +456,7 @@ def adjudicate(reference: Sequence[rvfi.Execution], candidate: Sequence[rvfi.Exe
 
 def shrink(stream: Sequence[int], diverges: Callable[[Sequence[int]], bool],
            *, budget: int = 4000) -> tuple[list[int], int]:
-    """Delta debugging over a DII stream: the shortest prefix-free subsequence
-    that still makes the two executors disagree, and how many runs it took.
-
-    This is Zeller and Hildebrandt's ddmin, and the reason it applies to a DII
-    stream where it does not apply to a program is that an injected stream has
-    **no layout**: nothing is fetched, so deleting an instruction moves no
-    branch target and breaks no reachability. A stream carrying control flow
-    would need the `rvfi_time` field, which is what TestRIG carries it for.
-
-    `diverges` re-runs the implementation on each candidate rather than
-    reasoning about which instruction mattered, so what comes back is a stream
-    that has been *shown* to still fail. The budget bounds the number of runs,
-    because the worst case is quadratic in the stream and a rig that cannot be
-    interrupted is one nobody runs on a long stream.
-    """
+    """Minimize a diverging DII `stream` with `ddmin` within `budget` re-executions."""
     best = list(stream)
     runs = 0
     width = 2
@@ -645,8 +464,7 @@ def shrink(stream: Sequence[int], diverges: Callable[[Sequence[int]], bool],
         chunk = max(len(best) // width, 1)
         starts = list(range(0, len(best), chunk))
 
-        # A subset first, because a stream whose witness sits in one part is cut
-        # to that part in a single run where the complements would take `width`.
+        # Test single chunks first before testing their complements.
         cut = None
         for start in starts:
             if runs >= budget:

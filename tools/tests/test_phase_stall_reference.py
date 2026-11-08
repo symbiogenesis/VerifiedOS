@@ -1,79 +1,33 @@
 # SPDX-License-Identifier: Apache-2.0
-"""An independent bounded-horizon reference for the stalled exploration.
+"""Independent bounded-horizon reference simulator for [vos/phase_stall.py](../vos/phase_stall.py).
 
-The simulator below is *not* `phase_stall.explore`. It was written from the text of
-the [stall contract](../../docs/implementation/phase-service/stall-contract.md) and
-the [completion conventions](../../docs/implementation/phase-service/completion-model.md)
-before the module's exploration was read, and it never imports the module's step
-functions: only `analyze` and the field names of its `Stalled` report. It keeps
-absolute cycle times and walks every history through each frame as a tree. Two
-implementations that share no code and agree on every reported field are evidence
-the fields follow from the contract rather than from one loop's arithmetic.
+Implements the cycle, arbitration, residency, drain, and completion-order rules of
+[stall-contract.md](../../docs/implementation/phase-service/stall-contract.md) and
+[completion-model.md](../../docs/implementation/phase-service/completion-model.md) in
+absolute cycle time without importing `phase_stall.explore`:
 
-Conventions, each traced to a sentence of the contract:
-
-  C1  "Each cycle refresh reserves first, requests completing transit accept next,
-      and each hart then presents its next request, or its zero-gap run."
-  C2  "a request issued in cycle t with path p ... is accepted at its bank in cycle
-      t+p"; occupancy includes the acceptance cycle, so an occupancy n accepted in
-      cycle a completes at the end of cycle a+n-1.
-  C3  "A request that cannot be accepted at issue ... holds the hart: it is
-      re-presented every following cycle until accepted, the hart presents nothing
-      else while held, and ... every later request shifts by the accumulated stall."
-  C4  "A presented run is accepted by prefix in issue order"; "a cycle in which any
-      presented request of a hart is refused adds one to that hart's stall whatever
-      the run's width"; "a member refused beside a refused predecessor is not itself
-      held until that predecessor is accepted."
-  C5  The in-step order interlock: the hart waits at issue until every earlier
-      request of its own still in transit after this cycle's transit step, a member
-      earlier in the same presented run included, reaches its bank no later than
-      this request would; acceptance within one cycle counts as ordered.
-  C6  "each cycle branches over every maximal set of presented requests that
-      respects one acceptance per bank, the phase grant and per-hart issue order";
-      "A re-presented request counts against the grant of the cycle it is finally
-      accepted at issue in and no other."
-  C7  "Programs restart at their slot's start phase every frame with the alternative
-      chosen afresh"; a request still held when the same hart's next slot occurrence
-      begins is a `residency-overrun`, reported for the slot whose head is held.
-  C8  `stalls` counts refused cycles up to and including the slot's last cycle;
-      `stall_single_max` is one request's hold from its earliest issue to its
-      acceptance at issue, truncated at the slot end; a head held at the slot end is
-      boundary-outstanding, keeps being presented alone, and its residency runs from
-      the first cycle after the slot end through its completion.
-  C9  `drain_max` runs from the first cycle after the end of residency, the slot end
-      when nothing was held, through the completion of everything the hart has
-      issued and still has outstanding; `cut_max` counts the chosen alternative's
-      requests neither accepted nor held at the slot end. The campaign adjudicated
-      C9's span: the Outputs section says "until the last operation the hart issued
-      in that occurrence completes", which differs from the hart-wide span exactly
-      when an occurrence issues nothing, or completion order is inverted, while an
-      earlier occurrence's operation is still outstanding. The hart-wide span is
-      what the switch after that slot has outstanding, the per-switch operand
-      `d_pipe_completion` covers, and the conservative one; the `adjudicated` case
-      pins the programs where the readings part.
-  C10 `ordered` is the completion-order predicate over the same histories: one
-      hart's later operation never completes before an earlier one; an inversion
-      refutes without stopping, whereas `path-blocked`, `refresh-overlap` and
-      `residency-overrun` stop the exploration at the step, so the stop reported is
-      the earliest reachable one and `ordered` reads an inversion only before it.
-
-Horizon. Every quantity above is decided within one frame from the situation at
-that frame's first boundary, provided the situation carries the residual occupancy,
-the operations in flight with their occurrence, and each hart's held head with its
-slot end. Inside a frame the reference walks every history as a tree, every
-alternative entered and every maximal arbiter choice, with nothing merged. Across
-frames it walks each frame-boundary situation, expressed relative to its boundary,
-once: the continuation from a situation is a function of the situation alone, so a
-second walk from it would find the same occurrences, refutations and finalisations
-at later cycles. Frames are taken in order, so a situation is walked at the first
-frame it can be reached in and every event is found at its earliest cycle; the
-situations are finite, since residues are bounded by the longest occupancy plus path
-and every counter restarts each frame, so the walk ends when no new situation
-appears. Walking each situation once rather than once per history is the one place
-the reference merges anything, and it merges at frame boundaries only, on a
-situation built from absolute times rather than from the module's per-boundary
-counters; a step cap and a frame cap guard against a runaway and are reported,
-never silently absorbed.
+- C1: Refresh reserves first, requests completing transit accept next, and each hart
+  then presents its next request or zero-gap run.
+- C2: A request issued in cycle `t` with path `p` and occupancy `n` is accepted at
+  its bank in cycle `t + p` and completes at the end of cycle `t + p + n - 1`.
+- C3: A refused request holds the hart and is re-presented every following cycle until
+  accepted, shifting later requests by the accumulated stall.
+- C4: Presented runs are accepted by prefix in issue order; any refused request in a
+  cycle adds one to the hart's stall.
+- C5: In-step order interlock: a hart waits at issue until every earlier in-transit
+  request of its own reaches its bank no later than this request would.
+- C6: Each cycle branches over every maximal feasible set of presented requests
+  respecting one acceptance per zero-path bank, the phase grant, and per-hart issue
+  order.
+- C7: Programs restart at their slot's start phase each frame; a request still held
+  when the same hart's next slot occurrence begins is a `residency-overrun`.
+- C8: `stalls` and `stall_single_max` are truncated at the slot end; a head held at
+  the slot end is boundary-outstanding and its residency runs through its completion.
+- C9: `drain_max` runs from the end of residency (or slot end) through the completion
+  of all outstanding operations of the hart; `cut_max` counts requests neither
+  accepted nor held at the slot end.
+- C10: `ordered` checks per-hart completion order; `path-blocked`, `refresh-overlap`,
+  and `residency-overrun` stop exploration at the earliest reachable cycle.
 """
 
 import hashlib

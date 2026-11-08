@@ -2,32 +2,15 @@
 # SPDX-License-Identifier: Apache-2.0
 """Compile shipped proofs and audit the native environment, independent of footers.
 
-The gate enumerates each module with Rocq Search after disabling both search filters,
-then asks Print Assumptions about every returned symbol. This includes local lemmas,
-nested modules and generated obligations. Claims must resolve to compiled propositions.
-The existing record-witness check remains the decidable part of the non-vacuity gate.
-Sources compile under STRICT and must print no diagnostic; rocqchk's own context
-summary must name no undeclared axiom and no unsafe assumption anywhere it loaded,
-except an admitted installed library's axioms, which the admitting evidence covers,
-and a checked installed library's alias-sealed or functor-sealed fields, which the
-compiler's reading of the implementations their seals hide covers.
+Enumerates each module with Rocq `Search` (with search filters disabled), queries
+`Print Assumptions` on every returned symbol, validates claim bindings and record
+witnesses (`[R-05-166](../../../docs/requirements-register.md#r-05-166)`), compiles
+under `STRICT` with zero diagnostics, and rechecks the environment with `rocqchk`.
 
-Each module compiles and is audited once every module it Requires has been, beside
-any other ready module within the worker limit, under one directory lock. The log
-gives each compiled module's start and end in seconds from the phase's start, and the
-phase's line gives beside its wall seconds the makespan a wave schedule, each
-dependency wave finishing before the next starts, would take over those seconds at
-the same limit. A Require the dependency parse does not read, such as one under a
-control flag, runs the phase as that wave schedule. Unchanged compiled products are
-reused from successful receipts; changed dependencies invalidate their consumers.
-Audits and kernel verdicts are reused for the same checked bytes. Independent
-dependency components are kernel-checked in bounded parallel batches, with one
-worker also checking the joint environment; --fresh disables reuse from prior runs.
-Sources are staged into this checkout's native guest build lane; compiler
-outputs, audit scratch, the directory lock and full receipt stay there. Successful
-runs also publish a portable receipt in the checkout. `proofs status` uses the guest
-hop to hash native outputs; `proofs export` preserves an existing run without Rocq;
-`proofs identity` prints the toolchain and context digest that reuse requires.
+Modules compile and audit concurrently once their `Require` dependencies finish,
+reusing unchanged outputs and audits from content-matched receipts unless `--fresh`
+is passed. Sources stage into the checkout's native guest build lane; successful
+runs also publish a portable receipt (`proofs/proof-evidence.json`) in the checkout.
 """
 
 import argparse
@@ -52,14 +35,6 @@ from typing import cast
 from vos import proofaudit, proofenv, python_dependencies, receipts
 from vos import proofs as proofs_mod
 from vos.corpus import find_root
-
-# The lexical half of this parse, promoted to `vos.proofs` when a second tool needed it
-# and imported back under the name this module already used, so that the reading below
-# is unchanged by the move. `a parse two tools make is written once` is that module's
-# own convention and this is it applied to itself. `strip_comments` came back with it and
-# is no longer imported here: its one consumer was the anywhere-matching witness search,
-# which retired when the prover took the inhabitation judgement over. The statement
-# keywords followed when the citation and mutation readers needed the same table.
 from vos.proofs import STATEMENTS
 from vos.proofs import sentences as _sentences
 
@@ -67,21 +42,20 @@ PROOFS = "proofs"
 RECEIPT = "proofs/proof-evidence.json"
 RECEIPT_SCHEMA = 2
 
-# Every default-enabled warning is an error. A nat literal above the parser's unary
-# threshold is exempt: it states a number, and changing the statement's type to
-# silence it would change the theorem. `!` refuses a tactic that would act on the
-# first of several unfocused goals. SProp is refused, which holds the M6.2b-0 profile's
-# exclusion of definitional proof irrelevance. proofaudit.pinned_overrides refuses a
-# source that resets any of these.
+# Treat default warnings as errors (exempting large nat literals so theorem types
+# need not change), reject tactics acting on unfocused goals (`!`), and disallow
+# `SProp` (preserving the M6.2b-0 exclusion of definitional proof irrelevance).
+# `[proofaudit.pinned_overrides](../proofaudit.py#pinned_overrides)` rejects sources
+# that reset these flags.
 STRICT = ("-w", "+default,-abstract-large-number", "-set", "Default Goal Selector=!",
           "-disallow-sprop")
 
 
 def workspace(root: Path) -> Path:
-    """The persistent, guest-native area owned exclusively by this proof gate."""
+    """Return the persistent guest-native workspace owned by this proof gate."""
     target = (proofenv.lane_root(proofenv.lane_of(root)) / "proof-gate").resolve()
     if (target.is_relative_to(root.resolve())
-            # These are refused locations, never temporary-file destinations.
+            # Refused locations, not temporary-file destinations.
             or target.is_relative_to(Path("/tmp"))  # noqa: S108
             or target.is_relative_to(Path("/var/tmp"))  # noqa: S108
             or proofenv.filesystem(target)
@@ -93,49 +67,30 @@ def workspace(root: Path) -> Path:
 def receipt_path(root: Path) -> Path:
     return workspace(root) / RECEIPT
 
-# The witness convention the artifacts keep, stated here so the help text can say what
-# the gate reads. It is a *name*, and that is the whole of the change R-05-166's
-# decidable half needed: the inhabitant of a carrier record R is a closed top-level
-# `Definition witness_R : R := <term>`, whose term is usually an alias of the artifact's
-# own reference instance (`demo`, `demo_plan`, `l2_demo`, `trivial_vocabulary`) and is
-# a construction of its own where the artifact had none. The prover decides that the
-# term inhabits the record, by type-checking the ascription during the compile above;
-# this gate decides only that the constant is there and is ascribed at the record it
-# names. A witness renamed is therefore no longer a witness, which is deliberate: the
-# name is what makes the author's claim locatable, where a shape read out of the text
-# was an approximation that admitted a construction sitting inside a hypothesis, a
-# refuted example, or any term that never was a closed inhabitant.
+# Carrier record `R` is witnessed by a closed top-level
+# `Definition witness_R : R := <term>` in the artifact or a locally Required module
+# (`[R-05-166](../../../docs/requirements-register.md#r-05-166)`). Rocq type-checks
+# the ascription during compilation; this gate checks that the named constant is
+# declared and ascribed at `R`.
 WITNESS_PREFIX = "witness_"
 WITNESS_CONVENTION = (f"a closed top-level `Definition {WITNESS_PREFIX}<Record> : "
                       "<Record> := ...` in the artifact or in one it Requires, whose "
                       "term is the artifact's own reference instance where it has one")
 
-# The vernaculars whose sentence states a theorem, and so whose binders are the
-# quantifiers this gate reads, are the shared lexer's `STATEMENTS`: Rocq 9.3's seven
-# theorem keywords, its grammar's `thm_token`, and `Example`, which states and defines.
-# Beside them, every vernacular whose sentence carries a name and an ascription at all,
-# which is the shape this parse walks. Every statement is a definer, so the second list
-# is built from the first and cannot again lack a keyword the first reads. Only
-# `Definition` can be a witness, which the witness lookup requires of the keyword rather
-# than of this table, so that widening the parse cannot widen what counts as an
-# inhabitant.
+# Vernacular keywords carrying a name and type ascription. Only `Definition` may be
+# a record witness.
 DEFINERS = ("Definition", *STATEMENTS, "Instance")
-# A section binder quantifies every statement in its section, so it is a quantifier too.
+# Section binders quantify every statement in their section.
 SECTION_BINDERS = ("Variable", "Variables", "Context", "Hypothesis", "Hypotheses")
 
-# Each head is read after the control prefixes the pinned-setting reading strips, because
-# a record, statement or section binder the scan misses is a demand that silently goes
-# away. Reading a decorated head as its plain form only demands more. The witness lookup
-# alone keeps requiring the head undecorated, `Program` aside as before, so the prefixes
-# widen no inhabitant either: `Fail Definition witness_R : R := t` compiles when t does
-# not inhabit R, and leaves no constant behind.
+# Strip control prefixes when scanning records, statements, and section binders so
+# decorated declarations still require witnesses; witness definitions themselves
+# allow only undecorated `Definition` or `Program Definition`.
 _RECORD = re.compile("^" + proofaudit.CONTROL_PREFIXES + r"(?:Record|Structure)\s+([\w']+)")
 _DEFINER = re.compile("^(" + proofaudit.CONTROL_PREFIXES + ")(" + "|".join(DEFINERS)
                       + r")\s+([\w']+)(.*)", re.DOTALL)
 _SECTION_BINDER = re.compile("^" + proofaudit.CONTROL_PREFIXES + "(" + "|".join(SECTION_BINDERS)
                              + r")\s+(.*)", re.DOTALL)
-# `(x y : T)`, `{x : T}` and `forall x : T,` / `exists x : T,`: each names a type a
-# variable ranges over.
 _BINDER = re.compile(r"[({]\s*[\w']+(?:\s+[\w']+)*\s*:\s*([^)}]*)[)}]")
 _QUANTIFIER = re.compile(r"\b(?:forall|exists)\s+[\w']+(?:\s+[\w']+)*\s*:\s*([^,]*),")
 _HEAD = re.compile(r"^([\w']+)")
@@ -146,12 +101,7 @@ _REQUIRE_TOKEN = re.compile(r"\bRequire\b")
 
 @dataclass(frozen=True)
 class Witnesses:
-    """What one source's text says about the records its statements range over.
-
-    `quantified` maps each such record to how many statements quantify it; `witnesses`
-    maps a record to the named witness constants ascribed at it; `unbuilt` names the
-    quantified records no witness inhabits, which is the gate's finding.
-    """
+    """Quantified carrier records, named witness constants, and unbuilt records for one source."""
 
     quantified: dict[str, int] = field(default_factory=dict)
     witnesses: dict[str, list[str]] = field(default_factory=dict)
@@ -159,19 +109,13 @@ class Witnesses:
 
     @property
     def witness_count(self) -> int:
-        """How many of the quantified records carry a witness, counted over records
-        rather than over names: one record reached both from the source and from a
-        companion it Requires is one witnessed record and not two, so the figure this
-        reports is comparable with the quantified count printed beside it."""
+        """Count of quantified records that have at least one witness."""
         return sum(1 for record in self.quantified if bool(self.witnesses.get(record)))
 
 
 def _split_top(text: str, mark: str) -> tuple[str, str] | None:
-    """`text` cut at the first `mark` outside every bracket, or None. A `:` is only
-    the ascription colon when it is not the first character of `:=`, `::` or `:>`."""
+    """Split `text` at the first top-level `mark` outside brackets (ignoring `:=`, `::`, `:>` for `:`)."""
     depth = 0
-    # Skip ordinary text in the regex engine; only bracket and marker sites can
-    # change the answer. Keep the lexical treatment of strings and nesting intact.
     for token in _TOP_DELIMITERS[mark].finditer(text):
         ch = token.group()
         if ch in "([{":
@@ -191,9 +135,7 @@ def _has_top_arrow(text: str) -> bool:
 
 
 def _instance_head(typ: str) -> str | None:
-    """The record a type ascription is an instance of: its head identifier, provided the
-    type is not an arrow, a binder or a quantified statement, so `Machine -> Prop` and
-    `forall m : Machine, P m` name no instance of `Machine`."""
+    """Return the head identifier of `typ` if it is a direct record instance (not an arrow or binder)."""
     typ = typ.strip()
     if _has_top_arrow(typ):
         return None
@@ -207,7 +149,7 @@ def _instance_head(typ: str) -> str | None:
 
 
 def _quantified_heads(text: str) -> set[str]:
-    """Every record a binder or quantifier in `text` ranges a variable over."""
+    """Return every record head that a binder or quantifier in `text` ranges over."""
     found: set[str] = set()
     for pattern in (_BINDER, _QUANTIFIER):
         for hit in pattern.finditer(text):
@@ -218,27 +160,11 @@ def _quantified_heads(text: str) -> set[str]:
 
 
 def scan_witnesses(text: str, imported: tuple[str, ...] = ()) -> Witnesses:
-    """R-05-166's decidable half over one source.
+    """Check `[R-05-166](../../../docs/requirements-register.md#r-05-166)` record witnesses for one source.
 
-    Two readings, and they are not the same kind of reading, which is why one of them
-    is a lexical scan and the other is a lookup.
-
-    **Which records are quantified** is read from this source's own statements, and
-    over-approximating there is fail-loud: a binder this misreads as ranging over a
-    record demands a witness the artifact then has to carry, so the error costs an
-    author a line and never lets a vacuous theorem through.
-
-    **Whether a record is inhabited** is not read at all. The artifact names its
-    witness, `Definition witness_<Record> : <Record>`, and the compile that produced
-    this file's assumption evidence is what decided the ascription holds; here it is a
-    name and a head identifier. Under-approximating that is fail-loud in the same
-    direction and over-approximating it was the defect: a construction matched anywhere
-    in the text can sit inside a hypothesis, a refuted example or a term that never was
-    a closed inhabitant, and a non-vacuity gate that over-approximates goes false green.
-
-    Records and witnesses are read from the source and from the sources it Requires
-    locally, because an artifact may state its obligations over a record a companion
-    declares and inhabit it with the companion's witness.
+    Quantified records are scanned from statements in `text`; record declarations
+    and `Definition witness_<Record> : <Record>` constants are collected from `text`
+    and locally Required `imported` sources.
     """
     return _combine_witnesses(_witness_facts(tuple(_sentences(text))),
                               tuple(_witness_facts(tuple(_sentences(source)))
@@ -335,32 +261,20 @@ def _imported(source: Path, sources: list[Path]) -> tuple[str, ...]:
         frontier |= proofs_mod.local_requires(stems[stem], set(stems))
     return tuple(stems[stem].read_text(encoding="utf-8") for stem in sorted(reach))
 
-# The statement artifact, whose absence is reported by name: a gate over an empty
-# directory would pass green with nothing enumerated to fail it.
+# Required root statement artifact so an empty directory cannot pass green.
 STATEMENT = "ApexTheorem.v"
 
-# The declared set, which R-05-164 reads from the register. It is empty today, and an
-# entry is added here only when the register grows one, never to make a run pass.
+# Declared assumption set (`[R-05-164](../../../docs/requirements-register.md#r-05-164)`).
 DECLARED: set[str] = set()
 
 
 def _hold(proofs: Path) -> int:
-    """Hold the lane's native proof workspace for the whole run.
+    """Acquire an exclusive `flock` on the lane's native proof workspace directory.
 
-    Two concurrent gates rewrite each other's .vo mid-Require, so the second blocks
-    until the first is done, when content identities determine reusable outputs.
-    The lock is the directory's own descriptor
-    rather than a lock file. Staged sources can then be replaced under that stable
-    native directory without touching the original checkout. The descriptor
-    stays open, and locked, until the process exits.
-
-    Lane retirement moves a workspace aside while it holds this lock, so a gate that
-    was blocked here would then hold the moved directory and work at a path another
-    gate may have recreated. The lock counts only while the workspace's path still
-    names the directory locked; otherwise it is released and taken again there.
-
-    POSIX-only, and this file is typed on the host as well as run in the guest, so
-    win32 is refused and the import deferred the way `vos.env` does both.
+    Locks the directory descriptor itself so staged sources under `proofs/` can be
+    replaced atomically without releasing the lock. Re-checks the directory's device
+    and inode after locking in case lane retirement moved the directory aside while
+    waiting. Guest-only (`win32` is rejected).
     """
     if sys.platform == "win32":
         raise RuntimeError("the proof workspace is held in the guest")
@@ -380,8 +294,7 @@ def _hold(proofs: Path) -> int:
 
 
 def _compile(root: Path, source: Path) -> subprocess.CompletedProcess[str]:
-    # -Q roots the logical path so a companion's Require Import resolves to the .vo
-    # built here, never to an installed one
+    # `-Q` roots the logical path so local `Require Import` resolves to the staged `.vo`.
     return subprocess.run(
         [*proofenv.rocq_command(), "-q", "-Q", PROOFS, "", *STRICT,
          source.relative_to(root).as_posix()],
@@ -390,15 +303,11 @@ def _compile(root: Path, source: Path) -> subprocess.CompletedProcess[str]:
 
 def _recheck_joint(root: Path, sources: list[Path],
                    admitted: frozenset[str]) -> subprocess.CompletedProcess[str]:
-    """Check selected roots and the consistency of the entire supplied environment.
+    """Run `rocqchk -silent -o` over `sources`, admitting `admitted` roots.
 
-    Rocq's -admit skips a root and its dependencies, except explicit check targets.
-    A fresh, empty joining module requires ALL supplied roots, including disconnected
-    admitted ones. Every root outside admitted is an explicit check target.
-    Admissions are either byte-validated prior evidence or provisional peer work
-    whose success the caller MUST await. This result alone is not acceptance evidence.
-    No -norec or VM trust is used. The caller binds all bytes before and after the run.
-    `-o` makes rocqchk report the environment's assumptions; `_worker_fault` reads them.
+    When `admitted` is non-empty, compiles a temporary joining module that `Require`s
+    all `sources` so disconnected admitted roots are still loaded into the joint
+    environment while non-admitted roots remain explicit check targets.
     """
     command = [*proofenv.rocqchk_command(), "-silent", "-o", "-Q", PROOFS, ""]
     changed = [source.stem for source in sources if source.stem not in admitted]
@@ -406,7 +315,6 @@ def _recheck_joint(root: Path, sources: list[Path],
         return subprocess.run([*command, *changed], cwd=root, capture_output=True,
                               text=True, encoding="utf-8", check=False)
     with tempfile.TemporaryDirectory(prefix="kernel-", dir=root) as temporary:
-        # Avoid collision with an authored module, even if it uses our usual name.
         name = "VerifiedOSProofClosure"
         stems = {source.stem for source in sources}
         while name in stems:
@@ -424,11 +332,7 @@ def _recheck_joint(root: Path, sources: list[Path],
 
 
 def _kernel_axioms(result: subprocess.CompletedProcess[str]) -> tuple[str, list[str]]:
-    """Why a kernel run supplies no summary, or "" and the undeclared axioms it names.
-
-    A clean run exits zero, prints nothing on stdout and writes only the context
-    summary to stderr, which `proofaudit.kernel_context` reads exactly.
-    """
+    """Parse `rocqchk` output and return `(fault, undeclared_axioms)`."""
     if result.returncode or result.stdout.strip():
         diagnostic = (result.stderr.strip() or result.stdout.strip()) or "no diagnostic"
         return (f"exit {result.returncode}: {diagnostic}" if result.returncode
@@ -446,36 +350,22 @@ def _undeclared(axioms: list[str]) -> str:
             if axioms else "")
 
 
-# The undeclared axioms a closure of admitted roots names when loaded unchecked, or
-# why that run supplies no summary.
 AdmittedAxioms = Callable[[list[Path], frozenset[str]], tuple[str, frozenset[str]]]
 
 
 def _admitted_axioms(root: Path, roots: list[Path],
                      admitted: frozenset[str]) -> tuple[str, frozenset[str]]:
-    """What rocqchk names for admitted roots' closure alone, loaded as a worker loads it.
-
-    The joining module is the only explicit target, so every root and every library
-    it reaches is admitted: nothing is type-checked.
-    """
+    """Return the undeclared axioms reported by `rocqchk` when loading `roots` as admitted."""
     fault, axioms = _kernel_axioms(_recheck_joint(root, roots, admitted))
     return fault, frozenset(axioms)
 
 
-# The compiler's reading of the sealed fields a worker's summary names for libraries it
-# checked: each name's Print Assumptions entries, empty where the name is closed under
-# the global context, or why the reading supplies none.
 SealedReading = Callable[[list[Path], list[str]], tuple[str, dict[str, list[str]]]]
 
 
 def _sealed_reading(root: Path, roots: list[Path],
                     names: list[str]) -> tuple[str, dict[str, list[str]]]:
-    """What the compiler's Print Assumptions reports for each name, asked in the
-    environment that Requires exactly `roots`, the roots the worker's rocqchk loaded.
-
-    A query that fails, prints a diagnostic or answers out of frame is a fault and
-    covers nothing.
-    """
+    """Query `Print Assumptions` for sealed-field `names` in an environment Requiring `roots`."""
     with tempfile.TemporaryDirectory(prefix="sealed-", dir=root) as temporary:
         try:
             output = _query(root, Path(temporary), "SealedFields",
@@ -489,48 +379,17 @@ def _worker_fault(sources: list[Path], admitted: frozenset[str],
                   result: subprocess.CompletedProcess[str],
                   admitted_axioms: AdmittedAxioms,
                   sealed_reading: SealedReading) -> tuple[str, frozenset[str], frozenset[str]]:
-    """One worker's verdict, the axiom names its admissions answered for, and the
-    sealed-field names the compiler's reading of their implementations answered for.
+    """Evaluate a `rocqchk` worker result and return `(fault, covered_by_admission, covered_by_reading)`.
 
-    rocqchk records which axioms a sealed module's hidden bodies use only while it
-    checks them, so an admitted library names each field of such a module as an axiom:
-    Stdlib's Nat.PrivateImplementsBitwiseSpec and Corelib's Under_rel. A worker answers
-    for the libraries it checked. An installed library that an admitted root reaches is
-    admitted, whatever else reaches it, and answers through the evidence that admitted
-    the root: a peer's recursive check in this run or a prior accepted run of this gate,
-    whose summary named that library's axioms exactly where a worker checked it. So an
-    undeclared installed-library name is covered when the admitted roots' closure,
-    loaded alone, names it too. An installed library is never an explicit target, so
-    that closure admits exactly the installed libraries the worker admitted. Only a
-    worker whose summary names such an axiom pays for that load-only run.
-
-    The checker replaces a body-less field of a sealing type with what its
-    implementation uses only when, checking under that seal, it meets a constant with a
-    body whose canonical name is that field (the pinned Rocq 9.3.0's
-    checker/mod_checking.ml: line 330 tests the delta-resolved name's canonical form
-    against the seal's body-less fields, collected at lines 242-252 and 290, and line
-    107 registers only a constant with a body). A structure body checked under its seal
-    supplies such constants (lines 289-304), and so does the strengthened type of a
-    transparent functor application nested inside one (line 286). An algebraic module's
-    own fields under its ascription, `Module M : T := N` or `Module M : T := F X`, and
-    the fields of `F X` for a functor whose result type seals it have no body, and an
-    alias's constants keep the aliased module's canonical names, so none is registered
-    (line 305 registers nothing either) and each such field is listed as an axiom where
-    the library was checked (lines 17-26), at top level or nested under a seal whose
-    type declares the module. The kernel did establish the whole of the implementation
-    there: its bodies were type-checked where the module holding them was checked, an
-    application's argument against the functor's parameter (line 263), and the sealed
-    type against the implementation's (lines 308-316). What it did not report is which
-    assumptions the implementation reaches, and the compiler's Print Assumptions reads
-    exactly that (`proofaudit.sealed_field_query`). An installed name the admission
-    cover leaves is a name of a library this worker checked, since an admitted
-    library's names the load-only pass repeats. Such a name is covered when the
-    compiler's reading of it, taken over this worker's roots, is closed or lists only
-    declared entries: an admitted implementation reports the field itself, a hidden
-    assumption reports under the sealed path, and a genuine axiom reports itself, so
-    none is covered. A reading that fails, omits a name or lists an undeclared entry
-    covers nothing for it. A proof module's axiom, whatever modules nest beneath the
-    module's stem, is never covered or read.
+    `rocqchk` reports fields of sealed modules in admitted installed libraries as
+    axioms because their hidden bodies are not checked during an `-admit` load; those
+    names are covered when a load-only pass over `admitted` reports them too.
+    In checked installed libraries, `rocqchk` also lists alias-sealed and
+    functor-sealed fields (`Module M : T := N` or `Module M : T := F X`) as axioms
+    even after type-checking their implementations; those names are covered when
+    `[proofaudit.sealed_field_query](../proofaudit.py#sealed_field_query)` confirms
+    their implementations are closed (or depend only on `DECLARED` assumptions).
+    Axioms under any local proof module's stem are never covered.
     """
     none = frozenset[str]()
     fault, undeclared = _kernel_axioms(result)
@@ -560,12 +419,7 @@ def _worker_fault(sources: list[Path], admitted: frozenset[str],
 
 
 def _kernel_batches(sources: list[Path], reused: frozenset[str], jobs: int) -> list[list[Path]]:
-    """Balance independent changed components without rechecking shared local proofs.
-
-    Keep each connected component together after removing reusable nodes. Splitting
-    a component would recursively type-check its shared prerequisites in each worker.
-    Compiled size is only a scheduling estimate, never evidence or a cache key.
-    """
+    """Partition connected components of changed modules across at most `jobs` batches by `.vo` size."""
     index = proofs_mod.SourceIndex.read(sources)
     changed = {source for source in sources if source.stem not in reused}
     neighbours = {source: set(index.needs[source]) & changed for source in changed}
@@ -599,27 +453,13 @@ def _kernel_batches(sources: list[Path], reused: frozenset[str], jobs: int) -> l
 
 def _recheck(root: Path, sources: list[Path], reused: frozenset[str] = frozenset(), *,
              jobs: int = 1) -> str:
-    """Why the kernel refuses the proof set, or "" when every worker accepts it.
+    """Recheck `sources` with `rocqchk`, returning a fault string or `""` when all batches pass.
 
-    Batches and their joint consistency are checked in the same bounded worker pool.
-    Every changed module is an explicit check target in exactly one batch. The
-    lightest batch also loads ALL roots, provisionally admitting peer targets so
-    that their terms are not checked twice. The other workers recursively check
-    those peer targets, admitting only the caller's byte-validated reusable roots.
-    Thus every skipped dependency is covered by a peer's recursive check or prior
-    evidence, and so are the installed-library axioms rocqchk names for it
-    (`_worker_fault`); the alias-sealed and functor-sealed fields it names for a
-    library a worker checked are covered by the compiler's reading of what their seals
-    hide, asked over that worker's roots. An explicit target overrides only its own
-    admission: a library an admitted root reaches stays admitted inside a target's
-    closure, so a component's changed modules are targets together.
-    The joint worker checks dependency identities and combined universe constraints;
-    ALL workers must succeed silently before their combined verdict can be accepted.
-
-    The caller holds the workspace lock and binds sources, outputs, toolchain and
-    installed libraries before and after this operation. It selects one job when
-    the installed-library context cannot be bound. --fresh still checks every root
-    in this run. No provisional worker result is published or cached separately.
+    Each changed connected component is checked in one worker batch while admitting
+    byte-validated `reused` roots. When multiple batches run, the lightest batch also
+    loads the joint environment across all `sources` (provisionally admitting peer
+    batches checked by other workers) to verify combined universe constraints and
+    module identities.
     """
     if jobs < 1:
         raise ValueError("kernel jobs must be positive")
@@ -692,15 +532,7 @@ def _recheck(root: Path, sources: list[Path], reused: frozenset[str] = frozenset
 
 
 def _gate_modules(root: Path) -> list[Path]:
-    """This gate's implementation: every checkout module Python runs to import it.
-
-    Derived from import statements, so a module the gate starts to use joins its
-    identity without a list to maintain. Imports inside functions count, a parent
-    package counts because importing its module runs it, and a name imported from a
-    module counts when it is a module itself. Names resolve against `tools/`, the
-    entry point's first import path. The launcher, command table and lockfile stay
-    out: they choose the process, whose environment `_cache_context` binds.
-    """
+    """Return the transitive repository Python modules imported by this gate."""
     entry = "tools/" + __name__.replace(".", "/") + ".py"
     return [root / source for source in python_dependencies.sources(root, (entry,))]
 
@@ -823,24 +655,13 @@ def _schedule(waves: Sequence[Sequence[Path]], needs: Mapping[Path, frozenset[Pa
               quiet: frozenset[Path] = frozenset(), by_wave: bool = False,
               clock: Callable[[], float] = time.perf_counter
               ) -> tuple[list[Checked], dict[Path, Span]]:
-    """Compile and audit each module once every module it Requires has finished both.
+    """Compile and audit each module once its `Require` prerequisites finish.
 
-    A ready module waits for a free worker, never for a module it does not Require.
-    Among ready modules the one heading the longest chain of dependents starts first,
-    then dependency-wave and name order, so the longest chain is not queued behind
-    modules nothing waits on. The waves fix only that tie order.
-
-    With `by_wave`, each module also waits for every module of the waves before its
-    own, which is the wave schedule itself. The gate asks for it when a source holds a
-    Require the dependency parse does not read, whose module could be in any wave.
-
-    A module whose prerequisite failed, or was itself blocked, is reported blocked and
-    never checked, and its stale compiled object is removed before any consumer could
-    load it. Every other module is checked exactly once, so the verdicts, outputs and
-    receipt are the ones a wave schedule gives.
-
-    Each module's start and end, in seconds from `started` on `clock`, is printed as it
-    finishes, unless it is in `quiet`, and returned for the wave schedule's replay.
+    Ready modules are prioritized by longest dependent chain, then wave and name
+    order. With `by_wave=True` (used when a source contains a `Require` outside the
+    plain dependency parser's grammar), each wave completes before the next starts.
+    If a prerequisite fails, dependent modules are marked blocked and their stale
+    `.vo` files are removed.
     """
     if jobs < 1:
         raise ValueError("compile/audit jobs must be positive")
@@ -922,22 +743,7 @@ def _schedule(waves: Sequence[Sequence[Path]], needs: Mapping[Path, frozenset[Pa
 
 
 def wave_makespan(waves: Sequence[Sequence[float]], jobs: int) -> float:
-    """The seconds a wave schedule takes over these durations at this worker limit.
-
-    A wave schedule runs each dependency wave to completion before the next starts. A
-    thread pool's queue hands a wave's members, in the wave's order, each to the worker
-    that frees first, so a wave lasts until the latest end of that list schedule and
-    the schedule lasts the sum over its waves. The gate replays it over each module's
-    measured compile and audit seconds, so that a run's phase is read against the
-    schedule it replaced at the same worker limit, without comparing runs on machines
-    whose speed differs.
-
-    The replay leans both ways. The phase's wall seconds also carry the source analysis
-    and bookkeeping the replay leaves out, a fraction of a second that disfavours this
-    schedule. Each span is measured with the workers more fully occupied than at a wave
-    schedule's wave ends, so where concurrent workers slow one another the replay is
-    lengthened, which favours this schedule.
-    """
+    """Return the makespan in seconds of a wave-by-wave list schedule over `waves` at `jobs` workers."""
     if jobs < 1:
         raise ValueError("the replayed worker limit must be positive")
     total = 0.0
@@ -1134,14 +940,7 @@ def _status(root: Path) -> int:
 
 
 def _identity(root: Path) -> int:
-    """Print the digest of the toolchain and context that reusable evidence must match.
-
-    Equal digests are exactly the toolchain and installed-library context an earlier
-    receipt needs before any of its evidence can be reused, so a cache keyed by this
-    digest offers only candidates whose context the gate accepts. It authorizes
-    nothing: the gate still validates every candidate's bytes. Stdout carries only
-    the digest; a context that cannot authorize reuse fails.
-    """
+    """Print the SHA-256 digest of the toolchain and installed-library context required for cache reuse."""
     try:
         work = workspace(root)
         work.mkdir(parents=True, exist_ok=True)
@@ -1163,12 +962,7 @@ _LOADED = re.compile(r"(?:=>|^)\s*(/\S+) \(0x[0-9a-f]+\)$")
 
 
 def _shared_libraries(work: Path, objects: list[str]) -> dict[str, str] | None:
-    """The system libraries the executables and loadable plugins link, by content.
-
-    They live outside the hashed library trees, so without them evidence could cross
-    a C library no checked process loaded. An unresolved library or an object `ldd`
-    cannot read disables reuse. The vDSO has no path and so no bytes to bind.
-    """
+    """Return content digests of shared libraries linked by `objects`, or `None` if unresolved."""
     listed = subprocess.run(["ldd", *objects], cwd=work, capture_output=True,
                             text=True, encoding="utf-8", check=False)
     if listed.returncode or "not found" in listed.stdout:
@@ -1184,22 +978,13 @@ def _shared_libraries(work: Path, objects: list[str]) -> dict[str, str] | None:
 
 
 def _unread_require(sentences: Iterable[str]) -> bool:
-    """Whether a sentence Requires in a form the dependency parse does not read, such
-    as one under a control flag, and so may load a module no parsed edge orders."""
+    """Return True if any sentence contains `Require` outside the plain dependency parser's grammar."""
     return any("Require" in sentence and _REQUIRE_TOKEN.search(sentence)
                and not proofs_mod.REQUIRE.fullmatch(sentence) for sentence in sentences)
 
 
 def _cache_context(work: Path, sources: list[Path]) -> dict[str, object] | None:
-    """Hash installed libraries and runtime files, including actual load paths.
-
-    Unrecognized configurations disable caching, not checking. Dynamic source/ML
-    loads can read undeclared inputs, so they cannot use this cache. File timestamps
-    never stand in for bytes. Only shell launch bookkeeping and WSL's per-launch
-    interop socket are excluded from the environment identity. Other irrelevant
-    environment changes may cause extra work, but cannot preserve a stale hit. Each
-    variable is recorded by name and value digest, so a refusal can name it.
-    """
+    """Hash installed libraries, shared objects, load paths, and environment variables for cache reuse."""
     source_sentences = [sentence for source in sources
                         for sentence in _sentences(source.read_text(encoding="utf-8"))]
     # Dependency parsing intentionally supports only plain Require sentences.
@@ -1297,14 +1082,11 @@ def _changed(before: object, after: Mapping[str, object]) -> str:
 def _reusable(root: Path, work: Path, sources: list[Path], inputs: dict[str, str],
               toolchain: dict[str, object],
               context: dict[str, object] | None) -> tuple[dict[str, Cached], str]:
-    """Reuse checked objects and audits only across identical prerequisite closures.
+    """Return `(reusable_modules, refusal_reason)` from the prior workspace receipt.
 
-    Changes to the gate's own modules or toolchain invalidate all evidence. Register
-    prose is recorded but is not a compiler or audit input: claims bind IDs from the
-    source; their semantic agreement with requirements belongs to review and K-109.
-    Adding/removing a source invalidates any changed local dependency resolution, not
-    unrelated components. The second value says why an earlier receipt authorizes
-    no reuse at all; changed sources and their consumers need no explanation.
+    Reuses compiled `.vo` files and audits only when the toolchain, installed-library
+    context, gate implementation, declared assumptions, source digest, and transitive
+    local `Require` closure all match.
     """
     if context is None:
         return {}, "this installed-library context cannot authorize reuse"
@@ -1368,8 +1150,7 @@ def _reusable(root: Path, work: Path, sources: list[Path], inputs: dict[str, str
 
 
 def _sized_from(workers: proofenv.Workers) -> str:
-    """What an automatic worker limit was sized from, as its log line states it, so a
-    run's log records the CPU count and memory its phase's budget was held against."""
+    """Format the CPU and `MemAvailable` basis for an automatic worker limit."""
     memory = ("no MemAvailable reading" if workers.mem_available_mb is None
               else f"MemAvailable {workers.mem_available_mb:,} MiB")
     return f"automatic, sized from {workers.cpus} usable CPU(s) and {memory}"

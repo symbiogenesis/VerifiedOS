@@ -1,46 +1,9 @@
 # SPDX-License-Identifier: Apache-2.0
-"""The seeded-defect generator: mutants produced from a source, not written by hand.
+"""Deterministic source-mutation generator for Sail (`.sail`) and Rocq (`.v`) files.
 
-[run.py selftest](cli/selftest.py) proved the method on the checker's own rules and
-proved it the expensive way: at least one mutant per rule, each authored, each stating
-in prose the defect it seeds. That is the right shape for a *registry*, where a rule and
-its mutant are two halves of one claim, and it is the wrong shape for an artifact with
-no registry behind it. A Sail function and a Gallina definition have hundreds of sites
-each and nobody is going to write hundreds of cases; what they need is an engine that
-walks the source and produces the population.
-
-So this module holds mutation **operators** rather than mutants: a named rewrite of a
-token, applied at every site of a source where the token occurs and the site is one a
-mutation may land on. What comes out is deterministic, ordered, and countable before
-anything is compiled, which is what makes a run of it a measurement.
-
-**Three verdicts and not two.** A mutant that does not compile is *stillborn*: nothing
-was decided about the oracle, because the oracle never ran. A mutant that compiles and
-moves the oracle's answer is *killed*. A mutant that compiles and does not move it
-*survived*, and a survivor is the finding: the oracle does not reach that site, which
-is R1a's own measurement ("a vector population off entropy alone cannot tell one
-clause of `setCapBounds` from its absence") stated as a loop instead of as a paragraph.
-Reporting stillborn mutants as kills is the standard way a mutation score is inflated,
-so the three are counted apart. What a verdict is and how a run is scored over them is
-[seeded.py](seeded.py)'s, shared with every oracle that runs one; what is here is the
-population.
-
-**Which finding this answers.** M0.8d's: the property that named the *pi* defect was
-written before the vectors and never ran, the harness running alphabetically so the
-symptom aborted the executable ahead of the cause. A written property is a person's
-choice about what to check next and inherits every blind spot that choice has. A
-generated mutant is not chosen at all: the site is walked, and what is left standing
-after the walk is what the oracle does not decide about.
-
-## Where a mutation may land
-
-Two masks, and both matter. A mutation inside a comment or a string literal changes
-the bytes and nothing else, so the mutant compiles to the same program, the oracle
-agrees, and it reports as a survivor about nothing; comments and strings are therefore
-cut out before any operator runs. And a mutation inside a Coq *proof script* breaks the
-proof and kills itself, which says nothing about whether the statement constrains the
-definition; so the Coq lane's default region is the definitional commands alone, and
-`Proof`-to-`Qed` is outside it.
+Applies `OPERATORS` across mutable declaration regions (`SAIL_MUTABLE` / `COQ_MUTABLE`)
+outside comments and string literals, producing ordered `Mutant` instances evaluated by
+[seeded.py](seeded.py) oracles.
 """
 
 import re
@@ -49,69 +12,34 @@ from dataclasses import dataclass
 
 from vos.proofs import DECLARATIONS, VOID, decorations, strip_comments
 
-# The lanes this engine carries. Named rather than passed as free strings, because the
-# comment syntax, the region keywords and the operator table are three facts that have
-# to agree about which language is being mutated.
 SAIL = "sail"
 COQ = "coq"
 LANES = (SAIL, COQ)
 
-# Sail's top-level declaration keywords, which is how a region is found: a block runs
-# from one of these at the start of a line to the line before the next.
+# Top-level Sail declaration keywords that open a source region.
 SAIL_TOP = re.compile(
     r"^(function|val|let|type|mapping|register|struct|enum|union|infix|overload|"
     r"scattered|end|default|\$\[|\$)")
 
-# The ones a mutation may land in by default. A `val` is a signature and a `type` is an
-# abbreviation, so mutating either is a stillborn mutant with high probability and no
-# information; what carries behaviour is a function body and a table written as a `let`.
+# Sail region kinds mutated by default (`val` and `type` mostly yield stillborn mutants).
 SAIL_MUTABLE = ("function", "let", "mapping")
 
-# Rocq's command keywords, same reading. Every vernacular whose sentence binds a
-# top-level name is the shared lexer's `DECLARATIONS`, Rocq 9.3's theorem keywords,
-# recursive definitions and inductive types among them, and `Let` binds one inside a
-# section; beside them, the commands this repository's own proofs use plus the
-# neighbours a proof file reaches for. A command outside the list opens no region, which
-# leaves its lines attached to the region above: that is why `Proof` and `Qed` are both
-# here even though neither is mutable, and why a `Variant` or a `CoFixpoint` missing
-# from it joined the definition above it. A keyword is a whole word: read as a prefix,
-# `Letter 4` continuing a term at column 0 opened a region keyed `Let` that nothing
-# mutates, so the plural assumption commands and Ltac2's definitions, which the prefix
-# reading keyed by their singular and by `Ltac`, are spelled as keywords of their own.
+# Top-level Rocq vernacular keywords that open a source region.
 COQ_TOP = re.compile("(" + "|".join((
     *DECLARATIONS, "Let", "Proof", "Qed", "Defined", "Admitted", "Require", "Import",
     "Export", "Arguments", "Print", "Section", "End", "Notation", "Local", "Global", "Set",
     "Unset", "Open", "Close", "Hint", "Class", "Variable", "Variables", "Parameter",
     "Parameters", "Axiom", "Axioms", "Context", "Ltac", "Ltac2", "From")) + r")(?![\w'])")
 
-# And the ones a mutation may land in: the definitional commands, and deliberately not
-# a `Lemma` or a `Theorem`. A mutation inside a proof script breaks the proof and kills
-# itself, which decides nothing about whether the statement constrains the definition;
-# a mutation inside a *definition* is the question this engine is asking.
+# Rocq definitional region kinds mutated by default (proof scripts are excluded).
 COQ_MUTABLE = ("Definition", "Fixpoint", "Inductive", "Record")
 
-# What may stand before a Rocq command's keyword is the shared lexer's decoration grammar
-# ([proofs.py](proofs.py)): quoted and legacy attributes, control flags, and the bullets,
-# braces and goal selectors of a proof, read over the source with its comments blanked,
-# so a comment is the separator Rocq's lexer reads. A line opening with them opens a
-# region keyed by the command they decorate, so `#[local] Definition` is a definition
-# rather than the tail of the region above it and `Local Definition` is not a `Local`
-# nobody mutates. They are read as the run Rocq's lexer reads, across lines, blank lines,
-# comments and an attribute spanning lines, and the region opens where the first of them
-# stands. A bullet, a brace or a goal selector is a command of its own, so the flags
-# before one are its and the command after one opens its region after it. `Fail` and
-# `Succeed` run the command and keep nothing it defines, so a region under either, on
-# the command's line or above it, is keyed by the flag and no mutation lands in it.
-#
-# The command under a decoration where `COQ_TOP` does not name it, `Opaque` under
-# `Local` being one this repository's proofs write. A command is capitalised, so a word
-# under a flag that is not is a tactic's, `Time lia` in a proof script, and no command.
 _COMMAND_WORD = re.compile(r"([A-Z]\w*)")
 
 
 @dataclass(frozen=True)
 class Region:
-    """One block of a source: where it starts, where it ends, and what opened it."""
+    """Top-level source declaration block (`[start, end)`)."""
 
     keyword: str
     name: str
@@ -121,7 +49,7 @@ class Region:
 
 @dataclass(frozen=True)
 class Mutant:
-    """One seeded defect: where it lands, what it replaces, and what with."""
+    """Single token-rewrite mutant at `[start, end)` on `line` of `path`."""
 
     ident: str
     operator: str
@@ -133,9 +61,7 @@ class Mutant:
     after: str
 
     def apply(self, text: str) -> str:
-        """The mutated source. Held rather than stored, a population of several hundred
-        each carrying a copy of a fifty-kilobyte file being a megabyte of the same
-        bytes."""
+        """Return `text` with this mutation applied."""
         return text[:self.start] + self.after + text[self.end:]
 
     @property
@@ -143,12 +69,9 @@ class Mutant:
         return f"{self.path}:{self.line} `{self.before}` -> `{self.after}`"
 
 
-# One operator: a name, the lanes it applies to, the pattern that finds a site, and the
-# rewrite. Typed rather than a bare tuple, because a table of callbacks nothing types
-# is a table where a member with the wrong shape is found by running it.
 @dataclass(frozen=True)
 class Operator:
-    """A named rewrite of one token, and where it is admitted."""
+    """Named token-rewrite mutation operator and the lanes (`SAIL`, `COQ`) it targets."""
 
     name: str
     lanes: tuple[str, ...]
@@ -166,7 +89,6 @@ def _slice_down(m: re.Match[str]) -> str:
 
 
 def _fixed(repl: str) -> Callable[[re.Match[str]], str]:
-    """A rewrite that ignores what it matched, which is most of them."""
     def rewrite(_m: re.Match[str]) -> str:
         return repl
     return rewrite
@@ -174,16 +96,10 @@ def _fixed(repl: str) -> Callable[[re.Match[str]], str]:
 
 def _lit(name: str, lanes: tuple[str, ...], find: str, repl: str,
          what: str) -> Operator:
-    """The common shape: one fixed pattern for a fixed replacement."""
     return Operator(name=name, lanes=lanes, pattern=re.compile(find),
                     rewrite=_fixed(repl), what=what)
 
 
-# The operators, both lanes. Each is a rewrite that keeps the source a plausible
-# program: a relation for its neighbour, a connective for its dual, a constant off by
-# one, a slice off by one bit. What is deliberately absent is any operator that deletes
-# a statement or reorders one, because those are stillborn far more often than they are
-# informative and a population dominated by stillborn mutants measures the compiler.
 OPERATORS: tuple[Operator, ...] = (
     _lit("le-to-lt", LANES, r"<=(?!>)", "<", "a bound made strict"),
     _lit("lt-to-le", LANES, r"(?<![<>=])<(?![<=>])", "<=", "a bound made inclusive"),
@@ -210,11 +126,7 @@ OPERATORS: tuple[Operator, ...] = (
     _lit("negb-dropped", (COQ,), r"\bnegb\s+", "", "a negation removed"),
     _lit("true-to-false", LANES, r"\btrue\b", "false", "a constant inverted"),
     _lit("false-to-true", LANES, r"\bfalse\b", "true", "a constant inverted"),
-    # The lookbehind keeps a hex or bit literal whole, `0x1f` and `0b0101` each being
-    # one token whose digits are not arithmetic. The lookahead deliberately admits a
-    # following `.`, which is how a Rocq command ends: `Nat.leb n 3.` carries a literal
-    # and a period, and a pattern excluding both would read every Gallina definition as
-    # carrying no constant at all.
+    # Lookbehind preserves hex/bit literals (`0x1f`, `0b0101`); lookahead allows `.` at sentence end.
     Operator("const-inc", LANES, re.compile(r"(?<![\w.])\d+(?!\w)"), _const_inc,
              "a numeric literal off by one"),
     Operator("slice-down", (SAIL,), re.compile(r"\[(\d+) \.\. (\d+)\]"), _slice_down,
@@ -222,7 +134,6 @@ OPERATORS: tuple[Operator, ...] = (
 )
 
 
-# Search only for lexical boundaries; ordinary source bytes need no Python loop.
 _OPENERS = {COQ: re.compile(r'\(\*|"'), SAIL: re.compile(r'/[/*]|"')}
 _BLOCK_OR_STRING = re.compile(r'/\*|"')
 _COQ_COMMENT = re.compile(r"\(\*|\*\)")
@@ -230,12 +141,7 @@ _STRING_TOKEN = re.compile(r'\\[\s\S]?|"')
 
 
 def mask(text: str, lane: str) -> list[bool]:
-    """Which characters a mutation may land on: everything but comments and strings.
-
-    Searches advance from the previous boundary, so each source span is scanned
-    once. Rocq comments nest; Sail comments do not. Unterminated constructs mask
-    through EOF, and an escaped quote remains part of its string in either lane.
-    """
+    """Return a per-character boolean mask that is True outside comments and string literals."""
     size = len(text)
     ok = [True] * size
     opener = _OPENERS.get(lane, _BLOCK_OR_STRING)
@@ -252,7 +158,6 @@ def mask(text: str, lane: str) -> list[bool]:
         elif opening == "//":
             end = text.find("\n", found.end())
             if end >= 0:
-                # A line comment excludes its terminating newline as well.
                 cursor = end + 1
         elif lane == COQ:
             depth = 1
@@ -270,26 +175,10 @@ def mask(text: str, lane: str) -> list[bool]:
 
 
 def _coq_head(code: str, at: int) -> tuple[str, str | None, int, int] | None:
-    """The command a Rocq line opening at `at` names, where `code` is the source with its
-    comments blanked at their own offsets: its keyword, the flag keeping nothing it
-    stands under or None, where its region opens, and where its keyword ends; or None
-    where the line names no command. Whether the line is code at all is the caller's to
-    decide, a line inside a comment reading the same.
+    """Parse a Rocq command head at line offset `at` in comment-blanked `code`.
 
-    The decorations are read as the run Rocq's lexer reads, across lines, blank lines,
-    comments and an attribute or a quoted target spanning lines, so the command under
-    them may stand on a later line, and its region opens where the run does. A bullet, a
-    brace or a goal selector is a command of its own, so the run starts again at each
-    (proofs.decorations) and the command after one opens its region after it.
-
-    A bare line names a command exactly when it starts with a `COQ_TOP` keyword. A
-    decorated one names the `COQ_TOP` keyword under it, else the capitalised command
-    word under it; a word under a flag that is not one is a tactic's, and no command. A
-    bullet, a brace or a goal selector, and `Export`, name a command only where a
-    `COQ_TOP` keyword follows them, the line otherwise read bare. At a line's start `-`,
-    `+`, `*` and `{` continue a term as often as they open a proof step, and a capitalised
-    word after one is as often a constructor as a command. `Export` decorates an option
-    command, `Set` or `Unset`, and is otherwise the command that exports a module.
+    Returns `(keyword, void_flag_or_None, region_start, keyword_end)`, or `None` if `at`
+    does not open a top-level command.
     """
     found, opened = decorations(code, at)
     command = COQ_TOP.match(code, opened)
@@ -312,23 +201,8 @@ def _coq_head(code: str, at: int) -> tuple[str, str | None, int, int] | None:
 
 
 def regions(text: str, lane: str, lexical: list[bool] | None = None) -> list[Region]:
-    """The source's top-level blocks, each from its own keyword to the next one.
-
-    A line-based reading rather than a parse, and it is enough for what it decides: a
-    block's *extent* only has to be right about which command a character belongs to,
-    and both languages here put every top-level command at the start of a line. A Rocq
-    command's decorations are read past, so the region is keyed by what they decorate,
-    and opens at the first of them where they stand on lines of their own above it,
-    blank lines, comments and an attribute's lines between them (`_coq_head`). A Rocq
-    line is read with its comments blanked at their own offsets, each the separator
-    Rocq's lexer reads it as, and one whose first character lies inside a comment or a
-    string is prose that opens nothing, whatever word it starts with, its lines staying in
-    the region above; so is a line the decorations of a command below it run through.
-    `lexical` is `mask(text, lane)` where the caller holds it already.
-    """
+    """Partition `text` into top-level declaration `Region`s for `lane`."""
     starts: list[tuple[int, str, str]] = []
-    # where the keyword of the last Rocq command read ends: a line opening before it is
-    # one that command's decorations ran through, and opens nothing of its own
     read_to = 0
     offset = 0
     code = strip_comments(text, keep_offsets=True) if lane == COQ else text
@@ -362,13 +236,7 @@ def regions(text: str, lane: str, lexical: list[bool] | None = None) -> list[Reg
 
 def mutable_mask(text: str, lane: str, only: tuple[str, ...] | None = None,
                  named: tuple[str, ...] = ()) -> list[bool]:
-    """The whole admissibility mask: inside a mutable region, outside a comment.
-
-    `only` is the set of region keywords admitted, defaulting to the lane's own; the
-    Coq default is what keeps a mutation out of a proof script, which is the difference
-    between asking whether a statement constrains a definition and asking whether a
-    tactic still applies.
-    """
+    """Return a per-character admissibility mask (inside mutable regions and outside comments/strings)."""
     admitted = only if only is not None else (
         COQ_MUTABLE if lane == COQ else SAIL_MUTABLE)
     ok = mask(text, lane)
@@ -385,13 +253,7 @@ def mutable_mask(text: str, lane: str, only: tuple[str, ...] | None = None,
 def mutants(text: str, lane: str, path: str, *, only: tuple[str, ...] | None = None,
             named: tuple[str, ...] = (),
             operators: tuple[Operator, ...] = OPERATORS) -> list[Mutant]:
-    """Every mutant of one source, ordered by operator and then by site.
-
-    Deterministic, so a run is repeatable and a `--limit` takes the same prefix twice.
-    Overlapping sites across operators are expected and are not deduplicated: two
-    operators rewriting one token are two different defects, and the oracle may kill
-    one and not the other.
-    """
+    """Generate all `Mutant`s for `text` in `lane`, ordered by operator then source offset."""
     if lane not in LANES:
         raise ValueError(f"{lane!r} is not a lane this engine carries")
     admissible = mutable_mask(text, lane, only, named)
@@ -407,7 +269,6 @@ def mutants(text: str, lane: str, path: str, *, only: tuple[str, ...] | None = N
             after = operator.rewrite(found)
             if after == found.group(0):
                 continue
-            # Matches advance within each operator: never recount the prefix.
             line += text.count("\n", cursor, found.start())
             cursor = found.start()
             out.append(Mutant(
@@ -420,9 +281,7 @@ def mutants(text: str, lane: str, path: str, *, only: tuple[str, ...] | None = N
 
 
 def lane_of(path: str) -> str:
-    """Which lane a path belongs to, by its own suffix. Refused rather than guessed:
-    an engine that mutated a file with the wrong comment syntax would cut the wrong
-    spans out and report survivors about nothing."""
+    """Return `SAIL` for `.sail` paths or `COQ` for `.v` paths."""
     if path.endswith(".sail"):
         return SAIL
     if path.endswith(".v"):

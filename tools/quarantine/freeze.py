@@ -1,50 +1,23 @@
 # SPDX-License-Identifier: Apache-2.0
-"""The profile-freeze measurement instrument: what it carries, and what it waits on.
+"""Profile-freeze measurement model, contract parser, and §9 gate predicates.
 
-[docs/implementation/contracts/freeze-measurement.md](../../docs/implementation/contracts/freeze-measurement.md) is
-the specification: the versioned corpus manifest, the composition recipe, the
-emitter-provenance schema, the admitted region classes, the nine decisions of the
-freeze's single measured act, the declared parameters, the report's two renderings,
-and the thirteen CI predicates that reject a report. This module is the instrument
-that runs against it, read by two callers: `tools/quarantine/freeze-report.py`,
-which produces the report, and the `freeze` check group beside it, which holds the
-instrument's own enumerations against the contract's in both directions.
+[docs/implementation/contracts/freeze-measurement.md](../../docs/implementation/contracts/freeze-measurement.md)
+specifies the versioned corpus manifest (§2), composition recipe (§3), emitter-provenance
+schema (§4), admitted region classes and refusal reasons (§5), nine decisions of the
+single measured freeze act (§6), machine-readable and Markdown report renderings (§7),
+declared parameters (§8), and thirteen CI predicates (§9). This module is shared by
+[freeze-report.py](freeze-report.py) and [checks/freeze.py](checks/freeze.py).
 
-**The instrument cannot be run end to end today, and that is a schedule fact rather
-than a shortfall in it.** The analyzer joins three inputs (§4): the provenance
-sidecar stream from S1 and S4, the link map from S5, and the encoded image from S7.
-The first is M1.2's backend and the other two are M1.4's linker and image composer,
-so no member of §2's corpus exists yet and no byte or cycle column is a measurement.
-What this module therefore does is exactly what `quarantine/banks.py` does for the
-bank count: it computes everything the composition already fixes, and for every column
-whose operand does not exist it carries **the symbol it waits on** rather than a
-number or a blank.
-
-Three things follow from that, and each is a design decision rather than a stopgap.
-
-- **A cell has four kinds, not two.** A `value` is a measurement, `n/a` is an axis
-  that does not apply, `pending` names the symbol the cell waits on, and `fixture`
-  is a number the wiring produced from a synthetic input standing in for M1.2's or
-  M1.4's. A `fixture` cell is never a `value`: every gate predicate in §9 treats it
-  as an absent measurement and defers, so the fixture exercises the join without
-  ever letting a fabricated number clear the gate.
-- **The gate has three outcomes, not two.** A predicate `passes`, `REJECT`s, or
-  `defers on <symbol>`. A gate that could only pass or reject would have to reject
-  the whole of today's report thirteen times over and would say nothing about which
-  predicates are already deciding; the third outcome is what makes the report
-  readable before the corpus exists.
-- **Values are parsed and membership is declared.** Every number the contract
-  chooses (§8's parameters, the members' feeds, the operand classes' two-way split)
-  is read out of the contract at run time, so this module holds no second copy of
-  one. What it *declares* is which members, steps, classes, decisions, parameters
-  and predicates it implements, because that is behaviour rather than a figure, and
-  K-77 holds the two sets equal in both directions.
-
-The one substantive result the instrument can produce before the corpus exists is
-the FD-2 geometry table: R-15-036h's slot model and R-15-036j's packing term are
-arithmetic over `(w, h, k, p)`, so the hit rate each declared bundle geometry needs
-to clear the derived 22.4-bit bar, and the realized packing term the register's own
-break-even implies, are computable today and are not decisions.
+Design invariants:
+- **Four cell states**: `value` (measured), `n/a` (inapplicable axis), `pending`
+  (names the symbol the cell waits on), and `fixture` (computed from synthetic input
+  to exercise the §4 join; never treated as `measured` by §9 predicates).
+- **Three gate outcomes**: `pass`, `REJECT`, or `defers`.
+- **Parsed values, declared memberships**: parameter values, corpus `Feeds` edges, and
+  the site-invariant/site-varying operand-class split are parsed from the contract at
+  run time; implemented IDs (`MEMBERS`, `STEPS`, `OPERAND_CLASSES`, `REGION_CLASSES`,
+  `REFUSALS`, `DECISIONS`, `BLOCKS`, `PREDICATES`) are declared here and checked against
+  the contract in both directions by K-77.
 """
 
 import math
@@ -823,32 +796,12 @@ HOST_TIMING_RE = re.compile(r"(?i)host|wall.?clock|wall.?time|elapsed|nanosecond
 # the arithmetic that exists without the corpus
 # =====================================================================================
 #
-# Everything here is computed from what the format and the register already fix. None
-# of it is a measurement and none of it decides anything: the acceptance test is on the
-# observation, and what these produce is the shape a candidate must satisfy whatever the
-# observation turns out to be.
-#
-# **The model itself is owned in `vos/` and read from here**, for the reason §4's schema
-# is: it has two ends now. R-15-036i makes the dictionary a permanent freeze-time
-# commitment, so this is the one arithmetic in the tree whose wrong answer invalidates
-# stored code rather than costing a recompile, and it is therefore stated a second time
-# in Gallina and compared, which `run.py quickchick freeze` runs. That comparison is on
-# the landing loop's side of K-83 and cannot reach in here; the model can be read from
-# there, which is the direction that rule leaves open. Written down twice inside this
-# repository's Python the model would be a transcription held together by nothing, which
-# is the defect the checker exists to catch. The names are re-exported under the
-# spellings this module's own readers and its tests already ask for.
+# Re-exported from [vos/freezemodel.py](../vos/freezemodel.py), which owns the slot
+# model and outlining break-even arithmetic shared with `run.py quickchick freeze`.
 
 CANONICAL_BITS = freezemodel.CANONICAL_BITS
 OPTIMISTIC_SHARE = freezemodel.OPTIMISTIC_SHARE
 PESSIMISTIC_SHARE = freezemodel.PESSIMISTIC_SHARE
-
-# The slot width the format leaves no room in: an escape is exactly two slots carrying
-# one canonical 32-bit instruction verbatim, so 2w >= 32; any wider slot wastes
-# 2(w - 16) bits on every escape and buys index space above the 2^16 dictionary bound.
-# The value is §8's own and is read from its FD-2 candidate cell; this is the fallback
-# for a caller with no contract in hand, and `slot_width_derivation` is what says why
-# the number cannot be anything else.
 SLOT_WIDTH = freezemodel.SLOT_WIDTH
 DICTIONARY_INDEX_BOUND = freezemodel.DICTIONARY_INDEX_BOUND
 
@@ -861,8 +814,7 @@ geometry = freezemodel.geometry
 
 
 def candidate_geometries(contract: Contract) -> list[Geometry]:
-    """The `(h, k)` pairs §8 declares, scored at the width and the break-even hit rate
-    FD-1's owners state rather than at figures restated here."""
+    """Score the `(h, k)` pairs declared in §8 at the contract's slot width and break-even rate."""
     stated = contract.parameter("FD-2 candidate set")
     pairs = [(int(a), int(b)) for a, b in re.findall(r"\((\d+),\s*(\d+)\)", stated)]
     width = contract.slot_width() or SLOT_WIDTH
@@ -871,7 +823,7 @@ def candidate_geometries(contract: Contract) -> list[Geometry]:
 
 
 def candidate_sizes(contract: Contract) -> list[int]:
-    """The dictionary sizes §8 declares, as the powers of two its range names."""
+    """Return the power-of-two dictionary sizes declared in §8."""
     stated = contract.parameter("FD-1 candidate set for N")
     span = re.search(r"2\^(\d+) to 2\^(\d+)", stated)
     if not span:
@@ -881,24 +833,17 @@ def candidate_sizes(contract: Contract) -> list[int]:
 
 
 def headroom_reserve(contract: Contract) -> float:
-    """The share of N §8 requires be left unallocated at the freeze."""
+    """Return the fraction of `N` that §8 requires be left unallocated at the freeze."""
     stated = contract.parameter("dictionary headroom reserve")
     share = re.search(r"([\d.]+)%", stated)
     return float(share.group(1)) / 100.0 if share else 0.0
 
 
 def reserved_indices(size: int, reserve: float) -> int:
-    """The indices a candidate N must leave unallocated. The reserve is a floor, so the
-    division rounds up: a reserve rounded down is a reserve the freeze does not have."""
+    """Return the minimum number of unallocated indices for dictionary size `size`."""
     return math.ceil(size * reserve)
 
 
-# R-15-036p's outlining break-even, read from the module above rather than stated here,
-# for the same reason and a sharper one: it is stated a second time in Gallina and
-# `run.py quickchick freeze` compares the two against each other and against the
-# register, so a third statement in this file would be the one held against neither, and
-# an edit to it would move this instrument's column set without moving that comparison.
-# It is §6's FD-3 column set here and the `obe` family there, and it is one arithmetic.
 Outlining = freezemodel.Outlining
 outlining_break_even = freezemodel.outlining_break_even
 
@@ -907,14 +852,7 @@ outlining_break_even = freezemodel.outlining_break_even
 # the three joined inputs, and the fixture that stands in for them
 # =====================================================================================
 
-# §4's schema, and its four declared paths, read from the module that owns them.
-#
-# Owned in `vos/` rather than declared here, because there are now two ends of it: this
-# analyzer reads the streams and M1.4-prime's composer writes two of them, and a schema
-# written down at both ends is a transcription held together by nothing. The direction
-# is the one K-83 permits, the quarantine reading `vos/` and nothing under `tools/`
-# reaching into the quarantine. The names are re-exported under their old spellings
-# because that is what this module's own readers and its tests already ask for.
+# §4's schema and declared paths, re-exported from [vos/freezeschema.py](../vos/freezeschema.py).
 INPUTS = freezeschema.INPUTS
 STREAMS = freezeschema.STREAMS
 SIDECAR_FIELDS = freezeschema.SIDECAR_FIELDS

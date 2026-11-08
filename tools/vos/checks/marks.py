@@ -1,51 +1,15 @@
 # SPDX-License-Identifier: Apache-2.0
-"""marks: the license mark every file that can carry one carries.
+"""Check SPDX license marks across all tracked files (`K-52`, `K-53`).
 
-[COPYRIGHT.md](../../../COPYRIGHT.md) governs Markdown by path and every other
-original file by a mark in the file itself. The first half is closed by having no
-per-file fact to drift. The second is a claim about every markable file in the tree
-that nothing held: a new source file arrives unmarked and reads exactly like a marked
-one, because the mark's whole job is to be there when somebody later asks a question
-nobody is asking today. How many such files there are is this group's `ok` line to
-state and is deliberately not written down anywhere here, the count being exactly the
-kind of fact the tool exists to keep out of prose.
-
-**The identifier is read from the map rather than restated here.** Every marked file
-repeating `Apache-2.0` is one more copy of a sentence COPYRIGHT.md owns, so this
-group takes the identifier out of that document and holds the files against it. Change
-the map and the files are wrong; change the files and they are wrong; the two cannot
-quietly disagree.
-
-**A kind is markable or refused, and there is no third answer.** The obvious shape for
-this rule is a list of files to skip, and it is the wrong one: a skip list is a proviso
-that must itself be audited, and the day a new file kind lands is the day it is
-silently outside the rule. So the tool carries a table of comment syntaxes rather than
-a list of exceptions, and a kind in neither table is a finding that names the kind and
-asks for a decision. Refusals are refusals of *format*, not of importance: JSON admits
-no comment at all, so a mark in one is not a mark but a corruption. Markdown is refused
-for the opposite reason, that the map already reaches it by path.
-
-Both directions are held, as the conferral rules elsewhere hold theirs. A file kind no
-ruling covers is a gap; a ruling no file exercises is a carve-out nobody audits, and it
-goes when the last file of its kind does.
-
-What this cannot decide is whether the mark is *true*. A file marked Apache-2.0 that
-was pasted from somewhere else is marked wrongly and reads green here, which is the
-same residue every other group in this tool declares: the mark is checked for presence
-and spelling, and its provenance is a person's to know.
-
-**Which is why `--fix` does not write the mark**, though it is the most mechanical
-repair in this tool and the finding already prints the line to paste. Everything
-`--fix` rewrites is recomputed from an artifact the repository already carries: a count
-from the thing counted, a total from its items, the value determined before the flag is
-passed and only transcribed by it. A mark is not that. Prepending one asserts that the
-file is this project's own work, which nothing in the tree determines, and an unmarked
-file is the single visible sign that something arrived from outside. `--fix` is run to
-repair arithmetic, so a marking side effect would stamp a provenance claim on a pasted
-file while somebody was fixing a checklist total, turning the one case this rule can
-detect into a false claim. Rewriting a mark that is present and wrong would be worse
-still, overwriting a license statement somebody made on purpose. The line is cheap to
-paste and the decision behind it is not, so the decision stays with a person.
+[COPYRIGHT.md](../../../COPYRIGHT.md) governs Markdown files by path and requires an
+`SPDX-License-Identifier` comment at the head of every other authored file:
+- `K-52` reads the required SPDX identifier from [COPYRIGHT.md](../../../COPYRIGHT.md)
+  and verifies that every file matching `MARKABLE` (outside `REFUSED_TREES`) carries it
+  within its first `DEPTH` lines using that file kind's comment syntax. `K-52` is never
+  auto-repaired by `--fix` because stamping a license mark asserts authorship/provenance.
+- `K-53` checks bidirectional coverage of file kinds: every tracked file kind outside
+  `REFUSED_TREES` must appear in `MARKABLE` or `REFUSED`, and every entry in `MARKABLE`
+  and `REFUSED` must match at least one tracked file.
 """
 
 import re
@@ -54,66 +18,44 @@ from typing import TYPE_CHECKING
 
 from vos.corpus import UNREAD_PREFIX
 
-# [Context](__init__.py#Context) lives in this package, which imports this module in turn.
-# Guarded, so the annotation below costs no import at run time: under PEP 649 an
-# annotation is not evaluated unless something asks for it, and nothing here does.
 if TYPE_CHECKING:
     from . import Context
 
 HEADING = "=== marks: every file that can carry a license mark carries one ==="
 
-# the document that owns the identifier, so this module never spells it
 LICENSE_MAP = "COPYRIGHT.md"
 IDENT_RE = re.compile(r"SPDX-License-Identifier:\s*([A-Za-z0-9.\-+]+)")
 
-# A mark below the opening comment is not what a reader or a scanner finds first, so
-# the mark is required in the head of the file rather than merely somewhere in it. Five
-# lines is a shebang, a mark, and room to spare.
+# Maximum 1-based line number at which the SPDX comment may appear.
 DEPTH = 5
 
-# Every kind that can carry a comment, and how that kind opens and closes one. Adding a
-# file kind to the repository means adding its row here, which is the point: the rule
-# refuses to guess.
+# `(comment_opener, comment_closer)` for each markable file extension or filename.
 MARKABLE: dict[str, tuple[str, str]] = {
     ".py": ("# ", ""),
     ".v": ("(* ", " *)"),
     ".ml": ("(* ", " *)"),
-    # Authored OCaml and Gallina campaign templates keep their language's syntax.
     ".ml.in": ("(* ", " *)"),
     ".v.in": ("(* ", " *)"),
-    # Authored Lustre nodes use the language's line-comment syntax.
     ".lus": ("-- ", ""),
     ".mjs": ("// ", ""),
     ".sh": ("# ", ""),
     ".s": ("# ", ""),
-    # Sail, in the one place this repository writes any outside `model/`: the
-    # cross-check's generator, which calls the curated model's own functions and is
-    # authored here rather than vendored with the tree it reads.
     ".sail": ("// ", ""),
     ".sv": ("// ", ""),
-    # The portable planner's original TFLite Micro adapter and API demonstration.
     ".cpp": ("// ", ""),
     ".h": ("// ", ""),
-    # M4.4's kernel C under kernel/, in the scalar source profile's C, the boot chain's
-    # firmware and its host harness driver under firmware/, and the component oracle's
-    # purecap counterpart under tools/wasm-oracle/.
     ".c": ("// ", ""),
-    # The authored bridge to the pinned, untrusted idealloc candidate generator.
     ".rs": ("// ", ""),
     ".toml": ("# ", ""),
     ".editorconfig": ("# ", ""),
-    # pip-format requirements, whose comment syntax uv reads: the solver's hashed pin.
     ".txt": ("# ", ""),
     ".cmake": ("# ", ""),
     ".sail_project": ("// ", ""),
-    # The host-gate workflow under .github/, which is authored here like any tool.
     ".yml": ("# ", ""),
     "Dockerfile": ("# ", ""),
 }
 
-# Every kind that is not marked, each with the reason it is not. A reason of *format*
-# is the only kind admitted here: the JSON entry would be corrupted by a mark, and
-# Markdown is reached by the map instead.
+# File kinds exempt from per-file SPDX marks, with format/ownership rationale.
 REFUSED: dict[str, str] = {
     ".md": f"{LICENSE_MAP} governs prose by path, so a per-file mark would restate it",
     ".json": "JSON admits no comment, so a mark would make the file unparseable",
@@ -124,16 +66,7 @@ REFUSED: dict[str, str] = {
     ".gitmodules": "git's own metadata rather than authored content",
 }
 
-# The trees refused whole rather than by kind, because what is foreign is the tree and
-# not any kind inside it. `model/` is the corpus's own exclusion, imported rather than
-# respelled so the two cannot come to disagree about which tree is not this
-# repository's. `upstream/` is ordinarily invisible here, its entries being gitlinks
-# rather than files, but a submodule that is checked out is a working tree full of
-# somebody else's sources and this rule has no business marking them.
-#
-# Trees are not held to K-53's other direction. A kind's ruling is a carve-out that
-# earns its place by covering something, where a tree is a structural fact about the
-# repository that is no less true on the day it happens to be empty.
+# Directory prefixes exempt from per-file SPDX checks (vendored upstream and verbatim evidence).
 REFUSED_TREES: dict[str, str] = {
     UNREAD_PREFIX: "vendored upstream, marked by its own project and left as it arrived",
     "upstream/": "a pinned submodule's own working tree, which is another project",
@@ -143,9 +76,7 @@ REFUSED_TREES: dict[str, str] = {
 
 
 def kind_of(path: str) -> str:
-    """A path's kind: its extension, or its whole name where it has none. A dotfile
-    has no extension by this reading, which is what puts `.gitignore` in the table
-    under its own name rather than under an extension it shares with nothing."""
+    """Return a path's file kind: its `.in` compound suffix, its suffix, or its filename."""
     p = PurePosixPath(path)
     if p.suffix == ".in":
         return "".join(p.suffixes[-2:])

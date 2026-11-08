@@ -1,52 +1,18 @@
 # SPDX-License-Identifier: Apache-2.0
-"""confers: every enumeration closed by conferral, and the agenda for what it misses.
+"""Check conferral-closed enumerations and their vocabulary agendas (`K-18`..`K-23`, `K-45`, `K-73`).
 
-Three sets here are enumerations of a judgment: the crown-jewel specifications, the
-fail-closed refusals, and the state the RoT counter keeps fresh. Each was first
-written as a list somebody believed complete on the day they wrote it, which is the
-failure R-17-016 was repaired for: a list restated anywhere is a list that silently
-stops being the set. The repair was not a better-maintained list but **conferral**,
-where membership is asserted by each requirement that has it and collected in exactly
-one place, so the two can be checked against each other instead of against a memory.
+Three sets in the register are closed by conferral (each member requirement asserts
+membership and one collector enumerates them):
+- Crown-jewel specifications (`K-18`, `K-19`), collected in
+  [docs/assurance/crown-jewels.md](../../../docs/assurance/crown-jewels.md) (`R-17-016`).
+- Fail-closed refusals (`K-20`, `K-21`), collected by the `R-17-030` seam entries.
+- RoT-fresh state (`K-22`, `K-73`), collected in `R-10-013`'s prose enumeration.
 
-What conferral closes is the collection's disagreement with the requirements, and
-that is all it closes. It cannot decide whether a requirement that *should* confer
-does, because *is a crown jewel*, *fails closed* and *needs freshness* are judgments
-and no tool holds them. Pretending otherwise would put the defect one level up, in a
-checker that certifies a set it cannot see the whole of.
-
-So each set carries a second instrument against that residue, and it is deliberately
-a weak one honestly described: the vocabulary of the judgment is over-approximated
-across every requirement body, and each entry the vocabulary catches must confer, be
-collected, or be dispositioned here by name with a reason. That is lexical and proves
-no totality. What it buys is that the totality claim is discharged against an agenda
-regenerated on every run rather than against a reading nobody repeats, and it is not
-hypothetical: run against the ten-seam fail-closed register it returned the detector
-class (R-17-030n), the entropy health test (R-17-030o), the display path (R-17-030p),
-and budget admission (R-17-030q), none of which any reading had found.
-
-The crown-jewel side's agenda is the one whose hold is a document rather than a
-conferral collection: a candidate is held by conferring the status or by being cited
-in an inventory row, since a requirement the inventory names is one the review gate
-already reads. Its vocabulary is therefore the vocabulary of **formal discharge**,
-and what it reports is a requirement promising a machine-checked artifact that no
-row of the inventory carries and no entry confers. The distinction that decides most
-of its dispositions is the inventory's own: a crown jewel is a specification, so a
-build-time decision procedure over one composition, a workstream that stages an
-artifact another entry confers, and a proof over somebody else's specification each
-answer the vocabulary without being a member.
-
-The three sets differ in how their collector grows, and that difference is the
-register's rather than this file's: R-17-030 and the crown-jewel inventory grow by
-addition, a seam or a row written beside the others, and R-10-013 grows by amendment,
-because its sentence is a budget over a wearing counter rather than a roll-call. So the
-freshness enumeration is the one place a collector gates a conferral, and the rule that
-holds it there is the only one here that reads a member's own words rather than an id.
-
-A disposition is a decision, so it is recorded here beside the rule rather than as a
-marker in the prose. A marker would tax the vocabulary instead of the judgment, and
-an author who has to spend a word to avoid a finding rewords the sentence rather than
-making the decision, which is the check defeating its own purpose quietly.
+Because conferral only checks agreement between conferring entries and their collector,
+`K-23` sweeps requirement bodies for each judgment's vocabulary (`AGENDAS`): every
+matching entry must confer, be collected, or have an explicit ruling or disposition
+recorded here. `K-45` verifies that every recorded ruling and disposition still matches
+a live requirement that carries the vocabulary.
 """
 
 import re
@@ -54,9 +20,6 @@ from typing import TYPE_CHECKING, TypedDict
 
 from vos.register import REQ_TOKEN_RE
 
-# [Context](__init__.py#Context) lives in this package, which imports this module in turn.
-# Guarded, so the annotation below costs no import at run time: under PEP 649 an
-# annotation is not evaluated unless something asks for it, and nothing here does.
 if TYPE_CHECKING:
     from . import Context
 
@@ -66,16 +29,11 @@ CJ_VOCAB = re.compile(r"crown.jewel spec", re.IGNORECASE)
 _FC_SEAM_RE = re.compile(r"Fail-closed seam \*\*", re.IGNORECASE)
 _ROT_ENUM_RE = re.compile(r"R-10-013", re.IGNORECASE)
 
-# The enumeration R-10-013 states, and the state a conferral names before citing it.
-# Both are read out of the register rather than listed here, so the rule holds the two
-# sides against each other and never either of them against a copy kept in this file.
+# State enumeration in R-10-013 and state name in each `· RoT-fresh:` line.
 _ROT_STATES_RE = re.compile(r"that set is enumerated: (.+?), advancing on ")
 _ROT_STATE_OF_RE = re.compile(r"^· RoT-fresh: (.+?) \(R-10-013\)")
 
-# Conferral lives in the entry's normative line, never in a criterion: an Accept line
-# tests the obligation and states none. But the vocabulary can still appear there, and
-# a conferral someone writes only into a criterion would evade both directions without
-# this sweep.
+# Dispositions for Accept-line occurrences of crown-jewel vocabulary where another entry confers.
 CJ_ACCEPT_DISPOSITION = {
     "R-11-015": "references the timing-annotation statement, whose status R-17-041 confers",
     "R-13-009": "references the format-descriptor status R-05-046 confers on every member",
@@ -83,21 +41,13 @@ CJ_ACCEPT_DISPOSITION = {
 
 
 class Agenda(TypedDict):
-    """One vocabulary sweep and the two ways an entry is held out of it.
-
-    Typed for the reason `views.View` is: written as bare dicts the table read back
-    as a union of everything in it, so `re.compile(agenda["vocab"])` was compiling a
-    value the checker could only say was a string, a list, or a dict of strings, and
-    `held_by_agenda[agenda["name"]]` was a lookup by that same union.
-    """
+    """Vocabulary sweep configuration and its ruling/disposition exclusions (`K-23`, `K-45`)."""
 
     name: str
     vocab: str
-    # the entries that state the set rather than belonging to it
+    # Entries that define or govern the set rather than belonging to it.
     ruling: list[str]
-    # the entries caught by the vocabulary and decided not to belong, each with the
-    # reason that decision was taken; the confers group holds every one of them
-    # against the register, so a suppression that suppresses nothing is a finding
+    # Entries matching `vocab` that are excluded by decision, with rationale (`K-45` checks liveness).
     disposition: dict[str, str]
 
 

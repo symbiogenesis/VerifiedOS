@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: Apache-2.0
-"""M4.4's kernel instance, held against the Gallina front: the C and the trace reader.
+"""M4.4 kernel instance host differential, trace reader, and target controls.
 
     python tools/run.py kernel vectors [--show N]
     python tools/run.py kernel check [--vectors FILE]
@@ -8,43 +8,20 @@
     python tools/run.py kernel reader --vectors FILE
     python tools/run.py kernel restore --simulator PATH --build-receipt FILE
 
-[kernel/](../../../kernel/) is the GC-free C of one kernel instance, authored against
-[PartitionContext.v](../../../proofs/PartitionContext.v),
-[CyclicExecutive.v](../../../proofs/CyclicExecutive.v) and
-[KernelInstance.v](../../../proofs/KernelInstance.v).
-[KernelVectors.v](../../quickchick/KernelVectors.v) walks generated domains over those
-statements' definitions and prints each point's inputs beside the definitions' answers.
-
-`vectors` compiles that harness in the proof gate's switch against its `Require`
-closure only, not the whole proof tree. `check` compiles the kernel C in its host model
-with the lane's C compiler and holds every `kx`, `kc`, `kr`, `kq` and `ke` line against
-it, then holds every `kt` line against [vos/kernelrun.py](../kernelrun.py), the reader
-that asks KernelInstance.v's three questions of an emulator's commit trace.
-`mutants` runs authored seeded defects through both differentials and reports them in
-[vos/seeded.py](../seeded.py)'s vocabulary, which is the positive control: a
-differential that no seeded defect can move is not evidence that the two sides agree.
-`reader` runs only the reader half over a vector file already on disk, on either lane.
-
-**Three kinds of expectation, reported apart.** The host harness holds the C to the
-Gallina columns, to release instants it states itself from R-11-014a and R-11-014d
-(CyclicExecutive.v defines none), and to fixed refusal controls for the ABI's section 7
-consumer checks, which have no Gallina counterpart. It prints one total per kind, and
-`mutants` credits each kill to the kind that decided it, so a kill by a hand-stated
-expectation is never reported as a Gallina-vector kill.
-
-**What a green run means.** That the kernel C's host model and the reader compute what
-the Gallina definitions compute at every generated point, and that the C meets the
-harness's own release expectations and consumer controls. It is not target evidence:
-the C here was compiled by the lane's host compiler, not by the accepted purecap
-backend, and no image ran on the emulator. The kernel's target build, its
-initial-capability handoff and its corpus member remain M4.4's joins, and every
-report says so.
-
-`restore` is a separate target experiment: it emits the scalar final restore
-primitive, builds generated tagged/untagged images and executable defects, and
-checks actual ordered trace writes and in-program HTIF refusals on the emulator.
-It requires a successful model-build receipt matching the simulator and current
-model sources. It supplies no kernel C lowering, firmware handoff or boot.
+- `vectors`: compiles [KernelVectors.v](../../quickchick/KernelVectors.v) in the proof
+  gate's switch against its `Require` closure ([PartitionContext.v](../../../proofs/PartitionContext.v),
+  [CyclicExecutive.v](../../../proofs/CyclicExecutive.v), and
+  [KernelInstance.v](../../../proofs/KernelInstance.v)) and emits generated test vectors.
+- `check`: compiles the host model of [kernel/](../../../kernel/) and checks all `kx`,
+  `kc`, `kr`, `kq`, and `ke` vector lines, release expectations (R-11-014a, R-11-014d),
+  and section 7 consumer refusal controls, then checks `kt` lines against
+  [vos/kernelrun.py](../kernelrun.py).
+- `mutants`: runs seeded defects in the kernel C and trace reader through both
+  differentials ([vos/seeded.py](../seeded.py)), crediting kills by expectation kind
+  (Gallina vector, consumer control, or release expectation).
+- `reader`: runs the trace reader alone over an existing vector file.
+- `restore`, `effects`, `protected`, `loan`, and `target`: run target-level scalar
+  experiments and controls on the golden emulator.
 """
 
 import argparse
@@ -86,13 +63,8 @@ WAITS: Final = ("target evidence waits on M1.2f's accepted backend, M1.7's targe
                 "and M3.5's handoff; milestone_acceptance: open")
 
 
-# =====================================================================================
-# The Gallina side
-# =====================================================================================
-
-
 def emit(root: Path, work: Path, out: list[str]) -> list[str] | None:
-    """Stage, compile the harness's closure, and read the vectors it prints."""
+    """Stage, compile the harness closure, and read the vectors it prints."""
     found = gallina.prover(gallina.VECTOR_SWITCH)
     if found is None:
         out.append(f"FAIL no prover in the {gallina.VECTOR_SWITCH} switch, the proof "
@@ -137,17 +109,12 @@ def _vectors_file(args: argparse.Namespace, root: Path, work: Path,
     return path
 
 
-# =====================================================================================
-# The C side
-# =====================================================================================
-
-
 def c_compiler() -> str | None:
     return shutil.which("cc") or shutil.which("gcc") or shutil.which("clang")
 
 
 def build_host(kernel: Path, binary: Path, cc: str) -> subprocess.CompletedProcess[str]:
-    """Compile the kernel sources and the host harness in the host model."""
+    """Compile the kernel sources and host harness in the host model."""
     binary.parent.mkdir(parents=True, exist_ok=True)
     argv = [cc, *CFLAGS, "-I", str(kernel / "include"),
             *(str(kernel / s) for s in SOURCES), str(kernel / HOST_HARNESS),
@@ -163,9 +130,7 @@ def run_host(binary: Path, vectors: Path) -> subprocess.CompletedProcess[str]:
                               errors="replace")
 
 
-# The kinds of expectation the host harness counts apart (host_vectors.c's head), in
-# the order a kill is credited: a Gallina column where one moved, else a fixed
-# consumer control, else the harness's own release expectation.
+# Host harness expectation kinds in kill-credit priority order.
 GALLINA: Final = "Gallina-vector"
 CONTROL: Final = "fixed consumer control"
 EXPECTATION: Final = "harness release expectation"
@@ -178,26 +143,20 @@ _TOTALS: Final[tuple[tuple[str, re.Pattern[str]], ...]] = (
 
 
 def movement(said: str) -> dict[str, int]:
-    """The harness's own totals by kind, which count every disagreement rather than
-    the first few it prints."""
+    """Parse disagreement totals by expectation kind from host harness output."""
     return {kind: sum(int(n) for n in pattern.findall(said)) for kind, pattern in _TOTALS}
 
 
 def deciding_kind(moved: dict[str, int]) -> str | None:
-    """The kind a kill is credited to, or None where no total moved."""
+    """Return the highest-priority expectation kind with a non-zero count, or None."""
     for kind, _ in _TOTALS:
         if moved.get(kind, 0):
             return kind
     return None
 
 
-# =====================================================================================
-# The reader side
-# =====================================================================================
-
-
 def reader_verdict(lines: list[str], out: list[str]) -> bool:
-    """Hold the `kt` lines against the reader; True where every column agrees."""
+    """Check `kt` lines against the trace reader; return True if all non-empty families agree."""
     try:
         counts, found = kernelrun.check_vectors(lines)
     except (kernelrun.TraceError, ValueError) as err:
@@ -213,11 +172,6 @@ def reader_verdict(lines: list[str], out: list[str]) -> bool:
         out.append(f"FAIL {len(found)} disagreement(s) between the reader and "
                    "KernelInstance.v")
     return not found and not empty
-
-
-# =====================================================================================
-# Commands
-# =====================================================================================
 
 
 def _lane_work() -> Path:
@@ -244,7 +198,7 @@ def cmd_vectors(args: argparse.Namespace) -> int:
 
 
 def cmd_check(args: argparse.Namespace) -> int:
-    """Both differentials over one vector file."""
+    """Run both C and trace-reader differentials over a vector file."""
     root = find_root()
     work = _lane_work()
     out: list[str] = ["== the kernel instance against the Gallina front"]
@@ -280,7 +234,7 @@ def cmd_check(args: argparse.Namespace) -> int:
 
 
 def cmd_reader(args: argparse.Namespace) -> int:
-    """The reader half alone, over a vector file already on disk."""
+    """Run the trace reader differential over an existing vector file."""
     path = Path(args.vectors)
     out: list[str] = ["== the trace reader against KernelInstance.v"]
     if not path.is_file():
@@ -293,13 +247,9 @@ def cmd_reader(args: argparse.Namespace) -> int:
     return 0 if ok else 1
 
 
-# --- seeded defects -------------------------------------------------------------------
-
-
 @dataclass(frozen=True)
 class CMutant:
-    """One authored defect in the kernel C: a file, the text it replaces, the text it
-    writes, and the construction the replacement is."""
+    """Seeded source defect in the kernel C."""
 
     name: str
     path: str
@@ -383,14 +333,13 @@ C_MUTANTS: Final[tuple[CMutant, ...]] = (
             "if (d->partitions[i].tenant == d->partitions[j].tenant) {", "if (0) {"),
 )
 
-# A kill the harness reported without any of its totals moving: it crashed or stopped.
+# Kill reported when the harness crashes or exits without incrementing any total.
 HARNESS_EXIT: Final = "harness exit"
 
 
 def run_c_mutant(mutant: CMutant, kernel: Path, scratch: Path, vectors: Path,
                  cc: str) -> tuple[seeded.Verdict, str | None]:
-    """One C mutant through the host harness, with the kind of expectation that
-    decided it where it was killed."""
+    """Run one C mutant through the host harness and return its verdict and deciding kind."""
     source = (kernel / mutant.path).read_text(encoding="utf-8")
     if source.count(mutant.old) != 1:
         return seeded.Verdict(mutant, seeded.UNSEEDED,
@@ -423,8 +372,7 @@ def run_c_mutant(mutant: CMutant, kernel: Path, scratch: Path, vectors: Path,
 
 @dataclass(frozen=True)
 class ReaderMutant:
-    """One authored defect in the reader: the function it replaces and the
-    construction the replacement is."""
+    """Seeded defect in [vos/kernelrun.py](../kernelrun.py)."""
 
     name: str
     attribute: str
@@ -561,7 +509,7 @@ def run_reader_mutant(mutant: ReaderMutant, lines: list[str]) -> seeded.Verdict:
 
 
 def cmd_mutants(args: argparse.Namespace) -> int:
-    """Every authored defect through its differential: the positive control."""
+    """Run all seeded C and trace-reader defects through their differentials."""
     root = find_root()
     work = _lane_work()
     out: list[str] = ["== seeded defects in the kernel C and the trace reader"]
@@ -592,9 +540,7 @@ def cmd_mutants(args: argparse.Namespace) -> int:
 
 
 def oracle_named(decided: Sequence[tuple[seeded.Verdict, str | None]]) -> str:
-    """The oracle as the report's closing line names it: every kill credited to the
-    kind of expectation that decided it, so that the line a completion note copies
-    cannot read a hand-stated expectation as a Gallina vector."""
+    """Format the closing summary label with kills credited by expectation kind."""
     credited = {kind: 0 for kind, _ in _TOTALS}
     credited[HARNESS_EXIT] = 0
     for verdict, kind in decided:

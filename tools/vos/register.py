@@ -1,10 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""The register, and the artifacts whose rows other documents count.
-
-Everything here is a parse, never a decision. A check reads these structures and
-reports; nothing in this module reports anything, so what a rule decides is always
-visible beside the rule rather than buried in a reader.
-"""
+"""Parse [docs/requirements-register.md](../../docs/requirements-register.md) and counted companion tables."""
 
 import re
 from dataclasses import dataclass, field
@@ -31,27 +26,23 @@ _CJ_TARGET_RE = re.compile(r"^\| `(CJ-[A-Z-]+)`")
 
 @dataclass
 class Register:
-    """Every entry, where it sits, its body, and the lines it carries beneath it."""
+    """Parsed requirement entries, section counts, conferrals, and traces."""
 
     ids: list[str] = field(default_factory=list)
     id_set: set[str] = field(default_factory=set)
     cj_targets: list[str] = field(default_factory=list)
     subsection: dict[str, str | None] = field(default_factory=dict)   # id -> "15.4"
-    body: dict[str, str] = field(default_factory=dict)                # id -> its entry line
-    trace_of: dict[str, str] = field(default_factory=dict)            # id -> its · Trace: line
+    body: dict[str, str] = field(default_factory=dict)                # id -> entry line
+    trace_of: dict[str, str] = field(default_factory=dict)            # id -> · Trace: line
     per_section: dict[str, int] = field(default_factory=dict)         # section -> entry count
     confers: dict[str, dict[str, str]] = field(default_factory=dict)  # kind -> (id -> line)
     accepts: dict[str, int] = field(default_factory=dict)             # id -> · Accept: line count
-    accept_text: dict[str, str] = field(default_factory=dict)         # id -> those lines, joined
-    late_accept: list[str] = field(default_factory=list)              # criteria stated too late
+    accept_text: dict[str, str] = field(default_factory=dict)         # id -> joined accept lines
+    late_accept: list[str] = field(default_factory=list)              # criteria after conferral/trace
 
 
 def read_register(corpus: Corpus) -> Register:
-    """One pass over the register.
-
-    Every line kind this parse reads announces itself in its first character, so the
-    dispatch below spends a pattern only on the few lines whose kind it could be.
-    """
+    """Parse `docs/requirements-register.md` in a single pass."""
     reg = Register()
     section = subsec = current = entry = None
     saw_tail = False
@@ -87,9 +78,8 @@ def read_register(corpus: Corpus) -> Register:
 
         elif lead == "·":
             if bool(entry) and line.startswith("· Accept:"):
-                # criteria are conjunctive, and they come before the lines that follow
-                # them: `entry` outlives the trace where `current` does not, so one
-                # written below the trace is caught here rather than going uncounted
+                # `entry` remains set after `· Trace:` clears `current`, so acceptance
+                # criteria placed after a conferral or trace line are recorded in `late_accept`.
                 reg.accepts[entry] += 1
                 reg.accept_text[entry] += " " + line
                 if saw_tail:
@@ -97,7 +87,6 @@ def read_register(corpus: Corpus) -> Register:
             elif bool(current):
                 m = _CONFER_RE.match(line)
                 if m:
-                    # a property line conferring membership in a set another entry collects
                     reg.confers.setdefault(m.group(1), {})[current] = line
                     saw_tail = True
                 elif line.startswith("· Trace:"):
@@ -119,10 +108,7 @@ def cj_status(row: str) -> str:
 
 
 def cj_class(row: str) -> str | None:
-    """The status column is a closed vocabulary of three, and the counts are taken by
-    reading it. A status spelled a fourth way is counted by none of them, so the ratio
-    quietly stops summing to the inventory while each figure remains individually
-    true. One classifier, and the rows it classifies as nothing are the finding."""
+    """Classify a crown-jewel status cell into `unauthored`, `partial`, `authored`, or `None`."""
     s = cj_status(row).lower()
     if s.startswith("not authored"):
         return "unauthored"
@@ -135,7 +121,7 @@ def cj_class(row: str) -> str | None:
 
 @dataclass
 class Artifacts:
-    """The counted tables other documents restate figures from."""
+    """Counted tables from crown jewels, absence contract, ISA profile, and coverage matrix."""
 
     cj_lines: list[str] = field(default_factory=list)
     cj_rows: list[str] = field(default_factory=list)
@@ -148,15 +134,9 @@ class Artifacts:
     cm_twice: list[str] = field(default_factory=list)
 
 
-# An absence row's id, letter suffix and all. The absence contract inserts between two
-# rows the way the register inserts between two entries, `A-12a` sitting where its
-# structure belongs rather than where its number would put it, so a pattern that stops
-# at the digits reads one row fewer than the table has and every figure derived from it
-# is short by that row while the rule reporting them stays green.
 _ABSENCE_RE = re.compile(r"^\| \*\*(A-\d+[a-z]?)\*\*")
 _CSR_SECTION_RE = re.compile(r"^### (5\.\d) ")
 _EXCLUSION_SECTION_RE = re.compile(r"^## 6\. ")
-# a table's header rule, which is the one `|` line that is not a row
 _TABLE_RULE_RE = re.compile(r"^\|[\s\-:|]+\|$")
 _CM_CELL_RE = re.compile(r"^\| `(B-\d\d)` \| `(P-\d)` \|")
 _CM_BOUND_RE = re.compile(r"^\| `(B-\d\d)` \| [^`|]")
@@ -177,18 +157,7 @@ def read_artifacts(corpus: Corpus) -> Artifacts:
             m.group(1) for m in (_ABSENCE_RE.match(ln) for ln in absence.lines) if m
         ]
 
-    # The profile's CSR bank, one bucket per §5.n table. The document declares the
-    # shape the check reads: "Each row below cites the requirement that admits or
-    # excludes it; a row citing none would be a defect in this view, not an
-    # implementer's discretion".
-    #
-    # §6's exclusion table is read in the same pass and kept whole rather than split
-    # into cells, because what a rule wants from a row differs by rule: the names it
-    # excludes are in its first cell and the requirements it rests on in its last, and
-    # a parse that decided which was which here would be deciding the rule's question.
-    # Its rows are not filtered to `| \`` as the CSR bank's are: an exclusion's subject
-    # is written as prose where it has no single spelling, so a row may open with a
-    # bare word, and dropping those would silently shorten the table.
+    # Collect CSR bank rows per §5.n table and §6 exclusion rows from `isa-profile.md`.
     profile = corpus.get(ISA_PROFILE)
     if profile:
         sec = None
@@ -208,8 +177,6 @@ def read_artifacts(corpus: Corpus) -> Artifacts:
                   and not line.startswith("| Excluded ")):
                 art.exclusion_rows.append(line)
 
-    # A definition row names one id and then prose; a matrix row names two ids. That
-    # is the whole difference, so one pass reads all three.
     matrix = corpus.get(COVERAGE_MATRIX)
     if matrix:
         for line in matrix.lines:

@@ -1,78 +1,16 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: Apache-2.0
-"""The lane this repository builds in, stated as an executable fact list.
+"""Executable fact list for the repository's host and guest build lanes.
 
-Every loop here runs against a machine that is a particular thing: two opam switches
-for the model and the prover, two more for the Gallina front, a pinned solver ahead of
-the distribution's, two pinned checkers, and the supported interpreter. Nothing wrote that
-down as anything a machine could act on, so standing the lane up anywhere else was a
-reading of prose scattered across a plan, a README and half a dozen modules. This is
-that list, one row per fact, each row naming the loop that wants it, the artifact that
-owns it, a probe that says what is actually there, and the command that would put it
-there.
+Each row in `FACTS` names the consumer that requires the dependency, the owning
+artifact or module that pins its version, a probe that checks what is installed, and
+optional install commands (`--apply`). Versions, switch names, and pins are imported
+from their owning modules rather than duplicated here.
 
-**It reads its facts rather than restating them.** Every version, switch name and pin
-below is imported from the module or the document that fixes it, so this file is a
-table of *rows* and not a second copy of the tree's pins. The interpreter target is
-read from tools/pyproject.toml. Python packages are synchronized from tools/uv.lock before dispatch,
-so their rows probe the settled environment and carry no separate install recipes.
-
-**Native rather than containerized, which is what makes it arch-agnostic.** I8's
-exclusion was that the prover's published image is amd64-only; an opam build from
-source is not, and neither is the pinned solver, which arrives as a manylinux wheel
-built for both architectures. This box is aarch64 and a hosted runner is amd64, and one
-fact list serves both.
-
-**What it does not reach is named rather than absorbed.** I1's two standing clauses are
-`[experimental] autoMemoryReclaim` in `%USERPROFILE%\\.wslconfig`, which is global to
-every distribution and permanent until a human deletes it, and the Remote-WSL working
-posture, which is a setting on a person's editor. Neither is in this tree and no
-provisioner reaches either, so both are printed as not reached and neither is counted
-into the verdict. It is the same boundary [vos/env.py](../env.py) already draws around
-the idle timer.
-
-**A row installs only what an artifact here states as a command.** Two routes have
-owners this file cannot import as an argument vector: uv's own installation, and the
-CertiRocq oracle's switch, whose recipe lives in
-[tools/wasm-oracle/README.md](../../wasm-oracle/README.md) as prose for a person.
-Inventing a command for either would be the unowned derived fact the working rules
-refuse, so their rows, `uv` and the oracle switch, report and plan nothing. Other rows
-carry no command for reasons of their own, among them the supported interpreter, which is
-the interpreter taking the probe and which nothing it runs can replace, and the cache
-invariant, whose repair is to give a lane a copy rather than to delete somebody's warm
-cache. The `opam` row's command installs the reviewed client by the route guest
-bootstrap takes, only on a machine with no client on PATH, and creates a root by the
-root-creation route bootstrap runs, `opam_client.CREATE_ROOT`, only where no root
-stands, so the switch recipes planned after it in one pass find a root. The rows ahead
-of it probe and install the distribution packages that route needs,
-`opam_client.ROOT_PREREQUISITES`, and the command refuses, naming each one absent,
-rather than start a root `opam init` would refuse to create. It alters
-nothing that exists but a root in the shape that route leaves after its leading steps,
-which `opam_client.root_resumable` recognizes and the route's remaining steps,
-`opam_client.remaining_route`, complete by adding the owner's remaining repositories
-unselected, without running `opam init` over it. Replacing a developer's client,
-or installing one where none stands over a root in a format older than the reviewed
-client writes, can upgrade that root's format one way, which is a recorded step rather
-than a repair, so a client at another release and a missing client over an older root
-are reported and never planned, and neither is any other standing root with a gap
-`opam_client.root_gaps` names: no stated format or one newer than the reviewed client
-writes, or an owned repository absent, at another URL or with its stamp unread. While a
-root stands in an older format, no switch row plans its recipe either, because the
-reviewed client rewrites that root one way at its first write, or at its first read
-where the upgrade cannot be made in memory, and where no switch is listed over that
-root, a switch row reports one the root's config lists as unread rather than absent,
-saying whether no client is on PATH, the reviewed client declined that upgrade, or
-another listing came back empty; nor does a switch row plan its recipe while a client
-at another release is on PATH, which would build the switch as a client this tree has
-not reviewed. Every figure any document states about this table is a count over
-`FACTS`, held by K-24 rather than by care.
-
-    python tools/run.py provision                # what is here and what is not
-    python tools/run.py provision --apply        # and install what is not
-    python tools/run.py provision --only gate    # the rows the host gates alone want
-    python tools/run.py provision --install-opam # the opam row's command alone
-
-Exit 0 clean, 1 on any absent fact, which is the convention every tool here keeps.
+    python tools/run.py provision                # report present and absent facts
+    python tools/run.py provision --apply        # install repairable absent facts
+    python tools/run.py provision --only gate    # probe only host-gate facts
+    python tools/run.py provision --install-opam # install the reviewed opam client and root
 """
 
 import argparse
@@ -105,17 +43,14 @@ TIMEOUT = 60
 # Shared package-install command; each prerequisite row below must name a consumer.
 APT: tuple[str, ...] = ("apt-get", "install", "-y")
 
-# Where the opam row's command puts the reviewed client on a machine with none: ahead
-# of /usr/bin on a Debian or Ubuntu PATH, where opam's own installer puts a client.
 OPAM_DESTINATION = Path("/usr/local/bin/opam")
 
-# `gate` covers host checks and tool tests; `toolchain` covers model, RTL, oracle and
-# prover dependencies. These groups filter probes; they do not schedule execution.
+# `gate` covers host checks and tool tests; `toolchain` covers model, RTL, oracle, and prover dependencies.
 GATE = "gate"
 TOOLCHAIN = "toolchain"
 GROUPS: tuple[str, ...] = (GATE, TOOLCHAIN)
 
-# What no provisioner reaches, printed at the end of a run and counted into nothing.
+# Host/editor settings outside any provisioner's reach, reported as informational context.
 NOT_REACHED: tuple[tuple[str, str], ...] = (
     ("[experimental] autoMemoryReclaim in %USERPROFILE%\\.wslconfig",
      "global to every distribution and permanent until a human deletes it, which is "
@@ -129,19 +64,7 @@ NOT_REACHED: tuple[tuple[str, str], ...] = (
 
 @dataclass(frozen=True)
 class Found:
-    """What a probe saw: whether the fact holds, and the answer it actually got.
-
-    `saw` is what was there rather than a restatement of what was wanted, so a wrong
-    version reports the number it read and an absent thing reports where it looked.
-    Reporting absent what is present is the one failure a pinned-version gate must not
-    have, which is [typecheck.py](typecheck.py)'s own words about the same hazard; a
-    probe that reports *present* on a wrong version is the other half of it.
-
-    `repairable` is false where the row's command must not run over what the probe
-    found, as the opam row's installs a client only where none is on PATH and no root
-    stands in a format older than that client's, and creates a root only where none
-    stands or completes one in the shape its route leaves after its leading steps.
-    """
+    """Result of probing a single `Fact`: presence, observed state, and whether `--apply` may repair it."""
 
     present: bool
     saw: str
@@ -150,12 +73,7 @@ class Found:
 
 @dataclass(frozen=True)
 class Fact:
-    """One thing this lane is, and what would make a machine be it.
-
-    `install` is the argument vectors that would satisfy the fact, in order, and it is
-    empty where no artifact here states a command. A fact with no command still probes
-    and still fails a run: what it cannot do is repair itself.
-    """
+    """A single lane dependency, its owning pin source, probe function, and optional install commands."""
 
     name: str
     group: str
@@ -166,21 +84,7 @@ class Fact:
 
 
 def _say(argv: Sequence[str]) -> str:
-    """One probe's subprocess, reduced to its standard output.
-
-    Standard output alone, and that is the load-bearing part: opam prints
-    `[WARNING] Running as root is not recommended` on standard error, so every switch
-    probe below would otherwise read that warning as an answer about a package. A
-    command that is absent, that fails, or that does not answer inside the bound comes
-    back empty and its caller reports it as absent.
-
-    No standard input either, and the environment `env.declining_environment` gives, so
-    a probe never answers a question. opam asks before it writes a root-format upgrade,
-    yes by default, and a read such as `opam switch list` writes one where the upgrade
-    cannot be done in memory. A probe reading the caller's terminal would wait there,
-    its question captured out of sight, and an empty line would answer yes, as would
-    the caller's own `env.OPAM_ANSWERS`; without either, opam declines and exits.
-    """
+    """Run `argv` with stdin closed and `declining_environment`, returning stripped stdout on exit 0."""
     try:
         done = subprocess.run(list(argv), capture_output=True, encoding="utf-8",
                               errors="replace", check=False, timeout=TIMEOUT,
@@ -195,21 +99,14 @@ _NUMBER_RE = re.compile(r"\d+(?:\.\d+)+")
 
 
 def _number(text: str) -> str:
-    """The dotted version in a tool's own greeting, empty where it states none.
-
-    `Z3 version 5.1.0 - 64 bit` and `Verilator 5.032 2025-01-01 rev (Debian 5.032-1)`
-    are shapes this reads, and `0.9.1+9.1` reduces to the dotted part before its build
-    suffix. An opam client's release is not read here but by `_release`, which keeps
-    such a suffix.
-    """
+    """Extract the first dotted version number from `text`, or return `""`."""
     found = _NUMBER_RE.search(text)
     return found.group(0) if found else ""
 
 
 @dataclass
 class _Asked:
-    """What one `take` asks once for every row it probes: the opam client on PATH and
-    the release it answers, unasked until a row first wants it."""
+    """Cached `(path, release)` for the `opam` client on `PATH` within a single `take` call."""
 
     lock: threading.Lock = field(default_factory=threading.Lock)
     client: tuple[str | None, str] | None = None
@@ -221,12 +118,7 @@ _ASKED: contextvars.ContextVar[_Asked | None] = contextvars.ContextVar("provisio
 
 
 def _client() -> tuple[str | None, str]:
-    """Where the opam client on PATH is and the release `_release` reads from its
-    answer, empty where it answers none, or no path and no release where no client is on
-    PATH.
-
-    Asked once per `take`, so the opam row and every switch row read one answer and the
-    client is run once for all of them; a probe outside a `take` asks afresh."""
+    """Return `(executable_path, release)` for `opam` on `PATH`, cached per `take` run."""
     asked = _ASKED.get()
     if asked is None:
         return _ask_client()
@@ -242,19 +134,13 @@ def _ask_client() -> tuple[str | None, str]:
 
 
 def _release(text: str) -> str:
-    """The release an opam client's `--version` answers, read exactly: its first
-    whitespace-separated word, empty where it answers nothing.
-
-    opam prints its release bare, and a prerelease or build suffix such as `~beta1` or
-    `+dev` is part of it, so a prerelease or a development build of the reviewed release
-    is another client than that release rather than the dotted number `_number` would
-    reduce it to."""
+    """Return the first whitespace-delimited token of `opam --version` (preserving suffixes like `~beta1`)."""
     words = text.split()
     return words[0] if words else ""
 
 
 def _interpreter() -> Found:
-    """The running interpreter against the single minor the project supports."""
+    """Check the running Python interpreter against the project's supported minor version."""
     want = tuple(int(part) for part in pyversion.supported_minor(find_root()).split("."))
     running = (sys.version_info.major, sys.version_info.minor, sys.version_info.micro)
     return Found(running[:2] == want, ".".join(str(part) for part in running))
@@ -277,7 +163,7 @@ def _cmake_minimum(owner: Path) -> str:
 
 
 def _cmake() -> Found:
-    """Read the model's supported floor instead of accepting any installed CMake."""
+    """Check installed CMake against the minimum version in `model/CMakeLists.txt`."""
     owner = Path(__file__).resolve().parents[3] / "model/CMakeLists.txt"
     try:
         minimum = _cmake_minimum(owner)
@@ -295,8 +181,7 @@ def _cmake() -> Found:
 
 
 def _both_on_path(first: str, second: str) -> Found:
-    """Two executables one preference wants together, because half of a C and C++ pair
-    is not a compiler choice: `env._compiler_args` passes clang for both or neither."""
+    """Verify both `first` and `second` executables are on `PATH`."""
     where = [name for name in (first, second) if shutil.which(name) is None]
     if where:
         return Found(False, f"no {' and no '.join(where)} on PATH")
@@ -329,11 +214,7 @@ def _verilator() -> Found:
 
 
 def _importable(module: str, distribution: str) -> Found:
-    """A library this directory imports, in the environment the interpreter and ty both
-    resolve against. Presence is the import path and the number is the distribution's
-    metadata, because those are two questions: a package ty cannot resolve is an
-    unresolved-import whatever its metadata says.
-    """
+    """Verify `module` is importable in the running environment and report `distribution`'s version."""
     if importlib.util.find_spec(module) is None:
         return Found(False, f"no {module} in the environment this interpreter resolves "
                             "against")
@@ -344,38 +225,20 @@ def _importable(module: str, distribution: str) -> Found:
 
 
 def switches() -> tuple[str, ...]:
-    """Every opam switch this machine carries, empty where it carries no opam at all.
-
-    Public because the tools' test runner asks the same question: a case marked for the
-    toolchain lane runs only where the Sail switch stands, and that is decided here
-    rather than by a second probe, on the ground `_installed` states for the switch
-    probes, that the question is what a run would compile against."""
+    """Return all opam switches reported by `opam switch list --short`."""
     return tuple(line.strip()
                  for line in _say(("opam", "switch", "list", "--short")).splitlines()
                  if line.strip())
 
 
 def _installed(switch: str, package: str) -> str:
-    """The version one switch carries a package at, empty where it carries none. Asked
-    of opam rather than of the filesystem, because the question is what a run would
-    compile against and that is the switch's answer and not a directory's."""
+    """Return the installed version of `package` in `switch`, or `""`."""
     return _say(("opam", "list", "--switch", switch, "--installed", "--short",
                  "--columns=version", package))
 
 
 def _switch_at(switch: str, package: str, pin: str, *, pinned: bool = False) -> Found:
-    """A switch carrying one package at the version an owner in this tree fixes, or with
-    `pinned` built from the source it pins, as `_switch_found` reads each.
-
-    Not repairable where `--apply` would build the switch over a root the reviewed
-    client rewrites, or as a client this tree has not reviewed. While the opam root
-    stands in a format older than the reviewed client's, that client rewrites it one way
-    at its first write, or at its first read where the upgrade cannot be made in memory,
-    the deliberate, recorded step `_opam_client` reports. While a client at another
-    release is on PATH, that client would build the switch, and a Sail switch names the
-    client that built it in its version string. Where no client is on PATH the switch
-    stays repairable, because the opam row ahead of it installs the reviewed client in
-    the same pass."""
+    """Probe whether `switch` has `package` at `pin`, marking unrepairable if root/client differs."""
     older = _older_root()
     client = _client()
     found = _switch_found(switch, package, pin, older=bool(older), client=client,
@@ -396,13 +259,7 @@ def _switch_at(switch: str, package: str, pin: str, *, pinned: bool = False) -> 
 
 def _switch_found(switch: str, package: str, pin: str, *, older: bool,
                   client: tuple[str | None, str], pinned: bool = False) -> Found:
-    """One switch's package at the version opam answers for it, or with `pinned` the
-    source it was built from, as `_pinned_source` reads it.
-
-    Over a root in an older format, where `older` holds, an empty listing is not read as
-    the switch's absence where the root's own config lists this switch,
-    `opam_client.root_switches`: the row says who listed nothing, from `client`, the
-    client `_client` found, as `_unlisted` words it."""
+    """Check whether `switch` is listed and holds `package` at version or source `pin`."""
     listed = switches()
     if switch not in listed:
         root = env.opam_root()
@@ -418,14 +275,7 @@ def _switch_found(switch: str, package: str, pin: str, *, older: bool,
 
 
 def _oracle_switch() -> Found:
-    """Require the oracle's source recipe as well as its package release.
-
-    The exact legacy snapshot retains its version-only recognition. For a full
-    snapshot, a header backport keeps the released version number. Read metadata to
-    distinguish that producer from an unpatched installation, without installing
-    or changing a switch. Existing missing-client/root/version findings retain
-    the switch probe's wording and repairability.
-    """
+    """Check the CertiRocq switch against both its package release and `tools/opam/certirocq.lock`."""
     found = _switch_at(gallina.ORACLE_SWITCH, "rocq-certirocq", gallina.CERTIROCQ_VERSION)
     if not found.present:
         return found
@@ -454,9 +304,7 @@ def _oracle_switch() -> Found:
 
 
 def _pinned_source(switch: str, package: str, pin: str) -> Found:
-    """One listed switch's package built from the source an owner in this tree pins,
-    `git+URL#commit` as opam states it, where no release of the package is the one the
-    switch needs and a pinned build calls itself `dev`."""
+    """Verify `package` in `switch` is built from pinned source `pin` (`git+URL#commit`)."""
     fields = _say(("opam", "list", "--switch", switch, "--installed", "--short",
                    "--columns=version,pin", package)).split()
     if not fields:
@@ -467,11 +315,7 @@ def _pinned_source(switch: str, package: str, pin: str) -> Found:
 
 
 def _unlisted(switch: str, root: Path, client: tuple[str | None, str]) -> str:
-    """Why no switch was listed over the older root at `root`, whose config lists
-    `switch`, as a switch row reports it: no client on PATH lists any; the reviewed
-    client lists none without the upgrade `_upgrades_to_read` reads it must write first,
-    which it declines; and any other empty listing names the client that gave it and
-    the root's format."""
+    """Format diagnostic when `switch` is in `root`'s config but `opam switch list` returned empty."""
     where, version = client
     if where is None:
         return f"no opam on PATH lists switches; the root's config lists the {switch} switch"
@@ -483,38 +327,17 @@ def _unlisted(switch: str, root: Path, client: tuple[str | None, str]) -> str:
             "switch")
 
 
-# What makes the reviewed client's upgrade of an older root a hard one, which it writes
-# before it reads the root, as opam 2.6.1's `OpamFormatUpgrade.upgrades` decides it. For
-# every format older than 2.6~alpha it runs `cond_hard_upg_2_6_alpha` over the
-# configured repositories' archives while it gathers the hard upgrades, before the
-# format decides anything, and that condition catches nothing but its own answer, so an
-# archive the client fails on fails it before it asks. Where the archives are read, the
-# upgrade is hard for a format older than 2.0~beta5; for 2.1~alpha or 2.1~alpha2, each
-# upgraded through 2.1~rc; and for any format older than 2.6~alpha where the condition
-# reads a configured repository's archive as nested. Every other older root it upgrades
-# in memory to read. Read from that release's source, so the reading claims nothing of
-# another reviewed client until its source is read.
+# Opam 2.6.1 hard-upgrade thresholds (`OpamFormatUpgrade.upgrades`).
 _UPGRADES_READ: str = "2.6.1"
 _HARD_BEFORE = "2.0~beta5"
 _HARD_FROM: tuple[str, ...] = ("2.1~alpha", "2.1~alpha2")
 _NESTED_BEFORE = "2.6~alpha"
-# The archive members that client's reader fails on rather than reads: hard and symbolic
-# links, character and block devices, and FIFOs.
 _UNREAD_MEMBERS = frozenset((tarfile.LNKTYPE, tarfile.SYMTYPE, tarfile.CHRTYPE,
                              tarfile.BLKTYPE, tarfile.FIFOTYPE))
 
 
 def _upgrades_to_read(root: Path) -> bool:
-    """Whether the reviewed client must write the format upgrade of the root at `root`
-    before it reads that root, so that, declining it, it lists no switch there: a hard
-    upgrade, by the root's repositories' archives and its stated format, as
-    `_HARD_BEFORE`, `_HARD_FROM` and `_NESTED_BEFORE` say.
-
-    The archives are read before the format decides, because that client reads them
-    first for every format older than `_NESTED_BEFORE`: where it may fail on them it
-    may fail before it asks, whatever the format, so such a root reads false,
-    undecided. A format at or above `_NESTED_BEFORE` leaves that client no hard
-    upgrade."""
+    """Return whether opam 2.6.1 requires a hard on-disk format upgrade before reading `root`."""
     fmt = opam_client.root_format(root)
     if (opam_client.OPAM_VERSION != _UPGRADES_READ or not opam_client.older_than_reviewed(fmt)
             or opam_client.compare_versions(fmt, _NESTED_BEFORE) >= 0):
@@ -527,35 +350,14 @@ def _upgrades_to_read(root: Path) -> bool:
 
 
 def _nested_repository(root: Path) -> bool | None:
-    """Whether `cond_hard_upg_2_6_alpha` holds of the root at `root`: some configured
-    repository's archive, `repo/<name>.tar.gz`, is nested; None where some archive is one
-    the client fails on, which may fail it before it decides.
-
-    Every configured archive is read. The client visits them as its map's balanced tree
-    holds their names, root first, the tree built by adding each name in the order
-    `repos-config` lists it, and stops at the first nested archive or fails at the first
-    it cannot read; that order is in general neither the names' nor the listing's, so
-    whether it reaches a nested archive before one it fails on is left undecided rather
-    than modelled."""
+    """Return whether any repository archive under `root` uses a nested directory layout, or `None` on error."""
     names = dict.fromkeys(repo["name"] for repo in opam_client.repositories(root))
     read = [_archive_nested(root / "repo" / f"{name}.tar.gz") for name in names]
     return None if None in read else any(read)
 
 
 def _archive_nested(archive: Path) -> bool | None:
-    """Whether the reviewed client reads one repository archive as nested under a
-    directory: true where its first regular file, named as `_named_nested` reads it, is
-    outside the repository's own layout; false where the archive is absent, or holds no
-    regular file and ends where `_ended` says that client's reading ends; and None where
-    that client fails on it before deciding, or may: at a member of `_UNREAD_MEMBERS` or
-    a name it refuses ahead of the first regular file, at that file's content cut short,
-    which it reads before it decides, or over an archive it cannot otherwise read.
-
-    A directory, or a member whose name ends in a slash, which that client reads as a
-    directory, is passed over as it passes one with no content. One carrying content is
-    None, because that client reads none of it and seeks only the padding past it, so it
-    reads its next header from within the blocks that content fills, a misreading this
-    reading does not follow."""
+    """Check whether `archive`'s first regular file sits outside top-level `repo` or `packages/`."""
     if not archive.is_file():
         return False
     try:
@@ -577,21 +379,14 @@ def _archive_nested(archive: Path) -> bool | None:
 
 
 def _ended(members: tarfile.TarFile) -> bool | None:
-    """False where the archive `members` has iterated to its end stops at two zero
-    blocks, where the reviewed client's reader stops too; None where it stops otherwise.
-    tarfile stops at a single zero block, at a header it cannot read and at the stream's
-    end, and that client reads on past a single zero block and fails at the other two."""
+    """Return `False` if `members` ends with two zero blocks, else `None`."""
     members.fileobj.seek(members.offset)
     end = bytes(2 * tarfile.BLOCKSIZE)
     return False if members.fileobj.read(len(end)) == end else None
 
 
 def _named_nested(name: str) -> bool | None:
-    """Whether a regular file named `name` sits outside a repository archive's own
-    layout as `cond_hard_upg_2_6_alpha` reads it: neither `repo` nor under `packages/`
-    once its empty and `.` segments are dropped, as the client's
-    `to_relative_canonical` drops them; None where that function refuses the name as
-    absolute, empty, a directory's or climbing."""
+    """Return whether canonical relative archive path `name` is outside `repo` and `packages/`."""
     segments = name.split("/")
     if (segments[0] == "" and len(segments) > 1) or segments[-1] == "" or ".." in segments:
         return None
@@ -602,9 +397,7 @@ def _named_nested(name: str) -> bool | None:
 
 
 def _older_root() -> str:
-    """Where the opam root stands in a format older than the reviewed client's, what that
-    client does to it, as a clause; empty where no root stands or its format is not
-    older."""
+    """Return a warning clause if the opam root format is older than the reviewed client's, else `""`."""
     root = env.opam_root()
     fmt = opam_client.root_format(root)
     if not (opam_client.root_exists(root) and opam_client.older_than_reviewed(fmt)):
@@ -616,9 +409,7 @@ def _older_root() -> str:
 
 
 def _moving_the_root(fmt: str) -> str:
-    """What moving a root of format `fmt` to the reviewed client does to it, as a clause,
-    empty where the root is already in that client's format, states none, or states a
-    newer one, which the root's gaps already report."""
+    """Return a clause describing the one-way format upgrade if `fmt` is older than reviewed, else `""`."""
     if not opam_client.older_than_reviewed(fmt):
         return ""
     return (f", and moving to it upgrades this root's format from {fmt} to "
@@ -627,34 +418,7 @@ def _moving_the_root(fmt: str) -> str:
 
 
 def _opam_client() -> Found:
-    """The opam client on PATH against the reviewed release, and its root against the
-    one the owner's root-creation route makes.
-
-    The fact is the client's release and the root's completeness: a root stands where
-    its `config` does, and is complete where `opam_client.root_gaps` names nothing, a
-    format stated and no newer than the reviewed client writes and each of
-    `OPAM_REPOSITORIES` at its URL with its stamp read, because every switch recipe
-    fails in a root that does not stand or that the client refuses to write to, and the
-    prover's fails without its repository. The rest is what a
-    reader needs to act on it: where the client and its root are, the root's format,
-    and each repository's URL and metadata stamp, which the locks do not fix. The root
-    is read from its files rather than through opam, because a client newer than the
-    root's format upgrades the root to answer.
-
-    Repairable only where `install_opam` can make the row hold without altering what
-    exists: the reviewed client, or no client over no root or a root in a format no
-    older than the reviewed client's, and no root, a complete one, or one in the shape
-    the root-creation route leaves after its leading steps, which that route's
-    remaining steps complete. Moving a developer's root to another client can rewrite
-    its format one way, which the report says where the root's format is older than the
-    reviewed client's, so replacing a client, or installing one where none stands over a
-    root in an older format, is a recorded step and not a repair; any other standing
-    root the command would leave incomplete is reported rather than planned. The
-    reviewed client over a complete root in an older format holds the row, and the
-    report says that client rewrites the root one way at its first write, or at its
-    first read where the upgrade cannot be made in memory, which is why no switch row
-    plans a recipe over it.
-    """
+    """Probe the `opam` client on `PATH` and the opam root against `opam_client` pins."""
     where, found = _client()
     client = f"opam {found or 'answering no version'} at {where}" if bool(where) else "no opam on PATH"
     reviewed = found == opam_client.OPAM_VERSION
@@ -683,16 +447,13 @@ def _opam_client() -> Found:
 
 
 def _listing(root: Path) -> str:
-    """Each repository a root configures with its URL and metadata stamp, as a report
-    names them."""
+    """Format configured repositories and their stamps for `root`."""
     return ", ".join(f"{repo['name']} {repo['url']} at stamp {repo['stamp'] or 'unrecorded'}"
                      for repo in opam_client.repositories(root)) or "no repositories"
 
 
 def _standing(resumable: bool) -> str:
-    """What becomes of a standing root with gaps, as a clause: completed where it is in
-    the shape the root-creation route leaves after its leading steps, and otherwise left
-    as it is."""
+    """Describe whether an incomplete standing opam root can be resumed by `_create_root`."""
     if resumable:
         return ("in the shape the root-creation route leaves after its leading steps, "
                 "which that route's remaining steps complete")
@@ -701,33 +462,7 @@ def _standing(resumable: bool) -> str:
 
 
 def install_opam(destination: Path = OPAM_DESTINATION) -> int:
-    """The opam row's command: the reviewed client where no client is on PATH, and a
-    root by `opam_client.CREATE_ROOT` where none stands or where one stands in the shape
-    that route leaves after its leading steps.
-
-    It installs only what is absent and alters nothing that exists but a root in that
-    shape, and it decides every refusal, about the root, the machine and where the
-    client would go, before it installs anything, so a run it refuses leaves the
-    machine as it found it. A standing root is held to what the row reads: a complete
-    one is left as it is, one `opam_client.root_resumable` reads in that shape is
-    completed by the route's remaining steps, `opam_client.remaining_route`, which leave
-    out `opam init`, and any other the row reads as incomplete is refused whatever the
-    client. Where it would run the route, it first holds the machine to
-    `opam_client.ROOT_PREREQUISITES` as the rows ahead of this one do, and
-    refuses, naming each package absent, because `opam init` refuses to create a root
-    without them. A client on PATH at another release is refused, because replacing one
-    is the recorded step `_opam_client` describes, and so is installing a client where
-    none stands over a root in a format older than the reviewed client's, which that
-    client would rewrite one way; a client is installed by
-    `opam_client.install`, which verifies the download before publishing it and refuses
-    to replace a different file at the destination. Every switch recipe runs `opam` by
-    name, so a destination whose directory this PATH does not search is refused before
-    the client is installed rather than left to fail at the first switch; a client PATH
-    still does not find once installed is reported as that command's failure. A root
-    this command creates or completes is held to what guest bootstrap holds its own to,
-    the reviewed client's format and exactly the owner's repositories with every stamp
-    read.
-    """
+    """Install the reviewed `opam` client if absent and initialize or resume the opam root."""
     root = env.opam_root()
     stands = opam_client.root_exists(root)
     resuming = opam_client.root_resumable(root)
@@ -781,9 +516,7 @@ def install_opam(destination: Path = OPAM_DESTINATION) -> int:
 
 
 def _searched(directory: Path) -> bool:
-    """Whether `directory` is one this process's PATH searches for an executable, read
-    as `os.get_exec_path` reads it, so a client installed there is one `opam` by name
-    finds where no other client stands ahead of it."""
+    """Return whether `directory` is on `os.get_exec_path()`."""
     try:
         wanted = directory.resolve()
     except OSError:
@@ -800,24 +533,13 @@ def _searched(directory: Path) -> bool:
 
 
 def _missing_root_prerequisites() -> list[str]:
-    """Each of `opam_client.ROOT_PREREQUISITES` dpkg does not report installed, read by
-    the probe the rows ahead of the opam row take, so the command and the table agree."""
+    """Return packages in `opam_client.ROOT_PREREQUISITES` not reported installed by `dpkg`."""
     return [package for package in opam_client.ROOT_PREREQUISITES
             if not _dpkg(package).present]
 
 
 def _create_root(root: Path, *, resuming: bool = False) -> int:
-    """Create the root at `root` by the owner's route, or complete one in the shape the
-    route leaves after its leading steps by the steps `opam_client.remaining_route`
-    names, which never run `opam init` over it, streamed to the caller's terminal as
-    `_apply` streams a switch, and hold it to the reviewed client's format and the
-    owner's repositories as guest bootstrap holds its own.
-
-    A step that fails stops the route, and the report says what then stands at `root`
-    and what remains of the route: the first step can leave a root behind it, which a
-    later run completes where `opam_client.root_resumable` reads it in that shape and
-    otherwise leaves as it is.
-    """
+    """Create or resume the opam root at `root` using `opam_client.remaining_route`."""
     steps = opam_client.remaining_route(root)
     if resuming:
         print(f"the opam root at {root} is in the shape the root-creation route leaves "
@@ -846,8 +568,7 @@ def _create_root(root: Path, *, resuming: bool = False) -> int:
 
 
 def _stopped(root: Path, remaining: Sequence[Sequence[str]]) -> str:
-    """What stands at `root` once the root-creation route stopped, with what remains of
-    the route from the step that failed, as the clause a failure report ends in."""
+    """Format diagnostic suffix when `_create_root` fails with `remaining` steps unrun."""
     left = "; ".join(" ".join(argv) for argv in remaining)
     if not opam_client.root_exists(root):
         return f"so no opam root stands at {root}; what remains of the route is {left}"
@@ -859,14 +580,7 @@ def _stopped(root: Path, remaining: Sequence[Sequence[str]]) -> str:
 
 
 def _pinned_z3() -> Found:
-    """The solver Sail's typechecker discharges its obligations with.
-
-    The one invariant in this lane whose absence is silent: `env._prepend_z3_path`
-    warns and continues, so a machine without this prefix typechecks against the
-    distribution's own solver and writes that solver's answers into a content-keyed
-    cache the pinned one later reads back as its own. That is a difference no later run
-    can see, which is why it is a row here rather than a warning in a log.
-    """
+    """Check that `env.Z3_PREFIX/bin/z3` exists and matches `env.Z3_VERSION`."""
     exe = env.Z3_PREFIX / "bin" / "z3"
     if not exe.is_file():
         return Found(False, f"{exe} is absent, so a typecheck would answer from the "
@@ -876,29 +590,14 @@ def _pinned_z3() -> Found:
 
 
 def _dpkg(package: str) -> Found:
-    """A distribution package, asked of dpkg rather than of a file it happens to drop:
-    a development package is headers and a linker name, and no one path is the fact."""
+    """Query `dpkg-query` for whether `package` is installed."""
     status = _say(("dpkg-query", "-W", "-f=${Status} ${Version}", package))
     return Found(status.startswith("install ok installed"),
                  status or f"dpkg knows no {package}")
 
 
 def _caches_unshared() -> Found:
-    """I2's rule as a probe rather than as a paragraph: no two lanes share one cache.
-
-    Sail's SMT memo cache is one flat file of 17-byte records, read whole at startup
-    and rewritten whole at exit with no lock and no atomic rename. Two writers of one
-    file lose each other's records, and a reader arriving mid-rewrite can take Sail's
-    invalid path and replace the file with its own entries alone, which I2 measured at
-    77,260 of 83,436 records destroyed by a single byte. So a lane copies a warm cache
-    on create and never points at one, and what makes that checkable after the fact is
-    that every cache under the build root is a file of its own.
-
-    Vacuously true on a machine with no build tree yet, and said so rather than passed
-    over. There is no repair argv: the fix for two lanes sharing a cache is to give one
-    of them a copy, and a tool that started deleting somebody's warm cache to satisfy
-    its own probe would be worse than the finding.
-    """
+    """Verify no two lanes under `env.build_root()` share an inode for `TYPECHECK_CACHE`."""
     root = env.build_root()
     if not root.is_dir():
         return Found(True, f"{root} holds no build tree yet, so no cache is shared")
@@ -918,19 +617,7 @@ def _caches_unshared() -> Found:
 
 
 def _outputs_on_the_guest() -> Found:
-    """The placement rule tools/README.md states, as a probe: every guest output on the
-    guest's own persistent filesystem.
-
-    A build tree, a work directory or a log on a mount of the Windows filesystem is
-    written across the OS boundary on every call, which vos/env.py's docstring
-    measures, and one on tmpfs is gone when the instance idle-terminates. The two roots
-    every guest loop writes under are probed, and the checkout is reported beside them
-    and never counted: it is read across the boundary by decision, I1 having measured
-    the move and refused it, so a probe that failed the lane for it would be failing a
-    measurement the plan accepted. There is no repair argv, because where a root sits
-    is what `VOS_BUILD_ROOT` and `VOS_LOG_DIR` declare, and the fix for a wrong one is
-    to point it back at the guest.
-    """
+    """Verify `env.build_root()` and `env.log_root()` sit on persistent guest filesystems."""
     seen: list[str] = []
     wrong: list[str] = []
     for what, path in (("build root", env.build_root()), ("log root", env.log_root())):
@@ -957,11 +644,7 @@ def _outputs_on_the_guest() -> Found:
     return Found(True, ", ".join(seen) + aside)
 
 
-# The lane, row by row. Each row names the loop that wants the fact and the artifact
-# that fixes it, and every version in it is read from that artifact rather than typed
-# here. The order is the order a machine is built in and the order a report reads in:
-# the gate's five, then the toolchain from the opam root's system packages outward, so
-# `--apply` installs what `opam init` needs before the opam row's command runs it.
+# Ordered fact table: host-gate rows first, then guest toolchain rows from opam root prerequisites outward.
 FACTS: tuple[Fact, ...] = (
     Fact("the supported interpreter", GATE,
          "every command here, on both lanes",
@@ -1077,12 +760,7 @@ FACTS: tuple[Fact, ...] = (
 
 
 def _guarded(fact: Fact) -> Found:
-    """A probe's own failure is the fact's, and never the run's.
-
-    Narrow on purpose: an unreachable path or an executable that will not run is a
-    machine this lane is not on, where a `TypeError` in a row is a defect in this file
-    and has to arrive as a traceback rather than as a tidy finding about a toolchain.
-    """
+    """Run `fact.probe()`, converting `OSError` into a failed `Found`."""
     try:
         return fact.probe()
     except OSError as err:
@@ -1090,15 +768,7 @@ def _guarded(fact: Fact) -> Found:
 
 
 def take(facts: Sequence[Fact]) -> list[tuple[Fact, Found]]:
-    """Every probe, concurrently, answered back in the table's own order.
-
-    Concurrent because most of these are a subprocess waiting on a version banner and
-    none of them reads another's answer; merged in table order because a report a
-    person reads twice has to be the same report both times, and the order two probes
-    finish in is not a property of the machine being described. What several rows read,
-    the opam client `_client` answers for, is asked once for the whole run, so every
-    row reads one answer, and afresh by the next run.
-    """
+    """Run probes for `facts` concurrently and return `(fact, found)` pairs in table order."""
     if not facts:
         return []
     asked = _Asked()
@@ -1109,7 +779,7 @@ def take(facts: Sequence[Fact]) -> list[tuple[Fact, Found]]:
 
 
 def _guarded_under(asked: _Asked, fact: Fact) -> Found:
-    """`_guarded`, with what its run has already asked, `asked`, read by `_client`."""
+    """Run `_guarded(fact)` with `_ASKED` bound to `asked`."""
     token = _ASKED.set(asked)
     try:
         return _guarded(fact)
@@ -1118,16 +788,7 @@ def _guarded_under(asked: _Asked, fact: Fact) -> Found:
 
 
 def plan(results: Sequence[tuple[Fact, Found]]) -> list[tuple[Fact, tuple[tuple[str, ...], ...]]]:
-    """The commands `--apply` would run, derived from what the probes saw.
-
-    Pure, and it is the whole of what idempotence means here: a fact whose probe
-    reports present contributes nothing, so a second run against a lane this tool has
-    already satisfied plans nothing and changes nothing. A fact with no stated command
-    contributes nothing either and is reported instead, which is the difference between
-    a plan that is empty because there is nothing to do and one that is empty because
-    there is nothing this tool may do; so does a fact whose probe found something its
-    command must not run over.
-    """
+    """Return `(fact, install_commands)` for absent, repairable facts with install commands."""
     return [(fact, fact.install) for fact, found in results
             if not found.present and fact.install and found.repairable]
 
@@ -1150,25 +811,9 @@ def _verdict(rep: Reporter, fact: Fact, found: Found) -> None:
 
 
 def _apply(rep: Reporter, steps: Sequence[tuple[Fact, tuple[tuple[str, ...], ...]]]) -> None:
-    """Run the plan, reusing any switch an earlier attempt already created.
-
-    Streamed to the caller's own terminal rather than captured, because these are opam
-    and apt installs that take minutes and a caller watching a silent process cannot
-    tell a download from a hang. What is recorded here is the verdict per step; the
-    re-probe afterwards is what decides whether the lane is the lane.
-
-    **An absent installer is a verdict and not a traceback**, which is the one thing
-    this loop learned from being pointed at a host that is not the lane: on a machine
-    with no uv, the two commands that install the pinned checkers are exactly the plan
-    this forms, and `uv` is not there to run them. That is a foreseeable state of the
-    world rather than a defect in this file, so it is reported and the run goes on to
-    re-probe, where the row it belongs to fails on its own terms.
-    """
+    """Execute planned install commands, reusing any opam switch already created."""
     for fact, commands in steps:
         for argv in commands:
-            # A failed import leaves its empty or partial switch registered. On a
-            # retry, restore the snapshot there instead of failing at creation.
-            # Only a confirmed existing name skips creation; other failures stand.
             if (len(argv) > 3 and argv[:3] == ("opam", "switch", "create")
                     and argv[3] in switches()):
                 rep.line(f"   {fact.name}: {argv[3]} already exists; restoring its snapshot")
@@ -1186,13 +831,7 @@ def _apply(rep: Reporter, steps: Sequence[tuple[Fact, tuple[tuple[str, ...], ...
 
 def run(table: Sequence[Fact] = FACTS, *, group: str = "",
         apply: bool = False) -> Reporter:
-    """One whole run, as data, on the convention `check.py` set.
-
-    `table` is a parameter rather than a read of `FACTS` so that this is testable at
-    all: the live table describes the machine the tests run on, where what has to be
-    held is the mapping from probe results to a plan and to a verdict, which wants a
-    table whose answers the test chose.
-    """
+    """Probe `table` (optionally filtered by `group`), apply repairs if requested, and return `Reporter`."""
     rep = Reporter()
     rep.line("=== provision: the lane this repository builds in ===")
 

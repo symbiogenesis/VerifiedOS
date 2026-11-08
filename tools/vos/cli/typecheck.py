@@ -54,45 +54,27 @@ TY_UNSET = frozenset({"TY_LOG", "TY_LOG_PROFILE"})
 TOOLS = "tools/"
 MODULE_SUFFIXES = (".py", ".pyi")
 
-# Where `ruff.toml` lists the modules TID253 refuses an unnested module-level import of,
-# the list the gate holds every import outside a function body to.
+# Path in `ruff.toml` listing modules banned at module level by TID253.
 BANNED = ("lint", "flake8-tidy-imports", "banned-module-level-imports")
 
-# A comment ruff reads as a file-level suppression, matched as ruff's lexer matches it:
-# `ruff` or `flake8`, a colon and `noqa` in any case, after any `#` in the comment. It
-# switches off the rules it names, or every rule, for the whole file.
+# File-level `ruff`/`flake8` `noqa` suppression pattern.
 FILE_NOQA = re.compile(r"#\s*(?:ruff|flake8)\s*:\s*(?i:noqa)")
-# The rules a file-level suppression may name. ruff reports N999 against the file's name
-# rather than any line of it, so exempting a file from it leaves every line of the file
-# under every rule.
+# Rules permitted in a file-level `noqa` (N999 applies to the filename, not individual lines).
 FILE_SCOPED = frozenset({"N999"})
-# A comment carrying one of ruff's other suppressions that reach past their own line,
-# matched in ruff's case and more loosely than ruff parses it, after any `#` in the
-# comment: `ruff: file-ignore[...]`, which switches the rules it names off for the whole
-# file; `ruff: disable[...]` and `ruff: enable[...]`, whose range runs from the one to
-# the other or, with no matching `enable`, to the end of the block the `disable` sits in,
-# the whole file at module level; and isort's `skip_file`, `off` and `on`, alone or after
-# `ruff:`, which switch import sorting off for the whole file or from `off` to `on` or
-# the file's end. `ruff: ignore[...]`, which reaches the one logical line beneath it, the
-# one line of code beneath it inside brackets, or the line it ends, and isort's `skip`,
-# which reaches one line, are not matched.
+# Multi-line or file-wide suppression directives (`ruff: disable/enable/file-ignore`, `isort: skip_file/off/on`).
 FILE_RANGE = re.compile(r"#\s*(?:ruff\s*:\s*(?:disable|enable|file-ignore)\b"
                         r"|(?:ruff\s*:\s*)?isort\s*:\s*(?:skip_file|off|on)\b)")
 
 
 def _tool(name: str) -> str | None:
-    """Only the running interpreter's checker, never a global shim or PATH fallback."""
+    """Return the path to `name` in the running interpreter's scripts directory, or `None`."""
     suffix = ".exe" if sys.platform == "win32" else ""
     candidate = Path(sysconfig.get_path("scripts")) / (name + suffix)
     return str(candidate) if candidate.is_file() else None
 
 
 def _version(exe: str) -> str:
-    """The version a checker reports, reduced to its number.
-
-    Both spell it `<name> <version>` and ty adds its build and date, so the second
-    token is the whole of what is compared.
-    """
+    """Return the version number reported by `exe --version`."""
     done = subprocess.run([exe, "--version"], capture_output=True, encoding="utf-8",
                           errors="replace", check=False, timeout=TIMEOUT)
     parts = (done.stdout.strip() or done.stderr.strip()).split()
@@ -100,12 +82,7 @@ def _version(exe: str) -> str:
 
 
 def _pinned(rep: Reporter, name: str, pin: str) -> str | None:
-    """The checker to run, or `None` having already reported why there is not one.
-
-    The probe itself can fail two ways short of a wrong number: an executable that
-    exists but cannot be run, and one that never answers. Both are findings, because
-    the gate's answer is a verdict and never a traceback and never silence.
-    """
+    """Verify `name` is installed at version `pin` and return its executable path, or report and return `None`."""
     exe = _tool(name)
     if exe is None:
         rep.report(name, "not installed:",
@@ -131,12 +108,7 @@ def _pinned(rep: Reporter, name: str, pin: str) -> str | None:
 
 def _summarize(rep: Reporter, rule: str, label: str, findings: list[tuple[str, str]],
                ok: str) -> None:
-    """Report one checker's findings, grouped by the rule each fell under.
-
-    Grouped rather than listed, because these two tools report per site and a
-    directory that has just had a rule switched on reports the same rule hundreds of
-    times. The count is the verdict; the sites under it are a sample.
-    """
+    """Report checker findings grouped by rule code, sampling up to `PER_RULE` sites per rule."""
     if not findings:
         rep.report(rule, label, [], ok)
         return
@@ -152,15 +124,11 @@ def _summarize(rep: Reporter, rule: str, label: str, findings: list[tuple[str, s
         lines.extend(f"  {h}" for h in hits[:PER_RULE])
         if len(hits) > PER_RULE:
             lines.append(f"  ... and {len(hits) - PER_RULE} more")
-    # `count` because `lines` is a summary: a rule header sits above each sample and a
-    # tail line stands in for whatever the cap held back, so the verdict is the length
-    # of `findings` and never the length of what is printed for them.
     rep.report(rule, label, lines, ok, count=len(findings))
 
 
 def _parse_ty(text: str) -> list[tuple[str, str]]:
-    """ty's concise lines: `path:line:col: error[rule-name] message`, with a trailing
-    summary line the pattern deliberately does not match."""
+    """Parse `ty` concise diagnostic lines (`path:line:col: error[rule-name] message`)."""
     findings: list[tuple[str, str]] = []
     for line in text.splitlines():
         if "] " not in line or (": error[" not in line and ": warning[" not in line):
@@ -172,7 +140,7 @@ def _parse_ty(text: str) -> list[tuple[str, str]]:
 
 
 def _parse_ruff(text: str) -> list[tuple[str, str]]:
-    """ruff's concise lines: `path:line:col: CODE message`."""
+    """Parse `ruff` concise diagnostic lines (`path:line:col: CODE message`)."""
     findings: list[tuple[str, str]] = []
     for line in text.splitlines():
         head, _, rest = line.partition(": ")
@@ -184,7 +152,7 @@ def _parse_ruff(text: str) -> list[tuple[str, str]]:
 
 
 class Pass(NamedTuple):
-    """A pinned checker run, its explicit input files and its combined verdict."""
+    """A pinned checker invocation, its explicit target files, and its report labels."""
     args: list[str]
     who: str
     label: str
@@ -194,7 +162,7 @@ class Pass(NamedTuple):
 
 
 def _target_commands(exe: str, args: list[str], targets: frozenset[str]) -> Iterator[list[str]]:
-    """Bound explicit filenames using Windows' actual quoting and UTF-16 sizing."""
+    """Batch explicit filenames within `COMMAND_LIMIT` UTF-16 code units."""
     if not targets:
         raise ValueError("the index supplies no Python modules to check")
     base: list[str] = [exe, *args, "--"]
@@ -215,11 +183,7 @@ def _target_commands(exe: str, args: list[str], targets: frozenset[str]) -> Iter
 
 def _run_checker(rep: Reporter, name: str, pin: str, passes: list[Pass], cwd: Path,
                  with_stderr: bool, parse: Callable[[str], list[tuple[str, str]]]) -> None:
-    """One checker: the pin gate once, then each pass's run, parse and verdict.
-
-    The pin is probed once because it is one fact about one executable: a drifted
-    version is one finding, and no pass runs under it.
-    """
+    """Verify `name` is at `pin`, then execute and report each `Pass`."""
     exe = _pinned(rep, name, pin)
     if exe is None:
         return
@@ -287,14 +251,7 @@ def _settings(config: Path) -> list[str]:
 
 
 def _user_config() -> Path | None:
-    """The user-level `ty.toml` ty merges beneath the one it is given, if one exists.
-
-    ty reads `ty/ty.toml` under the user configuration directory: `%APPDATA%` on
-    Windows, or the roaming application-data folder when that is unset or empty,
-    which this reads as `AppData\\Roaming` under the home directory; and
-    `$XDG_CONFIG_HOME` on Linux and macOS when it is an absolute path, else
-    `~/.config`. The environment is the one the gate's own ty inherits.
-    """
+    """Return the user-level `ty/ty.toml` path if one exists in `%APPDATA%` or `$XDG_CONFIG_HOME`."""
     if sys.platform == "win32":
         base = os.environ.get("APPDATA", "")
         fallback = ("AppData", "Roaming")
@@ -314,37 +271,14 @@ def _user_config() -> Path | None:
 
 
 def _tracked(root: Path) -> frozenset[str]:
-    """The modules the index tracks under `tools/` that the working tree holds, each
-    relative to `tools/`.
-
-    A tracked module deleted from the working tree is left out, since no run can
-    check it and the deletion is the index's to record. A module a run reaches that
-    the index does not track is held to nothing: this is a floor, not a ceiling.
-    """
+    """Return existing Git-indexed `.py`/`.pyi` paths under `tools/`, relative to `tools/`."""
     return frozenset(path.removeprefix(TOOLS) for path in corpus_mod.read_index(root).files
                      if path.startswith(TOOLS) and path.endswith(MODULE_SUFFIXES)
                      and (root / path).is_file())
 
 
 def _run_ty(rep: Reporter, root: Path, tracked: frozenset[str] | None) -> None:
-    """Every expression in the directory reachable under each of `TY_PLATFORMS`,
-    against the types ty can infer for it, one run and one verdict per platform, and
-    each run held to reaching every module in `tracked` unless that is `None`.
-
-    The settings are held first and the checker runs regardless: a refused setting
-    stands beside the checker's verdict rather than hiding the findings it would
-    still report, and that verdict then claims no more than the run showed. A
-    user-level configuration is reported rather than redirected away from, because
-    ty merges it into this run and the finding is what tells its owner so.
-
-    A set `PYTHONPATH` is reported on the same ground rather than removed from ty's
-    environment. ty searches each directory it names just after `extra-paths` and
-    ahead of the standard library, which is what `typeshed` and a further
-    `extra-paths` entry are refused for; an editor's ty server inherits the variable
-    as this run does, so removing it here alone would pass what the editor resolves
-    differently. The variable is reported whenever it is present, an empty value
-    included, because ty reads it whenever it is present. `TY_UNSET` is removed
-    instead, since neither of its variables changes what ty checks or reports."""
+    """Run `ty` across `TY_PLATFORMS` and enforce config, user-config, and `PYTHONPATH` rules."""
     tools = root / "tools"
     held = ", all rules at error"
     if refused := _settings(tools / "ty.toml"):
@@ -374,15 +308,7 @@ def _run_ty(rep: Reporter, root: Path, tracked: frozenset[str] | None) -> None:
 
 
 def _file_suppressions(tools: Path, tracked: frozenset[str]) -> list[str]:
-    """Each comment in a tracked module carrying a suppression that reaches past its own
-    line: a file-level `noqa` naming a rule outside `FILE_SCOPED`, or naming none, which
-    suppresses every rule, and any comment `FILE_RANGE` matches.
-
-    Comments are read with the tokenizer, so a string that spells a directive is not
-    one, and only a module whose text matches `FILE_NOQA` or `FILE_RANGE` is tokenized.
-    A directive ruff would ignore, for trailing code or another comment before it on its
-    line or for sitting in a class or function body, is refused all the same.
-    Fail-closed: a module that cannot be read or tokenized is a finding."""
+    """Find file-level or range suppression comments outside `FILE_SCOPED` in `tracked` modules."""
     findings: list[str] = []
     for module in sorted(tracked):
         try:
@@ -407,11 +333,7 @@ def _file_suppressions(tools: Path, tracked: frozenset[str]) -> list[str]:
 
 
 def _names_file_scoped(rest: str) -> bool:
-    """Whether the text after a directive's `noqa` names rules, each in `FILE_SCOPED`.
-
-    Every code in the run of capitals, digits, commas and whitespace after the colon is
-    read, which is each code ruff reads and possibly more; a directive naming none
-    suppresses every rule."""
+    """Return whether the text after `noqa` names only rules in `FILE_SCOPED`."""
     named = re.match(r"\s*:([A-Z0-9,\s]*)", rest)
     codes = set(re.findall(r"[A-Z]+[0-9]+", named.group(1))) if named else set()
     return bool(codes) and codes <= FILE_SCOPED
@@ -441,11 +363,7 @@ def _run_ruff(rep: Reporter, root: Path, tracked: frozenset[str] | None) -> None
 
 
 def _banned(config: Path) -> tuple[frozenset[str], list[str]]:
-    """The modules `ruff.toml` bans at module level, or none and why, as findings.
-
-    Fail-closed: a file that cannot be read or parsed, and a list that is absent, empty
-    or holds anything but module names, is a finding, since the scan would then hold no
-    import to anything."""
+    """Read `BANNED` module-level imports from `ruff.toml`, failing closed on invalid config."""
     name = f"tools/{config.name}"
     none = frozenset[str]()
     try:
@@ -464,10 +382,7 @@ def _banned(config: Path) -> tuple[frozenset[str], list[str]]:
 
 
 def _banned_names(node: ast.Import | ast.ImportFrom, banned: frozenset[str]) -> list[str]:
-    """The modules `node` imports that `banned` names or is a parent of, matched as
-    TID253 matches them: each name an `import` gives, and a `from` import's module or,
-    where that is not banned, each member it names, since a member can be a submodule.
-    A relative import names the tools' own packages and never a banned module."""
+    """Return any module names imported by `node` that match or sit under `banned`."""
     def listed(module: str) -> bool:
         return any(module == ban or module.startswith(ban + ".") for ban in banned)
 
@@ -482,27 +397,25 @@ def _banned_names(node: ast.Import | ast.ImportFrom, banned: frozenset[str]) -> 
 
 
 def _is_platform(node: ast.AST) -> bool:
-    """Whether `node` is `sys.platform`, spelled as the attribute of the name `sys`. A
-    `platform` read from another object, or imported from `sys` and read bare, is not."""
+    """Return whether `node` is the attribute expression `sys.platform`."""
     return (isinstance(node, ast.Attribute) and node.attr == "platform"
             and isinstance(node.value, ast.Name) and node.value.id == "sys")
 
 
 def _reads_platform(test: ast.expr) -> bool:
-    """Whether an `if` condition reads `sys.platform` anywhere in it."""
+    """Return whether `test` contains `sys.platform`."""
     return any(_is_platform(node) for node in ast.walk(test))
 
 
 def _literal(node: ast.expr) -> str | None:
-    """The string `node` spells, where it is a string literal, or `None`."""
+    """Return `node`'s value if it is a string literal, else `None`."""
     return node.value if isinstance(node, ast.Constant) and isinstance(node.value, str) \
         else None
 
 
 def _literals(node: ast.expr, kinds: tuple[type[ast.Tuple | ast.List | ast.Set], ...]
               ) -> list[str] | None:
-    """The strings a display of one of `kinds` holds, where it holds string literals and
-    nothing else, or `None`."""
+    """Return the string literals in a container literal of `kinds`, or `None`."""
     if not isinstance(node, kinds):
         return None
     values = [element.value for element in node.elts
@@ -511,14 +424,7 @@ def _literals(node: ast.expr, kinds: tuple[type[ast.Tuple | ast.List | ast.Set],
 
 
 def _platform_value(test: ast.expr, platform: str) -> bool | None:
-    """The value an `if` condition takes where `sys.platform` is `platform`, for a test
-    the scan reads, or `None` for one it does not: `sys.platform` compared by `==` or
-    `!=` with a string literal, or by `in` or `not in` with a tuple, list or set display
-    of them, or its `startswith` called with a string literal or a tuple of them, alone,
-    under `not`, or joined by `and` or `or` with others of these. Such a test compares
-    `sys.platform` with literals and nothing else, so its value on each platform is
-    decided here. A test reading `sys.platform` any other way, by truth value, through
-    another call, or beside an operand that is not such a check, is not read."""
+    """Evaluate `test` when `sys.platform == platform`, or return `None` if not statically decidable."""
     match test:
         case ast.UnaryOp(op=ast.Not(), operand=operand):
             value = _platform_value(operand, platform)
@@ -545,9 +451,7 @@ def _platform_value(test: ast.expr, platform: str) -> bool | None:
 
 
 class Site(NamedTuple):
-    """An import of a banned module that runs outside a function body: its line, the
-    modules it names, the platforms of `TY_PLATFORMS` that reach it, and the nearest
-    enclosing `if` test reading `sys.platform`, or `None` where none does."""
+    """A non-function-scoped import of a banned module and its platform reachability."""
     line: int
     names: list[str]
     reach: frozenset[str]
@@ -555,17 +459,7 @@ class Site(NamedTuple):
 
 
 def _platform_imports(tree: ast.Module, banned: frozenset[str]) -> list[Site]:
-    """Each import of a module `banned` names that runs outside a function body on one
-    platform of `TY_PLATFORMS` or more, in line order.
-
-    A function body runs only when the function is called, so the walk does not descend
-    into one. Everything else it descends into, carrying the platforms that reach each
-    statement, every platform at module level: an `if` whose test `_platform_value` reads
-    sends its body the platforms on which the test holds and its `else` the rest, and a
-    branch no platform reaches is not read; every other block, an unnested module-level
-    statement, a class body, and both branches of an `if` reading `sys.platform` in a
-    form the scan does not read among them, passes on the platforms that reach it. Each
-    `if` reading `sys.platform` becomes the nearest test of the imports beneath it."""
+    """Find imports of `banned` modules outside function bodies, tracking reachable `TY_PLATFORMS`."""
     found: list[Site] = []
     stack: list[tuple[ast.AST, frozenset[str], ast.expr | None]] = [
         (tree, frozenset(TY_PLATFORMS), None)]
@@ -594,12 +488,7 @@ def _platform_imports(tree: ast.Module, banned: frozenset[str]) -> list[Site]:
 
 
 def _unfound(names: list[str]) -> list[str]:
-    """Each of `names` whose top-level module the running interpreter cannot find.
-
-    Finding a top-level module imports nothing. A submodule is read by its package, which
-    the interpreter may find although the submodule cannot be imported on this platform,
-    and so may a module whose import fails; neither is named. A name the finder refuses
-    is named, fail-closed."""
+    """Return entries in `names` whose top-level module cannot be found by `find_spec`."""
     unfound: list[str] = []
     for name in names:
         try:
@@ -612,21 +501,7 @@ def _unfound(names: list[str]) -> list[str]:
 
 
 def _run_imports(rep: Reporter, root: Path, tracked: frozenset[str]) -> None:
-    """Every tracked module, against an import of a module `ruff.toml` bans at module
-    level anywhere outside a function body that every platform of `TY_PLATFORMS`
-    reaches, as `_platform_imports` reads each enclosing `if`, refused naming its nearest
-    test reading `sys.platform`. That holds that no such import runs on both platforms,
-    not which platform has the module, and an import kept to the platform lacking it can
-    be seen only on that platform: so where the running platform is one of
-    `TY_PLATFORMS`, an import it reaches is refused as well when `_unfound` names a
-    module it imports.
-
-    TID253 refuses such an import only where it is unnested at module level, and with
-    the module banned PLC0415 no longer reports it in a class body; neither reads a
-    module-level block. A module whose NFKC-normalized text never spells the last
-    component of a banned name as a word cannot import it, since Python normalizes each
-    identifier so before it binds or imports it, so only the rest are parsed.
-    Fail-closed: a module that cannot be read or parsed is a finding."""
+    """Check `tracked` modules for banned imports outside function bodies not guarded by `sys.platform`."""
     tools = root / "tools"
     banned, unread = _banned(tools / "ruff.toml")
     if unread:
@@ -670,17 +545,7 @@ def _run_imports(rep: Reporter, root: Path, tracked: frozenset[str]) -> None:
 
 
 def run(root: Path) -> Reporter:
-    """One whole run, as data, on the convention `check.py` set: the caller decides
-    what to do with the verdict rather than parsing what was printed.
-
-    The two checkers are separate processes over the same tree and neither reads the
-    other's result, so they run concurrently, and the import scan beside them. Each
-    accumulates onto its own slate and the slates are merged ty, ruff, then the scan,
-    so the report reads the same however they finished.
-
-    The tracked modules are read once for all three. An index that cannot be read is a
-    finding, and the runs then go ahead held to nothing, since no floor can be
-    decided without it, and the scan, which has no modules to read, does not run."""
+    """Run `ty`, `ruff`, and the platform-import scan concurrently and return their merged `Reporter`."""
     rep = Reporter()
     rep.line("=== tools ===")
 

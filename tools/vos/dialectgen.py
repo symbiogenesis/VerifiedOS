@@ -1,65 +1,17 @@
 # SPDX-License-Identifier: Apache-2.0
-"""The frozen dialect's encoder table, generated from the model's own bundle.
+"""Generate the frozen dialect's encoder table ([tools/generated/dialect-table.json](../generated/dialect-table.json))
+for [dialect.py](dialect.py) from the Sail model bundle.
 
-[encdec.py](encdec.py) reads what the model *spells*; this decides what an assembler
-**admits**, and writes the table [dialect.py](dialect.py) encodes from. It is the one
-module of this pair that holds a question, and the question is one sentence: an
-enumeration of the model's spellings over-approximates, so which of the forms it spells
-may an assembler emit?
-
-## The three kinds of guard, and the one answer each gets
-
-183 of the model's 253 `encdec` clauses carry a `when`, over 51 distinct guard texts, and
-they split three ways. Nothing here matches those texts: each is parsed by
-[sailexpr.py](sailexpr.py) and evaluated against the model's own definitions, so the
-split below is a property of what the evaluation *reaches* rather than a list somebody
-transcribed.
-
-- **Extension presence resolves.** `currentlyEnabled(Ext_Zbc)` walks the model's own
-  clause chain down to `config extensions.Zbc.supported` and answers. This is the half
-  that decides, and it decides against the shipped configurations rather than in the
-  abstract: `clmulr` is guarded on `Zbc` alone and is refused, where `clmul` and `clmulh`
-  are `Zbc | Zbkc` and are admitted, which reproduces the hand-written table's own
-  exclusion without being told about it.
-- **Machine state does not resolve, and must not be guessed at.** `currentlyEnabled` is
-  `hartSupports & misa[X] == 0b1`, so *enablement* is a function of a CSR and an
-  assembler can only ever decide *presence*. A guard reaching a register answers
-  `UNKNOWN`, the form is admitted, and the machine traps what it will not decode, which
-  is this table's own stated division of labour: what a row can express is the encoder's
-  business and what an encoding means is the machine's.
-- **A joint constraint over the encoding's own fields decides outright.** The model
-  spells a load `"l" ^ width_mnemonic(width) ^ maybe_u(is_unsigned)` and rules out the
-  unsigned doubleword in `valid_load_encdec` rather than in the spelling, so an
-  enumeration hands back `ldu`, which the model decodes nowhere. Every field the mnemonic
-  and the encoding fix is bound into the environment before the guard is evaluated, so
-  that guard is a fact about the row and `ldu` is refused by arithmetic.
-
-## Fail-closed, and why an assembler's default is the opposite of a census's
-
-A guard whose text the evaluator does not reach **refuses** the form. For a census that
-would be the wrong default: an enumeration that drops what it cannot read reports a
-surface smaller than the model's and calls it complete. For an assembler it is the only
-safe one, because the two failures are not symmetric. A mnemonic refused that the model
-would have decoded is a program that does not assemble, said out loud at the line that
-wrote it. A mnemonic admitted that the model cannot decode is an image that assembles
-clean, loads, and traps somewhere else entirely. K-67 and K-75 are the same reading one
-level up.
-
-## The two questions this module leaves open, and does not close by fiat
-
-**Which configuration admission is taken at is fixed by no artifact.** The dialect is
-the frozen profile's and is one ISA across all five core classes, while `currentlyEnabled`
-is per-composition and the three shipped configurations differ on six vector-crypto keys.
-An assembler serving every class wants the union, so the union is what is taken here and
-`CONFIGURATIONS` names every file it is taken over; nothing in the register says so, and
-the checklist cell reports it as open rather than settling it.
-
-**Whether this table carries the whole admitted surface or a declared scope** is fixed by
-no artifact either. The hand-written table scoped the vector rows deliberately, on the
-ground that a row nothing in the corpus writes is a row nothing checks; generation
-removes that ground, the cost that decision was against having been the transcription.
-The whole admitted surface is carried, and the reversal is reported rather than performed
-silently.
+Reads instruction forms via [encdec.py](encdec.py) and evaluates each `encdec` guard
+via [sailexpr.py](sailexpr.py) against the union of `CONFIGURATIONS`:
+- **Extension presence**: resolves against `CONFIGURATIONS` (`True` admits, `False` refuses).
+- **Machine state**: guards that read registers evaluate to `UNKNOWN` and admit the form
+  (runtime state enablement is decided by hardware, not the assembler).
+- **Field constraints**: fixed mnemonic/encoding bindings are substituted before guard
+  evaluation so invalid field combinations (such as `ldu`) evaluate to `False`.
+  Per-operand conditions (`!=`, `==`, or unary predicates) become site-checked `requires`.
+- **Fail-closed default**: any guard that cannot be resolved or converted into an operand
+  requirement raises `RefusedError`.
 """
 
 import json
@@ -73,59 +25,38 @@ from .jsonc import Json
 from .sailbundle import Bundle
 from .sailexpr import UNKNOWN, Bits, Environment, Sym, UnresolvedError, Value
 
-# Tracked beside the bundle, and generated from it. Under `tools/generated/` for the
-# reason that directory exists: `model/` is `-text` and vendored byte-identically from
-# its upstream pin, so a generated artifact there would break both properties at once.
 TABLE = "tools/generated/dialect-table.json"
 
-# The only shape this reader and its writer share.
 VERSION = 1
 
-# The compositions admission is taken over, and the union is over exactly these. Named
-# as a table rather than globbed, because a fourth configuration appearing in that
-# directory is a decision somebody makes and not a file this quietly starts admitting on.
+# Shipped model configurations whose union defines the admitted assembler surface.
 CONFIGURATIONS: Final[tuple[str, ...]] = (
     "model/config/verifiedos.json",
     "model/config/verifiedos-v.json",
     "model/config/verifiedos-rot.json",
 )
 
-# Applications this evaluator answers itself, because they are the language's rather than
-# the model's: a width change and a constructor wrapper both leave the value alone at the
-# arithmetic this admission does.
+# Width/conversion helpers and index wrappers treated as identity functions during guard evaluation.
 _TRANSPARENT: Final[frozenset[str]] = frozenset(
     {"zero_extend", "sign_extend", "unsigned", "signed", "truncate", "Regidx",
      "Vregidx", "bits_of", "regidx_bits", "vregidx_bits"})
 
 
 class RefusedError(RuntimeError):
-    """One form this policy does not admit, carrying the reason a person needs."""
+    """Raised when an instruction form is rejected by the admission policy."""
 
 
-# How the model's own operand printers land in this assembler's operand vocabulary. The
-# whole printed surface is 22 applications and six literals over 217 clauses, so this is
-# a closed set rather than a growing one, and a printer absent from it refuses the row.
-#
-# `cap_reg_name` and `reg_name` are one kind here and two in the model, which is not a
-# conflation: a register is one register with two readings, and the capability spelling
-# is a reading rather than a file (R-15-007i).
+# Mapping from Sail operand printers to [dialect.py](dialect.py) operand kinds.
 SPELLINGS: Final[dict[str, str]] = {
     "reg_name": "reg", "cap_reg_name": "reg", "vreg_name": "vreg",
     "maybe_vmask": "vm", "csr_name_map": "csr", "scr_name_map": "scr",
     "vtype_assembly": "imm",
 }
 
-# The two constructors whose immediate is a displacement from the instruction's own
-# address, which is the one fact about an operand the *encoding* does not carry: the
-# model states it in the execute clause, where the value is added to `PC`, and the
-# encoding of a branch is the same whatever the value means. So an assembler that wants
-# to be handed a label rather than a displacement has to be told, here, which two forms
-# take one. Signedness rides with it: a displacement is signed by construction, where
-# `CJAL`'s printer spells its twenty-one bits unsigned.
+# Constructors whose immediate operand is a signed PC-relative branch/jump displacement.
 PC_RELATIVE: Final[frozenset[str]] = frozenset({"BTYPE", "CJAL"})
 
-# The bracketed shapes, each as the tokens between the commas. Every one is a single
-# source operand that the parser flattens into several encoded values, in this order.
+# Bracketed token sequences that collapse into a single composite source operand kind.
 _SHAPES: Final[tuple[tuple[tuple[str, ...], str], ...]] = (
     (("imm", "(", "reg", ")"), "mem"),
     (("(", "reg", ")"), "mem0"),
@@ -134,14 +65,7 @@ _SHAPES: Final[tuple[tuple[tuple[str, ...], str], ...]] = (
 
 _IMMEDIATE = re.compile(r"^(hex_bits|hex_bits_signed|dec_bits)_(\d+)$")
 
-# How the model's own `execute` clause reads a field, which is where an operand's
-# admitted range actually comes from. The `encdec` clause states the field's *width* and
-# every pattern of that width decodes, so the encoding says nothing about the range; the
-# `assembly` printer says how a disassembler *displays* it, which is a different
-# question again and answers it wrongly twice on this model (`lui`'s upper immediate is
-# printed signed and materialized above the signed half; `cincoffsetimm`'s is printed
-# unsigned and is an offset increment). The execute clause is the one place the model
-# says which reading is meant, and it says so in one word.
+# Extension calls in `execute` bodies that determine whether an immediate is signed.
 _READING: Final[tuple[tuple[str, bool], ...]] = (
     ("sign_extend", True), ("signed", True),
     ("zero_extend", False), ("unsigned", False),
@@ -150,7 +74,7 @@ _READING: Final[tuple[tuple[str, bool], ...]] = (
 
 @dataclass(frozen=True)
 class Slot:
-    """One operand as the encoder needs it: what it is, how wide, and where it goes."""
+    """Encoded operand descriptor: kind, field name, bit width, signedness, alignment, and bit pieces."""
 
     kind: str
     name: str
@@ -162,7 +86,7 @@ class Slot:
 
 @dataclass(frozen=True)
 class Row:
-    """One admitted mnemonic, as the generated artifact carries it."""
+    """Admitted mnemonic row for the generated encoder table."""
 
     form: encdec.Form
     requires: tuple[tuple[str, str, tuple[int, ...]], ...]
@@ -171,14 +95,7 @@ class Row:
 
 
 class Facts:
-    """The parts of the environment that do not depend on the form being decided.
-
-    Held apart because they are expensive and constant: the scattered-member reading
-    walks every function body in the model, and building it per form rather than per run
-    is the difference between a gate that costs four seconds and one that costs a
-    fraction of one. The state-boundedness answers are memoized here for the same
-    reason and are sound to share, being a property of the model rather than of a row.
-    """
+    """Model-wide definitions and memoized guard verdicts shared across all forms in a run."""
 
     def __init__(self, bundle: Bundle, root: Path) -> None:
         self.bundle = bundle
@@ -193,14 +110,7 @@ class Facts:
 
 
 class _Model(Environment):
-    """The model's own definitions, as the environment a guard is evaluated in.
-
-    Built once per form over one shared `Facts`, and asked many times. The recursion
-    guard is not a nicety: `currentlyEnabled(Ext_Zvfhmin)` reaches
-    `currentlyEnabled(Ext_Zvfh)` which reaches `Ext_Zve32f`, and a cycle in a chain like
-    that would be a stack overflow reported as a crash in the checker rather than as a
-    defect in the model.
-    """
+    """Sail evaluation environment backed by `Facts` and per-form field `bindings`."""
 
     def __init__(self, facts: Facts, bindings: dict[str, Value] | None = None) -> None:
         self.facts = facts
@@ -212,7 +122,7 @@ class _Model(Environment):
         self._open: set[str] = set()
         self._configs = facts.configs
 
-    # -- the Environment protocol ----------------------------------------------------
+    # -- Environment protocol --------------------------------------------------------
 
     @override
     def is_state(self, name: str) -> bool:
@@ -245,15 +155,7 @@ class _Model(Environment):
 
     @override
     def config(self, path: str) -> Value:
-        """One configuration key, read across every shipped composition.
-
-        The union, and it is a decision this module's docstring states rather than a
-        convenience: a boolean is true where any composition sets it, a number takes its
-        largest, and a value naming an enum member takes the member the model's own
-        declaration orders highest. All three are the widest admission the compositions
-        between them justify. A key no composition carries raises, because a guard
-        resting on a key that is not there is a guard about nothing.
-        """
+        """Resolve `config <path>` across `CONFIGURATIONS` by taking the widest value (`any` for bool, `max` for int/enum ordinal)."""
         seen: list[Json] = [found for path_ in self._configs
                             if (found := config.value(path_, *path.split("."))) is not None]
         if not seen:
@@ -267,13 +169,7 @@ class _Model(Environment):
         return self._widest(seen, path)
 
     def _widest(self, seen: list[Json], path: str) -> Value:
-        """A key whose values name enum members, as the highest member named.
-
-        RefusedError where any value is not a member the model declares: a configuration
-        naming something this reader cannot place in the enum's order is one the union
-        cannot be taken over, and taking the first would make the answer depend on the
-        order `CONFIGURATIONS` happens to list.
-        """
+        """Return the highest-ordinal `Sym` among enum member names in `seen`."""
         found: list[Sym] = []
         for value in seen:
             member = self.enums.get(str(value)) if isinstance(value, str) else None
@@ -303,15 +199,7 @@ class _Model(Environment):
             self._open.discard(what)
 
     def _mapped(self, name: str, args: list[Value]) -> Value:
-        """One mapping applied, by looking the argument up among its arms.
-
-        Either side may be the key, because a Sail mapping is bidirectional and is
-        written in whichever direction reads better: `vlewidth_pow` writes
-        `VLE8 <-> 3`, and asking it for the exponent means matching on the left. So each
-        arm is tried both ways round and the *other* side is evaluated, which also
-        removes the restriction to bit and string literals that the encoding reading
-        needs and this one does not.
-        """
+        """Evaluate a 1-argument mapping call by matching `args[0]` against either side of its clauses."""
         if len(args) != 1:
             raise UnresolvedError(f"{name} is applied to {len(args)} arguments")
         for clause in self.bundle.clauses(name):
@@ -327,12 +215,7 @@ class _Model(Environment):
         raise UnresolvedError(f"{name} has no arm this reader matches to {args[0]!r}")
 
     def _applied(self, name: str, args: list[Value]) -> Value:
-        """One function applied.
-
-        The clause is chosen by its pattern where the function is a family over an enum,
-        which is what `hartSupports` and `currentlyEnabled` are; a single-clause function
-        takes its one clause and binds its parameters positionally.
-        """
+        """Evaluate a function call by selecting a matching enum-pattern clause or binding positional parameters."""
         clauses = self.bundle.function_bodies(name)
         if not clauses:
             raise UnresolvedError(f"{name} has no clause this reader can read")
@@ -349,20 +232,7 @@ class _Model(Environment):
         return self._body(name, body, dict(zip(names, args, strict=True)))
 
     def _state_bound(self, text: str, seen: set[str] | None = None) -> bool:
-        """Whether an expression's value depends on machine state, through any depth.
-
-        A name scan closed over the call graph, and it is a scan rather than a walk for
-        one reason: what is being asked is whether the value depends on state, and a
-        register read is spelled with the register's own name and nothing else in Sail
-        spells it, so the names *are* the evidence. Nothing else here is a scan.
-
-        Transitive because one level is not the question. `keccak_unit_present()` reads
-        no register and calls `this_core_class()`, which reads the core roster; a
-        one-level test reports it unreadable, which would refuse the whole Keccak
-        surface for the wrong reason and say so in the wrong words. The two verdicts
-        this separates, *cannot decide* and *cannot read*, are the ones this module
-        turns on.
-        """
+        """Return whether `text` transitively references any register in `self.registers`."""
         seen = set() if seen is None else seen
         words = _words(text)
         if words & self.registers:
@@ -384,13 +254,7 @@ class _Model(Environment):
         return False
 
     def _body(self, what: str, text: str, extra: dict[str, Value]) -> Value:
-        """One function body, with the machine-state test taken *before* the parse.
-
-        A body reading a register is machine state whatever else it does, and answering
-        that before parsing is what keeps `get_sew()` from being reported as an
-        expression this reader does not cover: it is not, and the distinction between
-        *cannot decide* and *cannot read* is the one this whole module turns on.
-        """
+        """Evaluate function body `text`, returning `UNKNOWN` immediately if `_state_bound(text)` holds."""
         if self._state_bound(text):
             return UNKNOWN
         if what in self._open:
@@ -405,7 +269,7 @@ class _Model(Environment):
 
 
 def _words(text: str) -> frozenset[str]:
-    """Every identifier a body spells, which is the whole of what a name scan needs."""
+    """Return the set of identifier tokens in `text`."""
     out: set[str] = set()
     current = ""
     for char in text:
@@ -457,7 +321,7 @@ def _as_int(value: Value) -> int | None:
 
 
 class _Nothing(Environment):
-    """An environment that defines nothing, for reading a literal out of an arm key."""
+    """Empty `Environment` for evaluating standalone literals in mapping arm keys."""
 
     @override
     def is_state(self, name: str) -> bool:
@@ -480,17 +344,11 @@ class _Nothing(Environment):
         raise UnresolvedError(f"sizeof({name}) is not a literal")
 
 
-# --- the policy ---------------------------------------------------------------------
+# --- admission policy ---------------------------------------------------------------
 
 
 def admit(form: encdec.Form, facts: Facts) -> Row:
-    """One form, admitted or `RefusedError` with the reason.
-
-    The bindings the row fixed go into the environment first, which is what makes a
-    guard over the encoding's own fields a fact about *this* row: without them
-    `valid_load_encdec(width, is_unsigned)` is a statement about a clause and `ldu` walks
-    straight through it.
-    """
+    """Admit `form` as a `Row`, or raise `RefusedError` if its spelling or guard is rejected."""
     signature, slots = _spelling(form, facts.executes.get(form.ctor, ""))
     return Row(form=form, requires=_guarded(form, facts), signature=signature,
                slots=slots)
@@ -498,13 +356,7 @@ def admit(form: encdec.Form, facts: Facts) -> Row:
 
 def _guarded(form: encdec.Form, facts: Facts
              ) -> tuple[tuple[str, str, tuple[int, ...]], ...]:
-    """The guard's verdict for this row, memoized on the guard and what it reads.
-
-    Keyed on the bindings the guard's own text *names* rather than on all of them,
-    which is the whole of what makes the memo worth having: 495 rows share one vector
-    guard and differ only in a `funct6` that guard never mentions, so a key over every
-    binding would collapse nothing at all.
-    """
+    """Evaluate `form.guard` (memoized by referenced bindings) and return any residual operand requirements."""
     relevant = tuple((name, spelled) for name, spelled in form.bindings
                      if name in _words(form.guard))
     key = (form.guard, relevant)
@@ -535,14 +387,7 @@ def _guarded(form: encdec.Form, facts: Facts
 
 def _spelling(form: encdec.Form,
               execute: str) -> tuple[tuple[str, ...], tuple[Slot, ...]]:
-    """How a program writes this form, and where each thing it writes lands.
-
-    The two are returned together because they have to agree: the parser fills the
-    signature in source order and hands the encoder a flat list of values, and a source
-    operand of a bracketed shape contributes several. A form whose spelling this
-    vocabulary cannot read is `RefusedError` rather than carried with a signature guessed at,
-    which is the same fail-closed reading the guards get and for the same reason.
-    """
+    """Derive the source operand `signature` and encoded `Slot` tuple for `form`."""
     kinds: list[str] = []
     at = 0
     for group in _groups(form.syntax):
@@ -561,7 +406,7 @@ def _spelling(form: encdec.Form,
 
 
 def _groups(syntax: tuple[str, ...]) -> list[list[str]]:
-    """The printed run split at its commas, one group per source operand."""
+    """Split `syntax` tokens on `","` into per-source-operand groups."""
     out: list[list[str]] = []
     current: list[str] = []
     for part in syntax:
@@ -575,7 +420,7 @@ def _groups(syntax: tuple[str, ...]) -> list[list[str]]:
 
 
 def _shape(group: list[str], form: encdec.Form) -> str:
-    """One printed group as the operand kind a program writes."""
+    """Map a single comma-delimited token `group` to its source operand kind."""
     if len(group) == 1:
         printer = group[0]
         if printer in SPELLINGS:
@@ -583,8 +428,6 @@ def _shape(group: list[str], form: encdec.Form) -> str:
         if _IMMEDIATE.match(printer):
             return "sym" if form.ctor in PC_RELATIVE else "imm"
         if printer == "v0":
-            # The model prints the mask register as a literal where the form takes no
-            # `vm` bit, so a program writes `v0` and the encoding carries nothing.
             return "v0"
         raise RefusedError(f"the operand printer {printer} is not in this "
                            f"assembler's vocabulary")
@@ -603,15 +446,12 @@ def _reduce(printer: str) -> str:
 
 
 def _slot(operand: encdec.Operand, form: encdec.Form, execute: str) -> Slot:
-    """One encoded operand: its kind, its width, and how a value reaches the word."""
+    """Build the encoded `Slot` for `operand`, deriving immediate signedness from `execute` or its printer."""
     found = _IMMEDIATE.match(operand.printer)
     kind = SPELLINGS.get(operand.printer, "imm" if found else "")
     if not kind:
         raise RefusedError(f"the operand printer {operand.printer} is not in this "
                       f"assembler's vocabulary")
-    # Only an immediate has a reading at all. A register number, a CSR address and a
-    # mask bit are indices into something, so the question does not arise for them and
-    # asking it of the execute clause would answer about the value the index selects.
     signed = False
     if kind == "imm":
         derived = _reading(operand.name, execute)
@@ -626,20 +466,10 @@ def _slot(operand: encdec.Operand, form: encdec.Form, execute: str) -> Slot:
 
 
 def _reading(name: str, execute: str) -> bool | None:
-    """How the form's own `execute` clause reads this field, where it says.
-
-    A scan for one call over one name, and it is a scan for the same reason the
-    machine-state test is: what is being asked is which of two words the body spells
-    around the field, and the words are the evidence. `None` where the clause does not
-    widen the field at all, which is every field used as an index or a register number,
-    and the printer's reading stands there.
-    """
+    """Return whether `execute` widens `name` via `sign_extend`/`signed` (`True`) or `zero_extend`/`unsigned` (`False`)."""
     for call, verdict in _READING:
         needle = f"{call}({name}"
         at = execute.find(needle)
-        # Bounded on both sides. `signed` is a substring of `unsigned` and the name is a
-        # prefix of longer names, so a scan without either boundary reads `unsigned(vs2)`
-        # as a signed reading of `vs2` and refuses every vector register above fifteen.
         while at >= 0:
             before = execute[at - 1] if at else " "
             after = execute[at + len(needle)] if at + len(needle) < len(execute) else " "
@@ -651,13 +481,7 @@ def _reading(name: str, execute: str) -> bool | None:
 
 
 def _conjuncts(guard: str) -> list[str]:
-    """A guard's top-level conjuncts, each decided on its own.
-
-    Split rather than evaluated whole, because a conjunct that is a constraint on an
-    operand is not a truth value at all: it is a condition the encoder carries to the
-    site, and only a per-conjunct reading can tell it apart from a conjunct that is
-    simply false.
-    """
+    """Split `guard` on top-level `&` operators into rendered conjunct strings."""
     if not guard.strip():
         return []
     node = sailexpr.parse(guard)
@@ -675,11 +499,7 @@ def _flatten(node: sailexpr.Node, text: str, out: list[str]) -> None:
 
 
 def _render(node: sailexpr.Node) -> str:
-    """One conjunct back as text, for the residual reading and for a finding's wording.
-
-    A re-rendering rather than a slice of the source, because the parse has already
-    dropped the parentheses a slice would have to balance.
-    """
+    """Render a parsed `sailexpr.Node` back to canonical expression text."""
     if node.kind in ("number", "bits", "boolean", "name"):
         return node.text
     if node.kind == "config":
@@ -705,7 +525,7 @@ def _render(node: sailexpr.Node) -> str:
 
 def _decide(text: str, env: _Model, form: encdec.Form,
             requires: list[tuple[str, str, tuple[int, ...]]]) -> None:
-    """One conjunct: admitted, refused, or carried to the site as a requirement."""
+    """Evaluate conjunct `text`, appending operand constraints to `requires` or raising `RefusedError`."""
     node = sailexpr.parse(text)
     try:
         verdict = sailexpr.evaluate(node, env)
@@ -721,14 +541,7 @@ def _decide(text: str, env: _Model, form: encdec.Form,
 
 def _residual(node: sailexpr.Node, env: _Model, form: encdec.Form
               ) -> tuple[str, str, tuple[int, ...]] | None:
-    """A conjunct that is a condition on one *operand*, as a requirement the encoder can
-    check at the site.
-
-    Two shapes and no more, each fail-closed. `cd != zreg` is a value the operand may not
-    take, and `keccak_valid_rounds(rnd)` is a disjunction of the values it may. Both are
-    conditions the hand-written table carried as one-off rules with the clause quoted
-    beside them; here they are the clause.
-    """
+    """Convert an unresolved operand guard `node` into a `("ne" | "in", operand_name, values)` requirement."""
     names = {operand.name for operand in form.operands}
     if node.kind == "binary" and node.text in ("!=", "=="):
         found = _against(node, env, names)
@@ -750,7 +563,7 @@ def _residual(node: sailexpr.Node, env: _Model, form: encdec.Form
 
 def _against(node: sailexpr.Node, env: _Model,
              names: set[str]) -> tuple[str, int] | None:
-    """A comparison between one named operand and one value this lane can compute."""
+    """Extract `(operand_name, int_value)` from a binary comparison between an operand in `names` and a constant."""
     for free, other in ((node.parts[0], node.parts[1]), (node.parts[1], node.parts[0])):
         if free.kind != "name" or free.text not in names:
             continue
@@ -765,7 +578,7 @@ def _against(node: sailexpr.Node, env: _Model,
 
 def _through(node: sailexpr.Node, env: _Model,
              form: encdec.Form) -> tuple[str, str, tuple[int, ...]] | None:
-    """One predicate over an operand, read through the model's own definition of it."""
+    """Inline a single-clause unary function call over an operand and extract its `_residual` requirement."""
     operand = node.parts[0].text
     clauses = env.bundle.function_bodies(node.text) \
         if env.bundle.has("functions", node.text) else []
@@ -779,16 +592,11 @@ def _through(node: sailexpr.Node, env: _Model,
     return _residual(inner, env, form)
 
 
-# --- the artifact --------------------------------------------------------------------
+# --- table generation and rendering -------------------------------------------------
 
 
 def generate(bundle: Bundle, root: Path) -> tuple[dict[str, Row], list[str], list[str]]:
-    """Every admitted row, the clauses this lane could not read, and every refusal.
-
-    A mnemonic two admitted rows spell is refused outright and named: an assembler with
-    an ambiguous mnemonic is worse than one without it, because the ambiguity is
-    resolved silently by whichever row was walked last.
-    """
+    """Return `(admitted_rows, unread_clauses, refusal_notes)` for `bundle`, rejecting ambiguous mnemonics."""
     surface = encdec.Surface(bundle)
     forms, residue = surface.forms()
     facts = Facts(bundle, root)
@@ -817,12 +625,7 @@ def generate(bundle: Bundle, root: Path) -> tuple[dict[str, Row], list[str], lis
 
 
 def render(rows: dict[str, Row], residue: list[str], notes: list[str]) -> str:
-    """The generated artifact, one admitted row per line.
-
-    Line-oriented on purpose: the rule that holds this file reports a byte difference by
-    the line it falls on, and a pretty-printed object would report every difference at
-    line 3 of a file nobody can diff.
-    """
+    """Serialize `rows`, `residue`, and `notes` as line-oriented JSON for [tools/generated/dialect-table.json](../generated/dialect-table.json)."""
     head = json.dumps({
         "version": VERSION,
         "generator": "vos.dialectgen",
@@ -859,6 +662,6 @@ def _row(row: Row) -> dict[str, Json]:
 
 
 def emit(bundle: Bundle, root: Path) -> str:
-    """The whole artifact, for a caller that only wants the bytes."""
+    """Generate and render the dialect table JSON for `bundle`."""
     rows, residue, notes = generate(bundle, root)
     return render(rows, residue, notes)

@@ -1,38 +1,20 @@
 # SPDX-License-Identifier: Apache-2.0
-"""counts: every figure any document asserts, against the artifact it derives from.
+"""Check asserted document counts and derived numerical figures against their owning artifacts (`K-24`..`K-28` and the `counts_*.py` family rules).
 
-"N requirements" and "N crown-jewel specifications" are
-restatements of something a table already holds, and the figure each stands in for is
-the table's rather than this docstring's. Each quantity is
-computed here; each claim says where it is asserted and in which style, and captures
-the number alone, so a repair is the substitution of a single token.
+This module defines the `counts` group entry point ([`run`](#run)), the `CLAIMS` and
+`_quantities` tables, and `K-24`..`K-28`:
+- `K-24` checks registered count claims (`CLAIMS`) against `_quantities` (rewriting them
+  under `--fix` when the owner is non-zero).
+- `K-25` checks that every crown-jewel inventory row's status classifies into
+  `authored`, `partial`, or `unauthored`.
+- `K-26` checks `COUNT_SCOPES` for unregistered count restatements.
+- `K-27` and `K-28` check the `Coverage` table in
+  [docs/requirements-register.md](../../../docs/requirements-register.md) against its
+  per-section requirement counts (repairing `K-28` under `--fix`).
 
-A cardinality is not the only figure a document can restate, and the second kind is
-here for the same reason the first is. The tag plane's cost is not a count of anything:
-it is one register field, the granule width, read as a ratio. Deliberately presented
-calculations remain registered; secondary prose cites them. None is a measurement,
-so a granule that moves has to move every one of them in the same edit, which is
-exactly what a claim is. The code over the plane is the other half: its width is
-R-15-181a's authored decision, held at or above the fewest check bits a code of
-minimum distance 6 admits over its tag count, and every total, share, ladder rung and
-band built on it is arithmetic held against the entry's own bit counts, reported and
-never rewritten.
-
-**The group is one heading and several files.** This module is the group's entry
-point and holds the claim table, the quantity table every claim is held against, and
-the run; each of the other figures it is responsible for lives in a `counts_*.py`
-module beside it, one per family, named for the artifact its rules read: the tag
-plane, the owned figures, the capability format, the welded block, the freeze delta,
-the core classes, the model window, and the shipped configurations. The group name,
-the heading, and every rule id are unchanged by that split, and `check-rules.md`
-registers a rule by its id and its group rather than by the file carrying it.
-
-**The order `run` calls them in is load-bearing and not alphabetical.** A rule may
-read what an earlier one left on the `Context` and never the other way round, which is
-the same dependency order the package's own `GROUPS` list is in: the claims resolve
-against the quantity table before anything else reads it, the model window is opened
-once and handed to both rules that scan it, and the floors group prices, after this
-group has run, every enumeration each of them recorded.
+[`run`](#run) then invokes the `counts_*.py` family checks in dependency order so later
+groups (such as [floors.py](floors.py) and [pins.py](pins.py)) can read the counts and
+windows stored on [`Context`](__init__.py#Context).
 """
 
 import bisect
@@ -62,15 +44,9 @@ from vos.checks.counts_tagplane import TAG_PLANE, tag_plane
 from vos.cli import provision
 from vos.register import REGISTER, cj_class, cj_status
 
-# [Context](__init__.py#Context) lives in this package, which imports this module in turn.
-# Guarded, so the annotation below costs no import at run time: under PEP 649 an
-# annotation is not evaluated unless something asks for it, and nothing here does.
 if TYPE_CHECKING:
     from . import Context
 
-# The group's public surface, declared rather than incidental: what this module
-# defines, and the three names it re-exports from the families for the readers that
-# ask the group for them rather than the family.
 __all__ = ["CLAIMS", "GRANULE_RE", "HEADING", "PAYLOAD_RE", "TAG_PLANE", "run"]
 
 HEADING = "=== counts: every asserted figure against its artifact ==="
@@ -128,23 +104,15 @@ CLAIMS = [
     (SPEC, "radio-protocols", "words", r"(?<=for the )[\w-]+(?= radio protocols that layer)"),
 ]
 
-# The trailing lookahead keeps CRLF out of the match: an anchored `\|$` never matches a
-# CRLF file, and every row would read as missing.
+# Trailing lookahead tolerates CRLF line endings.
 COVERAGE_ROW_RE = r"(?m)^\| \*\*§(\d+) [^|]*\| \*\*extracted\*\* \| \*\*(\d+)\*\* \|(?=\r?$)"
 
-# The enumerations the co-statement survey found restated as counts across K-61
-# pairs, each read from the one entry that owns it rather than declared here: the
-# count moves with the list. Incidental type-obligation count words are omitted;
-# its owner still has a nonempty guard independent of the remaining prose claims.
+# Patterns extracting owned enumerations from register entries and spec sections.
 TYPE_OBLIGATIONS_RE = re.compile(r"obligations are exactly: ([^.]+)\.")
 UNARY_INVARIANTS_RE = re.compile(
     r"unary invariants form the substrate every seam assumes: (.+)")
 SEAM_LEMMAS_RE = re.compile(r"seam lemmas are exactly [\w-]+: ([^.]+)\.")
-# the roster ends where the entry turns to what the theories instantiate, so the
-# capture is bounded by that turn rather than by a period the names never carry
 IRIS_THEORIES_RE = re.compile(r"theories, not five frameworks: (.+?), all instantiating")
-# a parenthesized single digit is an enumeration's own marker; a requirement id or a
-# section reference never takes that shape
 ENUM_MARK_RE = re.compile(r"\(\d\)")
 RADIO_ROWS_RE = re.compile(r"inventory rows (\d+)–(\d+)")
 TCB_ITEM_RE = re.compile(r"^\d+\. ")
@@ -350,13 +318,7 @@ def unheld_counts(ctx: Context) -> list[str]:
 
 
 def _enumeration(pattern: re.Pattern[str], text: str, sep: str = ",") -> int:
-    """The member count of an owned enumeration, zero where the owner has moved.
-
-    Parentheticals are stripped before the split, so a comma inside a member's
-    gloss is never a member; what this cannot survive is a separator gaining a
-    second meaning inside a member's bare text, which is the register's own
-    single-line entry grammar to refuse.
-    """
+    """Count `sep`-delimited items in `pattern`'s capture group after stripping parentheticals."""
     m = pattern.search(text)
     if not m:
         return 0
@@ -366,8 +328,7 @@ def _enumeration(pattern: re.Pattern[str], text: str, sep: str = ",") -> int:
 
 def _spec_lines(ctx: Context, lead: str, pattern: re.Pattern[str],
                 until: str | None = None) -> int:
-    """Lines of the specification a pattern decides, optionally scoped to run from
-    one heading to the next `## `. The fence mask is honored as everywhere."""
+    """Count unfenced lines in [docs/spec.md](../../../docs/spec.md) matching `pattern` (optionally within `until`..next `## `)."""
     doc = ctx.corpus.get(SPEC)
     if doc is None:
         return 0
@@ -386,20 +347,14 @@ def _spec_lines(ctx: Context, lead: str, pattern: re.Pattern[str],
 
 
 def _anchor_span_marks(ctx: Context, ident: str) -> int:
-    """Count a bookmark's enumeration, including continuation lines it owns.
-
-    Use the co-read ownership rule so a wrapped or bulleted list has the same
-    extent for its count and its review. A missing bookmark still returns zero,
-    which the owned-count guard refuses to treat as an empty enumeration.
-    """
+    """Count `(n)` markers in bookmark `ident`'s co-read span in [docs/spec.md](../../../docs/spec.md)."""
     if SPEC not in ctx.corpus:
         return 0
     return len(ENUM_MARK_RE.findall(coread.spans(ctx.corpus).get(ident, "")))
 
 
 def _radio_protocols(reg_accept: str) -> int:
-    """The curated-analysis set's size, read as the register itself states it: the
-    span of crown-jewel inventory rows R-12-043e pins its lineages to."""
+    """Return the size of the crown-jewel inventory row span stated in `R-12-043e`."""
     m = RADIO_ROWS_RE.search(reg_accept)
     return int(m.group(2)) - int(m.group(1)) + 1 if m else 0
 
@@ -428,15 +383,10 @@ def _quantities(ctx: Context) -> dict[str, int]:
         "boundaries": len(art.cm_bounds),
         "properties": len(art.cm_props),
         "cells": len(art.cm_cells),
-        # the cells by the standing the views group computed for each, the inventory's
-        # three classes lifted over the rows a cell's requirements constrain
         "cells-authored": sh.get("cm_standing", {}).get("authored", 0),
         "cells-partial": sh.get("cm_standing", {}).get("partial", 0),
         "cells-unauthored": sh.get("cm_standing", {}).get("unauthored", 0),
         "model-facts": len(corpus_mod.MODEL_FACTS),
-        # the counts the co-statement survey found restated across K-61 pairs, each
-        # computed from the artifact that owns it: an entry's own enumeration, the
-        # specification's own list or table, or the row range the register pins
         "type-obligations": _enumeration(TYPE_OBLIGATIONS_RE,
                                          reg.body.get("R-05-029", "")),
         "unary-invariants": _enumeration(UNARY_INVARIANTS_RE,
@@ -449,10 +399,6 @@ def _quantities(ctx: Context) -> dict[str, int]:
         "build-prereqs": _anchor_span_marks(ctx, "r-06-024"),
         "radio-protocols": _radio_protocols(reg.accept_text.get("R-12-043e", "")),
         "iris-theories": _enumeration(IRIS_THEORIES_RE, reg.body.get("R-13-017", "")),
-        # the lane's shape, read off the provisioner's own table rather than parsed
-        # out of the file a second time: a second parse of one table is exactly the
-        # two-copies defect this group exists to catch, and the table is a tuple of
-        # frozen rows an import already resolves
         "provision-facts": len(provision.FACTS),
         "provision-uncommanded": sum(1 for f in provision.FACTS if not f.install),
         "provision-switches": sum(1 for f in provision.FACTS
@@ -469,10 +415,8 @@ def run(ctx: Context) -> None:
         n = ctx.q[quantity]
         return figures.words(n) if style == "words" else str(n)
 
-    # An owned count of zero is a moved owner, never an empty list, and its claims
-    # are skipped rather than resolved: resolved, they would hold every restating
-    # count-word to "zero", and one routine `--fix` would write that corruption
-    # into three documents and leave the next run green.
+    # Skip claims whose required owner count is 0 so `--fix` never overwrites
+    # document counts with "zero" when an owner regex stops matching.
     dead = {q for q in REQUIRED_COUNTS if not bool(ctx.q.get(q))}
     claimed = {quantity for _, quantity, _, _ in CLAIMS}
     missed: list[str] = [
@@ -483,9 +427,6 @@ def run(ctx: Context) -> None:
     for file, quantity, style, pattern in CLAIMS:
         if quantity in dead:
             continue
-        # `figures.words` refuses a count past ninety-nine, and the count is the
-        # documents' to grow: a quantity that outgrows its word form is this rule's
-        # finding, naming the claim owed a digits spelling, never a stopped run
         try:
             want = expected(quantity, style)
         except ValueError:
@@ -500,18 +441,15 @@ def run(ctx: Context) -> None:
     rep.report("K-24", "asserted count(s) disagreeing with their artifact:", missed,
                f"all {len(CLAIMS)} asserted counts agree")
 
-    # --- the status column is three classes, and every row is in one ----------------
     rep.report("K-25", "crown-jewel row(s) whose status is in no class:",
                [f"row {row.split('|')[1].strip()}: {cj_status(row)}"
                 for row in art.cj_rows if not bool(cj_class(row))],
                f"{ctx.q['cj-specs']} rows partition into {ctx.q['cj-authored']} authored, "
                f"{ctx.q['cj-partial']} partial, {ctx.q['cj-unauthored']} not authored")
 
-    # Subject and document scope decide a duplicate, never a coincident current value.
     rep.report("K-26", "unheld restatement(s) of a counted figure:",
                unheld_counts(ctx), "every count in a declared scope is held by a claim")
 
-    # --- the Coverage table is one row per section, with the right count -------------
     register_raw = ctx.text(REGISTER)
     rows = list(re.finditer(COVERAGE_ROW_RE, register_raw))
     listed = [m.group(1) for m in rows]
@@ -522,10 +460,6 @@ def run(ctx: Context) -> None:
     rep.report("K-27", "Coverage row(s) not matching the section list:", mismatched,
                f"{len(rows)} Coverage rows, one per section")
 
-    # A row naming a section the register does not carry is K-27's finding, and it is
-    # this rule's only unrepairable one: there is no count to write into it. It is
-    # reported here too rather than skipped, because a row whose count agrees with
-    # nothing is exactly as wrong as one whose count disagrees.
     def held(m: re.Match[str]) -> int | None:
         return reg.per_section.get(m.group(1))
 
@@ -543,7 +477,6 @@ def run(ctx: Context) -> None:
             rep.line(f"fixed: Coverage §{m.group(1)}: {m.group(2)} -> {held(m)}")
         wrong = [m for m in wrong if held(m) is None]
 
-    # a repair that reached everything says so by rewriting, not by also reporting green
     if wrong or not repairing:
         rep.report("K-28", "Coverage row(s) disagreeing with the register:",
                    [f"§{m.group(1)} says {m.group(2)}, register holds "
@@ -551,8 +484,6 @@ def run(ctx: Context) -> None:
                     for m in wrong],
                    "every Coverage row matches the register")
 
-    # The families, in the order stated at the top of this module: a rule reads what an
-    # earlier one left on the `Context`, never the other way round.
     tag_plane(ctx)
     owned_figures(ctx)
     cap_format(ctx)
@@ -561,9 +492,6 @@ def run(ctx: Context) -> None:
     freeze_delta(ctx)
     core_classes(ctx)
     window, faults = citation_window(ctx)
-    # The second consumer, in a later group: the pin rule reads the ported headers'
-    # provenance lines out of the same files. Handed on rather than re-read, for the
-    # reason `citation_window` states.
     ctx.shared["citation_window"] = window
     model_citations(ctx, window, faults)
     excluded_forms(ctx)

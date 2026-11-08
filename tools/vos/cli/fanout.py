@@ -16,8 +16,7 @@ from vos import ci_scope, fanout_ci, fanout_retire, receipts
 from vos.cli import worktree
 from vos.corpus import find_root
 
-# A reading base is a full lowercase commit SHA, the only form Guest CI's dispatch
-# check accepts.
+# Full lowercase commit SHA accepted by Guest CI's dispatch check.
 _COMMIT = re.compile(r"[0-9a-f]{40}")
 
 
@@ -26,11 +25,7 @@ class FanoutError(ValueError):
 
 
 class Batch(TypedDict):
-    """Local completion journal with inert historical CI evidence, if present.
-
-    `reading_base` is fixed at init: the commit Guest CI's proofs lane reads beside
-    the settled revision, or None. A journal without the key names none.
-    """
+    """Local completion journal (`reading_base` is the ancestor commit for Guest CI proof reading, if any)."""
 
     version: int
     batch: str
@@ -41,9 +36,7 @@ class Batch(TypedDict):
     cold: bool
     reading_base: NotRequired[str | None]
     full_ci: NotRequired[bool]
-    # Local settled commit, independent of any historical hosted evidence.
     revision: NotRequired[str]
-    # Frozen against the local remote tracking ref, which may be stale.
     selection: NotRequired[ci_scope.Selection]
     deferred: list[str]
     lanes: list[dict[str, object]]

@@ -1,32 +1,13 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: Apache-2.0
-"""Export what the shipped proof corpus asks a CIC checker to decide, from Rocq.
+"""Export and verify CIC feature reports over the compiled proof corpus.
 
-M6.2b-0 cannot choose a supported profile against a handwritten count of surface
-`Fixpoint` declarations, and the existing proof gate exports constants, types and
-assumption verdicts rather than the term-level features a checker has to implement.
-This command adds that reading and nothing else: it drives the pinned Rocq over the
-objects the proof gate already compiled in this lane, asks each enumerated symbol for
-its transitive dependency closure, its declaration facts and its printed term, and
-writes one report carrying every figure with the predicate that produced it.
-
-**It binds to a compile rather than to a source tree.** The subject is the proof gate's
-own staged sources and `.vo` in `<lane_root>/proof-gate/`, and the report repeats the
-portable receipt's identity, the source digests, the exporter's own file digests and the
-prover's. `freshness` re-decides all of that against the live checkout, so a report read
-a week later says whether it still describes the tree it was taken from. A stale report
-is a finding and never a figure to quote.
-
-**The output is not a tracked artifact.** No generator writes it under
-`tools/generated/` and no checker rule holds it, so it lands in the ignored `out/`
-directory and a document that wants a figure from it quotes the figure with its
-predicate and the revision it was taken at, which is what
-[the qualification record](../../../docs/assurance/cic-checker-qualification.md) does.
-
-**Two bounds, both loud.** One query's captured output is bounded, and a module whose
-printed terms exceed it loses its term reading and says so per constant rather than
-reporting features it never looked for. A response this module's parse cannot place
-stops the run instead of producing a shorter closure.
+- `report`: queries the pinned Rocq over the proof gate's staged objects in
+  `<lane_root>/proof-gate/` for each symbol's transitive dependency closure,
+  declaration facts, and printed term, and writes `out/cic-corpus-report.json`
+  ([cic-checker-qualification.md](../../../docs/assurance/cic-checker-qualification.md)).
+- `check`: re-verifies an existing report's freshness against the current checkout,
+  portable proof receipt, staged objects, and exporter digests.
 """
 
 import argparse
@@ -45,14 +26,10 @@ REPORT = "out/cic-corpus-report.json"
 FORMAT = "verifiedos-cic-corpus-feature-report"
 SCHEMA = 1
 
-# One query's captured output, in bytes. A proof term printed without notations or
-# elision is large, and the ceiling exists so that a single pathological module costs
-# that module's term reading rather than the run's memory.
+# Per-query captured output ceiling in bytes.
 MAX_QUERY_BYTES = 64 * 1024 * 1024
 
-# What identifies the exporter. The proof gate's own modules are here because this
-# command reads its staged objects and reuses its inventory query: a change to either
-# changes what this report can say.
+# Exporter and proof-gate files hashed into the report's provenance.
 EXPORTER_FILES: tuple[str, ...] = (
     "tools/vos/cic_corpus.py", "tools/vos/cli/cic_corpus.py",
     "tools/vos/proofaudit.py", "tools/vos/proofs.py", "tools/vos/prooflex.py",
@@ -67,17 +44,7 @@ REPLAY: tuple[str, ...] = (
 
 
 def _query(work: Path, name: str, text: str, *, bound: int) -> str | None:
-    """Run one Rocq query against this lane's compiled proof objects.
-
-    None is the bounded refusal: the query answered, and the answer was larger than a
-    caller declared it would read. Everything else raises, because a query that failed
-    is a fact about the corpus this command may not smooth over.
-
-    The answer goes to a file in this lane and its size decides before any of it is
-    read, which is what makes the bound a bound: a proof term printed without notations
-    or elision runs to tens of megabytes, and capturing that into a string first would
-    pay the memory this ceiling exists to refuse.
-    """
+    """Run one Rocq query against `work`'s compiled proof objects; return None if output exceeds `bound`."""
     scratch = work / "cic-corpus-query"
     scratch.mkdir(parents=True, exist_ok=True)
     source = scratch / f"{name}.v"
@@ -105,7 +72,6 @@ def _reading_query(module: str, names: list[str], *, bodies: bool) -> str:
     for name in names:
         if cic_corpus.QUALIFIED.fullmatch(name) is None:
             raise cic_corpus.ParseError(f"invalid symbol name {name!r}")
-        # Proof opens each marker goal, as in proofaudit: Rocq 9.3 warns otherwise.
         if bodies:
             lines += [f'Goal True. Proof. idtac "{cic_corpus.MARKER}{name}". Abort.\n',
                       f"Print {name}.\n"]
@@ -119,7 +85,7 @@ def _reading_query(module: str, names: list[str], *, bodies: bool) -> str:
 
 def _module_report(work: Path, source: Path, stems: set[str], bound: int) -> tuple[
         dict[str, object], list[cic_corpus.Constant], dict[str, int]]:
-    """Every reading this command makes of one proof module."""
+    """Query and classify all constants in one proof module."""
     stem = source.stem
     listed = _query(work, f"Inventory_{stem}", proofaudit.inventory_query(stem),
                     bound=bound)
@@ -163,8 +129,6 @@ def _module_report(work: Path, source: Path, stems: set[str], bound: int) -> tup
             reached.update(outside)
             split[key] = {"total": len(members), "corpus": local,
                           "foreign": len(outside)}
-        # One constant contributes one to each name it reaches, so the corpus figure
-        # counts constants rather than closure edges.
         for name in reached:
             foreign[name] = foreign.get(name, 0) + 1
         entry["dependencies"] = split
@@ -179,7 +143,7 @@ def _module_report(work: Path, source: Path, stems: set[str], bound: int) -> tup
 
 
 def _object(path: Path) -> dict[str, object]:
-    """One JSON object read from a file, or a refusal naming what stood there."""
+    """Load a JSON object from `path`."""
     loaded: object = json.loads(path.read_text(encoding="utf-8"))
     if not isinstance(loaded, dict):
         raise TypeError(f"{path} is not a JSON object")
@@ -187,20 +151,7 @@ def _object(path: Path) -> dict[str, object]:
 
 
 def _freshness(root: Path, work: Path) -> dict[str, object]:
-    """Whether this lane's compiled objects still describe the checkout's proofs.
-
-    Four clauses decide the verdict: the portable proof receipt states a passed run,
-    the checkout's proof sources are the ones that run recorded, this lane staged
-    exactly those bytes, and every staged source has an object at least as new as it.
-
-    **Object identity against the recorded run is reported and does not decide.** It
-    would be the stronger binding, and it is not available: `micromega` writes a
-    `.lia.cache` beside the compile and a module whose proof is closed through `lia`
-    can produce a different certificate, and so a different `.vo`, from identical
-    sources under the pinned prover. Comparing this lane's objects with the recorded
-    run's separates the modules where that happens from the rest, which is a fact worth
-    carrying, and it is not a statement about the corpus this report reads.
-    """
+    """Check whether this lane's compiled objects match the checkout's proofs and portable receipt."""
     findings: list[str] = []
     portable = root / proofs_cli.RECEIPT
     try:

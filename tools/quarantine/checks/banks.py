@@ -1,35 +1,21 @@
 # SPDX-License-Identifier: Apache-2.0
-"""banks: the second class's bank grant, in the two artifacts that state it.
+"""banks: check the second-class bank grant across configuration and DSE contract (K-58).
 
-The per-class bank count is item (viii) of R-15-014a's closed final-freeze delta, so
-it is a decision nobody has taken written down in two places that both look like they
-have taken it. `model/config/verifiedos.json` declares a number because the emulator
-needs one; `docs/hardware/bank-count-dse-contract.md` declares the same number because the
-instrument that will decide it has to say what it is starting from. Two copies of one
-fact is the defect this repository is built to catch, and this group is that catch
-applied to the one figure whose two copies are in different languages.
-
-The second half is the harder one and is what makes this a rule rather than a
-comparison. A search whose hard constraint has no operands admits nothing, and the way
-that stops being true is not somebody writing *admitted* in a report: it is a
-coefficient quietly acquiring a value. So the rule reads the coefficient table's own
-status column and holds it against the composition's qualification flag, in the
-direction that bites: while the class is unqualified, the pruning pair must be pending,
-because a droop envelope with operands would mean a macro had been measured and
-`qualified` is the one thing that records whether one has (R-15-247m).
-
-What no rule here decides is whether the candidate set is the right one, or whether
-the pending coefficients are the right coefficients. Those are the residue every
-enumeration in this tool declares, and they are a person's.
+[model/config/verifiedos.json](../../../model/config/verifiedos.json) and
+[docs/hardware/bank-count-dse-contract.md](../../../docs/hardware/bank-count-dse-contract.md)
+both state the placeholder bank count for item (viii) of R-15-014a's closed final-freeze
+delta. K-58 checks that:
+- both artifacts declare the same bank count and it belongs to the contract's candidate set,
+- every coefficient symbol referenced by [banks.py](../banks.py#PENDING_COLUMNS) appears in
+  the contract's coefficient table, and
+- while the second memory class is `qualified: false` (R-15-247m), the droop-envelope
+  pruning coefficients (`I_bank_peak`, `I_pdn_max`) remain `pending`.
 """
 
 from typing import TYPE_CHECKING
 
 from quarantine import banks
 
-# `Context` lives in this package's __init__, which imports this module in turn.
-# Guarded, so the annotation below costs no import at run time: under PEP 649 an
-# annotation is not evaluated unless something asks for it, and nothing here does.
 if TYPE_CHECKING:
     from . import Context
 

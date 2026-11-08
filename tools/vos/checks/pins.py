@@ -1,145 +1,22 @@
 # SPDX-License-Identifier: Apache-2.0
-"""pins: every upstream pin this repository states, against the artifact that owns it.
+"""Check upstream gitlink pins, tool-consumed RTL bindings, and development-tool reviews (`K-81`, `K-116`, `K-118`).
 
-An upstream arrives here as a gitlink: the index carries a path and a commit id and
-none of the code, and [THIRD-PARTY.md](../../../THIRD-PARTY.md) carries the licence
-record over those pins, one row per submodule, each stating the short id its terms
-were read at. The row is hand-copied from the gitlink and the copy had no owner.
-
-**That copy is the one derived fact in this repository whose defect cannot be
-repaired downstream.** [AGENTS.md](../../../AGENTS.md) and [the plan's
-§12](../../../PLAN.md#12-build-order-milestones-and-execution-state)
-both say it: a licence is a property of the *arrival*, read at the milestone that
-would incorporate the upstream, and work built on terms that forbid the composition
-is not re-licensed by finding out later. A gitlink advanced without its row moving
-leaves the page asserting that somebody read an edition nobody has opened, and every
-other rule here stays green over it, because the row is prose that resolves, cites
-nothing, and counts nothing.
-
-**Three artifacts state a pin and they are not three opinions.** The index owns it;
-the record copies it and is where the terms were read; and the rest of the
-repository, the plan's completion notes, the RTL delta's provenance table, the ported
-model headers and the tools' own oracle-tree name, restates what the record says. So
-the rule is two hops rather than one comparison, and each hop has its own owner.
-
-**Hop one: the record against the index, in both directions, and never repaired.**
-A gitlink with no row is an upstream whose terms are not on the page at all; a row
-naming no gitlink is a pin for something this repository does not carry; and a row
-whose id is not the gitlink's is the defect above. None of the three is rewritten
-under `--fix`, and that is the strongest ground in this rule rather than a
-convenience. The Pin cell is where the licence was read, and the row's own Licence
-cell, its Standing, and the page's reading paragraphs are that reading; advancing the
-cell from the index would record a reading nobody took, under a flag run to repair
-checklist arithmetic. [marks.py](marks.py) already refuses this repair one artifact
-over, on the same ground: what `--fix` rewrites is recomputed from something the
-repository already determined, and a provenance claim is not that. The finding *is*
-the instruction: somebody moved a gitlink and owes a licence read.
-
-**Hop two: every other site against the record.** What those sites restate is the
-record's account, so the record is the artifact that owns the id for them, exactly as
-an entry owns a figure the documents restate under K-69. A site is found by the shape
-a restatement takes rather than by a list of places to look: an abbreviated object id
-on a line that has already named the upstream it belongs to.
-
-**A pin whose row is itself a finding has its sites left alone**, reported by
-neither hop. One gitlink advancing moves every site at once, so holding the sites
-against a record that is already red would price one act as a dozen findings and
-point every one of them at a repair that belongs at the record. One act, one
-finding, at the one place a person has to act.
-
-**Nothing here is repaired, and the ground is the same one the whole rule stands
-on.** The obvious reading is that a short id in a normalized document is a pure token
-substitution and so belongs to `--fix`, and it is wrong about every site this
-repository actually has. Each of them states the id *beside what was done at it*:
-the record's own row beside the terms read there, the RTL delta's provenance table
-beside the date its tree was read on, the plan's completion notes beside a licence
-reading taken at a milestone, a ported header beside the file it was transplanted
-from, and `vos/env.py`'s `ORACLE_TREE` beside a build tree that stands on disk.
-Rewriting the id alone leaves every one of those sentences describing work done at a
-commit it no longer names, which is the half-a-sentence hazard that keeps K-70
-report-only and, here, is worse than that: it would record a licence reading nobody
-took, under a flag run to repair checklist arithmetic. Two further grounds fall in
-the same direction and would each be enough on their own, the ported headers being
-under [model/](../../../model/)'s `-text` tree where a rewrite risks the line-ending
-sweep K-57 names, and `vos/env.py`'s id being a directory's name rather than a
-sentence's figure. A pin is never arithmetic to recompute; it is always the record of
-something somebody did at a commit, which is the shape K-76 declines to repair one
-artifact over.
-
-**Fail-closed at every reading.** An absent record, a pin table this parse cannot
-locate by its own heading and column names, a table with no rows, an index carrying
-no gitlink at all, and a model window the counts group has not read are each one
-finding that stops or narrows the comparison, because each of them would otherwise
-leave this rule reporting that every pin of none agrees. The gitlink's id lives in
-the index whether or not the submodule is checked out, which is why the index is the
-instrument: most checkouts here have `upstream/` unpopulated, and this rule decides
-exactly the same thing on one of those.
-
-**The residues are declared and are held in both directions.** A commit id written
-beside an upstream's name that is *not* that upstream's pin is exactly what a reader
-would misread, so it is named here with what it actually is. The table asks for a
-decision the way [marks.py](marks.py)'s kinds do, and an entry that suppresses
-nothing goes the way a ruling nothing exercises does. It is keyed by the id and not
-by the pin beside it, because what a residue declares is what that commit *is*, which
-does not change with whichever name a sentence happens to put in front of it. The
-alternative to declaring them is narrowing the shape until they fall out of it, and
-that trade runs the wrong way: a token of seven or more hexadecimal digits is what an
-abbreviated commit looks like, so any narrowing tight enough to exclude a decimal
-figure would one day stop reading a pin whose own id took that shape, silently, where
-a residue is loud and asks for a decision.
-
-Historical measurements and a superproject's nested dependencies have narrower
-residues, keyed by both file and exact id. Their meaning belongs to the recorded
-reading, so the same id in another file remains a restatement to check. Each entry
-carries that reading's reason and must still name a scanned site outside the pin
-table. The current table is held against the index without either kind of exception.
-
-**What this rule cannot attribute it does not decide.** An id is paired with the last
-upstream *named on its own line*, so an id standing on a line that names none is read
-by nothing here: the RTL delta's `Read at ...` sentence and its second table's
-display-name cell are both such sites today. Attribution by nearness across lines is
-the obvious alternative and is worse, that same table putting one upstream's row four
-lines above another upstream's cell, so it would pair ids with the wrong pins rather
-than leave them unpaired. Membership against the whole pin set was the other
-candidate and is worse again: this repository writes many commits of other trees
-beside its own, a branch head, an embedded revision, an emulator's own revision, and
-holding every id-shaped token against the pins would demand a declaration for each of
-them and grow one per completion note. So the residue is stated rather than closed.
-
-**What this cannot decide is whether the terms at the pin were read correctly**, or
-read at all. That is the same residue every group here declares: the id is checked
-for agreement, and what somebody found when they opened the licence file at it is a
-person's to know.
-
-K-116 holds **a commit a tool consumes rather than a sentence restates.**
-The width-transform registry binds the imported core's gitlink it was derived through,
-and K-81 does not read that binding, the registry's `"pin"` naming no upstream on its
-line. `rtl_width.stage` compares it with the populated imported core only when a guest
-elaboration runs, which no hosted gate does, so without this rule a gitlink moved
-without re-deriving the registry passes every hosted gate. This rule holds the recorded
-commit, whole, against the index's gitlink, which every checkout carries populated or
-not. The device-register package's recorded Mocha revision is the same kind of binding
-inside a generated artifact, so K-88's row for that package holds it, and the row keeps
-the package out of K-81's window.
-**The sites are enumerated in code and read fail-closed**: an artifact missing from the
-index, a record its owner's own reader refuses, and a gitlink the index does not carry
-are each a finding, so the rule owes the floors group no member.
-**Reported and never repaired**: the repair re-derives the registry's source identities
-from a checkout at the gitlink and is never a token substitution.
-
-K-118 binds structured authored licence-review identities to the dependency artifacts
-that own installed releases. The development-tools section is generated from those
-identities and its authored Markdown template. A changed dependency refuses before
-repair; regeneration can reproduce an existing reading but never advance it. The
-shared library also retains the hook-repository and pip-constraint censuses, so new
-code installed by those routes still requires a review record. Structured action
-reviews generate pinned licence URLs and are held against every parsed workflow
-and reachable composite-action reference in both directions. Local actions resolve
-to tracked authored composite metadata; a secondary-checkout alias requires an
-earlier same-repository checkout at the dispatching revision. Missing, ambiguous
-or unsafe local paths and cycles refuse the census. Licence evidence and all prose
-outside the generated section retain their own owners.
-
+- `K-81` checks upstream pins in two hops (via [vos/pins.py](../pins.py)):
+  1. The pin table in [THIRD-PARTY.md](../../../THIRD-PARTY.md) must match the Git
+     index's `160000` gitlinks in both directions.
+  2. Every commit-ID restatement on a line naming an upstream across tracked files
+     (excluding `model/` outside the citation window and generated artifacts) must match
+     that upstream's pin in [THIRD-PARTY.md](../../../THIRD-PARTY.md) or be declared in
+     `RESIDUE` or `SITE_RESIDUE` (which are also checked for liveness).
+  Neither hop is auto-repaired by `--fix` because advancing a pin requires a license
+  review at the new commit.
+- `K-116` checks that tool-consumed RTL source bindings (`BINDINGS`, such as
+  [tools/rtl-width-transforms.json](../../rtl-width-transforms.json)) record the exact commit
+  that the Git index carries for their imported core gitlink.
+- `K-118` checks development-tool license reviews and their generated view in
+  [THIRD-PARTY.md](../../../THIRD-PARTY.md) against [tools/development-tools.json](../../development-tools.json)
+  and the repository's lockfiles and workflows (via [vos/devtools.py](../devtools.py)),
+  regenerating the view under `--fix` when the reviewed identities already match.
 """
 
 import zlib
@@ -153,28 +30,12 @@ from vos.checks import generated
 from vos.checks.interims import archive_needles
 from vos.report import apart
 
-# [Context](__init__.py#Context) lives in this package, which imports this module in turn.
-# Guarded, so the annotation below costs no import at run time: under PEP 649 an
-# annotation is not evaluated unless something asks for it, and nothing here does.
 if TYPE_CHECKING:
     from . import Context
 
 HEADING = "=== pins: every upstream pin against the artifact that owns it ==="
 
-# Every id this repository writes beside an upstream's name that is not that
-# upstream's pin, with what it actually is. Each one is a reading trap on its face:
-# a reader meeting it next to the project's name has every reason to take it for the
-# pin, which is why it is named here rather than excluded by a shape.
-#
-# The first is the deliberate residue this rule declines to own. THIRD-PARTY.md's
-# vendored table states the commit `model/` was taken from, and no gitlink owns it,
-# because a vendored tree has none: the tree is tracked here whole and its baseline
-# is a fact about how it was made rather than a pointer git resolves. That is the
-# shape K-71 already declines to hold for the corpus manifest's edition, and the
-# precedent is followed rather than a second owner invented for it. What the pin
-# table records for `upstream/sail-riscv` is a different figure with a different
-# meaning, the comparison reference the curation is read against, whose last
-# semantic reconciliation the completion log records, and that one is held.
+# Commit IDs appearing alongside an upstream's name that are not that upstream's gitlink pin.
 RESIDUE: dict[str, str] = {
     "8f91355e": "the commit the curated model was vendored from, which no gitlink "
                 "owns because a vendored tree has none",
@@ -503,43 +364,11 @@ def _dev_tools(ctx: Context) -> None:
 
 
 def _sources(ctx: Context, named: list[tuple[str, str, pins_mod.Pin]]) -> Iterator[tuple[str, str, list[bool]]]:
-    """Indexed source and exact pin-candidate lines, with their fence masks.
+    """Yield `(rel_path, text, fence_mask)` for every tracked file in `K-81`'s scan window.
 
-    **The window is the git index**, because a pin is restated wherever somebody
-    argues from one and a list of places to look would be a membership nobody
-    maintains: the plan's completion notes, the RTL delta's provenance table, a Sail
-    header, a build tree's name in `vos/env.py`. So the tool walks what git tracks
-    rather than a set some sentence points it at, and the only way for a site to
-    escape is for it to leave the repository.
-
-    The tracked files arrive by three routes, and the routes are about *reading* them
-    once rather than about which are in scope. A **document** comes from the corpus,
-    which already holds its lines and the fence mask over them, so the mask is used
-    rather than recomputed here. **`model/`** comes through the citation window the
-    counts group already read, handed on rather than opened a second time, which is
-    the duplication [vos/](..) exists to refuse. Everything else is read here, and
-    carries no mask, a fence being a thing Markdown does and these files are not.
-
-    That leaves two parts of the index unread and both are worth stating. `model/`
-    *outside* the citation window is vendored upstream at its own revisions,
-    `dependencies/` most of all, and a commit recorded there is somebody else's
-    provenance rather than a pin taken here. Holding an upstream's own recorded commits
-    against this repository's licence record is not a claim anyone should make, which is
-    the ground `corpus.is_model_citation_path` already gives for the same boundary.
-
-    The second is **the generated artifacts**, and the ground is this rule's own subject
-    rather than a cost. What it holds is a *restatement*: a person naming an upstream and
-    writing a commit beside it, which drifts because a person wrote it. A generated
-    artifact restates nothing, its content being a function of its owners and held
-    byte-for-byte by K-88, so an object-id-shaped token inside one is not a
-    transcription and there is no edit for a finding to ask for. The bundle makes that
-    concrete: it is one line of four megabytes carrying every Sail bit literal in the
-    model, so `0b00000` reads as seven hex digits on a line that also names an upstream,
-    and the rule reported thousands of restatements nobody wrote.
-
-    A file that will not read as text is skipped rather than reported: what every
-    tracked file is made of is the glyphs group's question, and pricing one
-    unreadable file under both would report one defect twice.
+    Reads Markdown documents from `ctx.corpus`, curated `model/` files from
+    `ctx.shared["citation_window"]`, and remaining tracked text/gzip-evidence files
+    from disk (excluding `model/` outside the citation window and generated artifacts).
     """
     for doc in ctx.corpus.docs:
         yield doc.name, doc.raw, doc.fenced

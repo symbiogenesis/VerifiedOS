@@ -1,91 +1,23 @@
 # SPDX-License-Identifier: Apache-2.0
-"""consttab: the published constants two artifacts each state, against each other.
+"""Check published cryptographic constants paired between Gallina proofs and the Sail model (`K-107`).
 
-Three files under [proofs/](../../../proofs/) name a file of the curated model as
-transcribing what they themselves derive, which is narrower than naming one at all:
-[MemoryPlan.v](../../../proofs/MemoryPlan.v) names two as composition-time declarations
-it takes as inputs and is not one of the three. What the three mean by it each time is
-that a table some standard publishes is transcribed once in Sail and derived a second
-time in Gallina, so that a defect in either is a disagreement with the standard rather
-than a disagreement between two things this repository wrote.
-[Keccak.v](../../../proofs/Keccak.v) says it of
-[the permutation](../../../model/model/extensions/keccak/keccak_p1600.sail),
-[AesGcm.v](../../../proofs/AesGcm.v) of
-[the crypto extension's shared types](../../../model/model/extensions/K/types_kext.sail),
-and [Sha256.v](../../../proofs/Sha256.v) of the vector-crypto unit whose sigma amounts
-sit one file over in
-[its utilities](../../../model/model/extensions/vector_crypto/zvk_utils.sail).
+Three proof files derive or state published standard tables that the curated Sail model
+transcribes independently:
+- [proofs/AesGcm.v](../../../proofs/AesGcm.v) and
+  [model/model/extensions/K/types_kext.sail](../../../model/model/extensions/K/types_kext.sail)
+  (forward S-box, round constants, inverse MixColumns coefficients).
+- [proofs/Keccak.v](../../../proofs/Keccak.v) and
+  [model/model/extensions/keccak/keccak_p1600.sail](../../../model/model/extensions/keccak/keccak_p1600.sail)
+  (Keccak-f round constants and rho rotation offsets).
+- [proofs/Sha256.v](../../../proofs/Sha256.v) and
+  [model/model/extensions/vector_crypto/zvk_utils.sail](../../../model/model/extensions/vector_crypto/zvk_utils.sail)
+  (SHA-256 sigma rotation amounts at `SEW = 32`).
 
-**A discipline with no holder is a sentence**, which is K-91's ground one object over.
-That rule holds the three permutation *answers* both Keccak files quote and reaches no
-table. The *tables those answers are computed from* are what this rule holds, and the
-tree names that gap twice: the completion log's M3.4d block records the AES pair as a
-finding owing a checker id, and Sha256.v writes at its own fourth reading that no rule
-reads the two together. This rule is the id the first of those asks for, and its subject
-is the tables.
-
-**The subject is the constants and never the functions.** Sha256.v declines its pair
-because the thing transcribed on both sides is four *functions*, and no text comparison
-decides that two functions agree. What this rule takes out of that pair is the ten
-rotation amounts the model spells at its own SEW-32 arms, which is the part text can
-decide; the functions stay unheld and the file's own note stays true.
-
-**At this gate the tables and the answers are independent transcriptions.**
-`check.py` runs on the host with no prover and no Sail, so nothing here proves an
-`Example` or runs a harness: what connects a file's tables to its answers is that file's
-own gate, and neither gate runs when this rule does. That is the whole of what this rule
-adds over the Keccak rows' other holders, and it is worth the rows: the guest gates run
-by hand before anything lands and CI runs the host wave at every push, so on the day a
-table moves on one side alone, this is what is running.
-
-**Neither side is normalized into the other's shape by hand**, on K-91's ground. Each
-row names how each side is read, and the row is what makes a rewrite that preserves the
-constants a non-finding: a Sail vector literal is `dec`-ordered and both tables read
-that way are written so that the written order is the index order, each with the
-subtracting accessor beside it that makes it true; a `match` is read by its arm keys
-rather than by its written order; an `@` concatenation is most-significant-first, so it
-is read backwards; a Gallina `Example` states its list in the standard's own order and
-radix. Both sides are decoded to integers and compared as numbers, so a byte written
-`0x01` against a word written `0x00000001` is not a finding and a byte that moved is.
-
-**What is a row is decided by there being two statements**, never by there being one
-worth checking. Four constants of this shape were considered and are not rows, each for
-a reason about the model's side. The model's `aes_sbox_inv_table` is a table AesGcm.v
-states no published counterpart for. Its *forward* MixColumns coefficients are two
-literals and two implicit ones, `gfmul(so, 0x3) @ so @ so @ gfmul(so, 0x2)`, so half the
-row has nothing to read where the inverse spells all four. The field modulus's low byte
-is a literal inside `xt2`'s conditional rather than a named constant, its value being
-what the S-box row already ranges over. And the GHASH reduction byte AesGcm.v names
-`sail_reduction` for the model is written inside two instruction clauses of
-`zvkg_insts.sail` rather than as a definition, so locating it means an expression
-pattern where every row here reads a name.
-
-**Reaching into `proofs/` and `model/` costs no corpus-window change**, on the precedent
-K-42 and K-91 both set: this checker's corpus is the git index and is what the
-total-class rules are stated over, where a rule naming its own paths reads them itself.
-Membership is taken off the corpus's own tracked list rather than a `git cat-file` per
-path, so the files cost no subprocess in the green case, and the index is consulted only
-to word a failure. Membership is by name accordingly, the rows held in this module, so
-nothing about a pair can quietly narrow under an edit to either file, and the rule owes
-the floors group no member count on the ground K-83 and K-101 each state: a site
-that has stopped matching reports here, on the day it stops.
-
-Fail-closed in seven places on K-75's ground. A file the index does not carry
-is outside this checker's corpus and every claim about it is vacuous; a file the index
-carries and the working tree does not has no bytes to read; a statement this module
-cannot locate by name on either side, or finds only under a `Fail` or a `Succeed` that
-keeps nothing it states, is a finding rather than a pair dropped out of the
-comparison; a side that does not decode to the row's own size is the same; a `match`
-whose arms are not the keys this module reads them by is a form it does not recognise
-and asks for a person about; a row naming no site or no values would decide nothing, so
-it is refused where it is written; and the row table reading empty would leave the rule
-agreeing with every one of no constants, so its size is a floor stated here rather than
-a count taken from a document.
-
-**`--fix` does not repair it**, on the ground K-89, K-91 and the co-read ledger already
-state: either side may be the one that is right, the interesting fact is which file
-moved, and a published constant rewritten by the wave that was supposed to report it is
-a differential pair repaired into agreement with itself.
+Each `Pair` in `PAIRS` specifies how both sides encode the constant (`gread` and `sread`)
+and its expected element count (`size`). `K-107` decodes both sides to integer sequences
+and verifies that they agree, failing closed on missing/untracked files, unparsed or
+`Fail`/`Succeed`-decorated definitions, unrecognized `match` arm key orders, or size
+mismatches. Disagreements are never auto-repaired by `--fix`.
 """
 
 import re
@@ -95,7 +27,6 @@ from typing import TYPE_CHECKING, TypedDict
 
 from vos.proofs import VOID, decorations
 
-# [Context](__init__.py#Context) lives in this package, which imports this module in turn.
 if TYPE_CHECKING:
     from . import Context
 
@@ -110,16 +41,7 @@ ZVK_UTILS = "model/model/extensions/vector_crypto/zvk_utils.sail"
 
 
 class Pair(TypedDict):
-    """One constant two artifacts state, and how each side states it.
-
-    `gread` and `sread` are the readings and not the files: two rows over one file may
-    be read differently and two rows over two files may be read the same way. `sites`
-    is the model's own names in the order this row reads them, which is the row's and
-    not the file's: the four sigma functions are written in the model in one order and
-    grouped in the Gallina list in another, and the row is where that correspondence is
-    stated. `size` is how many integers the constant is, held on both sides so that a
-    truncated list and a truncated table are findings rather than a shorter comparison.
-    """
+    """Specification of a paired constant across Gallina and Sail (`PAIRS`)."""
 
     what: str
     gallina: str
@@ -131,8 +53,7 @@ class Pair(TypedDict):
     size: int
 
 
-# Every pair, each named by what it is of. Held here rather than located by a pattern,
-# so the set cannot narrow under an edit to either transcription.
+# Paired constant tables checked by K-107.
 PAIRS: list[Pair] = [
     {"what": "the AES forward S-box",
      "gallina": AESGCM, "name": "the_derived_sbox_is_the_published_table",
@@ -161,8 +82,7 @@ PAIRS: list[Pair] = [
      "gread": "example",
      "sail": KECCAK_SAIL, "sites": ("keccak_rho",), "sread": "grid", "size": 25},
 
-    # The model groups the four sigmas as sigma-0, sigma-1, Sigma-0, Sigma-1 and the
-    # Gallina list groups them the other way up, so the site order here is the list's.
+    # `sites` orders the four sigma functions to match `Sha256.v`'s `rotation_amounts` list.
     {"what": "the SHA-256 sigma rotation amounts",
      "gallina": SHA256_V, "name": "rotation_amounts", "gread": "definition",
      "sail": ZVK_UTILS,
@@ -170,57 +90,35 @@ PAIRS: list[Pair] = [
      "sread": "rotates", "size": 10},
 ]
 
-# how many bytes a big-endian group of the `be8` reading composes
+# Byte count per big-endian integer in `be8` readings.
 BE_GROUP = 8
 
-# the element width the SEW-keyed arm of a `rotates` site is read at
+# Element width for the SEW-keyed arm of `rotates` sites.
 SEW = 32
 
-# A numeric literal on either side: a hexadecimal one first, so that `0x01` is one
-# literal rather than a zero and a one.
+# Hexadecimal or decimal integer literal.
 _LIT_RE = re.compile(r"0[xX]([0-9A-Fa-f]+)|(?<![\w.])(\d+)(?![\w.])")
 
-# The statement's own `=`, which is neither `=>` nor `:=` nor a comparison. An
-# `Example`'s left-hand side may itself contain a `fun _ => _`, so the first `=` in the
-# body is not reliably the one the answer follows.
+# Standalone `=` (excluding `=>`, `:=`, and comparisons) introducing an `Example`'s RHS.
 _ASSIGN_RE = re.compile(r"(?<![:<>=!])=(?![=>])")
 
-# A `Definition`'s own `:=`, which is the same split one token over.
+# `:=` introducing a `Definition`'s RHS.
 _DEFINE_RE = re.compile(r":=")
 
-# What a Coq identifier continues into, so that a statement whose name merely starts with
-# a row's is not the statement the row names.
+# Characters that continue a Coq identifier.
 _CONTINUES_RE = re.compile(r"[\w']")
 
-# Where a Gallina statement stops: its own full stop, the first period a space or the end
-# follows outside a comment and a string. A list of the constructs that may come next is
-# what this replaces, and it read a `Proof using` line or a declaration under `#[local]`
-# as more of the table, their numerals with it. The comments inside the statement are
-# cut out on the way, so a numeral in one is no value either.
+# Comment delimiters, string quotes, and sentence-ending periods in Gallina.
 _STATEMENT_TOKEN_RE = re.compile(r'\(\*|\*\)|"|\.(?=\s|$)')
 
-# What may stand before a statement's keyword, on its line or above it back to the full
-# stop of the sentence before, blank lines and comments between, is the shared lexer's
-# decoration grammar (vos/proofs.py): quoted and legacy attributes and a proof's
-# bullets, which leave the statement what it is, and the control flags. `Fail` and
-# `Succeed` keep nothing the statement states, so a row whose statement stands under
-# either is refused by name rather than read; one written before a bullet, a brace or a
-# goal selector is that one's, and the statement after it is read.
-
-# A comment's delimiters and a string's, for the blanked text a statement's head and its
-# decorations are found in.
+# Comment and string delimiters used when blanking Gallina text.
 _LEXEME_RE = re.compile(r'\(\*|\*\)|"')
 
-# One arm of a Sail `match` whose value is a literal, and one whose value is a nested
-# `match`. A wildcard arm is a key like any other here: the model writes the last arm of
-# a total match as `_`, so the keys are checked as a sequence rather than as a set.
+# Literal-valued and nested-match arms in a Sail `match` expression.
 _ARM_RE = re.compile(r"(0[xX][0-9A-Fa-f]+|\d+|_)\s*=>\s*(0[xX][0-9A-Fa-f]+|\d+)\b")
 _NESTED_RE = re.compile(r"(0[xX][0-9A-Fa-f]+|\d+|_)\s*=>\s*match\s+\w+\s*\{")
 
-# One arm of a `match SEW`, and one rotation inside it. `>>>` is a rotate and `>>` is a
-# shift, and the model spells them apart: the ten amounts this rule reads are the
-# rotations, and the two shifts the lower-case sigmas also carry are not in the Gallina
-# list either.
+# SEW arm header and `>>>` rotation operator (distinct from `>>` shifts) in Sail.
 _SEW_ARM_RE = re.compile(r"(?m)^\s*(\d+)\s*=>")
 _ROTATE_RE = re.compile(r">>>\s*(\d+)")
 
@@ -245,12 +143,7 @@ def _braced(text: str, opened: int) -> str | None:
 
 
 def _keys_in_order(keys: list[str], size: int) -> bool:
-    """Whether a match's arm keys are `0` to `size - 2` and then a wildcard.
-
-    The model writes a total match over a finite range that way throughout, so this is
-    the one form read: anything else is a form this rule does not recognise and reports
-    rather than reads, on `vos/provenance.py`'s ground for the same choice.
-    """
+    """Return whether `keys` are `0` through `size - 2` followed by `_` (see [vos/provenance.py](../provenance.py))."""
     if len(keys) != size or keys[-1] != "_":
         return False
     return all(key != "_" and int(key, 0) == i for i, key in enumerate(keys[:-1]))
@@ -270,10 +163,7 @@ def _spaces(span: str) -> str:
 
 
 def _blanked(raw: str) -> str:
-    """The text with every comment blanked to spaces, nesting and all, and every string's
-    inside with it, the quotes, line breaks and so the offsets kept: a head or a flag a
-    comment or a string spells opens nothing, and a full stop in one ends nothing. A
-    string inside a comment is read whole, as Rocq's lexer reads it."""
+    """Replace comments (including nested comments) and string contents with spaces while preserving offsets and newlines."""
     pieces: list[str] = []
     at = depth = 0
     quoted = False
@@ -305,10 +195,7 @@ def _blanked(raw: str) -> str:
 
 
 def _decorations(lead: str, spaced: bool = False) -> list[str] | None:
-    """The decorations of `lead` that reach what follows it (vos/proofs.py), by their
-    keywords, `#[` for an attribute and a bullet as itself, or None where it carries
-    anything else. An empty lead is no decoration at all, and a spaced one may carry
-    blank space before and between them."""
+    """Parse Gallina statement decorations ([vos/proofs.py](../proofs.py)) from `lead`, or return `None` if unrecognized text remains."""
     found, at = decorations(lead, len(lead) - len(lead.lstrip()) if spaced else 0)
     if at < len(lead):
         return None
@@ -317,11 +204,7 @@ def _decorations(lead: str, spaced: bool = False) -> list[str] | None:
 
 
 def _lead(blank: str, opened: int) -> list[str] | None:
-    """The decorations before the statement whose keyword opens at `opened` in the
-    blanked text: on its own line, and above it back to the full stop of the sentence
-    before where nothing else stands there, read as the one run they are, so a flag above
-    a bullet on the statement's line is the bullet's; or None where its own line opens
-    with something else and the keyword begins no statement."""
+    """Return the decorations preceding the statement keyword at `opened`, or `None` if non-decoration text precedes it on the line."""
     start = blank.rfind("\n", 0, opened) + 1
     flags = _decorations(blank[start:opened])
     if flags is None:
@@ -334,8 +217,7 @@ def _lead(blank: str, opened: int) -> list[str] | None:
 
 
 def _statement(raw: str, opened: int) -> str:
-    """The sentence opening at `opened`, through its own full stop, comments cut out. A
-    statement the file never ends runs to the end of the file."""
+    """Extract the Gallina sentence starting at `opened` through its terminating period, stripping comments."""
     kept: list[str] = []
     at = opened
     depth = 0
@@ -362,19 +244,11 @@ def _statement(raw: str, opened: int) -> str:
 
 
 def _gallina_body(raw: str, pair: Pair, keyword: str) -> tuple[str | None, str]:
-    """The text of one named Gallina statement, or why it could not be located.
+    """Locate a named Gallina statement and return `(sentence, error)`.
 
-    The name is matched whole. A Coq identifier continues into a letter, a digit, an
-    underscore or a prime, so a search for the name as a prefix locates a statement the
-    row does not name: the row's own statement renamed to a longer one then reads green
-    off its replacement, which is the one thing this rule promises to report. The
-    boundary is checked at each hit rather than written into a pattern, a `(?m)^` scan
-    of these files costing more than the whole of the rest of the rule.
-
-    The keyword opens a statement at column zero or after decorations alone, which are
-    read past, and never inside a comment or a string; under `Fail` or `Succeed`, on its
-    line or above it, the file keeps nothing the statement states, and that is refused
-    by name rather than read as the table.
+    Matches `pair['name']` as a complete identifier, allows leading decorations from
+    [vos/proofs.py](../proofs.py), and rejects statements decorated with `Fail` or
+    `Succeed`.
     """
     head = f"{keyword} {pair['name']}"
     blank = _blanked(raw)

@@ -1,56 +1,26 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: Apache-2.0
-"""Run the profile-freeze measurement instrument against the contract that defines it.
+"""Run the profile-freeze measurement instrument against its contract.
 
 R-15-014a's second freeze act is a closed delta of nine items, six of which are
-re-derived from measurement against generated output that does not exist until a
-backend and a composed image do (R-18-003c).
-docs/implementation/contracts/freeze-measurement.md fixes what is measured, against what, and which
-number separates a win from noise; this tool is the instrument it specifies.
+re-derived from measurement against generated output (R-18-003c).
+[docs/implementation/contracts/freeze-measurement.md](../../docs/implementation/contracts/freeze-measurement.md)
+specifies the corpus, composition recipe, provenance join (§4), region classes and
+refusal reasons, nine decisions, report format, and thirteen CI predicates (§9).
 
-**It cannot be run end to end and it says so.** §4's join takes three inputs, the
-provenance sidecar stream from S1 and S4, the link map from S5, and the encoded
-image from S7. Two of the three have a producer since M1.4-prime, `run.py model
-freeze-emit` writing them; the sidecar stream is M1.2's backend and does not exist.
-So no member of §2's corpus exists, no byte or cycle column is a measurement, and no
-decision carries a verdict.
+The §4 join takes three input streams: the provenance sidecar stream from S1 and S4,
+the link map from S5, and the encoded image from S7. Any stream not present in the
+working build tree is reported as absent, and every unmeasured cell prints the symbol
+it waits on. Unless `--no-fixture` is passed, a synthetic fixture exercises the §4 join
+with every resulting cell marked `[fixture]` so no §9 predicate treats it as a real
+measurement.
 
-**Absence here is read off the build tree and the build tree is ignored output**, so a
-stream with a producer reads absent until that producer has been run in this checkout.
-The verdict line therefore states what *this* run found rather than what the repository
-has landed, and the count in it moves with the working directory, which is what the
-un-quarantine condition in this directory's README is stated against.
-
-What runs today is the rest of it, in the shape `bank-dse.py` beside it established
-at M0.17: the corpus, the recipe, the ordered act, the region classes and their
-enumerated refusals, the report's two renderings, and the thirteen CI predicates of §9
-as predicates over the record, each able to reject a report and each naming what it
-rejected. Every column whose operand does not exist prints **the symbol it waits
-on** rather than a number or a blank, and the arithmetic the encoding format already
-fixes is computed rather than deferred: the slot width's derivation, the hit rate
-each declared bundle geometry needs to clear the derived bar, the dictionary
-headroom each candidate N owes, and the site count at which outlining begins to pay
-under each call form.
-
-A fixture stands in for whatever the join does not find, so that the join is exercised
-rather than merely written. Every cell it produces is marked `[fixture]`, no predicate of §9
-treats a fixture cell as a measurement, and the verdict line says the report is not
-a freeze.
-
-Exit 0 where the instrument agrees with its contract, 1 on an instrument error: a
-contract that will not parse, an enumeration this tool cannot read, or a membership
-the two do not share. It may be run from anywhere: the repository root is found from
-this file, never from the working directory.
+Exit 0 when the instrument agrees with its contract, 1 on an instrument or contract
+disagreement.
 """
 
 # ruff: noqa: N999
-# The one rule this file has to differ on, and the reason: every command-line tool in
-# this repository is named with a hyphen, and every one of them sat in `tools/`, which
-# is not a package, so the name was never a module name. The quarantine is a package,
-# because K-83 holds an import of it and an import needs something to name, so ruff now
-# reads this script's filename as a module name and refuses the hyphen. The alternative
-# was to rename the command, which would be the tool's user-facing name changed to suit
-# a lint rule about a module nothing imports.
+# Allow hyphenated CLI script name inside the `quarantine` package.
 
 import argparse
 import json
@@ -58,18 +28,13 @@ import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 
-# The tools import `vos` without being installed, so each puts `tools/` on the path
-# first; a tool inside the quarantine puts the directory *above* its own there, which
-# is the one that carries both `vos` and this package. Every import below this line is
-# deliberately not at the top.
+# Put `tools/` on `sys.path` so both `vos` and `quarantine` can be imported directly.
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from quarantine import freeze
 from vos.corpus import find_root
 
-# The region lengths the outlining break-even is tabulated over. One instruction can
-# never pay and eight is already well past every idiom RC-1 and RC-2 name, so the table
-# is short on purpose: what it shows is where the inequality turns, not a survey.
+# Region lengths (in instructions) tabulated for the outlining break-even summary.
 _REGION_LENGTHS = range(1, 9)
 
 
@@ -248,13 +213,8 @@ def report(root: Path, fixture: bool, overrides: dict[str, Path | None]) -> Run:
         return Run(1, [f"FAIL: {freeze.CONTRACT} is not in the repository, so this "
                        "instrument has no specification to run against"])
 
-    # K-77 is the standing hold and reports the same disagreement on every run of this
-    # directory's own gate;
-    # this is the tool refusing to report about a set that is not its contract's,
-    # because a report block nobody writes and an instrument measuring what nothing
-    # asked for are both instrument errors rather than pending measurements. The
-    # comparison itself lives beside the parse, so the two callers cannot come to ask
-    # different questions of one document.
+    # Refuse to produce a report when the instrument's enumerations disagree with
+    # the contract (the same relation checked by K-77).
     findings = freeze.disagreements(contract)
     if findings:
         out.append(f"FAIL: the instrument and {freeze.CONTRACT} enumerate different "
@@ -354,14 +314,7 @@ def verdict_sentence(record: freeze.Record, inputs: freeze.Inputs,
     absent = inputs.absent_streams
     source = ("a fixture standing in for them" if inputs.from_fixture
               else "nothing standing in for them")
-    # The producers are read off §4's own input table rather than written out here.
-    # They were written out, back when all three were absent and the sentence could name
-    # all three at once; M1.4-prime landing two of them made that clause a claim about a
-    # state the run was no longer in, which is the shape of stale statement no rule
-    # reads and every reader believes. They are named as the schema's producers rather
-    # than as who *owes* them for the same reason one step on: a stream is absent here
-    # because nothing has written it into this checkout's ignored build tree, which says
-    # nothing about whether its producer has landed.
+    # Collect unique producers for streams absent in the current working tree.
     owed = ", ".join(dict.fromkeys(
         producer for _n, _p, _w, producer, stream in freeze.INPUTS
         if stream in absent))

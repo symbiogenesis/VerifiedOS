@@ -1,78 +1,16 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: Apache-2.0
-"""The RTL lane: the authored sources, the cross-check against the model, and the
-elaboration the absence contract wants.
+"""RTL lane: authored/generated SystemVerilog lint, model cross-check, and absence-contract elaboration.
 
-Six loops, and the first two answer on the host:
-
-    provenance  instant  the synthesis-configuration record, parsed and printed
-    filelist    instant  the curated arm's elaboration file list, and the verdict on
-                         every authored source substituted into it
-    lint        ~1 s     Verilator over this repository's own sources in rtl/, alone
-    vectors     ~2 min   the model's own answers about the capability format, as text
-    crosscheck  ~2 min   and the authored package required to reproduce every line
-    elaborate   ~2 min   the imported core at the curated configuration and at the
-                         stock CHERI one, and the difference between the two
-
-`elaborate` is the imported-core half of the absence contract's day-one procedure:
-elaborate the core at its intended synthesis configuration, enumerate what the
-elaborator instantiated, and hold that against the stock configuration so that every
-structure the disabling parameters remove is named rather than asserted. What it prints
-is what the elaborator reports; what removes each structure is
-[rtl/synthesis-provenance.md](../../../rtl/synthesis-provenance.md)'s to say, and rule K-76
-holds the record against the configuration package so the two cannot drift.
-
-**A curation replaces imported sources as well as re-valuing parameters, and the two
-are told apart rather than summed.** `SUBSTITUTIONS` is the declaration that one
-authored source stands where the imported manifest names one or more imported ones, and
-it reaches the curated arm alone: the baseline stays the imported tree at its own stock
-configuration, because a baseline carrying authored sources would make the difference a
-statement about two curations rather than about the parameters. The diff that follows is
-therefore partitioned rather than signed. A kind the curated arm instantiates and the
-baseline does not is an **introduction** where an authored source in the file list
-declares that module and a **finding** where none does, which is the distinction an
-unpartitioned diff cannot make and the reason it failed on every authored replacement.
-A kind the baseline instantiates and the curated arm does not is the parameters' own
-only where no replaced imported source declared it; where one did, it is the
-substitution's and is reported apart, so the record's *Elaborated result* column keeps
-meaning what it says. The attribution is by **direct declaration**: a module a replaced
-file instantiated but a third imported file declares still reads as parameter-removed,
-and the answer to that is a row naming that file too rather than a cleverer reader.
-
-`crosscheck` is the other half of the same discipline pointed at the authored package
-rather than at the imported core, and its method is M2.1's rather than a new one: the
-curated model's own `prelude`, `core/xlen.sail`, `core/cap_format.sail` and
-`core/cap_common.sail` are compiled together with a generator that calls those
-functions and prints what they return, and the SystemVerilog is required to reproduce
-every line. The vectors cross as **text**, so no adapter sits between the two
-implementations, neither is compiled against the other's types, and a disagreement
-names a line a person can read on both sides. What it decides is agreement over the
-vectors it emitted; it is not the co-simulation gate, which is R2's and runs a core.
-
-**Tracked `rtl/` holds files this repository authored or generated.** Imported sources
-are reached through the gitlinks under `upstream/`, the OpenTitan primitives through the
-bring-up SoC's vendored tree. Its primitive interfaces are the ones the imported core
-connects, so no imported source is adapted to a primitive. The address map under `rtl/`
-is one of the generated sources: `lint` compiles it
-because whether a generator's output is *SystemVerilog* is a question K-88's byte
-comparison does not ask, and it is reported apart from the authored sources because the
-repair for a finding in one is an edit and in the other a regeneration.
-
-The last four run inside WSL, where Verilator and the Sail toolchain live:
-
-    python tools/run.py rtl provenance
-    python tools/run.py rtl lint
-    python tools/run.py rtl vectors
-    python tools/run.py rtl crosscheck
-    python tools/run.py rtl elaborate --background
-    python tools/run.py rtl wait
-
-`elaborate` writes its whole run to a log and prints only where the log is, and the last
-line it writes is `ALL_DONE`, so a caller waits on a marker instead of guessing at a
-sleep. Its lane is the one `vos/env.py` derives from the checkout, so two worktrees
-elaborating at once write two logs and share no working directory; `vectors` and
-`crosscheck` take a lane directory of their own for the same reason, a 60 MB vector
-file being exactly the kind of artifact two checkouts must not share.
+Subcommands:
+- `provenance`: parse and print [rtl/synthesis-provenance.md](../../../rtl/synthesis-provenance.md).
+- `filelist`: compose the curated elaboration file list and validate `SUBSTITUTIONS`.
+- `lint`: run Verilator `--lint-only` over standalone authored and generated sources in `rtl/`.
+- `widthcheck` / `device-regs` / `devicescheck`: verify scalar transport widths and standalone device wrappers.
+- `vectors` / `crosscheck`: emit capability-format vectors from Sail and replay them through
+  `rtl/vos_cheri_pkg.sv`.
+- `elaborate` / `wait`: elaborate the imported CVA6 core at the curated and stock configurations
+  and partition module differences into parameter-removed, displaced, and introduced structures.
 """
 
 import argparse
@@ -101,16 +39,12 @@ from vos import (
 )
 from vos.corpus import find_root
 
-# The release is built from its verified archive into a versioned project prefix.
-# Every RTL loop and the provisioner select that binary before consulting PATH.
+# Pinned Verilator release built into a versioned project prefix.
 VERILATOR_PIN = "5.054"
 VERILATOR_URL = ("https://github.com/verilator/verilator/archive/refs/tags/"
                  f"v{VERILATOR_PIN}.tar.gz")
 VERILATOR_SHA256 = "18658731b46922ef660bcb650be0aa503d751e5c17eb9d4644fdfabb11835198"
-# GitHub generates the tag archive, so the hash above authenticates GitHub's bytes.
-# The tag's own identity lets a regenerated archive be re-authenticated against the
-# tagged Git content instead of being trusted anew. Each row is a release's annotated
-# tag object and the commit it tags, keyed by version; a test holds the pin to a row.
+# Annotated tag object and tagged commit SHA-1 per Verilator release.
 VERILATOR_TAGS: dict[str, tuple[str, str]] = {
     "5.054": ("76d93f464fe9e24e4e407dcb565d95c7f71a82a9",
               "bbb60a403932a9f695cb6ff001ceb73de6ad9234"),
@@ -119,27 +53,11 @@ VERILATOR_HOW = "python tools/run.py rtl install"
 VERILATOR_PREREQUISITES = ("autoconf", "bison", "flex", "g++", "make", "help2man")
 VERILATOR_PACKAGES = (*VERILATOR_PREREQUISITES, "libfl-dev")
 
-# The capability format's own package, named apart from the set below because the
-# cross-check compiles this and nothing else: the harness replays vectors about the
-# format, and handing it a module about the address map would make that loop fail for
-# a reason that is not about the format.
 FORMAT_PACKAGE = "rtl/vos_cheri_pkg.sv"
-
-# The package the imported datapath reaches its format through, re-pointed at the
-# format package above. It declares the imported package's own name, `cva6_cheri_pkg`,
-# because the datapath reaches the format by that name and the substitution mechanism
-# renames nothing; its bodies are calls on `vos_cheri_pkg` and it imports nothing else,
-# which is what lets it sit in both declarations below.
 ADAPTER_PACKAGE = "rtl/vos_cva6_cheri_pkg.sv"
 WIDTH_PACKAGE = "rtl/vos_scalar_width_pkg.sv"
 
-# The authored sources, in the order a compiler must see them: the format package
-# declares the types the rest use. This is the set `lint` compiles **alone**, which is
-# what makes it the standalone-lintable set rather than the authored one: a source
-# written to stand in the imported datapath is compiled against the imported packages,
-# so it cannot lint by itself and does not belong here unless, like the adapter, it
-# imports only a package this set already carries. `SUBSTITUTIONS` below is the other
-# declaration, and the two are deliberately not one list.
+# Standalone-lintable authored sources in dependency order.
 AUTHORED: tuple[str, ...] = (
     FORMAT_PACKAGE,
     WIDTH_PACKAGE,
@@ -150,49 +68,19 @@ AUTHORED: tuple[str, ...] = (
     "rtl/vos_device_route.sv",
 )
 
-# The generated sources under `rtl/`, kept apart from the authored ones because the
-# repair for a finding differs: an authored source is edited and a generated one is
-# regenerated, K-88 holding its bytes against the composition it is a function of.
-# They are linted in the same run and ahead of the authored set, the map package
-# declaring the types and the constants the decode module imports.
+# Generated sources under `rtl/`, linted ahead of `AUTHORED`.
 GENERATED: tuple[str, ...] = (
     socmap.ARTIFACT,
     device_regs.ARTIFACT,
     device_registers.RTL_ARTIFACT,
 )
 
-# What `lint` compiles, in the order a compiler must see it.
 SOURCES: tuple[str, ...] = (*GENERATED, *AUTHORED)
 
 
 @dataclass(frozen=True)
 class Substitution:
-    """One authored source standing where the imported manifest names imported ones.
-
-    `imported` is one or more paths relative to the imported core, spelled as the
-    manifest spells them after its own repository variable, and `authored` is one path
-    relative to this repository's root. The authored source is placed at the first of
-    those lines and the rest are dropped, so the manifest's compile order decides where
-    a replacement sits rather than a second ordering nobody maintains.
-
-    Several imported sources to one authored source is the shape the real replacements
-    take, the flat-SRAM subsystem standing where a whole cache tree did, and it is also
-    what makes the elaboration diff able to attribute: every module kind a named
-    imported file declares is one the substitution displaced rather than one a parameter
-    removed.
-
-    `requires` is the authored sources the authored one imports, relative to this
-    repository's root and in the order a compiler must see them. The imported manifest
-    names none of them, so nothing places them unless the row does: each is placed
-    immediately ahead of the authored source at the line it replaces, once however many
-    rows require it, and one not in the checkout is a refusal like an absent authored
-    source. This is the ordinary shape rather than an edge, every source written
-    against the frozen format importing the format package.
-
-    **Nothing is copied out of the imported tree by any of this.** The authored file
-    lives in `rtl/`, the imported one stays behind its gitlink, and what this composes
-    is a list of paths across the two.
-    """
+    """An authored RTL source replacing one or more imported manifest entries in the curated arm."""
 
     imported: tuple[str, ...]
     authored: str
@@ -200,110 +88,50 @@ class Substitution:
 
     @property
     def placed(self) -> tuple[str, ...]:
-        """Every authored path this row puts in the file list, in compile order."""
+        """All authored paths placed into the file list, in compile order."""
         return (*self.requires, self.authored)
 
 
-# The imported package the adapter stands at, spelled as the manifest spells it.
 IMPORTED_FORMAT_PACKAGE = "core/include/cva6_cheri_pkg.sv"
 
-# The declared substitutions. The first row is R1b's first seam: the adapter stands
-# where the imported manifest names its capability package, so the datapath compiles
-# against the frozen format under the name it already uses. A package declares no
-# module, so this row is visible to no member of the partition below, which attributes
-# nothing on either side of it and says so when `filelist` takes it (F-225e); what the
-# row decides is whether the datapath compiles, and that is the elaboration's compile
-# and not the diff. The first row that displaces a module kind is the flat-SRAM one.
 SUBSTITUTIONS: tuple[Substitution, ...] = (
     Substitution(imported=(IMPORTED_FORMAT_PACKAGE,), authored=ADAPTER_PACKAGE,
                  requires=(FORMAT_PACKAGE, WIDTH_PACKAGE)),
 )
 
-# The cross-check's two halves. The generator is Sail because it has to call the
-# model's own functions, and the harness is SystemVerilog because it has to call the
-# package's; neither is a translation of the other and the only thing they share is
-# the line format each states in its own header.
 HARNESS = "tools/cheri-equiv/vos_cheri_vectors_tb.sv"
 HARNESS_TOP = "vos_cheri_vectors_tb"
-
-# The model files the generator is compiled against, in dependency order. Named
-# rather than taken from the model's own project file, because what is wanted here is
-# the capability format and its algebra alone: pulling the whole model in would
-# compile the decode surface, the CSR file and the memory interface to print a bounds
-# decode, and would make this loop fail for reasons that are not about the format.
 MODEL_SOURCES = rtl_vectors.SOURCES
-
-# The two texts a run compares, in the lane's own working directory. Their names are
-# fixed rather than passed, because the harness has to open them from inside
-# SystemVerilog and a plus-argument would be one more thing to keep spelled alike at
-# both ends.
 VECTORS = "vectors.txt"
 REPLAY = "replay.txt"
-
-# How many disagreements a run prints before it stops printing them. A defect in a
-# shared term disagrees on tens of thousands of lines and the first few say what it
-# is; the count is what says how far it reaches.
 SHOWN = 8
-
-# The harness's own count of the vectors it could not place, read out of what it
-# printed. Fail-closed: a line this cannot find is a refusal rather than a zero.
 UNHANDLED_RE = re.compile(r"(\d+) of an unknown kind")
 
-# The imported core, reached through its gitlink and never copied.
 CORE = "upstream/cva6-cheri"
 CORE_FLIST = "core/Flist.cva6"
 CORE_VAR = "${CVA6_REPO_DIR}"
-# The OpenTitan primitives come from the bring-up SoC's own vendored tree, the edition
-# Mocha integrates and signs the imported core off with, so the imported sources
-# compile against the primitive interfaces they were written for and none is adapted.
 PRIM_UPSTREAM = "upstream/mocha"
 PRIM = f"{PRIM_UPSTREAM}/hw/vendor/lowrisc_ip/ip"
 PRIM_ASSERTIONS = "prim/rtl/prim_assert.sv"
 
-# Three OpenTitan primitives the imported core instantiates that its own manifest does
-# not list, because the bring-up SoC supplies them from that vendored tree. Named here
-# rather than globbed, so that a primitive arriving under a new name is a failed
-# elaboration with a message rather than a silent change of what was elaborated.
 PRIM_PACKAGES: tuple[str, ...] = (
     "prim_generic/rtl/prim_ram_1p_pkg.sv",
     "prim/rtl/prim_cipher_pkg.sv",
     "prim/rtl/prim_util_pkg.sv",
 )
-
-# The primitive libraries the elaborator searches for the modules those sources
-# instantiate; the assertion header's own directory is also the include directory.
 PRIM_LIBRARIES: tuple[str, ...] = ("prim/rtl", "prim_generic/rtl")
 
-# The imported manifest names two trees this configuration does not reach: the
-# floating-point unit, which A-15 deletes, and the high-performance data cache, which
-# this configuration does not select. Both are submodules of the imported core that
-# nothing here initializes, so their lines are dropped from the file list rather than
-# fetched. A line dropped here is a file no configuration below instantiates.
+# Uninitialized upstream submodule trees not reached by the curated or baseline configuration.
 UNREACHED = re.compile(r"cvfpu|opene906|openc910|fpu_wrap|HPDCACHE_DIR|hpdcache")
 
-# The stock CHERI configuration, elaborated as the baseline the curated one is a
-# difference from. It is the imported tree's own, reached through the gitlink.
 STOCK_CONFIG = "core/include/cv64a6_imafdczcheri_sv39_config_pkg.sv"
 
-# The one edit made to that baseline before it is elaborated, and the reason it is made
-# rather than avoided. The stock configuration turns the floating-point extension on,
-# which instantiates a unit living in a submodule of the imported core that nothing here
-# initializes: the FPU is what A-15 deletes, so pinning an upstream in order to elaborate
-# what this profile removes would be a commitment taken to produce a baseline. The
-# consequence is stated wherever the difference is: **A-15 is evidenced by the parameter
-# and by the unit not being instantiated, and never by this diff**, because the baseline
-# does not instantiate it either. Every other row of the difference is a real one.
+# Disable RVF/RVD in the baseline so elaboration does not require the uninitialized `cvfpu` submodule (A-15).
 BASELINE_EDITS: tuple[tuple[str, str], ...] = (
     ("CVA6ConfigRVF = 1", "CVA6ConfigRVF = 0"),
     ("CVA6ConfigRVD = 1", "CVA6ConfigRVD = 0"),
 )
 
-# What a SystemVerilog source declares, read so that the diff's attribution is computed
-# from the files rather than copied into a table beside them. A `package` declaration is
-# deliberately not read: the elaborator's inventory counts MODULE nodes
-# and a package is not one, so a substituted package introduces no kind and is owed no
-# appearance in the netlist. Comments go first, both kinds, because a commented-out
-# module declaration is the one shape that would otherwise be read as a declaration.
 LINE_COMMENT_RE = re.compile(r"//[^\n]*")
 BLOCK_COMMENT_RE = re.compile(r"/\*.*?\*/", re.DOTALL)
 MODULE_DECL_RE = re.compile(r"^[ \t]*module[ \t]+([A-Za-z_]\w*)", re.MULTILINE)
@@ -312,12 +140,12 @@ MARKER = "ALL_DONE"
 
 
 def verilator_prefix() -> Path:
-    """The shared, versioned installation under the project's guest build root."""
+    """Return the versioned Verilator installation prefix under the guest build root."""
     return env.build_root() / "toolchains" / f"verilator-{VERILATOR_PIN}"
 
 
 def _installed_verilator() -> str | None:
-    """An installation is complete only after make install has written every file."""
+    """Return the project-local Verilator binary path if its install receipt matches `VERILATOR_SHA256`."""
     local = verilator_prefix() / "bin" / "verilator"
     receipt = verilator_prefix() / "source.sha256"
     if (local.is_file() and receipt.is_file()
@@ -327,12 +155,12 @@ def _installed_verilator() -> str | None:
 
 
 def _verilator() -> str | None:
-    """Use the project installation, retaining PATH support for an exact-version tool."""
+    """Return the project-installed Verilator binary or fall back to `PATH`."""
     return _installed_verilator() or shutil.which("verilator")
 
 
 def _verilator_version(binary: str) -> str:
-    """What the installed simulator calls itself, as its bare version."""
+    """Return the bare version string reported by `binary --version`."""
     done = subprocess.run([binary, "--version"], capture_output=True, encoding="utf-8",
                           errors="replace", check=False)
     found = re.search(r"Verilator\s+(\d+\.\d+)", done.stdout)
@@ -340,12 +168,7 @@ def _verilator_version(binary: str) -> str:
 
 
 def _require_verilator(out: list[str]) -> str | None:
-    """The simulator at its pinned version, or None with the refusal already printed.
-
-    A version other than the pinned one is a finding rather than a warning, which is
-    the disposition the two type checkers and the prover already take: an elaboration
-    is evidence, and evidence carries which tool produced it.
-    """
+    """Return the Verilator binary if installed at `VERILATOR_PIN`, else append an error to `out`."""
     binary = _verilator()
     if binary is None:
         out.append(f"FAIL verilator is not installed; {VERILATOR_HOW}")
@@ -359,7 +182,7 @@ def _require_verilator(out: list[str]) -> str | None:
 
 
 def _extract_verilator(archive: Path, work: Path) -> Path:
-    """Fetch and authenticate the complete source archive before extracting any member."""
+    """Download, verify, and extract the Verilator source archive into `work`."""
     receipts.download(VERILATOR_URL, archive, VERILATOR_SHA256)
     source_dir = work / f"verilator-{VERILATOR_PIN}"
     if source_dir.is_symlink() or source_dir.resolve().parent != work.resolve():
@@ -372,7 +195,7 @@ def _extract_verilator(archive: Path, work: Path) -> Path:
 
 
 def cmd_install(args: argparse.Namespace) -> int:
-    """Build one verified release without changing the distribution's simulator."""
+    """Build and install the pinned Verilator release into `verilator_prefix()`."""
     prefix = verilator_prefix()
     with env.hold_lock(prefix, "Verilator installation"):
         binary = prefix / "bin" / "verilator"
@@ -391,8 +214,6 @@ def cmd_install(args: argparse.Namespace) -> int:
                   "apt-get install -y --no-upgrade --no-install-recommends "
                   + " ".join(VERILATOR_PACKAGES))
             return 1
-        # A failed repair must not leave the previous receipt advertising a prefix
-        # that make install may have only partly rewritten.
         (prefix / "source.sha256").unlink(missing_ok=True)
         lane_root = env.lane_root(env.lane_of(find_root()))
         work = lane_root / f"verilator-{VERILATOR_PIN}-source"
@@ -428,16 +249,12 @@ def cmd_install(args: argparse.Namespace) -> int:
 
 
 def _settings(row: provenance.Row) -> str:
-    """One row's settings, as a reader of the record would write them."""
+    """Format a provenance row's parameter settings."""
     return ", ".join(f"{name} = {value}" for name, value in row.settings)
 
 
 def cmd_provenance(args: argparse.Namespace) -> int:
-    """The record, parsed and printed: what binds each absence, and what does not.
-
-    The record is prose a person reads and a table two tools parse, and this prints the
-    parse rather than the prose so that what the checker sees is what a reader can see.
-    """
+    """Parse and print the synthesis-provenance record."""
     del args
     root = find_root()
     record = provenance.read(root)
@@ -466,7 +283,7 @@ def cmd_provenance(args: argparse.Namespace) -> int:
 
 
 def _lint(binary: str, root: Path, sources: list[str], extra: list[str]) -> tuple[int, str]:
-    """Verilator over one file set, with its output handed back rather than streamed."""
+    """Run `verilator --lint-only` over `sources` and return `(returncode, output)`."""
     argv = [binary, "--lint-only", "--timescale", "1ns/1ps", *extra,
             *[str(root / s) for s in sources]]
     done = subprocess.run(argv, capture_output=True, encoding="utf-8", errors="replace",
@@ -475,24 +292,7 @@ def _lint(binary: str, root: Path, sources: list[str], extra: list[str]) -> tupl
 
 
 def cmd_lint(args: argparse.Namespace) -> int:
-    """This repository's own sources under `rtl/`, under every warning a package can
-    answer.
-
-    Two warnings are switched off and both are properties of linting a *package* rather
-    than of the code in it: a package instantiates nothing, so every parameter it
-    declares for a consumer reads as unused, and every field of a struct a function does
-    not touch reads as an unused bit. Switching them off here rather than in the source
-    keeps the file free of suppressions that would go stale the day something
-    instantiates it.
-
-    **The generated source is linted beside the authored ones and is not one of them.**
-    Whether the address map a generator wrote *compiles* is a question no other gate
-    asks: K-88 decides that the bytes are the generator's and says nothing about
-    whether they are SystemVerilog, so an emitter that starts writing a package no
-    compiler accepts would pass every host gate. The two counts are reported apart
-    because the repair differs, an authored source being edited and a generated one
-    regenerated.
-    """
+    """Lint standalone authored and generated SystemVerilog sources under `rtl/`."""
     del args
     out: list[str] = []
     binary = _require_verilator(out)
@@ -506,10 +306,6 @@ def cmd_lint(args: argparse.Namespace) -> int:
         print(text)
         print(f"FAIL {len(SOURCES)} source(s) under rtl/ did not lint clean")
         return 1
-    # What the count is over, derived rather than asserted: `rtl/` carries sources this
-    # gate cannot reach, and a line reading `all N under rtl/` against a directory
-    # holding more than N is a count with no predicate. The gap is read off the tree so
-    # that a source added here is disclosed by the next run rather than silently absent.
     unlinted = sorted(f"rtl/{path.name}" for path in (root / "rtl").glob("*.sv")
                       if f"rtl/{path.name}" not in SOURCES)
     aside = (f"; not among them: {', '.join(unlinted)}, compiled against the imported "
@@ -521,24 +317,14 @@ def cmd_lint(args: argparse.Namespace) -> int:
 
 
 def _equiv_dir(e: env.Environment) -> Path:
-    """Where this lane builds and runs the cross-check.
-
-    Under the lane root and never in the checkout: the two texts a run produces are
-    tens of megabytes apiece, they are derived from the checkout rather than part of
-    it, and two worktrees running at once must not write one file.
-    """
+    """Return the lane-private working directory for `cheri-equiv` builds and vectors."""
     work = e.lane_root / "cheri-equiv"
     work.mkdir(parents=True, exist_ok=True)
     return work
 
 
 def cmd_vectors(args: argparse.Namespace) -> int:
-    """The model's own answers about the capability format, written out as text.
-
-    Every value the file carries is the model's. Nothing here decides what is right;
-    what it decides is what the definition returns for a stated set of inputs, which
-    is the thing the other implementation is then held to.
-    """
+    """Compile the Sail capability-format sources and emit test vectors to `vectors.txt`."""
     del args
     e = env.load()
     root = find_root()
@@ -574,12 +360,7 @@ def cmd_vectors(args: argparse.Namespace) -> int:
 
 
 def _compare(want: Path, got: Path) -> tuple[list[str], int, int, int]:
-    """The two texts, line against line, with the sides named for this cross-check.
-
-    The comparison itself is [sailrig.compare](../sailrig.py#compare)'s, three tools making it
-    now; what stays here is which side is which, `a` and `b` meaning nothing to a
-    reader looking for a disagreement between the model and the RTL.
-    """
+    """Compare `want` (model) and `got` (RTL) vector files via [sailrig.compare](../sailrig.py#compare)."""
     shown, bad, n_want, n_got = sailrig.compare(want, got, shown=SHOWN)
     named = [line.replace(" a: ", " model: ").replace(" b: ", " rtl:   ")
              for line in shown]
@@ -587,12 +368,7 @@ def _compare(want: Path, got: Path) -> tuple[list[str], int, int, int]:
 
 
 def _unhandled(said: str) -> int:
-    """How many vectors the harness could not place, out of what it printed.
-
-    `-1` where the harness said nothing this can read, which is a refusal and not a
-    zero: the figure is the one thing a text comparison cannot decide for itself, so
-    a run that cannot read it has to fail rather than assume the good case.
-    """
+    """Parse the count of unhandled vector kinds from harness output (`-1` if missing)."""
     found = UNHANDLED_RE.search(said)
     return int(found.group(1)) if found else -1
 
@@ -666,14 +442,7 @@ def cmd_widthcheck(_args: argparse.Namespace) -> int:
 
 
 def cmd_crosscheck(args: argparse.Namespace) -> int:
-    """The authored package against the model, over the model's own vectors.
-
-    The verdict is a text comparison and nothing else: the harness reformats each
-    input from the value it parsed and prints the answers the package computed, so a
-    line that differs differs in a field a person can name. What a green run decides
-    is agreement over these vectors, which is a measurement and not a proof, and what
-    it does not decide is whether the vectors reach the case that matters.
-    """
+    """Replay capability-format vectors through `rtl/vos_cheri_pkg.sv` and compare line by line."""
     e = env.load()
     root = find_root()
     work = _equiv_dir(e)
@@ -722,12 +491,6 @@ def cmd_crosscheck(args: argparse.Namespace) -> int:
     said = [line for line in (done.stdout + done.stderr).splitlines()
             if line.startswith(("replayed", "FAIL"))]
 
-    # The one thing a text comparison cannot see for itself: a vector kind the
-    # harness does not carry. The census below reads the kinds out of the model's
-    # own file, so an unhandled kind is counted as a vector on that side, and a
-    # harness that copied the line through would have the two agreeing on a line
-    # nothing computed. It writes a line that cannot match instead, and this reads
-    # the count it kept, so the refusal does not rest on the spelling of that line.
     unhandled = _unhandled(done.stdout + done.stderr)
 
     shown, bad, n_want, n_got = _compare(vectors, replay)
@@ -757,20 +520,7 @@ def cmd_crosscheck(args: argparse.Namespace) -> int:
 
 @dataclass(frozen=True)
 class FileList:
-    """One arm's composed file list, and what became of every substitution in it.
-
-    `taken` is the substitutions every one of whose imported sources matched a line and
-    is on disk, and it is the set the diff attributes by. `unmatched`, `missing` and
-    `absent` are the three ways a declaration can fail to mean anything, and all three
-    are refusals rather than warnings: a declared substitution that reaches no line of
-    the manifest leaves the imported source in the build and the authored one out of it,
-    which elaborates cleanly and measures the wrong design; an authored path not in the
-    checkout does the same, a required one included; and an imported path this
-    checkout does not carry drops its line from the build with nothing able to read the
-    module kinds it declared, so the substitution's own displacements would read as the
-    parameters' removals, which is the one mis-attribution the partition exists to
-    prevent.
-    """
+    """Composed elaboration file list for one arm and the status of its declared `Substitution`s."""
 
     lines: tuple[str, ...]
     taken: tuple[Substitution, ...]
@@ -780,7 +530,7 @@ class FileList:
 
     @property
     def refusals(self) -> list[str]:
-        """Every reason this list is not the one its declarations describe."""
+        """Diagnostic lines for any unmatched, missing, or absent substitution sources."""
         return ([f"FAIL {authored} is declared to stand at {CORE}/{imported} and the "
                  "imported manifest names no such line" for authored, imported in
                  self.unmatched]
@@ -794,28 +544,9 @@ class FileList:
 
 def _file_list(root: Path, config: Path,
                subs: tuple[Substitution, ...] = ()) -> FileList:
-    """The imported core's own manifest, with the substitutions this arm declares.
-
-    The manifest is read rather than transcribed, so a source the imported tree adds
-    arrives here without an edit. Four substitutions are made and each is named: the
-    repository variable it is written against, the configuration package it leaves to
-    the caller, the two trees this configuration does not reach, and the authored
-    sources `subs` puts in place of imported ones.
-
-    An authored source is placed at the first imported line it replaces and the rest of
-    its lines are dropped, so one authored file standing for a tree of imported ones is
-    one entry where the tree was; what it requires is placed just ahead of it there,
-    once, because the imported manifest names no authored package and the compiler has
-    to see the format package before the first source that imports it. A line this
-    drops as unreached is not then available to be substituted, which is why an
-    unmatched declaration has to be a refusal: the two ways of losing a line are
-    indistinguishable in the result and opposite in meaning.
-    """
+    """Compose the elaboration file list from `CORE_FLIST`, `config`, and `subs`."""
     core = root / CORE
     text = (core / CORE_FLIST).read_text(encoding="utf-8")
-    # Keyed by the substitution and not by its authored path, so that two rows naming
-    # one authored file are still two verdicts; `placed` is keyed by the path, one
-    # authored file being one entry however many rows reach it.
     wanted = {f"{CORE_VAR}/{rel}": (sub, rel) for sub in subs for rel in sub.imported}
     hit: dict[Substitution, set[str]] = {}
     placed: set[str] = set()
@@ -838,15 +569,9 @@ def _file_list(root: Path, config: Path,
             continue
         lines.append(line.replace(CORE_VAR, str(core)))
     prim = root / PRIM
-    # A matched line whose file this checkout does not carry is the third refusal, and
-    # it is the quiet one: the line is gone from the build either way, so the arm still
-    # elaborates, and the kinds that file declared are unreadable, so the substitution's
-    # displacements would be reported as the parameters' removals.
     gone = {sub: {rel for rel in hit.get(sub, set())
                   if not (root / CORE / rel).is_file()} for sub in subs}
     return FileList(
-        # The imported top uses the bring-up SoC's assertion macros without an
-        # include. Supply their upstream definitions before either arm's sources.
         lines=tuple([str(prim / PRIM_ASSERTIONS)]
                     + [str(prim / p) for p in PRIM_PACKAGES] + lines),
         taken=tuple(sub for sub in subs
@@ -860,38 +585,22 @@ def _file_list(root: Path, config: Path,
 
 
 def _kind(name: str) -> str:
-    """A module name reduced to the structure it names, its parameter hash dropped.
-
-    Verilator appends `__` and a parameter hash to a module elaborated at parameters,
-    and two elaborations of one module are one structure. The same reduction is applied
-    to a *declared* name because the two name spaces are joined: a module whose own name
-    carries a double underscore would otherwise be keyed one way in the netlist and
-    another in the attribution maps, join to nothing, and be reported at once as inert
-    and as unexplained, which is two false findings out of one module.
-    """
+    """Strip Verilator's `__<param_hash>` suffix from an elaborated or declared module name."""
     return name.split("__", maxsplit=1)[0]
 
 
 def _declared_modules(text: str) -> frozenset[str]:
-    """The module kinds one SystemVerilog source declares, comments removed first."""
+    """Return module kinds declared in SystemVerilog `text` after stripping comments."""
     bare = LINE_COMMENT_RE.sub("", BLOCK_COMMENT_RE.sub("", text))
     return frozenset(_kind(str(name)) for name in MODULE_DECL_RE.findall(bare))
 
 
 def _substitution_modules(root: Path, subs: tuple[Substitution, ...]
                           ) -> tuple[dict[str, str], dict[str, str]]:
-    """Which module kinds the substitutions introduce, and which they displace.
-
-    Two maps from a module kind to the path that accounts for it: the authored source
-    that declares it, and the imported source that declared it before the substitution
-    stood where it was. Both are read out of the SystemVerilog, so a module renamed on
-    either side moves the map rather than leaving a table beside the files to go stale.
-    """
+    """Return `(introduced_by, displaced_by)` mapping module kinds to authored/imported paths."""
     introduced: dict[str, str] = {}
     displaced: dict[str, str] = {}
     for sub in subs:
-        # Over everything the row places, because a required source is in the file
-        # list too and a module it declared would reach the netlist by the same door.
         for path in sub.placed:
             authored = root / path
             if authored.is_file():
@@ -909,14 +618,12 @@ def _substitution_modules(root: Path, subs: tuple[Substitution, ...]
 
 @dataclass(frozen=True)
 class Diff:
-    """The two inventories partitioned, one member per thing a reader does with it.
+    """Partitioned module-kind difference between curated and baseline elaborations.
 
-    `removed` is the column [the provenance record](../../../rtl/synthesis-provenance.md)
-    speaks about and stays exactly that, every kind a substitution can account for
-    having been taken out of it into `displaced`. `unexplained` and `inert` are the two
-    findings, and they are opposite failures of one declaration: a module the curated
-    build instantiates that no authored source in its file list declares, and an
-    authored module that reached the file list and never reached the netlist.
+    `removed` holds parameter-removed kinds tracked by
+    [the provenance record](../../../rtl/synthesis-provenance.md); `displaced` and
+    `introduced` hold kinds accounted for by `SUBSTITUTIONS`; `unexplained` and `inert`
+    are findings.
     """
 
     removed: tuple[str, ...]
@@ -932,7 +639,7 @@ class Diff:
 
 def _diff(curated: set[str], stock: set[str], introduced_by: dict[str, str],
           displaced_by: dict[str, str]) -> Diff:
-    """The partition, over the two module-kind sets and the two attribution maps."""
+    """Partition `curated` and `stock` module kinds using `introduced_by` and `displaced_by`."""
     gone = stock - curated
     new = curated - stock
     return Diff(
@@ -944,14 +651,7 @@ def _diff(curated: set[str], stock: set[str], introduced_by: dict[str, str],
 
 
 def _baseline_config(root: Path, work: Path) -> Path:
-    """The baseline configuration, derived from the imported tree's stock one.
-
-    Written into the lane's own working directory and never into `rtl/`, because it is
-    not a file this repository authored: it is the imported tree's, with the one edit
-    `BASELINE_EDITS` names, made so that the baseline elaborates without initializing a
-    submodule for a unit this profile deletes. A derived file with no home in the tree
-    is the right shape for it, the tree holding only what we wrote.
-    """
+    """Write the baseline configuration (`STOCK_CONFIG` with `BASELINE_EDITS`) into `work`."""
     text = (root / CORE / STOCK_CONFIG).read_text(encoding="utf-8")
     for old, new in BASELINE_EDITS:
         text = text.replace(old, new)
@@ -962,15 +662,7 @@ def _baseline_config(root: Path, work: Path) -> Path:
 
 def _elaborate(binary: str, root: Path, files: FileList, ast: Path,
                *, curated: bool = False) -> tuple[int, str]:
-    """One elaboration of the imported core, its AST written where the caller says.
-
-    Run from the lane's own working directory rather than from the checkout, for two
-    reasons that point the same way. Nothing an elaborator writes belongs in a tree the
-    checker reads out of the git index. And the imported core's manifest carries relative
-    include directories that resolve against the working directory, so elaborating from
-    the checkout root silently searches the wrong tree for them: the failure it produces
-    is a missing package, several files away from the cause.
-    """
+    """Elaborate `cva6` from `files` into JSON netlist `ast` inside `ast.parent`."""
     prim = root / PRIM
     listing = ast.with_suffix(".f")
     lines = files.lines
@@ -1004,10 +696,7 @@ def _json_nodes(value: object) -> Iterator[dict[str, object]]:
             yield from _json_nodes(child)
 
 
-# The memory arrays the provenance record's cache rows, A-09 and A-10, are stated over,
-# and the two caches that hold them. Each arm's inventory counts every one of these kinds'
-# expanded instances in the whole core, under each cache and outside every cache, so the
-# record cites this count rather than restating it.
+# Memory-array kinds and cache scopes cited by A-09 and A-10 in `rtl/synthesis-provenance.md`.
 ARRAY_KINDS: tuple[str, ...] = ("prim_ram_1p", "sram_cache", "sram")
 ARRAY_SCOPES: tuple[str, ...] = ("wt_dcache", "cva6_icache")
 WHOLE_CORE = "whole core"
@@ -1016,16 +705,7 @@ OUTSIDE = "outside every cache"
 
 @dataclass(frozen=True)
 class Inventory:
-    """What one elaboration instantiated: its module kinds, its cells, its declared
-    variables, and its memory arrays.
-
-    `arrays` holds one row per scope: the whole core first, then each of
-    `ARRAY_SCOPES`, then what lies outside every cache. A row is the scope, how many
-    instances of it the top reaches (one for the whole core and for the outside row,
-    both taken over the top's one instance), and the expanded instance counts of
-    `ARRAY_KINDS` in order. The reach is what tells a cache present with no arrays from
-    a cache the netlist lacks, whose counts are zero too.
-    """
+    """Instantiated module kinds, expanded cell count, variable count, and memory-array counts."""
 
     kinds: set[str]
     cells: int
@@ -1034,26 +714,7 @@ class Inventory:
 
 
 def _inventory(ast: Path) -> Inventory:
-    """What one elaboration instantiated, read out of its JSON netlist.
-
-    The module *kind* is the name with its parameter hash removed, because two
-    elaborations of one module at different parameters are one structure and the
-    question this answers is which structures exist. It is `_kind` that removes it, the
-    same reduction the attribution maps are keyed by, so the two sets join. JSON's
-    CELL nodes describe module templates, whereas the former XML cells section
-    expanded the hierarchy. Count each instantiation recursively, including the top,
-    to retain that meaning when one module template is instantiated more than once.
-    The same expansion, kept per kind, gives the memory arrays: an instance is under a
-    cache where it or an enclosing instance is of that cache's kind, and is counted
-    once however many such instances enclose it. Each cache's row is counted on its
-    own, so an array under two caches, one nested in the other, is in both rows and the
-    rows do not sum to the whole core. The outside row is the exact remainder instead:
-    one walk from the top that stops at an instance of any cache's kind counts what no
-    cache encloses, so the whole core's arrays lie under some cache exactly where that
-    row is zero.
-    Variables are declarations, counted once per emitted module or package template.
-    The internal constant-pool module under miscsp is not part of either inventory.
-    """
+    """Extract the `Inventory` from a Verilator JSON netlist at `ast`."""
     tree = json.loads(ast.read_text(encoding="utf-8"))
     if not isinstance(tree, dict) or tree.get("type") != "NETLIST":
         raise ValueError(f"{ast}: expected a Verilator NETLIST")
@@ -1147,14 +808,7 @@ def _inventory(ast: Path) -> Inventory:
 
 
 def _array_lines(inventories: dict[str, Inventory]) -> list[str]:
-    """Each arm's memory-array instances, in the whole core, under each cache and
-    outside every cache.
-
-    A cache's label carries how many instances of it the top reaches, which the header
-    says. A cache it reaches none of is reported absent, in text spanning the three
-    count columns, rather than as a row of zeros, which would read as the cache present
-    with no arrays, or as one word that would read as the first column's count.
-    """
+    """Format expanded memory-array instance counts per arm and cache scope."""
     column = 13
     absent = f"{'absent: the top reaches none':>{column * len(ARRAY_KINDS)}}"
     rows: list[tuple[str, str, str]] = []
@@ -1182,14 +836,7 @@ def prim_inputs() -> tuple[str, ...]:
 
 
 def _absent_inputs(root: Path) -> tuple[list[str], list[str]]:
-    """What an elaboration reads that this checkout lacks, and how to obtain it.
-
-    Each primitive path is checked rather than the vendored tree's root. A Mocha
-    checkout narrowed to the UART cone `devicescheck` reads carries that root and none of
-    the primitives, and the elaborator would then fail on a missing header, several files
-    away from the cause. A populated Mocha checkout is widened; an uninitialized gitlink
-    is initialized.
-    """
+    """Return missing imported manifest or primitive paths under `root` and hints to populate them."""
     manifest = f"{CORE}/{CORE_FLIST}"
     absent = [rel for rel in (manifest, *prim_inputs()) if not (root / rel).exists()]
     init = [CORE] if manifest in absent else []
@@ -1213,16 +860,7 @@ def _absent_inputs(root: Path) -> tuple[list[str], list[str]]:
 
 
 def cmd_filelist(args: argparse.Namespace) -> int:
-    """The curated arm's file list, and the verdict on every substitution in it.
-
-    The elaboration's composition without the elaboration, so that a lane declaring a
-    substitution learns whether it reached a line of the imported manifest before it
-    pays two minutes for an elaborator to tell it the same thing in a harder-to-read
-    way. It reads the checkout and drives no toolchain, so it answers on either lane.
-
-    Only the curated arm is composed, because the baseline carries no substitution by
-    construction and composing it would decide nothing this does not already say.
-    """
+    """Compose the curated arm's file list and report the status of each `Substitution`."""
     root = find_root()
     out: list[str] = []
     manifest = f"{CORE}/{CORE_FLIST}"
@@ -1246,9 +884,6 @@ def cmd_filelist(args: argparse.Namespace) -> int:
     out.extend(f"   {'ok  ' if sub in files.taken else 'FAIL'} {sub.authored} "
                f"<- {', '.join(sub.imported)}" for sub in SUBSTITUTIONS)
     if files.taken:
-        # Printed whether or not either count is zero: a row whose two sides are both
-        # packages attributes nothing, and a lane that declared it needs to be told
-        # that rather than left reading silence as an unprinted line.
         out.append(f"   {len(introduced_by)} module kind(s) the authored sources "
                    f"declare, against {len(displaced_by)} the imported ones did")
     absent, hints = _absent_inputs(root)
@@ -1267,25 +902,7 @@ def cmd_filelist(args: argparse.Namespace) -> int:
 
 
 def cmd_elaborate(args: argparse.Namespace) -> int:
-    """The curated configuration against the stock one, and the difference named.
-
-    The absence contract's own procedure is elaborate, enumerate, search, record. This
-    is the first two and the shape of the third: what it reports is which structures the
-    curated configuration does not instantiate that the stock one does, which is the
-    state-enumeration half. What it deliberately does not do is decide that the result
-    is *right*: an absence is claimed by the contract and bound by the record, and this
-    says what the elaborator built. That includes, per arm, the expanded instances of
-    each memory-array kind in the whole core, under each cache and outside every cache,
-    which is the count the record's cache rows cite.
-
-    Every row of the difference is a deletion **or an authored replacement**, and the
-    report is partitioned so that the two are never one figure. A module the curated
-    configuration instantiates and the stock one does not is a finding where no authored
-    source in the curated file list declares it, because every row of the profile and the
-    contract is less hardware than the stock core and never more; where one does declare
-    it, it is that substitution's introduction and is reported as such rather than as a
-    contradiction of the contract.
-    """
+    """Elaborate curated and baseline CVA6 configurations and report structural differences."""
     e = env.load()
     log = e.log("rtl-elaborate")
     if args.background:
@@ -1298,11 +915,6 @@ def cmd_elaborate(args: argparse.Namespace) -> int:
         return 1
 
     root = find_root()
-    # Refused by name rather than raising three calls in, which is what an absent
-    # gitlink used to do: a submodule this checkout has not initialized, or a Mocha
-    # checkout narrowed to other cones, is an ordinary state of the tree and not a
-    # defect in this tool, and the message a person needs is which paths and how to
-    # get them.
     absent, hints = _absent_inputs(root)
     if absent:
         out.extend(f"FAIL {rel} is not in this checkout" for rel in absent)
@@ -1319,10 +931,6 @@ def cmd_elaborate(args: argparse.Namespace) -> int:
         print("\n".join(out))
         return 1
 
-    # The substitutions reach the curated arm and never the baseline, which is what
-    # keeps the difference a statement about the parameters: a baseline carrying
-    # authored sources would be a second curation rather than the tree the record's
-    # rows are read against.
     arms = {"curated": _file_list(root, curated_config, SUBSTITUTIONS),
             "baseline": _file_list(root, _baseline_config(root, work))}
     refusals = arms["curated"].refusals
@@ -1396,16 +1004,7 @@ def cmd_elaborate(args: argparse.Namespace) -> int:
 
 
 def _detach(log: Path) -> int:
-    """Start this run again in the background, writing its whole output to a log.
-
-    The child is started in a session of its own. Without that it dies with the shell
-    that launched it, which on this lane is a `wsl -e` invocation that returns as soon
-    as the parent does: the log is created, nothing is ever written into it, and the
-    marker never lands, which reads exactly like a run that is still going.
-
-    The previous log is removed only once the child exists, so a failed start leaves the
-    last run's verdict readable rather than deleting it in favour of nothing.
-    """
+    """Launch `run.py rtl elaborate` in a detached session writing output to `log`."""
     log.parent.mkdir(parents=True, exist_ok=True)
     with log.open("w", encoding="utf-8") as handle:
         child = subprocess.Popen(cli.entry("rtl", "elaborate"), stdout=handle,
@@ -1415,12 +1014,7 @@ def _detach(log: Path) -> int:
 
 
 def cmd_wait(args: argparse.Namespace) -> int:
-    """The verdict of a backgrounded elaboration, once its marker has landed.
-
-    The wait is on the marker rather than on a sleep, and on the marker rather than on
-    the process, because a caller that started the run in another shell has no pid to
-    wait on and the log is the thing both of them can read.
-    """
+    """Check whether a backgrounded `rtl elaborate` run has written `MARKER` to its log."""
     e = env.load()
     log = e.log("rtl-elaborate")
     if not log.is_file():
@@ -1476,11 +1070,7 @@ def _flags(name: str, sub: argparse.ArgumentParser) -> None:
 
 
 def main(argv: list[str] | None = None) -> int:
-    """Dispatch, and write the marker every backgrounded run is waited on by.
-
-    The marker is this command's own and not the shared dispatch's, so it is written
-    here around the call rather than pushed into a helper four commands share.
-    """
+    """Dispatch `run.py rtl` subcommands and append `MARKER` after foreground `elaborate`."""
     args = list(argv or [])
     code = cli.dispatch(__doc__, COMMANDS, args, _flags, prog="run.py rtl")
     if args[:1] == ["elaborate"] and "--background" not in args:

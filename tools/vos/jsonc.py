@@ -1,27 +1,11 @@
 # SPDX-License-Identifier: Apache-2.0
-"""The model's configuration dialect: JSON with comments and trailing commas.
-
-The Sail model's configuration files are read by jsoncons, which accepts `//` and
-`/* */` comments and a comma before a closing brace or bracket; Python's `json` accepts
-none of the three. The tools that read the configuration read the same files the model
-reads, so what they accept is what jsoncons accepts: a tool that refuses a file the
-model loads is a tool that gets switched off.
-
-The dialect is defined once here rather than approximated wherever it is needed. The
-scanner is string-aware, because a `//` inside a quoted value is data rather than the
-start of a comment and a line-oriented pattern cannot tell the difference. Comments and
-dropped commas are replaced by whitespace, so an offset in a parse error still points
-at the same place in the original text.
-"""
+"""String-aware JSONC loader (supporting `//` and `/* */` comments and trailing commas) matching the Sail emulator's `jsoncons` configuration dialect."""
 
 import json
 import re
 from pathlib import Path
 from typing import cast
 
-# Anything a parse of this dialect can yield. Recursive, because the configuration is,
-# and stated here rather than in each reader so that a walk over a config and a walk
-# over a schema are the same walk over the same type.
 type Json = dict[str, Json] | list[Json] | str | int | float | bool | None
 
 

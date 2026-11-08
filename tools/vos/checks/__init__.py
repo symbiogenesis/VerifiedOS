@@ -1,27 +1,21 @@
 # SPDX-License-Identifier: Apache-2.0
-"""The checks, one module per rule group.
+"""Check groups executed by [check.py](../../check.py#run).
 
-Each module owns one `=== group ===` heading of a run and the K- rules under it, and
-each states in its own prose what the group decides and why that defect is worth a
-tool. The order below is the order a run reports in, and it is a dependency order as
-well: a group may read what an earlier one computed, through the `Context` every
-group is handed, and never the other way round.
+Each module in `GROUPS` owns one `=== <group> ===` heading and the `K-nn` rules bound
+to that group in [check-registry.json](../../check-registry.json). `GROUPS` is ordered by
+data dependency: earlier groups populate [`Context`](#Context) fields (`fixed`, `q`,
+`floors`, `views`, `shared`, `proof_reading`) read by later groups. In particular,
+[`generated`](generated.py#run) runs first so downstream groups read the settled Sail
+bundle and generated artifacts.
 
-`generated` is first for that reason and not for prominence: it settles which bytes of
-each generated artifact this run is about, and four rules in the counts group read the
-model through one of them. A repair that landed after them would leave the same run
-reporting counts taken from the defect it had just repaired.
+The [`counts`](counts.py#run) group delegates its metric families to the internal
+`counts_*.py` helper modules in this package.
 
-One group is larger than one module, and the split is inside the group rather than a
-second entry below: `counts` is entered at `counts.py`, which holds its claim table
-and its run, and its families are the `counts_*.py` modules beside it, which nothing
-outside that group imports. A rule belongs to the group whose heading reports it and
-not to the file carrying it. The authored check-registry.json binds each rule to
-that group, and the driver compares the group's executed verdicts with its metadata.
-
-Adding a rule means implementing its check, declaring its required metadata and
-reach class, regenerating check-rules.md, and supplying its mutant in
-vos/cli/selftest.py. The meta group and selftest hold those obligations together.
+To add a rule, implement its check, declare its metadata in
+[check-registry.json](../../check-registry.json), regenerate
+[check-rules.md](../../check-rules.md), and add a mutant in
+[vos/cli/selftest.py](../cli/selftest.py) (see
+[tools/README.md](../../README.md#adding-a-rule-to-the-checker)).
 """
 
 from dataclasses import dataclass, field
@@ -33,8 +27,6 @@ from vos.corpus import Corpus
 from vos.register import Artifacts, Register
 from vos.report import Reporter
 
-# The view table belongs to the views group, which this module imports below. Same
-# guard as every group uses for `Context`, in the other direction.
 if TYPE_CHECKING:
     from vos.checkregistry import Registry
 
@@ -43,13 +35,7 @@ if TYPE_CHECKING:
 
 @dataclass
 class Context:
-    """Everything a group reads, and the slate it writes its own results onto.
-
-    The parsed artifacts are fixed for the run. The rest is what one group computes
-    and a later one needs: the quantity table the counts group holds against the
-    prose, the enumerations the floors group requires to be non-empty, and the
-    pending rewrites `-Fix` flushes at the end.
-    """
+    """Shared state and intermediate results passed across check groups in a single run."""
 
     root: Path
     corpus: Corpus
@@ -57,39 +43,32 @@ class Context:
     art: Artifacts
     rep: Reporter
     fix: bool = False
-    # The run's clock, for a group that measures its own parts. Diagnostic only: a
-    # context built without the run's measures into a clock nothing reads.
     clock: timings.Clock = field(default_factory=timings.Clock)
     registry: Registry | None = None
     registry_faults: list[str] = field(default_factory=list)
     group_start: int = 0
     group_findings: int = 0
 
-    # file -> its rewritten text, held until the run ends so that a later group reads
-    # what an earlier one repaired rather than the text on disk
+    # Rewritten file texts held in memory so later groups read repaired content
+    # before `--fix` flushes changes to disk at the end of the run.
     fixed: dict[str, str] = field(default_factory=dict)
 
-    # what later groups need from earlier ones
+    # Cross-group state populated by earlier groups and consumed by later ones.
     q: dict[str, int] = field(default_factory=dict)          # quantity -> value
     floors: dict[str, int] = field(default_factory=dict)     # enumeration -> its size
     views: list[View] = field(default_factory=list)
-    # Everything a group leaves for a later one that has no shape worth naming.
-    # `Any` is the honest type here and not a shortcut: the values are lists of four
-    # different record types, and narrowing happens at each reader.
     shared: dict[str, Any] = field(default_factory=dict)
     proof_reading: proofcites.ParseCache = field(default_factory=proofcites.ParseCache)
 
     def text(self, name: str) -> str:
-        """A document's text as the run currently holds it, repaired or not."""
+        """Return a document's current text, preferring any in-memory repair in `fixed`."""
         if name in self.fixed:
             return self.fixed[name]
         doc = self.corpus.get(name)
         return doc.raw if doc else ""
 
 
-# Below `Context` and not above it: every module named here reads `Context` from this
-# one, so importing them any earlier would be a cycle through a name that does not
-# exist yet.
+# Import check modules after defining `Context` to avoid circular-import errors.
 from . import (  # noqa: E402
     bindings,
     citations,

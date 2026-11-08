@@ -2,36 +2,17 @@
 # SPDX-License-Identifier: Apache-2.0
 """The model-as-oracle vector generator: any Sail function, as a differential oracle.
 
-M2.1 held a C instantiation of the capability format to 21,546 vectors the model
-itself emitted, and R1a held the authored SystemVerilog to 658,659 over thirteen
-kinds. Both rigs were built inside one item and thrown away, so the third consumer
-would have written the formatters, the shift register, the loop nests and the line
-discipline a third time. This is that rig standing, and what a caller supplies is a
-**spec**: the model sources to compile against, and per line kind the parameters, the
-domain that walks them, the Sail that calls the model, and what to print.
+Compiles and runs declarative vector specs ([vos/oracle.py](../oracle.py)) against the
+curated Sail model:
 
-    python tools/run.py oracle list                     # the specs, and how large each is
-    python tools/run.py oracle emit --spec capformat    # the Sail harness, on the host
-
-    python tools/run.py oracle vectors --spec capformat
+    python tools/run.py oracle list                     # list specs and vector counts
+    python tools/run.py oracle emit --spec capformat    # emit Sail harness on the host
+    python tools/run.py oracle vectors --spec capformat # compile and emit vectors in WSL
     python tools/run.py oracle vectors --spec keccak
 
-`list` and `emit` answer on the host, being a parse and a text emission. `vectors`
-runs in the guest, where Sail lives: it emits the harness, compiles it together with
-the spec's model sources, runs it, and writes the vectors into this lane's own working
-directory. The file is derived from the checkout rather than part of it, and two
-worktrees emitting at once must not write one path, which is why the lane owns it.
-
-**What a run decides** is what the named functions return over the domain the spec
-states. It is a measurement and not a proof, and what it does not decide is whether
-the domain reaches the case that matters. [tools/run.py seed](seed.py) is the instrument
-that answers *that*, by seeding a defect and requiring these vectors to move.
-
-**Which finding this answers.** M0.12's: its corpus found an encoding defect the
-`$[test]` harness structurally cannot, because a `$[test]` calls `execute` on an
-already-decoded instruction and never sees a mis-encoded word. What a probe reaches is
-decided by the domain the spec walks and not by what a property happens to be written
-about, so the encode side is reachable by declaring it.
+`list` and `emit` run on the host; `vectors` compiles and runs the generated Sail harness
+in the guest lane's working directory. Use [tools/vos/cli/seed.py](seed.py) to measure
+mutation sensitivity of the generated vectors.
 """
 
 import argparse
@@ -42,13 +23,7 @@ from vos.corpus import find_root
 
 
 def cmd_list(args: argparse.Namespace) -> int:
-    """Every spec the repository carries, and the size of each domain.
-
-    The vector count is arithmetic over the spec rather than a measurement of a run, so
-    a spec's size is readable before anything is compiled, which is what makes the
-    difference between an exhaustive sweep and a sampled one a decision somebody takes
-    with the number in front of them.
-    """
+    """List every oracle spec and its statically computed vector count."""
     del args
     root = find_root()
     found = oracle.names(root)
@@ -81,12 +56,7 @@ def cmd_list(args: argparse.Namespace) -> int:
 
 
 def cmd_emit(args: argparse.Namespace) -> int:
-    """The generated Sail for one spec, written where the caller says.
-
-    Runs on the host, because emission is a text transformation over a JSON file and
-    needs no toolchain. What it is for is reading the harness a spec produces before
-    spending two minutes compiling it.
-    """
+    """Emit the generated Sail harness for one spec."""
     root = find_root()
     try:
         spec = oracle.load(root, args.spec)

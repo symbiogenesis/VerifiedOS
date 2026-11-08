@@ -1,23 +1,13 @@
 # SPDX-License-Identifier: Apache-2.0
-"""M7.1's boot harness: compose a roster image, boot it on the golden emulator, digest it.
+"""M7.1 boot harness: inspect the roster, compose a recipe image, and boot it on the emulator.
 
     python tools/run.py boot roster [--roster PATH]          the roster and what blocks it
     python tools/run.py boot compose RECIPE [--out DIR]      the image and its boot record
     python tools/run.py boot run RECIPE [--out DIR]          boot a composed image, digest it
 
-`roster` reads this checkout and answers on either lane. `compose` and `run` are the
-guest's: `run.py` re-launches them in WSL from the host, so the record `compose` writes
-under the lane's guest output and the emulator `run` boots it on are in one place.
-`run` boots the image a previous `compose` wrote, after re-reading every input the
-record binds; it takes this lane's emulator, and `--simulator PATH` names another.
-Exit 0 is a composition or boot that met every check, 1 a refusal the contract names (a
-missing, statement-only or misplaced member, a stale component, a digest or boot-order
-mismatch, no HTIF exit, an emulator that did not exit 0), and 2 an input the harness
-cannot read, an output it cannot write, a missing or malformed boot record, or an
-emulator it cannot find or start. Every report says what it does not establish: a
-fixture member is not the real producer, and no record here is M7.1's acceptance while
-the joins it lists are open. The rules are
-[the roster and boot-recipe contract](../../../docs/implementation/contracts/boot-roster.md)'s.
+Implements [boot-roster.md](../../../docs/implementation/contracts/boot-roster.md).
+Exit codes: 0 when all contract checks pass, 1 on a contract refusal, and 2 on an
+unreadable input, missing record, or unavailable simulator.
 """
 
 import argparse

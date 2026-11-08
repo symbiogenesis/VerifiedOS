@@ -1,26 +1,13 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: Apache-2.0
-"""Weave the specification and the register into one generated reading view.
+"""Weave the specification and requirements register into a generated reading view.
 
     tools/run.py view                 # writes out/spec-woven.md
-    tools/run.py view --out PATH      # writes somewhere else
+    tools/run.py view --out PATH      # writes to an ignored or external path
 
-The two documents are one obligation written twice on purpose: prose a person
-reads to understand the design, and atomic entries a reviewer decides alone,
-paired by bookmark and held co-current by K-61. What neither file gives a reader
-is the join. This tool derives it: the specification's text verbatim, with every
-register entry rendered as a quoted block directly beneath the bookmark that
-cites it, and a pointer wherever a later `-n` bookmark cites the same entry
-again. An entry with no bookmark of its own (the written-out-trace departures)
-renders beneath the bookmark its trace names, exactly where its co-read pair
-already reads it.
-
-The view is derived and disposable, never a source: it is written outside the
-corpus into an ignored directory, it opens by saying so, and regenerating it is
-the only way to change it. Deriving in this direction costs nothing the other
-direction would have cost: the placement is the pairing rule `vos/coread.py`
-already states, so the view and the co-read discipline cannot come to disagree
-about where an entry belongs.
+Renders [docs/spec.md](../../../docs/spec.md) verbatim with each entry from
+[docs/requirements-register.md](../../../docs/requirements-register.md) quoted beneath
+its citing bookmark ([vos/coread.py](../coread.py)).
 """
 
 import argparse
@@ -45,12 +32,7 @@ _ENTRY_LEAD_RE = re.compile(rf"^\*\*({REQ_ID_PATTERN})\*\* ")
 
 
 def _entry_blocks(corpus: Corpus, ids: set[str]) -> dict[str, list[str]]:
-    """Each entry's verbatim register lines, quoted for the view.
-
-    The slice is presentation, not a parse of record: an entry's block runs from
-    its header line to the blank line ending it, which is the same contiguity the
-    register's own conventions state and `read_register` decides.
-    """
+    """Return each requirement entry's contiguous register lines as blockquote lines."""
     doc = corpus.by_name[REGISTER]
     out: dict[str, list[str]] = {}
     i = 0

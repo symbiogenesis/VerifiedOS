@@ -1,53 +1,16 @@
 # SPDX-License-Identifier: Apache-2.0
-"""The frozen capability format's parameters, read out of every artifact that writes one.
+"""Parse frozen capability-format parameters, bit packings, and written budgets for [counts_capformat.py](checks/counts_capformat.py) (`K-79`).
 
-This parse reaches past the documents into the curated model, as `geometry.py`,
-`coreclass.py` and `decode.py` do, and the reach is declared rather than habitual.
-
-**The model's half is resolved by name out of the generated bundle and the rest is
-not.** The ten parameters below are Sail *definitions*, and the emitter indexes every
-one of them by the name the model gives it, so a renamed or deleted declaration is a
-lookup that misses and says which name missed. What is bought is exactly that and no
-more: the bundle hands back the declaration's own text, `type cap_addr_width : Int =
-36`, so the figure is still one `= <n>` extraction further in and the pattern that takes
-it is unchanged. Under a file scan the same rename was a regex quietly matching nothing,
-which reads as a moved site and is indistinguishable from a value nobody wrote down.
-
-Everything else here stays a scan of the artifact that writes it, and two of those
-artifacts are inside the model: the address-space sentence and the maximum-exponent
-sentence are *comments*, which `--doc-format identity` drops, so they do not appear in
-the bundle at all and a rule that dropped their patterns would stop holding two
-restatements. A regex whose fact the bundle does not carry is kept.
-
-The format is fixed in three Sail files, `model/model/core/cap_format.sail`
-for the packed fields, `cap_common.sail` for the permission bitmap and the reserved
-object types, and `core/xlen.sail` for the register width the address field sits
-inside, and it is restated in the artifacts registered below: the authored SystemVerilog
-package, the curated synthesis configuration, the frozen profile, the
-re-parameterization delta, the specification, the version matrix, and comments inside
-the model beside the declarations themselves. Every
-one of those is a hand transcription, and a width that drifts in any of them is a
-document describing a format the machine does not have.
-
-**What is read here and what is not.** The block size is deliberately absent: it is a
-capability-format declaration too, but four instructions share it and it is written in
-two configurations and a harness besides, so it has an owner already in `geometry.py`
-and K-57, and a parameter with two rules holding it is a parameter whose two rules can
-disagree. The permission lattice's own table is likewise absent, being sixteen rows of
-bitmap rather than a width.
-
-**Every figure here is read as digits.** Several artifacts state the same parameters as
-count-words instead, "sixteen classes" and "thirteen composition-allocatable" among
-them, and those are outside this reader rather than held by it. Naming the residue is
-the point: a rule that quietly reached some of the restatements would report `ok` about
-a subject larger than the one it read.
-
-**Everything here is a parse and never a decision**, as everywhere else in this package.
-What the values must be, which derivations they owe, and which disagreements matter is
-`vos/checks/counts_capformat.py`'s. A file that is not there, or a declaration that
-has moved out of the form read below, yields `None` for its site rather than raising,
-because a missing artifact is a finding the caller words and not an exception it has
-to catch.
+Reads:
+- The ten Sail parameter definitions (`DEFINITIONS`) from the generated Sail bundle
+  ([sailbundle.py](sailbundle.py)) for [cap_format.sail](../../model/model/core/cap_format.sail),
+  [cap_common.sail](../../model/model/core/cap_common.sail), and
+  [xlen.sail](../../model/model/core/xlen.sail).
+- Every registered transcription site (`SITES`) across Sail comments, authored
+  SystemVerilog packages, and hardware/specification documents.
+- The six-field bit packings in [cap_format.sail](../../model/model/core/cap_format.sail)
+  and [vos_cheri_pkg.sv](../../rtl/vos_cheri_pkg.sv), plus the written-out bit-budget
+  sums (`BUDGETS`).
 """
 
 import re
@@ -66,15 +29,10 @@ DELTA = "docs/hardware/rtl-reparameterization-delta.md"
 SPEC = "docs/spec.md"
 MATRIX = "docs/hardware/cheri-version-matrix.md"
 
-# The figure a Sail declaration ends in, whichever of the two forms it takes:
-# `type cap_addr_width : Int = 36` and `let reserved_otypes = 3` differ in everything
-# ahead of the `=` and in nothing after it, which is why the bundle resolving the name
-# leaves one pattern here where the file scan needed two.
+# Matches trailing `= <int>` in `type name : Int = N` and `let name = N`.
 SAIL_VALUE_RE = re.compile(r"=\s*(\d+)\s*\Z")
 
-# Which map of the bundle a definition is indexed in. `TYPE` is a Sail type synonym and
-# `LET` a top-level binding, and the emitter keeps them apart, so this says which
-# lookup a name is owed rather than trying both and taking whichever answered.
+# Bundle map kinds (`type` synonym vs. top-level `let` binding).
 TYPE, LET = "type", "let"
 
 
@@ -82,10 +40,7 @@ def _sv_param(name: str) -> str:
     return rf"(?m)^\s*localparam int unsigned {re.escape(name)} = (\d+);"
 
 
-# The parameters the Sail model fixes: the key this repository reads them by, which of
-# the bundle's maps declares it, and the file a finding sends a reader to. The key is
-# the model's own spelling, which is also the name the bundle indexes it under, so a
-# reader of a finding can grep the definition for it and a rename is a miss here.
+# Sail parameter definitions: `(name, bundle_kind, source_file)`.
 DEFINITIONS: tuple[tuple[str, str, str], ...] = (
     ("cap_size", TYPE, CAP_FORMAT),
     ("log2_cap_size", TYPE, CAP_FORMAT),
@@ -263,27 +218,13 @@ class Format:
 
 
 def _int(pattern: str, text: str) -> int | None:
-    """The one figure a pattern finds, or `None` where it finds none or several.
-
-    Several is the same answer as none on purpose, and it is the discipline
-    `geometry.py` already keeps at its template site: every row of the table above
-    claims to hold exactly one site in its own file, and a pattern that has come to
-    match two of them is holding whichever one a search happened to reach first. A
-    finding names the site, so a site that is no longer one has to be reported rather
-    than read.
-    """
+    """Return the single integer matched by `pattern` in `text`, or `None` if 0 or >1 matches."""
     found = re.findall(pattern, text)
     return int(found[0]) if len(found) == 1 else None
 
 
 def _declared(bundle: sailbundle.Bundle | None, key: str, kind: str) -> str | int | None:
-    """One definition's figure, `None` where its declaration has moved out of the read
-    form, and the key itself where the model declares no such name at all.
-
-    Three answers rather than two, because the third is the one the bundle made
-    available: a name that is not there is a rename or a deletion and says so, where a
-    file scan could only report that a pattern matched nothing.
-    """
+    """Return the integer value of `key` in `bundle`, `None` if unparseable, or `key` if undeclared."""
     if bundle is None:
         return key
     try:
@@ -295,13 +236,7 @@ def _declared(bundle: sailbundle.Bundle | None, key: str, kind: str) -> str | in
 
 
 def read(root: Path, bundle: sailbundle.Bundle | None) -> Format:
-    """One pass over every artifact that writes a capability-format parameter.
-
-    The definitions come from `bundle` and everything else from the tree. A `None`
-    bundle is a run with no readable generated artifact, which leaves every definition
-    unresolved and is a finding K-88 has already worded; the sites are still read, so
-    the rule can say which of the two halves it lost.
-    """
+    """Read capability-format definitions from `bundle` and all transcription sites under `root`."""
     fmt = Format()
     cache: dict[str, str] = {}
 

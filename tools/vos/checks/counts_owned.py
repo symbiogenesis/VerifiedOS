@@ -1,12 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""counts, the owned figures: a number one entry fixes and other sites repeat.
-
-The tag plane's shape without the arithmetic. A budget, a measurement or a frozen
-width is one entry's statement and every other site restates it verbatim, so the
-owner is where the decision lives and every registered site is held to it. Each row
-below is the figure's key, the entry that owns it, the pattern reading it out of that
-entry's own lines, and the sites a repair rewrites from the owner.
-"""
+"""Check figures owned by a single requirement entry and restated verbatim in other documents (`K-69`)."""
 
 import re
 from typing import TYPE_CHECKING
@@ -14,24 +7,15 @@ from typing import TYPE_CHECKING
 from vos import figures
 from vos.register import REGISTER
 
-# [Context](__init__.py#Context) lives in this package, which imports this module in turn.
-# Guarded, so the annotation below costs no import at run time: under PEP 649 an
-# annotation is not evaluated unless something asks for it, and nothing here does.
 if TYPE_CHECKING:
     from . import Context
 
 SPEC = "docs/spec.md"
 CONTRACT = "docs/hardware/bank-count-dse-contract.md"
 
-# K-69: a figure one entry fixes and other sites restate verbatim, with no arithmetic
-# between them: the K-54 shape without the ratio. Each row is the figure's key, the
-# owning entry, the pattern reading it from that entry's own lines, and the sites the
-# repair rewrites from the owner. Each site pattern captures the figure alone and
-# holds every occurrence its file carries.
+# (key, owner_requirement_id, owner_regex, [(target_file, site_regex), ...])
 OWNED: list[tuple[str, str, str, list[tuple[str, str]]]] = [
     ("kernel-line-budget", "R-07-001", r"targeting ≤(\d+k) lines", [
-        # The kernel's own explanation presents the budget; secondary references
-        # name its owner without copying the value.
         (SPEC, r"(?<=target ≤)\d+k(?= lines)"),
     ]),
     ("range-decoder-share", "R-15-067g", r"measured at roughly (\d+)% of decode time", [
@@ -45,11 +29,8 @@ OWNED: list[tuple[str, str, str, list[tuple[str, str]]]] = [
     ("rvc-break-even", "R-15-036k", r"fails below \*p\* = ([\d.]+)", [
         (SPEC, r"(?<=reached at \*p\* = \*\*)[\d.]+(?=\*\*)"),
     ]),
-    # The tag plane's share of the codeword with its own code, at the normative width
-    # and at the fallback: the two ends of the band every site pricing the plane
-    # states, each read from the entry that fixes the code and K-54 holds against its
-    # bit counts. The sites write the band with an en dash in running prose and with
-    # "to" in the contract, so each end is its own figure and its own pattern.
+    # Tag-plane share of the codeword with its DECTED code at the normative (128-bit)
+    # and fallback (64-bit) payloads, owned by `R-15-181a` (whose arithmetic K-54 checks).
     ("tag-plane-share", "R-15-181a",
      r"tag plane with its own code is \d+, some ([\d.]+)% of the payload", [
         (REGISTER, r"(?<=plus that code, some )[\d.]+(?=–[\d.]+% of the bulk array)"),
@@ -67,35 +48,17 @@ OWNED: list[tuple[str, str, str, list[tuple[str, str]]]] = [
     ]),
 ]
 
-# The one owned figure that is a range, held in both dash spellings: the documents
-# write 33-43 in an entry's own line and 33–43 in running prose, both derived from
-# the owner's capture below, so neither spelling is normalized away.
+# Range figure owned by `R-15-007e`, preserving hyphen (`-`) vs. en-dash (`–`) at each site.
 RANGE_OWNER = ("R-15-007e", r"the (\d+)-(\d+)% no-C penalty")
 RANGE_SITES: list[tuple[str, str, str]] = [
     (REGISTER, r"(?<=the )\d+-\d+(?=% no-C penalty)", "{lo}-{hi}"),
-    # anchored on the clause that names the deletion rather than on the word before the
-    # figure: the acceptance wording is what R-15-036 moved, and a lookbehind on it made
-    # a true reword read as a lost site
     (SPEC, r"\d+–\d+(?=% code-size penalty for deleting the C extension)", "{lo}–{hi}"),
     (SPEC, r"(?<=the former )\d+-\d+(?=% code-size penalty)", "{lo}-{hi}"),
 ]
 
 
 def owned_figures(ctx: Context) -> None:
-    """K-69: every figure one entry fixes, restated identically wherever it is stated.
-
-    The K-54 shape without the arithmetic: a budget, a measurement, or a frozen width
-    is one entry's statement, other sites repeat it verbatim, and an edit to the owner
-    left the repeats standing in pairs whose other side states no figure at all, which
-    is the drift the co-statement survey found K-61 structurally cannot see. Each
-    figure is read from the entry that fixes it and every registered site is held to
-    it; under `--fix` the sites are rewritten from the owner, never the other way,
-    because the owner is where the decision lives.
-
-    The one range among them is held in both dash spellings on purpose: an entry's own
-    line writes 33-43 and running prose writes 33–43, both derived from the owner's
-    captures, so the hold does not flatten a typographic convention.
-    """
+    """K-69: figures fixed by an owning requirement entry match every registered restatement site (rewritten from the owner under `--fix`)."""
     rep, reg = ctx.rep, ctx.reg
     missed: list[str] = []
     held = 0

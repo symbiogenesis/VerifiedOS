@@ -1,29 +1,19 @@
 # SPDX-License-Identifier: Apache-2.0
 """Validate the checkout with one host-gate verdict.
 
-The default runs the checker, selftest, typecheck and Markdown linter read-only,
-each in its own process. `--check` is the same read-only run, named for a caller that wants no
-ambiguity with `--fix`. `--fix` repairs derived facts alone, then runs a fresh
-read-only checker alongside the other host gates.
-Repair findings describe the old tree; only the final wave decides the repaired tree.
-A repair without a verdict stops before that wave.
+The default (`--check`) runs the checker, selftest, typecheck, and Markdown linter
+read-only in separate processes. `--fix` runs `check --fix` first, then runs a fresh
+read-only wave across all host gates. If the repair pass crashes without reaching a
+verdict, execution stops before the validation wave.
 
 Independent gates run concurrently and report in declaration order. `--tests` adds the
-tools' behavioral tests; those stay optional to keep document checks small and avoid
-recursive test launches. Exit 0 means every final gate passed, 1 otherwise.
+behavioral test suite (`test`). Exit 0 means every final gate passed, 1 otherwise.
 
-`--shard INDEX/TOTAL` runs one partition of the selftest's cases and, with `--tests`, of
-the tests, and nothing else. `--unpartitioned` runs the remaining members and the
-selftest's repair path; the tests have no unpartitioned part. Every shard of one
-count and that run, each with the same `--tests`, together are the read-only wave.
+`--shard INDEX/TOTAL` runs one partition of `selftest` and (with `--tests`) `test`.
+`--unpartitioned` runs `check`, `typecheck`, `markdown`, and `selftest --repair-only`.
 
-`--summary` writes the same verdict as data. The prose below says which member to read
-and is what a person wants; a caller that has only the process's exit code has four
-members collapsed into one number, which is the state a CI run reaches whoever reads it
-without opening the log. The file is written outside the checkout, at the path the
-caller names, and the reader decides what to render from it rather than parsing what
-was printed. Each record also carries the member's `units`, the parts it measured
-through [vos/timings.py](../timings.py), or null where it measured none.
+`--summary PATH` writes the per-member verdict and [vos/timings.py](../timings.py) unit
+measurements to `PATH` as JSON.
 """
 
 import argparse
@@ -45,21 +35,16 @@ from vos.sharding import Shard
 
 HEADING = "=== gate: every host gate over this tree, in one run ==="
 
-# Allow cold sandbox construction and the complete mutation and behavioral suites
-# on slower runners, including late-rule checker walks after baseline preparation.
-# Keep this inside the hosted job's outer limit. A member that reaches the bound
-# must become a finding rather than a command that never returns.
+# Per-member timeout in seconds (must stay inside the hosted job timeout).
 TIMEOUT = 1200
 
-# What a member that never answered exited with. It has no code of its own, and a
-# number outside the (0, 1) the conventions define is what makes it read as the
-# crash it is rather than as the finding it is not.
+# Sentinel exit code for a member that timed out or could not be launched.
 NO_VERDICT = -1
 
 
 @dataclass(frozen=True)
 class Launch:
-    """One member: the command, the arguments it takes here, and what it decides."""
+    """A host-gate member command, its arguments, and what it decides."""
 
     tool: str
     args: tuple[str, ...]
@@ -67,14 +52,13 @@ class Launch:
 
     @property
     def name(self) -> str:
-        """How the member is named in the report, which is the command that ran."""
+        """Command string displayed in reports."""
         return " ".join((self.tool, *self.args))
 
 
 @dataclass
 class Result:
-    """One member's output, exit code and elapsed wall time, including launch, and the
-    parts it measured, where the gate asked it to record them and it did."""
+    """Output, exit code, elapsed time, and timing units for a single gate member."""
 
     launch: Launch
     code: int
@@ -90,15 +74,9 @@ MEMBERS: tuple[Launch, ...] = (
     Launch("markdown", (), "standard table syntax, once outside semantic mutation replay"),
 )
 
-# The member `--tests` adds, named here rather than spelled at its call site so that
-# the wave's membership is one table.
 TESTS = Launch("test", (), "the tools' own behavior, against the cases that hold it")
-
-# The one member with a --fix branch, named rather than taken by position so that
-# reordering the table above cannot quietly move which member the repair wave holds.
 REPAIRS = "check"
 
-# The members a shard partitions, and the selftest's one part no shard holds.
 PARTITIONED = ("selftest", "test")
 REPAIR_PATH = Launch("selftest", ("--repair-only",),
                      "every --fix branch the checker carries, against its seeded figure")
@@ -106,10 +84,7 @@ REPAIR_PATH = Launch("selftest", ("--repair-only",),
 
 def _plan(fix: bool, tests: bool, shard: Shard | None = None,
           unpartitioned: bool = False) -> list[list[Launch]]:
-    """An optional isolated repair, then every read-only gate, including a fresh check.
-
-    `shard` keeps that partition of the partitioned members alone; `unpartitioned`
-    keeps the rest, with the selftest narrowed to its repair path."""
+    """Build the execution waves: an optional repair wave followed by the read-only wave."""
     members = [*MEMBERS, *([TESTS] if tests else [])]
     if fix and (shard is not None or unpartitioned):
         raise ValueError("--fix cannot be combined with --shard or --unpartitioned")
@@ -129,23 +104,9 @@ def _plan(fix: bool, tests: bool, shard: Shard | None = None,
 
 
 def _launch(root: Path, member: Launch, record: Path | None = None) -> Result:
-    """One member, in its own process, as what it printed and the code it exited.
+    """Run `member` in a subprocess and capture its output, exit code, and timing units.
 
-    A subprocess rather than an import, and for reasons rather than for symmetry.
-    The selftest reports by printing as it goes rather than by handing back a slate,
-    so its verdict is a stream and this is what reads it. And a member's exit code is
-    its own to decide, which keeps this tool from re-deriving three verdicts it would
-    then have to keep in agreement with three `main` functions.
-
-    Neither of the two ways a run can fail short of a verdict is allowed to become
-    a traceback here: a member that hangs and a member that cannot be executed are
-    both findings, on the convention typecheck.py's own runner keeps.
-
-    `record` is the file the member is asked to write its measured parts to, named in
-    its environment alone; without one, the member is given no such file, whatever
-    this process's own environment names. A timeout retains captured output and the
-    last readable progress snapshot, identifying any still-running units without
-    promoting that partial record to a verdict.
+    Timeouts and launch failures return `NO_VERDICT` rather than raising a traceback.
     """
     argv = [sys.executable, str(root / "tools" / "run.py"), member.tool, *member.args]
     environment = {key: value for key, value in os.environ.items() if key != timings.ENV}
@@ -169,21 +130,18 @@ def _launch(root: Path, member: Launch, record: Path | None = None) -> Result:
     except OSError as err:
         return Result(member, NO_VERDICT, [f"{member.name} could not be run: {err}"],
                       time.perf_counter() - started)
-    # stderr after stdout and never instead of it: a member reports on stdout, so
-    # anything on stderr is what it said while dying and belongs under its heading
-    # rather than lost.
     return Result(member, done.returncode, (done.stdout + done.stderr).splitlines(),
                   time.perf_counter() - started,
                   timings.read(record) if record is not None else None)
 
 
 def _partial_text(value: str | bytes | None) -> str:
-    """TimeoutExpired may retain raw bytes even when the child requested text output."""
+    """Decode `TimeoutExpired` stdout/stderr, which may be raw bytes even in text mode."""
     return value.decode("utf-8", errors="replace") if isinstance(value, bytes) else value or ""
 
 
 def _show(rep: Reporter, result: Result) -> None:
-    """Keep a process's diagnostic output even when a later check supersedes it."""
+    """Append a member's diagnostic output to `rep`."""
     rep.line(f"--- {result.launch.name}: {result.launch.decides} ---")
     rep.line(f"elapsed: {result.elapsed_seconds:.2f}s")
     rep.out.extend(result.out)
@@ -191,13 +149,7 @@ def _show(rep: Reporter, result: Result) -> None:
 
 
 def _verdict(rep: Reporter, results: list[Result]) -> None:
-    """Every member's own report under its own heading, then the line over them all.
-
-    A member that exited 1 has already printed the findings it is being counted
-    for, so what is said here is which member to go and read. A member that exited
-    anything else printed no verdict at all, and saying so is the difference
-    between a tree with a finding in it and a tool that did not run.
-    """
+    """Append each member's report followed by the aggregate gate verdict."""
     for result in results:
         _show(rep, result)
 
@@ -210,14 +162,7 @@ def _verdict(rep: Reporter, results: list[Result]) -> None:
 
 
 def _verdict_data(results: list[Result], stopped: str = "") -> dict[str, object]:
-    """What the wave decided, as data rather than as the lines a person reads.
-
-    One record per member, each carrying the three things a reader has to tell apart:
-    the command that ran, the code it exited, and whether that code is a verdict at all.
-    `stopped` is the sentence that stands where no wave ran, which is the case a bare
-    exit code cannot distinguish from a failing member and the one a reader most needs
-    named: a repair that crashed without reaching a verdict ends here.
-    """
+    """Serialize the wave's results for `--summary`."""
     return {
         "green": bool(results) and all(r.code == 0 for r in results),
         "stopped": stopped,
@@ -233,14 +178,7 @@ def _verdict_data(results: list[Result], stopped: str = "") -> dict[str, object]
 
 
 def _write_summary(rep: Reporter, path: Path, data: dict[str, object]) -> None:
-    """Put the verdict where a caller asked for it, or say it could not be put there.
-
-    A finding on the convention `_launch` keeps: a run asked to say what it decided and
-    unable to has not answered, and a CI failure nothing can name is the state this flag
-    exists to end. The prose report is written either way, so the finding adds a reason
-    rather than replacing one, and it is reported ahead of the wave's own verdict so
-    that line stays last.
-    """
+    """Write `data` as JSON to `path`, reporting any I/O failure on `rep`."""
     try:
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
@@ -253,7 +191,7 @@ def _write_summary(rep: Reporter, path: Path, data: dict[str, object]) -> None:
 def run(root: Path, fix: bool = False, tests: bool = False, check: bool = False,
         summary: Path | None = None, shard: Shard | None = None,
         unpartitioned: bool = False) -> Reporter:
-    """Run the repair wave, if asked, then decide only the final validation wave."""
+    """Run the optional repair wave, then execute and report the final validation wave."""
     if fix and check:
         raise ValueError("--fix and --check are mutually exclusive")
     rep = Reporter()
@@ -280,8 +218,6 @@ def run(root: Path, fix: bool = False, tests: bool = False, check: bool = False,
 
     wave = plan[-1]
     with ExitStack() as stack:
-        # One file per member for the parts it measures, read back as it exits; only a
-        # run asked for its summary has anywhere to put them.
         scratch = None if summary is None else Path(stack.enter_context(
             tempfile.TemporaryDirectory(prefix="vos-gate-", ignore_cleanup_errors=True)))
         records = [None if scratch is None else scratch / f"{n}.json"

@@ -1,40 +1,12 @@
 # SPDX-License-Identifier: Apache-2.0
-"""Producer adapters from the composed model's own sources into a record body.
+"""Producer adapters from the composed model's RoT sources into a replay record body.
 
-[replay_record.py](replay_record.py) fixes the body, the bindings and the bounded
-callback interface. Nothing there knows where a source is: a fixture hands it
-bytes. This module is the other half, and its whole subject is *which access is a
-draw*, answered from the model and the composition rather than from a list kept
-here.
-
-**Nothing below decides a placement, an offset, a width or a draw site.** A
-window's base and extent are the composition's
-([model/config/verifiedos.json](../../model/config/verifiedos.json)); a door's
-offset is the `let ROT_*` the model declares and its admitted access width is the
-arm's own `'n ==` guard; which handler a window routes to is `mmio_read`/
-`mmio_write`'s own dispatch; and whether a door reaches the entropy root is
-computed over the model's call graph. So a door this repository adds, an offset it
-moves and a third caller of `rot_draw` all arrive here without an edit, and
-`tools/tests/test_replay_adapter.py` states what the model carries today and fails
-when it changes.
-
-**The watchdog's draw is the case this module refuses rather than intercepts.**
-`rot_draw` has exactly two non-test callers: the `ROT_TRNG_DRAW` door read, whose
-drawn word crosses the bus, and `watchdog_issue_nonce`, which no bus transaction
-accompanies. The pet that reaches it draws only on its accepted arm and the arm
-door only when the bite has not latched, and neither outcome is a record the
-commit-trace dialect carries, the store retiring `Ok` either way. A host reading a
-trace can therefore see that the site was *reached* and can never see whether it
-drew or what it drew. The classification below says so: such a door is `internal`,
-and touching one without an independently supplied account refuses the whole
-capture. The synchronous root callback now supplies that observation boundary;
-`RootProducer` consumes its outcome directly. A capture uses one entropy producer
-so that the bus-derived path does not duplicate root events. The production
-writer, sealing primitive and authenticated envelope remain owed.
-
-The seal is injected and never implemented here. A `TraceProducer` with no sealing
-primitive produces nothing at all, because the alternative is a host-computed hash
-that would satisfy every structural check and be worth nothing.
+Derives RoT MMIO window placements, door offsets, access widths, and `rot_draw`
+reachability directly from [verifiedos.json](../../model/config/verifiedos.json) and the
+Sail model sources (`platform_config.sail`, `platform.sail`, `rot.sail`), and feeds
+entropy draw events into [replay_record.py](replay_record.py)'s `FixtureRecorder` via
+`RootProducer` (synchronous root callback) or `TraceProducer` (commit-trace bus draws
+plus an optional `InternalAccount` for internal watchdog draws).
 """
 
 import re
@@ -55,7 +27,6 @@ from vos.replay_record import (
 )
 from vos.trace import COMMIT_RE
 
-# The artifacts read, named once because the diagnostics below cite them.
 COMPOSITION = "model/config/verifiedos.json"
 PLATFORM_CONFIG = "model/model/core/platform_config.sail"
 PLATFORM = "model/model/sys/platform.sail"
@@ -63,35 +34,24 @@ ROT = "model/model/sys/rot.sail"
 MODEL = "model/model"
 CONTRACT = "docs/implementation/contracts/replay-record.md"
 
-# The entropy root's one function. Every draw in the model passes through it, which
-# is what makes a call-graph answer about it an answer about draws.
+# The model's single entropy-root draw function.
 DRAW = "rot_draw"
 
-# The three sources R-16-015 closes over that no interface in this tree produces.
-# These three are a copy of the rows of the contract's source table whose surface
-# cell names no adapter, and nothing holds the two together today: a row that gains
-# a producer owes an edit here, and both artifacts stay green until it gets one.
+# R-16-015 sources that have no production adapter in this tree.
 ABSENT_SOURCES = ("link_address", "time_read", "physical_event")
 
 type DoorAccess = Literal["read", "write"]
 type DrawClass = Literal["none", "observed", "internal"]
 
-# A sealing primitive: the drawn bytes in, an opaque sealed commitment out. That the
-# result is sealed is the primitive's to establish and is unobservable from here.
+# Sealing primitive mapping drawn bytes to an opaque sealed commitment.
 type Seal = Callable[[bytes], bytes]
 
-# An account of one internal draw site, from the device that can see it: the site's
-# name and the local retire count in, the sealed commitment out, or None where the
-# site was reached and did not draw. The host verifies neither answer.
+# Callback returning a sealed commitment (or `None` if no draw occurred) for `(site, retire_order)`.
 type InternalAccount = Callable[[str, int], bytes | None]
 
 
 class AdapterError(RecordError):
-    """A capture is refused, or the model does not carry what this reads.
-
-    A subclass of the record fixtures' own refusal, so a caller that already
-    catches a capture refusal catches an adapter's too; the two latch the same way.
-    """
+    """Raised when a capture is refused or the model lacks expected RoT dispatch structure."""
 
 
 # --- reading the model -----------------------------------------------------
@@ -111,18 +71,13 @@ _WIDTH = re.compile(r"'n\s*==\s*(\d+)")
 
 
 def _group(match: re.Match[str], index: int = 1) -> str:
-    """One matched group as a string, every pattern here having no optional group."""
+    """Return matched group `index` as a `str`."""
     found = match.group(index)
     return found if isinstance(found, str) else ""
 
 
 def _strip_comments(text: str) -> str:
-    """Sail source with its comments blanked and every line's position kept.
-
-    Written as a scanner rather than as two substitutions because a `//` inside a
-    string literal is not a comment, and a sweep that treated it as one could hide
-    a draw site from the inventory below: the one direction this must not fail in.
-    """
+    """Blank Sail `//` and `/* ... */` comments outside string literals while preserving line numbers."""
     out: list[str] = []
     index = 0
     size = len(text)
@@ -158,7 +113,7 @@ def _strip_comments(text: str) -> str:
 
 @dataclass(frozen=True)
 class SailFunction:
-    """One function definition, as the lines between its header and the next one."""
+    """A Sail function definition and its body lines."""
 
     name: str
     path: str
@@ -172,7 +127,7 @@ class SailFunction:
 
 @dataclass(frozen=True)
 class DrawSite:
-    """One call of the entropy root, and the function it sits in."""
+    """A call site of `rot_draw` in the Sail model."""
 
     path: str
     line: int
@@ -181,20 +136,7 @@ class DrawSite:
 
 @dataclass(frozen=True)
 class Door:
-    """One offset of one RoT window, and what reaching it does to the root.
-
-    `draw` is `observed` where the root is called in the handler's own body, so the
-    drawn word is the value the access returns and a trace carries it; `internal`
-    where the root is reached through a call, so no transaction carries the draw and
-    a host cannot tell whether it happened; `none` where the arm does not reach it.
-
-    `width` is the byte width the arm's own `'n ==` guard admits, and is `None` where
-    the arm states none and so admits any. An access at some other width reached a
-    different arm and is not this door's, but an arm that states no width classifies
-    whatever reaches it: an unrecorded draw is the one direction this must not fail
-    in, and inferring a width from what the model happens to do would be the
-    assumption this module exists to avoid.
-    """
+    """An MMIO offset arm inside a RoT window and its entropy-draw classification (`none`, `observed`, `internal`)."""
 
     window: str
     name: str
@@ -206,7 +148,7 @@ class Door:
 
 @dataclass(frozen=True)
 class Window:
-    """One composed RoT MMIO window, with the handlers the dispatch routes to."""
+    """A composed RoT MMIO window, its read/write handlers, and its classified doors."""
 
     key: str
     base: int
@@ -224,7 +166,7 @@ def _text(root: Path, rel: str) -> str:
 
 
 def _functions(path: str, text: str) -> list[SailFunction]:
-    """Every function in one comment-stripped file, keyed by its header line."""
+    """Extract `SailFunction` definitions from comment-stripped Sail `text`."""
     found: list[SailFunction] = []
     name: str | None = None
     start = 0
@@ -245,12 +187,7 @@ def _functions(path: str, text: str) -> list[SailFunction]:
 
 
 def _sail_files(root: Path) -> list[str]:
-    """Every model source outside the unit tests, in a stable order.
-
-    The unit tests are excluded because they call the root directly to check its
-    refusals: they are not a consumer the record has to account for, and counting
-    them would make the inventory disagree with the machine.
-    """
+    """Return sorted relative paths of non-test `.sail` files under `model/model`."""
     base = root / MODEL
     if not base.is_dir():
         raise AdapterError(f"{MODEL} is not in this checkout")
@@ -259,12 +196,7 @@ def _sail_files(root: Path) -> list[str]:
 
 
 def _index(root: Path) -> dict[str, SailFunction]:
-    """Every non-test model function, one entry per name.
-
-    A name defined more than once (a scattered clause set) merges its bodies, which
-    is what the reachability question below wants: a clause that calls the root is
-    a call site of the root whichever clause it is.
-    """
+    """Index all non-test Sail functions by name, merging scattered clauses."""
     merged: dict[str, SailFunction] = {}
     for rel in _sail_files(root):
         for fn in _functions(rel, _text(root, rel)):
@@ -276,7 +208,7 @@ def _index(root: Path) -> dict[str, SailFunction]:
 
 
 def _reaching(index: Mapping[str, SailFunction], target: str) -> frozenset[str]:
-    """Every function whose calls reach `target`, transitively, plus `target`."""
+    """Return `target` and all functions in `index` that transitively call `target`."""
     callers: dict[str, set[str]] = {}
     for name, fn in index.items():
         for called in fn.calls:
@@ -292,12 +224,7 @@ def _reaching(index: Mapping[str, SailFunction], target: str) -> frozenset[str]:
 
 
 def draw_sites(root: Path) -> tuple[DrawSite, ...]:
-    """Every non-test call of the entropy root in the model, with its caller.
-
-    This is the inventory the S6 cell's *the model's internal watchdog draw must be
-    intercepted beside MMIO draws* is answered against. A site whose caller is not
-    an MMIO handler is a draw no bus transaction accompanies.
-    """
+    """Return all non-test call sites of `rot_draw` in the Sail model."""
     found: list[DrawSite] = []
     call = re.compile(rf"\b{DRAW}\s*\(")
     for rel in _sail_files(root):
@@ -315,7 +242,7 @@ def draw_sites(root: Path) -> tuple[DrawSite, ...]:
 
 
 def _dispatch(fn: SailFunction) -> dict[str, str]:
-    """One MMIO dispatch body as guard name to handler name."""
+    """Parse `within_<guard>(...) ... then <handler>(...)` routes from `fn`."""
     routes: dict[str, str] = {}
     pending: str | None = None
     for line in fn.body:
@@ -331,7 +258,7 @@ def _dispatch(fn: SailFunction) -> dict[str, str]:
 
 def _doors(window: str, access: DoorAccess, fn: SailFunction | None,
            reaching: frozenset[str], constants: Mapping[str, int]) -> list[Door]:
-    """One handler's offset arms, each classified against the entropy root."""
+    """Extract and classify `offset == ROT_*` arms from MMIO handler `fn`."""
     if fn is None:
         return []
     order: list[str] = []
@@ -363,7 +290,7 @@ def _doors(window: str, access: DoorAccess, fn: SailFunction | None,
 
 
 def _aperture(loaded: Json, key: str) -> tuple[int, int]:
-    """One supported window's base and extent, from the composition alone."""
+    """Read `(base, size)` for supported aperture `platform.<key>` from `loaded`."""
     platform = loaded.get("platform") if isinstance(loaded, dict) else None
     node = platform.get(key) if isinstance(platform, dict) else None
     if not isinstance(node, dict) or node.get("supported") is not True:
@@ -377,19 +304,7 @@ def _aperture(loaded: Json, key: str) -> tuple[int, int]:
 
 
 def rot_windows(root: Path) -> tuple[Window, ...]:
-    """The RoT's composed windows, their doors, and each door's relation to the root.
-
-    Followed rather than asserted: the dispatch names a guard, the guard names the
-    configuration symbol, the symbol names the composition key, and the key carries
-    the base. A window whose handler reaches the root with no offset arm to attribute
-    the draw to is refused here rather than adapted, because a door that draws and is
-    not in this table is exactly the unaccounted draw the record exists to prevent.
-
-    The table names the arms an `offset ==` comparison guards, so a handler that
-    indexes a bank instead (the fuse words, the counter file) contributes no row and
-    an access to one produces no event. That is right rather than tolerated: the
-    refusal above is what establishes no such arm draws.
-    """
+    """Discover composed RoT MMIO windows, their doors, and each door's `rot_draw` classification."""
     index = _index(root)
     reaching = _reaching(index, DRAW)
     symbols = {_group(match): _group(match, 2)
@@ -429,12 +344,7 @@ def rot_windows(root: Path) -> tuple[Window, ...]:
 
 
 def require_producer(source: str) -> None:
-    """Refuse a source this tree has no interface to produce from.
-
-    The point is that an absent production ABI cannot be papered over by a fixture:
-    a synthesized address, time reply or sentinel event would satisfy every
-    structural check in the reader and mean nothing.
-    """
+    """Reject unknown sources or R-16-015 sources lacking a production interface."""
     if source not in SOURCES:
         raise AdapterError(f"'{source}' is not one of R-16-015's four closed sources")
     if source in ABSENT_SOURCES:
@@ -443,12 +353,7 @@ def require_producer(source: str) -> None:
 
 
 class RootProducer:
-    """Sealed entropy events from the synchronous root observer, including watchdog.
-
-    A native harness supplies the callback's result and independently established
-    schedule point. Use this as the capture's only entropy producer: bus-derived
-    events would duplicate the same root draw. No secret is retained here.
-    """
+    """Record sealed entropy events from the synchronous `rot_draw` observer callback."""
 
     def __init__(self, recorder: FixtureRecorder, *, entropy_interface: str,
                  seal: Seal | None = None) -> None:
@@ -462,7 +367,7 @@ class RootProducer:
         self._closed = False
 
     def observe(self, *, point: Point, available: bool, value: bytes) -> None:
-        """One completed root invocation; refused draws do not consume an event."""
+        """Record one completed root draw (`available=False` records no event)."""
         if self._closed:
             raise AdapterError("root capture is refused or already finished")
 
@@ -493,17 +398,9 @@ class RootProducer:
 
 
 class TraceProducer:
-    """One commit trace's RoT accesses, produced into a bounded record.
+    """Produce sealed entropy events into `recorder` from a commit trace's RoT MMIO accesses.
 
-    The trace is the input dialect S6's cell asks to be reused and is not a replay
-    artifact: it supplies the local retired-instruction anchor and the addresses, and
-    nothing else about it enters the body. `slot` is the caller's declared schedule
-    slot, an assertion this tree cannot derive because R-11-017's composed operating
-    point, TDM schedule and watchdog windows are one artifact that does not exist yet.
-
-    Refusals latch. A refused capture returns no body, not even the prefix that had
-    already been admitted. Adapter errors also abort the underlying recorder, so
-    bypassing the producer cannot finalize an uncertain prefix.
+    Refusals latch and abort `recorder` so a failed capture never finalizes a partial prefix.
     """
 
     def __init__(self, recorder: FixtureRecorder, *, windows: Iterable[Window],
@@ -561,7 +458,7 @@ class TraceProducer:
         self._ordinal = 0
 
     def _observed(self, door: Door, value: str) -> None:
-        """A draw whose word crossed the bus: sealed here, never carried."""
+        """Seal and record a bus-observed draw word."""
         if len(value) % 2:
             raise AdapterError(f"{door.window}.{door.name} returned an odd-width value")
         drawn = bytes.fromhex(value)
@@ -574,13 +471,7 @@ class TraceProducer:
         self._ordinal += 1
 
     def _internal(self, door: Door) -> None:
-        """A draw site reached with no transaction carrying it.
-
-        Whether the site drew is the device's statement: `watchdog_pet` draws only on
-        its accepted arm and `watchdog_arm` only where the bite has not latched, and
-        the store retires `Ok` either way. So an account may decline, which is the
-        recorder's own no-value promise, and its absence refuses the whole capture.
-        """
+        """Record an internal draw site via `self._account` or refuse the capture."""
         site = f"{door.window}.{door.name}"
         account = self._account
         if account is None:
@@ -613,10 +504,7 @@ class TraceProducer:
         if door is None or door.draw == "none":
             return
         if door.width is not None and int(fields[2]) != door.width:
-            # The arm states the width it admits, so an access at another width
-            # reached the handler's fault arm and drew nothing. Compared rather
-            # than relied on: that every RoT arm today is doubleword-guarded is a
-            # fact about the model, not a licence to ignore the trace's field.
+            # Access width mismatch reaches the handler's fault arm without drawing.
             return
         if door.draw == "observed":
             self._observed(door, fields[4])
@@ -624,13 +512,7 @@ class TraceProducer:
             self._internal(door)
 
     def feed(self, lines: Iterable[str]) -> None:
-        """Walk one trace, producing an event at each draw the model would make.
-
-        Anything that is not a record is dropped for the reason `normalize_commit`
-        drops it: the emulator prints its own diagnostics on the same stream. Neither
-        that normalizer nor the corpus digest is used, both deliberately discarding
-        what this needs.
-        """
+        """Process commit-trace `lines` and record entropy draw events."""
         self._ready()
         try:
             for raw in lines:
@@ -647,7 +529,7 @@ class TraceProducer:
             raise
 
     def finish(self, *, expected: Binding, expected_events: int) -> bytes:
-        """Close the capture against the independently supplied binding and count."""
+        """Finalize the capture against `expected` and `expected_events`."""
         self._ready()
         try:
             blob = self._recorder.finish(expected=expected, expected_events=expected_events)

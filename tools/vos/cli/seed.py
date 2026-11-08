@@ -2,73 +2,18 @@
 # SPDX-License-Identifier: Apache-2.0
 """The seeded-defect generator: one engine, several oracles, three verdicts.
 
-[run.py selftest](selftest.py) proved mutation testing here, on the checker's own
-rules, with at least one hand-authored mutant per rule. That shape is right for a registry
-and wrong for everything else in this tree: a Sail function and a Gallina definition
-have hundreds of mutable sites each and nobody is going to author hundreds of cases.
-So [vos/mutate.py](../mutate.py) generates the population and this tool points it at
-an **oracle**, which is whatever decides that a defect has been noticed:
+Generates mutants via [vos/mutate.py](../mutate.py) and evaluates them against a selected
+oracle:
 
-    run.py seed sail --spec capformat   the generated vectors, which must move
-    run.py seed coq                     the prover, and then the Gallina vectors
-    run.py seed properties --file ...   the model's own `$[test]` harness
+    run.py seed sail --spec capformat   generated vectors ([vos/oracle.py](../oracle.py))
+    run.py seed coq                     Rocq prover, then Gallina vectors or QuickChick
+    run.py seed properties --file ...   the model's `$[test]` harness
 
-Three verdicts decide a mutant, and never two. **Stillborn** is a mutant that did not
-compile, and nothing was decided about the oracle because the oracle never ran.
-**Killed** is a mutant that compiled and moved the oracle's answer. **Survived** is a
-mutant that compiled and did not, and a survivor is the finding: the oracle does not
-reach that site. Counting stillborn mutants as kills is the standard way a mutation
-score is inflated, so a run here reports the three apart and scores over the live
-population; a Gallina run may also leave a mutant undecided, as below.
-What a verdict is, and the report and the exit code they imply, is
-[vos/seeded.py](../seeded.py)'s and is shared with every other loop that seeds a
-defect; what is here is the population and the three oracles.
-
-**A run of any of the three is built to outlive its own lane.** Each takes the
-keepalive lease `vos/env.py` exposes, so the guest distribution does not idle out from
-under a population that costs a compiler or a prover per member, and each writes every
-verdict to a journal beside the lane's staged trees as it is decided, so a run that is
-killed anyway still says what it had decided rather than losing the lot at the report
-it never printed. The report itself is unmoved: accumulated, printed whole, in
-population order, and closing on the line that carries the run's scope. The Gallina
-lane also journals the seed a randomized baseline draws from, which mutant each staged
-tree is on and each compile's file and wall seconds, and a compile that reaches
-gallina's per-file limit is stopped, its mutant journalled undecided with the file and
-the limit, and the run goes on to the next; a compile a signal ends, a kill for want of
-memory among them, leaves its mutant undecided the same way, with the file and the
-signal, and never killed or stillborn. Under `--quickchick` a drawn set whose
-program built and then ended on what decides nothing about the mutant, memory or stack
-running out, a signal, a program that could not run or a status the reader cannot
-classify, leaves the mutant undecided the same way, journalled with why, and one whose
-program ended on any other exception nothing caught kills it.
-
-The Coq lane runs **two** oracles in sequence and the second is the one worth the
-item. A mutation the prover refuses is killed by the artifact's own statements, which
-is a good answer and the one a reader expects. A mutation the prover accepts is a
-weakening the theorems do not constrain, and it is handed straight to the generated
-Gallina vectors; what those kill is exactly the dividend, and what survives both is
-where neither the proofs nor the generated inputs decide anything. Under `--quickchick`
-the prover reads `Properties.v`'s `Require` closure alone, so there "the proofs" are that
-closure's and a survivor is a site neither they nor QuickChick's draws constrain; a
-proof outside the closure that would refuse the mutant is the enumerative mode's to ask.
-
-**Which finding this answers.** M0.8d's: the property that named the *pi* defect was
-written before the vectors and never ran, the harness running alphabetically so the
-symptom aborted the executable ahead of the cause. A written property inherits every
-blind spot in the choice of what to write; a generated mutant is not chosen at all.
-
-**The checker's own rules are a fourth oracle over the same vocabulary, and its
-population stays authored.** [run.py selftest](selftest.py) keeps one hand-written
-mutant per registered rule, which is right rather than a shortfall: its subject is a
-registry, where a rule and its mutant are two halves of one claim, and there is no
-source to walk. What it shares is [vos/seeded.py](../seeded.py) and nothing else.
-What stays its own is the `CASES` table, which sits where the rules are added and
-where the one rule that reads a quoted path exempts it; the `Sandbox` class and its
-hardlink template over the git index, which is that oracle's own staging and no other
-oracle's; the repair path, which decides about `--fix` rather than about mutation;
-and the registry-coverage check, which decides about the rule registry rather than
-about any run. Its third verdict is `unseeded` rather than `stillborn`, and
-`vos/seeded.py` states why the two are counted apart.
+Each mutant is classified via [vos/seeded.py](../seeded.py) as **stillborn** (failed to
+compile), **killed** (compiled and detected by the oracle), **survived** (compiled and
+undetected), or **undecided** (prover timeout/signal or unanswered QuickChick draw).
+Every run holds the WSL keepalive lease ([vos/env.py](../env.py)) and journals verdicts
+incrementally beside the staged trees.
 """
 
 import argparse
@@ -99,69 +44,35 @@ from vos.seeded import (
 # Separate workspaces per oracle keep concurrent compiler runs from sharing a tree.
 WORK = "seed"
 
-# The Gallina lane's default subject: the file whose definitions the theorems above
-# them are about. Named rather than globbed, because mutating a Record's field list is
-# a stillborn mutant with near certainty and mutating `ApexTheorem.v`'s vocabulary is
-# a mutation of a `Prop` no vector computes.
+# Default Gallina mutation subject (`proofs/CyclicExecutive.v`).
 COQ_SUBJECT = "proofs/CyclicExecutive.v"
 
 
 def lane_env() -> env.Environment:
-    """This lane's environment, with the distribution held up for as long as it lasts.
-
-    **Every oracle here is a loop long enough to lose the VM underneath it**, and this
-    was the one family of loops in the tree not taking the lease. WSL2 starts its idle
-    timer once the last process in the distribution exits, and a mutation run is
-    minutes to hours of compiler or prover with several lanes competing for the same
-    guest: a teardown does not fail the run, it takes the whole of it, verdicts
-    included. `run.py model` takes the lease on every subcommand that drives the
-    toolchain, and the lease is idempotent through its pidfile, so taking it here costs
-    nothing where one is already held and is the difference between a lost run and a
-    finished one where it is not.
-
-    `list` does not come through here, and deliberately: it walks a source and drives
-    no toolchain, so it answers on the host, where there is no distribution to hold up.
-    """
+    """Load the lane environment and acquire the WSL keepalive lease."""
     e = env.load()
     env.keepalive()
     return e
 
 
 def journal_at(e: env.Environment, name: str) -> Journal:
-    """Where one oracle's run writes its verdicts down as it decides them.
-
-    Beside the lane's staged trees rather than inside one: every tree here is rebuilt
-    from scratch at the head of the next run, and a record whose whole purpose is to
-    outlive the run that wrote it must not sit in a directory the next run deletes.
-    """
+    """Return a `Journal` in the lane's seed root outside rebuilt staging trees."""
     return Journal(e.lane_root / WORK / f"{name}.journal")
 
 
 def read_source(path: Path) -> str:
-    """A source's text with its own line endings intact.
-
-    `read_text` translates newlines, so a round trip through it rewrites every line of
-    a CRLF file. `model/` is `-text` in .gitattributes and a swept file there hides the
-    real diff of whatever touched it, which is a rule this repository states and a
-    mutation loop writing into the checkout would break silently.
-    """
+    """Read UTF-8 source text while preserving exact line endings."""
     return path.read_bytes().decode("utf-8")
 
 
 def write_source(path: Path, text: str) -> None:
-    """And back, byte for byte."""
+    """Write UTF-8 source text while preserving exact line endings."""
     path.write_bytes(text.encode("utf-8"))
 
 
 def population(root: Path, rel: str, named: tuple[str, ...] = (),
                only: tuple[str, ...] = ()) -> list[mutate.Mutant]:
-    """Every mutant of one tracked source, in the engine's own order.
-
-    `only` narrows to named operators, which is what makes two oracles comparable: a
-    sample is evenly spaced over an operator-ordered population, so two runs at
-    different sample sizes are two different populations and the pair says nothing.
-    Naming the operator gives both oracles the same mutants.
-    """
+    """Return all mutants of `rel`, optionally filtered by region (`named`) and operator (`only`)."""
     lane = mutate.lane_of(rel)
     found = mutate.mutants(read_source(root / rel), lane, rel, named=named)
     return [m for m in found if m.operator in only] if only else found
@@ -169,19 +80,7 @@ def population(root: Path, rel: str, named: tuple[str, ...] = (),
 
 def picked_with_scope(root: Path, rel: str,
                       args: argparse.Namespace) -> tuple[list[mutate.Mutant], Scope]:
-    """The mutants a run puts to its oracle, and what they are of the whole population.
-
-    The whole is taken here, from the source with nothing narrowed, rather than
-    inferred from what ran. Every narrowing this tool offers is applied before any
-    verdict exists, so a count taken afterwards cannot see what it removed, and a run
-    that reports only its own total is the shape that reads as a whole-population run
-    at the next citation.
-
-    The axis reported is the operator, because that is what a narrowed run is usually
-    narrowed on and what a reader can act on: an operator no picked mutant carries is a
-    whole kind of defect the oracle was never asked about, which is a different thing
-    from a thin sample of every kind.
-    """
+    """Select the mutants to run and record their coverage against the full population."""
     whole = population(root, rel)
     picked = chosen(population(root, rel, tuple(args.region), tuple(args.operator)),
                     args.limit, args.sample)
@@ -195,8 +94,7 @@ def picked_with_scope(root: Path, rel: str,
 
 
 def cmd_list(args: argparse.Namespace) -> int:
-    """The mutants one source yields, counted per operator. Runs on the host, being a
-    text walk: what it is for is sizing a run before spending a toolchain on it."""
+    """List the mutants generated for one source file, grouped by operator."""
     root = find_root()
     rel = args.file
     if not (root / rel).is_file():
@@ -224,12 +122,7 @@ def cmd_list(args: argparse.Namespace) -> int:
 
 
 def stage_sail(root: Path, spec: oracle_spec.Spec, tree: Path) -> None:
-    """A copy of exactly the model files one spec compiles.
-
-    Exactly those and no more, which is what makes the Sail lane cheap: the spec names
-    five files where the model has a hundred and twenty-five, and the mutation loop
-    recompiles the set once per mutant.
-    """
+    """Copy the model files compiled by `spec` into `tree`."""
     if tree.exists():
         shutil.rmtree(tree)
     for source in spec.sources:
@@ -316,18 +209,7 @@ def _sail_run(args: argparse.Namespace, e: env.Environment, root: Path,
 def _coq_verdict(found: gallina.Prover, work: Path, rel: str, harness: Path,
                  mutant: mutate.Mutant, baseline: list[str],
                  quickchick: bool) -> Verdict:
-    """One mutant already written into one staged tree, put to the two oracles.
-
-    Reads nothing outside the tree it is handed, which is what lets several of these
-    run beside each other: the mutated source, the `.vo` it compiles to and the harness
-    that reads them are all under `work`, so two shards racing on one population never
-    share a file.
-
-    Under QuickChick only what the mutant moves inside the `Require` closure of the
-    harness and the walk harness beside it is compiled, so no proof outside that closure
-    reaches QuickChick's prover. The walk harness Requires nothing the drawn one's
-    closure does not hold, so the proofs asked are that closure's.
-    """
+    """Evaluate one Gallina `mutant` in staged tree `work` against the prover and vector/QuickChick oracle."""
     walker = harness.parent / gallina.EXHAUSTIVE
     moved = gallina.closure_dependents(work, rel, harness, walker) if quickchick else None
     failures = gallina.compile_dependents(found, work, rel, moved)
@@ -335,18 +217,11 @@ def _coq_verdict(found: gallina.Prover, work: Path, rel: str, harness: Path,
         return Verdict(mutant, KILLED,
                        "the prover refused " + ", ".join(f.source for f in failures),
                        len(failures))
-    # The harness's own shared sources come after the proofs and their failure is a
-    # different verdict: a mutation the shipped statements accept and the harness
-    # cannot be built over is a mutant no oracle ran against. The randomized half's own
-    # support is among them only where that half decides.
     if gallina.compile_support(found, work, moved, randomized=quickchick):
         return Verdict(mutant, STILLBORN,
                        "the harness would not build over the mutant")
     if quickchick:
-        # Only the closure's proofs were asked, so the reason names them and no more.
         accepted = f"the proofs {gallina.RANDOMIZED}'s Require closure holds accepted it"
-        # The walks first: they are the cheaper half, and a set a walk refutes is a
-        # kill whatever the draws would say.
         walked, said = gallina.walks(found, work, walker)
         if said:
             return Verdict(mutant, STILLBORN,
@@ -356,14 +231,6 @@ def _coq_verdict(found: gallina.Prover, work: Path, rel: str, harness: Path,
             return Verdict(mutant, KILLED,
                            f"{accepted} and {len(refuted)} of {len(walked)} walked "
                            f"set(s) did not hold: {refuted[0]}", len(refuted))
-        # A set a draw refutes kills the mutant however the program or the prover ends
-        # after it; a compile stopped at gallina's per-file limit is undecided before
-        # its output is read. Short of one, a set whose program built and then ended on
-        # an exception nothing caught kills it too, the baseline's program having
-        # finished every set; a set whose program ended on what decides nothing about
-        # the mutant leaves it undecided; and a drawn harness that does not build is
-        # scored as the walk harness is: no draw ran against the mutant, so nothing was
-        # decided about it.
         sets = gallina.properties(found, work, harness)
         if sets.failed:
             return Verdict(mutant, KILLED,
@@ -395,8 +262,7 @@ def _coq_verdict(found: gallina.Prover, work: Path, rel: str, harness: Path,
 
 
 def _accounted(book: Journal, tree: str) -> Callable[[gallina.Compiled], None]:
-    """How one staged tree's compiles are journalled as they end: the tree, the source,
-    its wall seconds and how the prover run ended, a stopped one with its limit."""
+    """Return a callback that logs each compile's duration and exit status to `book`."""
     def note(done: gallina.Compiled) -> None:
         ended = (f"stopped at gallina's per-file limit of {done.limit:g} s"
                  if done.exit is None else f"exit {done.exit}")
@@ -405,8 +271,7 @@ def _accounted(book: Journal, tree: str) -> Callable[[gallina.Compiled], None]:
 
 
 def _stopped(stopped: gallina.CompileTimeout | gallina.CompileSignalled) -> str:
-    """A compile stopped at its limit, or ended by a signal, as the reason a verdict or a
-    baseline names."""
+    """Format a timeout or signal termination for verdict or baseline reporting."""
     if isinstance(stopped, gallina.CompileSignalled):
         return (f"the compile of {stopped.source} was ended by "
                 f"{gallina.signal_named(stopped.signal)}")
@@ -417,25 +282,7 @@ def _stopped(stopped: gallina.CompileTimeout | gallina.CompileSignalled) -> str:
 def _coq_shard(found: gallina.Prover, work: Path, rel: str, harness_name: str,
                mutants: list[mutate.Mutant], original: str, baseline: list[str],
                quickchick: bool, book: Journal) -> list[Verdict]:
-    """One shard of the population, run serially in the one tree that shard owns.
-
-    The source is restored after every mutant rather than at the end, because the next
-    mutant in this shard is applied to the original text and a tree left mutated would
-    compound two seeds into a defect nobody generated.
-
-    Every verdict is journalled where it is decided rather than where the shards are
-    joined, which is the whole of what makes the record survive: a run torn down never
-    reaches the join. So is the mutant the tree is on, as it starts, and each compile's
-    file and wall seconds, as it ends, and each verdict carries the tree and the mutant
-    it is about, which shards journalling at once would otherwise leave to line order.
-
-    A compile that reaches gallina's per-file limit is stopped and decides nothing: its
-    mutant is undecided, naming the file and the limit, and the shard goes on to the
-    next. So is one a signal ends, a kill for want of memory among them, naming the file
-    and the signal. What the stopped compile leaves in the tree is recompiled before it
-    is read, every mutant here mutating the one source and recompiling it and everything
-    the run reads that Requires it, the harnesses among them.
-    """
+    """Run one shard of `mutants` serially in `work`, restoring `original` after each mutant."""
     staged = work / rel
     harness = work / "harness" / harness_name
     verdicts: list[Verdict] = []
@@ -462,25 +309,7 @@ def _coq_shard(found: gallina.Prover, work: Path, rel: str, harness_name: str,
 def _run_shards(found: gallina.Prover, trees: list[Path], rel: str, harness_name: str,
                 picked: list[mutate.Mutant], original: str, baseline: list[str],
                 quickchick: bool, book: Journal) -> list[Verdict]:
-    """The population across the staged trees, one shard each, all at once.
-
-    **The partition is round-robin and therefore exhaustive by construction.** Taking
-    `picked[i::n]` for each tree puts every mutant in exactly one shard whatever the
-    counts are, which is the property a hand-assembled partition does not have: an
-    operator list written out by hand is where a whole operator goes unrun and nothing
-    says so.
-
-    It also balances without measuring. The population is generated in operator order,
-    so a contiguous split would hand one shard every mutant of the slowest operator;
-    striding interleaves the operators across the shards instead, and they finish
-    together without anyone having priced a mutant.
-
-    Threads rather than processes because every mutant is a `subprocess.run` on the
-    prover, which releases the interpreter lock for its whole duration: the work is in
-    the prover and the thread only waits on it. Verdicts come back in population order
-    rather than completion order, so what a run reports does not depend on which shard
-    happened to finish first.
-    """
+    """Run `picked` across `trees` using round-robin sharding and reassemble in population order."""
     if len(trees) == 1:
         return _coq_shard(found, trees[0], rel, harness_name, picked, original,
                           baseline, quickchick, book)
@@ -489,16 +318,11 @@ def _run_shards(found: gallina.Prover, trees: list[Path], rel: str, harness_name
                             original, baseline, quickchick, book)
                 for tree, part in zip(trees, shard(picked, len(trees)), strict=True)]
         got = [future.result() for future in done]
-    # Undone the same way it was done, rather than by sorting on anything read off a
-    # mutant: `Seeded` carries one line of prose and deliberately nothing to key on.
     return unshard(got)
 
 
 def randomized_subjects(root: Path) -> list[str]:
-    """The proof sources `Properties.v`'s `Require` closure holds, checkout-relative and
-    sorted: the subjects `--quickchick` mutates. Read by `gallina.closure` over the
-    checkout, as the run reads the staged copy of it; none where the harness is absent.
-    """
+    """Return sorted checkout-relative proof sources in `Properties.v`'s `Require` closure."""
     harness = root / gallina.HARNESS_DIR / gallina.RANDOMIZED
     if not harness.is_file():
         return []
@@ -510,13 +334,7 @@ def randomized_subjects(root: Path) -> list[str]:
 def _quickchick_baseline(root: Path, found: gallina.Prover, work: Path,
                          harness_name: str, book: Journal | None = None
                          ) -> tuple[list[str] | None, str]:
-    """One tree stood up for the randomized harness and the walk harness beside it,
-    whose baseline is green property sets rather than a vector file, so the list it
-    hands back is empty. It compiles the two harnesses' `Require` closure and nothing
-    else, as `quickchick properties` does. A harness the staged tree does not hold is
-    refused first, as `quickchick properties` refuses it, and a drawn harness that fixes
-    no seed next, since a verdict its mutants reach would not replay; the seed one fixes
-    is journalled in `book`, where one is given, before anything compiles."""
+    """Stage and verify the unmutated QuickChick and walk harnesses in `work`."""
     gallina.stage(root, work)
     drawn = work / "harness" / harness_name
     walker = work / "harness" / gallina.EXHAUSTIVE
@@ -546,24 +364,8 @@ def _quickchick_baseline(root: Path, found: gallina.Prover, work: Path,
 
 def _stand_up(root: Path, found: gallina.Prover, trees: list[Path], harness_name: str,
               quickchick: bool, book: Journal) -> tuple[list[str] | None, str]:
-    """Stage and compile every tree, and take the baseline they are all held to.
-
-    They are stood up together for the same reason the shards run together, and then
-    **their baselines are required to agree**: one baseline is what every shard's
-    mutants are compared against, so trees that differed unmutated would make a verdict
-    depend on which shard happened to draw the mutant. That is a defect this rig has no
-    other way of seeing, and it is cheap to refuse here.
-
-    Each tree's compiles are journalled as a shard's are, and one that reaches
-    gallina's per-file limit, or that a signal ends, leaves that tree, and so the run,
-    with no baseline.
-    """
+    """Stage and compile all `trees` concurrently and verify their unmutated baselines agree."""
     def one(work: Path) -> tuple[list[str] | None, str]:
-        # The emitter's own account of a failure is carried out rather than dropped
-        # into a list nobody reads: a baseline that will not stand up is the one moment
-        # in this loop where the reader has nothing else to go on, and "the unmutated
-        # tree did not run" costs a whole second run to turn into which proof refused
-        # and what the prover said about it.
         with gallina.observed(_accounted(book, work.name)):
             book.note(f"{work.name}: baseline")
             try:
@@ -587,29 +389,7 @@ def _stand_up(root: Path, found: gallina.Prover, trees: list[Path], harness_name
 
 
 def cmd_coq(args: argparse.Namespace) -> int:
-    """Seed a weakening into a Gallina definition and ask two oracles about it.
-
-    The prover answers first, because a mutation the shipped statements refuse is
-    killed by the artifact itself and there is nothing further to measure about it. The
-    generated inputs answer for the rest, and what they kill is what the theorems leave
-    open: a definition the proofs do not constrain and generation does.
-
-    Which generator supplies those inputs is `--quickchick`'s to choose, and the two
-    are worth having apart. The enumerative harness walks a declared grid, so what it
-    reaches is a list somebody wrote and its verdict is a whole vector file that moved.
-    QuickChick draws instead, from the seed its harness fixes, so what it reaches is a
-    range and its verdict names the set a draw refuted; a set whose domain is no larger
-    than its draws is walked whole by the walk harness beside it. A mutant both miss is
-    a site neither the proofs nor either kind of generation decides anything about.
-
-    Under QuickChick the run compiles `Properties.v`'s `Require` closure and the walk
-    harness, whose Requires lie inside it, and nothing else, for its baseline and for
-    each mutant's dependents, and refuses a subject that is not a proof source of that
-    closure, whose mutation no property reads. The enumerative mode compiles every proof
-    source and mutates any of them. A mutant only a proof outside that closure refuses
-    is not killed by the prover in this mode; the enumerative mode, which compiles every
-    proof that Requires the subject, decides it.
-    """
+    """Seed mutations into a Gallina source and test against the prover and vector/QuickChick oracle."""
     e = lane_env()
     root = find_root()
     rel = args.file
@@ -630,9 +410,6 @@ def cmd_coq(args: argparse.Namespace) -> int:
               "with --quickchick")
         return 1
     if args.quickchick:
-        # QuickChick's own holder chooses the switch and holds what it carries, as it
-        # does for `quickchick check` and `properties`, so no population is decided
-        # under a QuickChick release or commit the switch's recipe does not pin.
         switch, _, found, why = quickchick._held(args.recipe)
         if why or found is None:
             check = "quickchick check --recipe" if args.recipe else "quickchick check"
@@ -655,7 +432,7 @@ def cmd_coq(args: argparse.Namespace) -> int:
 
 def _coq_run(args: argparse.Namespace, e: env.Environment, root: Path, rel: str,
              found: gallina.Prover, work: Path) -> int:
-    """One population; the caller holds its workspace through journal completion."""
+    """Execute a Gallina mutation run while the caller holds the workspace lock."""
     name = work.name
     switch = found.switch
     out: list[str] = []
@@ -665,12 +442,9 @@ def _coq_run(args: argparse.Namespace, e: env.Environment, root: Path, rel: str,
                    else "prover-then-vector")
     picked, scope = picked_with_scope(root, rel, args)
 
-    # Start the journal before baseline setup so an early failure cannot leave the
-    # previous run's completed journal as evidence for this run.
     book = journal_at(e, name)
     out.append(book.start(rel, oracle_name, scope))
 
-    # One tree per job; preserve the existing workspace path for a single job.
     jobs = max(1, args.jobs)
     trees = [work] if jobs == 1 else [work / f"j{n}" for n in range(jobs)]
     baseline, why = _stand_up(root, found, trees, harness_name, args.quickchick, book)
@@ -698,8 +472,7 @@ def _coq_run(args: argparse.Namespace, e: env.Environment, root: Path, rel: str,
 
 
 def _moved(want: Iterable[str], got: Iterable[str]) -> int:
-    """How many lines of two vector sets differ, counting a length change as a
-    disagreement at every line past the shorter one."""
+    """Return the number of differing lines between `want` and `got`, including length differences."""
     a, b = list(want), list(got)
     moved = sum(1 for x, y in zip(a, b, strict=False) if x != y)
     return moved + abs(len(a) - len(b))
@@ -711,38 +484,12 @@ def _moved(want: Iterable[str], got: Iterable[str]) -> int:
 
 
 def cmd_properties(args: argparse.Namespace) -> int:
-    """Seed a defect into the model and require a `$[test]` property to report.
+    """Seed mutations into a Sail model source in-place and test with the `$[test]` harness.
 
-    This is the oracle S13 names and the expensive one, and its price is the reason it
-    is a separate subcommand rather than a mode of `sail`: the `$[test]` harness links
-    the whole generated model, so a mutant costs a re-emission and a recompile of the
-    one large translation unit rather than the twenty seconds a spec's five files take.
-    The loop is the same loop; what changes is what a kill is and what it costs.
-
-    **It writes into `model/` and puts it back.** There is no alternative that is not a
-    cold build per run: cmake is pointed at the checkout's model tree, and a copy of it
-    is a second configure and a second full emission. The write is bytes-for-bytes
-    reversible, it is refused outright unless git says the file is clean beforehand,
-    and the restore is verified against the original text before the next mutant is
-    written, so a run that cannot put the tree back stops rather than continuing. The
-    lane's build tree is rebuilt from the restored source before the run reports, so
-    what it leaves behind is the unmutated model rather than the last mutant's.
-
-    **Nothing else may read the checkout while it runs**, and that is the one hazard
-    the reversibility does not cover: for the length of one mutant the tree on disk is
-    wrong, so `git add` stages a defect, `check.py` reports a capability format that
-    disagrees with itself, and the selftest copies a mutated tree into its template.
-    The run says so when it starts rather than leaving it to be discovered.
-
-    It also **takes the lane's build lock for the whole run**, which is `run.py model
-    build`'s own lock rather than a second mechanism: this loop rewrites the lane's
-    build tree once per mutant, so two of these in one lane, or one of these beside a
-    build, is the same wrongness that lock already exists to refuse. What the lock
-    reaches is stated exactly, because an advisory lock overclaimed is worse than
-    none: it refuses another run that *takes* it, and it does not and cannot refuse a
-    `git add`, a `check.py`, or a selftest, none of which asks for it. Those stay the
-    reader's to keep out of the window, which is why the warning below is printed as
-    well as the lock being held.
+    Requires a clean Git status on the target file, holds the lane's build lock for the
+    duration of the run, restores the original file after each mutant, and rebuilds the
+    unmutated `unit_tests` target before returning. No other process may read the
+    checkout while this command runs.
     """
     e = lane_env()
     root = find_root()

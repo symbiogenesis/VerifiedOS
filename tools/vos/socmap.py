@@ -1,52 +1,12 @@
 # SPDX-License-Identifier: Apache-2.0
-"""The SoC address map as SystemVerilog, generated from the frozen composition.
+"""Generate [vos_soc_map_pkg.sv](../../rtl/vos_soc_map_pkg.sv) from [verifiedos.json](../../model/config/verifiedos.json).
 
-R1c-i wrote the platform's three device apertures into
-[the frozen profile's composition](../../model/config/verifiedos.json) beside the
-eight windows it already carried, and R1c-ii authors the SoC top over that map. The
-top is SystemVerilog and the map is JSON, so the map has to be said twice or it has
-to be emitted: this module emits it, and K-88 holds the tracked artifact against
-what this writes.
-
-**Nothing here decides a placement.** Every base, every size and every permission
-below is read out of the composition, which is the one artifact that fixes them
-(R-15-002b). What this module decides is the spelling.
-
-## What is read, and how it is found
-
-The regions are `memory.regions`, in the composition's own order, each with the
-three PMA bits an access is decided by and the memory type that separates a device
-endpoint from main memory.
-
-The apertures are found **by shape rather than by name**, and that is the whole of
-why this generator is worth having. The model's own whole-map check writes its
-apertures out one row per window, so a window a composition gains joins the check
-only when somebody adds a row (K-94 is what holds that list against the shipped
-files). A generator that carried a list of names here would be that same defect one
-language over. So an aperture is any member of `platform` that is an object
-declaring a boolean `supported` beside an integer `base`, and a twelfth window
-arrives in this package without an edit.
-
-**One declared window has no size the composition states**, the revocation sidecar's,
-whose extent is `revocation_bitmap_bytes` in `model/model/core/revocation.sail` and a
-function of the plane it covers rather than a key. It is emitted as a base with no
-extent and named as such, because a size invented here would be exactly the
-unowned derived fact this repository refuses. A decoder over this package therefore
-reaches ten of the eleven apertures, which the package says out loud rather than
-leaving to be discovered. What it says out loud is that the window is unsized and
-never who sizes it: this module finds windows by shape and knows no window's name,
-so a comment naming this one's owner would be right by accident today and wrong the
-day a composition declares a second unsized window, with K-88 green either way
-because it compares this emitter's output to itself.
-
-## Which composition, and why one is enough
-
-`model/config/verifiedos.json` alone. The three shipped configurations are one model
-handed different files rather than three machines, and K-65 holds each non-primary
-file against the primary in both directions on every key outside its own declared
-divergence set; no aperture key and no region is in any of those sets, so the map
-this emits is the map all three declare and reading the other two would be reading
-the same fact twice.
+Emits memory regions (`memory.regions`) and supported MMIO apertures (`platform.*`
+entries carrying a boolean `supported` and integer `base`) for the SoC top (R-15-002b).
+Apertures are discovered by shape rather than a hardcoded name list; unsized windows
+(such as the revocation sidecar, whose extent depends on the tag plane) are emitted as
+base-only constants outside the sized aperture table. [K-88](checks/generated.py)
+verifies that the tracked package matches `emit()`.
 """
 
 from dataclasses import dataclass
@@ -56,27 +16,19 @@ from typing import Self
 from . import jsonc
 from .jsonc import Json
 
-# The artifact and its owner, named here because three callers spell neither.
 ARTIFACT = "rtl/vos_soc_map_pkg.sv"
 COMPOSITION = "model/config/verifiedos.json"
 PACKAGE = "vos_soc_map_pkg"
 
-# The generated file's own repair line, so the artifact names the command that
-# rewrites it rather than leaving a reader to find it.
 REPAIR = "python tools/run.py check --fix"
 
 
 class MapError(ValueError):
-    """The composition does not carry what this emitter reads.
-
-    Raised rather than worked around, on the fail-closed ground the generated group
-    already states: a map emitted from a composition this cannot read would be a
-    package that compiles and states a machine nobody composed.
-    """
+    """Raised when `verifiedos.json` lacks required SoC map fields."""
 
 
 def _int(node: dict[str, Json], key: str) -> int:
-    """One required integer field, excluding JSON booleans."""
+    """Read required integer field `key` from `node` (rejecting booleans)."""
     if key not in node:
         raise MapError(f"{COMPOSITION} carries no {key}")
     found = node[key]
@@ -86,12 +38,7 @@ def _int(node: dict[str, Json], key: str) -> int:
 
 
 def _bitvector(node: Json, name: str) -> int:
-    """A `{"len": n, "value": "0x..."}` literal, as the number it spells.
-
-    The dialect's bitvector form is the one place the composition writes an address
-    as a string, and it is decoded here rather than matched: a literal whose `value`
-    is not a numeral is a finding and not a zero.
-    """
+    """Parse a `{"len": n, "value": "0x..."}` bitvector literal into an `int`."""
     if not isinstance(node, dict) or "value" not in node:
         raise MapError(f"{COMPOSITION}'s {name} is not a bitvector literal")
     raw = node["value"]
@@ -105,7 +52,7 @@ def _bitvector(node: Json, name: str) -> int:
 
 
 def _flag(node: dict[str, Json], key: str, where: str) -> bool:
-    """One PMA bit of a region, which has to be stated and has to be a boolean."""
+    """Read required boolean PMA attribute `key` from `node`."""
     if key not in node:
         raise MapError(f"{COMPOSITION}'s {where} states no {key}")
     found = node[key]
@@ -115,18 +62,13 @@ def _flag(node: dict[str, Json], key: str, where: str) -> bool:
 
 
 def _identifier(key: str) -> str:
-    """A composition key as the name this package spells it with.
-
-    `monotonic_counters` becomes `MonotonicCounters`, which is the configuration
-    package's own convention beside it and is what makes a reader able to find a
-    window in the composition from its name here.
-    """
+    """Convert `snake_case` composition key `key` to `PascalCase`."""
     return "".join(part.capitalize() for part in key.split("_"))
 
 
 @dataclass(frozen=True, slots=True)
 class Region:
-    """One declared memory region: where it is, and what it permits."""
+    """A declared physical memory region and its PMA attributes."""
 
     base: int
     size: int
@@ -157,10 +99,7 @@ class Region:
 
 @dataclass(frozen=True, slots=True)
 class Aperture:
-    """One declared MMIO window: the key that names it and the extent it claims.
-
-    `size` is `None` for the one window whose extent the composition does not state.
-    """
+    """A declared MMIO window (`size` is `None` when unsized in the composition)."""
 
     key: str
     base: int
@@ -177,12 +116,7 @@ class Aperture:
 
 
 def _apertures(platform: Json) -> list[Aperture]:
-    """Every window the composition declares, found by shape and never by name.
-
-    A member of `platform` is an aperture where it is an object carrying a boolean
-    `supported` beside an integer `base`. A window a composition switches off is not
-    one: the map this package states is the map the composed die has.
-    """
+    """Discover enabled MMIO apertures in `platform` by `{supported: true, base: int}` shape."""
     if not isinstance(platform, dict):
         raise MapError(f"{COMPOSITION} declares no platform")
     found: list[Aperture] = []
@@ -204,7 +138,7 @@ def _apertures(platform: Json) -> list[Aperture]:
 
 
 def _hex64(value: int) -> str:
-    """A 64-bit SystemVerilog literal, grouped as the composition writes addresses."""
+    """Format `value` as a 64-bit SystemVerilog hex literal grouped by 16-bit nibbles."""
     digits = f"{value:016x}"
     return "64'h" + "_".join(digits[i:i + 4] for i in range(0, 16, 4))
 
@@ -236,7 +170,7 @@ _HEADER = f"""\
 
 
 def _regions(regions: list[Region]) -> list[str]:
-    """The region table, as the package states it."""
+    """Render the `VosRegions` table."""
     out = [
         "  // The memory regions this composition declares, in its own order. A region",
         "  // is where an access is decided before any aperture is consulted: the model",
@@ -268,7 +202,7 @@ def _regions(regions: list[Region]) -> list[str]:
 
 
 def _aperture_table(apertures: list[Aperture]) -> list[str]:
-    """The aperture table, and the residue the composition does not size."""
+    """Render the `VosApertures` table and any unsized window base constants."""
     sized = [(a, size) for a in apertures if (size := a.size) is not None]
     unsized = [a for a in apertures if a.size is None]
     out = [
@@ -295,12 +229,8 @@ def _aperture_table(apertures: list[Aperture]) -> list[str]:
     out += [f"  localparam int unsigned VosAp{a.name} = {i};"
             for i, (a, _) in enumerate(sized)]
     if unsized:
-        # Written about *any* unsized window and never about the one that is unsized
-        # today, which is the same discipline the finding above it keeps: this emitter
-        # knows no window's name, so it cannot know which artifact sizes one, and a
-        # comment naming the revocation sidecar's owner would be right by accident
-        # until a composition declares a second unsized window and wrong from then on
-        # with the gate still green, K-88 comparing this emitter's output to itself.
+        # Keep the emitted comment generic over any unsized window rather than naming a
+        # specific device, since windows are discovered by shape.
         out += ["",
                 "  // The window or windows whose extent the composition does not state.",
                 "  // An extent that is not a configuration key is a fact some other",
@@ -317,7 +247,7 @@ def _aperture_table(apertures: list[Aperture]) -> list[str]:
 
 
 def emit(root: Path) -> str:
-    """The whole artifact, from the composition alone."""
+    """Render `vos_soc_map_pkg.sv` from `model/config/verifiedos.json`."""
     path = root / COMPOSITION
     if not path.is_file():
         raise MapError(f"{COMPOSITION} is not in this checkout")

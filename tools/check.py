@@ -2,62 +2,26 @@
 # SPDX-License-Identifier: Apache-2.0
 """Check every derived fact in this repository against the artifact that owns it.
 
-A derived fact is anything one document holds only because another document already
-determined it, or because its own parts already do. Restated by hand it drifts
-silently, in whichever direction nobody looked, which is the defect the register's
-sweep 2 names. The defect takes several granularities, and they are one mistake, so
-they are one tool:
+Check groups are registered in [vos/checks/__init__.py](vos/checks/__init__.py#GROUPS) and
+bound to `K-nn` rules in [check-registry.json](check-registry.json), which generates
+[check-rules.md](check-rules.md). Each clean group's actual verdicts are verified against
+its registry declarations, and [`meta`](vos/checks/meta.py#run) checks the registry and
+its generated views.
 
-    generated     the emitted file    every generated artifact against its generator and its owner
-    ring          the compiled file   the interface artifact against the two owners it is emitted from
-    traces        the reference       every bookmark a trace cites, and the section it shows
-    coread        the co-currency     every entry against the prose it cites, as last read together
-    extraction    the section set     the prose's normative sections against the register's
-    names         the vocabulary      every R-, CJ-, A-, B- and P- id used, against its declarer
-    links         the pointer         every cross-document link and every §n.m a sentence names
-    views         the membership      what a derived view carries, checked in both directions
-    confers       the enumeration     every set closed by conferral, and the agenda it misses
-    bindings      the instantiation   the apex statement's fields against the view binding them
-    keccak        the shared answer   one permutation state, through both transcriptions of it
-    counts        the cardinality     every figure any document asserts, against its artifact
-    compounds     the synthesis       a statement over rows, against the rows it rests on
-    estimates     the arithmetic      every checklist total and share against the item hours
-    differential  the twin roster     the corpus manifest against its document, every member assembling
-    findings      the index           every finding a completion note counts, against its entry,
-                                      and every landed item's one summary line and its link
-    costated      the joint statement a fact stated in more than one pair, at each site stating it
-    pins          the edition         every upstream pin against the gitlink the index carries
+Run with `--fix` to repair derived artifacts and arithmetic figures (generated views,
+asserted counts, compounded products, coverage-matrix standing cells, and checklist
+totals and shares) from their owners. All other findings require manual edits.
 
-Three further groups check what a file is rather than what it says: for a document,
-the shape and the characters, where a fault survives a rendered read because the
-render succeeds, and for every tracked file, the license mark its kind owes:
+`--through K-nn` stops after the group that decides that rule. Because each group reads
+only what earlier groups computed, the rule's verdict matches a full run;
+[`selftest`](vos/cli/selftest.py#main) uses this to evaluate one rule's mutant at a time.
 
-    tables     the shape         every row against the width its header declares
-    glyphs     the characters    encoding damage, in every tracked file
-    marks      the provenance    every markable file opens with the declared SPDX identifier
+When [`timings.claim`](vos/timings.py#claim) is active (under `run.py --summary`), wall
+and CPU durations for each fixed phase, check group, and generated-artifact row are
+written to the timing record file.
 
-Last, required metadata binds every K-nn rule to its executable group and generates
-tools/check-rules.md. The driver holds each clean group's actual verdicts against
-its declarations, and the meta group checks generated views against that owner.
-
-Run with --fix to rewrite the asserted counts, the compounded product, the coverage
-matrix's standing column, and the checklist's totals and shares from their artifacts.
-Every other finding has no mechanical repair: it is a person's edit, reported not
-guessed.
-
-`--through K-nn` stops after the group that decides that rule. A group reads only
-what earlier groups computed, so the rule's verdict is the one a whole run reaches;
-the mutation selftest uses it because each case needs its own rule's verdict alone.
-A stopped run decides nothing about the later groups and says so.
-
-Under the gate's `--summary`, the seconds of each fixed phase before the first group, of
-each group, and of the generated group's staged-blob read and each of its rows go to the
-file [vos/timings.py](vos/timings.py) names, with this process's CPU seconds and, except
-on Windows, those of the processes it started and waited for beside them, never into the
-printed report.
-
-Exit 0 clean, 1 on any finding. It may be run from anywhere: the repository root is
-found from this file, never from the working directory.
+Exit 0 clean, 1 on any finding. The repository root is resolved from this file's path
+rather than the working directory.
 """
 
 import argparse
@@ -66,8 +30,7 @@ import re
 import sys
 from pathlib import Path
 
-# The tools import `vos` without being installed, so each puts its own directory on
-# the path first. Every import below this line is deliberately not at the top.
+# Put `tools/` on `sys.path` so `vos` can be imported without package installation.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from vos import pyversion
@@ -86,8 +49,6 @@ if __name__ == "__main__":
     if code is not None:
         sys.exit(code)
 
-# The clocks' readings on either side of importing every group's module, which a run's
-# timings record as its first fixed phase.
 _IMPORTING = timings.reading()
 
 from vos.checks import GROUPS, Context  # noqa: E402  (timed by the readings either side)
@@ -98,11 +59,7 @@ _IMPORTED = timings.reading()
 
 
 def _utf8_output() -> None:
-    """Make redirected output obey the corpus's UTF-8 encoding, on either lane.
-
-    `reconfigure` belongs to `io.TextIOWrapper` and not to the `TextIO` protocol the
-    streams are typed as, so the guard is the type checker's, and a stream that is not
-    a wrapper (a harness's capture, say) keeps the encoding its owner gave it."""
+    """Reconfigure stdout and stderr to UTF-8 when backed by `io.TextIOWrapper`."""
     for stream in (sys.stdout, sys.stderr):
         if isinstance(stream, io.TextIOWrapper):
             stream.reconfigure(encoding="utf-8")
@@ -110,11 +67,12 @@ def _utf8_output() -> None:
 
 def run(root: Path, fix: bool = False, through: str | None = None,
         clock: timings.Clock | None = None) -> Reporter:
-    """One whole run, as data. The caller decides what to do with the verdict, which
-    is what lets the mutation selftest read a run back instead of parsing its
-    stdout. `through` stops the run after the group that reports that rule. `clock`
-    receives the fixed phases before the first group and each group that ran, by the
-    last part of its module's name, and whatever parts a group measures inside itself."""
+    """Run the corpus checker and return its [`Reporter`](vos/report.py#Reporter).
+
+    `through` stops the run after the group that decides that rule. `clock` records
+    durations for the pre-group phases, each executed group, and sub-steps measured
+    within a group.
+    """
     measured = clock or timings.Clock()
     with measured.timing("phase", "corpus load"):
         corpus = corpus_mod.load(root)
@@ -149,8 +107,7 @@ def run(root: Path, fix: bool = False, through: str | None = None,
 
     if fix:
         for name, text in ctx.fixed.items():
-            # newline='' so the repair writes back exactly the bytes it holds, and a
-            # CRLF document does not silently become an LF one under a one-token edit
+            # Preserve existing line endings (`newline=""`) when writing repaired text.
             (root / name).write_text(text, encoding="utf-8", newline="")
         ctx.rep.line(f"rewrote {len(ctx.fixed)} file(s)." if ctx.fixed
                      else "nothing to rewrite.")
@@ -177,8 +134,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.fix and args.through:
         parser.error("--fix repairs the whole run; it cannot stop at one rule's group")
 
-    # The fixed phases' and groups' seconds for the gate's summary, never printed;
-    # claimed before any group runs, so nothing a group starts inherits the file.
+    # Claim the timing record path before running groups so child processes do not inherit it.
     record = timings.claim()
     clock = timings.Clock(cpu=True, origin=_IMPORTING.wall)
     clock.span("phase", "imports", _IMPORTING, _IMPORTED)

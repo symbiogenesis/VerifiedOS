@@ -1,29 +1,9 @@
 # SPDX-License-Identifier: Apache-2.0
-"""The upstream pins: the record's own table, and every site that restates one.
+"""Parse the upstream pin table in [THIRD-PARTY.md](../../THIRD-PARTY.md) and scan files for pin restatements.
 
-Three artifacts state which commit of an upstream this repository stands on, and
-only one of them is the truth. The **git index** carries a gitlink entry per
-submodule, whose object id is what a clone actually fetches. [THIRD-PARTY.md](../../THIRD-PARTY.md)
-carries the licence record, whose pin column is hand-copied from that gitlink and
-is where each upstream's terms were read. And the documents, the ported model
-headers and the tools restate those short ids wherever they argue from one.
-
-This module is the parse and never the decision. It reads the record's table as a
-*structure*, locating its columns by their own headings rather than by position and
-its rows by the table they sit in rather than by a count, so a row added or removed
-changes what it answers and never whether it can answer. And it finds the restating
-sites by the shape a restatement takes: an abbreviated object id standing on a line
-that has already named the upstream it belongs to. What those answers mean, which
-side owns which, and which disagreement is repairable are `vos/checks/pins.py`'s.
-
-**Why the site is a line and not a paragraph.** A restatement pairs a name with an
-id, and the pairing has to be decided by something. Proximity in characters is the
-obvious rule and it is wrong here: the delta's provenance table puts one upstream's
-row four lines above another's cell, so a character window either reaches across
-rows or fails to reach across a table cell. A line is what both the tables and the
-prose already use as the unit that states one pin, so the nearest name *on the
-line* is the name the id is stated under, and an id on a line naming no upstream is
-not a restatement this parse can decide at all.
+This module parses the record table by column heading and scans lines that name an
+upstream before stating an abbreviated commit ID. Rule decisions and repairs belong
+to [checks/pins.py](checks/pins.py).
 """
 
 import re
@@ -35,32 +15,13 @@ from .corpus import fence_lines
 
 RECORD = "THIRD-PARTY.md"
 
-# The record's own heading over the pin table, and the three column headings the
-# parse locates by. Reading the columns by name is what lets a column be inserted,
-# moved or retitled without this parse silently reading the wrong cell: a heading it
-# cannot find is a finding at the caller rather than a cell taken by position.
 TABLE_HEADING = "## Pinned as submodules"
 COLUMNS = ("Submodule", "Upstream", "Pin")
 
-# An abbreviated git object id as this repository writes one: hexadecimal, at least
-# the seven digits git's own default abbreviation gives, and at most a full id. The
-# boundaries refuse a token that is part of a longer word, which is what keeps the
-# `0x`-prefixed literals of the model and the sixty-four-digit digests of the corpus
-# manifest and the co-read ledger out of the reading: neither has a boundary where a
-# seven-to-forty-digit run would have to start.
-#
-# The two boundaries are deliberately not the same class. A hyphen may *precede* an
-# id, because `env.py`'s `ORACLE_TREE` names a build tree by joining the upstream to
-# its pin with one and no space, and a rule that refused it would leave the one site
-# where a stale pin silently reuses another edition's tree unread. Nothing writes a
-# hyphen *after* an id, so admitting one there would buy nothing and would let the
-# hexadecimal head of an ordinary hyphenated word read as a commit.
-# Consume the first hex digit before checking its left boundary. This gives the
-# regex engine a leading character class to skip to instead of trying a lookbehind
-# at every character. The two-character lookbehind still checks the preceding
-# character, and the captured token and its boundaries are unchanged.
-# A shorter retry can only leave another hex word character before the right
-# boundary, so it cannot succeed. The possessive repeat removes those retries.
+# Match a 7..40-hex-digit abbreviated git object ID.
+# A hyphen may precede an ID (`ORACLE_TREE` in `env.py` joins the upstream name and
+# pin with `-`), whereas a trailing hyphen is excluded so hyphenated words with hex
+# prefixes are not misread as commit IDs.
 ID_RE = re.compile(r"([0-9a-f](?<![0-9A-Za-z_][0-9a-f])[0-9a-f]{6,39}+)(?![\w-])")
 
 _BACKTICKED_RE = re.compile(r"`([^`]+)`")
@@ -70,24 +31,15 @@ _RULE_RE = re.compile(r"^\|[\s:|-]+\|\s*$")
 
 @dataclass(frozen=True)
 class Pin:
-    """One row of the record's pin table, as the row states it."""
+    """One row of the upstream pin table."""
 
-    path: str            # the gitlink's path, as the Submodule cell names it
-    upstream: str        # the upstream's own `<owner>/<repo>`
-    short: str           # the abbreviated object id the row states, "" where it states none
-    line: int            # 1-based, for a finding somebody has to go and visit
+    path: str            # gitlink path (`Submodule` column)
+    upstream: str        # upstream `<owner>/<repo>`
+    short: str           # abbreviated object ID (`""` if absent)
+    line: int            # 1-based line number
 
     def names(self) -> tuple[str, ...]:
-        """Every spelling a site may name this pin by, longest first and once each.
-
-        Four are looked for rather than one, because the tree writes all four: the
-        gitlink path, the upstream's `owner/repo`, and the bare repository name at
-        the end of each. The two bare names differ where the submodule is checked
-        out under a path the upstream does not use, `axi-cheri-tagcontroller`
-        against `axi_cheri_tagcontroller` being the one that does, so taking either
-        alone would leave that row's sites unread. Longest first is what makes
-        `cheriot-ibex` win over `ibex` where a line spells the longer one.
-        """
+        """Spellings that may name this pin (gitlink path, `<owner>/<repo>`, and bare repo names), longest first."""
         found = {self.path, self.upstream,
                  self.path.rsplit("/", 1)[-1], self.upstream.rsplit("/", 1)[-1]}
         return tuple(sorted((n for n in found if n), key=len, reverse=True))
@@ -95,7 +47,7 @@ class Pin:
 
 @dataclass
 class Record:
-    """The record's pin table, or the reason there is none to read."""
+    """Parsed pin table rows, or `fault` if the table is absent or malformed."""
 
     rows: list[Pin] = field(default_factory=list)
     fault: str | None = None
@@ -103,15 +55,15 @@ class Record:
 
 @dataclass(frozen=True)
 class Site:
-    """One restatement: an id, and the pin whose name the line states before it."""
+    """An abbreviated commit ID and the upstream pin named earlier on the same line."""
 
     file: str
     line: int            # 1-based
-    index: int           # 0-based, into the caller's own line list
-    start: int           # the id's span within its line
+    index: int           # 0-based index into caller's line list
+    start: int           # span within line
     end: int
-    ident: str           # the id as the site writes it
-    named: str           # the spelling of the pin the line used
+    ident: str           # commit ID as written
+    named: str           # pin spelling matched on the line
     pin: Pin
 
     def where(self) -> str:
@@ -119,31 +71,16 @@ class Site:
 
 
 def _cells(line: str) -> list[str] | None:
-    """A table row's cells, or None where the line is not a row."""
+    """Return a pipe-table row's stripped cells, or `None` if `line` is not a row."""
     m = _ROW_RE.match(line)
     return [c.strip() for c in m.group(1).split("|")] if m else None
 
 
 def read_record(text: str) -> Record:
-    """The record's pin table, read by its own headings.
-
-    Fail-closed at every step, because each step's failure is a different repair and
-    none of them may pass silently: the heading is where the table is, the column
-    headings are which cell holds what, and a table with no rows under a heading
-    that exists is a record that has stopped stating any pin at all.
-
-    A Pin cell may carry more than one id-shaped token, the page writing the tag a
-    commit is named by beside the commit itself, and what is read is the **first**,
-    which is the order the rows are written in. That convention is not enforced here
-    and does not need to be: a row that wrote the tag first would state an id no
-    gitlink carries, so the caller reports it rather than reading it silently as the
-    pin, which is the failure a reader of that row would have made too.
-    """
+    """Parse the pin table in `THIRD-PARTY.md` by its section and column headings."""
     if not text:
         return Record(fault=f"{RECORD} is not in the repository")
 
-    # matched at a line start rather than searched for after a newline, so the
-    # heading is still found in a file that opens with it
     found = re.search(rf"(?m)^{re.escape(TABLE_HEADING)}[^\S\r\n]*\r?$", text)
     if found is None:
         return Record(fault=f"{RECORD} carries no `{TABLE_HEADING}` heading, so there "
@@ -154,31 +91,25 @@ def read_record(text: str) -> Record:
     columns: dict[str, int] = {}
     rows: list[Pin] = []
     fenced = fence_lines(lines)
-    # the 1-based line the heading itself sits on, so a row's number is the file's
     base = text.count("\n", 0, found.start()) + 1
 
     for i, raw in enumerate(lines[1:], start=1):
         line = raw.removesuffix("\r")
-        # a fence displays its content as text, so a pipe table inside one is a
-        # picture of a table and not this document's pin table. The rule is the
-        # corpus's and comes from there; the walk is here because this parse is
-        # handed a text rather than a Document, which is what lets a fixture
-        # exercise it without standing up a corpus.
         if fenced[i]:
             continue
         if line.startswith("## "):
-            break                       # the next section: this table is over
+            break
         cells = _cells(line)
         if cells is None:
             if head is not None and columns:
-                break                   # prose after the rows: this table is over
+                break
             continue
         if head is None:
             head = cells
             continue
         if not columns:
             if not _RULE_RE.match(line):
-                head = cells            # a second header before any rule: take it
+                head = cells
                 continue
             columns = {name: head.index(name) for name in COLUMNS if name in head}
             if len(columns) != len(COLUMNS):
@@ -187,7 +118,7 @@ def read_record(text: str) -> Record:
                                     "column, so its rows cannot be read")
             continue
         if max(columns.values()) >= len(cells):
-            continue                    # a short row is K-38's finding, not this one
+            continue                    # short rows are reported by K-38
         path = _BACKTICKED_RE.search(cells[columns["Submodule"]])
         upstream = _BACKTICKED_RE.search(cells[columns["Upstream"]])
         ident = ID_RE.search(cells[columns["Pin"]])
@@ -206,45 +137,24 @@ def read_record(text: str) -> Record:
 
 
 def spellings(pins: list[Pin]) -> list[tuple[str, str, Pin]]:
-    """Every name any pin may be written under, folded, longest first.
-
-    Built once per run rather than once per line: the fold and the sort are the
-    whole cost of the scan below over a file that states no pin at all, and there
-    are files here with a thousand lines carrying a digest apiece.
-
-    Longest first is what decides an overlap between two upstreams whose names
-    nest, `cheriot-ibex` over `ibex` being the pair this repository actually pins.
-    """
+    """Return `(lowered_spelling, original_spelling, pin)` tuples sorted longest first."""
     return sorted(((spelling.lower(), spelling, pin)
                    for pin in pins for spelling in pin.names()),
                   key=lambda row: len(row[0]), reverse=True)
 
 
 def scan(file: str, lines: list[str], named: list[tuple[str, str, Pin]]) -> Iterator[Site]:
-    """Read a caller's line list through the same offset scan as whole files."""
+    """Scan a line list for pin restatements."""
     return scan_text(file, "\n".join(lines), named)
 
 
 def scan_text(file: str, text: str, named: list[tuple[str, str, Pin]], *,
               matcher: literalsearch.CandidateTrie | None = None) -> Iterator[Site]:
-    """Every restatement the lines carry, in the order they read.
+    """Yield every pin restatement in `text` in source order.
 
-    Literal upstream names propose candidate lines before the id grammar runs.
-    Whether a line is
-    *displayed* rather than read is the caller's, because only the caller knows
-    whether the file is Markdown at all and, where it is, the corpus already holds
-    the fence mask over it; recomputing one here would be a second answer to a
-    question that is already answered.
-
-    The pin is decided by the last of its own spellings to *begin* before the id.
-    Beginning and not ending, because `env.py`'s `ORACLE_TREE` joins the upstream to
-    its pin with one hyphen and no space, and a rule reading from the name's end
-    would take the id as part of the name.
+    Each commit ID is attributed to the last upstream name spelling that begins
+    before it on the same line.
     """
-    # A name-bearing line is the only place an id can be attributed. Searching
-    # literal names first avoids running the id grammar over large proof terms.
-    # Unicode lowercase expansion changes the old parser's offset convention;
-    # retain its whole-text implementation for that representation.
     low = text.lower()
     if len(low) == len(text) and all("\n" not in name for name, _, _ in named):
         names = tuple(n for n, _, _ in named)
@@ -273,7 +183,7 @@ def scan_text(file: str, text: str, named: list[tuple[str, str, Pin]], *,
 
 
 def name_patterns(names: tuple[str, ...]) -> tuple[tuple[str, re.Pattern[str]], ...]:
-    """Search full literals in C before applying the original name boundaries."""
+    """Compile boundary-checked patterns for each upstream name."""
     return tuple((name, re.compile(re.escape(name) + r"(?<![\w-]" + re.escape(name) + r")(?!\w)"))
                  for name in names)
 
@@ -282,12 +192,7 @@ def candidate_lines(text: str, names: tuple[str, ...], *, lowered: str | None = 
                     patterns: tuple[tuple[str, re.Pattern[str]], ...] | None = None,
                     matcher: literalsearch.CandidateTrie | None = None
                     ) -> Iterator[tuple[int, int, int]]:
-    """Potential name-bearing lines, preserving original offsets and line indices.
-
-    Substrings only propose candidates. The existing name and id grammars still
-    decide every site. Skip directly to the next line after a hit, rather than
-    walking every line or every occurrence of a repeated name in Python.
-    """
+    """Yield `(line_index, start, end)` for lines containing any upstream name."""
     if not names:
         return
     low = text.lower() if lowered is None else lowered
@@ -318,10 +223,7 @@ def candidate_lines(text: str, names: tuple[str, ...], *, lowered: str | None = 
 
 
 def _scan_ids(file: str, text: str, named: list[tuple[str, str, Pin]]) -> Iterator[Site]:
-    """The original offset scan, including its Unicode lowercase convention."""
-    # Only lines carrying an id need a name scan or a line number. Both cursors
-    # move forward: newline counting never rescans a prefix, and matching another
-    # id on the same line reuses its names without allocating a filtered list.
+    """Fallback whole-text ID scan when Unicode lowercasing changes string length."""
     index = start = 0
     end = -1
     marks: list[tuple[int, str, Pin]] = []
@@ -347,20 +249,10 @@ def _scan_ids(file: str, text: str, named: list[tuple[str, str, Pin]]) -> Iterat
 
 
 def _named(line: str, named: list[tuple[str, str, Pin]]) -> list[tuple[int, str, Pin]]:
-    """Where each pin is named on one line, in the order the line reads.
+    """Find non-overlapping upstream name matches on `line`, longest spelling first.
 
-    A position already claimed by a longer spelling is not claimed again, so a line
-    spelling `cheriot-ibex` names one upstream rather than two overlapping ones. The
-    match is case-insensitive because prose capitalizes a project's name where a
-    path does not.
-
-    **The two boundaries differ, on the same asymmetry `ID_RE` carries.** A hyphen
-    *before* a name means the name is the tail of a longer compound and not the
-    project: the plan writes `CHERI-QEMU` for the fork and `cheriot-ibex` for a
-    different upstream than `ibex`, and reading either as the shorter name would
-    attach an id to the wrong pin. A hyphen *after* one is the joint the tools
-    attach a pin at, which is how the capability oracle's build tree is named, so
-    refusing it there would leave that site unread.
+    A preceding hyphen rejects the match (so `CHERI-QEMU` or `cheriot-ibex` is not
+    matched as `qemu` or `ibex`), while a trailing hyphen is allowed (`<name>-<pin>`).
     """
     low = line.lower()
     marks: list[tuple[int, str, Pin]] = []

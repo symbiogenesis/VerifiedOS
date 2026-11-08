@@ -1,28 +1,19 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: Apache-2.0
-"""Provision one side of the instrument switch route in a fresh private root.
+"""Provision one side of the instrument switch route in a fresh private opam root.
 
-The route's provisioning entry point, run from the dispatching commit's checkout by
-every job of [instrument-switches.yml](../../.github/workflows/instrument-switches.yml)
-that builds a switch. It installs its own distribution prerequisites, `PACKAGES`,
-installs [the opam client's owner's](../vos/opam_client.py) reviewed client, creates a
-fresh private root by that owner's route, and builds the side's QuickChick switch from
-the side revision's own declarations: by `quickchick.RECIPE` into
-`gallina.QUICKCHICK_RECIPE_SWITCH` where the build is `recipe`, and by
-`quickchick.INSTALL` into `gallina.QUICKCHICK_SWITCH` where it is `install`, or, in the
-import job, by the lock guide's create-and-import form from the build job's export into
-the switch the build's recipe names. A build after which that switch does not stand is
-refused. The job's receipt records the side's tested revision before anything else,
-refuses a side whose seed subject is not the one the plan read at that revision, and
-then records the recipe built, the switch and the flag its checks run with, the switch's installed
-closure with each pin's URL and commit, the opam client's version and the
-prerequisites installed. [The route's contract](README.md#instrument-switch-route)
-states what a run decides.
+Run from the dispatching commit's checkout by each switch-building job in
+[instrument-switches.yml](../../.github/workflows/instrument-switches.yml). Installs
+distribution `PACKAGES` and the reviewed opam client from [`opam_client.py`](../vos/opam_client.py),
+initializes a fresh private opam root, and builds the side's QuickChick switch from the
+side revision's declarations (`quickchick.RECIPE` into `gallina.QUICKCHICK_RECIPE_SWITCH`,
+`quickchick.INSTALL` into `gallina.QUICKCHICK_SWITCH`, or `opam switch import` from the
+build job's exported lockfile). Emits a receipt recording the tested revision, recipe,
+switch, installed package closure with pin URLs/commits, opam version, and installed
+prerequisites. See [the route contract](README.md#instrument-switch-route).
 
-The side's declarations are read by importing the side's own `vos.cli.quickchick` and
-`vos.gallina` in an isolated interpreter: the side's instruments run at its revision in
-any case, and the declarations are what the side would run. Nothing else of the side
-runs here.
+Reads the side's declarations by importing its `vos.cli.quickchick` and `vos.gallina` in
+an isolated Python interpreter (`-I`).
 """
 
 import argparse

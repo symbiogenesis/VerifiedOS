@@ -1,70 +1,21 @@
 # SPDX-License-Identifier: Apache-2.0
-"""instruments: what a Rocq older than 9.3.0 compiles, against the syntax 9.3 adds.
+"""Check that Gallina files compiled by pre-9.3.0 Rocq switches avoid Rocq 9.3 syntax (`K-104`).
 
-Rocq 9.3.0 reads four forms no earlier release parses: `if … is` (rocq#21609), a record
-value completed from a base with `with` (rocq#22207), and the `&` and `of` binders
-(rocq#21611). The proof gate compiles at 9.3.0, so it accepts each of them, and the
-gate is not the only compiler of these sources. The CertiRocq Wasm oracle and the
-Rupicola lowering each compile a proof source or a harness with an older release, held
-there by the libraries they load. **A form the gate accepts breaks those instruments
-without any gate saying so**: no gate runs them, and the first reader to learn of it is
-whoever runs one next. This rule is what says so, on every checker run.
+Rocq 9.3.0 introduced four syntax forms rejected by earlier releases:
+- `if ... is` pattern-matching conditionals (`rocq#21609`)
+- record completion with `with` (`{| base with ... |}`, `rocq#22207`)
+- `&` and `of` binders (`rocq#21611`)
 
-**The set is derived and never listed.** `INSTRUMENTS` below is the one table of every
-instrument that compiles a proof source or a harness outside the gate: its switch, its
-Rocq release, the harnesses it compiles, whether it also compiles the rig's support
-harnesses or a directory of its own, whether it compiles every proof source, as
-`seed coq`'s enumerative mode does for the `--file` its caller names and as
-`gallina.emit` does for the vector harnesses, and the proof sources it names itself, as
-the Rupicola lowering names its default owner. `seed coq --quickchick` compiles the
-closure of its harness and the walk harness beside it alone and refuses a subject
-outside the first's, so its row holds the two harnesses and the rig's support harnesses,
-each with its closure, which today lie inside the first harness's. Each switch and
-release is the instrument's own constant, imported, or, where it has none to import,
-the literal in its own file or the rig's constant that file's top-level import binds
-under a name nothing else there binds, read by name out of that file's syntax tree,
-and so is a proof source the instrument names. The rows older than 9.3.0 decide
-the set, and each harness or named source brings its `Require` closure, read by
-[vos/proofs.py](../proofs.py)'s own reader over the proofs directory and the harness's
-directory as one namespace, because that is how every row stages them: the rig roots both
-at the empty logical path, and the recipes copy the proof beside the harness. The dated
-campaigns under `proofs/campaigns/` are not rows. A row that states no release is held
-older than 9.3.0, since a release nobody states is one nobody can say admits the forms.
-
-**The table's own membership is held too.** Every module under `tools/vos/` that resolves
-a prover through `gallina.prover` has to be some row's `selects`, so an instrument added
-to the rig is inside the rule the day it chooses a switch. And the switches its calls can
-ask for have to be the switches its rows state, so a row cannot keep a release its module
-has moved away from. A call's argument is read out of the module's syntax tree: a literal,
-or every `_SWITCH` constant of the rig or of `vos.env` it names, following each local name
-back through the statements that bind it; an argument that reaches none is a finding. The
-instruments outside the rig are rows by name and have no such check, and the compilers
-that resolve the gate's own prover through `env.rocq_command` are outside the table by
-construction: they compile at the gate's release.
-
-**The reading is lexical, over the shared lexer's text.** `proofs.strip_comments` blanks
-the comments and each string literal is blanked here, so neither can trigger a form.
-`is` is refused where an `if` of its sentence has not yet met its `then`; `with` where
-it is the first of `:=`, `with` and `|}` at a `{|`'s own depth; a lone `&` unless it is
-a separator an older Rocq reads, a sigma type's directly inside a plain brace holding a
-term or `exists2`'s after its binders, and even then where a `forall`, `fun`, `exists`,
-`exists2`, `let`, `fix` or `cofix` binder list is open at its depth; and any `of`, which
-9.3 reserves as a keyword, so a name spelled `of` is refused with the binder. So
-`{x : A & P}` and `exists2 x, P & Q` pass, and a field's binder written directly inside
-a record's, a class's or an instance's braces is refused, as are the intro pattern
-`(p & q)` and a notation token such as `&=`, which the reading cannot tell from the
-binder. What the reading cannot see is stated rather than left to be met: a form a
-notation or a loaded library supplies, text a source reaches otherwise than by a
-`Require` it spells, a subject a caller names beyond a row's defaults, and an instrument
-that compiles Gallina outside the table, or reaches the rig's prover otherwise than by
-calling `gallina.prover` under some name.
-
-Fail-closed at every reading. An empty table, a switch or release that cannot be read or
-is not a release, a harness or named source the index does not carry, a named path that
-leaves the checkout, a directory of harnesses holding none, a row older than 9.3.0 that
-derives no file, a stem one namespace holds twice, a `Require` cycle, a prover call whose
-argument names no switch and a file that cannot be read are each a finding, so the rule
-owes the floors group no member.
+While the proof gate uses Rocq 9.3.0, several secondary instruments (`INSTRUMENTS`, such
+as the CertiRocq Wasm oracle and Rupicola lowering) compile harnesses and proof sources
+under older opam switches. `K-104`:
+1. Verifies that every `tools/vos/` module calling [`prover`](../gallina.py#prover) is
+   represented in `INSTRUMENTS` with matching switch constants.
+2. Resolves the `Require` closure (via [vos/proofs.py](../proofs.py)) of every harness
+   and proof source compiled by an instrument whose Rocq release is older than `9.3.0`
+   (or unspecified).
+3. Scans those files (with comments and string literals blanked) and reports any use of
+   the four Rocq 9.3 forms.
 """
 
 import ast
@@ -76,7 +27,6 @@ from typing import TYPE_CHECKING
 
 from vos import env, gallina, proofs
 
-# [Context](__init__.py#Context) lives in this package, which imports this module in turn.
 if TYPE_CHECKING:
     from . import Context
 

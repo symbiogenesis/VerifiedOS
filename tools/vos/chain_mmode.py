@@ -1,32 +1,20 @@
 # SPDX-License-Identifier: Apache-2.0
-"""The target chain's M-mode stage and kernel stage, as bytes and as the main-die run.
+"""Target boot-chain M-mode stage, kernel stage, and main-die run (R3).
 
 [The boot-handoff contract](../../docs/implementation/contracts/boot-handoff.md)
-section 9 states the composition; [vos_chain.h](../../firmware/chain/vos_chain.h) owns
-every constant, and this module reads them through `boot_handoff.chain_layout` and hands
-them to the in-tree assembler as imported constants, so neither it nor the assembly it
-composes restates one. Three pieces:
+section 9 specifies the composition; [vos_chain.h](../../firmware/chain/vos_chain.h) owns
+all constants, read via [`chain_layout`](boot_handoff.py#chain_layout) and passed to the
+in-tree assembler as imported constants:
 
-- **The stage-1 payload** (`mmode_payload`): [the hand-lowered entry](../../firmware/chain/mmode_entry.s)
-  followed by the contained compiler's stream for [the body](../../firmware/chain/mmode.c),
-  text from `chain.mmode_load_base` and data from `chain.mmode_data_at`, the data being
-  the ML-DSA-87 kernel-stage root, then one eight-byte slot tag. The body's 32 KiB stack
-  is the region's top, outside every payload; the RoT zeroes it when it places the
-  image. The stream must be refusal-free and its frame sum within that stack.
-- **The stage-2 payload** (`kernel_payload`): [the kernel stage](../../firmware/chain/kernel_stage.s),
-  the bring-up kernel-entry fixture's eleven checks laid out by the `kernel.*` table from
-  `chain.kernel_load_base`. Every label the M-mode stage derives state for is held
-  against that table, so the stage's constants and the image cannot part silently.
-- **R3, the main-die run** (`compose_main`): the sections and symbols of section 9.11's
-  main-die run, built from bytes the RoT run captured and the campaign signed.
-
-`COMPILE_ARGS` is empty: beyond `-fverifiedos-typed -I<root>/firmware/include`, which
-every chain unit carries (section 9.13), the body needs nothing, because it reaches
-`vos_chain.h` and the bound `../crypto` sources by quoted includes that the compiler's
-preprocessing resolves beside the source.
-
-The compiler is never run here: the campaign stages its stream where the contained
-compiler is provisioned (section 9.14) and hands it to `mmode_payload`.
+- **Stage-1 payload** (`mmode_payload`): [mmode_entry.s](../../firmware/chain/mmode_entry.s)
+  followed by the compiled assembly stream for [mmode.c](../../firmware/chain/mmode.c),
+  with `.text` at `chain.mmode_load_base` and `.data` at `chain.mmode_data_at` (containing
+  the ML-DSA-87 kernel-stage root and an 8-byte slot tag). The 32 KiB stack sits at the
+  top of the region outside the payload and is zeroed by the RoT.
+- **Stage-2 payload** (`kernel_payload`): [kernel_stage.s](../../firmware/chain/kernel_stage.s),
+  checked against the `kernel.*` offset table from `chain.kernel_load_base`.
+- **Main-die run (R3)** (`compose_main`): sections and symbols for section 9.11's
+  main-die run, built from the captured RoT bytes and signed stage-2 image.
 """
 
 import re

@@ -1,61 +1,15 @@
 # SPDX-License-Identifier: Apache-2.0
-"""floors: the tool's own reach, against the possibility that it is reading nothing.
+"""Check non-emptiness floors for checker enumerations, view citations, and two-class memory figures (`K-46`..`K-48`, `K-55`).
 
-Every other group decides a property of a set the tool reads out of a document. The
-failure none of them can see is the empty set: an anchor that stops matching yields no
-members, the property holds over no members, and the run reports the rule green with a
-sentence that is true and vacuous. That is not hypothetical and it is not cheap,
-because a rule in that state looks exactly like a rule that is working, and the review
-gate prices it as one.
-
-Four floors close it, they answer to four different readings, and so they are four
-rules rather than one: a registry row is what the review gate prices the tool by, and
-a row whose claim is a conjunction of four prices none of them.
-
-The first checks each computed quantity against its declared owner policy. Required
-enumerations must still have members even when no prose repeats their size. Status
-buckets may be empty within a nonempty parent inventory; an unknown quantity needs
-an explicit policy before the checker can treat its value as evidence.
-
-The second covers what is read and never counted. There is no prose to disagree with
-such a set, so the floor is stated here directly: it has members, or the reading that
-produced it has moved and this says so.
-
-The third covers the references the tool makes by hand. A view declares the register
-subsections it draws its members from, the pattern that selects them where there is no
-subsection to name, and the requirement that governs it. Those are citations of the
-register living in a `.py`, so the names group never sees them: renumber a subsection
-and the view's membership silently narrows to nothing while the check that reads it
-goes on reporting that every bearing requirement is carried. A citation the register
-no longer answers is the finding, in whichever of the three forms it takes.
-
-The fourth is a floor under a figure rather than under a set, and it exists because
-the two-class memory plan is the one place where a quantity the tool would like to
-compare does not exist yet. The per-class capacity budgets are stated, each owned by
-one entry, so the floor under them is the ordinary one: the owner still says it. The
-per-class bank count is stated and decided by nothing, which is a different state and
-the reason the floor under it is a different instrument. A count is written: the
-composition declares one and the quarantined bank-grant parse reads it, the contract holds
-that declaration inside a candidate set and admits no candidate, and both disclaim
-the figure on their own face while the class's `qualified` flag is false. What is
-open is the *frozen* count, item (viii) of R-15-014a's closed delta, and a figure
-quoted ahead of the act that decides it is a decision taken by nobody. So the floor
-under that one is the booking rather than the figure, three artifacts booking it
-open, and it is the reading whose moving is the signal.
-
-M0.17 has landed and supplied no figure to compare against, which is that item's own
-result rather than a shortfall in it. Its search admits no candidate because every
-coefficient R-15-247p names is pending; the count itself arrives with R5's macro
-evidence at the freeze's second act rather than out of the search; and the island
-bandwidth ceiling is an *output* of the count under search, times a per-bank width
-M0.8 owes and a TDM slot share M1 owes, which R-15-228a forbids the memory plan from
-producing. Until those land the comparison has no operands, and inventing them would
-be worse than not making it.
-
-No floor decides that the members are the right ones, and none of them sees a reading
-that narrows without emptying: a vocabulary that loses one term still catches the rest
-and still reports green over them. That residue is named in tools/check-rules.md and
-is the same one every enumeration above declares.
+To prevent rules from passing vacuously when a document heading or pattern stops matching:
+- `K-46` checks every computed quantity in `ctx.q` against its owner policy in
+  [counts.py](counts.py).
+- `K-47` checks that every uncounted enumeration recorded in `floors` is non-empty.
+- `K-48` checks that every governing requirement ID, section number, and body pattern in
+  `VIEWS` ([views.py](views.py)) resolves against the register.
+- `K-55` checks that every per-class capacity figure in `CAPACITY` is still stated by
+  its owning requirement and that the per-class bank count remains booked as open in
+  `BOOKED_OPEN` until the freeze measurement lands.
 """
 
 import re
@@ -63,24 +17,14 @@ from typing import TYPE_CHECKING
 
 from vos.checks.counts import count_owner_findings
 
-# [Context](__init__.py#Context) lives in this package, which imports this module in turn.
-# Guarded, so the annotation below costs no import at run time: under PEP 649 an
-# annotation is not evaluated unless something asks for it, and nothing here does.
 if TYPE_CHECKING:
     from . import Context
 
 HEADING = "=== floors: every enumeration this tool reads has members ==="
 
-# The per-class capacity figures, each with the entry that owns it and the literal that
-# entry states. None of them is a sum over anything: they are readings of the roster and
-# of R-15-163's materials grading, so the tool never recomputes one. What it holds is
-# that the owner still carries it, because a budget quoted in three documents and owned
-# by none is the figure nothing owns.
+# `(req_id, description, expected_literal)` for per-class capacity figures (`K-55`).
 CAPACITY: list[tuple[str, str, str]] = [
     ("R-15-247", "the two classes the plan places against", "two static latency classes"),
-    # the two ceilings the 36-bit space is divided into, which every budget below
-    # is stated under; the residue between their sum and the space is the apertures'
-    # and the sidecar's
     ("R-15-002c", "the first-class ceiling", "the first class is capped at 16 GB"),
     ("R-15-002c", "the second-class ceiling", "the second at 40 GB"),
     ("R-15-173a", "the first class's single planar tier", "order 0.5–1 GB"),
@@ -89,9 +33,7 @@ CAPACITY: list[tuple[str, str, str]] = [
     ("R-15-247a", "the bulk tier the sidecar is priced against", "40 GB bulk tier"),
 ]
 
-# The three artifacts that book the per-class bank count as open, and the reading in
-# each. While all three hold, no figure exists to compare an island's ceiling against,
-# and this rule's second half is the booking rather than the comparison.
+# Artifacts that book the per-class bank count (`R-15-247p`) as open until the freeze.
 BOOKED_OPEN: list[tuple[str, str, str]] = [
     ("register", "R-15-014a",
      "(viii) the per-class bank count (R-15-247p)"),
@@ -103,12 +45,7 @@ BOOKED_OPEN: list[tuple[str, str, str]] = [
 
 
 def _two_class(ctx: Context) -> tuple[int, list[str]]:
-    """The per-class capacity figures still owned, and everything that has moved.
-
-    Read before the floors table is built, so the count of owned figures joins the
-    enumerations K-47 requires to be non-empty: this rule catches the table narrowing
-    and that one catches it emptying, which are different failures with the same cause.
-    """
+    """Return `(owned_count, findings)` for `CAPACITY` and `BOOKED_OPEN` (`K-55`)."""
     reg = ctx.reg
     moved: list[str] = []
     owned = 0

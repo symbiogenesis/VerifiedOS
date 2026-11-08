@@ -2,45 +2,23 @@
 # SPDX-License-Identifier: Apache-2.0
 """The RVFI-DII rig: generate a DII stream, drive an executor, adjudicate, shrink.
 
-This is the instrument the plan's §10 sentence *one CI runner diffing one trace
-format across three executors* has been describing and has had nothing behind.
-[vos/rvfi.py](../rvfi.py) is the wire format, [vos/vengine.py](../vengine.py)
-is the engine, and this is the command line over them.
+CLI over the RVFI-DII wire format (`[vos/rvfi.py](../rvfi.py)`), stream generator
+and adjudicator (`[vos/vengine.py](../vengine.py)`), RTL trace frame codec
+(`[vos/rtltrace.py](../rtltrace.py)`), and bounded model-checking plan
+(`[vos/bmc.py](../bmc.py)`).
 
-Eight commands, and three of them need no toolchain:
-
-    protocol   the wire this rig speaks, where it meets the commit trace, and
-               where it cannot: readable on the host, and reads nothing but
-               the two modules that implement it
-    handshake  negotiate with the curated emulator and report what it answered
-    run        generate, drive, adjudicate against a seeded defect, and shrink
-    bridge     drive with the commit trace on as well, and hold the packets
-               against the records the same run wrote
-    adapt      hold an RTL harness's frame (vos/rtltrace.py) against the golden
-               commit trace of the same program, from two files
-    carry      run the corpus on the golden model, re-encode each trace as the
-               frame an RTL would have to write, and hold the adapter to it and
-               to seeded field changes
-    framesim   build the SystemVerilog frame writer (tools/rvfi-harness/) behind
-               its bench, qualify its locked assertion policy and hold the frame
-               it writes to the decoder; --controls adds seeded writer mutants
-    bmc        print the bounded model-checking smoke this harness owes, with its
-               instruction scope read out of the dialect table; it runs nothing
-
-`protocol`, `adapt` and `bmc` answer on either lane. The other five run in the
-guest, where the emulator and the pinned Verilator are:
-
-    python tools/run.py testrig handshake
-    python tools/run.py testrig run --count 400 --shrink
-    python tools/run.py testrig bridge --template mixed
-    python tools/run.py testrig carry
-    python tools/run.py testrig framesim --controls --corpus
-
-**`run` is a mutation gate and not a fuzzer.** A defect is seeded into the
-second executor and the rig has to report it: a run that finds nothing is a
-finding, exactly as a checker rule that says nothing about its own mutant is.
-`--defect none` is the other arm, where the second executor is the first and
-agreement is what is owed.
+Subcommands:
+- `protocol`: print the RVFI-DII wire format and commit-trace correspondence (host-safe).
+- `handshake`: negotiate RVFI-DII v2 with the curated emulator and retire one instruction.
+- `run`: generate streams, drive the emulator, adjudicate against a seeded defect (or
+  `--defect none`), and optionally shrink the first counterexample.
+- `bridge`: drive one run with both RVFI-DII and `--trace-commit` enabled and compare them.
+- `adapt`: compare an RTL trace frame against a golden commit trace from two files (host-safe).
+- `carry`: re-encode the differential corpus's golden commit traces as RTL frames and
+  verify round-trip adjudication and seeded field-mutation kills.
+- `framesim`: build `[tools/rvfi-harness/](../../rvfi-harness)` under Verilator, qualify
+  locked assertion policy controls, and verify synthetic, mutant-control, and corpus frames.
+- `bmc`: print the bounded model-checking smoke plan and instruction scope (host-safe).
 """
 
 import argparse
@@ -65,11 +43,7 @@ def _rule(title: str) -> None:
 
 
 def cmd_protocol(args: argparse.Namespace) -> int:
-    """Print the wire this rig speaks and where the two formats meet.
-
-    Everything below is read off the two modules that implement it rather than
-    written down a second time, so a field that moves moves here as well.
-    """
+    """Print the RVFI-DII wire format and commit-trace correspondence."""
     _rule("RVFI-DII, the instruction packet the engine sends")
     print(f"  {rvfi.DII_BYTES} bytes, little-endian: "
           f"[0-3] insn, [4-5] time, [6] cmd, [7] padding")
@@ -146,22 +120,14 @@ def _requirements(e: env.Environment) -> str | None:
 
 
 class _Run:
-    """One emulator, one socket, and the log the emulator wrote while it ran.
-
-    A class rather than a pair of functions because the three are one lifetime:
-    the session is only meaningful while the child is alive, and the log is only
-    complete once it is not.
-    """
+    """Manage a live emulator subprocess, its RVFI-DII socket session, and its log file."""
 
     def __init__(self, e: env.Environment, *, trace_commit: bool = False) -> None:
         self.log_path = e.log("testrig")
         self.trace_path = self.log_path.with_suffix(".trace")
         self.log_path.parent.mkdir(parents=True, exist_ok=True)
-        # The lane's two output files are opened with `w`, so a second rig in
-        # this lane would truncate the first's while the first is still writing
-        # into it, and the bridge would then read a torn trace as a divergence.
-        # The lock is taken before either is opened, for the reason a build's is:
-        # a refused run must not damage the run it was refused in favour of.
+        # Acquire the lane lock before opening output files in write mode so a
+        # concurrent run cannot truncate an active trace.
         self._lock = env.hold_lock(self.log_path, "an RVFI-DII run")
         self._log: IO[bytes] = self.log_path.open("wb")
         self.port = vengine.free_port()
@@ -176,7 +142,7 @@ class _Run:
     def _reap(self) -> None:
         try:
             self.child.wait(timeout=30)
-        except subprocess.TimeoutExpired:       # a child that will not leave on EOF
+        except subprocess.TimeoutExpired:
             self.child.kill()
             self.child.wait()
         self._log.close()
@@ -187,7 +153,7 @@ class _Run:
         self._reap()
 
     def commit(self) -> list[str]:
-        """The commit trace this run wrote, once it has gone. Read after `close`."""
+        """Return the commit trace lines written by this run (call after `close`)."""
         return self.trace_path.read_text(encoding="utf-8", errors="replace").splitlines()
 
 
@@ -201,9 +167,7 @@ def cmd_handshake(args: argparse.Namespace) -> int:
     run = _Run(e)
     try:
         wire = run.session.negotiate()
-        # One instruction, so that the handshake is shown to have produced a
-        # conversation and not only a version number: `addi x5, x0, 1` retires,
-        # writes one register, and touches no memory.
+        # Retire `addi x5, x0, 1` to verify instruction execution after negotiation.
         probe = 0x00100293
         packets = run.session.drive([probe])
     finally:
@@ -243,13 +207,7 @@ def _report_divergence(verdict: trace.Verdict) -> None:
 
 @dataclass
 class _Campaign:
-    """What a sweep of seeds has driven and what it decided, accumulated.
-
-    The counts are what makes this a measurement rather than a demonstration:
-    the repository's standard is that validation is generated wherever an oracle
-    exists, and a generated run that does not say how much it generated has not
-    met it.
-    """
+    """Accumulated seed, instruction, record, and verdict counts across a `run` sweep."""
 
     seeds: int = 0
     instructions: int = 0
@@ -261,12 +219,7 @@ class _Campaign:
 
 
 def cmd_run(args: argparse.Namespace) -> int:
-    """Generate streams, drive them, adjudicate, and shrink the first divergence.
-
-    One emulator serves the whole sweep: every stream ends with an `EndOfTrace`,
-    which resets registers, memory and the PC, so a seed is not a continuation
-    of the one before it and the process start is paid once.
-    """
+    """Generate streams, drive them over a single emulator session, adjudicate, and shrink."""
     e = env.load()
     if (missing := _requirements(e)) is not None:
         print(missing, file=sys.stderr)
@@ -313,10 +266,6 @@ def cmd_run(args: argparse.Namespace) -> int:
                 continue
             shortest = list(stream)
             if args.shrink:
-                # The shrinker's own run count is discarded: every run it makes
-                # goes through `verdict_for`, which is where the campaign counts
-                # them, and two counters of one quantity is the defect this
-                # repository is built to catch.
                 shortest, _spent = vengine.shrink(
                     stream, lambda candidate: not verdict_for(candidate).ok,
                     budget=args.budget)
@@ -363,14 +312,7 @@ def cmd_run(args: argparse.Namespace) -> int:
 
 
 def cmd_bridge(args: argparse.Namespace) -> int:
-    """Drive one run with both dialects on, and hold them against each other.
-
-    The two callback classes are independent, so one run emits RVFI packets over
-    the socket and commit records into the log at the same time. That is the
-    only place the two formats can be compared without a second run to align
-    against, and it is what makes the field-by-field meeting a measurement
-    rather than a reading of two documents.
-    """
+    """Drive one run with both RVFI-DII and `--trace-commit` enabled and compare them."""
     e = env.load()
     if (missing := _requirements(e)) is not None:
         print(missing, file=sys.stderr)
@@ -412,13 +354,7 @@ def cmd_bridge(args: argparse.Namespace) -> int:
 
 
 def cmd_adapt(args: argparse.Namespace) -> int:
-    """Hold an RTL frame against the golden commit trace of the same program.
-
-    File-only, so it answers on either lane: the frame is what a Verilator
-    harness wrote and the reference is what the emulator's `--trace-commit`
-    wrote. A protocol failure is reported as one and never as a divergence, and
-    agreement over a prefix is reported as incomplete.
-    """
+    """Compare an RTL trace frame file against a golden commit trace file."""
     try:
         frame = args.frame.read_text(encoding="utf-8", newline="")
         reference = args.reference.read_text(encoding="utf-8").splitlines()
@@ -459,22 +395,11 @@ def cmd_adapt(args: argparse.Namespace) -> int:
 
 @dataclass
 class _Carry:
-    """What `carry` measured over the corpus, accumulated.
+    """Accumulated corpus and seed-mutation counts for `carry`.
 
-    `refused` is the frame's structural gap, a property of the port; `broken` is a
-    carriable member whose own re-encoding did not come back whole, which is a defect
-    in the adapter. The seed tallies use the mutation vocabulary: a stillborn seed
-    broke the frame and decided nothing about the comparison, a killed one was
-    reported, and a survivor is the finding. A seed the decoder refuses for its
-    continuity is killed, that refusal being how the protocol reports a retirement
-    misreported or lost before the writer, and `by_refusal` counts those apart from
-    the ones the comparison reported; any other refusal is stillborn.
-
-    `retirements`, `records` and `elided` count every member whose golden run was
-    recorded, refused ones included, since they measure the frame's view of the
-    corpus; the `whole_` three count only the members carried whole, which are the
-    ones the seeds and `framesim --corpus` run over. They are kept and printed apart
-    so that neither total is read as the other.
+    `refused` tracks retirements outside the frame format's scope; `broken` tracks
+    carriable members whose round-trip frame failed to compare complete; `killed`,
+    `by_refusal`, `stillborn`, and `survived` tally seeded field mutations.
     """
 
     members: int = 0
@@ -499,11 +424,7 @@ class _Carry:
 
 def _golden_trace(e: env.Environment, elf: Path, trace_path: Path,
                   timeout: int) -> tuple[list[str] | None, str]:
-    """One corpus member on the golden emulator, with its commit trace in a file.
-
-    The trace goes to a file of its own for the reason `vengine.spawn` gives: a
-    record torn by a diagnostic on a shared descriptor reads as a divergence.
-    """
+    """Run one corpus ELF on the golden emulator and return its commit trace lines."""
     try:
         done = subprocess.run([str(e.simulator), "--config", str(e.profile),
                                "--trace-commit", "--trace-output", str(trace_path),
@@ -525,12 +446,7 @@ def _golden_trace(e: env.Environment, elf: Path, trace_path: Path,
 def _recorded_golden(e: env.Environment, corpus: differential.Corpus,
                      member: differential.Member, work: Path,
                      timeout: int) -> tuple[list[str] | None, str]:
-    """A member's golden trace, held to the digest the manifest records for it.
-
-    So what a caller re-encodes is the recorded golden run and not whatever this
-    lane's emulator happens to write: a model that moved under the corpus is
-    reported here rather than carried into a comparison as the reference.
-    """
+    """Run `member` on the golden emulator and verify its commit trace matches `member.digest`."""
     elf = differential.assemble(corpus, member, work)
     lines, why = _golden_trace(e, elf, work / f"{member.name}.trace", timeout)
     if lines is None:
@@ -554,22 +470,13 @@ def family_rows() -> list[tuple[int, int, str]]:
 
 
 def family(insn: int, rows: list[tuple[int, int, str]]) -> str:
-    """The model directory whose `encdec` decodes `insn`, read off the dialect table.
-
-    `V` names the vector family and so on; a word no row decodes is `unmatched`,
-    which a trapping illegal word is. This is how the corpus-green scope is measured
-    rather than read off the corpus's prose: a member that retires a word of a
-    family the curated scalar core does not implement cannot pass on it. The match
-    is on each row's fixed bits and not on its guard, so a word two rows share,
-    as `cbo.zero` shares `lc`'s encoding under `lc`'s `cd != zreg`, names both
-    families joined by `+`, which over-reports and never hides one.
-    """
+    """Return the `+`-joined model directory families whose `encdec` mask matches `insn`."""
     found = sorted({name for mask, word, name in rows if insn & mask == word})
     return "+".join(found) if found else "unmatched"
 
 
 def _spread(positions: list[int], count: int) -> list[int]:
-    """Up to `count` positions from `positions`, evenly spaced and always the ends."""
+    """Return up to `count` evenly spaced positions from `positions`, including both ends."""
     if len(positions) <= count:
         return positions
     if count == 1:
@@ -613,12 +520,7 @@ def _plus(a: rvfi.Elided, b: rvfi.Elided) -> rvfi.Elided:
 def _carry_member(name: str, lines: list[str], tally: _Carry,
                   rows: list[tuple[int, int, str]], seen: dict[int, str],
                   sites: int) -> None:
-    """One member's recorded golden trace through the frame and back, tallied.
-
-    `lines` is the trace `_recorded_golden` already held to the manifest's digest.
-    The member counts toward the corpus totals whatever happens to it, and toward
-    the `whole_` totals and the seeds only where it came back whole.
-    """
+    """Encode, decode, compare, and seed-test one member's digest-verified golden trace."""
     golden, elided = rtltrace.view(lines)
     retires, refusals = rtltrace.carry(golden)
     decoded = rtltrace.decode(rtltrace.encode(retires))
@@ -659,19 +561,7 @@ def _carry_member(name: str, lines: list[str], tally: _Carry,
 
 
 def cmd_carry(args: argparse.Namespace) -> int:
-    """Re-encode the corpus's golden traces as frames, and hold the adapter to them.
-
-    Each member runs once on the golden emulator with its commit trace in a file;
-    the trace is held against the manifest's digest, so what is re-encoded is the
-    recorded golden run. `rtltrace.carry` then writes the frame an RTL harness would
-    have to produce to say the same thing, naming each retirement no frame line can
-    hold; a member with none must come back whole through encode, decode and the
-    one adjudicator, and every seeded field change must then be reported.
-
-    **The producer here is the golden model and never the RTL.** What this decides
-    is how much of the corpus a frame can carry and that the adapter reports what
-    it is seeded with over real record shapes. It is no statement about the core.
-    """
+    """Re-encode corpus golden traces as RTL frames and verify round-trip and seeded-mutation kills."""
     e = env.load()
     if (missing := _requirements(e)) is not None:
         print(missing, file=sys.stderr)
@@ -716,8 +606,6 @@ def cmd_carry(args: argparse.Namespace) -> int:
         if count:
             words = ", ".join(f"{w:08X}" for w in sorted(tally.words.get(reason, set())))
             print(f"refused          {reason}: {count} ({what}); words {words}")
-    # Which model family each member retires words of, so the scope a scalar core can
-    # pass is measured: a family every member retires is named with its count alone.
     for name, holders in sorted(tally.families.items()):
         who = "" if len(holders) == ran else f": {', '.join(holders)}"
         print(f"family {name:<11} retired by {len(holders)} member(s){who}")
@@ -747,14 +635,7 @@ def cmd_carry(args: argparse.Namespace) -> int:
 
 
 def cmd_bmc(args: argparse.Namespace) -> int:
-    """Print the bounded model-checking smoke this harness owes, and run nothing.
-
-    File-only, like `protocol`: the plan is [vos/bmc.py](../bmc.py)'s and its
-    instruction scope is read out of the dialect table here and now, so what prints
-    is the plan the gate would run today. It exits nonzero only where the scope's
-    classification and the dialect table disagree, which is a finding about the plan;
-    that the smoke has not run is stated on every line that could be misread.
-    """
+    """Print the bounded model-checking smoke plan (`[vos/bmc.py](../bmc.py)`) and validate its scope."""
     del args
     _rule("the predicate (R-15-094: bounded-depth evidence, the ground of no refinement)")
     print("  for the curated scalar core under a riscv-formal wrapper, with instruction")
@@ -801,10 +682,8 @@ def cmd_bmc(args: argparse.Namespace) -> int:
     return 0
 
 
-# The testbench's stimulus word, field by field and most significant first, which is
-# `stim_t` in tools/rvfi-harness/vos_rvfi_frame_tb.sv. The bench is the layout's
-# owner; a copy that drifted from it would send every field to the wrong place, and
-# `framesim` would report that as a frame that does not come back.
+# Stimulus word layout (`stim_t` in `[tools/rvfi-harness/vos_rvfi_frame_tb.sv](../../rvfi-harness/vos_rvfi_frame_tb.sv)`),
+# MSB first.
 HARNESS_DIR = "tools/rvfi-harness"
 HARNESS_SOURCES = (f"{HARNESS_DIR}/vos_rvfi_frame.sv", f"{HARNESS_DIR}/vos_rvfi_frame_tb.sv")
 ASSERTION_BENCH = f"{HARNESS_DIR}/vos_assertion_policy_tb.sv"
@@ -826,7 +705,7 @@ class Drive:
 
 
 def stimulus_line(drive: Drive) -> str:
-    """One `stim_t` word as the 128 hexadecimal digits `$readmemh` reads."""
+    """Encode `drive` as a 128-hex-digit `stim_t` word for `$readmemh`."""
     values = dict.fromkeys((name for name, _ in STIMULUS), 0)
     if drive.retire is not None:
         packet = drive.retire.packet
@@ -853,12 +732,7 @@ def stimulus_line(drive: Drive) -> str:
 
 
 def _synthetic_drives() -> list[Drive]:
-    """The bench's own fixture: every rule the writer applies, each with a witness.
-
-    The two tagged encodings are values the golden model wrote into the corpus's
-    commit traces, so the round trip is taken over capabilities the format produces
-    rather than over bits chosen here.
-    """
+    """Return synthetic stimulus exercising every writer rule (including tagged capabilities)."""
     base = rvfi.Execution(wire=rtltrace.WIRE, integer_present=True, memory_present=True)
 
     def at(order: int, pc: int, insn: int, **fields: int | bool) -> rtltrace.Retire:
@@ -885,7 +759,7 @@ def _synthetic_drives() -> list[Drive]:
 
 def _framesim_one(binary: Path, work: Path, name: str,
                   drives: list[Drive]) -> tuple[list[rtltrace.Retire] | None, str]:
-    """One stimulus file through the built bench, and the frame it wrote, decoded."""
+    """Run `drives` through the compiled `framesim` binary and decode the resulting frame."""
     stim = work / f"{name}.stim"
     frame = work / f"{name}.frame"
     stim.write_text("".join(stimulus_line(d) + "\n" for d in drives), encoding="ascii",
@@ -903,14 +777,11 @@ def _framesim_one(binary: Path, work: Path, name: str,
         return None, f"the frame the writer wrote is refused: {exc}"
 
 
-# The lint classes the writer's build waives under `-Wall`, named once so the line
-# that reports the build's warnings names them too.
+# Verilator lint classes waived under `-Wall` for the frame writer build.
 VERILATOR_WAIVERS: tuple[str, ...] = ("UNUSEDPARAM", "UNUSEDSIGNAL")
 
-# Seeded defects in the writer, one rule removed each, which `framesim --controls`
-# builds and drives with the synthetic stimulus; every one must be killed. Each
-# anchor must occur exactly once in the writer, so an edit that moves a rule is
-# reported as an unseeded control rather than counted as a kill or a survivor.
+# Seeded defects in `[tools/rvfi-harness/vos_rvfi_frame.sv](../../rvfi-harness/vos_rvfi_frame.sv)`
+# verified by `framesim --controls`. Each anchor must occur exactly once.
 WRITER_MUTANTS: dict[str, tuple[str, str]] = {
     "no-x0-rule": ("automatic logic [63:0] rd    = x0 ? 64'd0 : mem[63:0];",
                    "automatic logic [63:0] rd    = mem[63:0];"),
@@ -937,19 +808,14 @@ def _verilate_sources(verilator: str, here: Path, sources: Sequence[Path],
 
 def _verilate(verilator: str, root: Path, here: Path,
               writer: Path) -> subprocess.CompletedProcess[str]:
-    """The bench and `writer` built under Verilator in `here`, its log beside it."""
+    """Build the frame writer bench and `writer` under Verilator in `here`."""
     sources = (root / rtl.FORMAT_PACKAGE, root / rtl.ADAPTER_PACKAGE, writer,
                root / HARNESS_SOURCES[1])
     return _verilate_sources(verilator, here, sources, "vos_rvfi_frame_tb")
 
 
 def _assertion_controls(verilator: str, root: Path, work: Path) -> int:
-    """Distinguish an active locked assertion from an RTL-disabled assertion.
-
-    All three runs use one compiled bench. A compiler refusal or unrelated runtime
-    failure supplies no assertion evidence. The passing action witnesses evaluation;
-    the unlocked failing case witnesses that the RTL disable request takes effect.
-    """
+    """Verify locked assertion evaluation, locked failure despite RTL disable, and unlocked suppression."""
     here = work / "assertion-policy"
     here.mkdir(parents=True, exist_ok=True)
     built = _verilate_sources(verilator, here, (root / ASSERTION_BENCH,),
@@ -993,12 +859,7 @@ def _assertion_controls(verilator: str, root: Path, work: Path) -> int:
 
 def _writer_controls(verilator: str, root: Path, work: Path, drives: list[Drive],
                      want: list[rtltrace.Retire]) -> int:
-    """Each writer mutant built and driven with the synthetic stimulus; the failures.
-
-    A mutant whose frame is refused or comes back different is killed, one that does
-    not build is stillborn and decides nothing, and one whose frame comes back field
-    for field is a survivor, which is the finding.
-    """
+    """Build and drive each `WRITER_MUTANTS` entry against `drives`, returning the failure count."""
     source = (root / HARNESS_SOURCES[0]).read_text(encoding="utf-8")
     killed = survived = stillborn = unseeded = 0
     for name, (old, new) in WRITER_MUTANTS.items():
@@ -1030,20 +891,11 @@ def _writer_controls(verilator: str, root: Path, work: Path, drives: list[Drive]
 
 
 def cmd_framesim(args: argparse.Namespace) -> int:
-    """Build the SystemVerilog frame writer behind its bench and decode what it writes.
+    """Build the SystemVerilog frame writer under Verilator and verify its decoded output.
 
-    The bench is driven from Python-written stimulus, so the expected retirements
-    are stated once and the frame has to come back as exactly those: the writer's
-    field widths, its order count, its trailer, the x0 and stale-cause rules, and
-    the register-form round trip through the authored format package. Every run
-    qualifies assertion evaluation, locked failure after RTL disable and unlocked
-    suppression, using the same compiled assertion-policy bench. With
-    `--controls` each of `WRITER_MUTANTS` is built and driven with the same stimulus
-    and must be reported. With `--corpus` every member `carry` can hold whole is
-    driven as well, from its golden trace, and the frame the writer returns must
-    then agree with that trace through the one adjudicator. The producer is a
-    fixture driver, so this is a statement about the writer and the package, not
-    about the core.
+    Qualifies the locked assertion policy, verifies the synthetic stimulus round
+    trip, and optionally runs `--controls` (`WRITER_MUTANTS`) and `--corpus`
+    (all carriable differential-corpus members).
     """
     e = env.load()
     root = e.root
@@ -1211,9 +1063,6 @@ def main(argv: list[str] | None = None) -> int:
                    "plan; runs nothing").set_defaults(run=cmd_bmc)
 
     args = parser.parse_args(argv)
-    # `set_defaults(run=...)` puts the handler on the namespace, where its type is
-    # gone: named here so that a handler with the wrong shape is a finding rather
-    # than a TypeError on whichever subcommand nobody ran lately.
     handler = cast("Command", args.run)
     return handler(args)
 

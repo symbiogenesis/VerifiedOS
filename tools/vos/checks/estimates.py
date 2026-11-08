@@ -1,52 +1,22 @@
 # SPDX-License-Identifier: Apache-2.0
-"""estimates: every total and share against the item hours beneath it.
+"""Check [PLAN.md](../../../PLAN.md) item estimates, subtotals, summary tables, work order, and calibration (`K-34`..`K-37`, `K-86`, `K-96`).
 
-The implementation checklist prices itself twice. Once per item, where an estimate is
-somebody's judgment about a piece of work, and once in the subtotals, shares, and
-progress figures, which are arithmetic over those judgments and nobody's opinion at
-all. The second layer is the one that rots: re-pricing an item, splitting it, or
-checking it off moves every figure above it, and a subtotal that no longer sums still
-renders as a subtotal, so the drift survives exactly the reading anyone gives it.
-
-So the document declares one shape and this group owns everything derived from it.
-The authored weights are an open item's range, a completed item's actual, or an
-explicitly retained estimate when historical actual time is unavailable. The
-midpoint is the mean of the range ends, and every subtotal, the grand range, and the
-progress figures are sums over the items beneath them. Item cells carry no share of a
-changing grand total. All derived figures are arithmetic, so a repair rewrites them;
-unlike the compounded product, there is no judgment layer here to leave standing.
-
-K-96 holds the explicit priced-leaf dispositions and artifact joins in work-order.json,
-and the calibration results. Membership is authored; unknown work never enters a
-committed gate by default. The generated dispatch view distinguishes authoring inputs
-from acceptance joins and supplies no elapsed critical-path prediction. The calibration
-is the author's to pool and the tool's to fit: the plan's
-calibration record carries each completed attended item's pool and the earliest
-estimate its cell recorded, the actual is read from the item's own cell, and every
-ratio and count the calibration states is the quotient over that record, which is held
-total over the completed attended items in both directions so that a landing which
-adds no row is loud rather than a fit taken over fewer items.
-
-There are two such records and never one sum over both. An attended actual is an
-elapsed attended interval and an agent-parallel actual is summed agent-session
-wall-clock over an item's passes, no item carries both, and the plan's own ruling is
-that nothing here converts between them, so each series is joined to its own record and
-each stated ratio is the quotient over the record carrying the pool it names. The one
-figure ever fitted across the pair, what the class-X-authored pool would read if the two
-were pooled, is the one S19 stated in order to refuse it, and it stays in that item's
-completion-log note as the measurement its gate took rather than being held live here.
-
-A third authored token joins the range: an open item's **authority class**, `I` where what
-the item realizes is fixed inside this repository and `X` where it is not. It is a judgment
-and stays one, but everything resting on it is arithmetic and lands here: the two class
-sums, and the calibrated total, which re-weights each class's open hours by the ratio the
-calibration record gives for it. A completed item carries no class, having an actual
-where the class would have widened a range, which is why the record carries its pool.
-
-An item carrying no cell at all is legal in one place, a parent whose children carry
-the estimates, which is why the check reads the indent rather than demanding a figure
-of every bullet: the parent is a heading with a checkbox, and its children are already
-counted. Anything else missing a cell is counted by nothing and is the finding.
+In [PLAN.md](../../../PLAN.md):
+- `K-34` checks that every priced leaf item carries a well-formed estimate cell (open
+  range with authority class `I` or `X`, completed actual, or completed retained
+  estimate with `actual n/a`) and sits above a section subtotal. Cell-less parent items
+  are permitted only when nested children carry the estimates.
+- `K-35` checks that every open item's midpoint equals the mean of its range endpoints.
+- `K-36` checks and repairs item midpoints, legacy item percentage shares, and section
+  subtotals under `--fix`.
+- `K-37` checks and repairs the `estimate-summary` table from the parsed items,
+  calibration ratios, and [docs/implementation/work-order.json](../../../docs/implementation/work-order.json) buckets.
+- `K-86` checks that every open class-`X` range spans at least a factor of two
+  (`hi >= 2 * lo`).
+- `K-96` checks [docs/implementation/work-order.json](../../../docs/implementation/work-order.json) and its generated
+  dispatch view ([vos/workorder.py](../workorder.py)), plus the two separate calibration
+  records (attended and `agent-parallel`, never pooled across clocks) and the generated
+  `calibration-results` table.
 """
 
 import re
@@ -56,9 +26,6 @@ from typing import TYPE_CHECKING, cast
 from vos import figures, workorder
 from vos.figures import format_hours, percent, quantize
 
-# [Context](__init__.py#Context) lives in this package, which imports this module in turn.
-# Guarded, so the annotation below costs no import at run time: under PEP 649 an
-# annotation is not evaluated unless something asks for it, and nothing here does.
 if TYPE_CHECKING:
     from . import Context
 
@@ -66,16 +33,13 @@ HEADING = "=== estimates: every total and share against the item hours beneath i
 
 PLAN = "PLAN.md"
 
-# an item line or a subtotal line, in document order: the subtotal closes the run of
-# items above it, which is the whole of how an item finds the total it belongs to
+# Checklist item line or section subtotal line in document order.
 SCAN_RE = re.compile(
     r"(?m)^(?P<ind>[^\S\r\n]*)(?:"
     r"\* \[(?P<box>[ x])\] \*\*(?P<label>[^*]+)\*\*(?P<rest>[^\r\n]*)"
     r"|\*\*(?P<sec>[^*]+) subtotal:\*\*(?P<tail>[^\r\n]*))")
 
-# The tail is authored prose (`Parallel`, and what it is parallel with). A legacy
-# share is read only to remove it under K-36; it never contributes to a value.
-# Numeric tokens must be readable before _hours is called, including comma groups.
+# Estimate cell patterns; legacy percentage shares are matched only so `--fix` can strip them.
 NUMBER = r"(?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d+)?"
 CELL_END = r"(?: · (?P<pct>\d+(?:\.\d+)?)%)?(?P<tail>(?: · .*)?)$"
 DONE_RE = re.compile(rf"^ · (?P<h>{NUMBER}) h actual" + CELL_END)
@@ -83,9 +47,7 @@ RETAINED_RE = re.compile(rf"^ · (?P<h>{NUMBER}) h retained estimate, actual n/a
 OPEN_RE = re.compile(rf"^ · (?P<h>{NUMBER}) h, range (?P<lo>{NUMBER})–(?P<hi>{NUMBER})"
                      + CELL_END)
 
-# the authority class opens the tail, ahead of whatever prose follows it. An open item owes
-# one and a completed item does not: the class is a prior on a range, and a completed item
-# has an actual instead of a range for the prior to widen
+# Authority class (`I` or `X`) required at the start of every open item's tail.
 CLASS_RE = re.compile(r"^ · (?P<cls>[IX])(?= ·|$)")
 
 WORK_FIELDS = {
@@ -96,20 +58,8 @@ WORK_FIELDS = {
     "option": "Unfunded option open h",
 }
 
-# the calibration record: one row per completed attended item, the pool its authority fell
-# in and the earliest estimate its cell recorded. The pools are the three the plan's basis
-# fits over, and `n/a` in both columns is an item that never carried an estimate, which is
-# inside the record's totality and outside the fit
+# Calibration record headings for the attended and agent-parallel series (fitted separately).
 RECORD_HEADING = "### Calibration record"
-
-# the agent-parallel series' own record, and it is a second table rather than a fourth
-# column of the first for two reasons neither of which is taste. The two series are
-# fitted apart, S19 having ruled that an attended interval and a summed agent-session
-# wall-clock are two quantities with no measured conversion between them, so a pooled
-# ratio would be arithmetic over two units; and the row pattern below is three cells
-# wide, so a widened row matches in no record at all and the reading would empty in
-# silence while every figure it feeds went undefined. A heading of any depth is where
-# `_record` stops, which is what holds the two tables apart with no second pattern.
 PARALLEL_HEADING = "#### The agent-parallel series"
 
 RECORD_ROW_RE = re.compile(

@@ -1,27 +1,9 @@
 # SPDX-License-Identifier: Apache-2.0
-"""The apex record parse, held at the shapes it must not answer short.
+"""Unit tests for [`vos/apex.py`](../vos/apex.py) parsing of [ApexTheorem.v](../../proofs/ApexTheorem.v).
 
-`vos/apex.py` is the one reading of proofs/ApexTheorem.v, and both its callers refuse
-on its residue rather than narrowing, so what has to be pinned is not the answer on a
-well-formed statement but the boundary: every shape this parse cannot read has to
-arrive in `unread`, because a field it never named has no row to disagree with it and
-a consumer it never saw leaves a cell that was already written without it. Neither
-narrowing moves a count off zero, so no floor sees either.
-
-The cases are the four shapes that were silent, one each: a `Definition` indented
-inside a `Module`, which the column-anchored pattern cannot match; a record built from
-another record by application, where the field is assigned and consumed in one line; a
-seam written `f v` rather than `v.(f)`; and the record absent altogether. The fifth
-case is the other direction and is why the discount is positional: a record update
-written `f := v.(f)` genuinely consumes the field, and refusing it would be this parse
-inventing a residue rather than reporting one.
-
-Three more hold the spellings Rocq admits around a definition: one under an attribute
-or a locality is read as itself, one under `Fail`, on its line or a line above it,
-defines nothing and is a residue, and a record value completed from a base with `with`
-is a residue while a `match`'s own `with` is read. One after `Fail }` or `Succeed {` is
-read as itself, the flag being the brace's, and a body runs to its own full stop, a
-string's aside.
+Verifies that unparsed or ambiguous Gallina shapes are reported in `unread` rather than
+silently dropped, while valid record updates (`f := v.(f)`), attributes/locality
+modifiers, and `match ... with` clauses are accepted.
 """
 
 import tempfile
