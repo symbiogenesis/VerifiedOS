@@ -7,35 +7,13 @@
     tools/run.py blast R-07-015           # one register entry, both its ends
     tools/run.py blast                    # every field with its consumers
 
-The mechanical facts come from proofs/ApexTheorem.v alone, through the one parse
-vos/apex.py holds, which the checker's bindings group also reads, so the answer here
-and the checked view in docs/assurance/field-bindings.md cannot disagree. A statement that parse
-cannot read whole is refused rather than answered short, an answer over the fields it
-could name being the one way this tool can be wrong and sound. The artifact form
-reads that view's Instantiated-by column, through the one row parse
-vos/fieldbindings.py holds, to find which fields an artifact discharges. The match
-contract: a cell equal to `none yet` is the named absence of an artifact and matches
-nothing, and any other cell matches only where the queried name equals a whole token
-of it, never a bare substring, so a fragment of a longer word is no hit and the
-table's empty state cannot read as full coverage.
-
-The requirement form answers the question a register edit actually asks, and it has
-two ends because the entry reaches the proofs two ways. Through the view's
-**Authored by** column it names the Prop fields whose meaning that entry gives, and
-each of those is then reported exactly as `--field` reports it. Through the citations
-the proof artifacts already carry, read by vos/proofcites.py, it names the developments
-that argue from that entry, whether or not any of them discharges a field yet. An id
-is matched as an id rather than as a token, because those cells write one as
-`(R-05-159)` and as `R-05-023's`, where a token split would answer neither.
-
-The honest scope of the answer: a change to what a field *states* re-opens the
-definitions that consume it, and nothing else. The downstream trail printed after is
-conditional and labelled as such: a re-proved seam re-opens its consumers only if its
-conclusion's statement had to change too. And every seam sits under
-composition_meta_lemma, the R-18-031(b) linking theorem, which is always the last
-thing re-opened and is listed once rather than per line. The citation half is weaker
-still and is labelled where it prints: an artifact that cites an entry has argued from
-it, which is not a claim that anything in it discharges the entry.
+Reads `Vocabulary` fields and consumer seams from
+[proofs/ApexTheorem.v](../../../proofs/ApexTheorem.v) via [vos/apex.py](../apex.py), field
+bindings (`Authored by` and `Instantiated by`) from
+[docs/assurance/field-bindings.md](../../../docs/assurance/field-bindings.md) via
+[vos/fieldbindings.py](../fieldbindings.py), and proof requirement citations via
+[vos/proofcites.py](../proofcites.py). Fails closed if any statement in
+`ApexTheorem.v` cannot be parsed completely.
 """
 
 import argparse
@@ -47,27 +25,18 @@ from vos import apex, fieldbindings, proofcites
 from vos.corpus import find_root
 from vos.register import REQ_TOKEN_RE
 
-# What a cell breaks into: the runs left between whitespace and the punctuation a
-# markdown link or code span wraps a path in.
+# Split cell text on whitespace and Markdown link/code-span delimiters.
 _TOKEN_SPLIT_RE = re.compile(r"[\s\[\]()`,]+")
 
 
 def _seam_conclusions(record: apex.ApexRecord) -> dict[str, str]:
-    """A seam's conclusion is the field after its implication arrow, which body order
-    makes the last one read; everything else a seam reads is a premise."""
+    """Return `{seam_name: concluded_field}` for every `seam_*` definition in `record`."""
     return {name: fields[-1] for name, fields in record.def_fields.items()
             if name.startswith("seam_")}
 
 
 def _matches(cell: str, artifact: str) -> bool:
-    """Whether an Instantiated-by cell names the artifact.
-
-    A cell equal to `none yet` matches nothing: it is the named absence of an
-    artifact, and a substring match over it once reported every field as
-    instantiated. Any other cell matches only where the queried name equals a whole
-    token of it, so the answer is an identification and never a coincidence of
-    letters.
-    """
+    """Return whether an `Instantiated by` cell token-matches `artifact` (excluding `none yet`)."""
     cell = cell.strip()
     if cell == "none yet":
         return False

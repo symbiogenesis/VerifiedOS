@@ -2,53 +2,20 @@
 # SPDX-License-Identifier: Apache-2.0
 """The Gallina front's input side: generated vectors, and randomized properties under QuickChick.
 
-The CertiCoq -> Wasm oracle (M1.5) runs Gallina components on a stock engine and
-**nothing generates their inputs**, so what it exercises is whatever a person thought
-to write down. This tool is the missing side, and it comes in two halves that answer
-the same question at different prices.
-
-[quickchick/Vectors.v](../../quickchick/Vectors.v) is the half that runs today: a domain
-declared in Gallina, walked exhaustively, printing one line of text per point. It
-loads Stdlib alone, it is compiled in the proof gate's own switch, and its output is a
-text file, which is the form both earlier model-as-oracle rigs crossed in.
-
-[quickchick/Properties.v](../../quickchick/Properties.v) is the half that needs an install:
-random generators and `forAll` over them, which reach a range rather than a list, drawn
-from a seed the harness fixes so a verdict replays, a refuting draw printed as drawn
-because `forAll` shrinks nothing. A property set whose domain holds no more points
-than the draws QuickChick spends on it is decided instead by
-[quickchick/Walks.v](../../quickchick/Walks.v), which loads Stdlib alone and walks the whole
-domain, and `properties` runs both. The install is made, in a switch of its own, and
-`check` reports which commit that switch's QuickChick was built from. No QuickChick
-release installs beside Rocq 9.3.0, so `RECIPE` below builds it at that release from
-reviewed upstream commits, under the lock guide's rule for commit pins, and `INSTALL`
-restores the snapshot a hosted run exported once the randomized half's checks passed
-on it. Its qualified sources remain independent of a candidate recipe's sources.
-QuickChick's dependency closure holds dune below
-the proof switch's, so it needs an environment independent of the proof gate and the
-CertiRocq compiler. `check`, `properties` and `seed coq --quickchick` take `--recipe`
-to run in the switch the recipe builds, which a refresh of the pins builds and checks
-ahead of its lock in a root that does not already hold the provisioned switch of that
-name.
-
-[quickchick/FreezeModel.v](../../quickchick/FreezeModel.v) is a third harness and a different
-question: not *what does this artifact answer* but *do the two statements of one
-arithmetic agree*. R-15-036i makes the instruction dictionary a permanent freeze-time
-commitment, so the density model over it is the one arithmetic in this tree whose wrong
-answer invalidates stored code rather than costing a recompile, and it is therefore
-written down twice on purpose, in [vos/freezemodel.py](../freezemodel.py) and in that
-harness, and compared. `freeze` below runs the second and holds it against the first and
-both against the four figures the register's own prose quotes.
+Harnesses under `tools/quickchick/`:
+- [quickchick/Vectors.v](../../quickchick/Vectors.v): exhaustive domain walk using Stdlib,
+  compiled in the proof switch (`vector`).
+- [quickchick/Properties.v](../../quickchick/Properties.v) and
+  [quickchick/Walks.v](../../quickchick/Walks.v): seeded QuickChick property sets and
+  exhaustive small-domain walks, run in the QuickChick switch (or `--recipe` switch).
+- [quickchick/FreezeModel.v](../../quickchick/FreezeModel.v): cross-checks the freeze
+  density model (R-15-036i) against [vos/freezemodel.py](../freezemodel.py) and the
+  register's anchor figures (R-15-036h, R-15-036j).
 
     python tools/run.py quickchick check
     python tools/run.py quickchick vectors
     python tools/run.py quickchick properties
     python tools/run.py quickchick freeze
-
-**Which finding this answers.** M0.8d's, in the register's other language: a property
-written before the vectors and never run is a property whose subject somebody chose,
-and the two defects that item's known-answer vectors found were both transcriptions no
-structural property was written about. Generation does not depend on the choice.
 """
 
 import argparse
@@ -59,13 +26,7 @@ from pathlib import Path
 from vos import cli, env, freezemodel, gallina
 from vos.corpus import find_root
 
-# QuickChick's switch, imported from the snapshot a hosted run of RECIPE below exported
-# once the randomized half's checks passed on the switch it built.
-#
-# Public and stated as argv rather than as a sentence, for the reason `env.ROCQ_INSTALL`
-# is: `run.py provision` stands this switch up and the two refusals below print it, and
-# a recipe written once as a message and once as a command is a recipe only one reader
-# ever runs. `env.install_line` composes the sentence from the argv.
+# Provisioned QuickChick opam switch imported from `tools/opam/quickchick.lock`.
 PACKAGE = "coq-quickchick"
 PINS: tuple[tuple[str, str, str], ...] = (
     ("coq-simple-io", "https://github.com/Lysxia/rocq-simple-io.git",
@@ -81,17 +42,7 @@ INSTALL: tuple[tuple[str, ...], ...] = (
      f"--switch={gallina.QUICKCHICK_SWITCH}", "-y"),
 )
 
-# QuickChick's recipe, at Rocq 9.3.0. coq-ext-lib 0.13.2 carries the source fixes
-# that admit that release. No QuickChick or coq-simple-io release installs beside it:
-# coq-simple-io's latest caps Coq below 9.2. These candidate commits retain the Rocq 9.3
-# APIs behind version guards for 9.4; tools/opam/README.md owns their pending hosted
-# qualification and the releases that retire the pins. Dune stays at 3.23.1, below the
-# 3.24 that rocq-elpi in QuickChick's closure admits. A pinned build calls itself `dev`,
-# so what a check holds is the source opam states, `git+URL#commit`.
-#
-# Stated as argv for the reason INSTALL is. A hosted run builds the switch from it, runs
-# the randomized half's checks there and exports the lock, which is tracked only once
-# those checks pass; a refresh of the pins moves this recipe first and its lock after.
+# Candidate recipe at Rocq 9.3.0; see [opam/README.md](../../opam/README.md).
 RECIPE_PINS: tuple[tuple[str, str, str], ...] = (
     ("coq-simple-io", "https://github.com/Lysxia/rocq-simple-io.git",
      "5c70625af00af6182817e490d93247cdefbed2e1"),
@@ -118,19 +69,7 @@ RECIPE: tuple[tuple[str, ...], ...] = (
 
 
 def installed(switch: str) -> str | None:
-    """What QuickChick one switch carries: the source a pinned build was built from, as
-    opam states it, `git+URL#commit`, or the version of a released one; None where the
-    switch carries none.
-
-    Asked of opam rather than of the filesystem, because the question is which source a
-    run would compile against and that is the switch's answer, not a directory's.
-
-    Asked with no standard input and in `env.declining_environment`, because the answer
-    is captured: over a root whose format upgrade cannot be made in memory, opam declines
-    the upgrade and exits rather than rewriting the root one way or waiting on a question
-    the caller cannot see. A list that did not exit 0 lists nothing, so the switch reads
-    as holding none.
-    """
+    """Return the installed `coq-quickchick` pin (`git+URL#commit`) or version in `switch`, or `None`."""
     done = subprocess.run(["opam", "list", "--switch", switch, "--installed",
                            "--short", "--columns=version,pin", PACKAGE],
                           capture_output=True, encoding="utf-8", errors="replace",
@@ -141,15 +80,7 @@ def installed(switch: str) -> str | None:
 
 
 def _held(recipe: bool) -> tuple[str, str | None, gallina.Prover | None, list[str]]:
-    """The switch the randomized half runs in, what it holds of the half, and each
-    reason it cannot run it: QuickChick's provisioned switch, or with `recipe` the
-    switch RECIPE builds, each at its own pinned commit.
-
-    The package and the prover count together or not at all: a switch holding the
-    library and no `rocq` is Coq 8 under another name, which compiles neither the
-    shipped proofs nor a harness that Requires them. The one switch named is the one
-    asked: a run that found the package somewhere else would compile in a switch no
-    recipe here stands up."""
+    """Inspect the QuickChick switch (or recipe switch) and return `(switch, pin, prover, reasons)`."""
     switch = gallina.QUICKCHICK_RECIPE_SWITCH if recipe else gallina.QUICKCHICK_SWITCH
     expected = RECIPE_PIN if recipe else INSTALL_PIN
     held = installed(switch)
@@ -171,13 +102,7 @@ def _install(recipe: bool) -> tuple[tuple[str, ...], ...]:
 
 
 def cmd_check(args: argparse.Namespace) -> int:
-    """Whether the randomized half can run, and what it costs to make it able to.
-
-    Reports the package and prover in QuickChick's switch, or with `--recipe` in the
-    switch the recipe builds, so a run's evidence carries the source and release it was
-    taken under. Installation is the provisioner's separate command, and the recipe's a
-    hosted run's.
-    """
+    """Report whether the QuickChick switch and prover are installed at the expected pin."""
     switch, held, found, why = _held(args.recipe)
     expected = RECIPE_PIN if args.recipe else INSTALL_PIN
     said = gallina.version(found) if found else "no `rocq` binary"
@@ -201,7 +126,7 @@ def cmd_check(args: argparse.Namespace) -> int:
 
 
 def cmd_vectors(args: argparse.Namespace) -> int:
-    """The enumerative half: the admission algebra's own answers, as text."""
+    """Emit exhaustive admission-algebra vectors via `Vectors.v`."""
     return _with_workspace(args, _vectors)
 
 
@@ -235,18 +160,7 @@ def _vectors(args: argparse.Namespace, e: env.Environment, root: Path, work: Pat
 
 
 def cmd_properties(args: argparse.Namespace) -> int:
-    """The randomized half, which is QuickChick's, refused by name where it is absent.
-
-    Refused rather than skipped: a run that reported `ok` having tested nothing is the
-    vacuous pass every floor in this repository exists to catch.
-
-    It runs both harnesses of the half in QuickChick's switch, or with `--recipe` in the
-    switch the recipe builds: Properties.v, whose sets QuickChick draws from the seed the
-    harness fixes, and Walks.v, which decides each set small enough to enumerate at every
-    point of its domain. It compiles their `Require` closure and nothing else, the proofs
-    they read and the support harnesses they Require, as `kernel vectors` does for its
-    harness. A proof outside that closure is compile time no verdict here can depend on.
-    """
+    """Run `Properties.v` (seeded QuickChick draws) and `Walks.v` (exhaustive small-domain walks)."""
     return _with_workspace(args, _properties)
 
 
@@ -307,20 +221,7 @@ def _properties(args: argparse.Namespace, e: env.Environment, root: Path, work: 
 
 
 def cmd_freeze(args: argparse.Namespace) -> int:
-    """The freeze's density arithmetic, stated twice and compared, plus the register.
-
-    **Three readings and not two, and the third is what makes the first two mean
-    anything.** Two statements of one model agreeing with each other says nothing about
-    either agreeing with the entry it implements: a defect transcribed into both is
-    exactly what their comparison cannot see. So each side is also held against the four
-    figures R-15-036h and R-15-036j quote in their own prose, which is the reading a
-    person makes by eye and the only one outside both statements.
-
-    **Fail-closed at every step.** No prover, a harness that did not compile, a harness
-    that printed no vector, a register sentence that has moved out from under the reader,
-    or a declared family either side states nothing in: each is a finding and exit 1,
-    never a comparison quietly made against less.
-    """
+    """Compare Python and Gallina (`FreezeModel.v`) freeze-density vectors against register anchors."""
     return _with_workspace(args, _freeze)
 
 
@@ -332,11 +233,7 @@ def _freeze(args: argparse.Namespace, e: env.Environment, root: Path, work: Path
     if fixed is not None:
         findings += freezemodel.held(ours, fixed, freezemodel.MODULE)
 
-    # The model's file is written *after* the staging and never before it. `emit` stages
-    # into `work` and rebuilds it from scratch, so a file written there first is one this
-    # same run deletes, and the line below would name a path the reader cannot open at
-    # exactly the moment a disagreement makes them want to. Only a lane holding a prover
-    # reaches the staging at all, which is why a proverless host never sees it.
+    # Write `model_file` after `gallina.emit`, which stages a clean `work` directory.
     staged: list[str] = []
     theirs = gallina.emit(root, work, staged, harness=gallina.FREEZE)
     model_file = gallina.write(ours, work / gallina.FREEZE_MODEL)
