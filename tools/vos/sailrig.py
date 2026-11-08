@@ -1,18 +1,8 @@
 # SPDX-License-Identifier: Apache-2.0
-"""Compile a set of Sail sources together with a harness, and run what comes out.
+"""Compile Sail sources with a harness and run or compare the emitted executable.
 
-This is the rig M2.1 built and R1a rebuilt: hand Sail a list of model files and one
-more file that calls into them, take the C it emits, link it against Sail's own
-runtime, and run the executable. Nothing about it is specific to the capability
-format, and it was written inside [the RTL lane](cli/rtl.py) because at the time there
-was one caller. There are now three, so it lives here and the callers name their own
-sources.
-
-**The two steps are named separately because they fail differently.** Sail typechecks
-the sources and emits C, so a model file that has moved fails the first with a Sail
-error naming it; the C compiler links that against Sail's runtime, so an absent GMP
-fails the second. A caller that reported one failure for both would send a reader to
-the wrong half.
+Compilation is split into Sail-to-C emission and C compilation against Sail's runtime so
+that Sail typechecking failures and C compiler/library failures are reported separately.
 """
 
 import re
@@ -23,23 +13,19 @@ from pathlib import Path
 
 from vos import env
 
-# Sail's own C runtime, named rather than globbed: a runtime file arriving under a new
-# name should be a failed build with a message and not a silent change of what was
-# linked.
+# Explicit Sail C runtime sources so an upstream runtime change fails compilation loudly.
 RUNTIME: tuple[str, ...] = (
     "sail.c", "rts.c", "elf.c", "sail_failure.c", "cJSON.c", "sail_config.c",
 )
 
 SAIL_HOW = env.install_line(env.SAIL_INSTALL)
 
-# `<kind> <inputs> -> <outputs>`, and the kind is the first token. Read out of the file
-# rather than from a list a caller would have to keep in step with the harness.
+# Vector line kind prefix (`<kind> <inputs> -> <outputs>`).
 KIND_RE = re.compile(r"^([a-z]+) ")
 
 
 def require(name: str, how: str, out: list[str]) -> str | None:
-    """One prerequisite, refused by name rather than by the error its absence produces
-    three commands later."""
+    """Resolve `name` on `PATH` or record an installation failure in `out`."""
     found = shutil.which(name)
     if found is None:
         out.append(f"FAIL {name} is not on PATH; {how}")
@@ -48,8 +34,7 @@ def require(name: str, how: str, out: list[str]) -> str | None:
 
 
 def sail_lib(sail: str) -> Path:
-    """Sail's own library directory, asked of Sail rather than derived from a switch
-    name, so that a re-installed toolchain moves this without an edit."""
+    """Return Sail's C library directory via `sail --dir`."""
     done = subprocess.run([sail, "--dir"], capture_output=True, encoding="utf-8",
                           errors="replace", check=False)
     return Path(done.stdout.strip()) / "lib"
@@ -57,16 +42,10 @@ def sail_lib(sail: str) -> Path:
 
 def build(sources: list[Path], work: Path, out: list[str],
           stem: str = "gen") -> Path | None:
-    """Compile `sources` into an executable under `work`, or say why not.
+    """Compile `sources` (in dependency order, harness last) into an executable under `work`.
 
-    The last source is the harness by convention rather than by declaration: Sail takes
-    one file list and the order that matters is dependency order, which is the caller's
-    to know.
-
-    Deliberately without `--c-no-mangle`. Readable names would be pleasant and are not
-    worth the collision: the model's own `bit_to_bool` is the name Sail's C runtime
-    already gives a static inline, so an unmangled emission that reaches it fails to
-    compile on a redefinition several hundred lines from anything a caller wrote.
+    Omits `--c-no-mangle` so model identifiers such as `bit_to_bool` do not collide with
+    Sail's C runtime declarations.
     """
     sail = require("sail", SAIL_HOW, out)
     if sail is None:
@@ -114,12 +93,7 @@ def build(sources: list[Path], work: Path, out: list[str],
 
 
 def emit(binary: Path, target: Path, out: list[str], timeout: int = 1800) -> bool:
-    """Run the harness with its whole output going to `target`.
-
-    Straight to a file rather than through a pipe: a sweep's output is tens of
-    megabytes and a caller that read it into memory to write it out again would hold
-    the whole of both.
-    """
+    """Run `binary` and stream its stdout directly to `target`."""
     target.parent.mkdir(parents=True, exist_ok=True)
     with target.open("wb") as handle:
         try:
@@ -137,12 +111,7 @@ def emit(binary: Path, target: Path, out: list[str], timeout: int = 1800) -> boo
 
 
 def census(path: Path) -> tuple[dict[str, int], int, int]:
-    """What one vector file holds: how many of each kind, how many vectors, and how
-    many lines are commentary rather than vectors.
-
-    The kinds are read out of the file rather than declared by the caller, so a kind a
-    harness adds is counted the day it is added.
-    """
+    """Return `(counts_by_kind, vector_lines, non_vector_lines)` for vector file `path`."""
     kinds: dict[str, int] = {}
     vectors = 0
     other = 0
@@ -158,15 +127,7 @@ def census(path: Path) -> tuple[dict[str, int], int, int]:
 
 
 def compare(want: Path, got: Path, shown: int = 8) -> tuple[list[str], int, int, int]:
-    """Two vector files, line against line: what disagrees, how much, and how long each
-    file is.
-
-    Streamed rather than read whole, a pair being over a hundred megabytes together,
-    and compared on the raw line so a trailing-whitespace difference is a disagreement
-    rather than something a strip would hide. `zip_longest` rather than `zip`, so a
-    file that stops early is a run of disagreements at the line it stopped on rather
-    than a comparison that quietly ends there and reports the prefix green.
-    """
+    """Stream-compare vector files `want` and `got` line by line with `zip_longest`."""
     examples: list[str] = []
     bad = 0
     n_want = 0

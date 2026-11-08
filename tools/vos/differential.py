@@ -1,19 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
-"""The differential corpus: its manifest, and assembling the programs it names.
-
-The corpus is versioned (M0.12) because it is evidence rather than scaffolding:
-every executor of the frozen profile is checked against it, and a member added
-or changed after a milestone reported a figure against it changes what that
-figure said. So the manifest carries a version, one row per member, and what
-each member exercises; [docs/assurance/differential-corpus.md](../../docs/assurance/differential-corpus.md)
-carries the same rows in prose and `tools/check.py` holds the two equal in both
-directions.
-
-This module is the parse. The runner is `run.py model corpus`, which needs a built
-emulator; the checker only assembles, which needs nothing but Python, so a
-corpus that has stopped assembling is a finding on the host rather than a
-surprise in WSL.
-"""
+"""Differential corpus manifest loader, check/word scanner, and ELF assembler; see
+[docs/assurance/differential-corpus.md](../../docs/assurance/differential-corpus.md)."""
 
 import json
 import re
@@ -30,11 +17,7 @@ MANIFEST = "manifest.json"
 class Member:
     name: str
     source: str
-    # Everything below is *measured* rather than declared, which is why the
-    # manifest carries no prose: what each member exercises is the document's,
-    # said once. `checks` is the highest check number the program sets, and
-    # `records`/`digest` are its commit trace's length and fingerprint. All
-    # three move together under `run.py model corpus --refresh`.
+    # Measured check count, commit-trace record count, and SHA-256 digest (`run.py model corpus --refresh`).
     checks: int = 0
     records: int = 0
     digest: str = ""
@@ -60,9 +43,7 @@ def load(root: Path) -> Corpus:
     return Corpus(raw["version"], raw["trace_schema"], members, directory)
 
 
-# A member sets the number of the check in flight into `gp` before running it,
-# so the exit code names the check that failed; the highest such number is how
-# many checks the program carries. Zero is the pass marker and not a check.
+# Each check loads its 1-based check number into `gp` before executing (`0` marks pass).
 CHECK_RE = re.compile(r"^\s*li\s+gp\s*,\s*(\d+)", re.MULTILINE)
 
 
@@ -70,33 +51,17 @@ def count_checks(source: str) -> int:
     return max((int(n) for n in CHECK_RE.findall(source)), default=0)
 
 
-# A `.word` lays an instruction down with none of the operand checking a mnemonic
-# passes through, so §3 of the document closes the grounds for one at three and
-# enumerates every word standing on them. This finds the words to hold that list
-# against, and it matches the *directive* rather than a literal shape: an operand
-# this rule cannot read is then a finding at the caller, in the fail-closed shape
-# K-71 uses over the schema heading, and never a word it passes over in silence.
+# Raw `.word` directives checked against [docs/assurance/differential-corpus.md](../../docs/assurance/differential-corpus.md).
 WORD_RE = re.compile(r"^\s*\.word\s+(\S+)\s*$", re.MULTILINE)
 
 
 def hand_written_words(source: str) -> list[str]:
-    """Every operand a member lays a `.word` down with, in source order.
-
-    The text rather than the value, because reading it is the caller's to report
-    on: a member is free to write one in any base the assembler evaluates, and a
-    rule that returned only the ones it happened to parse would answer a question
-    about the corpus with a question about its own regular expression.
-    """
+    """Return all `.word` operand strings in `source` in source order."""
     return [str(operand) for operand in WORD_RE.findall(source)]
 
 
 def rewrite(corpus: Corpus, measured: dict[str, tuple[int, int, str]]) -> None:
-    """Write the measured fields back into the manifest.
-
-    Every other field is left as it was: a manifest row declares a member and
-    where its source is, and a tool that rewrote the whole document would be
-    reformatting declarations to repair a measurement.
-    """
+    """Update `(checks, records, digest)` in `corpus/manifest.json` when values change."""
     path = corpus.directory / MANIFEST
     before = path.read_text(encoding="utf-8", newline="")
     raw = json.loads(before)
@@ -104,8 +69,6 @@ def rewrite(corpus: Corpus, measured: dict[str, tuple[int, int, str]]) -> None:
         if row["name"] in measured:
             row["checks"], row["records"], row["digest"] = measured[row["name"]]
     text = json.dumps(raw, indent=2) + "\n"
-    # a refresh that measured what the manifest already records writes nothing, so
-    # the manifest's bytes and mtime move only when a measurement did
     if text != before:
         path.write_text(text, encoding="utf-8", newline="\n")
 

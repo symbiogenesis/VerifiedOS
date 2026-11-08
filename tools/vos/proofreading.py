@@ -1,51 +1,21 @@
 # SPDX-License-Identifier: Apache-2.0
-"""What a compiled proof corpus elaborates to, read constant by constant, and compared.
+"""Elaborated constant-by-constant proof corpus reading and comparison.
 
-An edit across many proof sources that means to change no elaborated meaning needs an
-instrument that would show a change, and none of the existing three does. The native
-receipt holds each constant's `Search` type and assumptions, with no transparent body,
-opacity, universe or inductive declaration; the [CIC corpus exporter](cli/cic_corpus.py)
-prints bodies and deletes them once it has read its features; and the statement
-freeze's contract reads one target's closure. This module is the parse half of the
-reading that does: the queries it writes, the framed answers it reads back, the reading
-it assembles and the comparison of two readings.
-[run.py proof-reading](cli/proof_reading.py) drives the prover.
+[run.py proof-reading](cli/proof_reading.py) drives the prover; this module emits the
+queries, parses the framed answers, validates readings against
+[proof-reading.schema.json](../proof-reading.schema.json), and compares two readings.
 
-**A reading holds, for every constant the native inventory names, what Rocq printed
-about it** in a process that only `Require`s the constant's module, under `Set Printing
-All`, `Set Printing Universes` and the depth and width the proof audit sets:
+For every constant enumerated by [proofaudit.py](proofaudit.py)'s `inventory_query`, a
+reading records (under `Set Printing All` and `Set Printing Universes`):
+- `check`: the output of `Check @name`.
+- `about`: the output of `About name` without `Declared in` location lines, plus parsed
+  `kind`, `opacity`, and `universes`.
+- `print`: the output of `Print name` for transparent constants and inductives, or `null`
+  for opaque constants and constructors.
 
-- `check`, the answer to `Check @name`;
-- `about`, the answer to `About name` less its location lines, which keeps the kind,
-  opacity and universe sentences and every other line About prints, `Arguments` and
-  projection lines among them;
-- `print`, the answer to `Print name` for a transparent constant and for an inductive,
-  and null for an opaque constant and a constructor, whose inductive's own `Print`
-  declares it.
-
-The inventory is the audit's own: [proofaudit.py](proofaudit.py)'s `inventory_query`,
-read by its `inventory`, so this reading enumerates exactly what the gate enumerates.
-`kind`, `opacity` and `universes` are read out of `about`, and whether a constant is
-printed is decided from them rather than from its source keyword.
-
-**Two normalizations, and no others.** About's `Declared in` lines are dropped, since
-any edit above a declaration moves them. And `Check` on a universe-polymorphic constant
-instantiates fresh universe levels that Rocq names after the query file and a counter
-running over the whole query process, so that one constant's answer would depend on
-how many were asked before it; those levels, and only those, are renamed `?u1`, `?u2`
-in the order they first appear within the one answer. Everything else is byte for
-byte what Rocq printed, binder names included.
-
-**Every refusal is loud.** Each query is framed by a marker, as the audit frames its
-own, and a line before the first marker, a marker out of order or repeated, a query
-that answered nothing and an About this parse cannot place each stop the reading
-rather than shortening it.
-
-**Comparing two readings** names every difference: a changed reader, an added or
-removed module, an added or removed constant, and each field of a constant present in
-both. `provenance` records the source and object digests the reading was taken from
-and is never compared, since two compiles of one source can differ in their objects
-and mean the same thing.
+Two normalizations are applied: `About`'s `Declared in` lines are dropped, and fresh
+query-local universe levels (`<query_file>.<counter>`) in `Check` output are renamed
+`?u1`, `?u2`, ... in first-appearance order.
 """
 
 import json
@@ -65,38 +35,30 @@ SCHEMA_PATH = Path(__file__).resolve().parents[1] / "proof-reading.schema.json"
 
 MARKER = "VOS_PROOF_READING|"
 
-# The audit's own printing settings, less its search filters, plus the universes the
-# statement freeze reads. Taken from the audit's text rather than restated, so that the
-# depth and width here are the audit's by construction.
+# Derive `Set Printing` settings from `proofaudit.SETTINGS` plus `Set Printing Universes.`.
 SETTINGS = "".join(line + "\n" for line in proofaudit.SETTINGS.splitlines()
                    if line.startswith("Set Printing")) + "Set Printing Universes.\n"
 
-# The query files this reading compiles are named after their phase and module, and a
-# fresh universe level a query creates is named after its file, so the prefix is
-# reserved: no module of that name may be read.
+# Reserved module-name prefix for generated query files (used in fresh universe names).
 QUERY_PREFIX = "VosReading"
 PHASES = ("Inventory", "Facts", "Bodies")
 MODULE = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
 
-# About's kinds this reading places. A kind outside them is a printer change or a
-# declaration the inventory never returned before, and it refuses.
 KINDS = ("Constant", "Inductive", "Constructor")
 LOCATION = "Declared in "
 _EXPANDS = re.compile(r"Expands to: (\w+) (\S+)")
 _UNIVERSES = re.compile(r"\S+ is (not universe polymorphic|universe polymorphic"
                         r"|template universe polymorphic(?: .*)?)")
 _OPACITY = re.compile(r"\S+ is (transparent|opaque)")
-# The opacity sentences Rocq 9.3 prints instead for a reduction strategy other than the
-# default, which a `Global Opaque` or `Global Strategy` leaves on a transparent constant.
+# Non-default reduction strategies printed by Rocq 9.3 (`Global Opaque` / `Global Strategy`).
 _STRATEGY = re.compile(r"\S+ is (?:opaque but may be made transparent"
                        r"|transparent \((?:level -?\d+|expand)\))")
 
-# The fields a comparison reads, in the order it reports them.
 FIELDS = ("kind", "opacity", "universes", "check", "about", "print")
 
 
 class ReadingError(ValueError):
-    """A native answer, or a recorded reading, cannot support a complete reading."""
+    """Raised when a native query answer or recorded reading is malformed or incomplete."""
 
 
 class Entry(TypedDict):
@@ -135,7 +97,7 @@ class Reading(TypedDict):
 
 @dataclass(frozen=True)
 class About:
-    """What About says a symbol is, and the answer this reading keeps."""
+    """Parsed `About` metadata (`kind`, `opacity`, `universes`) and normalized text."""
 
     kind: str
     opacity: str
@@ -144,13 +106,13 @@ class About:
 
     @property
     def printed(self) -> bool:
-        """Whether `Print` belongs in the reading: a transparent body or a declaration."""
+        """Whether `Print` output is expected (inductives and transparent constants)."""
         return self.kind == "Inductive" or (self.kind == "Constant"
                                             and self.opacity == "transparent")
 
 
 class Difference(NamedTuple):
-    """One entry two readings disagree about, and what the disagreement is."""
+    """A single difference between two proof readings."""
 
     subject: str
     what: str
@@ -162,14 +124,14 @@ class Difference(NamedTuple):
 
 
 def query_module(phase: str, module: str) -> str:
-    """The logical name of one phase's query file for one module."""
+    """Return the logical query-file name for `phase` and `module`."""
     if phase not in PHASES:
         raise ValueError(f"unknown query phase {phase!r}")
     return f"{QUERY_PREFIX}{phase}_{module}"
 
 
 def check_module(module: str) -> None:
-    """Refuse a module name this reading cannot query or could confuse with its own."""
+    """Reject invalid module names or names starting with `QUERY_PREFIX`."""
     if MODULE.fullmatch(module) is None:
         raise ReadingError(f"a module name this reading cannot Require: {module!r}")
     if module.startswith(QUERY_PREFIX):
@@ -185,13 +147,12 @@ def _names(names: list[str]) -> list[str]:
 
 
 def _frame(key: str) -> str:
-    # Proof opens each marker goal, as in the audit: Rocq 9.3 warns otherwise, and a
-    # diagnostic refuses the query.
+    # Open a proof before `idtac` to avoid Rocq 9.3 warnings outside proof mode.
     return f'Goal True. Proof. idtac "{MARKER}{key}". Abort.\n'
 
 
 def facts_query(module: str, names: list[str]) -> str:
-    """`Check` and `About` for every named constant, each answer under its own marker."""
+    """Build a framed `Check` and `About` query script for `names` in `module`."""
     lines = [f"Require {module}.\n", SETTINGS]
     for name in _names(names):
         lines += [_frame(f"{name}|check"), f"Check @{name}.\n",
@@ -200,7 +161,7 @@ def facts_query(module: str, names: list[str]) -> str:
 
 
 def bodies_query(module: str, names: list[str]) -> str:
-    """`Print` for every named constant, each answer under its own marker."""
+    """Build a framed `Print` query script for `names` in `module`."""
     lines = [f"Require {module}.\n", SETTINGS]
     for name in _names(names):
         lines += [_frame(f"{name}|print"), f"Print {name}.\n"]
@@ -208,7 +169,7 @@ def bodies_query(module: str, names: list[str]) -> str:
 
 
 def _trimmed(lines: list[str]) -> str:
-    """One answer's lines, verbatim between its first and last nonblank line."""
+    """Join `lines` between the first and last non-blank line."""
     start = next((index for index, line in enumerate(lines) if line.strip()), len(lines))
     end = len(lines)
     while end > start and not lines[end - 1].strip():
@@ -217,13 +178,7 @@ def _trimmed(lines: list[str]) -> str:
 
 
 def answers(stdout: str, keys: list[str]) -> dict[str, str]:
-    """Split one query's output into the answer each marker introduced.
-
-    The keys are supplied and their order is the query's own, so an answer missing,
-    repeated or out of place refuses here rather than landing under its neighbour.
-    Nothing may precede the first marker: the settings print nothing, so a line there
-    is output this reading did not ask for.
-    """
+    """Split framed query `stdout` into a map over expected `keys` in exact order."""
     found: list[tuple[str, list[str]]] = []
     for line in stdout.splitlines():
         if line.startswith(MARKER):
@@ -250,13 +205,7 @@ def answers(stdout: str, keys: list[str]) -> dict[str, str]:
 
 
 def fresh_universes(text: str, query: str) -> str:
-    """The answer with the fresh universe levels its own query created renamed.
-
-    Rocq names such a level `<query file>.<counter>`, and the counter runs over the
-    whole process, so the name records how many questions came before rather than
-    anything about the constant. Each is renamed `?u<n>` by first appearance, which
-    keeps which occurrences are one level and drops only the count.
-    """
+    """Rename `<query>.<counter>` universe levels in `text` to `?u1`, `?u2`, ... in order."""
     pattern = re.compile(rf"(?<![\w'.]){re.escape(query)}\.\d+(?![\w'])")
     renamed: dict[str, str] = {}
     return pattern.sub(
@@ -264,18 +213,7 @@ def fresh_universes(text: str, query: str) -> str:
 
 
 def parse_about(name: str, text: str) -> About:
-    """About, read for the three facts this reading decides with, less its locations.
-
-    About prints the symbol and its type, a blank line, and then one sentence per
-    fact. The sentences are read only after that blank line, so a type that wraps
-    cannot be taken for one. Each fact must be stated exactly once, the expansion must
-    name the constant asked about, and a constant must state its opacity where nothing
-    else may. Two constants this reading does not place refuse by name: one with no
-    body, an axiom, a parameter, an admitted proof or a primitive, for which About
-    states no opacity, and one given a reduction strategy other than the default. Any
-    other missing, doubled or unexpected sentence is a printer this parse has not read,
-    and it refuses rather than defaulting.
-    """
+    """Parse `About` output for `name` and strip `Declared in` location lines."""
     lines = text.splitlines()
     gap = next((index for index, line in enumerate(lines) if not line.strip()), None)
     if gap is None:
@@ -320,7 +258,7 @@ def parse_about(name: str, text: str) -> About:
 
 
 def entry(check: str, about: About, printed: str | None) -> Entry:
-    """One constant's reading, refusing a body where none belongs or none where one does."""
+    """Construct one constant's `Entry`, verifying `printed` presence matches `about.printed`."""
     if about.printed != (printed is not None):
         raise ReadingError(f"a {about.opacity} {about.kind} was "
                            f"{'printed' if printed is not None else 'not printed'}")
@@ -329,7 +267,7 @@ def entry(check: str, about: About, printed: str | None) -> Entry:
 
 
 def _first_difference(base: str | None, candidate: str | None) -> str:
-    """Where two answers first part, short enough to print beside the entry's name."""
+    """Format a compact summary of the first difference between `base` and `candidate`."""
     if base is None or candidate is None:
         return " -> ".join("not printed" if text is None else "printed"
                            for text in (base, candidate))
@@ -344,11 +282,7 @@ def _first_difference(base: str | None, candidate: str | None) -> str:
 
 
 def compare(base: Reading, candidate: Reading) -> list[Difference]:
-    """Every entry the two readings disagree about; an empty list is equality.
-
-    Provenance is not compared: it names the compile each reading was taken from,
-    which is what two readings of one meaning are expected to differ in.
-    """
+    """Compare `base` and `candidate` across `reader`, `modules`, and `FIELDS` (ignoring `provenance`)."""
     found: list[Difference] = []
     old_reader = cast("dict[str, object]", base["reader"])
     new_reader = cast("dict[str, object]", candidate["reader"])
@@ -375,7 +309,7 @@ def compare(base: Reading, candidate: Reading) -> list[Difference]:
 
 
 def validate(reading: object) -> Reading:
-    """The reading, refused unless the tracked schema describes it."""
+    """Validate `reading` against `SCHEMA_PATH`."""
     schema = json.loads(SCHEMA_PATH.read_text(encoding="utf-8"))
     failure = next(iter(Draft202012Validator(schema).iter_errors(reading)), None)
     if failure is not None:
@@ -384,7 +318,7 @@ def validate(reading: object) -> Reading:
 
 
 def load(path: Path) -> Reading:
-    """One recorded reading, refusing a repeated key and anything the schema refuses."""
+    """Load and schema-validate a proof reading JSON file, rejecting duplicate keys."""
     try:
         loaded: object = json.loads(path.read_text(encoding="utf-8"),
                                     object_pairs_hook=unique_object)
