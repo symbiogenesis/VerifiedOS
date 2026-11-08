@@ -1,6 +1,6 @@
 # The Field-Binding Map
 
-*Normative as a **view** of [ApexTheorem.v](../../proofs/ApexTheorem.v), the machine-checked statement R-18-031(a) makes the coverage checklist: every side-property some seam consumes or concludes is a Prop field of the statement's `Vocabulary` record, a proof workstream lands by instantiating its field, and a field nothing instantiates is an uncovered obligation with exactly one name. This document is that checklist laid out as a table, one row per Prop field, so that coverage and blast radius are read rather than reconstructed.*
+*Normative view of [ApexTheorem.v](../../proofs/ApexTheorem.v) under R-18-031(a). Every side-property consumed or concluded by a seam is a `Prop` field of the statement's `Vocabulary` record; a proof workstream lands by instantiating its field, and an uninstantiated field is an uncovered obligation. This table lists one row per `Prop` field to track coverage and blast radius.*
 
 The fields are a coverage ledger. Their named conjunction supplies no relation
 between executions. [SemanticTransport](../../proofs/ApexTheorem.v#SemanticTransport)
@@ -14,7 +14,7 @@ different source/target executions and refute missing or incompatible interface
 conditions. These generic results instantiate no field below and do not complete
 the concrete machine's linking theorem.
 
-> **Precedence.** The mechanical half of every row (the field list, its order, and the **Consumed by** column) is derived from the `.v`, which wins; `tools/check.py` recomputes it on every run and fails this document where it drifts. The semantic half (**Authored by**) is hand-authored and answers to [requirements-register.md](../requirements-register.md), which wins over both this document and the statement's own comments. This document adds no obligation.
+> **Precedence.** The mechanical columns (field list, row order, and **Consumed by**) are derived from [ApexTheorem.v](../../proofs/ApexTheorem.v) and checked by `tools/check.py`. The semantic column (**Authored by**) is governed by [requirements-register.md](../requirements-register.md), which takes precedence over both this document and comments in the `.v` file. This view adds no obligations.
 
 ## How to read a row
 
@@ -66,6 +66,6 @@ the concrete machine's linking theorem.
 
 ## Standing obligations
 
-- **The mechanical half is never edited by hand toward a wish.** A `Consumed by` cell disagreeing with the statement is repaired by re-deriving it from the `.v`, or the statement itself is wrong and that is an amendment to the statement, decided at the review gate.
-- **An instantiation is a landing, not a claim.** A cell that moves off `none yet` links the proof development that discharges the field, and the linked artifact answers to `tools/run.py proofs` like everything shipped under [proofs](../../proofs/).
-- **A new field is a new row before it is anything else.** `check.py` fails the view that lags the record in either direction, so the checklist property (every obligation has exactly one name) survives amendment mechanically.
+- **Do not hand-edit mechanical columns.** Derive `Consumed by` from [ApexTheorem.v](../../proofs/ApexTheorem.v), or amend the statement itself through the review gate.
+- **Instantiations must link checked proofs.** Any cell moving off `none yet` must link the discharging proof development under [proofs](../../proofs/), verified by `tools/run.py proofs`.
+- **Keep rows synchronized with `Vocabulary`.** `tools/check.py` rejects any field missing from or extra in this table.
