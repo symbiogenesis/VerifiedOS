@@ -51,7 +51,7 @@
       "tool": "zizmor",
       "subject": "the reviewed release and its licence tag",
       "reviewed": [
-        "1.31.1"
+        "1.32.0"
       ],
       "owners": [
         {
@@ -1011,7 +1011,7 @@
       "tool": "ty",
       "subject": "the reviewed release",
       "reviewed": [
-        "0.0.95"
+        "0.0.97"
       ],
       "owners": [
         {
@@ -1176,7 +1176,7 @@
       "tool": "pre-commit's dependencies",
       "subject": "nodeenv's locked release",
       "reviewed": [
-        "1.11.1"
+        "1.12.0"
       ],
       "owners": [
         {
@@ -1206,7 +1206,7 @@
       "tool": "pre-commit's dependencies",
       "subject": "virtualenv's locked release",
       "reviewed": [
-        "21.15.2"
+        "21.15.5"
       ],
       "owners": [
         {
@@ -1236,7 +1236,7 @@
       "tool": "pre-commit's dependencies",
       "subject": "filelock's locked release",
       "reviewed": [
-        "4.2.5"
+        "4.2.9"
       ],
       "owners": [
         {
@@ -1251,7 +1251,7 @@
       "tool": "pre-commit's dependencies",
       "subject": "platformdirs's locked release",
       "reviewed": [
-        "4.14.0"
+        "4.14.5"
       ],
       "owners": [
         {
@@ -1266,7 +1266,7 @@
       "tool": "pre-commit's dependencies",
       "subject": "python-discovery's locked release",
       "reviewed": [
-        "1.9.0"
+        "1.9.4"
       ],
       "owners": [
         {
@@ -1326,7 +1326,7 @@
       "tool": "clang-format",
       "subject": "the reviewed release",
       "reviewed": [
-        "23.1.3"
+        "23.1.4"
       ],
       "owners": [
         {
@@ -1346,7 +1346,7 @@
       "tool": "clang-format",
       "subject": "the reviewed commit",
       "reviewed": [
-        "98ad4ddb9c057de2f5b9e93e44e6db959807d68c"
+        "411d0309a2a80e90997f6f2596219563e21023a5"
       ],
       "owners": [
         {
@@ -2436,7 +2436,7 @@
       "id": "GitHub CLI",
       "tool": "GitHub CLI",
       "license": "`MIT`",
-      "standing": "The runner-supplied `gh` reads guest workflow history to skip unchanged successful revisions. The reviewed [v2.101.0 LICENSE](https://github.com/cli/cli/blob/v2.101.0/LICENSE), blob `b6a58a9572cbd7e4550f8205a9c4fd199cd442f2`, credits GitHub; the installed version follows the runner image, so a later image's release is compared against that blob. No CLI source or executable is redistributed here.",
+      "standing": "The runner-supplied `gh` reads guest workflow history to skip unchanged successful revisions. The reviewed [v2.103.3 LICENSE](https://github.com/cli/cli/blob/v2.103.3/LICENSE), blob `b6a58a9572cbd7e4550f8205a9c4fd199cd442f2`, credits GitHub; the installed version follows the runner image, so a later image's release is compared against that blob. No CLI source or executable is redistributed here.",
       "disposition": "the runner image supplies it, so no artifact here fixes its release; the row names the reading a later image is compared with"
     },
     {
@@ -2668,7 +2668,7 @@
       "id": "ty",
       "tool": "ty",
       "license": "`MIT`; embedded typeshed stubs `Apache-2.0` with MIT parts",
-      "standing": "Type-checks the tools in the same gate, at the `dev` group's pin. The reviewed `${ty_62_0}` tag of `astral-sh/ty` has an MIT `LICENSE`, blob `014835144877ea9c926d027ece3e1a26290cf481`, copyright 2025 Astral Software Inc. The binary embeds typeshed's stubs from that tag's `ruff` submodule at `7cb935d9`, whose `crates/ty_vendored/vendor/typeshed/LICENSE`, blob `13264487581f82433dadf18a99613a7d215fd448`, is Apache-2.0 with MIT-licensed parts. No ty source or executable is redistributed here.",
+      "standing": "Type-checks the tools in the same gate, at the `dev` group's pin. The reviewed `${ty_62_0}` tag of `astral-sh/ty` has an MIT `LICENSE`, blob `014835144877ea9c926d027ece3e1a26290cf481`, copyright 2025 Astral Software Inc. The binary embeds typeshed's stubs from that tag's `ruff` submodule at `fddb68af`, whose `crates/ty_vendored/vendor/typeshed/LICENSE`, blob `13264487581f82433dadf18a99613a7d215fd448`, is Apache-2.0 with MIT-licensed parts. No ty source or executable is redistributed here.",
       "reviews": [
         "ty_62"
       ]
@@ -2677,7 +2677,7 @@
       "id": "CPython",
       "tool": "CPython ${cpython_63_0}",
       "license": "`PSF-2.0`, with the historical terms its `LICENSE` carries",
-      "standing": "Runs every tool: `requires-python` admits ${cpython_64_0} alone and `python-downloads = \"never\"` makes uv use an installed interpreter, the distribution's in the guest and `actions/setup-python`'s in CI. The reviewed `v${cpython_65_0}.8` tag's `LICENSE`, blob `20cf39097c68baa17cc566b64e76d34ebf034044`, licenses Python under the PSF License Version 2, beside the BeOpen, CNRI and CWI agreements for its earlier releases, offers documentation code under `0BSD` as well, and leaves incorporated software under its own terms. No interpreter or library is redistributed here.",
+      "standing": "Runs every tool: `requires-python` admits ${cpython_64_0} alone and `python-downloads = \"never\"` makes uv use an installed interpreter, the distribution's in the guest and `actions/setup-python`'s in CI. The reviewed `v${cpython_65_0}.10` tag's `LICENSE`, blob `20cf39097c68baa17cc566b64e76d34ebf034044`, licenses Python under the PSF License Version 2, beside the BeOpen, CNRI and CWI agreements for its earlier releases, offers documentation code under `0BSD` as well, and leaves incorporated software under its own terms. No interpreter or library is redistributed here.",
       "reviews": [
         "cpython_63",
         "cpython_64",
@@ -2701,7 +2701,7 @@
       "id": "pre-commit's dependencies",
       "tool": "pre-commit's dependencies",
       "license": "`MIT`; nodeenv `BSD-3-Clause`; distlib `PSF-2.0`; packaging `Apache-2.0 OR BSD-2-Clause`",
-      "standing": "The optional `model` group's closure, which [tools/uv.lock](tools/uv.lock) fixes. The locked wheels and release tags carry these license instruments: cfgv `v${pre_commit_s_dependencies_71_0}` `LICENSE`, blob `b7af5ef213084fe100c5bb755659ef68c14dae5b`, copyright 2018 Anthony Sottile; identify `v${pre_commit_s_dependencies_72_0}` `LICENSE`, blob `0ecc5db911dadf39c600843c4646aa2b5c3a0ed7`, copyright 2017 Chris Kuehl and Anthony Sottile; nodeenv `${pre_commit_s_dependencies_73_0}` `LICENSE`, blob `a087c8d694a12d9f113ab83e2eeb7adbfa1353cd`, copyright 2011 Eugene Kalinin; PyYAML `${pre_commit_s_dependencies_74_0}` `LICENSE`, blob `2f1b8e15e5627d92f0521605c9870bc8e5505cb4`, copyright Ingy döt Net and Kirill Simonov; virtualenv `${pre_commit_s_dependencies_75_0}` `LICENSE`, blob `99598eb01766f838b130ff04c02103c1418215e1`, and `THIRD-PARTY-NOTICES.md`, blob `107e3e0418e26691f3c1b3385942f2dd5fb54601`, which leaves its embedded pip and setuptools wheels under their own licenses, including those of the packages each vendors; distlib `${pre_commit_s_dependencies_76_0}` `LICENSE.txt`, blob `c31ac56d772f7061c8b42f0ee96063b7a94a4859`, the PSF License Version 2 with Python's historical agreements; filelock `${pre_commit_s_dependencies_77_0}` `LICENSE`, blob `291919c0b6f41d014767f6c877af9f7595fcff99`, copyright 2025 Bernát Gábor and contributors; platformdirs `${pre_commit_s_dependencies_78_0}` `LICENSE`, blob `f35fed9191b1142ddaada8a96de4a9461c5d796c`, crediting the platformdirs developers; python-discovery `${pre_commit_s_dependencies_79_0}` `LICENSE`, blob `364982344fbd94d55705e1f27a9a87abaa255333`, the MIT grant with no copyright line; and packaging `${pre_commit_s_dependencies_80_0}` `LICENSE`, blob `6f62d44e4ef733c0e713afcd2371fed7f2b3de67`, offering `LICENSE.APACHE`, blob `f433b1a53f5b830a205fd2df78e2b34974656c7b`, or `LICENSE.BSD`, blob `42ce7b75c92fb01a3f6ed17eea363f756b7da582`. nodeenv installs Node.js for pre-commit's Node hooks under Node's own terms. Nothing is redistributed here. The same reviewed filelock release is a direct host dependency for serializing Lychee and rumdl cache installation with operating-system locks. The selected wheel has the recorded LICENSE blob; no package is redistributed here. The same reviewed PyYAML release is a direct runtime dependency for composing workflow and hook YAML as source nodes without constructing objects. Its ${pre_commit_s_dependencies_74_0} LICENSE grants MIT under the recorded copyright notices; no package is redistributed here.",
+      "standing": "The optional `model` group's closure, which [tools/uv.lock](tools/uv.lock) fixes. The locked wheels and release tags carry these license instruments: cfgv `v${pre_commit_s_dependencies_71_0}` `LICENSE`, blob `b7af5ef213084fe100c5bb755659ef68c14dae5b`, copyright 2018 Anthony Sottile; identify `v${pre_commit_s_dependencies_72_0}` `LICENSE`, blob `0ecc5db911dadf39c600843c4646aa2b5c3a0ed7`, copyright 2017 Chris Kuehl and Anthony Sottile; nodeenv `${pre_commit_s_dependencies_73_0}` `LICENSE`, blob `a087c8d694a12d9f113ab83e2eeb7adbfa1353cd`, copyright 2011 Eugene Kalinin; PyYAML `${pre_commit_s_dependencies_74_0}` `LICENSE`, blob `2f1b8e15e5627d92f0521605c9870bc8e5505cb4`, copyright Ingy döt Net and Kirill Simonov; virtualenv `${pre_commit_s_dependencies_75_0}` `LICENSE`, blob `99598eb01766f838b130ff04c02103c1418215e1`, and `THIRD-PARTY-NOTICES.md`, blob `458691bf6c33b95f19c30701d22e7fe598caf1ca`, which leaves its embedded pip and setuptools wheels under their own licenses, including those of the packages each vendors; distlib `${pre_commit_s_dependencies_76_0}` `LICENSE.txt`, blob `c31ac56d772f7061c8b42f0ee96063b7a94a4859`, the PSF License Version 2 with Python's historical agreements; filelock `${pre_commit_s_dependencies_77_0}` `LICENSE`, blob `291919c0b6f41d014767f6c877af9f7595fcff99`, copyright 2025 Bernát Gábor and contributors; platformdirs `${pre_commit_s_dependencies_78_0}` `LICENSE`, blob `f35fed9191b1142ddaada8a96de4a9461c5d796c`, crediting the platformdirs developers; python-discovery `${pre_commit_s_dependencies_79_0}` `LICENSE`, blob `364982344fbd94d55705e1f27a9a87abaa255333`, the MIT grant with no copyright line; and packaging `${pre_commit_s_dependencies_80_0}` `LICENSE`, blob `6f62d44e4ef733c0e713afcd2371fed7f2b3de67`, offering `LICENSE.APACHE`, blob `f433b1a53f5b830a205fd2df78e2b34974656c7b`, or `LICENSE.BSD`, blob `42ce7b75c92fb01a3f6ed17eea363f756b7da582`. nodeenv installs Node.js for pre-commit's Node hooks under Node's own terms. Nothing is redistributed here. The same reviewed filelock release is a direct host dependency for serializing Lychee and rumdl cache installation with operating-system locks. The selected wheel has the recorded LICENSE blob; no package is redistributed here. The same reviewed PyYAML release is a direct runtime dependency for composing workflow and hook YAML as source nodes without constructing objects. Its ${pre_commit_s_dependencies_74_0} LICENSE grants MIT under the recorded copyright notices; no package is redistributed here.",
       "reviews": [
         "pre_commit_s_dependencies_71",
         "pre_commit_s_dependencies_72",

@@ -1,0 +1,243 @@
+{
+  "schema": 1,
+  "read_date": "2026-11-08",
+  "base_revision": "ad4702cbe4b41e58168bf8e69a5ff1d39cf6dc74",
+  "scope": "Read-only resolution of every configured upstream development ref; selected references do not override nested revisions or qualify a proof or implementation.",
+  "submodules": [
+    {
+      "path": "upstream/sail-riscv",
+      "url": "https://github.com/riscv/sail-riscv",
+      "ref": "refs/heads/master",
+      "previous_revision": "a83603b6995428b9df2c464f98e18a7b0ae488fe",
+      "observed_revision": "8118453168a11439fd88318e7e1192eb938efcd1",
+      "selected_revision": "8118453168a11439fd88318e7e1192eb938efcd1",
+      "disposition": "updated"
+    },
+    {
+      "path": "upstream/sail-cheri-riscv",
+      "url": "https://github.com/CTSRD-CHERI/sail-cheri-riscv",
+      "ref": "refs/heads/master",
+      "previous_revision": "cf36cfd4fca0bd10a5906651bf48b9674ccd0a2b",
+      "observed_revision": "cf36cfd4fca0bd10a5906651bf48b9674ccd0a2b",
+      "selected_revision": "cf36cfd4fca0bd10a5906651bf48b9674ccd0a2b",
+      "disposition": "already_current"
+    },
+    {
+      "path": "upstream/SECOMP",
+      "url": "https://github.com/secure-compilation/SECOMP",
+      "ref": "refs/heads/ccs-main",
+      "previous_revision": "cbef9c338d23f40db5054c9a3d6f2b3b873e9204",
+      "observed_revision": "cbef9c338d23f40db5054c9a3d6f2b3b873e9204",
+      "selected_revision": "cbef9c338d23f40db5054c9a3d6f2b3b873e9204",
+      "disposition": "already_current"
+    },
+    {
+      "path": "upstream/llvm-project",
+      "url": "https://github.com/llvm/llvm-project",
+      "ref": "refs/heads/main",
+      "previous_revision": "7e4047e8c6f5a23cdf5174251051895e97bebb75",
+      "observed_revision": "6997de0f739de546382ec99bea2f9376dca333f7",
+      "selected_revision": "6997de0f739de546382ec99bea2f9376dca333f7",
+      "disposition": "updated"
+    },
+    {
+      "path": "upstream/cheri-rust",
+      "url": "https://github.com/CHERIoT-Platform/cheri-rust",
+      "ref": "refs/heads/beta",
+      "previous_revision": "ba6e0e6c9c40593f7b47d5af071a6ccb9d154cf6",
+      "observed_revision": "ba6e0e6c9c40593f7b47d5af071a6ccb9d154cf6",
+      "selected_revision": "ba6e0e6c9c40593f7b47d5af071a6ccb9d154cf6",
+      "disposition": "already_current"
+    },
+    {
+      "path": "upstream/mocha",
+      "url": "https://github.com/lowRISC/mocha",
+      "ref": "refs/heads/main",
+      "previous_revision": "e11c586bba52d5697433ffa377cecdb21bb581d9",
+      "observed_revision": "464c027ebf284d10183bcc6e261f124632c181e5",
+      "selected_revision": "464c027ebf284d10183bcc6e261f124632c181e5",
+      "disposition": "updated"
+    },
+    {
+      "path": "upstream/cva6-cheri",
+      "url": "https://github.com/lowRISC/cva6-cheri",
+      "ref": "refs/heads/mocha",
+      "previous_revision": "0c7b3adf3458012210a0612efba72058c1dbd84b",
+      "observed_revision": "0c7b3adf3458012210a0612efba72058c1dbd84b",
+      "selected_revision": "0c7b3adf3458012210a0612efba72058c1dbd84b",
+      "disposition": "already_current"
+    },
+    {
+      "path": "upstream/axi-cheri-tagcontroller",
+      "url": "https://github.com/Capabilities-Limited/axi_cheri_tagcontroller",
+      "ref": "refs/heads/main",
+      "previous_revision": "adffef3267a1ffc9b9715fb33b5e7f863416d787",
+      "observed_revision": "f408a7b96b841bb0c35bea09cad9c9d7c0742fa1",
+      "selected_revision": "f408a7b96b841bb0c35bea09cad9c9d7c0742fa1",
+      "disposition": "updated"
+    },
+    {
+      "path": "upstream/opentitan",
+      "url": "https://github.com/lowRISC/opentitan",
+      "ref": "refs/heads/master",
+      "previous_revision": "3fb20a7df713996fab9375cb60886dc1fd5e825f",
+      "observed_revision": "7d46c648e2016d23275a6c50b6e5393e1806cc8e",
+      "selected_revision": "7d46c648e2016d23275a6c50b6e5393e1806cc8e",
+      "disposition": "updated"
+    },
+    {
+      "path": "upstream/ibex",
+      "url": "https://github.com/lowRISC/ibex",
+      "ref": "refs/heads/master",
+      "previous_revision": "f4515520c0045bb8ef1e72d46ed82499a6ac5f18",
+      "observed_revision": "626034d7557ab85a6d989b13011b44296bad26fa",
+      "selected_revision": "626034d7557ab85a6d989b13011b44296bad26fa",
+      "disposition": "updated"
+    },
+    {
+      "path": "upstream/cheriot-ibex",
+      "url": "https://github.com/microsoft/cheriot-ibex",
+      "ref": "refs/heads/main",
+      "previous_revision": "8a4123b4f4fee095c3b301e1bafaec5012eb4d3c",
+      "observed_revision": "8a4123b4f4fee095c3b301e1bafaec5012eb4d3c",
+      "selected_revision": "8a4123b4f4fee095c3b301e1bafaec5012eb4d3c",
+      "disposition": "already_current"
+    },
+    {
+      "path": "upstream/cheri-compressed-cap",
+      "url": "https://github.com/CTSRD-CHERI/cheri-compressed-cap",
+      "ref": "refs/heads/master",
+      "previous_revision": "5b3dfd25ae49a62594477ba25be1371d29774cf9",
+      "observed_revision": "5b3dfd25ae49a62594477ba25be1371d29774cf9",
+      "selected_revision": "5b3dfd25ae49a62594477ba25be1371d29774cf9",
+      "disposition": "already_current"
+    },
+    {
+      "path": "upstream/qemu",
+      "url": "https://github.com/CTSRD-CHERI/qemu",
+      "ref": "refs/heads/qemu-cheri",
+      "previous_revision": "d0bb921cd6d34d1f8f4b3dafd279aa571795c938",
+      "observed_revision": "d0bb921cd6d34d1f8f4b3dafd279aa571795c938",
+      "selected_revision": "d0bb921cd6d34d1f8f4b3dafd279aa571795c938",
+      "disposition": "already_current"
+    },
+    {
+      "path": "upstream/rupicola",
+      "url": "https://github.com/mit-plv/rupicola",
+      "ref": "refs/heads/master",
+      "previous_revision": "d33f7024a7a03c9e0f05f746dff8434d450a4f6e",
+      "observed_revision": "d33f7024a7a03c9e0f05f746dff8434d450a4f6e",
+      "selected_revision": "d33f7024a7a03c9e0f05f746dff8434d450a4f6e",
+      "disposition": "already_current"
+    },
+    {
+      "path": "upstream/katamaran",
+      "url": "https://github.com/katamaran-project/katamaran",
+      "ref": "refs/heads/main",
+      "previous_revision": "f9dbb2ae5a6bffb1d733d0146f3c0188fda65660",
+      "observed_revision": "4f7cef1e8e10d5a0d244c64ffd8e26c9137ea40a",
+      "selected_revision": "4f7cef1e8e10d5a0d244c64ffd8e26c9137ea40a",
+      "disposition": "updated"
+    },
+    {
+      "path": "upstream/sail-katamaran-backend",
+      "url": "https://github.com/katamaran-project/sail-backend",
+      "ref": "refs/heads/master",
+      "previous_revision": "c9b1cd0234d7d4ee839b8d07bad7db601e6a5a40",
+      "observed_revision": "e4434f394c797472c04c0d916f6a0ab7f7df0562",
+      "selected_revision": "e4434f394c797472c04c0d916f6a0ab7f7df0562",
+      "disposition": "updated"
+    },
+    {
+      "path": "upstream/cerise",
+      "url": "https://github.com/logsem/cerise",
+      "ref": "refs/heads/main",
+      "previous_revision": "9eb72e675216d7c5473499f392b18049364db03a",
+      "observed_revision": "9eb72e675216d7c5473499f392b18049364db03a",
+      "selected_revision": "9eb72e675216d7c5473499f392b18049364db03a",
+      "disposition": "already_current"
+    },
+    {
+      "path": "upstream/cerisier",
+      "url": "https://github.com/logsem/cerisier",
+      "ref": "refs/heads/main",
+      "previous_revision": "57ed584ae17eed308ae0fa554cf0dde9843112c1",
+      "observed_revision": "57ed584ae17eed308ae0fa554cf0dde9843112c1",
+      "selected_revision": "57ed584ae17eed308ae0fa554cf0dde9843112c1",
+      "disposition": "already_current"
+    },
+    {
+      "path": "upstream/sail-cheri-riscv-verif",
+      "url": "https://github.com/CTSRD-CHERI/sail-cheri-riscv-verif",
+      "ref": "refs/heads/master",
+      "previous_revision": "4da8fd10e323ab67b92a771b02f5e989067ff81a",
+      "observed_revision": "4da8fd10e323ab67b92a771b02f5e989067ff81a",
+      "selected_revision": "4da8fd10e323ab67b92a771b02f5e989067ff81a",
+      "disposition": "already_current"
+    },
+    {
+      "path": "upstream/TestRIG",
+      "url": "https://github.com/CTSRD-CHERI/TestRIG",
+      "ref": "refs/heads/master",
+      "previous_revision": "70717956d9a0445a11ac9a070387d119c523d60f",
+      "observed_revision": "70717956d9a0445a11ac9a070387d119c523d60f",
+      "selected_revision": "70717956d9a0445a11ac9a070387d119c523d60f",
+      "disposition": "already_current"
+    },
+    {
+      "path": "upstream/fiat-crypto",
+      "url": "https://github.com/mit-plv/fiat-crypto",
+      "ref": "refs/heads/master",
+      "previous_revision": "1e721c6f18c43b90922e7bc57fd64848e5cff2be",
+      "observed_revision": "1e721c6f18c43b90922e7bc57fd64848e5cff2be",
+      "selected_revision": "1e721c6f18c43b90922e7bc57fd64848e5cff2be",
+      "disposition": "already_current"
+    },
+    {
+      "path": "upstream/hacl-star",
+      "url": "https://github.com/hacl-star/hacl-star",
+      "ref": "refs/heads/main",
+      "previous_revision": "f557259007db9933442dde10aa995c1b00bd3446",
+      "observed_revision": "f557259007db9933442dde10aa995c1b00bd3446",
+      "selected_revision": "f557259007db9933442dde10aa995c1b00bd3446",
+      "disposition": "already_current"
+    },
+    {
+      "path": "upstream/libjade",
+      "url": "https://github.com/formosa-crypto/libjade",
+      "ref": "refs/heads/main",
+      "previous_revision": "76579946c7c12078fd854ff7226bc0e4a31fbdf4",
+      "observed_revision": "76579946c7c12078fd854ff7226bc0e4a31fbdf4",
+      "selected_revision": "76579946c7c12078fd854ff7226bc0e4a31fbdf4",
+      "disposition": "already_current"
+    },
+    {
+      "path": "upstream/perennial",
+      "url": "https://github.com/mit-pdos/perennial",
+      "ref": "refs/heads/master",
+      "previous_revision": "65884f2494ce65c5369094050dfb7eca19299152",
+      "observed_revision": "c3b7ecff27c1a6e8ed058d5aca362df1e2f63311",
+      "selected_revision": "65884f2494ce65c5369094050dfb7eca19299152",
+      "disposition": "retained",
+      "reason": "The candidate still removes src/program_proof/verus/wrs.v, the selected Rocq PoWER correspondence interface. Retain the reviewed consumer source."
+    },
+    {
+      "path": "upstream/s2n-bignum",
+      "url": "https://github.com/awslabs/s2n-bignum",
+      "ref": "HEAD",
+      "previous_revision": "56152cdb51f47ef9f63b179cda0a8b7518379240",
+      "observed_revision": "b4f17ee743ebc9b53a26c3cd1908f50f0658314f",
+      "selected_revision": "b4f17ee743ebc9b53a26c3cd1908f50f0658314f",
+      "disposition": "updated"
+    },
+    {
+      "path": "upstream/vasn",
+      "url": "https://github.com/zhouxt1/vasn",
+      "ref": "HEAD",
+      "previous_revision": "5db5727c06a3e996be6f87c3f0fa19d37817b739",
+      "observed_revision": "5db5727c06a3e996be6f87c3f0fa19d37817b739",
+      "selected_revision": "5db5727c06a3e996be6f87c3f0fa19d37817b739",
+      "disposition": "already_current"
+    }
+  ]
+}

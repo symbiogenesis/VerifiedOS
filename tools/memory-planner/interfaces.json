@@ -1,10 +1,10 @@
 {
   "tflite_micro": {
-    "license_url": "https://github.com/tensorflow/tflite-micro/blob/964e43d7ee3e82fe6abb6075b7f50506eafce79b/LICENSE",
+    "license_url": "https://github.com/tensorflow/tflite-micro/blob/4eaa491c1c8dedd9a3baf421968afd0d5b82f6aa/LICENSE",
     "license_sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
     "boundary": "MicroMemoryPlanner C++ virtual interface",
     "license": "Apache-2.0",
-    "commit": "964e43d7ee3e82fe6abb6075b7f50506eafce79b",
+    "commit": "4eaa491c1c8dedd9a3baf421968afd0d5b82f6aa",
     "headers": [
       {
         "path": "tensorflow/lite/micro/memory_planner/micro_memory_planner.h",

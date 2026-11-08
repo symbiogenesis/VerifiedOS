@@ -1,0 +1,68 @@
+{
+  "schema": 1,
+  "read_date": "2026-11-08",
+  "base_revision": "ad4702cbe4b41e58168bf8e69a5ff1d39cf6dc74",
+  "scope": "Exact selected upstream licenses and source continuity checks; only gitlinks and metadata are conveyed. No nested dependency revision is overridden.",
+  "components": [
+    {
+      "path": "upstream/s2n-bignum",
+      "url": "https://github.com/awslabs/s2n-bignum",
+      "ref": "HEAD",
+      "previous_revision": "56152cdb51f47ef9f63b179cda0a8b7518379240",
+      "observed_revision": "b4f17ee743ebc9b53a26c3cd1908f50f0658314f",
+      "status": "ahead",
+      "total_commits": 2,
+      "source_readings": [
+        {
+          "path": "LICENSE",
+          "sha256": "41c6380384dc6065456d01405ef0b43e5fe39ba1bccc4ec67801cc66142728e5",
+          "previous_sha256": "41c6380384dc6065456d01405ef0b43e5fe39ba1bccc4ec67801cc66142728e5",
+          "byte_identical": true,
+          "url": "https://github.com/awslabs/s2n-bignum/blob/b4f17ee743ebc9b53a26c3cd1908f50f0658314f/LICENSE"
+        },
+        {
+          "path": "NOTICE",
+          "sha256": "d4290ed64c2edd0fce1d84e3f9dfb2881240fe534def76b8cd29ed6af683e287",
+          "previous_sha256": "d4290ed64c2edd0fce1d84e3f9dfb2881240fe534def76b8cd29ed6af683e287",
+          "byte_identical": true,
+          "url": "https://github.com/awslabs/s2n-bignum/blob/b4f17ee743ebc9b53a26c3cd1908f50f0658314f/NOTICE"
+        },
+        {
+          "path": "arm/proofs/mlkem_ntt.ml",
+          "sha256": "6d45392e7c55d0990ca36b06b07379dff51a9b8f3e3c44d704ae0f2725ef8410",
+          "previous_sha256": "6d45392e7c55d0990ca36b06b07379dff51a9b8f3e3c44d704ae0f2725ef8410",
+          "byte_identical": true,
+          "url": "https://github.com/awslabs/s2n-bignum/blob/b4f17ee743ebc9b53a26c3cd1908f50f0658314f/arm/proofs/mlkem_ntt.ml"
+        },
+        {
+          "path": "arm/proofs/sha3_keccak_f1600.ml",
+          "sha256": "987a665bb06543ac4becb4132702bf228c928f0185d8d4a097b613b51d82d432",
+          "previous_sha256": "987a665bb06543ac4becb4132702bf228c928f0185d8d4a097b613b51d82d432",
+          "byte_identical": true,
+          "url": "https://github.com/awslabs/s2n-bignum/blob/b4f17ee743ebc9b53a26c3cd1908f50f0658314f/arm/proofs/sha3_keccak_f1600.ml"
+        },
+        {
+          "path": "arm/proofs/bignum_montmul_p256.ml",
+          "sha256": "f6ba3ab2aea3613475a9405b7b39cf5e3bbfb6a2988b6a81cfeef3bfcf36e02e",
+          "previous_sha256": "f6ba3ab2aea3613475a9405b7b39cf5e3bbfb6a2988b6a81cfeef3bfcf36e02e",
+          "byte_identical": true,
+          "url": "https://github.com/awslabs/s2n-bignum/blob/b4f17ee743ebc9b53a26c3cd1908f50f0658314f/arm/proofs/bignum_montmul_p256.ml"
+        },
+        {
+          "path": "SOUNDNESS.md",
+          "sha256": "76000950f34735a93e8df1d10e2c74101d41e13c19182b355ab059744c712a5e",
+          "previous_sha256": "76000950f34735a93e8df1d10e2c74101d41e13c19182b355ab059744c712a5e",
+          "byte_identical": true,
+          "url": "https://github.com/awslabs/s2n-bignum/blob/b4f17ee743ebc9b53a26c3cd1908f50f0658314f/SOUNDNESS.md"
+        }
+      ],
+      "selected_revision": "b4f17ee743ebc9b53a26c3cd1908f50f0658314f",
+      "disposition": "Reference-only update adds alternate AES-128-GCM encryption implementation and proofs and a shared CLARIFY_TAC helper. Selected NTT, Keccak, P256 proof files and SOUNDNESS.md remain byte-identical. No HOL Light replay, binary admission or algorithm qualification is claimed.",
+      "comparison_url": "https://github.com/awslabs/s2n-bignum/compare/56152cdb51f47ef9f63b179cda0a8b7518379240...b4f17ee743ebc9b53a26c3cd1908f50f0658314f"
+    }
+  ],
+  "validation": {
+    "performed": "Configured ref resolution, exact-revision license reading and source byte comparisons.",
+    "deferred": "Host CI and selected Guest CI lanes are user-managed. No complete local suite, model/proof gate or benchmark was run."
+  }
+}

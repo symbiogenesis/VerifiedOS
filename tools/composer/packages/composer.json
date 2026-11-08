@@ -12,11 +12,11 @@
     },
     {
       "path": "tools/pyproject.toml",
-      "sha256": "db314a13c9a3d4a4e7616a938ce428f46c9961fd300aab5e1cc96772a66fd9cd"
+      "sha256": "d91a86d67cac8addc27addfff6768303c6f171ea83900f284bb2a6ba4d05803e"
     },
     {
       "path": "tools/uv.lock",
-      "sha256": "55edc4312a572821133088601ca959d21d6042cfdc5e1c9caa67f24b5194b9f6"
+      "sha256": "69d98b7162309e87bd7ffdc36f9485ac54b31865f93d870446111594bfc50d7c"
     },
     {
       "path": "tools/vos/composer.py",

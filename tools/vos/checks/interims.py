@@ -116,6 +116,10 @@ EXCLUDED: dict[str, str] = {
     "docs/background/": _SURVEY,
     "docs/implementation/static-memory/literature.md": _SURVEY,
     "docs/implementation/upstream-merged-review.md": _SURVEY,
+    "docs/implementation/retained-evidence/submodules-20261108/census.json":
+        "an exact branch-ref census for source references; names and URLs record "
+        "which refs were inspected, with no foreign-prover verdict used as a "
+        "premise or qualification result",
     "docs/implementation/retained-evidence/submodules-20261103/census.json":
         "an exact branch-ref census for source references; names and URLs record "
         "which refs were inspected, with no foreign-prover verdict used as a "

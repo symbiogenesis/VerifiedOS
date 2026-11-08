@@ -106,7 +106,7 @@ adding an assumption is not a compatibility fix.
 Katamaran [PR 73](https://github.com/katamaran-project/katamaran/pull/73) supplies
 that import removal upstream: it removes unused `Program.Equality` imports from
 six Iris modules without changing definitions, statements or proof scripts.
-The deferred reference pin selects `f9dbb2ae5a6bffb1d733d0146f3c0188fda65660`,
+The deferred reference pin selects `4f7cef1e8e10d5a0d244c64ffd8e26c9137ea40a`,
 which includes that cleanup, universal-contract and shallow-executor soundness
 development, revised bitvector tactics and restructured RISC-V case studies.
 The continuation can consume the removal

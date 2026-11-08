@@ -1,0 +1,33 @@
+{
+  "schema": 1,
+  "read_date": "2026-11-08",
+  "base_revision": "ad4702cbe4b41e58168bf8e69a5ff1d39cf6dc74",
+  "scope": "Exact selected upstream licenses and source continuity checks; only gitlinks and metadata are conveyed. No nested dependency revision is overridden.",
+  "components": [
+    {
+      "path": "upstream/llvm-project",
+      "url": "https://github.com/llvm/llvm-project",
+      "ref": "refs/heads/main",
+      "previous_revision": "7e4047e8c6f5a23cdf5174251051895e97bebb75",
+      "observed_revision": "6997de0f739de546382ec99bea2f9376dca333f7",
+      "status": "ahead",
+      "total_commits": 1140,
+      "source_readings": [
+        {
+          "path": "LICENSE.TXT",
+          "sha256": "8d85c1057d742e597985c7d4e6320b015a9139385cff4cbae06ffc0ebe89afee",
+          "previous_sha256": "8d85c1057d742e597985c7d4e6320b015a9139385cff4cbae06ffc0ebe89afee",
+          "byte_identical": true,
+          "url": "https://github.com/llvm/llvm-project/blob/6997de0f739de546382ec99bea2f9376dca333f7/LICENSE.TXT"
+        }
+      ],
+      "selected_revision": "6997de0f739de546382ec99bea2f9376dca333f7",
+      "disposition": "Development reference for deferred disassembly/object tooling only. Root license is unchanged; no compiler/runtime source or binary is conveyed or built.",
+      "comparison_url": "https://github.com/llvm/llvm-project/compare/7e4047e8c6f5a23cdf5174251051895e97bebb75...6997de0f739de546382ec99bea2f9376dca333f7"
+    }
+  ],
+  "validation": {
+    "performed": "Configured ref resolution, exact-revision license reading and source byte comparisons.",
+    "deferred": "Host CI and selected Guest CI lanes are user-managed. No complete local suite, model/proof gate or benchmark was run."
+  }
+}

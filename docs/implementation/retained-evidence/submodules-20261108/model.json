@@ -1,0 +1,110 @@
+{
+  "schema": 1,
+  "read_date": "2026-11-08",
+  "base_revision": "ad4702cbe4b41e58168bf8e69a5ff1d39cf6dc74",
+  "scope": "Exact selected upstream licenses and source continuity checks; only gitlinks and metadata are conveyed. No nested dependency revision is overridden.",
+  "components": [
+    {
+      "path": "upstream/sail-riscv",
+      "url": "https://github.com/riscv/sail-riscv",
+      "ref": "refs/heads/master",
+      "previous_revision": "a83603b6995428b9df2c464f98e18a7b0ae488fe",
+      "observed_revision": "8118453168a11439fd88318e7e1192eb938efcd1",
+      "status": "ahead",
+      "total_commits": 5,
+      "source_readings": [
+        {
+          "path": "LICENCE",
+          "sha256": "14cfdf5bfb57ba19f57f31c4a79b3712ede0fda06b1674cb40dec393f8694185",
+          "previous_sha256": "14cfdf5bfb57ba19f57f31c4a79b3712ede0fda06b1674cb40dec393f8694185",
+          "byte_identical": true,
+          "url": "https://github.com/riscv/sail-riscv/blob/8118453168a11439fd88318e7e1192eb938efcd1/LICENCE"
+        }
+      ],
+      "selected_revision": "8118453168a11439fd88318e7e1192eb938efcd1",
+      "disposition": "Comparison reference only; curated model bytes are unchanged. Root LICENCE is byte-identical and excludes dependencies/, whose own notices govern any later use.",
+      "comparison_url": "https://github.com/riscv/sail-riscv/compare/a83603b6995428b9df2c464f98e18a7b0ae488fe...8118453168a11439fd88318e7e1192eb938efcd1"
+    },
+    {
+      "path": "upstream/katamaran",
+      "url": "https://github.com/katamaran-project/katamaran",
+      "ref": "refs/heads/main",
+      "previous_revision": "f9dbb2ae5a6bffb1d733d0146f3c0188fda65660",
+      "observed_revision": "4f7cef1e8e10d5a0d244c64ffd8e26c9137ea40a",
+      "status": "ahead",
+      "total_commits": 3,
+      "source_readings": [
+        {
+          "path": "LICENSE",
+          "sha256": "6b961710f8d256461e624d0659fbaade43505b2ae709f91c8f0c3e34a08d010a",
+          "previous_sha256": "6b961710f8d256461e624d0659fbaade43505b2ae709f91c8f0c3e34a08d010a",
+          "byte_identical": true,
+          "url": "https://github.com/katamaran-project/katamaran/blob/4f7cef1e8e10d5a0d244c64ffd8e26c9137ea40a/LICENSE"
+        },
+        {
+          "path": "theories/Notations.v",
+          "sha256": "8041975bd9a84dd6591f3ad3d64fc270686f9db802807ee787fff8e1426f6716",
+          "previous_sha256": "8041975bd9a84dd6591f3ad3d64fc270686f9db802807ee787fff8e1426f6716",
+          "byte_identical": true,
+          "url": "https://github.com/katamaran-project/katamaran/blob/4f7cef1e8e10d5a0d244c64ffd8e26c9137ea40a/theories/Notations.v"
+        }
+      ],
+      "selected_revision": "4f7cef1e8e10d5a0d244c64ffd8e26c9137ea40a",
+      "disposition": "Reference-only update adds website/Flake documentation and case-study changes. PR 73 import cleanup remains included and theories/Notations.v remains byte-identical. Historical dependency trials and their refusals retain their original inputs; no locked-prover compatibility or proof-library qualification is claimed.",
+      "comparison_url": "https://github.com/katamaran-project/katamaran/compare/f9dbb2ae5a6bffb1d733d0146f3c0188fda65660...4f7cef1e8e10d5a0d244c64ffd8e26c9137ea40a"
+    },
+    {
+      "path": "upstream/sail-katamaran-backend",
+      "url": "https://github.com/katamaran-project/sail-backend",
+      "ref": "refs/heads/master",
+      "previous_revision": "c9b1cd0234d7d4ee839b8d07bad7db601e6a5a40",
+      "observed_revision": "e4434f394c797472c04c0d916f6a0ab7f7df0562",
+      "status": "ahead",
+      "total_commits": 28,
+      "source_readings": [
+        {
+          "path": "default.nix",
+          "sha256": "e19536d29fbf1c877cc36f7e940cbc4a89f6294dc89812365454beb210371c6e",
+          "previous_sha256": "e19536d29fbf1c877cc36f7e940cbc4a89f6294dc89812365454beb210371c6e",
+          "byte_identical": true,
+          "url": "https://github.com/katamaran-project/sail-backend/blob/e4434f394c797472c04c0d916f6a0ab7f7df0562/default.nix"
+        },
+        {
+          "path": "nanosail.nix",
+          "sha256": "22433e4aea90e1e7ffaba48c7657fab3ca6945950595ee0c11f344b4311eb486",
+          "previous_sha256": "22433e4aea90e1e7ffaba48c7657fab3ca6945950595ee0c11f344b4311eb486",
+          "byte_identical": true,
+          "url": "https://github.com/katamaran-project/sail-backend/blob/e4434f394c797472c04c0d916f6a0ab7f7df0562/nanosail.nix"
+        },
+        {
+          "path": "monads.nix",
+          "sha256": "d06a451950f3e67cca760b60b7a9348afe2f11ddcef4449d35bafe4ad15632af",
+          "previous_sha256": "d06a451950f3e67cca760b60b7a9348afe2f11ddcef4449d35bafe4ad15632af",
+          "byte_identical": true,
+          "url": "https://github.com/katamaran-project/sail-backend/blob/e4434f394c797472c04c0d916f6a0ab7f7df0562/monads.nix"
+        },
+        {
+          "path": "dune-project",
+          "sha256": "763b7ca1d71f1a4d7487941de86e59b344560af5ef50c361bcc7c28b1e355ed6",
+          "previous_sha256": "673aad203125e30b6413172520899b37cd6f33401b7faec8bc84c923b2ab822f",
+          "byte_identical": false,
+          "url": "https://github.com/katamaran-project/sail-backend/blob/e4434f394c797472c04c0d916f6a0ab7f7df0562/dune-project"
+        },
+        {
+          "path": "COPYING",
+          "sha256": "17440933014ed6ae64732411e9dc7923a6820fc1894ebe1bc73e53fe7876fd7d",
+          "previous_sha256": null,
+          "byte_identical": false,
+          "url": "https://github.com/katamaran-project/sail-backend/blob/e4434f394c797472c04c0d916f6a0ab7f7df0562/COPYING"
+        }
+      ],
+      "selected_revision": "e4434f394c797472c04c0d916f6a0ab7f7df0562",
+      "disposition": "Reference-only update. Packaging files default.nix, nanosail.nix and monads.nix are byte-identical and retain meta.license = licenses.bsd2; dune-project adds Tex Schönlank to authors and stops generating opam files; COPYING licenses docs/katamaran_logo.svg under CC-BY-SA-4.0. No source or compiled output is incorporated or qualified.",
+      "comparison_url": "https://github.com/katamaran-project/sail-backend/compare/c9b1cd0234d7d4ee839b8d07bad7db601e6a5a40...e4434f394c797472c04c0d916f6a0ab7f7df0562"
+    }
+  ],
+  "validation": {
+    "performed": "Configured ref resolution, exact-revision license reading and source byte comparisons.",
+    "deferred": "Host CI and selected Guest CI lanes are user-managed. No complete local suite, model/proof gate or benchmark was run."
+  }
+}

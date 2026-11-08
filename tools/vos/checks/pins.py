@@ -52,6 +52,7 @@ _CAPTURED_GITLINKS: dict[str, str] = {
     "90cebef1411617fc3eedd359bdf00cb44b1c2439": "llvm-project",
     "5d37f8567667a3c699d2730574c35dfbe772dd67": "rupicola",
     "e8bfad6ab11618d1a0a13cb5f47265cc98605636": "katamaran",
+    "c9b1cd0234d7d4ee839b8d07bad7db601e6a5a40": "sail-katamaran-backend",
     "b5973217f704923917e7761f73df7dfcb8d0c345": "mocha",
     "36a1dc5cb8c2b17d519bdb9ebf7fa37e591f6e43": "cva6-cheri",
     "24c6e2d8531e6a6d0a9e29bde2a109484099aec9": "axi-cheri-tagcontroller",
@@ -82,19 +83,59 @@ SITE_RESIDUE: dict[tuple[str, str], str] = {
            "41049e9deb40e0602cd5272c40398be380ae2637": "OpenTitan",
            "cafaeae02c014456a99247b68788d31b7516a252": "CHERIoT-Ibex",
        }.items()},
+    **{(f"docs/implementation/retained-evidence/submodules-{date}/hardware.json", ident):
+       f"the {name} edition retained by the dated 2026-11-03 source reading or "
+       "used as the preceding side of the 2026-11-08 comparison, not the current gitlink"
+       for date in ("20261103", "20261108")
+       for ident, name in {
+           "e11c586bba52d5697433ffa377cecdb21bb581d9": "Mocha",
+           "3fb20a7df713996fab9375cb60886dc1fd5e825f": "OpenTitan",
+       }.items()},
+    **{(f"docs/implementation/retained-evidence/submodules-{date}/hardware.json", ident):
+       f"the {name} edition retained by the dated 2026-10-31 source reading or "
+       "used as the preceding side of the 2026-11-08 comparison, not the current gitlink"
+       for date in ("20261031", "20261108")
+       for ident, name in {
+           "adffef3267a1ffc9b9715fb33b5e7f863416d787": "tag-controller",
+           "f4515520c0045bb8ef1e72d46ed82499a6ac5f18": "Ibex",
+       }.items()},
     **{(f"docs/implementation/retained-evidence/submodules-{date}/model.json",
         "80985afd8164c31902181d41885e06e2df6dfe6d"):
        "the Katamaran edition retained by the dated 2026-10-31 source reading or "
        "used as the preceding side of the 2026-11-03 comparison, not the current gitlink"
        for date in ("20261031", "20261103")},
+    **{(f"docs/implementation/retained-evidence/submodules-{date}/model.json",
+        "f9dbb2ae5a6bffb1d733d0146f3c0188fda65660"):
+       "the Katamaran edition retained by the dated 2026-11-03 source reading or "
+       "used as the preceding side of the 2026-11-08 comparison, not the current gitlink"
+       for date in ("20261103", "20261108")},
+    **{(f"docs/implementation/retained-evidence/submodules-{date}/model.json",
+        "a83603b6995428b9df2c464f98e18a7b0ae488fe"):
+       "the sail-riscv edition retained by the dated 2026-10-31 source reading or "
+       "used as the preceding side of the 2026-11-08 comparison, not the current gitlink"
+       for date in ("20261031", "20261108")},
+    ("docs/implementation/retained-evidence/submodules-20261108/model.json",
+     "c9b1cd0234d7d4ee839b8d07bad7db601e6a5a40"):
+        "the preceding sail-katamaran-backend edition in the exact 2026-11-08 comparison URL, "
+        "not the selected reference gitlink",
     ("docs/implementation/retained-evidence/submodules-20261103/llvm-project.json",
      "8b066788f709ce1815a2b1ffe01639e98487bb65"):
         "the preceding LLVM edition in the exact 2026-11-03 comparison URL, "
         "not the selected reference gitlink",
+    **{(f"docs/implementation/retained-evidence/submodules-{date}/llvm-project.json",
+        "7e4047e8c6f5a23cdf5174251051895e97bebb75"):
+       "the LLVM edition retained by the dated 2026-11-03 source reading or "
+       "used as the preceding side of the 2026-11-08 comparison, not the current gitlink"
+       for date in ("20261103", "20261108")},
     ("docs/implementation/retained-evidence/submodules-20261103/s2n-bignum.json",
      "573ea98f6a2eea3172f6146f83b86b9e526ce2dd"):
         "the preceding s2n-bignum edition in the exact 2026-11-03 comparison URL, "
         "not the selected reference gitlink",
+    **{(f"docs/implementation/retained-evidence/submodules-{date}/s2n-bignum.json",
+        "56152cdb51f47ef9f63b179cda0a8b7518379240"):
+       "the s2n-bignum edition retained by the dated 2026-11-03 source reading or "
+       "used as the preceding side of the 2026-11-08 comparison, not the current gitlink"
+       for date in ("20261103", "20261108")},
     **{("docs/assurance/proof-reuse/systems.md", ident): reason
        for ident, reason in {
            "3fe5d0a957a95c27cff204e729a5e96a3e3217ad":

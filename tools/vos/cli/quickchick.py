@@ -47,7 +47,7 @@ RECIPE_PINS: tuple[tuple[str, str, str], ...] = (
     ("coq-simple-io", "https://github.com/Lysxia/rocq-simple-io.git",
      "5c70625af00af6182817e490d93247cdefbed2e1"),
     (PACKAGE, "https://github.com/QuickChick/QuickChick.git",
-     "527216554f31bfa526ae5395d64aa4de5beaf437"),
+     "2b625770f22a7c0bfd1d5d812593eccfd6ef2034"),
 )
 STDLIB = "9.2.0"
 DUNE = "3.23.1"

@@ -371,19 +371,19 @@ and possible separately contained library use need an explicit future choice.
 **Standing: established hardware project proof suite.** The lowRISC
 contributors' [SECDED generator documentation](https://opentitan.org/book/util/design/index.html)
 describes generated RTL, assertions and formal targets. At local upstream pin
-`3fb20a7d`,
-[prim_secded_39_32_assert_fpv.sv](https://github.com/lowRISC/opentitan/blob/3fb20a7df713996fab9375cb60886dc1fd5e825f/hw/ip/prim/fpv/vip/prim_secded_39_32_assert_fpv.sv)
+`7d46c648`,
+[prim_secded_39_32_assert_fpv.sv](https://github.com/lowRISC/opentitan/blob/7d46c648e2016d23275a6c50b6e5393e1806cc8e/hw/ip/prim/fpv/vip/prim_secded_39_32_assert_fpv.sv)
 contains `SingleErrorCorrect_A`, single/double detection and syndrome properties,
 under `MaxTwoErrors_M`, which assumes at most two injected errors.
-[util/design/secded_gen.py](https://github.com/lowRISC/opentitan/blob/3fb20a7df713996fab9375cb60886dc1fd5e825f/util/design/secded_gen.py)
-generates the assertion family. The 2026-11-03 reading confirms byte-identical
+[util/design/secded_gen.py](https://github.com/lowRISC/opentitan/blob/7d46c648e2016d23275a6c50b6e5393e1806cc8e/util/design/secded_gen.py)
+generates the assertion family. The 2026-11-08 reading confirms byte-identical
 39/32 assertion and generator sources against the preceding reading. The generator
 supports data widths through 256 bits with an iterative selection algorithm for larger
 Hsiao codes, rewrites the emitted encoders, and computes software parity with integers,
 applying inverted-code masks after parity generation. Any selected output still
 requires qualification. Both file headers name Apache-2.0 and lowRISC
 contributors, under the root
-[LICENSE](https://github.com/lowRISC/opentitan/blob/3fb20a7df713996fab9375cb60886dc1fd5e825f/LICENSE).
+[LICENSE](https://github.com/lowRISC/opentitan/blob/7d46c648e2016d23275a6c50b6e5393e1806cc8e/LICENSE).
 
 **Reuse:** nearest permissible verification-IP template for the data-code half
 of R-15-175/R-15-179/R-15-181a. The inspected instance is 39/32, not the local
