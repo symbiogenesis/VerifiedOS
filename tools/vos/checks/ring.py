@@ -17,7 +17,7 @@
 import re
 from typing import TYPE_CHECKING
 
-from vos import figures
+from vos import figures, report
 from vos import ring as emitter
 
 if TYPE_CHECKING:
@@ -123,15 +123,11 @@ def run(ctx: Context) -> None:
                 findings.append(f"{emitter.ARTIFACT} is in the index and not in the "
                                 f"working tree, so there is no artifact here to read")
             elif got != wanted:
-                want_lines, got_lines = wanted.splitlines(), got.splitlines()
-                where = next((i for i, (a, b) in enumerate(
-                    zip(want_lines, got_lines, strict=False)) if a != b),
-                    min(len(want_lines), len(got_lines)))
                 findings.append(
-                    f"{emitter.ARTIFACT}:{where + 1} is not what `{REPAIR}` writes from "
-                    f"{emitter.DECLARATION} and the register; either an owner moved and "
-                    f"the artifact was not regenerated, or the artifact was edited by "
-                    f"hand")
+                    f"{emitter.ARTIFACT}:{report.diverges(wanted, got)} is not what "
+                    f"`{REPAIR}` writes from {emitter.DECLARATION} and the register; "
+                    f"either an owner moved and the artifact was not regenerated, or "
+                    f"the artifact was edited by hand")
 
     rep.report("K-89", "generated interface artifact(s) adrift from an owner:", findings,
                f"{emitter.ARTIFACT} is what `{REPAIR}` writes from "

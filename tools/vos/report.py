@@ -51,3 +51,12 @@ def apart(ref: str, commit: str) -> tuple[str, str]:
     shown = max(12, next((i + 1 for i, (a, b) in enumerate(zip(ref, commit, strict=False))
                           if a != b), min(len(ref), len(commit)) + 1))
     return ref[:shown], commit[:shown]
+
+
+def diverges(expected: str, held: str) -> int:
+    """Return the 1-based line number where `expected` and `held` first differ."""
+    mine, theirs = expected.splitlines(), held.splitlines()
+    for i, (a, b) in enumerate(zip(mine, theirs, strict=False), start=1):
+        if a != b:
+            return i
+    return min(len(mine), len(theirs)) + 1
