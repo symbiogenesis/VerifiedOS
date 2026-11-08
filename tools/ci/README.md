@@ -135,20 +135,7 @@ measured, so a smaller runner needs a separate resource measurement.
 The gate job is a matrix of lanes, and each lane has its own runner. The `model` lane
 installs Z3, Sail, Verilator and Rocq, checks the generated vector oracle adapter with
 `vector-bitcount smoke` and executes small CMake generation and native-input fixtures,
-then runs the model evidence sweep. It also runs
-[`vela-parser qualify`](../../docs/languages/vela/vela-parser.md#acceptance-and-commands)
-with the Sail snapshot's Menhir and OCaml. That syntax-only qualification checks
-independent AST/refusal fixtures and fresh regeneration; its log and complete
-build/qualification receipts are retained separately from model evidence.
-`vela-parser migration` separately compares generated-AST and Python-syntax
-consumers on translations, semantic diagnostics, source edits and resource
-boundaries; differences fail and retain their report. Neither check supplies a
-checked-parser or source-correspondence verdict.
-[`vela-parser elaborate-qualify`](../../docs/languages/vela/elaboration-prototype.md#commands-and-acceptance)
-also parses generic/dependent mathematical sources, checks intended semantic
-refusals and compiles and recursively kernel-checks their emitted terms. Its
-native attempt logs and success receipt are retained under `vela-elaboration`;
-this term verdict supplies no source-correspondence or production qualification.
+then runs the model evidence sweep.
 The fixtures check content changes with
 preserved timestamps, unchanged-input reuse, failed-generation recovery and actual
 compiler/header/library closure binding through a small GMP-linked program.
@@ -163,11 +150,7 @@ and locks their runtime controls; passing and intentionally failing assertion pr
 exercise that policy alongside the writer mutants, without a model-build dependency.
 The `proofs` lane
 installs Rocq alone, runs the proof gate and, in a run given a `reading_base`, reads
-the proofs against that base. It separately runs `vela-parser support`, building
-and kernel-checking the exact-release Rocq support library with its bounded
-proof-command adaptation and version-guard controls. Its abstract-automaton
-assumption reading qualifies no concrete Vela grammar; the receipt remains
-separate from the project's proof gate. No lane consumes another's outputs, so a run lasts as
+the proofs against that base. No lane consumes another's outputs, so a run lasts as
 long as its longest lane. One lane's failure does not cancel another. Every lane must
 pass to establish complete guest evidence; Host CI supplies no model, RTL or proof
 verdict. The workflow retains results and proof receipts when available.

@@ -78,24 +78,18 @@ MARKABLE: dict[str, tuple[str, str]] = {
     ".py": ("# ", ""),
     ".v": ("(* ", " *)"),
     ".ml": ("(* ", " *)"),
-    ".mly": ("/* ", " */"),
-    ".mll": ("(* ", " *)"),
     # Authored OCaml and Gallina campaign templates keep their language's syntax.
     ".ml.in": ("(* ", " *)"),
     ".v.in": ("(* ", " *)"),
     # Authored Lustre nodes use the language's line-comment syntax.
     ".lus": ("-- ", ""),
     ".mjs": ("// ", ""),
-    ".html": ("<!-- ", " -->"),
-    ".css": ("/* ", " */"),
     ".sh": ("# ", ""),
     ".s": ("# ", ""),
     # Sail, in the one place this repository writes any outside `model/`: the
     # cross-check's generator, which calls the curated model's own functions and is
     # authored here rather than vendored with the tree it reads.
     ".sail": ("// ", ""),
-    # The pure Vela prototype's authored source examples.
-    ".vela": ("// ", ""),
     ".sv": ("// ", ""),
     # The portable planner's original TFLite Micro adapter and API demonstration.
     ".cpp": ("// ", ""),

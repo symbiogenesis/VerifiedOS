@@ -30,7 +30,6 @@ def _fixture() -> Generator[Path]:
         "tools/pyproject.toml": "fixture Python requirements\n",
         "tools/uv.lock": "fixture Python lock\n",
         ".gitmodules": "fixture gitlink declarations\n",
-        "tools/vos/vela/lsp.py": "unrelated editor implementation\n",
         "tools/vos/checks/links.py": "unrelated checker implementation\n",
         "tools/generated/proof-ledger.md": "unrelated proof ledger\n",
     })
@@ -60,7 +59,7 @@ def _unrelated_commits_reuse_the_build() -> None:
                       "identity": before, "artifacts": {}, "observed_revision": revision,
                       "log_sha256": receipts.digest(log)}
             receipts.write(log.with_suffix(".json"), record)
-            unrelated = ("tools/vos/vela/lsp.py", "tools/vos/checks/links.py",
+            unrelated = ("tools/vos/checks/links.py",
                          "tools/generated/proof-ledger.md")
             for name in unrelated:
                 ensure(name not in inputs, f"unrelated input entered the model closure: {name}")

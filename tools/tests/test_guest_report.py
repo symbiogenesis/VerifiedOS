@@ -709,47 +709,6 @@ def _framesim_is_required_and_reported() -> None:
                    "the assertion-control outcome must not be omitted or reported as success")
 
 
-def _vela_parser_is_required_and_reported() -> None:
-    step = _step("Qualify the Vela Menhir development parser")
-    ensure("vela-parser qualify" in step and "continue-on-error" not in step,
-           "native parser qualification must decide the model lane's result")
-    ensure('"$VOS_LOG_DIR/vela-parser-qualification.json"' in step,
-           "the parser qualification and build receipts must survive the runner")
-    with tempfile.TemporaryDirectory() as directory:
-        root = Path(directory)
-        for outcome in ("success", "failure", "skipped", "cancelled"):
-            logs = root / outcome
-            summary = report("model", logs, root / "absent-console", root / "absent-proof",
-                             {"vela-parser": {"outcome": outcome}}, "abc", toolchains="cold")
-            result = json.loads((logs / "results.json").read_text(encoding="utf-8"))
-            ensure(result["commands"].get("vela-parser") == outcome
-                   and f"| vela-parser | {outcome} |" in summary,
-                   "native parser qualification outcome must remain explicit")
-
-
-def _vela_migration_and_support() -> None:
-    selections = (("model", "Compare the Vela parser migration", "vela-migration", "migration"),
-                  ("proofs", "Qualify the Vela parser Rocq support library", "vela-support", "support"),
-                  ("model", "Qualify Vela dependent elaboration and proof terms", "vela-elaboration", "elaborate-qualify"))
-    with tempfile.TemporaryDirectory() as directory:
-        root = Path(directory)
-        for lane, title, identifier, command in selections:
-            step = _step(title)
-            ensure(f"vela-parser {command}" in step and "continue-on-error" not in step,
-                   f"{identifier} must retain a failing verdict")
-            ensure(_runs_in(lane, step) and identifier in LANES[lane], "parser check assigned to wrong lane")
-            ensure(("cp --" in step or "cp -R --" in step) and "$VOS_LOG_DIR/vela-" in step,
-                   "parser report is not retained")
-            for outcome in ("success", "failure", "skipped", "cancelled"):
-                logs = root / identifier / outcome
-                summary = report(lane, logs, root / "absent-console", root / "absent-proof",
-                                 {identifier: {"outcome": outcome}}, "abc", toolchains="cold")
-                result = json.loads((logs / "results.json").read_text(encoding="utf-8"))
-                ensure(result["commands"].get(identifier) == outcome
-                       and f"| {identifier} | {outcome} |" in summary,
-                       "parser preparation result was omitted or promoted")
-
-
 def cases() -> list[Case]:
     return [
         Case("bootstrap failure retains diagnostics without stale proofs", _bootstrap_failure),
@@ -766,9 +725,6 @@ def cases() -> list[Case]:
         Case("the generated adapter passes before allocating model build work", _adapter_precedes_model_build),
         Case("the native frame/assertion gate is required and reports every outcome",
              _framesim_is_required_and_reported),
-        Case("the native Vela parser qualification is required and reports every outcome",
-             _vela_parser_is_required_and_reported),
-        Case("parser migration and support qualification keep their own verdicts", _vela_migration_and_support),
         Case("reading outcome and base are recorded and validated", _reading_outcome_recorded),
         Case("reading step runs in the gate's environment and reads compare's verdict",
              _reading_step),

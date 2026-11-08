@@ -447,41 +447,6 @@ jobs:
           /usr/bin/time -f "$GUEST_TIME" python3 tools/run.py vector-bitcount smoke \
             2>&1 | tee "$VOS_LOG_DIR/vector-bitcount-adapter.log"
 
-      - name: Qualify the Vela Menhir development parser
-        id: vela-parser
-        if: ${{ matrix.lane == 'model' && !cancelled() && steps.dispatch.outcome != 'failure' && steps.bootstrap.outcome == 'success' }}
-        timeout-minutes: 5
-        run: |
-          /usr/bin/time -f "$GUEST_TIME" python3 tools/run.py vela-parser qualify \
-            2>&1 | tee "$VOS_LOG_DIR/vela-parser.log"
-          cp -- "$VOS_BUILD_ROOT/vela-parser/qualification.json" "$VOS_LOG_DIR/vela-parser-qualification.json"
-
-      - name: Compare the Vela parser migration
-        id: vela-migration
-        if: ${{ matrix.lane == 'model' && !cancelled() && steps.dispatch.outcome != 'failure' && steps.bootstrap.outcome == 'success' }}
-        timeout-minutes: 5
-        run: |
-          result=0
-          /usr/bin/time -f "$GUEST_TIME" python3 tools/run.py vela-parser migration \
-            2>&1 | tee "$VOS_LOG_DIR/vela-migration.log" || result=$?
-          if [[ -f "$VOS_BUILD_ROOT/vela-parser/migration.json" ]]; then
-            cp -- "$VOS_BUILD_ROOT/vela-parser/migration.json" "$VOS_LOG_DIR/vela-migration.json"
-          fi
-          exit "$result"
-
-      - name: Qualify Vela dependent elaboration and proof terms
-        id: vela-elaboration
-        if: ${{ matrix.lane == 'model' && !cancelled() && steps.dispatch.outcome != 'failure' && steps.bootstrap.outcome == 'success' }}
-        timeout-minutes: 5
-        run: |
-          result=0
-          /usr/bin/time -f "$GUEST_TIME" python3 tools/run.py vela-parser elaborate-qualify \
-            2>&1 | tee "$VOS_LOG_DIR/vela-elaboration.log" || result=$?
-          if [[ -d "$VOS_BUILD_ROOT/vela-elaboration" ]]; then
-            cp -R -- "$VOS_BUILD_ROOT/vela-elaboration" "$VOS_LOG_DIR/vela-elaboration"
-          fi
-          exit "$result"
-
       - name: Check native build inputs and generation
         id: cmake-generation
         if: ${{ matrix.lane == 'model' && !cancelled() && steps.dispatch.outcome != 'failure' && steps.bootstrap.outcome == 'success' }}
@@ -580,15 +545,6 @@ jobs:
           # Older sources are candidates for the gate's dependency-aware validation.
           restore-keys: guest-proofs-v2-${{ runner.os }}-${{ runner.arch }}-${{ steps.proof-context.outputs.identity }}-
           lookup-only: ${{ env.GUEST_COLD == 'true' }}
-
-      - name: Qualify the Vela parser Rocq support library
-        id: vela-support
-        if: ${{ matrix.lane == 'proofs' && !cancelled() && steps.dispatch.outcome != 'failure' && steps.bootstrap.outcome == 'success' }}
-        timeout-minutes: 10
-        run: |
-          /usr/bin/time -f "$GUEST_TIME" python3 tools/run.py vela-parser support \
-            2>&1 | tee "$VOS_LOG_DIR/vela-support.log"
-          cp -- "$VOS_BUILD_ROOT/vela-parser-checked/qualification.json" "$VOS_LOG_DIR/vela-support-qualification.json"
 
       - name: Proof gate
         id: proofs
