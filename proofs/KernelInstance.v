@@ -2,81 +2,27 @@
 (* =========================================================================
    KernelInstance.v
 
-   Source specifications and proofs for M4.4's single-kernel run predicate:
-   refusal of capability derivations beyond root/shared-window bounds
-   (R-07-006), total restore from X/C commit-trace records (R-07-015), and
-   table-driven frame order (R-07-032).
-   RunAnswersM44 also requires unique attempt PCs, identified result registers,
-   and exactly one observed write per register/CSR. QualifiedRunAnswersM44
-   adds Q22a's semantic revocation barrier and sanitized-image predicates.
+   Trace predicates and soundness proofs for a single-hart kernel run
+   (R-07-005, R-15-005; multi-instance disjointness under R-07-003 and
+   R-07-004 is separate):
+   - Capability-derivation confinement (`RootIsThePartitions`, R-07-006):
+     every declared over-bound derivation attempt clears its result tag
+     rather than trapping (R-15-007h).
+   - Total register and nameable-CSR switch restoration (`SwitchIsTotal`,
+     `BurstWritesExactlyOnce`, R-07-015, R-07-044, R-15-001b, R-15-007i,
+     R-15-182), bridged to
+     [PartitionContext.v](PartitionContext.v#RestoresRegisters) and
+     [PartitionContext.v](PartitionContext.v#RestoresNameableCsrs).
+   - Table-driven frame visit order (`FrameIsTheTables`, R-07-032, R-07-033,
+     R-07-036, R-11-006, R-11-009, R-15-077), bridged to
+     [CyclicExecutive.v](CyclicExecutive.v#Frame).
+   - Revocation-barrier completion and sanitized-image restoration
+     (`QualifiedRunAnswersM44`, `SemanticCompletion`, `ImageIsSanitized`,
+     R-08-005, R-08-005a, R-08-005b, R-08-006, R-08-007a).
 
-   This file supplies no target-execution evidence: backend lowering, compiled
-   C, composed images, emulator runs and HTIF verdicts remain M4.4 work through
-   M1.2f, M1.7 and M3.5's initial-capability handoff. The Kernel record carries
-   composition/profile parameters. State equalities are pointwise, avoiding
-   functional extensionality; no axiom or admission is introduced.
-
-   PartitionContext.v owns [RestoresRegisters](PartitionContext.v#RestoresRegisters)
-   and [RestoresNameableCsrs](PartitionContext.v#RestoresNameableCsrs);
-   CyclicExecutive.v owns [Frame](CyclicExecutive.v#Frame).
-   The predicates here consume those definitions.
-
-   Trace interpretation and assumptions:
-   1. Refused capability derivation clears the result tag rather than trapping
-      (R-15-007h). Confinement checks X-record tags, not decoded bounds or data.
-   2. AttemptsCover requires declared attempts at the root top and every shared
-      window top. Results are tied to declared registers, and WellFormedAttempts
-      rejects duplicate PCs. The compiled corpus must still bind those PCs and
-      targets to actual over-bound instructions.
-   3. R-15-007i's merged file has 32 registers. The model's wX emits no write
-      record for register zero, so trace checks cover only the other registers.
-      ZeroRegisterIsFixed is an explicit, locally unproved premise needed to
-      recover PartitionContext.v's full restore theorem. The model defines
-      zero_reg as null_cap (R-15-182); arbitrary machines need not satisfy it.
-   4. csr_roster enumerates nameable CSRs and carries a covering law. The
-      predicate in PartitionContext.v cannot itself be enumerated; the bank's
-      owner is isa-profile.md section 5.1 (R-15-001b).
-   5. X/C-only restoration does not inspect the four special capability
-      registers, whose trace records are S, or R-07-044's interrupt pending
-      state. Counterexamples show that the X/C restoration check can pass while
-      those differ.
-   6. Total restore alone permits stale tagged authority: R-08-005/R-08-005b's
-      load filter does not revoke register-held capabilities. Filtering an
-      unsanitized image removes stale tags but fails exact R-07-015 restoration.
-      Both properties hold when R-08-006's barrier has sanitized the saved image.
-      Completion also requires published bits, cleared live roots, cancelled
-      loans and the device boundary, not merely an epoch change (R-08-007a).
-   7. Frame checks read retire sequence, not duration. I records contain no cycle
-      field and R-15-077 supplies no cycle counter. CyclicExecutive.v instead
-      checks the static R-11-006 sum, including R-11-009 switch cost. The trace's
-      order numerals are ignored, as the comparison schema requires.
-   8. Visits are maximal runs of PCs in declared partition or switch extents.
-      Astray PCs refuse the run. ExtentsAreReadable checks that classification
-      is unambiguous; overlapping switch and partition extents are rejected.
-   9. The R-15-005 emulator has one hart. These predicates provide no evidence
-      for R-07-003's two-instance disjointness or R-07-004's absence of shared
-      mutable state. R2 owns comparison with a second implementation.
-
-   Decisions and artifacts still owed:
-   a. Choose saved-image sanitization or filtered restoration, and reconcile
-      the choice with exact total restore (R-08-006, R-07-015).
-   b. Supply the nameable-CSR enumeration at its owner (R-15-001b).
-   c. Decide how M4.4 witnesses special capability registers (R-07-015).
-   d. Decide how it witnesses interrupt pending state (R-07-044); interrupt-file
-      stores would be W records, outside the X/C-only clause.
-   e. Establish the fixed-zero-register architectural fact behind premise 3
-      (R-15-007i).
-   f. Supply partition/switch extents, shared windows, attempt sites, CSR roster
-      and schedule widths/offsets. Demo values make no composition claim; see
-      CyclicExecutive.v gap e and PartitionContext.v gap j.
-   g. Supply M4.4's C partition, switch and executive implementation.
-
-   Non-vacuity (R-05-165, R-05-166): concrete runs satisfy the predicates and
-   counterexamples reject altered traces or adjudicators. Blindness properties
-   quantify over arbitrary adjudicators. The demo kernel inhabits every domain
-   and includes a frame accepted by the schedule predicate and computed
-   positive/negative cases.
-   R-05-163 and R-05-164 govern the complete native inventory and assumptions.
+   Composition parameters are carried in the `Kernel` record (R-05-163,
+   R-05-164), with concrete trace witnesses and counterexamples (R-05-165,
+   R-05-166).
    (*| BEGIN derived: cited entries |*)
    Owner: docs/requirements-register.md
    Requirements: R-05-163 R-05-164 R-05-165 R-05-166 R-07-003 R-07-004 R-07-005 R-07-006
@@ -263,8 +209,7 @@ Record Kernel : Type := {
   csr_eqb_sound :
     forall a b : composition.(machine).(Csr), csr_eqb a b = true -> a = b;
 
-  (* --- the CSR bank as a list, owned by isa-profile.md section 5.1 and
-         enumerated by no artifact (gap b) ------------------------------- *)
+  (* --- the CSR bank as a list, owned by isa-profile.md section 5.1 ------- *)
 
   csr_roster : list composition.(machine).(Csr);
   csr_roster_covers :
@@ -273,7 +218,7 @@ Record Kernel : Type := {
       any_of (fun d => csr_eqb c d) csr_roster = true;
 
   (* --- the capability registers outside the merged file, which the trace
-         schema gives records of their own (reading 5, gap c) ------------- *)
+         schema gives records of their own --------------------------------- *)
 
   Scr : Type;
 
@@ -854,11 +799,10 @@ Proof.
 Qed.
 
 (* =========================================================================
-   The revocation join (R-08-005, R-08-005a, R-08-005b, R-08-006, R-08-007a),
-   which Q22a's qualification hands M4.4 on the single-hart path. Two
-   sentences of that output are what this section is stated against: an epoch
-   mark alone cannot witness semantic completion, and total restoration alone
-   establishes no removal of stale authority.
+   The revocation join (R-08-005, R-08-005a, R-08-005b, R-08-006, R-08-007a)
+   on the single-hart path: an epoch mark alone cannot witness semantic
+   completion, and total restoration alone establishes no removal of stale
+   authority.
    ========================================================================= *)
 
 (* R-08-005b: the load's own definition permits the revocation-driven tag
@@ -878,9 +822,8 @@ Definition ImageIsSanitized (k : Kernel) (bm : k.(Base) -> bool)
     only_if (snd (ctx_reg succ g)) (negb (bm (k.(base_of) (fst (ctx_reg succ g))))))
     observed_registers.
 
-(* The two shapes of restore burst the register leaves open (gap a): the
-   saved image written out as it stands, and the same image written out
-   through R-08-005b's filter. *)
+(* The two shapes of restore burst: the saved image written out as it
+   stands, and the same image written out through R-08-005b's filter. *)
 Definition image_burst (k : Kernel) (succ : Context (kmachine k)) : Trace k :=
   map_over (fun g => RecX g (snd (ctx_reg succ g)) (fst (ctx_reg succ g)))
            observed_registers.
@@ -926,7 +869,7 @@ Proof.
 Qed.
 
 (* R2 (R-08-006): where the barrier sanitized the saved image, the filter is
-   the identity on it, which is the one place the two arms of gap a agree. *)
+   the identity on it, which is the one place the two restore arms agree. *)
 (*| discharges: R-08-006 |*)
 Theorem the_filter_is_the_identity_on_a_sanitized_image :
   forall (k : Kernel) (bm : k.(Base) -> bool) (succ : Context (kmachine k)),
@@ -943,12 +886,11 @@ Proof.
   - reflexivity.
 Qed.
 
-(* Completion, as R-08-006 enumerates it and Q22a hands it to M4.4 on the
-   single-hart path. The epoch is a field and deliberately not a conjunct:
-   that entry's own sentence is that advancing it does not establish
-   containment. The static proxy acknowledgement R-08-006 also requires is
-   absent here rather than assumed away: one hart has no peer to acknowledge,
-   and R2 owns the multi-hart and proxy join. *)
+(* Completion, as R-08-006 enumerates it on the single-hart path. The epoch
+   is a field and deliberately not a conjunct: advancing it does not
+   establish containment. The static proxy acknowledgement R-08-006 also
+   requires is absent here rather than assumed away: one hart has no peer
+   to acknowledge. *)
 Record Completion : Type := {
   bits_published : bool;
   epoch_advanced : bool;
@@ -976,7 +918,7 @@ Definition RefusesAnOutstandingLoan (p : Completion -> bool) : Prop :=
 Definition RefusesAnOpenDeviceBoundary (p : Completion -> bool) : Prop :=
   forall c : Completion, device_boundary_reached c = false -> p c = false.
 
-(* R3 (R-08-006): the three predicates Q22a names, and the device boundary
+(* R3 (R-08-006): the three root-clearance predicates and the device boundary
    beside them. *)
 (*| discharges: R-08-006 |*)
 Theorem completion_refuses_a_resident_root :
@@ -1013,7 +955,7 @@ Proof.
     reflexivity.
 Qed.
 
-(* The reading Q22a warns against, as a predicate rather than as a sentence.
+(* The weaker epoch-only reading, as a predicate rather than as a sentence.
    R-08-007a makes the epoch a monotone counter naming containment events;
    reading it is not deciding one. *)
 Definition epoch_completion (c : Completion) : bool := epoch_advanced c.
@@ -1021,7 +963,7 @@ Definition epoch_completion (c : Completion) : bool := epoch_advanced c.
 (* =========================================================================
    A kernel whose every domain is inhabited, for R-05-165's uninhabited
    domain mode and for the refutation witnesses. Every magnitude below is an
-   arbitrary witness value carrying no composition claim (gap f).
+   arbitrary witness value carrying no composition claim.
    ========================================================================= *)
 
 (* Three CSRs: two the partition can name, one it cannot, and of the two
@@ -1385,21 +1327,19 @@ Proof.
 Qed.
 
 (* =========================================================================
-   The revocation join at the demo: the two arms of gap a, and the sentence
-   Q22a warns M4.4 about, made checkable.
+   The revocation join at the demo: the two restore arms and the failure of
+   total restoration alone to remove stale authority.
    ========================================================================= *)
 
 (* The published bitmap marks one base. `retired_bases` is the observer
-   annotation Q22a describes, not an architectural field: it is what the
-   retirement actually covers, where the bitmap is what the kernel
-   published. *)
+   annotation for what the retirement actually covers, where the bitmap is
+   what the kernel published. *)
 Definition marked_base (b : bool) : bool := b.
 Definition retired_bases (b : bool) : bool := true.
 
 (* R4 (R-07-015, R-08-006): a restore can satisfy R-07-015 exactly and
-   install a tagged capability whose base a published bit marks. This is
-   Q22a's own sentence that total restoration alone establishes no removal of
-   stale authority, as two computed verdicts on one burst. *)
+   install a tagged capability whose base a published bit marks, showing
+   that total restoration alone establishes no removal of stale authority. *)
 (*| discharges: R-08-006 |*)
 Theorem total_restoration_is_not_removal_of_stale_authority :
   SwitchIsTotal demo_kernel succ_image restore_burst = true
@@ -1409,7 +1349,7 @@ Proof. split; reflexivity. Qed.
 (* R5 (R-08-005b, R-07-015): and the other arm removes the stale authority by
    ceasing to satisfy R-07-015, because the tag it writes is the filter's
    answer rather than the saved image's tag. The two arms are therefore not
-   interchangeable, which is what gap a books. *)
+   interchangeable. *)
 (*| discharges: R-08-005b |*)
 Theorem a_filtered_restore_of_an_unsanitized_image_is_not_total :
   BurstCarriesNoStaleAuthority demo_kernel marked_base
@@ -1432,8 +1372,7 @@ Proof. split; [ reflexivity | split; reflexivity ]. Qed.
 (* R7 (R-08-006, R-08-007a): and sanitization is relative to what was
    published. A retirement set that marks an object's original base alone
    leaves a capability at a derived base tagged, so the same burst reads
-   clean against the bitmap and stale against the retirement. Q22a states
-   this of the holder map; here it is the same fact at the restore. *)
+   clean against the bitmap and stale against the retirement. *)
 (*| discharges: R-08-007a |*)
 Theorem marking_one_base_alone_leaves_a_derived_base_live :
   BurstCarriesNoStaleAuthority demo_kernel marked_base

@@ -2,292 +2,28 @@
 (* =========================================================================
    DischargeSequence.v
 
-   The RoT discharge and admission sequence, as the register fixes it:
-   R-15-247d's ordered authority invalidation before residue sanitization,
-   resolved to one pass over both planes, R-15-247e's drain through the
-   cells' own write devices, R-15-247g's phases staggered over banks by the
-   composition-time schedule, R-15-247f's fixed worst-corner dwell and
-   single fail-stop completion read taken once per phase with no poll and
-   no retry and the latch in the RoT domain, R-15-247q's relocation of the
-   discharge to the mode-exit path, R-15-247h's requesters held in reset,
-   and R-15-198's sequence table, which R-15-247d rides rather than
-   standing beside.
+   Specification model of the RoT discharge and admission sequence:
+   - Single-pass authority invalidation and residue sanitization across tag
+     and data planes (R-15-247d) through existing write devices (R-15-247e)
+     at atomic granule commits (R-15-247b), staggered over composition-fixed
+     banks and phases (R-15-014a, R-15-247g, R-15-247p) on the mode-exit path
+     (R-15-247q) with addressing requesters held in reset (R-15-228,
+     R-15-247h) and sequenced along the reset table (R-15-198, R-15-198a).
+   - Fixed worst-corner dwell and single fail-stop completion read per phase
+     with no poll or retry and the latch in the always-on RoT domain
+     (R-15-189n, R-15-247f), entering the mode-transition budget (R-15-189i,
+     R-15-189j) without relying on leakage-derived rates (R-15-247c,
+     R-15-247m), independent of the platform switch and boundary budgets in
+     [PartitionContext.v](PartitionContext.v#switch_cost) and
+     [BoundaryCost.v](BoundaryCost.v) (R-11-006, R-11-009, R-15-220).
+   - Retained re-entry for image-derived second-class domains (R-15-189f,
+     R-15-190b, R-15-247t) via loader-sequenced tag-plane and extent
+     re-verification (R-09-006, R-09-006b), falling back to the full
+     discharge path on a negative verdict (R-15-190a).
 
-   And R-15-190b's retained re-entry as the further case of that same
-   sequence: a second-class domain R-15-247t labels image-derived is held
-   RETAINED across a chain re-execution the RoT sequences and is re-admitted
-   by a read of its tag plane and a re-verification of its extents in place
-   against the content-addressed root of the generation being entered,
-   rather than by a discharge. R-15-247d's own clause says why that is no
-   exception to the order above: the domain being tag-free by delegation,
-   its authority invalidation is the measured stage's read of every validity
-   tag clear before any requester names it, by a read of the plane rather
-   than a write to it, and the data plane owes no sanitization there because
-   what it holds is verified image content and not residue. A domain whose
-   verdict is negative takes the discharge path this file already states
-   (R-15-190a).
-
-   This specification model keeps composition and measurement choices in
-   Machine fields. No axioms or admitted proofs are introduced; R-05-163
-   audits the complete assumptions. Computed examples are proved by kernel
-   conversion. Firmware implementation, lowering, and target execution remain
-   separate obligations.
-
-   What is deferred, and to which item. R-15-247f's timing clause, that no
-   timing on either the success or the timeout path varies with discharge
-   speed, is not stated here at all: it quantifies over a discharge speed,
-   which is a measured magnitude R-15-247m puts on a repaired
-   megabit-class macro and which no artifact in this repository carries,
-   so there is nothing to vary it against. That clause is checklist item
-   M3.6b, and nothing below introduces a speed, a rate, or a
-   leakage-derived quantity that would stand in for one. What is stated of
-   the dwell here is its shape alone: the dwell term is the machine's
-   declared composition constant (R-15-247g's mode-transition dwell
-   constant) rather than a function of what the sweep found. The
-   whole-path invariance is M3.6b's.
-
-   What R-15-190b's case leaves owed, and to whom. Three things, each
-   named here rather than implied by what is proved:
-
-   i.   Which domains are image-derived. R-15-247t makes the label a total
-        function of the static memory plan beside the power vector
-        (R-15-189f), so a domain's eligibility for the retained path is
-        decided at the memory plan's own schema and not here. Nothing
-        below computes a label, and the retained path is stated of a
-        domain a plan has already labelled.
-   ii.  The staged release and the boot through it. R-15-198a puts the
-        release of each island at a fixed point of the reset table, and
-        M3.5's firmware and M7.1's composed image are what lower the
-        in-place verification and that staged release into a boot. This
-        file states the order and the refusals and lowers nothing: no
-        constant here is compiled, lowered, or run on either emulator, so
-        the emulator boot through a staged release, with every
-        image-derived domain re-verified and every session-derived one
-        discharged across a lock and an unlock, is owed by those items and
-        is not evidence this file supplies.
-   iii. The constants and the ceilings. R-09-006b makes each re-entry's
-        worst-case latency a composition constant stated in the attested
-        devicetree, one figure per release point, and the emulator reading
-        recorded beside it. No number below is one of those terms: the
-        dwell is the machine's declared field and the re-entry carries no
-        duration at all here. The ceilings the product gate reads the
-        figure against are the product owner's, proposed until ratified,
-        and this file ratifies nothing about any of them.
-
-   Only the shared prelude-only support is required, so Classical
-   and FunctionalExtensionality are unavailable and every state equality
-   below is stated pointwise for that reason. Domain-specific sibling artifacts remain independent. PartitionContext
-   .v's switch_cost is R-15-220's platform cost; BoundaryCost.v combines it
-   with context and residency for R-11-009's full boundary in R-11-006's
-   interval arithmetic, where this file's dwell is
-   R-15-247g's mode-transition constant entering the R-15-189i transition
-   budget. The two budgets do not meet, so a Require here would be a
-   citation rather than a dependency, which is the thing CyclicExecutive.v's
-   own Require is not.
-
-   Readings of the register this statement takes, each a reviewable
-   judgment rather than a neutral transcription:
-
-   1. The ordered sequence is one order across two paths. R-15-247d fixes
-      "tag discharge confirmed, then requester addressability, then data
-      sanitization confirmed, then measured execution", R-15-247q puts the
-      discharge on the exit path rather than the next entry, and R-15-247g
-      stages the discharge in phases the composition-time schedule fixes.
-      So the exit path below is the requesters held in reset and then, in
-      schedule order, each phase's discharge, dwell and read, and the entry
-      path is addressability, the residue boundary and measured execution,
-      with the order spanning the power transition between them. That is
-      also what R-15-189j reads from the other side when it says what a
-      bulk domain owes on the way in is the confirmation R-15-247d orders
-      and not a regeneration sweep.
-   2. The fail-stop is an arm of each phase's read and not a phase of the
-      success path. R-15-247f's fail-closed line stops the transition
-      rather than repeating it, so the sequencer is a function of the
-      readings, one per phase: on a positive reading it continues to the
-      next phase or, after the last, to addressability, and on a negative
-      one it reaches the latch and stops where it stands, no later phase
-      being begun. R-15-247f puts that latch in the always-on
-      root-of-trust domain because R-15-247q's exit path is the one that
-      collapses the rail the domain sits on; the step below is named for
-      where it sits, and nothing here computes over power domains, which
-      is a fact about where a flop is placed rather than about the
-      sequence.
-   3. The unit of the read is the phase, and the phase's fact is composed
-      from its banks. R-15-247f makes "single" single per phase because a
-      phase either drained the banks R-15-247g names for it or did not;
-      R-15-247e realizes the drain through the cells' existing write
-      devices, R-15-247p makes banks whole-bound and composition-fixed,
-      and R-15-247b makes data, tag validity and both ECC planes commit
-      atomically at the granule, a write that does not commit being a
-      fail-stop sentinel event rather than a half-written granule. So a
-      sweep here is a per-bank, per-chunk record of what committed, a bank
-      is drained when every chunk of it committed, a phase is drained when
-      every bank it names is, and a bank is partially sanitized when some
-      chunk committed and some did not.
-   4. The transition's admission is stated as an arbitrary Reader over the
-      sweep, and the specification's reader is the conjunction of the
-      phase reads. That is what lets a reader of another arity be exhibited
-      and refuted rather than assumed away: the per-transition reader
-      R-15-247f refuses is constructed below and shown to admit a domain
-      one of whose phases reached nothing, and the per-bank reader that
-      entry calls sound is shown to agree with the per-phase one on every
-      sweep.
-   5. Requesters are a list and the hold is a predicate over it. R-15-247h
-      names three classes held in reset, every application core, every DMA
-      engine, and every capability-bearing fabric initiator, and scopes the
-      hold to the requesters that can address the domain being discharged,
-      a roster read from the same map R-15-228 fixes. That roster is the
-      `requesters` field, and the obligation is stated over whatever it
-      names.
-   6. The order is stated over first occurrences: `precedes p q l` walks l
-      and answers at whichever of p and q it meets first, so a sequence out
-      of order is expressible and the theorems have something to exclude.
-      It is false where either step is absent, which is what makes a
-      deletion a refusal rather than a silence, and it is what makes an
-      early addressability refused even when a later one is in order.
-   7. Boolean rather than propositional wherever the witnesses must
-      compute: the order check, the counts, and the bank predicates are
-      decidable, so the generated weakening families below are checked by
-      conversion in the silent Example form rather than by a proof per
-      member.
-   8. The domain's banks are the phases' banks. R-15-247g fixes every
-      phase's bank membership at composition, so the bank roster is read
-      off the schedule rather than carried beside it, and the per-phase
-      read reaches every bank the domain has by construction. A bank the
-      schedule names in no phase would be a composition defect and not a
-      state this file can reach; a coverage obligation, if the register
-      wants one stated, belongs at R-15-247g.
-   9. The retained re-entry is one further path over the same steps, not a
-      second sequence. R-15-190b puts the re-entry at a suffix of
-      R-15-198's table that holds the image-derived domains RETAINED, and
-      R-15-247d keeps its order, so `reentry_sequence` below is the
-      requesters in reset, then the loader-sequenced pass, then that pass's
-      one verdict, and then either the entry path, on a positive verdict,
-      or the exit path already stated here, on a negative one. The pass and
-      the verdict are two steps rather than one because R-15-190b names two
-      facts about them: the measured stage runs the pass on the cores of
-      the island the domain is bound to, and no other requester addresses
-      the domain until its verdict. What the negative verdict reaches is
-      R-15-190a's OFF->ON path and not the fail-stop latch, which is the
-      one place the retained case departs from the exit path's shape: a
-      tag that reads set or an extent that does not verify is a domain to
-      refill, where a discharge that does not complete is a transition to
-      stop (R-15-247f).
-  10. The pass reads two planes and a reader may read either alone, which
-      is what makes the two refutations constructions rather than
-      restrictions of one. `ExtentVerdicts` is what the verification of
-      each extent against the content-addressed root returned and
-      `TagPlane` is what each validity-tag granule read, and the
-      specification's reader is the conjunction over both rosters. The
-      reader that consults the extents alone and the reader that consults
-      the tag plane alone are both expressible, both exhibited below, and
-      each keeps the obligation it does not break, so what refutes each is
-      the plane it never reads.
-  11. Released in place is stated as addressability without a discharge,
-      and it needs the domain to have a phase. `carries_no_discharge`
-      composes the per-phase check over the phase roster, and the
-      load-bearing theorem takes the phase list being a cons as a
-      hypothesis rather than assuming it: a domain with no phase at all
-      would make the refused verdict's path carry no discharge either, and
-      reading 8 already books such a domain as a composition defect rather
-      than a state this file can reach. The hypothesis is a composition
-      quantity stated where it is used, on the same ground the Machine
-      record's fields are fields.
-
-   The literals taken from the design, and there are four. R-15-247d's
-   Accept clause and R-15-247g's schedule fix the step order, so
-   `admission_sequence` is that order written out over the phase list and
-   is one of this file's two structural literals. R-15-190b's sentence
-   fixes the other, `reentry_sequence` being the retained re-entry's order
-   written out the same way, with the verdict's two arms as that entry
-   states them. R-15-247f fixes the completion
-   read at one per phase, so `single_read_ok` compares each phase's read
-   count against 1. And R-15-247f fixes the retry count at zero and
-   R-15-247d the pass count at one, so `NoStepStandsTwice` bounds every
-   step's occurrences by 1 on every reading. Every other magnitude is a
-   field: the extent and tag-granule rosters of a retained image, because
-   the extent decomposition is the R-09-006 loader's and the tag
-   granularity R-15-247b's; the dwell length, because R-15-247m measures it on a repaired
-   macro and R-15-247g folds it into the transition budget; the phase count
-   and each phase's banks, because R-15-247g fixes them at composition and
-   R-15-247p puts the per-class bank count in R-15-014a's frozen parameter
-   set; the chunk decomposition of a bank, because R-15-247e makes the
-   drain the interface's own write and the chunk width is that interface's;
-   and the requester roster, per reading 5.
-
-   How the refutations are generated. A refutation is a seeded weakening
-   the theorem must reject, so four generators produce families of them
-   mechanically rather than a person authoring each, over the
-   specification's own success path at the demo machine's two phases,
-   which is ten steps long. `swap_at` transposes an adjacent pair and
-   yields one weakening per adjacent position; `drop_at` deletes a step and
-   yields one per position; `suffix_at` re-enters the table at a proper
-   suffix, which is R-15-198's own phrase for what a wake and a standby
-   exit are, and yields one per position; and `insert_at` adds a second
-   read of a phase and yields one per position per phase. Every member is
-   refused, checked as one conversion whose size `generated_family_size`
-   computes. Beside them the generic theorems quantify over the index
-   rather than enumerating, the obligations of the specification itself
-   are proved for every phase count rather than for the demo's, and the
-   early-release family quantifies over the step rather than over an index
-   at all. The hand-authored refutations below are the ones no index
-   generates, being alternative constructions rather than mutations of a
-   list.
-
-   What the register decides and this file takes as given, with the entry
-   that decides each:
-
-   a. The data plane's sanitization is the same pass. R-15-247d resolves
-      its disjunction to one pass over both planes, so the transition
-      carries one dwell and one read per phase and not two of each, and
-      the residue boundary R-15-247d still names is crossed on the
-      confirmation already held rather than by a second drain.
-      `ResidueConfirmed` is that boundary and carries no discharge, dwell
-      or read of its own; a sequencer that runs the drain again at that
-      boundary is exhibited and refuted by the count.
-   b. The completion read is per phase. R-15-247f makes one dwell and one
-      read for each of R-15-247g's staggered phases, refuses per
-      transition on this file's own construction, and refuses per bank on
-      cost. The sequencer below reads once per phase; the per-transition
-      sequencer and reader are exhibited and shown to admit a domain one
-      of whose phases reached nothing; and the per-bank reader is shown to
-      agree with the per-phase reader on every sweep, which is the
-      soundness R-15-247f grants it.
-   c. The reset hold is scoped to the requesters that can address the
-      domain being discharged (R-15-247h), and the roster is a composition
-      constant. Reading 5 is how this file states it.
-   d. The fail-stop latch sits in the always-on root-of-trust domain
-      (R-15-247f). Reading 2 is how this file names it.
-   e. Every composition magnitude. The dwell, the phase count, each
-      phase's banks, the chunk decomposition and the requester roster are
-      fields; the demo machine at the end instantiates them with arbitrary
-      witness values that carry no composition claim.
-
-   Readings the register could state and does not, each taken here by the
-   narrowest construction and reported rather than closed:
-
-   f. Whether a phase after a negative reading is begun at all. R-15-247f
-      stops the transition; the sequencer below stops where it stands and
-      begins nothing after the latch. A sequencer that drains the
-      remaining phases before latching would keep every obligation stated
-      here except the latch's position.
-   g. Whether the dwell is one magnitude for every phase or one per phase.
-      `dwell_cycles` is one field and the dwell obligation is stated per
-      read, so a per-phase dwell table would be a second field and would
-      change nothing stated here.
-   h. R-15-189n's one-bit confirmation read once beside R-15-247f's read
-      per phase. The RoT's gate on the transition is read here as the
-      conjunction of the phase readings, which is what
-      `admission_is_the_readers_confirmation` states.
-
-   Non-vacuity (R-05-165, R-05-166). Every obligation below is stated as a
-   property of an arbitrary sequencer, reader, dwell length, reset hold or
-   release schedule, proved of the specification, and refuted of an
-   alternative construction the register's own sentence excludes.
-   Inhabitation is concrete: a demo machine whose every domain is
-   inhabited, a sweep on which the specification's reader confirms, and a
-   sweep on which it refuses, so no theorem is proved from a premise
-   nothing satisfies and none from one everything satisfies.
+   Composition and measurement parameters are carried as `Machine` fields
+   (R-05-163, R-05-164), with concrete inhabited witnesses and generated
+   refutation families (R-05-165, R-05-166).
    (*| BEGIN derived: cited entries |*)
    Owner: docs/requirements-register.md
    Requirements: R-05-163 R-05-164 R-05-165 R-05-166 R-09-006 R-09-006b R-11-006 R-11-009
@@ -1238,8 +974,7 @@ Proof.
 Qed.
 
 (* Each of the nine adjacent transpositions violates exactly one order
-   conjunct. These checks establish that every conjunct affects the
-   decision, addressing M0.16's unreachable-validator-arm finding. *)
+   conjunct, showing that every conjunct affects the decision. *)
 
 Definition failing_conjuncts (ks : list nat) (l : list Step) : nat :=
   count_of (filter_of (fun pq => negb (pair_precedes l pq)) (required_order ks)).
@@ -1989,15 +1724,13 @@ Qed.
    either path's timing behaves. R-15-247f's timing clause quantifies over
    a discharge speed, a measured magnitude R-15-247m puts on a repaired
    megabit-class macro that no artifact here carries, and over the whole of
-   the success and timeout paths rather than the dwell term alone. That
-   clause is M3.6b and is not stated below; nothing here introduces a
-   speed, a rate, or any quantity derived from leakage, which R-15-247c
-   forbids a containment guarantee from resting on in any case.
+   the success and timeout paths rather than the dwell term alone. Nothing
+   here introduces a speed, a rate, or any quantity derived from leakage,
+   which R-15-247c forbids a containment guarantee from resting on.
 
    A dwell length is stated per read: a function of the sweep and of the
    reading the phase's read is about to return, which is the pair a
-   construction could illegitimately consult. Whether the constant is one
-   for every phase or one per phase is reading g.
+   construction could illegitimately consult.
    ========================================================================= *)
 
 Definition DwellLength (m : Machine) : Type := Sweep m -> bool -> nat.

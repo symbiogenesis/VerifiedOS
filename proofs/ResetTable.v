@@ -3,156 +3,29 @@
    ResetTable.v
 
    Reset-table release checks for R-15-198 and R-15-198a, including the
-   re-entry suffixes R-15-190b requires. The domain-to-island map comes from
-   MemoryPlan.v's PowerVector, which carries R-15-228's map.
+   retained re-entry suffixes R-15-190b requires over image-derived and
+   session-derived domains (R-15-189j, R-15-190a, R-15-247d, R-15-247f,
+   R-15-247t; see [DischargeSequence.v](DischargeSequence.v)). The
+   domain-to-island map comes from [MemoryPlan.v](MemoryPlan.v#PowerVector),
+   which carries R-15-228's map.
 
-   Four executable composition checks cover release after an island's own
-   ready/completion reads, cold-path release coverage, staging order and
-   entropy-test ordering (R-09-006a). The release and coverage checks are
-   proved equivalent to their stated obligations. Accepted tables and
-   distinguishing refusals are computed below.
+   Four executable composition checks cover:
+   1. Release of each island only after its own domains' ready and completion
+      reads (`DomainReady`, `DomainComplete`), independent of other islands'
+      domains and never gated on load (R-15-198, R-15-198a).
+   2. Cold-path release coverage across all bound islands, with containment at
+      every release point (R-15-189g) and latency constants attached per
+      release prefix (R-09-006b).
+   3. Staging order placing the shell and ahead-ordered islands before the
+      inference island (R-02-003, R-15-198a, R-18-004a).
+   4. Entropy start-up test ordering after `RotRailUp`, running under
+      clock-spine lock and memory-controller bring-up (R-15-195) and extending
+      its verdict before any entropy draw or island release (R-09-006a; see
+      [RotFirmware.v](RotFirmware.v)).
 
-   Scope: a schema and reference checks, with no global axioms. No shipped
-   composition supplies these values, and no theorem connects them to a
-   devicetree, firmware image or emulator run. The excluded concurrency
-   clause is explained in reading 6; the checks do not discharge the entire
-   reset-table requirements.
-
-   What is not stated here, and who owns it.
-
-   i.   The rest of the table. Its schema in the composition and its
-        devicetree emission, each step's hardware ready indication and
-        watchdog-bounded timeout, the release step's own among them, the
-        dependency order among steps other than the release points, the
-        absence of a cycle, and entry points that are suffixes of the table
-        are the table's own authoring, crown-jewel row 12 (R-15-198), which
-        the unassigned proof map prices as a separate slice. The step
-        vocabulary below carries what R-15-198a's clauses read and no more.
-   ii.  R-15-247d's discharge and admission order, which rides the same
-        table as crown-jewel row 26 and is stated in DischargeSequence.v
-        over a step vocabulary of its own, not linked to this file's.
-   iii. R-09-006b's constant. Each release point is where one of its
-        figures attaches, the cold-boot, wake-to-interactive and
-        inference-ready instants being prefixes of the table through a
-        release, and no term of that sum is stated here.
-   iv.  R-15-190b's chain-execution clause and the lowering of the staged
-        release into M3.5's firmware and M7.1's composed image, which boot
-        through it; R-15-189g's containment at every release point, which
-        reads the mode an early-released island runs; the inference members
-        R-18-004a states unmet until the inference island's release, which
-        the product gate reads off the table; and R-09-006a's failure half,
-        no key derived, no material unsealed, no quote completed and the
-        boot refused, which is the RoT firmware's (RotFirmware.v, M3.5).
-
-   Readings of the register this statement takes, each a reviewable
-   judgment rather than a neutral transcription:
-
-   1. The table is a list of steps the RoT walks in order, and a step
-      follows another when it stands later in the walk, read over first
-      occurrences as DischargeSequence.v's reading 6 reads them:
-      `step_precedes p q l` is false where either step is absent, so a
-      deleted read is a refusal rather than a silence and an early release
-      is refused even where a later one would be in order.
-   2. A domain's two reads are its ready indication and its completion
-      read, `DomainReady` and `DomainComplete`, whatever the completion
-      completes: an image-derived domain's fill or in-place re-verification
-      verdict (R-15-190a, R-15-190b) or a session-derived domain's discharge
-      confirmation (R-15-189j, R-15-247f). That is R-15-198a's own pair of
-      nouns and it keeps the lowering of each kind of completion out of the
-      schema (item iv).
-   3. "And of no other island's" limits what a release waits for, and a
-      walk cannot state it as an obligation on positions: the inference
-      island's release stands after the shell island's reads in the walk,
-      which R-15-198a's own ordering clause requires. So it is stated as
-      what the check does not demand: the release check reads only the
-      domains bound to the released island, and the one-release-point
-      reading, every domain's reads ahead of every release, is constructed
-      below and shown refusing the staged table the specification admits.
-      "Rather than at one" is therefore carried by the staging order and
-      not by the release check, which admits the table releasing every
-      island at one point: the islands ordered ahead are a non-empty list
-      (reading 5) and each is released before the inference island, so an
-      admitted table has at least two release steps.
-   4. The release obligation holds at every declared entry point. R-15-198
-      makes re-entries suffixes of the table and R-15-190b makes every
-      re-execution the RoT sequences one, so a release standing in the
-      suffix a re-entry walks must find its own island's reads inside that
-      suffix: a re-entry entered past a domain's re-verification would
-      release the island onto an extent whose verdict nobody read, which
-      R-15-190b refuses (no extent is released to a requester unverified)
-      and R-15-198a refuses (never served from an extent whose verdict is
-      pending). The cold path is the whole table, entry 0, and the table
-      declares its other entries. An entry past the table's end enters an
-      empty walk, which releases nothing and which the check admits;
-      refusing an entry that is not a suffix is item i's.
-   5. The islands ordered ahead and the inference island are fields.
-      R-15-198a names the roles and no shipped composition binds them, and
-      the first release targets a laptop (R-02-003) whose composition may
-      carry no telephony island, so the islands ordered ahead are a list
-      and the inference island one index. The list must not be empty:
-      R-15-198a names the shell island without condition, and its
-      wake-to-interactive instant is the table's prefix through the shell
-      island's release, so a table declaring no island ahead is refused
-      rather than read as unstaged. The order is read on the whole table:
-      each island ordered ahead is released before the inference island is
-      released and before any of its fills completes, a fill being an
-      image-derived domain's completion read, the label read from the
-      vector. Its own fills precede its own release by the release
-      obligation, so the two together put its fills and its release ahead
-      of the inference island's release, which is proved below rather than
-      asserted. And every island a domain of the vector is bound to has a
-      release step on the cold path, R-15-198a speaking of each island's
-      release step: the release check reads only the releases that stand,
-      so without that clause a release deleted from the walk would leave
-      its island's domains unread by every check.
-   6. The entropy clauses are read on the cold path. R-15-198a begins the
-      tests at the first step after the RoT's own rail is up, and a
-      re-entry from a running mode does not walk that step, the RoT being
-      the one core no mode collapses; whether a re-entry re-runs the
-      start-up tests is not stated by the register (reported). On the
-      whole table the tests begin at the step immediately after the first
-      `RotRailUp`; the clock-spine lock and the memory-controller bring-up
-      each stand between the tests beginning and the verdict's extension,
-      which is the tests running under those steps rather than ahead of
-      them; the verdict's extension stands before the first
-      `DrawsEntropy`; and it stands before every island's release. The
-      last is R-09-006a's "before the first draw any measured stage can
-      make" read at the table: a released island's kernels are measured
-      stages that can draw, and RotFirmware.v's C3 reads the same entry as
-      the verdict extended before every stage runs. That none of the fills
-      and re-verifications draws is structural: a draw is its own step and
-      a completion read is not one. R-15-198a's third concurrency term,
-      the tests running concurrently with every image-derived fill and
-      re-verification, is not stated. With the verdict before every
-      release and each island ahead released before the inference island's
-      fills, every admitted table puts those fills after the verdict,
-      which is proved below, and R-15-190b has an island's measured M-mode
-      stage run its re-verification before any kernel of that island is
-      released. So that term, the verdict-before-release order and the
-      staging order cannot all be read positionally in one walk
-      (reported), and the check admits a fill on either side of the
-      verdict.
-   7. Nothing here is gated on a load. R-15-198a's release point is gated
-      on a ready indication under the watchdog-bounded timeout and never on
-      a load; the release step's own ready indication and timeout are item
-      i's, as every step's are, and the schema carries no quantity a load
-      could be.
-   8. Boolean rather than propositional wherever the witnesses must
-      compute, with the release and coverage checks proved sound and
-      complete against their obligations, so a check answering false
-      refutes the table rather than reporting that a decision procedure
-      moved.
-
-   The literals taken from the design: none. The step order of the demo
-   tables below is a witness value and carries no composition claim.
-
-   Non-vacuity (R-05-165, R-05-166): witnesses cover an admitted staged
-   table and re-entry, an admitted session-derived completion, and release
-   of an island outside the named staging roles. Refused tables isolate
-   release, coverage, staging and entropy defects. Generated deletions and
-   adjacent transpositions exercise missing reads, missing releases and
-   reordered completion. The stronger all-domains-before-every-release
-   condition rejects the admitted staged table.
+   Composition parameters are record fields (R-05-163, R-05-164), with
+   soundness/completeness equivalence theorems and concrete accepted and
+   refused table witnesses (R-05-165, R-05-166).
    (*| BEGIN derived: cited entries |*)
    Owner: docs/requirements-register.md
    Requirements: R-02-003 R-05-163 R-05-164 R-05-165 R-05-166 R-09-006a R-09-006b R-15-247d
@@ -166,8 +39,7 @@ Require Import CyclicExecutive.
 Require Import MemoryPlan.
 
 (* -------------------------------------------------------------------------
-   The step vocabulary: what R-15-198, R-15-198a and R-09-006a name, and no
-   more (item i).
+   The step vocabulary: what R-15-198, R-15-198a and R-09-006a name.
    ------------------------------------------------------------------------- *)
 
 Inductive TableStep : Type :=
