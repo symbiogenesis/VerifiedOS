@@ -1,15 +1,10 @@
 # SPDX-License-Identifier: Apache-2.0
-"""Exercise Q22e's synthetic phase-service predicate and counterexample traces.
+"""Exercise the synthetic phase-service predicate and counterexample traces (Q22e).
 
-With no argument the fixed synthetic scenarios run and the exit code says whether
-each still decides as expected. `--contract FILE` checks one JSON contract instead
-(`grants`, `arrivals`, and optionally `banks`, `refresh`, `paths`, shaped as the
-`Contract` dataclass is), exiting 0 on zero wait, 1 on a refutation and 2 on a
-malformed contract. With `--contract`, `--completion` also requires completion
-order and reports total issued-operation drain separately from fabric drain.
-Either way the receipt reads the composition's own `qualified`
-and `frozen` flags: the target comparison stays open while any of them is false,
-and while the emitted schedule has no artifact this tool could read at all.
+With no arguments, runs the fixed synthetic scenarios and exits 0 if all match their
+expected verdicts. `--contract FILE` checks a JSON contract (`grants`, `arrivals`, and
+optionally `banks`, `refresh`, `paths`), exiting 0 on zero wait, 1 on refutation, and 2
+on a malformed contract. `--completion` also checks completion order and quiescent drain.
 """
 
 import argparse
@@ -26,10 +21,7 @@ from vos.phase_service import Batch, Contract, Result, check, scenarios
 
 CONFIG = "model/config/verifiedos.json"
 
-# The coefficient owners the comparison waits on, each read at the flag the
-# configuration keeps for it. The schedule R-11-017 emits is absent from this table
-# because nothing yet carries it: its row is stated below as unreadable rather than
-# read as false.
+# Configuration qualification flags read into the receipt.
 FLAGS: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("first_class_qualified", ("memory", "classes", "first", "qualified")),
     ("second_class_qualified", ("memory", "classes", "second", "qualified")),
@@ -60,8 +52,7 @@ def _batches(node: Json, what: str) -> tuple[Batch, ...]:
 
 
 def _parse_contract(raw: bytes) -> Contract:
-    """One contract from its input bytes; a wrong shape is a `TypeError` and a wrong
-    figure a `ValueError`, and the command reports either as malformed."""
+    """Parse a JSON phase-service contract from `raw`."""
     data = cast("Json", json.loads(strip_comments(raw.decode("utf-8")),
                                   object_pairs_hook=unique_object))
     if not isinstance(data, dict):
@@ -90,13 +81,7 @@ def load_contract(path: Path) -> Contract:
 
 
 def inputs(root: Path) -> dict[str, Json]:
-    """What the composition says about the coefficients, flag by flag.
-
-    A flag reads `true`, `false`, or `null` where the configuration does not carry
-    it; every core class contributes its own `frozen` flag, because R-15-108's issue
-    widths are selected per class. `schedule` is `null` on purpose: R-11-017's
-    artifact does not exist, so there is nothing to read and no value to invent.
-    """
+    """Read qualification and freeze flags from `model/config/verifiedos.json`."""
     path = root / CONFIG
     flags: dict[str, Json] = {}
     for name, keys in FLAGS:

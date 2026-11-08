@@ -1,32 +1,15 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: Apache-2.0
-"""Export the memory plan's placement problem, check its export, and search it.
+"""Export, check, admit, search, and Z3-validate the memory plan's placement problem.
 
     tools/run.py placement export            # writes tools/generated/memory-plan.json
     tools/run.py placement check             # re-emits and compares, byte for byte
     tools/run.py placement admit [--plan P]  # the exact check over one plan of the .v
     tools/run.py placement search            # enumerate, admit exactly, and report
+    tools/run.py placement consistency       # check the finite contract with labelled Z3 evidence
 
-Q5's first landing over M1.9's plan. The problem is read out of
-[proofs/MemoryPlan.v](../../../proofs/MemoryPlan.v) by [vos/memplan.py](../memplan.py),
-which is the one reader and the one exact check; this module is the command surface
-over it and decides nothing of its own.
-
-**What `search` claims and what it does not.** It enumerates every candidate the
-declared predicate admits, per island, prunes a prefix only where the `.v`'s own
-pairwise check refuses it, and hands every leaf to the exact check as a whole plan.
-The report states the candidate count with its predicate, the leaf and feasible
-counts, and the best admitted placement per island against the standing one, on span
-used, unused reservation and padding, with the worst-case timing shown on both sides
-because the class assignment is the register's and a base search cannot move it. The
-status is *complete over the declared set* and never optimality outside it; a run
-cut short by `--max-leaves` says so and is not infeasibility. No admitted-workload
-comparison is taken: the plan's figures are witness values carrying no composition
-claim, and the roster that comparison wants is owed elsewhere (Q1, R-18-004d).
-
-**What the validator is.** Development hygiene, as the item's own text puts it: the
-trusted admission checks keep the proof status they owe in the `.v`, and nothing this
-command prints is evidence about the machine.
+Reads [proofs/MemoryPlan.v](../../../proofs/MemoryPlan.v) via [vos/memplan.py](../memplan.py)
+and [placement-search.md](../../../docs/implementation/placement-search.md).
 """
 
 import argparse
@@ -37,8 +20,6 @@ from vos import corpus as corpus_mod
 from vos import env, memplan, placement_smt
 from vos.cli import Table, dispatch
 
-# The rules a reader of the report is pointed at, by name and never by a figure
-# copied out of them: the register entries the checks decide for are in the export.
 DOCUMENT = "docs/implementation/placement-search.md"
 
 

@@ -1,33 +1,18 @@
 # SPDX-License-Identifier: Apache-2.0
-"""M3.5's boot-handoff harness: the RoT's measured release of the boot core.
+"""M3.5 and M3.5b boot-handoff layout checks, host harness, and target chain campaigns.
 
-`run` compiles the RoT stage for the host, reads the RoT's device inputs from the
-golden emulator under the RoT composition, submits every case of the
-[boot-handoff contract](../../../docs/implementation/contracts/boot-handoff.md)'s
-table to the stage, and starts the golden emulator on the main-die composition from
-the placed bytes of each release. It writes `report.json` beside the per-case files
-and exits 0 only when every row matches the contract. `layout` checks the contract's
-header, record, composition and initialization-descriptor tables and its case table
-against `firmware/include/vos_boot.h` and the harness's cases, the kernel-entry
-table's permission column against the assembled image's constants, the
-fixture's initialization descriptor against its layout, and the contract's chain
-tables (section 9) against `firmware/chain/vos_chain.h`, the model's boot-control
-door declarations and the RoT configuration, and prints the payload's
-measurement; it needs no toolchain and answers on either lane.
-
-A green run says the host-compiled stage, the selected signature binding and this
-emulator agree over the listed cases. `--signature-scheme slh256s` binds the real
-verifier, with disposable OpenSSL-generated signatures; the default fixture mode
-is labeled separately. Neither says the RoT hart executes the stage or M4.4's
-kernel accepts the handoff. Every report carries `milestone_acceptance: open`.
-
-The `chain-` subcommands are M3.5b's target chain campaign (the contract's section 9):
-`chain-stage` compiles the chain's units through the contained compiler, signs the
-images with disposable keys kept in its output lane and writes `firmware/chain/target/`;
-`chain-verify` holds that directory to its manifest, this checkout, the composers'
-layouts and section 9.13's freeze; `chain-target --staged` executes one boot case, the
-main-die group over `cold-boot`'s outputs or the watchdog group on the golden emulator
-and writes a shard receipt; `chain-join` composes the shard receipts into one campaign.
+- `layout`: checks [boot-handoff.md](../../../docs/implementation/contracts/boot-handoff.md)
+  header, record, composition, initialization-descriptor, and chain tables against
+  [firmware/include/vos_boot.h](../../../firmware/include/vos_boot.h),
+  [firmware/chain/vos_chain.h](../../../firmware/chain/vos_chain.h), the assembled
+  M-mode image, and the model's boot-control door declarations.
+- `run`: compiles the RoT stage on the host, reads RoT device inputs from the golden
+  emulator, runs all contract cases, and boots the main-die composition from each
+  accepted release.
+- `signature-target` and `release-target`: run SLH-DSA signature verification and RoT
+  release on the target RoT profile.
+- `chain-stage`, `chain-verify`, `chain-target`, and `chain-join`: stage, verify,
+  execute, and join the M3.5b target boot-chain campaign (`firmware/chain/target/`).
 """
 
 import argparse

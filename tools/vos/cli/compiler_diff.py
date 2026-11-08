@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: Apache-2.0
-"""M1.2f's two acceptance loops over the contained purecap backend.
+"""M1.2f program-level and component-level differential acceptance drivers.
 
     tools/run.py compiler-diff program --ccomp PATH (SOURCE.c ... | --generate N [--perturb]
                                        [--pattern NAME]) [--interp] [--simulator PATH | --lane]
@@ -9,79 +9,17 @@
                                           | --purecap-record FILE) [--simulator PATH | --lane]
     tools/run.py compiler-diff generate --out DIR [--count N] [--seed S] [--perturb]
 
-**The program level** preprocesses C once with `ccomp -E`, then feeds its exact `.i`
-bytes through `ccomp -S` in a fresh directory and hands the emitted
-stream to the in-tree assembler ([vos/asm.py](../asm.py)) and the image composer
-([vos/image.py](../image.py)) under the harness stated below, and runs the image on the
-golden emulator with the invocation `run.py model corpus` makes, asking the two questions
-[differential-corpus.md](../../../docs/assurance/differential-corpus.md) §6 asks of a
-member: the program's own, its HTIF verdict, and the rig's, the digest of its normalized
-commit trace. The compiler is never in the tree: `--ccomp` names an executable outside every
-checkout, which is M1.1a's containment, and the driver records the path and the digest of
-what it found there rather than carrying either. `--ccomp-arg` passes the backend's own
-flags, `-fverifiedos-typed` selecting its typed purecap route. `--interp` also runs the
-same frozen `.i` through the compiler's reference interpreter, and an image whose `main`
-returned something else is `source-disagrees`; a narrowing program has no such reading.
-Preprocessing runs beside the original source, so quoted and transitive includes retain
-their meaning; its argv and working directory are recorded. The preprocessed digest
-binds the effective include closure, including macro expansion, and `--against` refuses
-missing or changed identities even when outputs agree. An incoming `.i`, including a
-plan-bound narrowing input, is preserved byte for byte. `--keep` retains that unit.
-
-**The generated campaign** is deterministic in its seed and stays inside the selected
-scalar source profile: pointers through stack memory, struct fields and whole-struct
-copies, calls in both directions, arguments past the eight argument registers, a pointer
-or null chosen on a branch, more live pointers across calls than registers, and a local
-array narrowed through the plan-bound `csetbounds` primitive against an independent plan
-the driver writes for that program. Every expected constant is computed by the generator;
-`--pattern` selects a subset. `--perturb` is its negative control: each program moves
-one check's constant off by one and must fail at exactly that check.
-
-**The refusal verdict.** A stream the dialect does not spell is scanned before it is
-assembled, and every mnemonic, directive and section the assembler refuses is reported by
-name and by line of the emitted stream, never as an opaque failure. Stock `ccomp -S`
-writes lp64d RV64, which R-18-002 forbids as a target; `--expect-refusal` makes that
-verdict the green one. A refused *mnemonic* is the backend's to close, and a refused
-*directive* is the seam between CompCert's printer and the assembler's vocabulary, which
-the driver reports and does not translate.
-
-**The harness.** A stream that assembles is wrapped before it is composed: `_start` moves
-the store-side root out of `c1` into the reserved `c4` and derives the stack and the
-`tohost` authority from it,
-the way every corpus member derives an authority (R-15-001c), installs a trap handler
-through MTCC, calls `main`, and folds the return into the exit code the corpus convention
-reads back: `1` for success, `(code << 1) | 1` otherwise, where a code below `0x100` is
-`main`'s return masked to a byte (a nonzero return with a zero low byte reads as `0xFF`)
-and a code at or above it is `0x100 | mcause` for a trap that reached the handler. The
-frame `main` itself expects is the backend's. The harness supplies a bounded local stack
-with store-local permission under the selected scalar convention in `purecap-abi.md`.
-It is a test composition; the firmware handoff remains a separate acceptance input.
-
-**The third reading of the trace** is M1.7's own test that a capability went through
-memory rather than only through the register file: one aligned eight-byte `W` whose tag
-is set, read back by an `R` at the same address with the same value and tag before any
-overlapping write. It is reported beside the digest; a frame's saved return capability
-satisfies it as well as a program's own pointer store does.
-
-**The component level** holds one Gallina component's host run on the CertiCoq-to-Wasm
-oracle against its purecap run under one declared output encoding: the side's exit
-verdict, which is the Wasm host's process status on one side and the image's HTIF exit
-code on the other, plus the SHA-256 and the length of the bytes the component emitted,
-the runner's standard output on one side and the emulator's terminal log, the HTIF console,
-on the other. `--c` lowers the component's C through the backend and runs it under the
-component harness, which reads `main`'s result as the one boolean `run_demo.mjs` reads
-from the Wasm module: it prints `true` or `false` on the HTIF console and exits 0 or 1.
-Either side is written as a record that the other side's run is later held against, the
-report binds the module, source, compiler, stream, image, emulator and profile by digest,
-and the comparator names the first field that disagrees, or the first byte where both
-sides' bytes are in hand.
-
-**What this does not decide, stated rather than implied.** A green run says this machine,
-this compiler and these programs agree; it never says a lowering is correct, R-05-023a's
-instrument being deferred hardening. A component's C is a hand-written refinement of its
-Gallina, so agreement is differential evidence over its battery and not a refinement
-proof. Every report carries `milestone_acceptance: open`, because a report is evidence for
-one run and the milestone closes on a reviewed reading of recorded runs.
+- `program`: preprocesses C with `ccomp -E`, compiles `.i` bytes with `ccomp -S`,
+  assembles ([vos/asm.py](../asm.py)) and composes ([vos/image.py](../image.py)) under
+  the test harness, and runs on the golden emulator to check HTIF exit status,
+  normalized commit-trace digest ([differential-corpus.md](../../../docs/assurance/differential-corpus.md)),
+  and capability memory round-trip. `--interp` compares against `ccomp -interp`;
+  `--expect-refusal` requires dialect refusal (R-18-002).
+- `component`: compares a Gallina component's CertiCoq-to-Wasm host run against its
+  purecap emulator run under the declared output encoding (exit verdict, byte length,
+  and SHA-256).
+- `generate`: emits the deterministic scalar C campaign (`--perturb` emits negative
+  controls that shift one check's expected constant by one).
 """
 
 import argparse
@@ -98,19 +36,18 @@ from vos import corpus as corpus_mod
 from vos.cli import Table, dispatch
 from vos.jsonc import Json
 
-# How the Wasm oracle is run, relative to the repository root: the pinned Node through the
-# script that verifies it, then the host that decodes one boolean (tools/wasm-oracle).
+# Default Wasm host command relative to the repository root.
 NODE_RUNNER: Final[tuple[str, ...]] = (
     "sh", "tools/wasm-oracle/node.sh", "--stack-size=10000000",
     "tools/wasm-oracle/run_demo.mjs")
 
-# What a run's evidence is a function of, beside the compiler it was pointed at.
+# In-tree inputs hashed into campaign reports alongside the external compiler identity.
 SOURCES: Final[tuple[str, ...]] = (
     "tools/vos/cli/compiler_diff.py", "tools/vos/compiler_diff.py", "tools/vos/asm.py", "tools/vos/image.py",
     "tools/generated/dialect-table.json", "docs/assurance/differential-corpus.md",
     "docs/implementation/contracts/purecap-abi.md", "model/model/core/cap_common.sail")
 
-# The verdict a program can end in. Listed once, in the order the summary counts them.
+# Program verdict categories in summary order.
 VERDICTS: Final[tuple[str, ...]] = (
     "ccomp-refused", "dialect-refused", "assembled", "pass", "fail", "trap",
     "source-disagrees", "no-verdict")
@@ -126,15 +63,14 @@ def _sources(root: Path) -> dict[str, Json]:
 
 
 def _executable_identity(spelled: str) -> dict[str, Json]:
-    """The compiler or emulator as the caller named it, with the digest of the file where
-    the spelling is one; the digest is what a completion note quotes."""
+    """Return path and SHA-256 for a compiler or simulator executable."""
     path = Path(spelled)
     return {"path": spelled,
             "sha256": _sha256(path.read_bytes()) if path.is_file() else None}
 
 
 def _compiler_identity(spelled: str) -> dict[str, Json]:
-    """Include the source build and locked native tools, or explicit receipt absence."""
+    """Return executable identity plus source build provenance and receipt digests."""
     result = _executable_identity(spelled)
     provenance, files = compiler_provenance.read(Path(spelled), required=False)
     file_bindings: dict[str, Json] = {name: cast("Json", digest) for name, digest in files.items()}
@@ -143,7 +79,7 @@ def _compiler_identity(spelled: str) -> dict[str, Json]:
 
 
 def _require_compiler_unchanged(spelled: str, expected: dict[str, Json]) -> None:
-    """Refuse persistent producer drift before publishing campaign evidence."""
+    """Raise if the compiler executable, provenance, or receipts changed during the campaign."""
     if _compiler_identity(spelled) != expected:
         raise ValueError("compiler executable, source, receipts or lock changed during campaign")
 
@@ -153,7 +89,7 @@ def _profile(args: argparse.Namespace, root: Path) -> Path:
 
 
 def _simulator(args: argparse.Namespace) -> tuple[list[str] | None, str]:
-    """The emulator to run images on, or `None` and the sentence saying what waits."""
+    """Resolve the simulator argv, or `(None, reason)` when unavailable."""
     if args.simulator:
         return [str(args.simulator)], ""
     if args.lane:
@@ -171,7 +107,7 @@ def _file_identity(path: Path) -> dict[str, Json]:
 
 
 def _inputs(args: argparse.Namespace) -> list[cd.Program]:
-    """The programs to run: the sources named, then the generated campaign."""
+    """Load explicit C sources followed by any generated campaign programs."""
     out: list[cd.Program] = []
     for spelled in args.source:
         path = Path(spelled)
