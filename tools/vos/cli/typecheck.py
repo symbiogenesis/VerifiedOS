@@ -57,7 +57,7 @@ MODULE_SUFFIXES = (".py", ".pyi")
 # Path in `ruff.toml` listing modules banned at module level by TID253.
 BANNED = ("lint", "flake8-tidy-imports", "banned-module-level-imports")
 
-# File-level `# ruff: noqa` / `# flake8: noqa` pattern.
+# File-level `ruff`/`flake8` `noqa` suppression pattern.
 FILE_NOQA = re.compile(r"#\s*(?:ruff|flake8)\s*:\s*(?i:noqa)")
 # Rules permitted in a file-level `noqa` (N999 applies to the filename, not individual lines).
 FILE_SCOPED = frozenset({"N999"})

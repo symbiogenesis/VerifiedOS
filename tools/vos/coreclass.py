@@ -15,7 +15,7 @@ CLASSES = ("C", "V", "M", "S", "RoT")
 ROW_RE = re.compile(r"(?m)^\| \*\*(C|V|M|S|RoT)(?:-class)?\*\* \|(.*)$")
 REG_SEG_RE = re.compile(r"(?:(C|V|M|S)-class|the (RoT)) \(([^)]*)\)")
 VLEN_RE = re.compile(r"VLEN=(\d+)")
-# `\u00d7` (`×`) avoids ruff's RUF001 ambiguous-unicode warning.
+# `\u00d7` (multiplication sign) avoids ruff's RUF001 ambiguous-unicode warning.
 COUNT_RE = re.compile(r"\u00d7(\d+)")
 
 
@@ -45,7 +45,7 @@ def _table(text: str, cell: int) -> dict[str, int] | None:
 
 
 def _counts(text: str) -> dict[str, int]:
-    """Sum `×N` core counts from the first column after the class name in [spec.md](../../docs/spec.md)."""
+    """Sum `\u00d7N` core counts from the first column after the class name in [spec.md](../../docs/spec.md)."""
     found: dict[str, int] = {}
     for m in ROW_RE.finditer(text):
         cells = m.group(2).split("|")
