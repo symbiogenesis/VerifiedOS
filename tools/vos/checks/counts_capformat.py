@@ -1,11 +1,9 @@
 # SPDX-License-Identifier: Apache-2.0
-"""counts, the capability format: every site that restates a frozen parameter.
+"""Check frozen capability-format parameter restatements and bit-packing budgets (`K-79`).
 
-The format is decided in Sail and transcribed into the registered artifacts.
-What is read here is the definition, the entry that
-states the parameterization normatively, both packings, and every sentence writing
-the field widths out as a sum; the widths themselves are `vos/capformat.py`'s parse
-and no figure is written down in this module.
+Reads the capability format parameters from Sail via [vos/capformat.py](../capformat.py)
+and checks every registered transcription site, `R-15-007`'s normative widths, both
+bit packings (Sail and SystemVerilog), and every written-out bit-width sum.
 """
 
 import re
@@ -13,15 +11,10 @@ from typing import TYPE_CHECKING
 
 from vos import capformat
 
-# [Context](__init__.py#Context) lives in this package, which imports this module in turn.
-# Guarded, so the annotation below costs no import at run time: under PEP 649 an
-# annotation is not evaluated unless something asks for it, and nothing here does.
 if TYPE_CHECKING:
     from . import Context
 
-# K-79: R-15-007's own statement of the parameterization, which is the normative one.
-# The pattern captures the figure alone and the label is what a finding names, so a
-# reworded entry is a finding rather than a comparison quietly dropped.
+# R-15-007's normative parameter statements: (regex, parameter_key, label).
 ENTRY_WIDTHS: tuple[tuple[str, str, str], ...] = (
     (r"a (\d+)-bit address", "cap_addr_width", "the address width"),
     (r"a (\d+)-bit object type", "cap_otype_width", "the object-type width"),
@@ -36,76 +29,26 @@ ENTRY_WIDTHS: tuple[tuple[str, str, str], ...] = (
 
 
 def cap_format(ctx: Context) -> None:
-    """K-79: the frozen capability format's parameters, wherever one is written.
+    """K-79: capability-format parameters, bit packings, and written budgets match the Sail definition.
 
-    The format is decided in three Sail files, `cap_format.sail` for the packed
-    fields, `cap_common.sail` for the permission bitmap and the reserved object types,
-    and `core/xlen.sail` for the register width the address field sits inside, and it
-    is restated across the registered artifacts. Every one of those is a hand
-    transcription and none of them was held against anything, which is the K-57 shape
-    one level up: there the five sites of one parameter, here many sites of ten.
+    Checks:
+    1. Every registered transcription site and `R-15-007`'s normative entry state the
+       widths defined in `cap_format.sail`, `cap_common.sail`, and `core/xlen.sail` (or
+       their derived figures: capability bit width, stored top mantissa width, maximum
+       effective exponent, and permission codepoint count).
+    2. The six packed fields (`perms`, `otype`, `E`, `B`, `T`, `address`) abut in order
+       and spend the capability width exactly in both the Sail and RTL package packings.
+    3. Every budget sentence in [`BUDGETS`](../capformat.py#BUDGETS) states those six
+       field widths term by term and sums to the capability width.
 
-    Three things under one rule, because they are three readings of the same table and
-    a defect in the format shows up in whichever of them the edit happened to reach.
-
-      * Every site states the value the definition fixes, or the figure that value
-        derives. Ten parameters, and three derived figures beside them: the
-        capability's width in bits, the stored top mantissa, and the maximum effective
-        exponent, which is stated at five sites and derived at none of them.
-      * The six packed fields spend the capability exactly, at **both** packings, and
-        again at every sentence that writes the sum out. This is the claim four
-        artifacts rest on when they say the table has no reserved field, no
-        software-defined permission field and no room for a revocation colour, and it
-        is arithmetic rather than a reading: the fields sum to the width, they abut,
-        and the low one ends at zero. A field shifted by a bit elaborates, decodes,
-        and is a different capability at one exponent.
-      * Both readings are over digits. The object-type class count and the count of
-        classes composition may allocate are stated as **count-words** at four sites
-        between them, "sixteen classes" and "thirteen composition-allocatable", and
-        those are outside this rule rather than held by it. It is named here because a
-        rule reaching some restatements and not others reports `ok` about a subject
-        larger than the one it read.
-
-    Fail-closed on the reading in K-57's and K-76's manner: a definition this rule can
-    no longer find, a site whose pattern no longer matches or has come to match twice,
-    a packing it cannot read, and a budget sentence it cannot place are each one
-    finding that stops the comparison for what rests on it, never a pass over nothing.
-
-    **Report-only, on three grounds and none of them K-57's first.** The model sites
-    are under the `-text` tree, where a rewrite risks the line-ending sweep the tools'
-    `newline=""` convention exists to prevent; that ground reaches two sites here and
-    not the rest. R-15-007 is the normative statement of the parameterization, so
-    rewriting it from the tool would delete the decision rather than check it, which is
-    the ground K-57 already gives for the ceiling. And the ground that decides the
-    remaining sites is the package itself: a width there is not a transcription that a
-    token substitution completes. `CapAddrWidth` is written once and *spent* at the six
-    packed-field slices, at the reset bounds, at the null transform and inside every
-    shift in the bounds algebra, none of which this rule reads and none of which is
-    arithmetic it could recompute. A repair that moved the localparam and left those
-    would turn a loud finding into a package that elaborates and computes a different
-    format, which is worse than the finding. Every other site states its width beside a
-    consequence the width fixes, "spends the 64 bits exactly", "byte-exact below 128
-    bytes at any base", "6 stored, high two derived", so a token substitution would
-    leave the artifact describing a format it no longer carries: the half-a-sentence
-    hazard that keeps K-70 report-only.
-
-    What this rule does not decide is whether the *algorithm* agrees, which is
-    `run.py rtl crosscheck`'s: the model emits its own answers and the package is
-    required to reproduce every line. The two are complements and the split is the
-    tool's reach rather than a preference. A drifted width is caught here, on the host,
-    before anything is built; a drifted expression is caught there, under a toolchain
-    the checker does not have and cannot acquire.
+    Report-only: `model/` is `-text`, `R-15-007` is normative, and RTL/prose sites
+    couple the width to surrounding slice expressions and prose claims.
     """
     rep, reg = ctx.rep, ctx.reg
     fmt = capformat.read(ctx.root, ctx.shared.get("bundle"))
     findings: list[str] = []
 
     moved = [key for key, value in fmt.defined.items() if value is None]
-    # Two wordings for one shortfall, because the bundle can now tell them apart. A
-    # name the model does not declare is a rename or a deletion and the reader is sent
-    # to look for it; a name it declares in a shape this rule cannot take a figure out
-    # of is a declaration that has moved. Under a file scan both read as a pattern
-    # matching nothing and only the second was sayable.
     findings += [
         (f"the model declares no {key}, which K-79 reads the capability format's "
          f"{key} from, so there is no definition to hold the sites against"
@@ -115,8 +58,6 @@ def cap_format(ctx: Context) -> None:
         for key in sorted(moved)]
     ctx.shared["cap_format_params"] = len(fmt.defined) - len(moved)
 
-    # The derived figures, computed from the definition rather than read anywhere. A
-    # site stating one of these is stating arithmetic and not a second decision.
     want: dict[str, int] = {k: v for k, v in fmt.defined.items() if v is not None}
     if not moved:
         size, mant = want["cap_size"], want["cap_mantissa_width"]
@@ -132,16 +73,13 @@ def cap_format(ctx: Context) -> None:
             findings.append(f"{label} no longer states {key} in a form this rule "
                             "reads")
         elif key not in want:
-            continue                       # its definition has moved and is reported
+            continue
         elif found != want[key]:
             findings.append(f"{label} states {found} where the model fixes "
                             f"{key} at {want[key]}")
         else:
             held += 1
 
-    # R-15-007's own prose, read from the register the run already holds rather than
-    # from a second trip to disk. It is the normative statement, so a disagreement here
-    # is the one that says the *decision* has moved and not a copy of it.
     entry = reg.body.get("R-15-007", "")
     if not entry:
         findings.append("R-15-007 is not declared, so the parameterization has no "
@@ -158,9 +96,6 @@ def cap_format(ctx: Context) -> None:
             elif key in want:
                 held += 1
 
-    # The packed form, at both packings, against the widths. Held in the order the
-    # declaration writes rather than as a set, because the order is what a shifted
-    # field breaks while every width still checks out.
     order = [("perms", "cap_perms_code_width"), ("otype", "cap_otype_width"),
              ("E", "cap_E_width"), ("B", "cap_mantissa_width"),
              ("T", "stored_mantissa_width"), ("address", "cap_addr_width")]
@@ -186,10 +121,6 @@ def cap_format(ctx: Context) -> None:
             findings.append(f"{label} leaves bit {top} and below unspent, so the "
                             "format has a reserved field the register says it has not")
 
-    # The sentences that write the sum out, which are the only places the "spends the
-    # bits exactly" claim is stated as arithmetic rather than asserted. Each is held
-    # term by term, because a sentence whose terms have drifted and whose total still
-    # adds up is the one a reader would take on trust.
     for _, label, _ in capformat.BUDGETS:
         budget = fmt.budgets.get(label)
         if budget is None:

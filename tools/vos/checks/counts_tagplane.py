@@ -1,23 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""counts, the tag plane: the ratio one register field fixes, wherever it is stated.
-
-A cardinality is not the only figure a document can restate, and this is the second
-kind. The tag plane's cost is not a count of anything: it is one register field, the
-granule width, read as a ratio. Deliberately retained numerical statements are checked
-against their owner and repaired from it; background and performance discussions link
-to the canonical calculation. Nothing about the ratio is a measurement.
-
-The code over the plane is the other half. R-15-181a states the DECTED code's width as
-an authored decision, and coding theory bounds that decision below: correcting two
-errors while detecting three needs minimum distance 6, and no code of that distance
-over so few tag bits is shorter than the floor tabled here. Everything built on the
-width is arithmetic again, the codeword's metadata totals, the plane's share of it,
-the ladder the width is chosen from and the megabytes a gigabyte of data then carries,
-so the width is held at or above its floor and every figure built on it against the
-entry's own bit counts. Those findings are reported and never rewritten: each sits in a
-sentence whose other figures may be the ones that moved, and a width above the floor
-is a judgment no repair may make.
-"""
+"""Check tag-plane density ratios (`R-15-203`) and DECTED/SECDED codeword metadata arithmetic (`R-15-181a`, `R-15-247a`) across register and spec (`K-54`)."""
 
 import re
 from dataclasses import dataclass
@@ -28,17 +10,12 @@ from vos import figures
 from vos.checks.counts_fields import GRANULE_RE, PAYLOAD_RE
 from vos.register import REGISTER
 
-# [Context](__init__.py#Context) lives in this package, which imports this module in turn.
-# Guarded, so the annotation below costs no import at run time: under PEP 649 an
-# annotation is not evaluated unless something asks for it, and nothing here does.
 if TYPE_CHECKING:
     from . import Context
 
 SPEC = "docs/spec.md"
 
-# file, key, and the pattern capturing the stated figure alone. Each pattern holds
-# exactly one site in its own file, which a claim owes because a repair rewrites every
-# site the pattern matches.
+# Bare tag-plane density claims (`100 / granule` % and `1000 / granule` MB/GB), repaired under `--fix`.
 TAG_PLANE: list[tuple[str, str, str]] = [
     (REGISTER, "mb-per-gb", r"(?<=granule is )[\d.]+(?= MB per GB of data)"),
     (REGISTER, "plane-exact", r"(?<=native tags cost )[\d.]+(?=% plus that code)"),
@@ -50,51 +27,34 @@ TAG_PLANE: list[tuple[str, str, str]] = [
     (SPEC, "plane-short", r"(?<=tag plane's ~)[\d.]+(?=% share of the array)"),
 ]
 
-# The minimum distance double-error correction with triple-error detection needs: two
-# corrected and three detected errors must never meet, so d >= 2 + 3 + 1.
+# Minimum Hamming distance for double-error correction + triple-error detection (d >= 2 + 3 + 1 = 6).
 DISTANCE = 6
 
-# The fewest check bits a binary code of minimum distance 6 admits over k information
-# bits, at each tag count a codeword on the ladder carries. A stated width is held
-# against the any-code row, a code being free to be nonlinear; the ladder is priced at
-# the linear row, which is what R-15-181a says it prices. Each entry is an explicit code
-# reaching it and a bound refusing one check bit fewer, and
-# tests/test_dected_floor.py derives both without reading this table. A tag count the
-# table does not carry is a finding, never a guess.
+# Minimum check bits for a distance-6 binary code over `k` tag bits (verified in
+# [test_dected_floor.py](../../tests/test_dected_floor.py)): `DECTED_FLOOR_ANY` allows
+# nonlinear codes (Nordstrom-Robinson at k=8); `DECTED_FLOOR_LINEAR` restricts to linear codes.
 DECTED_FLOOR_ANY: dict[int, int] = {
-    1: 5,   # [6,1,6], the repetition code; no two words of length 5 lie 6 apart
-    2: 7,   # [9,2,6]; Plotkin, A(8,6) <= 2 < 4
-    4: 8,   # [12,4,6]; Plotkin, A(11,6) <= 12 < 16
-    8: 8,   # Nordstrom-Robinson (16,256,6); A(15,6) = A(14,5) <= 2^14 // 106 = 154 < 256
+    1: 5,   # [6,1,6] repetition code
+    2: 7,   # [9,2,6]; Plotkin bound A(8,6) <= 2 < 4
+    4: 8,   # [12,4,6]; Plotkin bound A(11,6) <= 12 < 16
+    8: 8,   # Nordstrom-Robinson (16,256,6); A(15,6) = A(14,5) <= 154 < 256
 }
 DECTED_FLOOR_LINEAR: dict[int, int] = {
     **DECTED_FLOOR_ANY,
-    # [17,8,6]; a linear [16,8,d] code with d >= 6 has a residual code [16-d,7,ceil(d/2)],
-    # [10,7,3] at d = 6, and the Hamming bound refuses it at every d the Singleton bound
-    # leaves (2^7 * 11 > 2^10 at d = 6)
-    8: 9,
+    8: 9,   # [17,8,6]; residual code [10,7,3] at d=6 violates Hamming bound (2^7 * 11 > 2^10)
 }
 
-# The normative codeword, read from the entry that fixes the code over the plane: the
-# SECDED check bits over the data, the DECTED check bits over the tags, the bit count it
-# gives the plane with that code and the plane's share of the payload, and the total
-# metadata beside them. The width is a judgment above the floor; the rest is its sum.
+# Normative and fallback codeword patterns in `R-15-181a`.
 SECDED_RE = re.compile(r"data payload is \d+ bits with (\d+) SECDED check bits")
 SHARE_RE = re.compile(r"DECTED code of (?:about )?(\d+) (?:check )?bits.*?tag plane with its "
                       r"own code is (\d+), some ([\d.]+)% of the payload")
-# where the entry calls its width the fewest a code admits, that is a claim of equality
-# with the floor, and it is held as one; an entry saying "fewest" in a form this does not
-# read is a finding, so a reworded claim cannot step out from under the hold
 FEWEST_RE = re.compile(r"the fewest any code of minimum distance (\d+) over (\d+) "
                        r"(?:tag )?bits admits")
 TOTAL_RE = re.compile(r"total metadata of some (\d+) bits per (\d+) data bits \(([\d.]+)%\)")
-# the fallback codeword states its totals and its plane, and so implies its code's width
 FALLBACK_RE = re.compile(r"(\d+) bits \((\d+) per \1, ([\d.]+)%, the tag plane with its code "
                          r"(\d+) of them at ([\d.]+)%\) is the fallback")
 
-# The ladder the width is chosen from: the DECTED code's check bits at each tag count,
-# and what the codeword's metadata then costs at each payload. A series is read in
-# either spelling, "5, 7, 8, 9" in an entry's line and "5, 7, 8, and 9" in running prose.
+# Codeword-width ladder patterns in `R-15-181a` and `docs/spec.md`.
 _SERIES = r"\d+(?:, (?:and )?\d+)+"
 LIST_RE = re.compile(rf"\(({_SERIES}) check bits at ({_SERIES}) tag bits, the fewest a "
                      r"linear code of minimum distance (\d+) admits")
@@ -105,7 +65,6 @@ SPEC_DATA_RE = re.compile(rf"SECDED alone falls ([\d.]+(?: → [\d.]+)+)% across
                           rf"({_SERIES}) data bits")
 SPEC_TOTAL_RE = re.compile(r"total metadata per byte of data falls "
                            r"\*\*([\d.]+(?: → [\d.]+)+)%\*\*")
-# the second figure closes its sentence, so a decimal is read as one and not as [\d.]+
 SPEC_STEP_RE = re.compile(r"the step from (\d+) to (\d+) is worth (\d+(?:\.\d+)?) points where "
                           r"the data code alone showed (\d+(?:\.\d+)?)")
 SPEC_LAST_RE = re.compile(r"(\d+) is not taken, its further ([\d.]+) points being the "
@@ -113,14 +72,7 @@ SPEC_LAST_RE = re.compile(r"(\d+) is not taken, its further ([\d.]+) points bein
 SPEC_PLANE_RE = re.compile(r"tag plane with its own code is (\d+) of the (\d+) at (\d+) and "
                            r"(\d+) of the (\d+) at (\d+)")
 
-# The DECTED-inclusive bands beside the bare figures, in R-15-247a and in the
-# specification's copy of it. Both ends of each are machine-held: the megabyte band
-# opens at the normative codeword's plane, above the bare plane it includes, and closes
-# at the fallback's, and the sidecar band is the product of those ends, the tier and the
-# first class, its low end against the largest first class and its high end against
-# the smallest. The percentage band is the plane's share at the two codewords,
-# which K-69 holds against R-15-181a; this rule holds only that it opens above the bare
-# plane.
+# DECTED-inclusive MB/GB and sidecar bands in `R-15-247a` and `docs/spec.md`.
 BAND_MB_RE = re.compile(r"about (\d+)–(\d+) MB of SRAM per GB")
 BAND_PCT_RE = re.compile(r"some ([\d.]+)–([\d.]+)% of the bulk array")
 SIDECAR_RE = re.compile(r"consume (\d+)–(\d+)% of a ([\d.]+)–([\d.]+) GB first class")
@@ -479,23 +431,13 @@ def _band_text(held: tuple[str, ...]) -> str:
 
 
 def tag_plane(ctx: Context) -> None:
-    """K-54: every stated tag-plane figure, against the fields and the floor it rests on.
+    """K-54: bare tag-plane density claims (`TAG_PLANE`) and DECTED/SECDED codeword metadata arithmetic agree with `R-15-203` and `R-15-181a`.
 
-    The granule is one bit of validity per so many bits of data, so the plane is
-    `100/granule` percent of the array it covers and `1000/granule` megabytes per
-    gigabyte of it, and the ECC codeword carries `payload/granule` tag bits. Source
-    parameters and the code-inclusive figures stay checked independently of which
-    narrative documents repeat the arithmetic. The code's width is held at or above
-    the distance-6 floor for its tag count, at the normative codeword and at the
-    fallback, and every total, share, ladder rung, step and band built on it is held
-    against the bit counts beside it; those are reported, never rewritten.
-
-    A reading that has moved is the one finding this rule cannot repair: with no
-    granule there is no arithmetic to compare against, so it reports and stops rather
-    than passing over an empty claim table, which is the vacuity the floors group
-    exists to refuse and would not see here, the table being a literal. Each sentence
-    the code-inclusive holds read is one sentence, so a reading that fails is itself a
-    finding rather than a count the floors group would need.
+    Rewrites bare `TAG_PLANE` ratio sites under `--fix`; checks (report-only) the
+    normative and fallback codewords, check-bit floors (`DECTED_FLOOR_ANY` and
+    `DECTED_FLOOR_LINEAR`), codeword-width ladders, and `R-15-247a` MB/GB and sidecar
+    bands across [requirements-register.md](../../../docs/requirements-register.md) and
+    [spec.md](../../../docs/spec.md).
     """
     rep, reg = ctx.rep, ctx.reg
 
@@ -521,12 +463,6 @@ def tag_plane(ctx: Context) -> None:
 
     missed: list[str] = []
     for file, key, pattern in TAG_PLANE:
-        # The spans are discarded where the CLAIMS loop keeps them, and that is an
-        # invariant rather than an oversight: a kept span exists to exempt its site
-        # from K-26, which proposes only the distinctive forms of the counted
-        # quantities, and no tag-plane figure is ever one of those, each being a
-        # decimal ratio, a payload width no quantity counts, or a word form below
-        # eleven. A tag-plane site therefore never needs a span to be exempted.
         r = figures.resolve_claim(ctx, file, pattern, expected[key],
                                   f"the tag plane's {key} figure")
         if bool(r.fixed):
@@ -534,18 +470,13 @@ def tag_plane(ctx: Context) -> None:
         if bool(r.finding):
             missed.append(r.finding)
 
-    # The two codewords R-15-181a prices, each held at the floor and at its own sums,
-    # and the ladder its acceptance criterion chooses the width from.
     body = reg.body.get("R-15-181a", "")
     normative = _normative(body, g, p, missed)
     fallback = _fallback(body, g, missed)
     _register_ladder(reg.accept_text.get("R-15-181a", ""), g, missed)
 
-    # The bands are read from the entry that states them and from the specification's
-    # copy, each held against the two codewords, and the copy against the entry.
     held = _bands(reg.accept_text.get("R-15-247a", ""), "R-15-247a", g, normative,
                   fallback, missed)
-    # a specification the corpus lacks is already a finding of every claim above
     if SPEC in ctx.corpus:
         raw = ctx.text(SPEC)
         _spec_ladder(raw, g, missed)

@@ -1,46 +1,18 @@
 # SPDX-License-Identifier: Apache-2.0
-"""counts, the shipped configurations: one model, handed different files.
-
-There is exactly one Sail model, parameterized by core class, and a V-class or an RoT
-emulator is that model handed another configuration rather than a second model. Two
-rules stand on that: each file differs from the primary in exactly the keys its own
-row declares, and a file composing a hart on a vectorless class names no vector
-extension. The first compares the shipped files to each other, the second holds one
-file against the model's own extension registry, and neither can see what the other
-does.
-"""
+"""Check shipped Sail configuration files, vectorless compositions, MMIO apertures, excluded-by-name extensions, and IO-memory executability (`K-65`, `K-78`, `K-87`, `K-94`, `K-101`)."""
 
 import re
 from typing import TYPE_CHECKING
 
 from vos import config, coreclass
 
-# [Context](__init__.py#Context) lives in this package, which imports this module in turn.
-# Guarded, so the annotation below costs no import at run time: under PEP 649 an
-# annotation is not evaluated unless something asks for it, and nothing here does.
 if TYPE_CHECKING:
     from . import Context
 
-# The configurations this tree ships. The first is the primary and every other is read
-# against it, each with the keys it is *allowed* to differ in.
-#
-# Both halves are enumerations rather than patterns on purpose. A further configuration
-# is a row here, which is the point at which somebody decides what it is a configuration
-# *of*; a further divergent key is the point at which somebody decides whether that file
-# still describes the same machine or has quietly become another one.
-#
-# **The divergence set is per file and not global, and the RoT row is why.** The V-class
-# configuration is the primary with the two keys naming which core it composes moved
-# (M0.8b). The RoT configuration is the primary with twelve moved, and eleven of the
-# twelve are *forced* by a validator clause rather than chosen: a class with no vector
-# geometry is refused any `support_level` but `Disabled`, a disabled vector unit is
-# refused any `vs_legal_states` but `ExtContext_Off`, each config-gated vector-crypto
-# flag is refused by name while `Zve32x` is unavailable, and the element width and index
-# width are constrained at or below the vector length above them
-# (model/model/postlude/validate_config.sail). One global tuple applied to both rows
-# cannot state that: it would either license the RoT's eleven on the V pair, where each
-# would be a second machine, or refuse them on the RoT pair, where each is the only value
-# the model admits.
+# Shipped configurations: `SHIPPED_PRIMARY` is the reference configuration, and
+# `CONFIG_DIVERGENCE` lists the exact leaf keys each non-primary configuration must
+# differ in (11 of the 12 RoT divergences are forced by `validate_config.sail` when
+# `extensions.V.support_level` is `Disabled`).
 SHIPPED_PRIMARY = "model/config/verifiedos.json"
 
 CONFIG_DIVERGENCE: dict[str, tuple[str, ...]] = {
@@ -68,34 +40,12 @@ SHIPPED_CONFIGS = (SHIPPED_PRIMARY, *CONFIG_DIVERGENCE)
 
 
 def shipped_configurations(ctx: Context) -> None:
-    """K-65: every shipped configuration is a configuration and not a fork.
+    """K-65: every shipped configuration differs from the primary in its declared keys only and composes a distinct hart.
 
-    There is exactly one Sail model, parameterized by core class, and a V-class or an
-    RoT emulator is that model handed a different configuration rather than a second
-    model (R-15-005, M0.8b, M3.1). What makes the claim true is that each file differs
-    from the primary in exactly the keys its own row declares and in nothing else, and
-    that each of those keys actually differs.
-
-    Nothing else holds them together. The model's own validator refuses a configuration
-    whose roster puts the composed hart on a class whose declared geometry is not the
-    one the run realizes, but it sees one file at a time and only when a run happens
-    (postlude/validate_config.sail), and no build loop here hands it anything but the
-    primary; `run.py model config-keys` compares a configuration against the *generated* one
-    and answers about keys rather than values. So each non-primary file is a
-    six-hundred-line near-copy with no instrument over the copying, which is the
-    two-copies-of-one-fact defect this checker exists to catch, sitting inside the
-    artifact it checks.
-
-    The divergent keys are held in **both** directions. A key that drifted makes the file
-    a different machine; a declared-divergent key that stopped diverging makes it a
-    second *copy* of the primary, and the evidence measured against it would be evidence
-    about the C class under another name.
-
-    And with more than two files a third failure becomes possible that no pair against
-    the primary can see: two non-primary configurations naming one core. Each may diverge
-    from the primary in `platform.hartid` and still agree with the other, which is the
-    same defect one level up from a divergent key that stopped diverging, so the composed
-    identities are held distinct across the whole set.
+    Checks that every file in `SHIPPED_CONFIGS` declares the exact same leaf key set as
+    `SHIPPED_PRIMARY`, differs from `SHIPPED_PRIMARY` on every key in its
+    `CONFIG_DIVERGENCE` tuple and on no other key, and selects a distinct
+    `platform.hartid` across the set (`R-15-005`).
     """
     rep = ctx.rep
     findings: list[str] = []
@@ -133,9 +83,6 @@ def shipped_configurations(ctx: Context) -> None:
                  for hart, rels in sorted(composed.items(), key=lambda kv: str(kv[0]))
                  if len(rels) > 1]
 
-    # Leaf paths rather than every key path, which is what `keys` counts and what
-    # `run.py model config-keys` reports: the question here is what the files *say*, so the
-    # figure is the values compared and not the surface declaring them.
     ctx.shared["shipped_config_values"] = len(primary)
     rep.report("K-65", "shipped configuration(s) that are not one model's:", findings,
                f"the {len(SHIPPED_CONFIGS)} shipped configurations state the same "
@@ -144,38 +91,16 @@ def shipped_configurations(ctx: Context) -> None:
 
 
 def vectorless_configurations(ctx: Context) -> None:
-    """K-78: a vectorless composition names no vector extension.
+    """K-78: shipped configurations whose composed hart sits on a vectorless class enable no vector extension.
 
-    The composed hart's class decides whether a configuration is a configuration of a
-    core with a vector unit: `platform.hartid` indexes `platform.core_roster`, and a
-    zero `vlen_exp` in that hart's class row is the table's way of saying the core has
-    none (R-15-052b, R-15-113). The generated `riscv,isa` string and the
-    `riscv,isa-extensions` array of the **attested** devicetree are built from
-    `hartSupports`, so an extension that reads true there is a standards-track name in
-    an artifact a relying party appraises the part from (R-15-126).
-
-    **The `Zvl` ladder is the rung that reaches that artifact without a key.** Every
-    other vector row in the registry is gated on a `supported` key or on the vector
-    support level, so a composition turning its vector unit off is refused each of them
-    by name at load; the minimum-vector-length rungs are gated on `sizeof(vlen_exp)`
-    **alone**, and `vlen_exp` is type-level and constrained `3 <= vlen_exp <= 16`
-    (core/vlen.sail), so it cannot be set to zero to mean vectorless. A vectorless
-    composition left at a vector-bearing class's exponent therefore validated, ran, and
-    emitted four minimum-vector-length extensions it does not implement.
-
-    The model now refuses that at load, and this rule is why refusing it at load is not
-    enough: the validator sees one file at a time and only when a run happens, and no
-    loop in this repository hands it anything but the primary configuration, so the file
-    the defect belongs to is the one nothing runs. That is K-65's own ground, one
-    artifact over: K-65 compares the shipped files to each other and would be *satisfied*
-    by a vectorless file that had never moved its exponent at all, the exponent then
-    agreeing with the primary rather than diverging from it.
-
-    Both readings are the model's own rather than transcriptions: the rungs and their
-    thresholds and the config-gated vector extensions and their keys are parsed out of
-    the extension registry (vos/coreclass.py), so a rung re-based or a flag added joins
-    the rule rather than waiting to be copied into it. A registry this rule cannot read
-    yields no rungs, which the floors group reports rather than passing over.
+    For every shipped configuration whose `platform.hartid` indexes a core class with
+    `vlen_exp == 0` (`R-15-052b`, `R-15-113`), checks that `extensions.V.support_level`
+    is `"Disabled"`, `extensions.V.vlen_exp` sits below every `Zvl*b` rung threshold in
+    [`zvl_rungs`](../coreclass.py#zvl_rungs) (`core/vlen.sail` constrains
+    `3 <= vlen_exp <= 16`, so `Zvl*b` rungs are gated on `vlen_exp` alone), and every
+    config-gated vector extension in
+    [`config_gated_vector_extensions`](../coreclass.py#config_gated_vector_extensions)
+    is `False`.
     """
     rep = ctx.rep
     findings: list[str] = []
@@ -225,81 +150,30 @@ def vectorless_configurations(ctx: Context) -> None:
                f"and sit below all {len(rungs)} minimum-vector-length rungs")
 
 
-# The three model files the aperture rule below reads, and it reads all three because
-# what it holds is a *pairing across* them rather than a value in any one of them: the
-# composition declares an aperture, `platform_config.sail` gives it a name the model can
-# say, the emitter states its placement in the attested devicetree, and the validator
-# refuses a composition that places it wrong.
 APERTURE_CONFIG = "model/model/core/platform_config.sail"
 APERTURE_TREE = "model/model/postlude/device_tree.sail"
 APERTURE_VALIDATOR = "model/model/postlude/validate_config.sail"
 
-# The name the model gives an aperture's base, keyed by the configuration path it reads
-# it from. This is what makes the rule's three hops possible at all: nothing derives
-# `plat_monotonic_base` from `platform.monotonic_counters`, so the mapping is taken from
-# the one file that writes both halves on one line.
 APERTURE_BASE_RE = re.compile(r"let\s+(plat_\w+_base)\s*:\s*physaddrbits\s*=\s*"
                               r"to_bits_checked\(config\s+(platform\.[\w.]+)\.base\s*:\s*int\)")
 DTS_REG_RE = re.compile(r"generate_dts_reg\(\s*(plat_\w+_base)\s*,")
 PMA_CALL_RE = re.compile(r'within_configured_pma_memory\("[^"]*",\s*(.*?)\);', re.DOTALL)
 PLAT_BASE_RE = re.compile(r"plat_\w+_base")
-# The rows of the whole-map disjointness list, located by the base each row takes. This
-# is the one hop whose far side is a list somebody maintains, which is exactly why it is
-# here: the other two are patterns over a call the model writes once per window.
 APERTURE_ROW_RE = re.compile(r"aps\s*=\s*\(\s*\"[^\"]*\"\s*,\s*(plat_\w+_base)\s*,")
 
 
 def aperture_placements(ctx: Context) -> None:
-    """K-94: every aperture a composition declares is placed in the attested devicetree,
-    held in IO memory by the validator, and held apart from the other windows.
+    """K-94: every enabled MMIO aperture in a shipped configuration is emitted in the devicetree, bounded in IO memory, and listed in whole-map disjointness.
 
-    R-15-002b puts every MMIO aperture inside the 36-bit space and makes the placement
-    *a stated constraint on the attested devicetree*, which is the sentence a `reg`
-    answers to, and it is checked at composition so that an aperture that does not fit
-    is a composition failure rather than a runtime trap. Three artifacts have to agree
-    for that to be true and each of them can stop agreeing on its own: a composition can
-    declare a window the emitter says nothing about, an emitter can carry a node for a
-    window no composition declares, and a validator can pass a window nothing bounds.
-
-    **The three hops are separate because the failures are.** A missing node is an
-    attested artifact that under-describes the die, and the reader who is hurt is the
-    relying party appraising the part from it. A missing `within_configured_pma_memory`
-    clause is a window the composition may place in main memory, or outside every
-    region, with nothing to say so until something reaches the address. A missing row in
-    the validator's whole-map list is a window nothing holds apart from its neighbours,
-    so two devices may be declared at one address and both validate. None implies
-    another, and the first two were live when this rule was written: the interrupt file
-    and the revocation sidecar were declared apertures with `within_configured_pma_memory`
-    clauses and no node at all, in a file whose own comment says each node below it
-    carries its window under R-15-002b.
-
-    **The third hop is the one whose far side is a list rather than a call**, which is
-    why it is worth a hop of its own. `declared_apertures` is written out row by row,
-    one row per window; each row reads its own aperture's `supported` key and base, so a
-    window switched off leaves the check by itself, and a window the composition gains
-    does not join until somebody writes a row. Without this hop that omission is silent
-    with every gate green, which is the shape of defect the other two hops exist for.
-
-    **The subject is what the shipped compositions declare and not what the model can
-    say.** An aperture the model reads a base for and no composition switches on is
-    outside this rule rather than passing it, on K-87's ground: what a composition
-    declares is what a die has, and a key set to false is a window that is not there.
-
-    Every reading is the artifacts' own. The aperture set is every `platform.<name>`
-    object of a shipped configuration carrying both `supported` and `base`, so a window
-    added to the composition joins the rule by being added; and the name the model gives
-    each one is parsed out of the file that reads the key, so a rename joins it too. The
-    devicetree side is located by the one function every node states its window through
-    and the IO-memory side by the one function every clause bounds a window with, which
-    keeps those two hops patterns over a call rather than over a list; the disjointness
-    side is located by the row form the whole-map list is written in, which is a list
-    and is precisely what that hop is there to hold.
-
-    Fail-closed on the reading, on K-75's ground: an absent file, a
-    `platform_config.sail` that yields no aperture at all, and a validator whose
-    whole-map list matches no row are each a finding rather than a comparison made
-    against nothing, and the aperture count is a member of the floors group's
-    enumerations for the case where the compositions stop declaring one.
+    For every `platform.<name>` object with `supported == True` and a `base` key in
+    `SHIPPED_CONFIGS`, checks across three Sail files (`R-15-002b`):
+    1. [platform_config.sail](../../../model/model/core/platform_config.sail) binds
+       `platform.<name>.base` to a `plat_*_base` identifier.
+    2. [device_tree.sail](../../../model/model/postlude/device_tree.sail) passes that
+       `plat_*_base` to `generate_dts_reg`.
+    3. [validate_config.sail](../../../model/model/postlude/validate_config.sail) bounds
+       it inside `Some(IOMemory)` via `within_configured_pma_memory` and includes it in
+       the `declared_apertures` disjointness list.
     """
     rep = ctx.rep
     findings: list[str] = []
@@ -370,9 +244,6 @@ def aperture_placements(ctx: Context) -> None:
                f"row in the list the whole-map check walks")
 
 
-# The exclusion row of the profile's §6 that names its extensions inline rather than one
-# per row: the names are the backticked tokens on the row whose text says the exclusion
-# is by name rather than by silence (R-15-048a).
 BY_NAME_ROW_RE = re.compile(r"(?m)^\|([^|\n]*)\|[^|\n]*excluded \*\*by name rather than "
                             r"by silence\*\*")
 BACKTICKED_RE = re.compile(r"`(\w+)`")
@@ -380,34 +251,12 @@ PROFILE = "docs/hardware/isa-profile.md"
 
 
 def excluded_by_name_keys(ctx: Context) -> None:
-    """K-87: an extension excluded by name reads false wherever a key still carries it.
+    """K-87: extensions excluded by name in [isa-profile.md](../../../docs/hardware/isa-profile.md) that remain config-gated in Sail are `False` in all shipped configurations.
 
-    Two kinds of exclusion look identical from the profile and are not the same fact.
-    Most excluded extensions are absent from the model: the surface was deleted, so the
-    exclusion is a **shape** of the tree and nothing can turn it back on. A few are still
-    implemented and switched off by a `supported` key reading false in every shipped
-    configuration, so the exclusion is a **setting**, and a setting is undone by editing
-    a file that no review gate reads. `Zbc` and `Zicclsm` are the two today, and no
-    artifact said which kind either was: the profile writes both sorts of row the same
-    way, and M0.19 recorded the distinction in a completion note where no rule reads it.
-
-    K-66 is the neighbour and cannot see this. It holds that no name the exclusion rows
-    spell is spelled back by the model's assembly clauses or carried by the corpus
-    assembler, which is exactly the *shape* half; an extension whose clauses are still in
-    the tree behind a false key is, to that rule, an excluded name whose clauses it finds
-    and reports. So the two rules partition the exclusion set rather than overlapping on
-    it, and this one takes the half K-66's own reading has to leave alone.
-
-    Both readings are the artifacts' own. The excluded names are the backticked tokens on
-    the profile row that says the exclusion is by name; the gated extensions and their key
-    paths are parsed out of the model's extension registry, so a flag added upstream joins
-    the rule rather than waiting to be transcribed. The intersection is what this decides
-    about, and it is deliberately narrow: an excluded name the registry does not gate is
-    outside the rule rather than passing it, that being K-66's subject.
-
-    Fail-closed on the reading, on K-75's ground: an absent profile, a §6 that
-    yields no by-name row, and a registry that yields no gated extension are each a
-    finding rather than a comparison made against nothing.
+    Complements `K-66` (which checks extensions removed from the Sail decode surface):
+    when an extension excluded by name (`R-15-048a`) still has a `supported` key in
+    [`config_gated_extensions`](../coreclass.py#config_gated_extensions), that key must
+    be present and `False` across `SHIPPED_CONFIGS`.
     """
     rep = ctx.rep
     findings: list[str] = []
@@ -450,85 +299,28 @@ def excluded_by_name_keys(ctx: Context) -> None:
                f"{len(SHIPPED_CONFIGS)} shipped configurations")
 
 
-# The fourth file that carries the regions, and the one no `*.json` reading reaches. It
-# is the CMake template `model/config/CMakeLists.txt` configures every generated
-# test-matrix configuration from, and it reads one of those back into the emulator's own
-# default header, so an attribute set here reaches a built emulator without passing
-# through a file the dialect loader can open at all: it writes `@VARIABLE@` placeholders
-# where a generated configuration writes a number, so it is not JSON in any dialect and
-# is read as the template it is, which is how `vos/geometry.py` already reads the welded
-# block size out of it for K-57.
-#
-# The region pattern is tempered rather than greedy, so a pair is one region's own two
-# keys and never one region's type beside its neighbour's permission. The bare type
-# pattern beside it is the population those pairs are held against, which is what keeps
-# this half from narrowing quietly: a region the paired reading stops reaching is a
-# finding rather than a region silently dropped.
+# CMake configuration template (`@VARIABLE@` placeholders prevent JSON parsing).
 CONFIG_TEMPLATE = "model/config/config.json.in"
 TEMPLATE_REGION_RE = re.compile(r'"mem_type"\s*:\s*"(\w+)"(?:(?!"mem_type").)*?'
                                 r'"executable"\s*:\s*(true|false)', re.DOTALL)
 TEMPLATE_TYPE_RE = re.compile(r'"mem_type"\s*:')
 
-# The two kinds a region is, named so that a type spelled outside them stops the
-# comparison for that region rather than passing as one that is not a device.
 MEM_TYPES = ("IOMemory", "MainMemory")
 
 
 def device_region_executability(ctx: Context) -> None:
-    """K-101: no region a composition types as IO memory is executable.
+    """K-101: no `IOMemory` region in `SHIPPED_CONFIGS` or `model/config/config.json.in` has `executable: true`.
 
-    `executable` is the one PMA attribute an architectural instruction fetch is decided
-    by. `pmaCheck` maps `InstructionFetch()` to it and returns an access fault where it
-    reads false (model/model/sys/mem.sail), and `pma_regions` is the composition's own
-    `memory.regions` outright (model/model/sys/pma.sail), so whether a fetch to a device
-    endpoint faults or returns is a value in a JSON file rather than a shape of the tree.
-    No register entry states which value it takes: the W^X entries are stated over
-    capability authority instead, R-14-003 having W^X subsume the per-page no-execute bit
-    and R-15-007l's Accept saying in as many words that the bound is on capabilities and
-    not on memory, the same address being writable through one capability and executable
-    through another.
-
-    **The forward direction only, and the converse is refused rather than left out.** A
-    region typed IOMemory is a register-slave endpoint and is not fetched from, so that
-    half is exception-free across every composition and the template alike. The reverse
-    is a shape the model *mandates*: `check_pma_region` refuses an IO-memory scratchpad
-    and refuses an executable one, on R-18-009's ground that a statically-placed
-    instruction scratchpad is a question this profile leaves open
-    (model/model/postlude/validate_config.sail), which leaves any scratchpad R-15-167
-    admits a main-memory region with `executable` false. A rule reading the two
-    attributes as a biconditional would refuse the first composition that declares one,
-    which is a rule deciding a design question rather than holding one.
-
-    **K-65 is the neighbour and cannot see this.** `memory.regions` is in neither
-    non-primary file's declared divergence set and a list is compared whole, so a region
-    attribute that drifted in one file is already its finding. What it is satisfied by is
-    the three files agreeing on a value none of them should carry, which is the shape
-    this defect arrives in: the primary edited and the other two kept in step.
-
-    **The template is inside the rule and not beside it**, because it is the copy a
-    `*.json` glob and the dialect loader both miss and the copy every generated
-    configuration is configured from.
-
-    Report-only, on K-87's and K-94's ground: which value a composition declares is a
-    composition's decision, and a rule that flipped one would be deciding what machine a
-    file describes.
-
-    Fail-closed on the reading, on K-75's ground: a composition stating no
-    readable `memory.regions`, a region declaring no attributes, a region whose memory
-    type is neither of the two kinds a region is or whose `executable` is not a boolean,
-    an absent template, a template carrying no region in the form this rule reads, a
-    template typing more regions than this rule pairs an executability with, and a run
-    reaching no IO memory region at all are each a finding rather than a comparison made
-    against nothing, which leaves this rule owing the floors group no member.
+    Checks the forward implication (`IOMemory => not executable`) across every region in
+    `SHIPPED_CONFIGS` and `CONFIG_TEMPLATE`; the converse is not required because
+    non-executable `MainMemory` regions (such as data scratchpads under `R-15-167` /
+    `R-18-009`) are valid.
     """
     rep = ctx.rep
     findings: list[str] = []
-    # where it is written, the memory type it is given, and whether it is executable
     read: list[tuple[str, str, bool]] = []
 
     for rel in SHIPPED_CONFIGS:
-        # `config.value` rather than a second parse: the dialect is decoded in one place,
-        # and K-65 above has already paid for these files this run.
         regions = config.value(ctx.root / rel, "memory", "regions")
         if not isinstance(regions, list) or not regions:
             findings.append(f"{rel} states no `memory.regions` this rule can read, so no "

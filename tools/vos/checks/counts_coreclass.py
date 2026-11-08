@@ -1,45 +1,26 @@
 # SPDX-License-Identifier: Apache-2.0
-"""counts, the core classes: one table, written in four idioms.
-
-One Sail model is parameterized by core class, and what each class *is* is stated
-three times in prose and once in the composition the model is built from. The
-composition is the reference and the prose sites are held against it; the reading
-itself is `vos/coreclass.py`'s, so nothing here states a geometry of its own.
-"""
+"""Check core-class vector geometry and core-roster counts across prose and composition (`K-60`, via [vos/coreclass.py](../coreclass.py))."""
 
 from typing import TYPE_CHECKING
 
 from vos import coreclass
 
-# [Context](__init__.py#Context) lives in this package, which imports this module in turn.
-# Guarded, so the annotation below costs no import at run time: under PEP 649 an
-# annotation is not evaluated unless something asks for it, and nothing here does.
 if TYPE_CHECKING:
     from . import Context
 
 
 def core_classes(ctx: Context) -> None:
-    """K-60: the core-class table, in every artifact that writes it.
+    """K-60: core-class vector geometries, core-roster counts, and `VLEN=n` tokens match the primary Sail composition.
 
-    One Sail model is parameterized by core class (R-15-005), and the table saying what
-    each class *is* is written four times: once as the specification's core-class table,
-    once as the profile's, once as the register's one-sentence enumeration, and once as
-    the class table the model is actually composed from. The first three are prose in
-    three different idioms, which is what makes this the shape where an edit to one
-    renders correctly in all four; the fourth is the only one the machine reads, so a
-    document that has drifted from it describes a machine nobody runs.
-
-    Counts are held on a narrower ground and it is worth stating, because R-15-113 calls
-    them composition parameters rather than architecture. A machine may carry any
-    roster. This repository composes exactly one, so the reference instantiation the
-    specification states is a claim about *that* roster, and a count in prose that no
-    roster realizes is a figure nobody renders wrong. Only the specification states
-    counts, so only it is held against the roster.
-
-    Reported and never repaired, for K-57's two reasons: the composition is under a
-    `-text` tree where a rewrite risks the line-ending sweep the tools' `newline=""`
-    convention exists to prevent, and which geometry a class takes is R-15-108's
-    exploration rather than arithmetic.
+    Checks that:
+    1. Every prose core-class table ([spec.md](../../../docs/spec.md),
+       [isa-profile.md](../../../docs/hardware/isa-profile.md), and `R-15-113`) states
+       the per-class vector geometry declared in
+       [`CONFIG`](../coreclass.py#CONFIG) (`R-15-005`, `R-15-113`).
+    2. The per-class core counts in [spec.md](../../../docs/spec.md) match the composed
+       `platform.core_roster`.
+    3. Every unfenced `VLEN=n` token in the Markdown corpus names a non-zero `VLEN`
+       present in the composed core classes.
     """
     rep, reg = ctx.rep, ctx.reg
     cc = coreclass.read(ctx.root, reg.body.get("R-15-113", ""))
@@ -53,9 +34,6 @@ def core_classes(ctx: Context) -> None:
         findings.append(f"{coreclass.CONFIG} no longer declares a core roster this "
                         "rule reads")
 
-    # Every readable prose site against the one table the machine is built from. The
-    # composition is the reference and not merely a fourth opinion: it is what the
-    # emulator, the generated devicetree, and the validator all read.
     if cc.declared is not None:
         for site, table in sorted(cc.stated.items()):
             if table is None:
@@ -75,13 +53,6 @@ def core_classes(ctx: Context) -> None:
                      f"composed roster carries {cc.roster[name]}"
                      for name, n in sorted(cc.counts.items()) if cc.roster[name] != n]
 
-    # The free-prose tokens beyond the four table sites: a VLEN=n anywhere in the
-    # corpus is a claim about some composed class's datapath, and the ones outside
-    # the tables were held by nothing, so a re-picked geometry (R-15-108 names each
-    # class's VLEN as a searched parameter) moved the tables and left the prose
-    # citing a machine no longer composed. Membership is the strongest form the
-    # token admits: a bare VLEN=n names no class, so a swap of two classes'
-    # geometries stays in-set and is the residue the registry row declares.
     tokens = 0
     if cc.declared is not None:
         geometries = {v for v in cc.declared.values() if v}
