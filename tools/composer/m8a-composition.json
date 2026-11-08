@@ -210,11 +210,11 @@
       "sources": [
         {
           "path": "proofs/RotFirmware.v",
-          "sha256": "7e6fea986a61e0985165d6d44425cfa6d7827593b0815f2406884f0444c03da4"
+          "sha256": "0f32fd467d2a35e27ee21cf7df28974ee9ece6598f624e8726fbda946f97c8ae"
         },
         {
           "path": "proofs/RomVerifier.v",
-          "sha256": "9001d461e07b4116dc6e716bf0e3534f9cfdcdb8eabfef421ecb85ee063ff724"
+          "sha256": "bd147a2d0bbc329e79ad0ed961fadf23def9d88af23b874d745219183b926e28"
         },
         {
           "path": "proofs/Keccak.v",
@@ -242,7 +242,7 @@
       "sources": [
         {
           "path": "proofs/MModeFirmware.v",
-          "sha256": "1ece3d73136639d15662835ec1a6b4618427022b960cb5bc71f8fe820bffe67c"
+          "sha256": "e9ce27ceba13d7ca6fdfdea42f6d30c25d21e5244a45fa8d412a8378a18e0157"
         }
       ],
       "descriptor": {

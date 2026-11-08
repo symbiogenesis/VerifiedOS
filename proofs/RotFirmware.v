@@ -2,369 +2,82 @@
 (* =========================================================================
    RotFirmware.v
 
-   The Root of Trust's firmware, as the register fixes it: R-09-002's
-   measured chain from the RoT through the M-mode image to the static
-   image, with no stage executing before its measurement is recorded;
-   R-09-006's one path, taken by cold boot, deep-sleep wake and the
-   recovery generation alike, so that no second loader exists; R-09-037's
-   lifecycle extension as the chain's first extension, before the ROM
-   verifies any payload, and its own clause that R-09-025's vector is not
-   widened by it; R-09-006a's start-up entropy verdict measured into the
-   chain, with no key derived, no material unsealed and no quote completed
-   on a failed root; R-09-029's boot-target latch measured like every other
-   input; R-09-025's attestation vector and R-09-026's reference-value dual
-   over the same vector, appraised by R-12-015's relying party; R-12-014's
-   seal and unseal binding secrets to the RoT and the measured state under
-   the policy the seal names, the exact measured vector or a reference
-   integrity manifest signed under any enrolled root at or above the floor
-   (R-10-032), bound as well to the requesting compartment, with R-15-079's
-   diversification by lifecycle state and R-09-023's sealing-root version
-   beside them; R-09-036a's enrolled root set, changed by the holder on the
-   trusted consent path and by nobody else (R-09-036b) and never emptied;
-   R-09-028 and R-09-030's monotonic anti-rollback
-   floor, boot counting and automatic revert; R-10-013's four monotonic
-   counters with the events R-10-013 and R-09-023 pair them with;
-   R-12-017's attempt counter charged before the comparison and never
-   refunded; R-09-036's lifecycle-diversified verification roots;
-   R-05-058c's signature split by verifier rather than by signer; and
-   R-09-034's lifecycle table for the Debug Module and trace, carrying
-   R-15-078's production gate and R-15-079's authenticated entry inside it.
+   Specification obligations for the Root-of-Trust firmware:
+   - Measured boot chain (R-09-002, R-09-005, R-09-006, R-09-010, R-09-029,
+     R-09-037, R-09-006a): ordered measurement and execution from RoT runtime
+     through M-mode image and core kernels to the static image; unified loader
+     path across cold boot, deep-sleep wake, and recovery generation;
+     lifecycle-fuse measurement first (without widening R-09-025's vector);
+     start-up entropy health verdict measured before any stage runs; and
+     boot-target latch measured in the input prologue.
+   - Attestation quote and appraisal (R-09-025, R-09-025a, R-09-026, R-09-027,
+     R-12-015): reproducible chain digest (`IsReproducible`), exact coverage
+     of the five-term quote vector (`covers_exactly`), fail-closed quote
+     generation on a failed entropy root, and relying-party appraisal over
+     covered terms.
+   - Seal, unseal, and root enrolment (R-09-008, R-12-014, R-12-015a, R-10-032,
+     R-09-036a, R-09-036b, R-09-036c, R-10-033, R-15-079, R-09-023, R-09-024):
+     six independent unseal obligations (policy binding under exact vector or
+     enrolled-root manifest at or above the floor, lifecycle diversification,
+     sealing-root version check, entropy-health gate, compartment binding, and
+     capability-handle-only return without raw key export) plus holder-consent
+     root enrolment that never empties the root set.
+   - Anti-rollback, monotonic counters, and credential attempts (R-09-028,
+     R-09-030, R-10-011, R-10-013, R-10-013a, R-12-017): inclusive floor
+     selection (`bootable`), monotone floor advance (`spec_floor`), the four
+     hardware counters and their advancing events (sparing data commits),
+     boot-attempt bound with automatic A/B slot revert (sparing the entropy
+     halt), and credential-attempt charging before comparison without refund.
+   - Verification roots, signature-scheme split, and Debug Module lifecycle
+     gating (R-09-032, R-09-033, R-09-034, R-09-035, R-09-036, R-05-058c,
+     R-15-078, R-15-079): per-state verification roots, verifier-determined
+     SLH-DSA/ML-DSA split, the five-state Debug Module liveness table
+     (`debug_table`, live in `Development` and `Rma` alone and permanently
+     closed in `Production`), and challenge-response debug entry.
 
-   What this file is. A statement artifact in ApexTheorem.v's idiom, not a
-   proof development and not an implementation. There is no firmware here:
-   what is written down is the obligations a Root-of-Trust firmware
-   discharges, each stated of an arbitrary loader, chain, unsealer, quote,
-   appraisal, floor, advancement, charge, revert, settlement, boot
-   admission, debug entry, machine, ROM or scheme choice, proved of the
-   specification, and refuted of an alternative
-   construction the register's own sentence excludes. Every quantity the
-   register leaves to composition, to a measurement, or to another item is a
-   field of the Machine record rather than a literal or a top-level
-   Parameter, which is what keeps the R-05-163 assumption gate green while
-   leaving the decision where its owner can make it. Nothing is admitted and
-   nothing is axiomatized: the native assumption audit reports
-   every shipped constant closed under the global context.
+   Scope and independence. Following [ApexTheorem.v](ApexTheorem.v), this
+   module is a self-contained specification-level statement artifact over
+   [ProofSupport.v](ProofSupport.v). Composition and hardware parameters live
+   in `Machine` fields rather than top-level axioms (R-05-163). Cryptographic
+   primitives (hash sponge, AEAD, signature verification, and R-15-241d DRBG
+   seeding), R-15-240 / R-11-017 windowed-watchdog bounds, R-15-126 per-unit
+   calibration, R-15-241 / R-16-015 / R-16-021 deterministic-replay
+   nondeterminism records, and R-15-241b TRNG sample budgets (owned by
+   [trng-source-model-contract.md](../docs/hardware/trng-source-model-contract.md))
+   are modelled at their dedicated boundaries. Sibling modules remain
+   decoupled: [DischargeSequence.v](DischargeSequence.v) covers R-15-247d power
+   sequencing, [MModeFirmware.v](MModeFirmware.v) covers R-07-028 capability
+   graph installation, and [SupervisionTree.v](SupervisionTree.v) covers
+   R-16-007 fault-recovery budgets.
 
-   What the gate's green line means. Compiled, axiom-free, non-vacuous and
-   enumerated, and it does not mean verified. No constant here is compiled,
-   lowered, or run on either emulator, and nothing here executes anywhere.
-   The computed checks are decided inside the kernel by conversion and print
-   nothing.
-
-   What is deferred, and to which item. The primitives are M3.4's and are
-   not here: the hash is an arbitrary two-argument extension, and what a
-   Machine declares of it is R-05-058c's hash-only assumption cut to the
-   finite instance the chain draws on, which reading 7 states; no AEAD,
-   no signature verifier and no DRBG appears below, R-15-241d's seeding
-   discipline being the crypto core's. The boot chain reaching the M-mode
-   kernel on the golden emulator is M3.5's: nothing below is an image, an
-   address, or an instruction, and no statement here is about a run. The
-   windowed watchdog is neither: R-15-240's bark and bite are M3.1's model
-   and R-11-017's admission artifact emits the window bounds, so no window,
-   no pet and no nonce appears below.
-
-   Only the shared prelude-only support is required, so Classical
-   and FunctionalExtensionality are unavailable and every equality below is
-   stated pointwise or over a decidable boolean for that reason. Domain-specific sibling artifacts remain independent:
-   DischargeSequence.v's sequencer is R-15-247d's discharge order over
-   banks and this file's is R-09-002's measurement order over stages, the
-   two sharing a shape and no quantity; MModeFirmware.v is the stage this
-   chain hands off to and states R-07-028's refinement over a composed
-   capability graph, which no obligation below mentions; SupervisionTree.v's
-   boot count is R-16-007's downtime bound where this file's is R-09-028's
-   automatic revert. Each would be a citation rather than a dependency.
-
-   Readings of the register this statement takes, each a reviewable
-   judgment rather than a neutral transcription:
-
-   1. The chain is a list of steps, and a step is either the extension of
-      one named input or the execution of one named stage. R-09-002 fixes
-      the four stages and R-09-037, R-09-006a and R-09-029 each name one
-      input measured into the chain; nothing else below is an item, and no
-      item is invented. Modelling execution as a step of the same list is
-      what makes "no stage executes before its measurement is recorded" a
-      precedence rather than a comment.
-   2. The quote's vector is R-09-025's four admission-discipline terms with
-      the chain measurement beside them. This is a judgment and not a
-      transcription, and gap g is the register question it takes a side of:
-      that entry's sentence is "attestation covers the chain *and* the
-      admission discipline", while its acceptance clause says "the quote's
-      *vector* is exactly this set", which distinguishes the quote from its
-      vector and leaves "this set" able to name the four enumerated terms
-      alone. Nothing settles it. R-09-037 does not: its clause constrains
-      the lifecycle state, ruling out a sixth field and having the state
-      enter as a chain measurement, all of which the four-term reading
-      satisfies word for word. What is argued rather than derived is the
-      consequence: on the narrow reading a relying party's appraisal does
-      not decide the chain, which
-      `a_vector_without_the_chain_appraises_a_forked_chain` computes as a
-      machine appraising clean on a forked chain. That prices the narrow
-      reading and is why this file takes the wide one; it does not close it,
-      and the coverage check below is written against the wide reading, so
-      pointing at that check would argue in a circle.
-   3. The vector is a set and not an order. R-09-025's own word is *set*,
-      so a transposed vector covers exactly, which is computed below rather
-      than assumed; the transposition family therefore carries nothing here
-      and the generated families are the deletions, the widenings and the
-      duplications instead.
-   4. The lifecycle state is measured into the chain and is not a term of
-      the vector. R-09-037 says both in as many words, so Field carries a
-      sixth constructor whose only role is to be excluded, and the widening
-      family is generated over it.
-   5. Unseal is one predicate with five independent gates and a sixth
-      obligation on what it hands back, so this file states six properties
-      of an unseal and not five. The gates are the policy the seal names
-      (R-12-014's "binding secrets to the RoT and measured state", which
-      that entry's criterion makes one of two policies: the exact measured
-      vector, or a reference integrity manifest signed under any enrolled
-      root over the generation register at or above the floor, the policy
-      R-10-032 gives the FDE key), the lifecycle state (R-15-079's
-      diversified hierarchy, whose own acceptance clause is that a
-      debuggable part cannot unseal production-sealed material), the
-      sealing-root version (R-09-023's RoT-fresh conferral into R-10-013),
-      the latched start-up verdict (R-09-006a), and the requesting
-      compartment's identity in the composed graph (R-12-014's criterion,
-      the name and never the image hash); reading 6 is the sixth. Each of
-      the six is refuted by a construction keeping the other five, so the
-      six are six obligations and not one stated six times. The policy gate
-      is stated three ways beside its one statement, because the register
-      states three consequences of it: the exact policy binds to the
-      measured digest, the manifest policy follows the enrolled set so a
-      root the holder removes closes what it opened, and the manifest
-      policy refuses below the floor at the seal as R-10-032 says it does.
-      What the manifest policy does *not* read is the digest, which is
-      stated as a theorem over an arbitrary digest and is the whole of what
-      R-10-032 buys: the generation an update commits opens the key on its
-      own signed manifest, and the transactor re-seals nothing.
-   6. What an unseal returns is a handle and never a key. R-12-014's
-      criterion is that apps hold only sealed blobs and capability handles
-      and R-12-015a deletes raw key export, so the answer type carries a
-      cleartext constructor whose only role is to be excluded, and the
-      exporting construction is refuted while satisfying all five gates.
-  6a. The enrolled root set is a list the holder edits and the register
-      closes nothing about its contents, so it is a field, and the signature
-      a manifest carries is the crypto core's verdict (M3.4) and not this
-      file's: what is here is the root the running generation's reference
-      integrity manifest verified under, a field beside the set, and the
-      generation's declared security version beside both, which R-09-030's
-      floor already compares against. Enrolment is R-09-036a's act read as
-      a function of a consent bit, an act and the current set, and what is
-      stated of it is what R-09-036a and R-09-036b close: nothing changes
-      without consent, the set is never emptied, and the root asked for is
-      removed. The register's *never empty* is the stronger *never left
-      without a root admitting a retained bootable generation and a
-      recovery generation*; the emptiness half is what this file states
-      and the retained-generation half is gap i.
-   7. The hash is arbitrary, and what a Machine declares of it is
-      R-05-058c's hash-only assumption at the scale this file uses it and
-      not a total one. Collisions exist for every hash function, so a field
-      separating every pair of distinct inputs is met by no realizable
-      machine and a theorem over such a Machine is true of nothing. What a
-      Machine declares instead is that at each of the seven digests the
-      specification chain extends from, the seven item codes extend to
-      seven different digests: a decidable statement over a finite set,
-      which the demo machine discharges by conversion and which a counting
-      extension and a late-colliding one are computed to fail. The
-      assumption the register puts in the trust base is computational, this
-      is the finite instance of it the chain draws on, and realizing the
-      extension is M3.4's.
-   8. Anti-rollback is three mechanisms and not one: the monotone floor
-      (R-09-028, R-09-030), the four monotonic counters with the events
-      R-10-013 and R-09-023 pair them with, and the boot-attempt count with
-      R-09-028's automatic revert. They are stated apart, and a
-      construction satisfying two of the three and breaking the third is
-      exhibited for each.
-   9. The boot-attempt count is charged on the ordinary failure and not on
-      the entropy halt. R-09-006a says exactly that, so the outcome
-      enumeration below is that entry's own two failure classes and not a
-      general fault taxonomy; gap c reports what a success does.
-  10. The signature scheme is a function of the verifier and of nothing
-      else, which is R-09-002's second acceptance clause read as a property
-      rather than as an absence; which stage the metal-mask ROM verifies is
-      a field, because R-09-006 fixes the ROM's sequence and not the
-      composition's split.
-  11. Boolean rather than propositional wherever the witnesses must
-      compute: the chain checks, the coverage check and the admission tests
-      are decidable, so the generated weakening families are checked by
-      conversion in the silent Example form rather than by a proof per
-      member.
-  12. The order is stated over positions rather than over a rank function
-      built into a list's shape, so a chain out of order is expressible and
-      the theorems have something to exclude. Precedence is strict and is
-      false where either step is absent, which is what makes a deletion a
-      refusal rather than a silence; both are theorems over an arbitrary
-      carrier rather than properties of the definition's shape, because
-      neither case is reachable from the chain check on the generated
-      families, the occurrence checks refusing a deletion first.
-
-   The literals taken from the design, and each is an enumeration the
-   register itself closes. R-09-002's chain is four stages, so `all_stages`
-   is that list and `there_are_four_stages` is its count. R-09-006's
-   acceptance clause names three boot kinds, so `all_kinds` is three.
-   R-09-032 closes the lifecycle at five states under a fixed relation, so
-   `all_lifecycles` is five. R-10-013 enumerates four counters, so
-   `all_counters` is four. R-10-013's own advancing events are four, and
-   R-09-023's conferral adds the duress erase to the sealing root's, and
-   R-10-013 excludes the data commit, so `all_events` is six. R-09-025
-   enumerates four admission-discipline terms, so four of `quote_vector`'s
-   five are closed. R-05-058c names two schemes. R-09-028's images
-   are A/B, so `Slot` is two. R-09-034 closes the Debug Module and trace at
-   each of R-09-032's five states, live in development and RMA alone and
-   closed everywhere else, so `debug_table` is that table and its five
-   values are literals. And a stage is run exactly once and an input
-   extended exactly once on one pass, so the occurrence checks compare
-   against 1.
-   Every other magnitude is a field: the ROM seed, the extension function,
-   the measurement encoding, the fuse-held state, the latched entropy
-   verdict, the expected debug-entry response per state, the accepted root
-   per state, which stages the ROM verifies, the rollback floor, the boot
-   bound, each counter's value, and the witness and reference values of
-   every term of the vector. The machine's own Debug Module liveness table
-   is a field for the opposite reason to the rest: the register closes what
-   it must be, so the field is what the obligations below are stated of, and
-   a machine whose table differs from `debug_table` is a refuted
-   construction rather than an admitted composition.
-   And one magnitude is neither, which the inventory says rather than
-   rounds: `quote_vector`'s **fifth** term, the chain measurement, is
-   reading 2's judgment and gap g's open question, not an enumeration
-   R-09-025 closes. It is written as a literal beside the four closed ones
-   rather than made a field because a field would hand the register's own
-   question to a composition and make R-09-025's *exactly this set* vacuous,
-   every machine covering whatever vector it declared. So the term is a
-   stated reading carrying its own gap, and the deletion at index 0 is the
-   alternative reading rather than a defect: what refuses that deletion is a
-   coverage check written against the wide reading, which is why gap g is
-   reported and not closed here.
-
-   How the refutations are generated. A refutation is a seeded weakening
-   the theorem must reject, so four polymorphic generators produce families
-   of them from the specification's own structure rather than a person
-   authoring each, which is DischargeSequence.v's method taken over three
-   different lists. `swap_at` transposes an adjacent pair, `drop_at`
-   deletes a member, `suffix_at` re-enters at a proper suffix, and
-   `insert_at` repeats a member. Over R-09-002's stage order they yield
-   sixteen weakenings, every one refused. Over the input prologue they
-   yield twelve, of which eleven are refused and the twelfth is gap a,
-   named and computed rather than described. Over R-09-025's vector the
-   deletions, the widenings by the excluded term and the duplications yield
-   seventeen, every one refused, while the transpositions are admitted
-   because reading 3 says the vector is a set. Each family fact is stated
-   twice, once as one conversion over the enumeration and once as a bounded
-   quantifier over the index. The hand-authored refutations below are the
-   ones no index generates, being alternative constructions rather than
-   mutations of a list, and each is shown to satisfy the obligations it
-   does not break.
-
-   What this file deliberately does not author, with what owes each
-   decision. A register gap is one no entry decides and is reported rather
-   than closed; a deferral is an entry that decides it and an item on this
-   plan that authors it, which is a different thing and is named as one:
-
-   a. Whether the entropy verdict is extended before or after the
-      boot-target latch. R-09-037 fixes the lifecycle extension first and
-      R-09-006a fixes the verdict before any measured stage draws; neither
-      orders the verdict against R-09-029's latch, which that entry
-      measures "like every other input" without saying where. The weakest
-      reading admits both, and the two orders reach different digests, which
-      `the_two_prologue_orders_measure_differently` computes. Whether that
-      difference reaches a relying party depends on gap g: on reading 2's
-      wide vector the chain measurement is a term and the quote carries it,
-      and on the narrow reading no quote does. Owed at R-09-006a or
-      R-09-029.
-   b. Whether the chain measures each stage immediately before running it
-      or measures the whole payload up front. R-09-002's acceptance clause
-      fixes only that no stage executes before its measurement is recorded,
-      and R-09-006 has the ROM place the verified M-mode image before
-      releasing the boot core, which is the front-loaded shape for one
-      stage and says nothing about the rest.
-      `the_front_loaded_chain_satisfies_every_stated_obligation` checks
-      that both shapes pass. Owed at R-09-002 or R-09-006.
-   c. What a successful boot does to the boot-attempt count. R-09-028
-      states boot counting with automatic revert and R-09-006a takes the
-      entropy halt out of it as a §16 fault class consuming no attempt; no
-      entry says whether a success clears the count, so the outcome
-      enumeration below is R-09-006a's two failure classes and nothing here
-      models a success. A gap, owed at R-09-028.
-   d. The TRNG's start-up sample budget. R-15-241b sizes the start-up
-      health tests against the source's stochastic model, so nothing below
-      carries a sample count, a rate, or an entropy estimate: the verdict is
-      a latched boolean field and the budget is the model's. Deferred and
-      not a gap: the model itself is the selected TRNG's supplier's and no
-      item here authors one, while what a submitted model must state and how
-      a budget is derived from it are fixed by item S5's contract,
-      docs/hardware/trng-source-model-contract.md, the budget being a
-      qualification input rather than a boot condition.
-   e. The §16 deterministic-replay nondeterminism record. R-15-241 requires
-      every draw accounted for in it and R-16-015 through R-16-021 specify
-      it, so nothing below introduces a draw, a seed, a commitment, or the
-      sealing of one, and the entropy root enters here only as R-09-006a's
-      verdict. Deferred and not a gap: item S6 authors the record, after the
-      M8a gate on S5's ground. The plan schedules both this and d, so what
-      this file does not author here is deferred rather than unowned.
-   f. What the reference integrity manifest covers where it differs from
-      the quote. R-09-026 makes it the reference-value dual "covering the
-      same vector", so the appraisal below is stated over whatever vector
-      the quote covers rather than over a manifest-side enumeration, and no
-      second coverage check is invented. A gap, owed at R-09-026.
-   g. Whether R-09-025's "this set" is the four admission-discipline terms
-      alone or those four with the chain measurement. The MUST has
-      attestation cover the chain and the discipline both; the acceptance
-      clause names "the quote's *vector*", which is not the quote, and
-      "this set", which can name the enumeration the colon introduces.
-      R-09-026 carries the referent over to the manifest without fixing it
-      and R-09-037 constrains the lifecycle state rather than the chain, so
-      no entry decides it. Reading 2 takes the wide reading on the
-      consequence `a_vector_without_the_chain_appraises_a_forked_chain`
-      computes, which prices the narrow reading and does not refute it. A
-      gap, owed at R-09-025.
-   h. Every composition magnitude. The ROM seed, the extension, the
-      measurement encoding, the fuse-held state, the entropy verdict, the
-      expected debug-entry response, the accepted roots, the ROM-verified
-      stage set, the rollback floor, the boot bound, the four counter values,
-      the enrolled root set, the manifest's verified root, the generation's
-      declared version and the witness and reference values are fields; the
-      demo machines at the end instantiate them with arbitrary witness
-      values that carry no composition claim. Not a gap and not a deferral:
-      it is the field discipline stated once, in the list its own paragraph
-      above gives.
-   i. Which enrolled roots admit a retained bootable generation and a
-      recovery generation. R-09-036a lets a removal take effect only while
-      some enrolled root still admits both, and nothing here models a
-      retained generation or the image a root admits, that being M3.5's
-      boot chain on the emulator; so the enrolment below refuses the removal
-      that would empty the set and says nothing about the removal that
-      leaves a set admitting nothing. Deferred to this file's own next
-      revision rather than to the register, which decides it.
-   j. The two registers R-09-025a splits the chain into, and the two inputs
-      it and R-09-036a add to the measured set: the per-unit calibration
-      R-15-126 measures and the enrolled root set measured at every boot.
-      The chain below is one list of steps and one digest, which R-09-025a
-      calls the digest over both registers, so nothing here contradicts the
-      split and nothing here states it; and the input prologue carries the
-      three inputs reading 1 names and neither of the two the register now
-      adds, so the twelve-member prologue family and the seven digests the
-      extension separates are stated over a prologue the register has since
-      widened. Owed at this file, at the reading that adds the two items to
-      `Item` and re-derives the families, and not at the register.
-
-   Non-vacuity (R-05-165, R-05-166). Every obligation below is stated as a
-   property of an arbitrary parameter, proved of the specification, and
-   refuted of an alternative construction the register's own sentence
-   excludes. Inhabitation is concrete: nine demo machines differing one
-   field at a time and three more differing in their roots, a blob under
-   each policy that unseals here and the presentations at which each does
-   not, an enrolment that adds, removes and declines to empty beside two
-   that change without consent or empty the set, a chain that passes beside
-   twenty-eight generated weakenings of
-   which twenty-seven are refused and the twenty-eighth is gap a, seventeen
-   refused weakenings of the vector beside four transpositions that are
-   admitted because the vector is a set, a lifecycle table that R-09-034
-   closes beside three machines that break a clause of it apiece, one of
-   them breaking two at once because the third clause carries the first, and
-   an appraisal that holds beside two that fail, and a hash-separation
-   declaration the demo extension meets by conversion beside two extensions
-   computed to fail it, so no theorem is proved from a premise nothing
-   satisfies and none from one everything satisfies.
+   Key readings and explicit register boundaries:
+   - Reading 1 (Chain steps): `Step` interleaves `Extend` and `Run` so
+     "measured before executed" (R-09-002) is strict list precedence
+     (`precedes`).
+   - Reading 2 & Gap g (Quote vector): `quote_vector` includes `ChainDigest`
+     alongside R-09-025's four admission-discipline terms so appraisal
+     decides the boot chain (`a_vector_without_the_chain_appraises_a_forked_chain`).
+   - Reading 3 (Vector as set): `covers_exactly` checks per-field multiplicity
+     rather than list order, admitting transpositions while rejecting
+     deletions, duplications, and R-09-037's excluded `LifecycleFuseValue`
+     (Reading 4).
+   - Readings 5, 6, 6a (Unseal and enrolment): `spec_unseal` checks five
+     boolean gates and returns `Handle` (never `Cleartext`); `spec_enrol`
+     requires holder consent and preserves a non-empty root set (Gap i notes
+     that retained-generation admissibility is checked at the boot-chain
+     boundary; Gap j notes R-09-025a's split chain registers and enrolled-root
+     measurement).
+   - Reading 7 (Finite hash separation): `extend_separates_on_the_chain`
+     requires injectivity of `extend` across the seven item codes at each of
+     the seven digests reached along `boot_steps`, avoiding an unrealizable
+     global collision-freedom axiom.
+   - Readings 8-12 & Gaps a-c, f, h: `prologue_weakenings` surfaces that
+     R-09-006a and R-09-029 leave the relative order of `EntropyHealthVerdict`
+     and `BootTargetLatch` open (Gap a); `front_loaded_chain` shows R-09-002
+     admits measuring all stages before running them (Gap b); `Outcome` covers
+     R-09-006a's two failure classes (Gap c); `spec_appraise` appraises any
+     covered vector (Gap f); and `demo` instantiates `Machine` fields with
+     concrete witness values (Gap h, R-05-165, R-05-166).
    (*| BEGIN derived: cited entries |*)
    Owner: docs/requirements-register.md
    Requirements: R-05-058c R-05-163 R-05-164 R-05-165 R-05-166 R-07-028 R-09-002 R-09-005
@@ -379,7 +92,8 @@
 
 (* -------------------------------------------------------------------------
    Shared collection implementations and compatibility lemmas live in
-   ProofSupport. Numeric and domain-specific helpers remain local.
+   [ProofSupport.v](ProofSupport.v). Numeric and domain-specific helpers
+   remain local.
    ------------------------------------------------------------------------- *)
 
 Require ProofSupport.
@@ -1088,41 +802,34 @@ Example nothing_is_extended_from_no_item :
 Record Machine : Type := {
 
   (* --- R-09-002's chain hash. The extension is arbitrary and the encoding
-         of a measurement is the composition's, the primitive being M3.4's
-         and not this file's (reading 7) ---------------------------------- *)
+         of a measurement is the composition's, while the concrete hash
+         primitive lives in the crypto-core modules (reading 7) ------------ *)
 
   rom_seed : nat;
   extend : nat -> nat -> nat;
   item_code : Item -> nat;
 
-  (* --- R-05-058c's hash-only assumption, which measured boot already puts
-         in the trust base, declared by the machine at the scale the chain
-         uses it rather than assumed totally by this file: at each of the
-         seven digests the specification chain extends from, the seven item
-         codes extend to seven different digests. Decidable, so a machine
-         discharges it by conversion or is not a Machine (reading 7) ------ *)
+  (* --- R-05-058c's hash-only assumption, declared at the finite scale the
+         specification chain uses: at each of the seven digests `boot_steps`
+         extends from, the seven item codes extend to seven distinct digests
+         (reading 7) ------------------------------------------------------- *)
 
   extend_separates_on_the_chain :
     separates_along extend item_code rom_seed = true;
 
   (* --- R-09-032's fuse-held lifecycle state, and the machine's own Debug
-         Module liveness table beside it. The table is a field because the
-         obligations below are stated of an arbitrary machine and a machine
-         breaking R-09-034's table has to be expressible; what the table must
-         be is `debug_table`, which the register closes -------------------- *)
+         Module liveness table beside it. Making the table a field allows
+         refutation witnesses that violate R-09-034's closed `debug_table` - *)
 
   state : Lifecycle;
   debug_live : Lifecycle -> bool;
 
-  (* --- R-15-079's debug entry, whose expected response is ML-DSA-signed
-         and serial-bound, so the value is the crypto core's (M3.4) and what
-         is here is the response the RoT holds for each state ------------- *)
+  (* --- R-15-079's expected ML-DSA-signed, serial-bound challenge-response
+         value per lifecycle state ----------------------------------------- *)
 
   debug_response : Lifecycle -> nat;
 
-  (* --- R-15-241b's latched start-up verdict. A boolean and never a sample
-         budget, an entropy rate or an estimate: that is the source's
-         stochastic model's, and the model is the supplier's (gap d) ------ *)
+  (* --- R-15-241b's latched start-up entropy health verdict (gap d) ------- *)
 
   entropy_ok : bool;
 
@@ -1138,9 +845,8 @@ Record Machine : Type := {
   boot_bound : nat;
 
   (* --- R-09-036a's enrolled root set, the root the running generation's
-         reference integrity manifest verified under (the verification
-         itself being the crypto core's, M3.4), and the generation's declared
-         security version that R-09-030's floor is compared against ------- *)
+         reference integrity manifest verified under, and the generation's
+         declared security version compared against R-09-030's floor ------- *)
 
   enrolled_roots : list nat;
   manifest_root : nat;
@@ -4418,10 +4124,6 @@ Qed.
 (* -------------------------------------------------------------------------
    R-05-166's inhabitation witnesses: one closed definition per record this
    file's statements quantify over, named for that record and ascribed at it.
-   The prover decides inhabitation by type-checking the ascription, so
-   `run.py proofs` reads a name rather than approximating a type judgement.
-   A record this file reaches through a Require is witnessed in the file that
-   declares it.
    ------------------------------------------------------------------------- *)
 
 Definition witness_Machine : Machine := demo.
