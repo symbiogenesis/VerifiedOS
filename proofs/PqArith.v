@@ -3,7 +3,8 @@
    PqArith.v
 
    Shared modular polynomial and byte interfaces for ML-KEM-1024 and
-   ML-DSA-87, under docs/assurance/pq-reference-contract.md. The algorithm
+   ML-DSA-87, under [pq-reference-contract.md](../docs/assurance/pq-reference-contract.md)
+   and [CryptoLists.v](CryptoLists.v). The algorithm
    editions are FIPS 203 and FIPS 204, both published 2024-08-13. ML-KEM
    uses q=3329, root=17, seven layers and quadratic leaves; ML-DSA uses
    q=8380417, root=1753, eight layers and linear leaves. Both have degree
@@ -53,10 +54,7 @@ Require CryptoLists.
 
 Open Scope Z_scope.
 
-(* An equality closed by one evaluation. `vm_compute. reflexivity.` evaluates
-   the goal in the tactic and again where the kernel checks its cast at Qed;
-   this casts eq_refl to the goal unevaluated, so only the check at Qed
-   evaluates it. *)
+(* Casts eq_refl to the goal unevaluated so only Qed evaluates it. *)
 Local Ltac vm_reflexivity :=
   intros; lazymatch goal with |- _ = ?b => vm_cast_no_check (@eq_refl _ b) end.
 
@@ -116,10 +114,8 @@ Fixpoint chunk_of {A : Type} (fuel k : nat) (l : list A) : list (list A) :=
 
 Definition two_pow (d : nat) : Z := 2 ^ Z.of_nat d.
 
-(* A run of consecutive integers, counted down in `nat` and carried in `Z`.
-   `seq` counts in `nat` alone, and a unary index converted at every element
-   costs the square of the run's length, which is the difference between a
-   check that runs and one that is not written. *)
+(* Consecutive integers counted down in `nat` and carried in `Z` to avoid
+   quadratic `Z.of_nat` conversion across `seq`. *)
 Fixpoint z_range (n : nat) (start : Z) : list Z :=
   match n with O => nil | S k => start :: z_range k (start + 1) end.
 
@@ -139,11 +135,7 @@ Definition addmod (q x y : Z) : Z := (x + y) mod q.
 Definition submod (q x y : Z) : Z := (x - y) mod q.
 Definition mulmod (q x y : Z) : Z := (x * y) mod q.
 
-(* Square and multiply, the fuel being the exponent itself, which bounds the
-   halving chain with room to spare. A linear exponentiation would be
-   correct and would cost the inverse transform its own leaf count times the
-   group order in multiplications, which is the difference between a check
-   that runs and one that is not written. *)
+(* Binary modular exponentiation bounded by `fuel` halving steps. *)
 Fixpoint pow_mod_go (q b : Z) (fuel : nat) (e : Z) : Z :=
   match fuel with
   | O => 1 mod q
@@ -1426,12 +1418,9 @@ Proof. vm_reflexivity. Qed.
 
 
 (* -------------------------------------------------------------------------
-   The decisions a reader would otherwise take on trust because nothing above
-   reaches them: the out-of-range coefficient, the comparison's short-list
-   arms, the exponentiation's own edges, and the widths the checks are run
-   at. Each is pinned here rather than left to a default no computation
-   visits, a fixture nothing reaches being a site a seeded weakening survives
-   at rather than a site nothing can go wrong in.
+   Boundary and edge-case checks for out-of-range coefficients, short-list
+   comparisons, exponentiation base cases, and the enumerated packing and
+   compression widths.
    ------------------------------------------------------------------------- *)
 
 Example a_coefficient_off_the_end_of_a_polynomial_is_zero :

@@ -338,12 +338,12 @@
         },
         {
           "path": "proofs/MlDsa.v",
-          "sha256": "33abe0101a4598b026a54035945536361145146ab9623862d7353fd3b886250e"
+          "sha256": "8bc13f1068c518df9e7a9abd176b86cf8f5893a0879570ab370f875666b4eedd"
         }
       ],
       "descriptor": {
         "path": "tools/composer/packages/crypto-core.json",
-        "sha256": "5c22e6bbcc111d59ea4d6552d1e402db03da4bbe0724862606a613eb580a552f"
+        "sha256": "82e6da80d42870c987aa947cd6c7f4ee89c048914c3ac52a3a594b45823f21d8"
       },
       "artifact_slot": "crypto-core-artifact",
       "entry": null,

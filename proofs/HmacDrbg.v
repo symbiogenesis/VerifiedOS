@@ -2,206 +2,59 @@
 (* =========================================================================
    HmacDrbg.v
 
-   HMAC_DRBG over SHA-256 as NIST SP 800-90A Rev. 1 states it, s10.1.2's
-   four algorithms and the s9 envelope around them, written in Gallina over
-   Sha256.v's `hmac_sha256` and checked against NIST's own validation corpus;
-   and R-15-241d's seeding discipline, stated as the explicit hypothesis that
-   entry's acceptance asks for rather than as a uniform seed assumed by
-   silence.
+   Functional reference for HMAC_DRBG over SHA-256 (NIST SP 800-90A Rev. 1,
+   s10.1.2 and s9) over [Sha256.v](Sha256.v#hmac_sha256), with the explicit
+   seeding-discipline hypothesis required by R-15-241d.
 
-   What this file is, and what it is not. It is a **functional reference**
-   and a **statement**: the transcription of the standard's algorithms, the
-   discipline the register puts on how they are seeded and reseeded as a
-   record every theorem below quantifies over, and a machine that runs the
-   envelope under that discipline so that the discipline's clauses are
-   things the machine does rather than sentences beside it. It is not an
-   implementation, no binary corresponds to it, it is not the crypto core's
-   DRBG, and it discharges no acceptance clause of any entry. It does not
-   carry the FCF security proof the plan's cell names beside VST's
-   `hmacdrbg/`, and nothing here reads or copies that tree: the acquisition
-   route the plan left to M3.4c is taken in THIRD-PARTY.md, and the arm
-   taken there is authoring against the standard.
+   Scope and assurance boundary:
+   - Functional layer and seeding-hypothesis statement only: no binary
+     corresponds to this file, no constant-time property is claimed (R-05-062,
+     R-05-067), no masking claim is made (R-05-004a), and no computational
+     reduction or distributional claim is made (R-05-077a; see
+     [THIRD-PARTY.md](../THIRD-PARTY.md) for the upstream VST `hmacdrbg/` and
+     `hmacfcf/` disposition).
+   - Under the names prediction resistance and backtracking resistance, this
+     file states the computational ordering and freshness properties of the
+     transcribed functions: a draw emits output from the pre-update state and
+     returns the post-draw updated state; a reseed consumes an unused entropy
+     string from the pool and updates the state from it.
+   - `Require Import Sha256.` brings in [Sha256.v](Sha256.v) and its shared
+     [ProofSupport.v](ProofSupport.v) and [CryptoLists.v](CryptoLists.v) laws.
 
-   What the gate's green line means. Compiled, axiom-free, non-vacuous and
-   enumerated, and it does not mean verified. Nothing here executes on either
-   emulator. The computed checks are decided inside the kernel, the light ones
-   by conversion in the silent `Example ... := eq_refl` form and the ones that
-   run a draw by the bytecode machine, which contributes nothing to the
-   native assumption audit.
+   Representation and register readings:
+   1. Bit strings follow [Sha256.v](Sha256.v) (bytes MSB-first); lengths are in
+      bits (`requested_number_of_bits`, `outlen`).
+   2. `DrbgState` carries `key`, `value`, and `reseed_counter` (s10.1.2.1),
+      while security strength and prediction resistance live on
+      `SeedingDiscipline` (s9.1).
+   3. The entropy source is an ordered pool of conditioned root outputs
+      (R-15-241c), consumed one string per instantiation or reseed at the
+      discipline's `seed_length`. Pool exhaustion halts the run fail-stop
+      (R-15-241b) with no last-known-good fallback.
+   4. `SeedingDiscipline` and `Disciplined` encode R-15-241d's explicit
+      seeding hypothesis: seed and nonce lengths, draw and interval bounds,
+      transition reseed map, and prediction-resistance flag. Concrete platform
+      figures and SP 800-90A Table 2 ceilings (2^48 draws, 2^19 bits per
+      request, 2^35 entropy bits) are left open at R-15-241d rather than
+      inferred from R-05-058a's asymmetric Category 5 strength (compare
+      [AesGcm.v](AesGcm.v)).
+   5. Lifecycle and lock-state transitions match [RotFirmware.v](RotFirmware.v#Lifecycle):
+      five acyclic lifecycle edges (R-09-032) and two lock-state edges
+      (R-09-017, R-09-018, R-09-019).
+   6. The s9.3.1 envelope reseeds before a draw when the counter exceeds the
+      interval or prediction resistance is requested, passing additional input
+      to the reseed while `generate` (s10.1.2.5 step 1) refuses out-of-interval
+      draws directly.
 
-   The three assurance layers, and which one this is. What is here is the
-   **functional layer** and a **statement of the seeding hypothesis**, and
-   neither of the other two. No constant-time property is claimed (R-05-062,
-   R-05-067); no masking claim is made (R-05-004a). **No reduction and no
-   distributional claim is made**, and this file is where that sentence has
-   to be read most carefully, because the register's two words for what a
-   DRBG carries, prediction resistance across a reseed and backtracking
-   resistance across a draw, are ordinarily stated as indistinguishability
-   games over a uniformly drawn seed. R-05-077a puts that reduction where
-   the root is and not in the layer that consumes it. So what this file
-   states under those two names is what a transcription can state and
-   compute: an **ordering** property of the transcribed functions, that a
-   draw's output is produced from the state before the post-draw update and
-   the returned state is the update after it, so the state that leaves a
-   draw contains no block of that draw's output; and a **freshness**
-   property of the envelope, that a reseed takes entropy the discipline's
-   pool has not supplied before and the state it leaves is a function of
-   that entropy. Each is computed at the published answers and each is
-   refuted of a construction that breaks it, and neither is a claim about
-   any distribution.
-
-   `Require Import Sha256.` reaches that sibling artifact and its shared
-   ProofSupport and CryptoLists laws. The dependency closure uses only the
-   prelude, and the native proof gate audits each module's assumptions. The
-   list helpers below are Sha256's, and the ones this file adds use the same
-   representation.
-
-   The representation, which no register entry fixes and which is therefore
-   a reading of this file:
-
-   1. **Bit strings are Sha256.v's**, bytes most significant bit first, and
-      every published input and answer is byte-aligned.
-   2. **The DRBG's internal state is the standard's**, a record of the key
-      K, the value V and the reseed counter (s10.1.2.1), with the security
-      strength and the prediction-resistance flag carried by the discipline
-      rather than by the state, which is where s9.1 says an instantiation
-      reads them from.
-   3. **The entropy source is a pool**: a list of the strings the
-      conditioner (R-15-241c) has made available, consumed in order, one per
-      instantiation or reseed, each checked to the discipline's seed length.
-      A pool with nothing left to give halts the run, which is R-15-241b's
-      fail-stop read at this layer: no draw happens on a reseed that could
-      not take entropy, and no last-known-good arm exists.
-   4. **Lengths are in bits**, as the standard's `requested_number_of_bits`
-      and `outlen` are.
-
-   The readings of the register this file takes:
-
-   1. **R-15-241d's acceptance is met by a hypothesis and this is that
-      hypothesis.** The entry wants the DRBG instantiated from conditioned
-      root output at a stated seed length, reseeding on stated draw-count
-      and interval bounds and on every RoT lifecycle or lock-state
-      transition, carrying prediction resistance across a reseed and
-      backtracking resistance across a draw, and its acceptance is that the
-      refinement statement takes this discipline as an explicit hypothesis
-      rather than assuming a uniform seed. `SeedingDiscipline` below is that
-      record: the seed and nonce lengths, the draw bound, the interval
-      bound, the reseed map over every transition and the
-      prediction-resistance flag are its fields, `Disciplined` is the
-      premise, and every theorem stated of a disciplined machine takes it.
-      **No field carries a figure the register has not fixed.** The entry
-      says *stated* and states none, so the seed length, the bounds and the
-      strength are parameters here and the witness below takes its figures
-      from the validation corpus's own case rather than from this file's
-      opinion of what the platform's should be. Reported at R-15-241d, not
-      closed.
-   2. **The transitions are R-09-032's edges and R-09-017 through R-09-019's,
-      read from RotFirmware.v's shape rather than Required from it.**
-      R-09-032 fixes five lifecycle states under a fixed acyclic relation,
-      raw to test, test to development or production, development and
-      production to RMA, RMA terminal, and RotFirmware.v enumerates the
-      states in that order; R-09-017 names the two lock states, before and
-      after first unlock, R-09-018 the credential-gated transition up and
-      R-09-019 the scheduled transition down. `all_transitions` is those
-      five edges and those two, and a discipline is disciplined only where
-      its reseed map is true on every one of them. A Require of
-      RotFirmware.v would buy no theorem here, that file's Machine carrying
-      a lifecycle state and no DRBG, so the enumeration is repeated by
-      reading and the two files owe each other a re-reading if either moves.
-   3. **The seed is never assumed uniform, anywhere.** Every theorem below
-      quantifies over the entropy strings as arbitrary bit strings of the
-      discipline's length, and the two published families that reseed are
-      run with the corpus's own strings. What separates a fresh reseed from
-      a reused one is the pool's freshness, which `fresh_pool` decides over
-      the strings themselves.
-   4. **The standard's envelope is transcribed and not simplified.** s9.3.1
-      reseeds before a draw when the counter has passed the interval or
-      prediction resistance is requested, hands the draw's additional input
-      to that reseed and gives the draw none, which is the order the
-      prediction-resistance family of the corpus exercises; s10.1.2.5's own
-      step 1 stays as `generate`, which refuses a draw past the interval,
-      and the envelope is what turns that refusal into a reseed.
-   5. **The oracle enters no trust base.** Every published answer below is a
-      constant inside an `Example`'s own statement, never a `Definition`;
-      the corpus's inputs are definitions because they are inputs.
-
-   What is deliberately absent, with the entry that owes each decision. A
-   register gap is reported, not closed:
-
-   a. **No figure for the seed length, the nonce length, the draw bound, the
-      interval bound or the security strength.** R-15-241d says stated and
-      states none; R-05-058a's Category 5 is a strength of the asymmetric
-      suite and reading a DRBG strength off it would be the yardstick read
-      as the measurement, which is AesGcm.v's gap (a) one primitive over.
-      Owed at R-15-241d.
-   b. **The standard's own maxima are not stated.** SP 800-90A Table 2
-      bounds the reseed interval at 2^48 draws, one request at 2^19 bits
-      and the entropy input at 2^35 bits; the prelude's `nat` cannot carry
-      the first or the third and the register has not taken any of them, so
-      the discipline's bounds are fields with no ceiling here. Owed at
-      R-15-241d.
-   c. **Which hash the DRBG rides is the plan's sentence and not an entry's**
-      (Sha256.v reading 1). Owed at R-15-241d or in the plan.
-   d. **The FCF security proof is not here**, and neither is any proof that
-      HMAC is a pseudorandom function; both are R-05-077a's reduction layer
-      and the plan's cell names VST's `hmacfcf/` as the object that would
-      later carry the first. What this file's seeding hypothesis buys that
-      layer is a stated premise to be discharged where the root is.
-   e. **What the personalization string and the additional input carry on
-      this platform is unstated**; both are parameters of every function
-      below and every published case here runs with them empty.
-   f. **No constant-time claim, no masking claim, no reduction** (above).
-
-   The literals taken from the standard, and there are no others. s10.1.2.2's
-   two separator bytes 0x00 and 0x01; s10.1.2.3's initial key of 0x00 bytes
-   and initial value of 0x01 bytes, each outlen long; the reseed counter
-   starting at one on instantiation and on reseed; and outlen, which Table 2
-   gives HMAC_DRBG over SHA-256 as the digest length and which is read from
-   Sha256.v rather than written again. R-09-032's five states and five edges
-   and the two lock states and two edges are the register's and are
-   enumerated as lists whose lengths are computed. The witness discipline's
-   figures are the corpus's, read from its own strings.
-
-   Non-vacuity (R-05-165, R-05-166). The discipline is inhabited by `demo`,
-   whose premise is discharged by conversion, and the three published
-   families are run through the machine under it; three disciplines the
-   premise refuses are built and refuted, one silent on the lock edge, one
-   whose seed is shorter than its strength and one with no interval; three
-   runs the discipline refuses are built and refuted, a draw past the bound,
-   a pool that reuses an entropy string and a reseed from an empty pool;
-   and four constructions the standard's own sentences exclude are built
-   and refuted at the published answers, an update whose second pass is
-   taken on the wrong branch, a draw that updates before it emits, a reseed
-   that ignores its entropy, and a counter that starts at zero. Each is
-   held to its single difference: the draw that updates first still returns
-   the requested length, the reseed that ignores its entropy still resets
-   the counter, and the counter at zero admits exactly one draw the standard
-   refuses. Inhabitation is the published answers themselves, so no check
-   below holds of everything and none holds of nothing.
-
-   Where each published answer came from, and under what instrument. The
-   three cases are `COUNT = 0` of the `[SHA-256]` section with no
-   personalization string and no additional input in each of
-   `drbgvectors_no_reseed/HMAC_DRBG.rsp`, `drbgvectors_pr_false/HMAC_DRBG.rsp`
-   and `drbgvectors_pr_true/HMAC_DRBG.rsp` (each headed "CAVS 14.3",
-   generated 2013-04-02), inside NIST's CAVP archive `drbgtestvectors.zip`
-   under
-   csrc.nist.gov/CSRC/media/Projects/Cryptographic-Algorithm-Validation-Program/documents/drbg/,
-   read on 2026-09-05. The instrument is the one Sha256.v records for the
-   same corpus and it is read as that file reads it: NIST's page at
-   nist.gov/oism/copyrights carries three paragraphs that could each reach a
-   `.rsp` file and they do not agree, the Software disclaimer stating the
-   same three conditions the ACVP repository's README states before it says
-   that software developed by NIST employees is not subject to copyright
-   protection within the United States, so what is done here is to meet the
-   strictest of them: the archive, its CAVS header line and NIST as the
-   source are named above, the answers are quoted unmodified, and no change
-   notice is owed because nothing was changed.
-   **Every answer was recomputed on 2026-09-05 by a second and independent
-   transcription of s10.1.2 in Python over the host's `hmac` before it was
-   written down here**, so each reached this file by two routes. Neither
-   instrument is pinned, neither enters any trust base, and nothing above the
-   answers depends on them.
+   Non-vacuity and validation vectors (R-05-165, R-05-166):
+   - `demo` inhabits `Disciplined`; four disciplines violating individual
+     clauses, three runs violating pool/draw constraints, and four mutated
+     constructions (inverted update branch, pre-draw update, entropy-ignoring
+     reseed, zero-initialized counter) are refuted.
+   - The three validation vectors (`no_reseed`, `pr_false`, `pr_true`) are
+     `COUNT = 0` of `[SHA-256]` from NIST CAVP `drbgtestvectors.zip` (CAVS
+     14.3, generated 2013-04-02), cross-checked against an independent Python
+     transcription.
    (*| BEGIN derived: cited entries |*)
    Owner: docs/requirements-register.md
    Requirements: R-05-004a R-05-058a R-05-062 R-05-067 R-05-077a R-05-163 R-05-165 R-05-166
@@ -214,10 +67,7 @@ Require Import Sha256.
 
 Open Scope list_scope.
 
-(* An equality closed by one evaluation. `vm_compute. reflexivity.` evaluates
-   the goal in the tactic and again where the kernel checks its cast at Qed;
-   this casts eq_refl to the goal unevaluated, so only the check at Qed
-   evaluates it. *)
+(* Casts eq_refl to the goal unevaluated so only Qed evaluates it. *)
 Local Ltac vm_reflexivity :=
   intros; lazymatch goal with |- _ = ?b => vm_cast_no_check (@eq_refl _ b) end.
 
@@ -946,15 +796,8 @@ Definition pr_true_run : option Run :=
   run_from demo_pr pr_true_entropy pr_true_nonce nil
            (pr_true_first_reseed_entropy :: pr_true_second_reseed_entropy :: nil) two_draws.
 
-(* The first family's run, whose draws six examples below read, evaluated
-   once into a literal and equated to its source. The compiling machine keeps
-   a constant's value from one example to the next, and the kernel's recheck
-   does not: each example rewritten through this lemma reads the literal
-   where it would otherwise run the family again. The lemma unfolds its
-   literal before the cast: the recheck compares a computation with an
-   unfolded literal several times faster than with the constant that names
-   it. The other two families' draws are each read by one example, which is
-   no sharing, so they keep no literal. *)
+(* Pre-evaluated literal for `no_reseed_run`, shared across six examples to
+   avoid redundant VM evaluation during Qed rechecking. *)
 Definition no_reseed_run_literal : option Run := Eval vm_compute in no_reseed_run.
 
 Lemma no_reseed_run_is_its_literal : no_reseed_run = no_reseed_run_literal.
@@ -1259,14 +1102,7 @@ Example the_inverted_update_is_one_pass_from_the_standard_on_each_branch :
 Proof. vm_reflexivity. Qed.
 
 (* -------------------------------------------------------------------------
-   R-05-166's inhabitation witnesses: one closed definition per record this
-   file's statements quantify over, named for that record and ascribed at it.
-   The prover decides inhabitation by type-checking the ascription, so
-   `run.py proofs` reads a name rather than approximating a type judgement.
-   Each of the three aliases the reference instance the statements above
-   already run against, so the witness is the discipline, the state and the
-   run this file's own examples compute over and not a second construction
-   built to satisfy the gate.
+   Inhabitation witnesses (R-05-166) for each record type in this file.
    ------------------------------------------------------------------------- *)
 
 Definition witness_SeedingDiscipline : SeedingDiscipline := demo.

@@ -2,196 +2,63 @@
 (* =========================================================================
    TwoSourceExtractor.v
 
-   The finite two-source extraction statement R-15-241ca asks for before the
-   TRNG selection closes: an exact theorem over named block widths, per-block
-   min-entropy lower bounds, a joint independence premise, an adversary
-   side-information premise, an output width and a statistical-distance
-   bound, with accepted and failing parameter witnesses beside it. The
-   construction is the binary inner product of Chor and Goldreich, which is
-   the route the source-model contract's clause 10 selects as the first
-   candidate. R-15-241a is why the entry exists at all: the single-root rule
-   R-15-037 concentrates the entropy risk, and a predictable root is a
-   failure of R-15-241b, R-15-241c, R-15-241d and R-15-241e rather than a
-   case left to the crypto core.
+   Finite two-source extraction statement for R-15-241ca under
+   [trng-source-model-contract.md](../docs/hardware/trng-source-model-contract.md)
+   clause 10 (Chor-Goldreich binary inner product). R-15-241a motivates the
+   obligation: the single-root rule R-15-037 concentrates entropy risk, making
+   a predictable root a failure of R-15-241b, R-15-241c, R-15-241d, and
+   R-15-241e.
 
-   What this file is. A statement artifact over finite integer weights, not
-   an implementation and not a source model. Probability is an exact integer
-   formulation: a distribution on n-bit strings is a weight function into Z
-   with a total weight, min-entropy k is the premise that every weight times
-   2^k is at most the total, and independence of the two sources is the
-   product of their weights. Nothing is divided, no real number appears, and
-   the inequality is stated squared so that both sides are integers. No
-   probability or game library exists in the locked switch, which
-   ProbingModel.v records; the finite algebra below is original and imports
-   only the standard List, Bool, Arith, ZArith and Lia modules. Every
-   quantity the source contract fixes, the block width n, the two min-entropy
-   bounds kX and kY, the invocation count m and the security parameter s, is
-   a record field or a hypothesis, never a literal outside the witnesses.
-   Nothing is admitted and nothing is axiomatized: the native assumption
-   audit reports every shipped constant closed under the global
-   context, which is the R-05-163 assumption gate against R-05-164's
-   currently empty declared set.
+   Formulation and assurance boundary:
+   - Exact integer weight formulation over `Z`: a distribution on `n`-bit
+     strings is a weight function with derived total sum, min-entropy `k` is
+     `weight * 2^k <= total`, and source independence is the product of the two
+     weight functions. No real numbers or divisions appear; statistical
+     distance is carried unnormalized and the extraction bound is stated
+     squared.
+   - As recorded in [ProbingModel.v](ProbingModel.v), the locked switch carries
+     no external probability library; all finite algebra here is proved over
+     `Stdlib` (`ZArith`, `List`, `Bool`, `Arith`, `Lia`) with an empty axiom set
+     (R-05-163, R-05-164).
+   - No physical noise source, sample draw, health test, or hardware circuit is
+     modelled here: S5 owns the physical stochastic model, R-15-241e source
+     attribution and diversity, R-15-241b health-test ordering, R-15-241c the
+     concrete TM-8 conditioner map and its image distance, R-15-241d the seed
+     accumulation parameters, and R-17-049a the open residual for undetectable
+     common-mode source subversion.
 
-   What the gate's green line means. The stated theorems are compiled,
-   axiom-free, non-vacuous and enumerated. No noise source is modelled, no
-   sample is drawn, no health test is evaluated, no conditioner is computed
-   and no bit is measured. Every entropy figure enters as a hypothesis about
-   a weight function and never as a property of silicon.
+   Main results:
+   1. `chor_goldreich_squared`: for independent `n`-bit sources with
+      min-entropy `kX` and `kY`, signed bias numerator `B`, and totals `W`, `V`,
+      `B^2 * 2^(kX + kY) <= W^2 * V^2 * 2^n` via weighted Cauchy-Schwarz and
+      discrete Walsh-Hadamard Parseval.
+   2. `total_variation_scaling`, `total_variation_squared`,
+      `per_bit_squared_error`, `per_bit_total_variation_squared`, and
+      `bias_linear_bound`: integer-scaled total-variation and linear bias
+      bounds under `kX + kY >= n + 2s`.
+   3. `conditional_pairs_carry_the_same_bound`,
+      `observer_joint_distance_is_the_weighted_bias`, and
+      `observer_joint_meets_the_per_bit_budget`: pointwise conditioned
+      side-information families and joint `(side_value, output_bit)` distance
+      bounds, paired with `conditioning_can_destroy_independence` and
+      `cond_joint_marginals_keep_full_min_entropy`.
+   4. `hybrid_aggregation`, `hybrid_error_budget`, `conditioner_join`,
+      `conditioner_target_bound`, and `hybrid_conditioner_error_budget`:
+      multi-invocation hybrid triangle inequality and post-processing distance
+      composition, paired with `post_processing_keeps_distance_from_the_image_only`.
+   5. `parameters_bound_a_matching_pair`, `parameter_output_budget`,
+      `accepted_parameters_are_realized`, `finite_min_entropy_fits_width`, and
+      `matching_parameters_have_feasible_security`: parameter admissibility,
+      realizability (`2s <= n`), and `arithmetically_admissible_parameters_can_be_unrealizable`.
 
-   What this file establishes.
-
-   1. chor_goldreich_squared. For independent finite sources of width n with
-      min-entropy kX and kY, the signed bias numerator B, the totals W and V,
-      B^2 * 2^(kX + kY) <= W^2 * V^2 * 2^n. The route is the weighted
-      Cauchy-Schwarz inequality over finite integer sums and Parseval over
-      the Walsh-Hadamard characters of the n-bit cube, both proved here by
-      induction with no ordering or probability theory behind them.
-   2. total_variation_scaling and total_variation_squared. The output bit's
-      two masses, their sum W * V, and the identity 2 * mass(0) - W * V = B,
-      which is the scaling 2 * Delta = |B| / (W * V) written without
-      division. The squared bound is then the contract's displayed
-      Delta <= (1/2) * 2^((n - kX - kY)/2).
-   3. per_bit_squared_error, per_bit_total_variation_squared and
-      bias_linear_bound. Under the contract's symbolic target
-      kX + kY >= n + 2s, squared error at most 2^(-2s) in the bias scaling,
-      which is Delta^2 <= 2^(-2s-2) in the total-variation reading; and the
-      same bound without the square, |B| * 2^s <= W * V, both sides being
-      squares of non-negative integers, so no square root is taken.
-   4. conditional_pairs_carry_the_same_bound,
-      observer_joint_distance_is_the_weighted_bias and
-      observer_joint_meets_the_per_bit_budget. The observer clause. A
-      conditioned family supplies a weight for every supported
-      side-information value and, at each of them, a pair that is independent
-      and carries both entropy bounds after conditioning. Each conditional
-      pair then carries the bound; and the joint object (side value, output
-      bit) stands at statistical distance exactly twice the weighted sum of
-      the conditional biases from that same observer beside a uniform bit, so
-      the per-invocation budget bounds the observer's joint view and not one
-      conditional pair at a time. The premises are pointwise by construction,
-      which is what the contract requires and what
-      conditioning_can_destroy_independence and
-      cond_joint_marginals_keep_full_min_entropy show cannot be inferred from
-      the marginal premises.
-   5. hybrid_aggregation and hybrid_error_budget. Statistical distance in the
-      same integer scaling is a metric, so an m-step hybrid has total error
-      at most the sum of the m per-invocation errors, and m invocations each
-      within 2^(-s-1) aggregate to m * 2^(-s-1).
-   6. conditioner_join and conditioner_join_over_bit_strings. A fixed map
-      does not increase statistical distance, so a block epsilon-close to
-      uniform is carried to an output epsilon-close to the image of uniform.
-      conditioner_target_bound adds the separate distance from that image to
-      a named target. hybrid_conditioner_error_budget carries both the
-      accumulated invocation error and the conditioner image error in the
-      same integer scaling. These algebraic inequalities are statistical
-      distance bounds only for nonnegative distributions with equal positive
-      totals; they do not supply a concrete conditioner's image error.
-   7. parameters_bound_a_matching_pair, parameter_output_budget and
-      accepted_parameters_are_realized. The parameter record joined to the
-      distributions it prices: an admissible record bounds every pair whose
-      three widths it names, out_width reads the output width off the record
-      as the invocation count of one-bit outputs, the aggregate budget is
-      stated at that width, and the accepted record is realized by a pair
-      whose block width and min-entropy bounds are its own.
-   8. finite_min_entropy_fits_width and two_source_entropy_fits_width.
-      Positive finite n-bit source weights cannot meet a min-entropy lower
-      bound k above n. matching_parameters_have_feasible_security therefore
-      gives 2s <= n for a realizable record meeting this construction's
-      sufficient entropy-sum premise, not for every extractor or every error
-      bound. An arithmetically admissible record with impossible entropy
-      widths has no realizing pair.
-
-   What this file does not author, with the owner of each decision.
-
-   a. The source model and every physical premise. S5 owns the actual noise
-      sources, their stochastic model, across-sample and across-invocation
-      dependence, common-mode coupling and the independently reviewed
-      physical premises; R-15-241e owns source attribution and mechanism
-      diversity, R-15-241b the health tests and their ordering before any
-      extraction credit. No theorem here supplies a min-entropy figure, and a
-      mathematical witness supplies no fabricated-source evidence. R-17-049a
-      keeps undetectable source subversion and common-mode control of both
-      sources open, and nothing below narrows that residual.
-   b. The seed-accumulation invocation premises. The hybrid lemma consumes a
-      per-invocation bound and a sequence of distributions; that each
-      invocation's conditional premises hold against the prior history,
-      including every observable rejection and timing transcript, is the
-      qualification record's own obligation and is discharged nowhere here.
-      The invocation count and the exact seed-length relation stay with
-      R-15-241d and the crypto-core contract.
-   c. The conditioner's actual map. The join lemma is stated for an arbitrary
-      fixed function whose image values are enumerated once. The TM-8 map of
-      R-15-241c, its widths, its vetted-function evidence and the separate
-      instantiated distance delta_C from the image of uniform to the target
-      uniform seed are not supplied here. The symbolic composition includes
-      that term, and post_processing_keeps_distance_from_the_image_only
-      is the construction showing why that second term cannot be dropped. A
-      cryptographic claim about the conditioner remains a cryptographic claim
-      with its own advantage and model.
-   d. Resource fit. Raw-sample counts, representation fit, throughput,
-      startup and reseed delay, storage and sustainable draw rate are the
-      contract's cost row and are not evaluated here. An unaffordable
-      candidate records an unqualified verdict whatever this file proves.
-   e. Implementation refinement. No bit operation, buffer, erasure or
-      execution bound is modelled, so nothing here connects an implemented
-      circuit to the function IP.
-   f. Which widths a fabricated source meets. accepted_pair realizes the
-      accepted parameter record with a uniform pair, which is a mathematical
-      object and no evidence about silicon; the block width, the two
-      min-entropy bounds, the invocation count and the security parameter a
-      real source supports are the qualification record's to fill. out_width
-      names the output width as this construction's own invocation count of
-      one-bit outputs, which is not a decision about the selected chain's
-      output rate or the seed length R-15-241d owns.
-
-   Readings of the register and the contract this statement takes, each a
-   reviewable judgment rather than a neutral transcription.
-
-   1. Min-entropy is stated as the exact integer premise `weight * 2^k <=
-      total`, which is `Pr[X = x] <= 2^(-k)` cleared of its denominator. The
-      total is a field-derived sum rather than a second field, so a
-      distribution cannot declare a total its weights contradict.
-   2. Independence is the product of the two weight functions and is not a
-      separate hypothesis. This is why the observer clause is a family of
-      pairs rather than a joint distribution with a side channel: a
-      conditional pair that is not a product is outside the record, which is
-      exactly what conditioning_can_destroy_independence exhibits.
-   3. The bound is stated squared and multiplied out because the register
-      asks for an exact finite theorem. Taking a square root would introduce
-      either reals or a rounding convention, and neither is decided by a
-      register entry.
-   4. The failing parameter witness records a premise that does not hold. It
-      is not a proof that no extraction is possible at those parameters; the
-      construction that shows independence alone is insufficient is
-      independence_without_an_entropy_sum_does_not_extract, at n = 2 with
-      min-entropy exactly n/2 in each source, where the output is constant
-      and the theorem holds with equality.
-   5. Statistical distance is carried unnormalized, as the sum of absolute
-      weight differences, so distributions compared by it share a total. A
-      normalized reading divides by twice that total, which is the same
-      scaling the total-variation corollary states.
-   6. The conditioned family is the premise's shape and not a derivation. It
-      carries the enumerated side-information values, their weights and the
-      conditional pairs, and nothing here derives those pairs from an
-      unconditioned joint by conditioning on an observer's value. That the
-      supplied family is the one a real observer induces, and that its
-      enumeration is the supported set, are premises the qualification record
-      owes and that no theorem below checks.
-
-   Non-vacuity (R-05-165, R-05-166). Every record the statements quantify
-   over carries a closed inhabitant named for it. Each positive theorem has a
-   refuting construction beside it: orthogonal supports whose sum of
-   min-entropies only reaches n, a conditional joint no product of weights
-   realizes although both its marginals keep full min-entropy, a conditioner
-   carrying a uniform input to the maximum distance from uniform, and a
-   hybrid whose aggregate reaches the sum of its steps rather than their
-   maximum. The composed conditioner budget has an identity-map witness with
-   nonzero hybrid error, and an admissible but unrealizable parameter record
-   distinguishes an arithmetic budget from inhabited source premises.
-   The observer statement, the accepted parameter record and its
-   realizing pair are instantiated at computed values rather than left
-   quantified. Whether a refuted construction is a telling one
-   is a reading, discharged at R-05-150's review gate and booked under
-   R-17-016 rather than claimed here.
+   Non-vacuity (R-05-165, R-05-166):
+   - Every record is inhabited, and each positive theorem is paired with a
+     refuting construction (`independence_without_an_entropy_sum_does_not_extract`,
+     `conditioning_can_destroy_independence`,
+     `post_processing_keeps_distance_from_the_image_only`,
+     `hybrid_sum_is_not_a_maximum`,
+     `arithmetically_admissible_parameters_can_be_unrealizable`), reviewed
+     under R-05-150 and R-17-016.
    (*| BEGIN derived: cited entries |*)
    Owner: docs/requirements-register.md
    Requirements: R-05-150 R-05-163 R-05-164 R-05-165 R-05-166 R-15-037 R-15-241a R-15-241b

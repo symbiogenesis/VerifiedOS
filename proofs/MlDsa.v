@@ -3,8 +3,8 @@
    MlDsa.v
 
    Functional ML-DSA-87, FIPS 204 (2024-08-13), under the acceptance contract
-   docs/assurance/pq-reference-contract.md. This authored implementation uses
-   PqArith's complete transform and Keccak's bit-oriented SHAKE. No upstream
+   [pq-reference-contract.md](../docs/assurance/pq-reference-contract.md). This authored implementation uses
+   [PqArith.v](PqArith.v)'s complete transform and [Keccak.v](Keccak.v)'s bit-oriented SHAKE. No upstream
    implementation is incorporated.
 
    Algorithms 6-8 and their sampling, rounding and encoding helpers are
