@@ -2,245 +2,28 @@
 (* =========================================================================
    ElasticDomain.v
 
-   The elastic-domain contract, crown-jewel row 31 (CJ-ELASTIC), as the
-   register fixes it: R-07-037e's envelope and its confinement, with
-   R-07-037f's fixed-tier floor and R-07-037i's launch by activation;
-   R-07-037g's earliest-eligible-virtual-deadline-first dispatch with the
-   tentative yield R-07-031b records, the boundary rule and the share
-   bound; R-07-037h's yield-bound obligation; R-08-047b's four pool-service
-   guarantees and the heap library's per-allocation narrowing, drawn from
-   R-15-007k's composition-fixed size-class table; and R-08-047c's
-   confinement of every pool-derived capability to the domain.
+   Specification model of the elastic-domain contract (`CJ-ELASTIC`):
+   - Domain envelope and confinement (R-07-032, R-07-036, R-07-037e,
+     R-07-037f, R-07-037i, R-08-047a), consuming
+     [CyclicExecutive.v](CyclicExecutive.v#Frame) for slot geometry and
+     [MemoryPlan.v](MemoryPlan.v#MemClass) for per-class pool extents.
+   - EEVDF dispatch over rational virtual time, tentative-yield reply,
+     boundary rule, and intra-slot step extending
+     [PartitionContext.v](PartitionContext.v#Rotation) with inter-application
+     zeroization (R-07-014a, R-07-014c, R-07-027a, R-07-031b, R-07-037b,
+     R-07-037c, R-07-037d, R-07-037g).
+   - Share-bound and lag analysis across served-time and slot-time bases,
+     including idle-tail accounting (R-11-006c, R-17-007b) and counterexamples
+     showing the omission of the sink reaction and EEVDF leave adjustments.
+   - Poll-site placement on loop back-edges and recursive entries, reaction
+     cost bounds, and switch-requested sink obligations (R-05-102, R-07-037h).
+   - Pool-service chunk disjointness, size-class exactness, zeroed handoff,
+     revocation-gated reuse, heap per-allocation narrowing, and domain
+     capability confinement (R-08-006, R-08-007a, R-08-047b, R-08-047c,
+     R-08-047d, R-08-047e, R-12-007, R-15-007c, R-15-007k).
 
-   The Requires are load-bearing. PartitionContext.v's Rotation is the
-   intra-slot step R-07-037g extends with the inter-application clear, and
-   its Action and constants_paid price it; CyclicExecutive.v's Slot, Frame
-   and slot_index_at are the envelope's geometry, so a runtime width choice
-   is refuted by moving an instant another tenant owns; MemoryPlan.v's
-   MemClass indexes the pool extents and its representable_granule decides
-   whether a size class narrows exactly.
-
-   This specification model keeps composition choices in record fields and
-   introduces no axioms or admitted proofs. The proof gate checks compilation,
-   assumptions, witnesses, and inventory. It supplies no target execution or
-   refinement proof for a kernel, pool service, heap library, or toolchain pass.
-
-   What is stated, and what consumes it.
-
-   S1  The envelope (R-07-037e, R-07-037f, R-07-037i, R-08-047a). A
-       Domain carries one label, an enumerated member list, a manifest per
-       compartment, its cores, its placed dormant contexts and one extent
-       per memory class; envelope_admits checks the one label, the
-       fixed-tier floor and a placed context per member, and launch_ok
-       activates only a placed context. The envelope is stated for one
-       island: R-08-047a's pool per class on each island a domain occupies
-       is Q34c's (item b below).
-   S2  Confinement of the runtime choices (R-07-037e, R-07-037g, R-07-032).
-       ReadsOnlyItsLabel over a Global state whose frame and other labels
-       are separate from the domain's own state, and MovesNothingOutside
-       over domain transitions.
-   S3  The dispatch rule (R-07-037g, R-07-031b, R-07-027a). The fields the
-       register names (active bit, pending, eligible time, virtual
-       deadline, virtual time, focus), Selects as earliest eligible
-       virtual deadline with the enumeration order breaking ties, a
-       reference select proved to choose exactly that, the tentative-yield
-       reply, the boundary rule, the charge at a real yield, and Run as one
-       dispatch with its invocations, answered replies and sink.
-   S4  The intra-slot step (R-07-037g, R-07-037d, R-07-014c). ElasticStep
-       is PartitionContext.v's Rotation, plus the zeroize of the
-       zeroize-class state whenever the two members belong to different
-       applications, priced at one vmclear; step_between reads the two
-       members' applications from the declaration, and decl_enumerates ties
-       those to the envelope's manifests.
-   S5  The share bound (R-07-037g, R-11-006c). Stints of served, step and
-       idle time, the lag each member accrues against its weight's share of
-       the competing set, LagBounded and ShortfallBounded, ShareBound at the
-       register's bound, and the proof that the instant half carries the
-       interval half, so Q34b owes the instant half alone.
-   S6  The yield-bound obligation (R-07-037h). Poll sites on back-edges
-       and recursive entries over a control-flow graph, reactions as
-       poll-free paths ending at the next poll site or through an exit
-       block, YieldBoundAdmits, the sink's obligation that every path from
-       a switch-requested return reaches a real yield within one reaction,
-       and the counter protocol whose gaps between invocations are proved
-       within the call bound.
-   S7  The pool service (R-08-047b, R-15-007k). An allocation history over
-       an arena, and the four guarantees stated over it: live chunks
-       disjoint, bounds exact at a size class of the table, zeroed at
-       handoff, reuse only after R-08-006's barrier and a whole sweep
-       begun after it (R-08-007a).
-   S8  The heap library's narrowing (R-08-047b). The same arena and
-       history one level down, a member's own chunk being the arena: every
-       returned capability narrowed exactly to its allocation, live
-       allocations disjoint, and in-chunk reuse behind the same gate.
-   S9  Capability confinement (R-08-047c). Declared edges, what each kind
-       can carry, edges_confine over the edges leaving the domain, and the
-       proof that no sequence of transfers along the declared edges puts a
-       pool-derived capability outside the domain.
-
-   Q34b consumes S2, S3, S4 and S5: its kernel statement refines select,
-   reply, step_between and, once the register answers F3, charge and
-   rebalance over PartitionContext.v's contexts, and proves LagBounded at
-   the register's bound, which finding F1 below shows it cannot do as the
-   register now states it. Q34c consumes S7, S8 and S9: the chunk service
-   and heap library refine
-   PoolGuarantees and HeapNarrows, and the composition's size-class table
-   discharges class_exact. Q34d consumes S6. Q34e consumes S1 and S3's
-   admission side (decl_admits) for the demonstration composition.
-
-   Readings of the register this statement takes, each a reviewable
-   judgment rather than a neutral transcription:
-
-   1. Virtual time is exact rational EEVDF arithmetic. R-07-037g names the
-      published algorithm, whose eligible times and deadlines are the
-      running sums of service over weight; Q is that arithmetic exactly,
-      and a fixed-point kernel refines this rule only if Q34b's proof
-      covers its rounding. No representation is chosen for the kernel.
-   2. The fixed tie order is the member enumeration order. Any fixed order
-      is an enumeration order, so no generality is lost.
-   3. The request lasts while the service since this dispatch is below the
-      effective request, and the kernel answers a tentative call at the
-      virtual time that service has advanced. "An earlier virtual
-      deadline" is strictly earlier: an eligible member whose deadline ties
-      the running member's does not end the run, although select would
-      break the same tie by the fixed order.
-   4. A run is one dispatch: invocations of (iii) at most one call bound
-      apart, every one but the last answered continue, and the last either
-      the member's own real yield or a tentative call answered
-      switch-requested followed by the sink, whose next invocation is
-      enacted as the real yield whatever its flag (R-07-037g's backstop).
-   5. Lag is service lag: the member's weight share of the time base while
-      it competes (live with work pending), less the service it received.
-      Entitlement accrues only while a member competes, and the bound is
-      taken over every enumerated member (F4). A member outside the
-      competing set accrues nothing, which carries its own lag across a
-      leave, and a rebalance places every member at the eligible time its
-      service lag fixes. A real yield with nothing pending leaves the
-      eligible set and moves no other member's accounting: charge applies
-      no virtual-time adjustment at a leave, and rebalance none at a join
-      or reweight. That departs from EEVDF's published leave rule, which
-      R-07-037g names and which advances virtual time by the leaving
-      member's lag over the remaining weight. It is taken so that a
-      competing member's accounting lag, weight times virtual time less
-      eligible time, stays its service lag and the share bound has one lag
-      to quantify; F3 exhibits what each choice costs, and charge and
-      rebalance follow the register's answer.
-   6. The time base of the share bound is a parameter, ServedTime or
-      SlotTime. ServedTime is the stretches a member is served. SlotTime
-      is all of the domain's slot time on the core: the served stretches,
-      each intra-slot step and each idle tail the boundary rule leaves.
-      R-07-037g's "the domain's time on its core" does not say which; F2.
-   7. The intra-slot step's zeroize-class state is PartitionContext.v's
-      zeroized CSR class, R-07-014a having deleted the save area, so the
-      inter-application vmclear is a write of zero_word to that class.
-   8. Poll sites sit at block entries, and "a poll site on every loop
-      back-edge" is a poll site at the target of every back-edge. A
-      reaction that ends at a poll site stops at that block's entry, the
-      block belonging to the next reaction; one that ends at an exit
-      includes the exit block. A real yield is invocation (iii) with its
-      tentative flag clear, at a poll site the graph marks; a
-      switch-requested return enters the sink's first block, a block the
-      graph marks, along an ordinary edge from the invoking poll site, so
-      the sink runs inside the reaction that poll site begins.
-   9. A chunk's bytes, its capability and the memory it is handed out
-      over are an observable history of events, and the four guarantees
-      are stated over that history; Q34c relates the history to the
-      service's state.
-  10. An edge carries a capability exactly when R-08-047c's rule says it
-      can: a register endpoint with a capability slot or tagged registers,
-      a shared window with capability-store permission, a sentry, or a
-      device window. A ring never does. An edge is listed in the direction
-      a capability can travel along it, so a window a member can store
-      into is an edge from that member whichever side granted it, and
-      R-08-047c constrains the edges leaving the domain: authority flowing
-      into it is its second acceptance's, revoked by the mechanism that
-      already governs it.
-
-   Findings. None is closed here; each is a register question for its
-   owner. F1 to F3 are exhibited by the constructions named, as computed
-   facts; F4 is the reading this statement takes, recorded as a question:
-
-   F1. R-07-037g's lag bound omits the sink. The criterion bounds lag by
-       the largest declared request plus one call bound, but a conforming
-       member runs up to one call bound past its last continue and then up
-       to one yield bound for its sink, which the boundary rule itself
-       budgets. the_register_s_lag_bound_is_refuted exhibits a two-member
-       trace every step of which the rule forces or permits, ending with
-       both served-time lags of magnitude 22/5 against a bound of 4; the
-       same trace sits inside the request plus a call bound plus a yield
-       bound, which sink_inclusive_lag_bound names without adopting. Over
-       slot time the same trace ends with the heavy member's lag at 67/5.
-   F2. The share bound's time base is unstated. Read over the domain's slot
-       time, the intra-slot steps and the idle tails the boundary rule
-       leaves accrue shortfall slot after slot:
-       the_slot_time_reading_is_refuted exhibits one member alone at lag 18
-       against a bound of 4 after two slots of 12, of which it was served
-       6. Read over served time, the bound holds of that trace and cannot
-       see idling (F3).
-       R-11-006c's third acceptance charges the idle tail to the domain and
-       books it at R-17-007b, which places the tail in the domain's time
-       without saying whether a member's share is measured over it.
-   F3. Which lag the share bound quantifies, and with it whether the
-       dispatch applies EEVDF's published leave rule, is unstated. Without
-       the published adjustment (reading 5), a leave keeps every
-       competing member's accounting lag equal to its service lag, and
-       a_leave_without_the_published_adjustment_is_not_work_conserving
-       exhibits the cost: a member with work pending that is never eligible
-       again, the core idling slot after slot, while its served-time lag
-       stays inside the register's bound. With the adjustment the same
-       member is eligible at once, and its accounting lag is then 0 while
-       its service lag is -13/2
-       (the_published_leave_separates_accounting_from_service_lag). So the
-       register must say whether the share bound quantifies the accounting
-       lag the published rules preserve, or the service shortfall its
-       interval half is worded in, and charge and rebalance follow.
-   F4. Which members are "live" for the share bound is unstated. The bound
-       here is taken over every enumerated member, each accruing
-       entitlement only while it competes, live with work pending. Read
-       over launched members, a live member with nothing pending would
-       accrue entitlement it never uses, which no dispatch can bound.
-
-   What this file deliberately does not author, with the owner of each:
-
-   a. The kernel's representation of the fields over PartitionContext.v's
-      contexts, the request cell, the label-internal unwinding case and
-      the proof of the share bound: Q34b.
-   b. The chunk service, the heap library, their refinement of S7 and S8,
-      per-island pools and the quarantine's shape and sizing (R-08-047e):
-      Q34c.
-   c. The yield-point pass, the static counter, the sink-before-yield
-      lowering on switch-requested and the per-function cost triple a
-      reaction crossing a call carries (R-05-102): Q34d. S6 states the
-      obligations over a graph the pass would produce.
-   d. R-08-047d's exhaustion ladder, R-11-006c's focus dispatch bound, and
-      the minimum-share admission R-07-037g's second acceptance and
-      R-11-006c both state: the ladder is not among row 31's statements,
-      and the bound and the minimum share are admission arithmetic over
-      R-11-006c's admissible load and constants Q34e composes.
-   e. Every composition magnitude. The demonstration declarations below
-      carry arbitrary witness values and no composition claim.
-
-   Non-vacuity (R-05-165, R-05-166). Every obligation is stated as a
-   property of an arbitrary dispatch, step, run, graph, history or
-   distribution, proved of the specification where a proof belongs here,
-   and refuted of a construction the register's own sentence excludes. The
-   seven refutations the Check names are exhibited: a dispatch reading
-   outside state (leaky_choice), a member cut by the boundary
-   (thin_boundary, no_boundary and the backstop alone), two live chunks
-   sharing a byte, a chunk wider than its allocation, a chunk handed out
-   unzeroed, a chunk reused ahead of the sweep (and a sweep begun before
-   the barrier), and a pool capability held outside the domain (a
-   capability-carrying endpoint and a store-permitted window). Each pool
-   refutation breaks exactly one guarantee and is shown to keep the other
-   three. R-07-037h's own refusals are exhibited too: an unpolled
-   back-edge, a reaction above the bound, a costly exit block, and a sink
-   that returns to a tentative poll site without yielding, the last
-   passing every other conjunct. Positive instances: an admitted envelope
-   and a placed launch, a step between two members of different
-   applications, conforming traces, a polled loop with its sink, a
-   counter at a declaration, pool and heap histories, and a sealed
-   distribution with an inbound capability edge. Every record carries a
-   named witness.
+   All composition quantities are record fields (R-05-163), paired with
+   concrete witnesses and distinguishing refutations (R-05-165, R-05-166).
    (*| BEGIN derived: cited entries |*)
    Owner: docs/requirements-register.md
    Requirements: R-05-102 R-05-163 R-05-165 R-05-166 R-07-014a R-07-014c R-07-027a R-07-031b
@@ -589,8 +372,7 @@ Proof.
     + apply Nat.leb_le. apply Nat.leb_le in Hl1. apply Nat.leb_le in Hl2. lia.
 Qed.
 
-(* A reference selection over the enumeration, the one Q34b's kernel
-   statement refines. *)
+(* Reference selection over the enumeration. *)
 Fixpoint best (d : Decl) (s : DState) (l : list nat) (acc : option nat) : option nat :=
   match l with
   | nil => acc
@@ -1298,7 +1080,7 @@ Proof.
   destruct Hend, Hstart. lra.
 Qed.
 
-(* So Q34b owes the instant half alone. *)
+(* Instant lag bounds carry the interval share bound. *)
 Theorem the_share_bound_is_its_instant_half :
   forall tb d, LagBounded tb d (register_lag_bound d) -> ShareBound tb d.
 Proof.
@@ -1393,8 +1175,8 @@ Proof.
   rewrite E in Hb. discriminate Hb.
 Qed.
 
-(* So the share bound as the register states it is not a theorem Q34b can
-   prove, at either time base. *)
+(* Consequently the share bound without the sink term is refuted at either
+   time base. *)
 Theorem the_register_s_share_bound_is_refuted :
   ~ ShareBound ServedTime cx_decl /\ ~ ShareBound SlotTime cx_decl.
 Proof.

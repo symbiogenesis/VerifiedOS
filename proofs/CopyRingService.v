@@ -2,311 +2,34 @@
 (* =========================================================================
    CopyRingService.v
 
-   One copy-based service over the ring contract M6.4 generated, as the
-   register fixes it: R-12-005's bounded SPSC ring whose peer is a server;
-   R-12-008a's four payload-slot ownership phases and the three paths its
-   acceptance clause rejects; R-12-091's composition-time constants and its
-   criterion that indices are interpreted modulo the declared capacity with
-   sequence information distinguishing full from empty; R-12-092's descriptor
-   and the validation that precedes eligibility; R-12-093's one terminal
-   completion per accepted request; R-12-094's monotone six-state lifecycle
-   with its one malformed step; R-12-095's fail-closed exhaustion on both
-   sides; R-12-096's coalescible notification hint, its binary armed word with
-   a defined reset, its arm-recheck-sleep order and the lost wakeup that order
-   excludes; R-12-097's cleanup bound and the interval admission accounts;
-   R-12-098's batch as an amortization unit and never a transaction;
-   R-12-100's bounded segment list read through R-12-101's per-variant record;
-   and R-12-101's per-operation accounting and the joint bound the composition
-   is required to prove. R-12-012a is what makes the copy-once statement the
-   file's own subject rather than a detail: a declared type bounds what a
-   value is and never what it means to the receiver, and a service that reads
-   a delegated buffer twice has validated one image and copied another.
+   Specification model of a copy-based service over the generated ring
+   contract in [RingContract.v](RingContract.v):
+   - Bounded SPSC ring index algebra over monotone sequence numbers reduced
+     modulo the declared capacity, with four payload-slot ownership phases and
+     three rejected access paths (R-07-029, R-12-005, R-12-008a, R-12-011,
+     R-12-091, R-18-037).
+   - Descriptor validation before eligibility, single terminal completion per
+     accepted request, and the six-state monotone lifecycle with its single
+     malformed transition (R-05-124, R-12-012a, R-12-092, R-12-093, R-12-094).
+   - Fail-closed exhaustion, batch amortization without transactional framing,
+     and bounded segment/cleanup/WCET accounting within the slot budget
+     (R-05-097, R-07-036, R-08-047, R-11-006, R-12-009, R-12-095, R-12-097,
+     R-12-098, R-12-100, R-12-101, R-15-183, R-17-030u).
+   - Coalescible notification hint with binary armed state, defined reset, and
+     producer-release vs. consumer drain-arm-recheck-sleep interleaving that
+     excludes lost wakeups (R-07-029a, R-07-037b, R-12-096).
 
-   Which entries this file is stated over is derived, and the derivation is
-   stated in three steps a reviewer checks one at a time. M6.5a's cell cites
-   no requirement id; it carries the class-X ground alone. **Step one** reads
-   the three families off M6.5's own lead, that the copy-based service carries
-   the SPSC, notification and capacity proofs: R-12-005 and R-12-008a are the
-   SPSC, R-12-096 the notification, R-12-095 with R-12-098 the capacity.
-   **Step two** takes what those spell out, which is a reading and not a
-   judgment: R-12-005's sentence cites R-07-029, R-12-008a's cites R-12-008a's
-   own CHERI-TAL derivation, R-12-095's acceptance clause cites R-08-047,
-   R-05-097, R-07-036 and R-17-030u, R-12-096's names no id, and R-12-098's
-   cites R-12-009. **Step three** is the judgment, and it reaches the rest by
-   section 6's own lead, that a service which cannot state its finite
-   capacities, lifecycle semantics, cleanup bounds and per-operation WCET is
-   not admitted through the ring profile: the lifecycle is R-12-094, the
-   cleanup bound R-12-097, the per-operation WCET R-12-101, and the finite
-   capacities R-12-091's constants read through R-12-095. Two more are reached
-   by a noun one of those uses and does not define: R-12-096's *sleep* reaches
-   R-07-029a, which is the entry that says what a sleep is here and that it is
-   nowhere a block, and R-12-101's *slot budget* reaches R-11-006, which is
-   what an in-slot WCET is admitted against. A reviewer who disagrees with the
-   scope disagrees with step three; steps one and two are checkable against
-   the register's own text.
+   Parameterized service choices (gaps a..k): (a) notification reset owner and
+   point; (b) segment-count bound on copy operations; (c) device-service bound
+   term; (d) live request-state subset; (e) queueing vs. single-operation
+   latency accounting; (f) polling cadence declaration; (g) ownership-to-
+   lifecycle refinement map; (h) producer armed-word predicate; (i) server
+   staging buffer capacity; (j) single-read copy discipline preventing
+   time-of-check/time-of-use re-reads; (k) demo witness magnitudes.
 
-   This file Requires RingContract.v, and that is a dependency rather than a
-   citation. That artifact is the generated interface artifact IDL-064 names,
-   K-89 holds it byte-identical to what `run.py ring emit` writes, and it is
-   the one owner of the declared constants, the closed status set, the six
-   lifecycle states, the cancellation answers and the per-variant records this
-   file is stated over. Re-declaring any of them here would be a second copy
-   of a generated artifact, which is the one thing this repository's whole
-   discipline refuses. So every constant below is instantiated and none is
-   transcribed, and nothing declared here shadows a name that file exports:
-   the ring constants, `submit`, `accept`, `may_reserve`, `work_pending`,
-   `sleeps`, `agree`, `eqb_reflexive`, `activation_cost`,
-   `cancellation_interval`, the five record types and every `op_`, `enc_`,
-   `rec_` and `lifecycle_` name are used at the spelling RingContract gives
-   them. `cancel` is the one exported name this file deliberately does not
-   reach, R-12-097's four answers being M6.5b's family and this file stating
-   only the cleanup accounting beside them. `work_pending` and `sleeps` are
-   reached at the two bridge theorems and nowhere else, because this file's
-   algebra is sequence numbers where the contract's is wire indices, and the
-   bridge is what makes those one algebra rather than two that agree in a
-   comment. A mutant of this file costs its own compile and
-   RingContract's is already on disk from the baseline, so the Require is paid
-   once per run rather than once per member of the seeded population.
-
-   This specification model uses Service fields for composition choices not
-   fixed by the contract. No axioms or admitted proofs are introduced;
-   R-05-163 audits the complete assumptions. Computed examples are proved by
-   kernel conversion. No implementation or target execution is supplied.
-   R-18-037 still requires a canonical SPSC implementation proof under Ztso,
-   refining the index algebra and ordered protocol stated here.
-
-   What is deferred, and to which item. M6.5b owns the DMA service, and with
-   it the whole of R-12-100's capability face: the session-table capability
-   whose permissions match the declared direction, the extent validated before
-   the transfer starts, the per-segment fabric check, the tag clearing of
-   R-15-183, the DMA quiescence rule and the teardown that revokes it. It also
-   owns cancellation's race semantics as a family; RingContract already states
-   the four answers R-12-097 fixes and this file states only the cleanup
-   accounting beside them, which is what section 6's lead asks of every
-   service. M6.2's admission checker does not exist on either side, so what is
-   below is a declaration with an admission rule to satisfy and nothing to be
-   admitted by, which is IDL-068's own second limit and is not repaired by
-   narrowing anything here. R-12-011's flow labels are the contract's and
-   RingContract states them against the declared lattice; nothing here adds a
-   flow theorem, the lattice having no membership anywhere (F-216j).
-
-   Readings of the register this statement takes, each a reviewable judgment
-   rather than a neutral transcription:
-
-   1. The index algebra is a pair of free-running sequence numbers and the
-      wire index is that number modulo the declared span. R-12-091's criterion
-      says indices are interpreted modulo the declared capacity with sequence
-      information distinguishing full from empty, which is exactly the pair:
-      the sequence number is what distinguishes them and the modulus is what
-      the wire carries. So `rv_produced` and `rv_consumed` are monotone and
-      `rv_wire` and `rv_slot` are the two reductions, and the separation of a
-      live window is a computed fact about the declared constants rather than
-      an assumption.
-   2. Occupancy is the difference of the two sequence numbers, and the
-      ordering `consumed <= produced` is carried in the invariant rather than
-      assumed. That is what makes the two-consumer construction refutable: it
-      breaks the ordering and not the capacity bound.
-   3. An interleaving is an arbitrary list of turns. R-12-005's SPSC and
-      R-12-008a's three concurrently shared cells together say that each agent
-      writes one index and reads the other, so a schedule is a list over a
-      two-member alphabet and the invariant is stated of every one of them.
-      This is the only place a genuine quantifier over executions appears, and
-      it is a quantifier over a list rather than over a memory model: Ztso is
-      R-18-037's and is not modelled here.
-   4. Ordering is stated as an ordered list of acts and never as a memory
-      fence. R-12-096 names the producer's release publication and the
-      consumer's drain, arm, recheck and sleep in that order, so the producer
-      chain is three acts and the consumer chain is four, and each weakening
-      is generated over the chain rather than authored.
-   5. The lost wakeup is a property of an interleaving and not of a decision
-      rule. RingContract already states R-12-096's decision rule over two
-      reads of the producer index and holds a consumer that skips the recheck
-      to it. What is left, and what this file states, is the interleaving: the
-      producer publishes at one step of the consumer's chain, reads the armed
-      word at that instant, and signals only if it is armed. The obligation is
-      that no schedule leaves the consumer asleep with work pending and no
-      signal sent.
-   6. The notification word's reset is a declared field and both arms are
-      exhibited. R-12-096 requires a binary armed state with a *defined*
-      reset and defines none, and IDL-059 restates the requirement without
-      choosing (gap a). Both arms exclude the lost wakeup; they differ on
-      coalescing, and R-12-101's declared maximum notifications is what
-      refuses one of them, so the arm this file's admission conjunct takes is
-      taken on a declared bound and not by fiat.
-   7. R-12-100's segment discipline reaches a service that copies only through
-      R-12-101's per-variant record. That entry's own sentence is about
-      zero-copy DMA and this service delegates nothing; what obliges a copying
-      service to bound its segments is the record field R-12-101 requires of
-      *every* operation variant (gap b). The bound is stated over that field
-      and nothing of R-12-100's capability face is claimed.
-   8. Copy-once is R-05-124 read at a service rather than at a parser. That
-      requirement has a copy-once parser write its fixed destination buffer
-      whole, and R-12-012a puts the validation of every index, length, offset
-      and selector at the receiver. A service that reads a delegated buffer
-      twice has validated the first image and copied the second, and no entry
-      excludes it (gap j), so it is refuted here by construction rather than
-      cited as an absence.
-   9. Every generated family is a list of constructions whose fallback past
-      the last index is the specification's own chain. That is what makes a
-      bounded quantifier over the index decide anything: a bound raised by one
-      reaches the specification, which satisfies the obligation the family is
-      refuted for breaking, so the theorem fails rather than holding vacuously
-      wider.
-  10. Boolean rather than propositional wherever the witnesses must compute:
-      the chain conjuncts, the service conjuncts, the interleaved run and the
-      accounting arithmetic are all decidable, so the generated families are
-      checked by conversion rather than by a proof per member.
-  11. A lifecycle step is lawful by the contract's own two *relations* and never
-      by the rank arithmetic that agrees with them. R-12-094 puts one malformed
-      step, from Submitted to Terminal, and `lifecycle_malformed` answers
-      `None` at the other five states; a conjunct reading "one rank more or two
-      ranks more" licenses a skip at *every* state, which is a second malformed
-      step the entry does not license. The two readings are both carried below
-      and the construction that separates them is the skipping advancer, so
-      what the reading buys is machine-checked rather than asserted.
-
-   The literals taken from the register, and there are five. The criterion is
-   the same at each: one sentence of one entry names its members and closes
-   the set, and the count sits beside the sentence rather than in prose. A
-   sentence that names no member closes nothing, which is why the live-state
-   subset (gap d) and the polling cadence (gap f) are fields:
-
-   - R-12-008a's "producer-exclusive writable; release-published and
-     producer-inaccessible; consumer-acquired immutable; completed and
-     returned to producer ownership" is four, so `ownership` has four
-     constructors and `there_are_four_ownership_phases` is its count.
-   - R-12-008a's acceptance clause, "rejects any path that reads a slot before
-     acquire, writes it after publication, or restores producer write
-     ownership before every consumer reader is consumed", is three, so
-     `ownership_defect` has three constructors and
-     `there_are_three_rejected_paths` is its count.
-   - R-12-008a's "only head, tail, and notification cells are concurrently
-     shared" is three, and R-12-091's header is exactly four words, so
-     `header_word` has four constructors, `is_shared_cell` marks three of them,
-     and the two counts are stated against each other rather than separately.
-   - R-12-096's "drains within its admitted budget, arms its notification
-     word, re-reads the producer index, and sleeps only if the recheck still
-     shows no work" is four acts in one order, so `consumer_act` has four
-     constructors and `spec_consumer_chain` is that order.
-   - R-12-096's "the producer publishes with release ordering and signals only
-     when the consumer may sleep" is three acts in one order once the
-     publication is read as R-12-008a reads it, staging the payload and then
-     releasing it, so `producer_act` has three constructors and
-     `spec_producer_chain` is that order.
-
-   Two further enumerations are the *contract's* and are used at RingContract's
-   own spelling rather than restated: R-12-093's eight statuses and
-   R-12-094's six lifecycle states. `all_slot_states` below is a list over
-   that inductive and its length is checked against the contract's own
-   lifecycle rank rather than written as a figure.
-
-   Every other magnitude is a field: the service's accepted ceiling and its
-   two declared slacks, its batch and the batch's slack, and per operation its
-   segment count, staging buffer, cleanup cost, released-reference count, the
-   three costs it reproduces from the declaration, its accounted latency, its
-   progress slack and its declared progress bound; and beside those the live
-   state set, the notification reset owner, whether a counter exists, the
-   polling cadence, which accounting the service declares, whether the copy is
-   charged at the declared maximum, and the service's own identity.
-
-   How the refutations are generated. Over the two act chains: `swap_at`
-   transposes an adjacent pair, `drop_at` deletes an act, `suffix_at` re-enters
-   at a proper suffix, and `insert_at` binds one act a second time, so the four
-   families are refused as one conversion, again per family, and again as a
-   bounded quantifier over the index. Over the thirteen service conjuncts:
-   `spoiled_at` moves one declared field to the value on that conjunct's own
-   boundary and `declared_without` drops one conjunct from the admission
-   filter, so the thirteen are decided twice, once from the declaration side
-   and once from the filter side. The hand-authored refutations are the ones
-   no index generates, being alternative constructions rather than mutations
-   of a list: the dual producer, the dual consumer, the untested producer and
-   consumer, the staging-only producer, the reordering consumer read at the
-   interleaving rather than at the chain, the never-signalling publisher, the
-   counting consumer, the greedy consumer, the transactional batch, the
-   backward, skipping and reader-holding advancers, the acceptor before
-   validation, the revalidating copy and the arrival-charged accounting. The
-   partial enqueue is the untested producer met at the other obligation and not
-   a fourteenth construction.
-
-   What this file deliberately does not author, with the entry that owes each
-   decision. A register gap is reported, not closed:
-
-   a. Which agent resets the notification word and at which point.
-      R-12-096 requires a binary armed state with a *defined* reset and
-      defines none; IDL-059 restates the requirement. Both arms are exhibited,
-      both exclude the lost wakeup, and they differ on how many signals one
-      arming admits. Owed at R-12-096.
-   b. Whether R-12-100's bounded-segment discipline reaches a service that
-      copies. That entry's sentence is about zero-copy DMA throughout; what
-      reaches a copying service is R-12-101's per-variant maximum segment
-      count, which is a record field rather than an obligation of an entry.
-      Owed at R-12-100 or R-12-101.
-   c. What a copy-based service's device-service bound is a bound on.
-      R-12-101 has it imported from the device contract and a copy-based
-      service has no device and no device contract, so the largest term of
-      this service's per-operation WCET has no named owner. Owed at R-12-101.
-   d. Which of R-12-094's six states make a request identifier live.
-      R-12-092 requires the identifier unique among the session's *live*
-      requests and R-12-094 has the derivation reject reuse of a live one,
-      and nothing marks the subset. Submitted and Accepted are forced and
-      Free and Reclaimed are excluded, on pain of no identifier ever being
-      reusable; Writing and Terminal are left to the declaration and both
-      arms are exhibited. Owed at R-12-092 or R-12-094.
-   e. Whether the accounted latency of R-12-101's declared progress bound
-      includes the queueing delay of the requests ahead of a submission. The
-      entry names capacity, batch size, polling cadence, slot budget and
-      device latency and no relation among them, so an accounting that charges
-      the queue and one that charges the operation alone are both readings.
-      Both are exhibited and the difference is machine-checked. Owed at
-      R-12-101.
-   f. Where the polling cadence is declared. It is one of the five terms
-      R-12-101's joint bound is over and it is not among the constants
-      R-12-091 enumerates, nor among the fourteen the ring declaration fixes,
-      so the term the arithmetic turns on is declared nowhere. Owed at
-      R-12-101 or R-12-091.
-   g. How R-12-008a's four ownership phases refine into R-12-094's six
-      lifecycle states. R-12-094's acceptance clause says the lifecycle
-      refines those transitions without weakening them and gives no map, and
-      four and six do not pair by counting. Both are carried here and neither
-      is stated as a function of the other. Owed at R-12-094.
-   h. What the producer reads when R-12-096 has it signal "only when the
-      consumer may sleep". Whether the consumer may sleep is the consumer's
-      own recheck, and the only thing R-12-091's header gives the producer is
-      the notification word, so either the armed word is that predicate or the
-      clause names something no header cell carries. This file reads the armed
-      word as the predicate and says so. Owed at R-12-096.
-   i. What a copy-based service copies into. R-05-124 has a copy-once parser
-      write its fixed destination buffer whole and no entry gives a server a
-      staging buffer, a size for it, or a lifetime. `so_staging` is a field
-      and the obligation over it is that it holds the declared payload plus
-      its own declared headroom. Owed at R-05-124 or R-12-101.
-   j. Whether a server may re-read a delegated buffer after validating it.
-      R-12-092 puts the validation before eligibility and says nothing about a
-      second read; R-12-100's *never reinterpreted after* is stated of the DMA
-      extent alone. So the time-of-check defect a copying service is exposed
-      to is excluded by no entry, and it is refuted here by construction.
-      Owed at R-12-092 or R-12-012a.
-   k. Every composition magnitude. The accepted ceiling and its two slacks,
-      the batch and its slack, and per operation the segments, the staging
-      buffer, the cleanup cost, the released-reference count, the three
-      reproduced costs, the accounted latency, the progress slack and the
-      progress bound are fields; so are the live state set, the reset owner,
-      the counter flag, the cadence, the accounting arm, the charging rule and
-      the identity. The demo service at the end instantiates each with a
-      witness value that carries no composition claim, and the ledger pins
-      every one of them.
-
-   Non-vacuity (R-05-165, R-05-166). Every obligation below is stated as a
-   property of an arbitrary service, schedule, chain, publisher, consumer,
-   batch, advancer or copier, proved of the specification, and refuted of an
-   alternative construction the register's own sentence excludes. Every
-   refuting construction is also shown to satisfy the obligations it does not
-   break, so what refuses it is the named defect and not its shape.
-   Inhabitation is concrete: one declared service over the contract's five
-   operations, thirteen one-field spoilings of it, a schedule algebra with a
-   value on every boundary the file compares at, twenty-six generated chain
-   weakenings, two publication bursts, two accounting arms, two live-state
-   arms and two buffer images.
+   Composition parameters not fixed by [RingContract.v](RingContract.v) are
+   carried in `Service` fields (R-05-163), with concrete witnesses and
+   generated chain and service refutations (R-05-165, R-05-166).
    (*| BEGIN derived: cited entries |*)
    Owner: docs/requirements-register.md
    Requirements: R-05-097 R-05-124 R-05-163 R-05-165 R-05-166 R-07-029 R-07-029a R-07-036
@@ -3038,8 +2761,8 @@ Proof. vm_reflexivity. Qed.
 
 (* =========================================================================
    The ledger. Every field of every witness no obligation reads is pinned
-   here, which is the hazard M6.2a measured: a field nothing reads is a field
-   a weakening moves in silence.
+   here so that a field nothing reads cannot be moved by a weakening in
+   silence.
    ========================================================================= *)
 
 Example the_declared_capacities :

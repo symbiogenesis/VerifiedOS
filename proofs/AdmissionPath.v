@@ -2,333 +2,35 @@
 (* =========================================================================
    AdmissionPath.v
 
-   The composition-time admission path, as the register fixes it: R-13-001c's
-   composer, an untrusted producer joining no trust base and free to be any
-   party, this device itself included now that R-13-027 makes the certifying
-   toolchain resident, whose output fails admission rather than shipping
-   wherever it ran; R-13-013's artifact-not-pedigree,
-   under which no admission rule reads a producer identity; R-06-008's
-   stratification, the CHERI-TAL type-checker running over typing derivations
-   and the CIC kernel elsewhere; R-06-009's decided set, read off R-05-029's
-   eleven type-level obligations rather than enumerated again; R-05-036's
-   three checker moves with R-05-037, R-05-038 and R-05-039 assigning one to
-   each facet of those eleven; R-06-015b's checker authority, read over the
-   candidate artifact, its certificate and the profile, and write over one
-   verdict record; R-13-011's three assurance tiers, each artifact carrying
-   exactly one and its required evidence, with R-13-012 scoping the Tier-2
-   subset; R-13-003's named certificate parts and R-13-022's gate on the
-   derivation rather than on the toolchain; R-11-005's generation-scoped
-   proofs against the spec-set and Sail-model versions, with R-05-135b's
-   pinned language specification and profile beside them, so revving any of
-   them forces re-admission; R-11-005's commit-only-after-validation, which
-   makes a generation atomic; R-13-010a and R-13-010b's whole-image passes,
-   which emit new bytes and owe a derivation covering them; R-13-014's
-   refuse-uncertified-code polarity and R-13-025's admission gate that never
-   relaxes enforcement; and R-17-033's completeness polarity, which books an
-   incomplete checker as a delivery failure and an unsound one as a safety
-   breach. The order the phases run in is TAL-074's, in the typed assembly
-   language R-05-135a pins.
+   Specification model of the composition-time admission path:
+   - Untrusted composer and producer-independent admission (R-13-001,
+     R-13-001a, R-13-001c, R-13-007, R-13-013, R-13-027; compare the signed
+     bring-up roster in [SupervisionTree.v](SupervisionTree.v), R-10-026, and
+     boot checks in [MModeFirmware.v](MModeFirmware.v)).
+   - Stratified CHERI-TAL and CIC checking (R-06-008, R-06-009, R-06-014,
+     R-06-015b, R-06-015d) over the eleven type-level obligations and thirteen
+     facets routed across the three checker moves (R-05-029, R-05-030,
+     R-05-036, R-05-037, R-05-038, R-05-039) and the six ordered phases of
+     [typed-assembly-language.md](../docs/languages/typed-assembly-language.md)
+     (R-05-135a, R-05-135b).
+   - Three assurance tiers and certificate parts (R-13-003, R-13-011,
+     R-13-012, R-13-022), generation-scoped version bindings and atomic commit
+     after validation (R-11-005, R-11-005a), whole-image passes emitting covered
+     bytes (R-13-010a, R-13-010b), fail-closed rejection of uncertified code
+     (R-13-014, R-13-025, R-13-026), and soundness vs. completeness polarity
+     (R-17-033).
 
-   This is a specification model of admission, not the deployed checker.
-   Composition choices are Machine fields, avoiding top-level Parameters in
-   the R-05-163 assumption audit. No axioms or admitted proofs are introduced.
-   Computed examples are proved by kernel conversion. Decoding artifacts,
-   typing instructions, computing hashes, and the checker refinement required
-   by R-06-015d remain implementation work.
+   Parameterized admission choices (gaps a..h): (a) seven judgment forms and
+   six checker phases from the pinned TAL specification; (b) Tier-0 and Tier-1
+   facet sets beyond Tier-2's six rows; (c) pairing between judgment forms and
+   facets; (d) Tier-2 manifest-consistency check outside the eleven rows; (e)
+   duplicate package identifiers in a roster; (f) target vs. current version
+   comparison; (g) 13-facet vs. 16-facet derivation-record keying; (h) demo
+   roster magnitudes and witness values.
 
-   Which half of M6.2a's cell each part answers. The cell has two clauses.
-   *The packages it checks the golden-model components themselves* is the
-   roster: `golden_roster` below is the plan's sections 2 through 8 named as
-   component identities, the Root-of-Trust firmware, the M-mode firmware, the
-   crypto core, the kernel, the object system and its transactor, the
-   filesystem, and the init system's supervision tree. The plan's section 9
-   names two more components and they are deliberately not roster members:
-   R-06-014 makes the two checkers exactly the admitters no admission
-   certificate covers, so a roster naming them would be claiming the one thing
-   that entry refuses. *Their derivations thin until the Tier-0/1/2 proofs
-   exist* is the carrier: a derivation here is a list of discharge records and
-   carries no proof term at all, which is what thin means at this carrier, and
-   `Terse` is the carrier whose every value reads as a certificate with no
-   record whatever. What a component's identifier, tier, producer and
-   attestation are is a witness value gap g records; what the roster *is* is
-   the cell's.
-
-   What is deferred, and to which item. M6.2 was split at entry on the ruling
-   that measured boot covers a statically composed image and the device does
-   not re-admit it, so admission of a composed image is an offline act and the
-   device verifies a signature. **M6.2b owns the on-device CIC kernel**, and
-   nothing below is a proof term, a reduction, a conversion check, or a term
-   language: the derivation carrier here is arbitrary precisely so that the
-   proof language M6.2b refines is not chosen by this file. **M6.2b also owns
-   the CompCert-C refinement**, so no line below is a program, and R-06-015d's
-   `CJ-ADMIT-IMPL` obligation, that a shipped evaluator accepts exactly where
-   the pinned language's rule table does, is stated of nothing here. What is
-   here is the composition-time act: a checker over a package and its
-   derivation, and a composer that turns a roster into a generation or into
-   nothing.
-
-   Only the shared prelude-only support is required, so Classical and
-   FunctionalExtensionality are unavailable and every equality below is stated
-   pointwise or over a decidable boolean for that reason. Domain-specific sibling artifacts remain independent:
-   SupervisionTree.v's roster is R-10-026's signed generation read at bring-up
-   rather than at composition, MModeFirmware.v's build-time check is a
-   property of the booted machine, and neither meets a package, a derivation
-   or a verdict. Such an import would be a citation rather than a dependency.
-
-   Readings of the register this statement takes, each a reviewable judgment
-   rather than a neutral transcription:
-
-   1. Admission is a predicate over a package and its derivation, and the
-      composer's ambient state is a parameter it must not read. R-06-015b
-      makes a checker's read authority exactly the candidate artifact, its
-      certificate and the profile, and R-13-001c puts the composer outside
-      every trust base, so `Ambient` below is what a composer is carrying and
-      the obligation is that the verdict does not vary with it. The
-      specification's checker takes the parameter and ignores it, which is
-      what makes a checker that reads it expressible.
-   2. Determinism and state-independence are two obligations, not one.
-      TAL-001's criterion is that two runs over identical inputs return
-      identical verdicts *and identical rejection sites*, which is a property
-      of the run and not of the composer's state; R-06-015b is the state
-      half. `Ambient` therefore carries both a run index and a state, and
-      `the_two_halves_compose` proves the conjunction from the two with a
-      mediating ambient. The rejection-site half is a third predicate rather
-      than a decoration: `NamesAStableRule` and `NamesAStableSite` are stated
-      apart and each is broken by a construction that keeps the other.
-   3. The derivation carrier is arbitrary and the reading is what the checker
-      sees, and that is an obligation with something to exclude rather than
-      what parametricity already gives. R-13-003 names the typing derivation
-      as a certificate part and fixes no term language; M6.2b owes the
-      proof-term checker. `IsAFunctionOfTheReading` is stated of an arbitrary
-      checker over an arbitrary carrier and an arbitrary reading, and
-      `Tagged` below is a carrier two of whose values read alike, so a checker
-      that looks behind the reading is definable and is refuted. A thin
-      derivation is then a value of a carrier whose reading is short, and not
-      a special case.
-   4. A derivation that is *absent* and one that is *thin* are decided by
-      different rules. R-13-003 makes the derivation a named part of the
-      admitted artifact and R-13-011 has every admitted artifact carry its
-      required evidence, so a missing derivation is refused before any rule
-      over derivations runs, while a derivation carrying no record is refused,
-      or not, by the ordinary coverage rule against its tier's required set.
-      The two refusals carry different rule identifiers, and
-      `the_absent_and_the_thin_are_refused_apart` checks that they do.
-   5. The unit that carries exactly one discharge is R-05-036's facet, and
-      there are thirteen. R-05-029 closes the type-level obligations at eleven
-      rows in the register's own words; R-05-036's criterion adds that each of
-      them maps to exactly one move *except the two whose halves split*,
-      memory safety taking move (I) for its spatial half and move (II) for its
-      temporal half and control-flow integrity taking move (I) for its runtime
-      half and move (II) for its compose-time callee-set enumeration. Eleven
-      rows with two of them split is thirteen facets, and R-05-037, R-05-038
-      and R-05-039 are the three rows of the move table, three facets, eight
-      and two. `Obligation` below is the eleven, `Facet` is the thirteen,
-      `row_of` is the map back, and `move_of` is the move table; the three
-      counts are checked by conversion, so a facet added or a move reassigned
-      stops one of them.
-   6. Recognition precedes coverage, and the order of the whole check is
-      TAL-074's rather than this file's. That requirement closes a six-phase
-      enumeration and orders it, rejecting at the first failure: bind, parse
-      and limit, decode and structure, then the deletions of move III, the
-      citations of move I and the attributes of move II. So the version
-      comparison is in the first phase and not the third, the coverage walk
-      runs the three move phases in *that* order rather than in the order a
-      machine happens to declare its required set, and `phase_of_rule` places
-      every refusal below in one of the six. What TAL-074 does not order is
-      the two halves of its own phase 0: this file compares the version before
-      it recomputes the binding, because TAL-008 makes a certificate naming a
-      version the checker does not implement a rejection *before the checker
-      proceeds*, so a commitment recomputed under an unimplemented version
-      decides nothing. An absent derivation is phase 0's first act, there
-      being no certificate for that phase to bind or to read a version off.
-      The order among the first three phases is stated as three clauses of its
-      own rather than left as prose, one per adjacent pair, each proved of the
-      specification and each refuted by a checker that hoists the later phase
-      above the earlier one; every one of those three accepts exactly where
-      the specification accepts, so what separates it is the refusal it names.
-   7. Coverage is a set property in its facets and a sequence property in its
-      phases. R-05-029's criterion is that a derivation carries an attribute,
-      citation or deletion-check *for each* listed obligation, which fixes no
-      order and no multiplicity among the records, so the checker is invariant
-      under reordering and duplication of a derivation's records and sensitive
-      only to deletion and to misrouting. Which of the three a record is, on
-      the other hand, is not free: R-05-037, R-05-038 and R-05-039 assign one
-      to each facet, so a record discharging a cited facet by an attribute
-      discharges nothing, and the checker that reads the facet and ignores the
-      move is refuted below.
-   8. A rejection is total at the composer, and total means the *generation*
-      and not the package. R-11-005 has the transactor commit a generation
-      only after the checker validates every new binary's proof, R-13-001a
-      makes the install atomic and a generation rather than an amendment to
-      one, and R-13-001c has a composer that gets its inputs wrong fail
-      admission rather than ship. So the composer's codomain is a generation
-      or nothing, one refused package costs the generation, and the composer
-      that ships the sub-roster it could admit is refuted rather than
-      specified.
-   9. A whole-image pass emits bytes no roster names, and the obligation is
-      coverage rather than absence. R-13-010b requires *one shared service
-      compartment in place of a library statically linked into each consumer*,
-      which is a component the roster cannot have named, and R-13-001c
-      requires the pass to emit the CHERI-TAL derivation covering the new
-      bytes. So the obligation is that every emitted package is named by the
-      roster *or* declared as the pass's own product, with every declared
-      product carried by the image; a composer emitting an undeclared stranger
-      and one declaring a product it did not carry are both refuted, and the
-      merging composer that does what R-13-010b requires satisfies all of it.
-  10. Boolean rather than propositional wherever the witnesses must compute:
-      the recognition tests, the coverage test, the verdict comparison and the
-      composer's own test are decidable, so the generated families below are
-      checked by conversion in the silent Example form rather than by a proof
-      per member.
-  11. The waived-rule family is the natural weakening of a fail-closed
-      checker, so it is generated over the rule enumeration rather than
-      authored. `waiving r` is the checker that accepts what rule `r` alone
-      refused; the two theorems about it hold of an arbitrary base checker and
-      an arbitrary pair of rules, and one theorem per rule links the waiving
-      to the negation of that rule's own clause, so the eight clauses are
-      eight obligations rather than one stated eight times.
-
-   The literals taken from the design, and there are seven. Four are the
-   register's own. R-05-029's enumeration is eleven, so `all_obligations` is
-   that list and `there_are_eleven_type_level_obligations` is the count
-   checked by conversion. R-05-036 fixes three moves and no fourth mechanism,
-   so `all_moves` is three. R-05-036's criterion splits two of the eleven rows
-   and no other, so `all_facets` is thirteen, and R-05-037's three, R-05-038's
-   eight and R-05-039's two are checked against the move table beside it.
-   R-13-011's tier enumeration is three. Two more are inherited through the
-   pin R-05-135a makes and gap a reports: the typed assembly language's
-   judgment block is seven, and TAL-074's phase enumeration is six. The
-   seventh is the file's own: `all_rules` is its refusal vocabulary at eight,
-   TAL-078 fixing only a rejecting verdict's shape, one requirement and one
-   site, and closing no vocabulary of requirement names. What is not the
-   file's is the *order*, which `phase_of_rule` reads off TAL-074, and every
-   one of the six phases carries at least one refusal. Every other magnitude
-   is a field, is derived, or is a demo witness value gap g records: the
-   per-tier required sets past R-13-012's, the admitted versions and the
-   composer's identity are fields of the Machine; every code past an
-   enumeration is `count_of` that enumeration rather than a written number;
-   every site a verdict names is read off the package, the record or the facet
-   that failed; and every figure the demo roster carries is declared in a
-   conversion beside it, because a magnitude no check reads is one a weakening
-   moves in silence.
-
-   How the refutations are generated. A refutation is a seeded weakening the
-   theorem must reject, so the families below are produced mechanically rather
-   than authored, which is SupervisionTree.v's method taken to a different
-   order. Over the rule enumeration: `waiving` yields one unsound checker per
-   rule, eight of them, each keeping every other rule as one generic theorem,
-   dropping its own as another, and breaking that rule's own clause as a
-   third. Over a derivation's own record list: `drop_at` deletes a discharge
-   and yields one weakening per record; `patch_at` with `unknown_form`, with
-   `unknown_move` and with `unknown_facet` replaces one third of a record's
-   codes with the first code past its enumeration and yields three families of
-   one per record; `patch_at attributed` rewrites one record's move to an
-   attribute and yields the misrouting family, whose refused members are
-   exactly the facets R-05-037 routes through a citation; and `swap_at` and
-   `dup_at` are the two families the specification is invariant under. Over
-   the judgment enumeration itself: `retag` rewrites every record to one
-   judgment form and yields one weakening per form, seven of them, every one
-   verdict-preserving because no entry pairs a form with the obligation it
-   discharges (gap c). Over an arbitrary package list: the same generators
-   over a roster, with the insertion family carrying the refused package that
-   must cost the generation. Beside them the generic theorems quantify over an
-   arbitrary position, an arbitrary roster and an arbitrary package rather
-   than enumerating. The hand-authored refutations are the ones no index
-   generates, being alternative constructions rather than mutations of a list.
-
-   What this file deliberately does not author, with the entry that owes each
-   decision. A register gap is reported, not closed:
-
-   a. Where the judgment forms and the phase order are closed. R-05-135a puts
-      the type theory in
-      [typed-assembly-language.md](../docs/languages/typed-assembly-language.md), whose
-      section 8.4 block fixes seven judgment forms and whose TAL-074 closes
-      and orders six checker phases, and no register entry states either
-      number in its own words. The register's review gate audits the register,
-      so both enumerations below are inherited through a pin rather than
-      audited, and an eighth form or a seventh phase added to that document is
-      not a register edit. Owed at R-05-135a or R-06-009.
-   b. What Tier 0 and Tier 1 require, in the canonical vocabulary. R-13-011
-      states their evidence in its own words, and most of it is not among
-      R-05-029's eleven at all: R-05-030 puts Tier-0 refinement,
-      non-interference and the residual cases outside every type system, and
-      Tier 1's handler termination and information-flow theorems are named by
-      no facet. R-06-009 says what of Tier 1 the type-checker does decide,
-      *the memory/ABI half*, and that is what the demo machine's Tier-1 row
-      follows, as a witness value and not as a reading of R-13-011. Tier 2 is
-      not in this gap: R-13-012 states its six rows and R-05-036 with
-      R-05-038 supplies the one facet split those rows need, so `required
-      TierTwo` is the register's outright. Owed at R-13-011 or R-05-030.
-   c. Which judgment form discharges which facet. The judgment block fixes the
-      forms and R-05-029 fixes the obligations, and no entry pairs them, so
-      the checker below requires a record's form to be recognised and requires
-      nothing about which form it is.
-      `every_retagging_of_the_judgment_form_is_admitted` machine-checks that
-      the pairing is free rather than merely unstated. What is *not* free is
-      the move, which R-05-037, R-05-038 and R-05-039 assign exactly, and the
-      two axes are stated apart for that reason. Owed at R-06-009 or
-      R-05-135a.
-   d. Whether a package's manifest-consistency check is an obligation.
-      R-13-012 adds it to the Tier-2 certificate and calls it "a tier-local
-      admission check that is not one of the eleven", so it is a required
-      check that no enumeration carries. Nothing below models it, because
-      putting it in `Obligation` would make R-05-029's list twelve. Owed at
-      R-13-012 or R-05-029.
-   e. Whether a roster may name one identifier twice. R-13-001 makes a package
-      content-addressed and R-13-007 makes the store deduplicated, which
-      together suggest an identifier is a key, and no entry says a roster with
-      two packages at one identifier is malformed. Nothing below requires
-      distinct identifiers, and the composer's obligations are accordingly
-      stated over the packages it emits rather than over the identifiers,
-      which is the weaker reading and the one the words carry. Owed at
-      R-13-001.
-   f. Which side of R-11-005a's line the composition-time act stands on.
-      Which versions a derivation is scoped to is not open: R-11-005 names the
-      spec-set and the Sail model, R-05-135b adds the pinned language
-      specification and its profile, and `Versions` below carries all four and
-      compares them componentwise. What no entry says is whether the
-      composition-time act compares against the versions the composer targets
-      or the versions the device runs, R-11-005a separating *admissible* from
-      *current* without deciding it. `admitted_versions` below is one field
-      and the file states the obligation over it. TAL-072 adds a fifth
-      version, the decoder's, to a verdict's key, and no register entry names
-      it, which is gap a's delegation again. Owed at R-11-005 or R-11-005a.
-   g. Which facet partition a derivation's discharge records are keyed by.
-      R-05-036's move table partitions R-05-029's eleven into thirteen; the
-      pinned language's TAL-012 partitions the same eleven into sixteen, its
-      three extra splits falling inside rows 8, 9 and 11. The two agree about
-      moves, each of the three finer splits taking the move its row takes, so
-      no verdict below turns on the choice, and this file takes the register's
-      thirteen because R-05-037, R-05-038 and R-05-039 are what assign the
-      moves it checks. That neither document says which partition a
-      *derivation record* names is the gap. Owed at R-05-036 or R-05-135a.
-   h. Every composition magnitude. The per-tier required sets past Tier 2's,
-      the admitted versions, the composer's identity, the golden roster's
-      identifiers, tiers, producers, attestations and certificates are fields
-      or demo definitions instantiated with arbitrary witness values that
-      carry no composition claim. In particular no entry assigns a component
-      to a tier, so the tiers the roster claims are chosen to inhabit all
-      three of R-13-011's and are a witness value.
-
-   What is expressible here and what is not. R-06-015b's authority clause has
-   two halves and only one of them is a property of a verdict: that a checker
-   reads nothing but the candidate, its certificate and the profile is stated
-   and refuted below, and that it holds no capability into the store, the
-   transactor's roots or another compartment's state is a fact about the
-   composed capability topology, which this carrier does not express and which
-   nothing below claims.
-
-   Non-vacuity (R-05-165, R-05-166). Every obligation below is stated as a
-   property of an arbitrary checker, composer, derivation carrier, reading,
-   roster, position or typing relation, proved of the specification, and
-   refuted of an alternative construction the register's own sentence
-   excludes. Inhabitation is concrete: a demo machine whose three tier
-   requirements are inhabited, a seven-component roster the composer admits
-   whole, a witness for each of the eight refusal rules, three derivation
-   carriers with three readings, and generated families over the roster and
-   over a derivation that are refused beside families that are not, so no
-   theorem is proved from a premise nothing satisfies and none from one
-   everything satisfies.
+   Composition parameters are carried in `Machine` fields (R-05-163,
+   R-05-164), with concrete witnesses and generated refutation families
+   (R-05-165, R-05-166).
    (*| BEGIN derived: cited entries |*)
    Owner: docs/requirements-register.md
    Requirements: R-05-029 R-05-030 R-05-036 R-05-037 R-05-038 R-05-039 R-05-135a R-05-135b
@@ -1976,7 +1678,7 @@ Qed.
 
 (* =========================================================================
    The verdict is a function of the reading and not of the carrier behind it
-   (R-13-003, and the reason M6.2b's term language is not chosen here).
+   (R-13-003).
 
    This is an obligation over an arbitrary checker rather than a shape the
    type forces: two values of one carrier may read alike, and a checker that
@@ -2032,9 +1734,9 @@ Qed.
 
    R-13-022 puts the gate on the derivation and the source-correspondence
    theorem rather than on the toolchain, so the property a checker owes is
-   stated against the relation *well-typed* and not against a proof language.
-   That is what keeps this file's obligation independent of M6.2b: the
-   relation below quantifies over the carrier and mentions no term.
+   stated against the relation *well-typed* and not against a specific proof
+   term language: the relation below quantifies over the carrier and mentions
+   no term.
    ========================================================================= *)
 
 Definition Typing (D : Type) : Type := Package D -> Prop.
@@ -3053,11 +2755,9 @@ Qed.
    roster, for R-05-165's uninhabited-domain mode and for the refutation
    witnesses.
 
-   The roster is M6.2a's cell read literally: the packages the checker checks
-   are the golden-model components themselves, which are the plan's sections 2
-   through 8. Their identifiers, tiers, producers and attestations are
-   arbitrary witness values carrying no composition claim (gap h); their
-   identities are not.
+   The packages the checker checks are the seven golden-model components.
+   Their identifiers, tiers, producers and attestations are arbitrary witness
+   values carrying no composition claim (gap h); their identities are not.
    ------------------------------------------------------------------------- *)
 
 (* R-13-012 states the Tier-2 certificate as the subset of R-05-029's eleven
