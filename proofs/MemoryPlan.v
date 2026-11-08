@@ -2,391 +2,72 @@
 (* =========================================================================
    MemoryPlan.v
 
-   The two-class static memory plan and its placement WCET delta, as the
-   register fixes them: R-08-011's whole-program slot plan with its
-   live-range colouring, which fixes each object's allocation and free
-   points at compile time; R-15-247's two static latency classes under one
-   placement discipline, each entering section 11 as one fixed latency
-   constant, with no cache, no migration, no tiering and no runtime
-   promotion between them; R-15-247s's two class lists, its
-   latency-criticality boundary that carries no trust gradient, and its
-   placement of application payloads by criterion and not by name;
-   R-15-247j's placement rule, all hard-task and all hot code on the first
-   class and an admission-visible WCET delta for second-class code
-   computed against that class's fetch constant; R-14-015's
-   interpreter-arena placement, the arenas second class and the
-   interpreter body first class, with the origin-pool ceiling *P* raised
-   for the same first-class budget as its booked consequence; R-15-007k's
-   exact representability at R-15-007c's own two-regime granule,
-   discharged against the slot plan rather than by a runtime instrument;
-   R-08-012c's island containment; R-08-012's collapse of over-reservation
-   toward the proven simultaneous peak and R-08-014's decidable interference
-   side condition over it; R-08-045's charge, every physical byte claimed
-   by one line item; R-14-009 and R-14-010's origin pool and its ceiling;
-   and R-11-006's interval arithmetic with R-11-009's switch duty inside
-   it, which is what the delta is an input to.
+   Statement and reference model for the two-class static memory plan, its
+   placement WCET delta, and its second-class domain provenance labels,
+   expressed in [ApexTheorem.v](ApexTheorem.v)'s parameterized record style over
+   [CyclicExecutive.v](CyclicExecutive.v) and [ProofSupport.v](ProofSupport.v).
 
-   And R-15-247t's second-class domain label beside R-15-189f's power
-   vector, which is the plan's other declared schema: every second-class
-   domain labelled image-derived or session-derived, the label a total
-   function of this plan beside the vector, and RETAINED (R-15-247k)
-   available to image-derived domains alone. The composition check that
-   reads the label is stated here with the admitted case computed and two
-   seeded cases refused, on the pass R-15-247t's own acceptance clause
-   names, the one that checks R-15-189g's containment. The label of each
-   second-class domain is also derived here from the regions of the roster
-   its declared extent meets: each region's kind where R-15-247t names the
-   content, and the region's declared provenance where it does not. A
-   vector whose declared label differs from the derivation is refused, and
-   so is a set of declared extents leaving a second-class region held by no
-   domain. The derivation therefore holds the label to the extents and the
-   provenance a composition declares; it does not decide whether those
-   declarations are true, so a region of a kind R-15-247t does not name,
-   the KV cache among them, declared as an extent of the image is admitted
-   as one. What the label lets a re-entry keep is R-15-190b's and is stated
-   in DischargeSequence.v, and the reset table's release points, which read
-   the same vector's island binding, are R-15-198a's and are stated in
-   ResetTable.v, not here.
+   Governing obligations:
+   - Whole-program slot plan and live-range coloring: compile-time allocation
+     and free points (R-08-011), collapse of over-reservation toward the proven
+     simultaneous peak (R-08-012), decidable interference side condition over
+     overlapping live ranges (R-08-014), island containment (R-08-012c), and
+     exhaustive physical-byte accounting (R-08-045).
+   - Two static latency classes and placement WCET delta: two latency classes
+     entering Section 11 as fixed read-latency constants with no cache,
+     migration, tiering, or runtime promotion (R-15-164, R-15-247, R-15-247m;
+     see [memory_class.sail](../model/model/core/memory_class.sail)); named
+     region-kind placement and criterion-driven application-payload placement
+     (R-15-247s); interpreter object arenas on the second class and interpreter
+     body on the first class, raising the origin-pool ceiling `P` within the
+     same first-class budget (R-14-009, R-14-010, R-14-015); and hard-task/hot
+     code on the first class with an admission-visible WCET delta for
+     second-class code charged into Section 11's interval arithmetic (R-11-006,
+     R-11-009, R-11-015, R-11-015a, R-15-247j).
+   - Capability-granule alignment: exact representability at R-15-007c's
+     two-regime granule (byte-exact below 128 bytes, coarsest power of two
+     within `length / 2^6` above 128 bytes; see
+     [test_capability.sail](../model/model/unit_tests/test_capability.sail)),
+     discharged against the slot plan and its composition-time `Narrowing`
+     stride/offset geometry (R-15-007k).
+   - Second-class domain provenance labels: every second-class power domain
+     beside R-15-189f's power vector and R-15-189g's island containment is
+     labeled `ImageDerived` or `SessionDerived` from the regions its declared
+     extent meets, restricting `RETAINED` (R-15-247k) to image-derived domains
+     (R-15-247t). Re-entry retention (R-15-190b) lives in
+     [DischargeSequence.v](DischargeSequence.v) and reset-table release points
+     (R-15-198a) live in [ResetTable.v](ResetTable.v).
 
-   What this file is. A statement artifact in ApexTheorem.v's idiom, not a
-   proof development and not an implementation. It is a Gallina statement
-   artifact rather than a Wasm-parallel item because this cell carries no
-   such label and the tree's precedent for an item of exactly this shape,
-   an algebra with an admission predicate over it stated over arbitrary
-   parameters, is CyclicExecutive.v; that call is recorded here as a call
-   and reported as one. Every quantity the register leaves to composition
-   is a field of the Plan record rather than a literal or a top-level
-   Parameter, which is what keeps the R-05-163 assumption gate green while
-   leaving the decision where its owner can make it. Nothing is admitted
-   and nothing is axiomatized: the native assumption audit
-   reports every shipped constant closed under the global context.
+   Key readings and open register boundaries:
+   1. With every cache deleted (R-15-164), each class's fetch constant is its
+      read-latency constant (`first_fetch`, `second_fetch`), and a region's
+      placement delta is `fetches_of r * (second_fetch - first_fetch)`. Because
+      natural subtraction truncates at zero and R-11-015a forbids unsupported
+      tightening, `first_fetch <= second_fetch` is an explicit admission check.
+   2. `placed_by_name` fixes the twenty region kinds named in R-15-247s and
+      R-15-247j plus `InterpreterBody` (R-14-015); `ApplicationPayload` is
+      placed by the composition's `cycle_critical` predicate (`FirstClass` when
+      cycle-critical, `SecondClass` for bulk).
+   3. Two regions may share a physical slot whenever their half-open live
+      intervals `[live_from, live_to)` are disjoint (`NoInterference`,
+      R-08-012, R-08-014).
+   4. Above 128 bytes, `quantum` selects the coarsest power of two inside the
+      `[length / 128, length / 64]` band (R-15-007c, R-15-007k); raw integer
+      division (`192 / 64 = 3`) is refuted because non-power-of-two granules
+      admit unrepresentable odd bases.
+   5. Open boundaries remain with their register owners: closing the region-kind
+      enumeration beyond the named floor (R-15-247s), deriving per-region fetch
+      counts from executable control-flow paths (R-11-015, R-15-247j), and
+      enumerating per-member origin-pool regions (R-14-009, R-14-015).
 
-   What the gate's green line means. Compiled, axiom-free, non-vacuous and
-   enumerated, and it does not mean verified. No constant here is
-   compiled, lowered, or run on either emulator, and nothing here executes
-   anywhere. The computed checks are decided inside the kernel by
-   conversion and print nothing.
-
-   What is deferred, and to which item. The backend that emits the
-   narrowings R-15-007k constrains is M1.2's, and nothing below is a
-   lowering, an instruction selection, or a claim about emitted code: what
-   is here is the plan-side side condition M1.9's own entry says would
-   otherwise be written against a plan that lands two items later, M1.2's
-   axis-6 paragraph now recording M1.9 ahead of it instead. The
-   per-instruction latency table R-11-015 derives a bound from is
-   R-11-015's own and is not authored, so a region's fetch count and a
-   slot's declared in-slot bound are declared inputs here. The per-class
-   constants themselves are R-15-247m's to measure at part qualification;
-   the model carries them as a composition-time declaration
-   (model/model/core/memory_class.sail) with `qualified` false in every
-   shipped configuration, and this file states no magnitude for either.
-
-   The required modules and the assumptions their use must preserve.
-   R-15-247j's own acceptance clause makes the delta an input to section
-   11 admission rather than a report about it, and section 11 admission in
-   this tree is CyclicExecutive.v's R-11-006 interval arithmetic with
-   R-11-009's partition-switch constant already inside it. So the delta is
-   charged into the declared bound of the slot the region's code runs in,
-   and the margin below moves `admits` itself: at the composed constants
-   one unit more of delta turns an admitted frame into a refused one.
-   `all_of` and `count_of` are consumed from CyclicExecutive; the list
-   helpers this file adds are defined here. Elementary arithmetic helpers
-   reference the locked Stdlib's PeanoNat proofs at identical local
-   statements, with authorship and licence recorded beside the arithmetic
-   section. Equalities remain pointwise or over decidable booleans. The
-   gate follows transitive dependencies of every shipped constant and
-   confirms that these references introduce no axioms, including no
-   classical or functional-extensionality assumptions.
-
-   Readings of the register this statement takes, each a reviewable
-   judgment rather than a neutral transcription:
-
-   1. "That class's fetch constant" is that class's own read latency
-      constant. R-15-247 makes each class enter section 11 as **one** fixed
-      latency constant and R-15-164 deletes every cache, so there is no
-      instruction cache, nothing to amortize, and a fetch is a read of
-      whichever class the code resides on. This is not an open question:
-      M0.14's landed cell reads R-15-247j and R-15-164 together and records
-      that there is no separate fetch constant to declare and that the
-      delta is the difference of two numbers R-15-247m's per-class record
-      already carries, computed by this plan. Two fields carry the two
-      constants and no magnitude is written down.
-   2. The delta is a product and not a per-region constant. R-15-247j
-      prices a *placement*, and R-11-015 derives a bound as a
-      syntax-directed max-path sum over the typed control-flow graph, so
-      what the placement multiplies is a count of fetches that derivation
-      already carries. The count is a field and the delta is that count
-      times the difference of the two class constants.
-   3. The delta never credits. Nat's difference truncates at zero, which
-      is what a composition declaring a faster second class produces here,
-      and R-11-015a makes a claimed tightening the derivation does not
-      support fail admission rather than ship. So the second class being
-      at least as slow is a declared side condition and not a fact, a plan
-      that breaks it is exhibited below with the truncation it produces,
-      and a plan whose two constants coincide carries no delta at all,
-      which is R-15-247s's boundary being latency and nothing else.
-   4. The register places by name where it names and by criterion where it
-      does not, and both halves are obligations. R-15-247s's two lists
-      place twenty region kinds by name and R-14-015 a twenty-first, so a
-      composition choosing there would be a composition amending the
-      register: `placed_by_name` is a definition this file does not
-      parameterize. But that entry also settles one term of R-08-045's
-      charge *without naming it*: ownership is no part of a latency
-      criterion, so an application payload is placed by criterion, its
-      cycle-critical part carried by the scalar working set and every
-      cycle-critical array and its bulk by bulk by volume. Which regions
-      are genuinely cycle-critical is therefore a per-region judgment the
-      composition supplies, carried by the `cycle_critical` field, and a
-      placement that reads the payload's name instead is refuted below.
-      `class_of` is a field a plan may get wrong and `register_place` is
-      what it is checked against.
-   5. The interpreter body is a region kind the two lists do not name, and
-      that is not a gap. R-15-247s's closure criterion is stated of "a term
-      of that charge", which is R-08-045's ten-term enumeration of every
-      physical byte; that enumeration names the interpreter object
-      *arenas* and not the body, so the criterion says nothing about the
-      body. R-14-015 places it on the first class by name, and that is the
-      placement.
-   6. A transposition of the placement list is not a weakening and a
-      transposition of the class vector is. No entry orders the placed
-      regions, so the deletion and insertion families are generated over
-      the placement list, where R-08-045's charge decides, while the class
-      vector is decided by R-15-247j. That a transposition of the
-      placement list is refused by nothing is stated as a computed fact
-      rather than left as a silence, and the transposed class vectors are
-      shown to be members of the whole assignment family rather than
-      credited as content of their own.
-   7. Two regions may share one slot, and R-08-014 is read here at its
-      own word. That entry states slot disjointness wherever live ranges
-      *overlap*; R-08-012 collapses over-reservation toward the proven
-      simultaneous peak by live-range colouring, which is exactly two
-      disjoint live ranges sharing one slot, so the side condition and
-      the mechanism it serves agree. The two readings that refuse the
-      sharing, the inverted antecedent and outright disjointness, are
-      carried below as constructions and shown refusing it.
-   8. Exactness is decided against granule counts the plan declares rather
-      than by a division, the granule is not a declaration at all, and
-      above the threshold it is a *bound* rather than a value. R-15-007c
-      fixes it as a function of the object's length, byte-exact below 128
-      bytes at any base and rounding outward above that "at a granularity
-      of at worst the length over 2^6"; that sentence bounds the
-      encoding's granule and does not name it, and the same entry says the
-      exponent is chosen so the decoder knows the length mantissa's top
-      two bits, which makes every granule the encoding can use a power of
-      two. R-15-007k lays each object at *that array's* representable
-      alignment, so the plan must align to the coarsest granule the
-      encoding may use rather than to any finer one it might: a finer
-      alignment admits a base the encoding rounds. The quantum here is
-      therefore the coarsest power of two within the entry's bound, stated
-      as four clauses a quantum can fail, and the division itself is
-      refuted below: at the demo roster's own 192-byte region it yields 3,
-      which is no encoding's alignment and which admits an odd base. The
-      two bound clauses are the band the entry's own model test states,
-      one part in 64 to one part in 128 of the length on each side
-      (model/model/unit_tests/test_capability.sail), and the power of two
-      is the one member that band leaves. A plan-wide granule is refuted
-      too, whatever its magnitude.
-   9. A narrowing's address is a composition-time slot base plus a
-      composition-time offset plus a dynamic index times a
-      composition-time stride, and its length is its type's. That is
-      R-15-007k's own sentence taken as the shape of the Narrowing record,
-      which is what makes exactness decidable where the index is not.
-  10. Boolean rather than propositional wherever the witnesses must
-      compute: the placement check, the colouring, the island containment,
-      the representability tests and the pool arithmetic are decidable, so
-      the generated families below are checked by conversion in the silent
-      Example form rather than by a proof per member. The class-assignment
-      family, both placement-list families and the two ladders read at the
-      focus and at the reserved band are each also stated as a bounded
-      quantifier over their own index; the background slot's ladder is a
-      single computed contrast and carries no quantifier (limit ii).
-  11. A charged slot index is a slot the frame carries. R-15-247j's
-      acceptance clause makes the delta an input to section 11 admission
-      rather than a report about it, and the arithmetic it is an input to
-      is stated over the frame's own slot list, so an index past the end
-      of that list charges no bound and the delta stops being an input at
-      all. The range is the frame's rather than the plan's, so the
-      obligation is stated of a plan against a frame and conjoined with
-      R-08-045's charge below; a plan that declares an index no frame
-      carries is refuted, and the verdict it flips is exhibited.
-
-   The literals taken from the design, and there are nine numerals. They
-   are read from the entries' own words, term by term, and from no tooling
-   table. R-15-247 closes the class enumeration at two, so `all_classes` is
-   that list and `there_are_two_latency_classes` is its count. R-15-247s's
-   first list names eleven terms and R-15-247j closes it with a twelfth, so
-   `the_first_list_names_twelve_kinds` is that count; its second list names
-   eight, so `the_second_list_names_eight_kinds` is that one; twenty is
-   their sum and twenty-one is that sum plus the one kind R-14-015 names
-   and neither list carries. R-08-045 charges every physical byte to one
-   line item, so `each_region_once` compares an occurrence count against 1.
-   And R-15-007c fixes the representable granule at 1 below 128 bytes and
-   bounds it by the length over 2^6 above it, so 128 and 64 are that
-   entry's two figures, and the 2 the exponent search steps by is that
-   entry's own exponent base, the ninth. No construction below writes a
-   granule down: the refuted one takes it as a parameter and is
-   instantiated at the entry's own division of a length the plan declares.
-   What is *not* a literal here is any total over the region
-   kinds: no entry closes that enumeration (gap a), so `all_kinds` carries
-   no count. Every other magnitude is a field: the roster size, each
-   region's kind, cycle-criticality, class, slot base, slot length,
-   declared base and length granule counts, live range, owning island,
-   fetch count and charged slot; the island extents; both class constants;
-   the placement list; the origin pool's per-member roster; the fixed
-   first-class charge; and the first-class budget.
-
-   How the refutations are generated. A refutation is a seeded weakening
-   the theorem must reject, so four generators produce families of them
-   mechanically rather than a person authoring each, which is
-   SupervisionTree.v's method taken to a placement. Over the two classes
-   and the roster: `all_masks` enumerates every assignment of the two
-   classes across the regions, 256 of them at the composed roster, of which
-   exactly one places as the register places. Over that vector: `swap_at`
-   transposes an adjacent pair, and the composed roster alternates classes
-   so every adjacent transposition is refused; that family is a subset of
-   the first, computed here rather than claimed, so what it carries is the
-   contrast with the placement list and not a second refusal. Over the
-   placement list: `drop_at` deletes a region and `insert_at` places one
-   twice, which is R-08-045's charge broken in each direction, while
-   `swap_at` over the same list is refused by nothing. And over the delta:
-   a ladder of second-class constants exhibits the admission verdict at
-   every delta from zero through past the margin. The hand-authored
-   refutations below are the ones no index generates, being alternative
-   constructions rather than mutations of a list, and each is shown to
-   satisfy the obligations it does not break.
-
-   What this file deliberately does not author, with the entry that owns
-   each decision. A register gap is reported and not closed, and where
-   the entry decides, the item states the decision the file reads rather
-   than being renumbered away; the letters are stable and none is reused:
-
-   a. What closes the region-kind enumeration. R-15-247s's two lists name
-      twenty kinds, R-14-015 names a twenty-first, and R-08-045's charge
-      names application payloads, which that entry answers by criterion
-      rather than by name; no entry says these are all the kinds a
-      composition may place, and R-15-247s's own closure criterion is
-      stated over the charge's ten terms rather than over the kinds. The
-      inductive below is therefore the register's own names plus the
-      by-criterion arm, and it is a floor rather than a total: no count is
-      asserted over it. Owed at R-15-247s.
-   b. How source paths establish each region's fetch count. The timing
-      endpoint below conservatively sums the deltas of every region
-      assigned to each slot, then checks the charged frame once. A
-      producer still owes the connection between those declared counts
-      and all executable paths; the sum supplies no path analysis.
-      Owed at R-15-247j and R-11-015.
-   c. Whether a hard task may hold any code on the second class at all.
-      R-15-247j places all hard-task code on the first class and says
-      nothing about a hard task calling a cold second-class routine, which
-      is the case the delta would price if it arose. This file states the
-      placement rule over region kinds and states no reachability
-      relation. Owed at R-15-247j.
-   d. Which regions an origin-pool member owns. R-14-015 books the ceiling
-      raise as a consequence and R-14-009 fixes the pool at *P* identical
-      compartments with one manifest and one static memory plan, and no
-      entry enumerates the member's own regions. The roster is a field and
-      the ceiling is stated over an arbitrary one and over an arbitrary
-      population bound. Owed at R-14-015 or R-14-009.
-   e. What R-08-011's live range is measured in. That entry states it: a
-      live range is a half-open interval of the composition's own event
-      order, the ordering the admitted frame and the region structure
-      fix, running from the instant the slot stops being available to any
-      other occupant to the instant the reuse gate hands it on. The two
-      fields below carry that interval, and the unit is the entry's
-      rather than this file's. Decided at R-08-011.
-   f. R-08-014's own quantifier. That entry states the side condition as
-      slot disjointness wherever live ranges *overlap*, which is the
-      reading taken below (reading 7) and the one R-08-012's collapse
-      toward the proven simultaneous peak needs, that collapse being two
-      disjoint live ranges sharing one slot. The inverted antecedent is
-      carried below as `literal_colouring_ok` and shown refusing the
-      shared-slot plan and admitting the overlapping-live one, so the two
-      answer oppositely rather than by degree. Decided at R-08-014.
-   g. Every composition magnitude. The roster, the kinds, the
-      cycle-criticality judgment, the assignment, the bases, the lengths,
-      the granule counts, the live ranges, the islands and their extents,
-      both class constants, the fetch counts, the charged slots, the
-      placement list, the origin roster, the fixed first-class charge and
-      the first-class budget are fields; the demo plan at the end
-      instantiates them with arbitrary witness values that carry no
-      composition claim.
-
-   What this statement does not decide about itself. These are limits of
-   the coverage below rather than gaps in the register, recorded here
-   because a limit nothing states reads as a claim:
-
-   i. `ChargesTheRegionSOwnSlot` decides more than its name says. It is
-      pointwise equality to the specification's admission, so what it
-      excludes is every admission that differs from that one anywhere, and
-      it does not isolate the slot: `brittle_admission` counts the delta
-      and fails this property too, for a reason that has nothing to do
-      with which slot it reads. The slot is isolated by the two witnesses
-      beside the refutation instead, which read the same plan at the
-      region's own slot and at the frame's focus, and that separation is a
-      pair of computed facts rather than a stated property.
-  ii. The background slot's delta ladder is an Example alone. The focus
-      ladder and the reserved ladder each carry a Definition and a bounded
-      quantifier over its own rungs; the third is one conversion over the
-      same generator at a third slot, and it carries neither.
- iii. Reading 9's narrowing shape is exercised by one witness. The
-      exactness theorem quantifies over an arbitrary plan and an arbitrary
-      narrowing, so the shape itself is not what a witness decides, but
-      the only narrowing constructed below sits at offset zero with one
-      granule of length, so two of the record's five terms are pinned by
-      no construction. The shape is register-faithful and the coverage is
-      one point of it.
-  iv. `rounding_narrow_ok` admits everything, so its twin is true by
-      construction and carries nothing. It is counted apart below for that
-      reason.
-
-   Non-vacuity (R-05-165, R-05-166). Every obligation below is stated as a
-   property of an arbitrary assignment, placer, delta, admission, quantum,
-   narrowing check, placement, colouring, plan or population bound, proved
-   of the specification, and refuted of an alternative construction the
-   register's own sentence excludes. The refutation is of the obligation
-   and not of a check that decides it: where an obligation is stated as a
-   bounded quantifier and computed by a boolean, that boolean is proved
-   sound *and* complete, so a check answering false is a refutation of the
-   property and not a report that a decision procedure moved. Inhabitation
-   is concrete: a plan whose roster, islands, live ranges and slots are
-   inhabited, whose two class constants differ, whose placement admits and
-   whose margin is exact, beside 255 assignments that do not place as the
-   register places, 17 weakenings of the placement list that are refused, 7
-   transpositions of the placement list that are refused by nothing, and
-   three nine-rung delta ladders read at the three slots three regions
-   declare, whose margins are five, three and one, each admitting at its
-   own margin and refusing one unit past it.
-   Sixteen authored constructions carry a twin with content, each shown to
-   satisfy what it does not break: `promoting_placer` and `demoting_placer`
-   still make the by-name placements they do not move;
-   `by_name_payload_assign` keeps every by-name placement and breaks only
-   the criterion; `length_scaled_delta` still charges nothing on the first
-   class and nothing where the constants coincide; `reporting_admission` is
-   monotone and `brittle_admission` counts the delta;
-   `focus_charging_admission` agrees wherever the region is charged to the
-   focus; `within_one_granule_narrow_ok` admits everything the
-   specification admits; `flat_quantum 1` keeps the regime below the
-   threshold and stays inside the entry's bound on a power-of-two
-   alignment; `inclusive_threshold_quantum` keeps the below-threshold
-   regime, the upper bound and power-of-two alignment; `coarser_quantum`
-   keeps the regime below it and aligns on a power of two; `granule_inside_the_window` keeps both bounds and the
-   regime below; `clamped_placement` agrees wherever the plan stays inside;
-   `strict_colouring_ok` and `literal_colouring_ok` agree with the
-   specification's colouring on the demo plan; and `brittle_bound` admits
-   every population the specification admits at a costed member. A
-   seventeenth, `rounding_narrow_ok`, carries a twin that is true by
-   construction and is counted apart for that reason (limit iv). Fifteen
-   further plans differ in exactly one declared quantity each from the
-   specification's or from the named variant, which is what makes each
-   refutation a single-defect witness: four move the second class's own
-   constant alone, one unit dearer than the first class's, equal to it, one
-   unit past the margin, and below it; seven move one slot base alone, into
-   a shared slot, into an overlapping one, past its island, below its
-   island, off its granule, off it by exactly a granule, and onto the odd
-   base a granule computed by division would have admitted; two move one
-   region's declared length, off its granule and onto a shorter one; and
-   two move one region's charged slot, the second of them past the count of
-   slots the frame carries.
+   Non-vacuity (R-05-163, R-05-165, R-05-166):
+   - Every obligation is proved for the specification and refuted on generated
+     and single-defect mutations following
+     [SupervisionTree.v](SupervisionTree.v)'s family style: 256 class-assignment
+     masks (`all_masks`), placement-list deletions and duplications (`drop_at`,
+     `insert_at`), three nine-rung WCET delta ladders across frame slots, and
+     single-defect plans isolating latency inversion, slot overlap, island
+     escape, granule misalignment, and out-of-range slot indices.
    (*| BEGIN derived: cited entries |*)
    Owner: docs/requirements-register.md
    Requirements: R-05-163 R-05-164 R-05-165 R-05-166 R-08-011 R-08-012 R-08-012c R-08-014
@@ -954,7 +635,7 @@ Record Plan : Type := {
   region_count : nat;
   kind_of : nat -> RegionKind;
   cycle_critical : nat -> bool; (* R-15-247s's criterion, per region
-                                   (reading 4): the judgment M1.9 reads
+                                   (reading 4): the judgment the plan reads
                                    rather than assumes                     *)
   class_of : nat -> MemClass;   (* the plan's own assignment (reading 4)   *)
 
@@ -1084,10 +765,10 @@ Definition ArenasAreSecondClass (p : Plan) (a : Assignment) : Prop :=
 Definition TheInterpreterBodyIsFirstClass (p : Plan) (a : Assignment) : Prop :=
   PlacesKindOn p a InterpreterBody FirstClass.
 
-(* R-15-247s's other half, which is the one M1.9 exists to read rather than
-   assume: a term of R-08-045's charge the entry answers without naming is
-   placed by criterion, so a region the register does not name lands where
-   the composition's cycle-criticality judgment puts it and nowhere else. *)
+(* R-15-247s's other half, which the plan reads rather than assumes: a term of
+   R-08-045's charge the entry answers without naming is placed by criterion,
+   so a region the register does not name lands where the composition's
+   cycle-criticality judgment puts it and nowhere else. *)
 Definition PlacesPayloadsByTheCriterion (p : Plan) (a : Assignment) : Prop :=
   forall r : nat,
     Nat.ltb r p.(region_count) = true ->
@@ -1239,10 +920,9 @@ Definition demoting_placer (p : Plan) (threshold : nat) : Placer := fun o r =>
 
    Reading 1: with every cache deleted there is no instruction cache and
    nothing to amortize, so a fetch is a read of whichever class the code
-   resides on, which is what M0.14's landed cell records as "no separate
-   fetch constant to declare". Reading 2: what the placement multiplies is
-   the count of fetches R-11-015's max-path sum already carries, so the
-   delta is a product and not a per-region constant.
+   resides on, with no separate fetch constant to declare. Reading 2: what the
+   placement multiplies is the count of fetches R-11-015's max-path sum already
+   carries, so the delta is a product and not a per-region constant.
    ========================================================================= *)
 
 Definition fetch_constant (p : Plan) (c : MemClass) : nat :=
@@ -2830,7 +2510,7 @@ Definition demo_kinds : list RegionKind :=
   (cons InterpreterBody (cons ModelWeights
   (cons ApplicationPayload (cons ApplicationPayload nil))))))).
 
-(* The composition's own cycle-criticality judgment, which is what M1.9
+(* The composition's own cycle-criticality judgment, which the plan
    reads rather than assumes: one payload is cycle-critical and the other is
    bulk, and neither is decided by its name. *)
 Definition demo_critical : list bool :=

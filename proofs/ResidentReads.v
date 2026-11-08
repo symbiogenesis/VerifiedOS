@@ -1,20 +1,22 @@
 (* SPDX-License-Identifier: Apache-2.0 *)
 (* =========================================================================
-   First bounded reservation reference for Q44, R-10-006a and R-10-006b.
+   ResidentReads.v
 
-   One charged immutable backing, exactly two independent holder slots, and one
-   outstanding request per holder. Admission, current authority, boot/generation,
-   expiry, exact identity/window and finite request sequences are executable checks.
-   Completion invokes an abstract verifier on the actual retained bytes and root;
-   no verifier correctness or digest injectivity is assumed. A positive fixture
-   verifier compares against independently specified byte/root values.
+   Bounded reservation reference for resident-window reads (R-10-006a,
+   R-10-006b).
 
-   Journals enumerate abstract stored-cell writes, including repeated-value stores.
-   They are not concrete target memory traces. This source has no correspondence
-   theorem to the Python reference, scalar effects, SHA-256 or storage. The modeled
-   completion barrier is a declared external input, never physical reuse evidence.
-   The first increment has no CoW replacement, renewal, crash or target WCET claim.
-   No theorem in this file discharges an entire cited requirement.
+   Models one charged immutable backing, two independent holder slots, and one
+   outstanding request per holder. Admission, current authority,
+   boot/generation epoch, expiry, exact identity/window bounds, and finite
+   request sequences are executable checks. Completion invokes an abstract
+   verifier on the retained bytes and root without assuming verifier correctness
+   or digest injectivity; a positive fixture verifier compares against
+   independently specified byte and root values.
+
+   Scope: journals enumerate abstract stored-cell writes rather than concrete
+   target memory traces, and the completion barrier is modeled as an explicit
+   external input. Copy-on-write replacement, renewal, crash recovery, and
+   target WCET are covered by their respective storage and timing models.
    (*| BEGIN derived: cited entries |*)
    Owner: docs/requirements-register.md
    Requirements: R-10-006a R-10-006b
