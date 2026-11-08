@@ -1,23 +1,13 @@
 # SPDX-License-Identifier: Apache-2.0
-"""The profile-freeze instrument: its arithmetic, its wiring, and its gate.
+"""Unit tests for [freeze.py](../freeze.py) and [freeze-report.py](../freeze-report.py).
 
-No checker rule reads this tool's output. K-77 holds its *enumerations* against the
-contract's, which is membership; what a membership cannot decide is whether the
-arithmetic is right, whether the join joins, and whether a CI predicate that reports
-`pass` on today's record is capable of rejecting anything at all. That last one is
-the case this module exists for: a gate of thirteen predicates over a report nothing
-has measured would report exactly the same thirteen lines whether or not any of them
-had a body, so each of the thirteen is seeded a defect here and required to reject it
-by name.
-
-Three further groups. The derived arithmetic is pinned against figures the register
-states in its own prose, so the slot model here and R-15-036h's there are held
-together by a test rather than by a reading. The join is run twice, once over the
-fixture and once over real files written at the declared paths, because a fixture
-that exercised a different path from the real inputs would prove nothing about the
-wiring. And the verdict sentence is pinned verbatim, for the reason `bank-dse.py`'s
-is: the sentence saying the report is not a freeze is the one thing a reader takes
-from the run, and nothing else holds it.
+Tests:
+- the derived slot-width, slot-model, bundle-geometry, outlining, and headroom arithmetic
+  against R-15-036h, R-15-036j, and R-15-036p;
+- the §4 provenance join over both the synthetic fixture and real files at the declared
+  paths;
+- each of §9's thirteen CI predicates (`G-1` through `G-13`) against a seeded defect; and
+- the JSON, Markdown, and console renderings of `freeze-report.py`.
 """
 
 import copy
@@ -796,16 +786,7 @@ def _membership_is_an_instrument_error() -> None:
     }
     for rel in ("__init__.py", "freeze.py"):
         files[f"tools/quarantine/{rel}"] = (QUARANTINE / rel).read_text(encoding="utf-8")
-    # `freezeschema.py` is here because §4's field tuples and its four declared paths
-    # are owned in `vos/` and read from both ends since M1.4-prime: the analyzer streams
-    # them and the composer writes two of them, and a schema declared at both ends would
-    # be a transcription held together by nothing. `freezemodel.py` is here for the same
-    # reason and a sharper one: R-15-036h's slot model and R-15-036j's packing term are
-    # owned there and stated a second time in Gallina, which `run.py quickchick freeze`
-    # compares, and that comparison is on the landing loop's side of K-83 and cannot
-    # reach in here. This list is hand-written and nothing holds it against the imports,
-    # so a module the instrument gains is a sandbox that fails on the import and prints
-    # nothing at all rather than a case that says what is missing.
+    # Copy the `vos` modules imported by `freeze.py` into the sandbox tree.
     for rel in ("__init__.py", "jsonc.py", "corpus.py", "proofenv.py", "freezeschema.py",
                 "freezemodel.py"):
         files[f"tools/vos/{rel}"] = (TOOLS / "vos" / rel).read_text(encoding="utf-8")

@@ -1,47 +1,23 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: Apache-2.0
-"""Run everything the quarantine holds, as one command and one verdict.
+"""Run the quarantined instruments, their rules, and their mutants.
 
-The two instruments here were taken out of the landing loop because their decisions
-are deferred, and their two rules came with them. A rule that stops running is a fact
-nothing holds, so neither stopped: they run here instead, and this is the command
-that runs them.
+Validates five sections in order:
 
-Five things, in the order a reader wants them:
+    rules      K-58 and K-77 over the live tree
+    floors     every enumeration and relation those rules read must be non-empty
+    registry   check-rules.md against the checks in this directory, in both directions
+    mutants    seeded defects per rule, using the shared verdict vocabulary
+    tests      every test module under tests/
 
-    rules      K-77 and K-58 over the live tree, the two check groups unchanged
-    floors     the enumerations those two read, each required to have members
-    registry   check-rules.md against the checks carrying it, in both directions
-    mutants    at least one seeded defect per rule, in the shared verdict vocabulary
-    tests      the test modules that moved with the instruments
+Mutants are seeded in memory (or in a temporary directory for configuration files) and
+evaluated directly via each check group's `run(ctx)` rather than spawning a subprocess.
+Verdicts use [vos/seeded.py](../vos/seeded.py), distinguishing **unseeded** cases
+(whose target text moved) from **survived** cases (which the rule read without
+reporting).
 
-That is the three-edit discipline `tools/README.md` states, kept whole inside the
-quarantine rather than spread across the landing loop: a check, its registry row,
-and its mutant, with nothing able to go missing quietly.
-
-**The mutants are seeded in memory rather than in a sandbox**, which is the one place
-this differs from [run.py selftest](../vos/cli/selftest.py) and it is a difference in
-cost and not in what is decided. That tool must copy a tree because it runs the whole
-checker as a subprocess; here the subject is two groups whose whole reading is a
-document the `Context` already holds and a configuration read from a root the
-`Context` already names, so a seeded run is the group's own `run(ctx)` over a context
-whose document text or whose root has been moved. Nothing is written into the
-checkout.
-
-**The verdicts are [vos/seeded.py](../vos/seeded.py)'s, which is this loop joining the
-four that already share them.** K-83 forbids the *landing* loop reaching into the
-quarantine and says nothing about the reverse, so this gate reads the shared
-vocabulary the way it already reads `vos.report` and `vos.corpus`. What that buys is
-the distinction this loop used to lose: a mutation that no longer applies is
-**unseeded** and a mutation the rule read and said nothing about is **survived**, and
-the two are different defects repaired in different places, the first in the case and
-the second in the rule. Merged into one findings list under one label they both failed
-the run and neither was named. The population is authored and always whole, so the
-report closes on a scope stating that, and this oracle produces no stillborn mutant at
-all, its oracle being a group whose `run` always runs.
-
-Exit 0 clean, 1 on any finding. It may be run from anywhere: the repository root is
-found from this file, never from the working directory.
+Exit 0 clean, 1 on any finding. The repository root is resolved from this file's path
+rather than the working directory.
 """
 
 import argparse
@@ -53,10 +29,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 
-# The tools import `vos` without being installed, so each puts `tools/` on the path
-# first; a tool inside the quarantine puts the directory *above* its own there, which
-# is the one that carries both `vos` and this package. Every import below this line is
-# deliberately not at the top.
+# Put `tools/` on `sys.path` so both `vos` and `quarantine` can be imported directly.
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from quarantine import banks, freeze
@@ -71,31 +44,19 @@ from vos.seeded import KILLED, SURVIVED, UNSEEDED, Scope, Verdict, findings_in, 
 
 HEADING = "=== quarantine: the deferred instruments, their rules, and their mutants ==="
 
-# This directory, and its own registry inside it.
 HERE = Path(__file__).resolve().parent
 RULES = "tools/quarantine/check-rules.md"
 LANDING_RULES = "tools/check-rules.md"
 CHECKS = HERE / "checks"
 
-# What a check *decides* is the rule it reports under, and what it *names* is any id its
-# prose cites. The two are different questions and the registry closure below asks both:
-# these groups reason about the landing loop's rules by name, K-70 holding the freeze
-# delta and K-73 the freshness enumeration among them, so a scan for every id would
-# demand a row here for rules this directory does not carry.
+# Distinguish rules a check reports under (`REPORTED_RE`) from any rule ID cited in
+# source comments (`RULE_ID_RE`), which may refer to rules in `tools/check-rules.md`.
 REPORTED_RE = re.compile(rf'rep\.report\(\s*"({checkregistry.ID_PATTERN})"')
 RULE_ID_RE = re.compile(rf"(?<![\w-]){checkregistry.ID_PATTERN}(?![\w-])")
 REGISTRY_ROW_RE = re.compile(rf"(?m)^\| ({checkregistry.ID_PATTERN}) \|")
 FAILED_RE = re.compile(rf"^FAIL ({checkregistry.ID_PATTERN}):")
 
-# The enumerations the two groups read and no figure counts, each named by what it is
-# rather than by where it is read, exactly as the floors group names its own. They left
-# that group with the rules that fill them: a floor under a rule nothing runs is a floor
-# under nothing, and one reported here is reported by whoever ran the rule.
-#
-# Nine of the eleven freeze floors are memberships and two are relation sizes, and the
-# second kind is the floor under the *rule* rather than under the document: a relation
-# dropped from K-77's comparison narrows it to its memberships with every gate still
-# green, which no membership floor can see.
+# Uncounted enumerations and relation sizes read by K-58 and K-77.
 FLOORS: tuple[tuple[str, str], ...] = (
     ("bank counts the DSE contract declares", "bank_candidates"),
     ("freeze corpus members", "freeze corpus members"),
@@ -111,21 +72,12 @@ FLOORS: tuple[tuple[str, str], ...] = (
     ("freeze threshold bindings in §6", "freeze threshold bindings in §6"),
 )
 
-# One seeded defect, applied to a fresh context and a scratch directory of its own,
-# answering whether it changed anything. A mutation that changes nothing is a case that
-# has stopped testing its rule, which is why the answer is a bool.
 type Seed = Callable[[Context, Path], bool]
 
 
 @dataclass(frozen=True)
 class Mutant:
-    """One case: the rule the defect must provoke, what it is in words, and the seed.
-
-    `what` is the one thing `vos.seeded.Seeded` asks of a mutant, one line naming the
-    defect well enough that a reader can go and look at it. An authored case has no
-    site, having been written rather than found, so what identifies it is the rule it
-    is aimed at and the defect in words, exactly as the checker's own oracle spells it.
-    """
+    """A seeded defect case targeting `rule`."""
 
     rule: str
     description: str
@@ -137,13 +89,7 @@ class Mutant:
 
 
 def _seed_contract(find: str, repl: str) -> Seed:
-    """A defect in the freeze contract, seeded where the run reads the document.
-
-    `Context.text` answers out of `fixed` before it answers out of the corpus, which is
-    the mechanism a repaired document is read back through, so a seeded text is read by
-    the group exactly as a document on disk would be. Nothing is flushed: this gate
-    never runs with `fix` set and never writes.
-    """
+    """Seed a defect into `freeze.CONTRACT` via `ctx.fixed` in memory."""
     def apply(ctx: Context, _scratch: Path) -> bool:
         text = ctx.text(freeze.CONTRACT)
         if find not in text:
@@ -154,13 +100,7 @@ def _seed_contract(find: str, repl: str) -> Seed:
 
 
 def _seed_composition(find: str, repl: str) -> Seed:
-    """A defect in the composition, seeded by moving the root the grant is read from.
-
-    The bank grant is read off disk out of two files rather than out of the corpus, so
-    the seed is a scratch root holding those two and the group pointed at it. The
-    checkout is opened for reading and never written, which is what keeps a mutant from
-    reaching the tree the way the selftest's sandbox does.
-    """
+    """Seed a defect into `banks.CONFIG` inside a temporary root directory."""
     def apply(ctx: Context, scratch: Path) -> bool:
         config = (ctx.root / banks.CONFIG).read_text(encoding="utf-8")
         if find not in config:
@@ -176,38 +116,24 @@ def _seed_composition(find: str, repl: str) -> Seed:
     return apply
 
 
-# The cases, each carrying the reason it seeds the side it seeds. These are the four
-# that moved out of [run.py selftest](../vos/cli/selftest.py) with the rules they
-# belong to.
 MUTANTS: tuple[Mutant, ...] = (
-    # The bank grant is moved in the composition and left in the contract, which is the
-    # direction a real edit takes: the emulator needs a number, so the configuration is
-    # where somebody changes one, and the contract is the copy that goes stale.
+    # Mutate the bank grant in the configuration while leaving the contract unchanged.
     Mutant("K-58", "a bank grant the contract and the composition no longer agree on",
            _seed_composition('"banks": 4096', '"banks": 2048')),
 
-    # The contract's own last CI predicate is renumbered and the analyzer is left, which
-    # is the direction the defect arrives from and the one that fires both halves of the
-    # rule at once: the contract states a predicate no function can make, and the
-    # analyzer carries a function no predicate asks for. A renumbering is chosen over an
-    # insertion because it moves no count anywhere.
+    # Renumber the last CI predicate in the contract so both directions of K-77's
+    # membership check fire.
     Mutant("K-77", "a CI predicate the freeze contract states and its analyzer cannot "
                    "make",
            _seed_contract("| `G-13` | a variant that moves a knob",
                           "| `G-14` | a variant that moves a knob")),
 
-    # One rule gets one case, and this rule gets three, because two of its pairs are
-    # relations rather than memberships and neither is reached by the case above: with
-    # either relation deleted from the comparison the mutant above is still killed, so a
-    # rule narrowed to its enumerations would pass its own selftest.
+    # Mutate §2's `Feeds` relation without changing the member or decision sets.
     Mutant("K-77", "a corpus member the freeze contract sends to fewer decisions than "
                    "its analyzer measures over it",
            _seed_contract("| FD-5, FD-7 |", "| FD-5 |")),
 
-    # The other relation, seeded on the document side for the same reason: §6 states in
-    # each decision's own section which materiality floor it spends, and §8's table
-    # collects the values, so a set comparison over §8's keys passes a decision spending
-    # the 0.5% opcode floor where the contract puts the 0.1% one.
+    # Mutate §6's per-decision threshold binding without changing §8's parameter keys.
     Mutant("K-77", "a decision spending a materiality floor its own section does not "
                    "name",
            _seed_contract("**Threshold, declared: T-form**, the instruction being "
@@ -218,18 +144,17 @@ MUTANTS: tuple[Mutant, ...] = (
 
 
 def _context(root: Path, corpus: Corpus, reg: Register, art: Artifacts) -> Context:
-    """One run's slate, on `check.py`'s own shape and with its own reporter."""
+    """Create a fresh [`Context`](../vos/checks/__init__.py#Context) with its own reporter."""
     return Context(root=root, corpus=corpus, reg=reg, art=art, rep=Reporter())
 
 
 def _failed(rep: Reporter) -> set[str]:
-    """The rule ids a run reported, so a case asserts on what was decided rather than
-    on the prose it was decided in."""
+    """Return the set of `K-nn` rule IDs that failed in `rep`."""
     return {m.group(1) for line in rep.out if (m := FAILED_RE.match(line))}
 
 
 def _rules(ctx: Context, rep: Reporter) -> None:
-    """The two groups over the live tree, each printing its own verdict whole."""
+    """Run all quarantined check groups over the live tree."""
     for group in GROUPS:
         group.run(ctx)
     rep.out.extend(ctx.rep.out)
@@ -237,7 +162,7 @@ def _rules(ctx: Context, rep: Reporter) -> None:
 
 
 def _floors(ctx: Context, rep: Reporter) -> None:
-    """Every enumeration those two rules read and never count has members."""
+    """Verify that every enumeration and relation in `FLOORS` is non-empty."""
     sizes = [(name, int(ctx.shared.get(key, 0) or 0)) for name, key in FLOORS]
     rep.report("floors", "enumeration(s) these rules read and find empty:",
                [f"the gate finds no {name}; whatever it reads them from has moved"
@@ -247,25 +172,17 @@ def _floors(ctx: Context, rep: Reporter) -> None:
 
 
 def _sources() -> list[str]:
-    """The quarantined checks, as text, in a fixed order."""
+    """Read all quarantined check modules in sorted order."""
     return [source.read_text(encoding="utf-8")
             for source in sorted(CHECKS.glob("*.py"))]
 
 
 def _registry(ctx: Context, rep: Reporter) -> None:
-    """This directory's registry against the checks it carries, in both directions.
+    """Check `tools/quarantine/check-rules.md` against `checks/*.py` in both directions.
 
-    K-00's closure, applied to the quarantine's own registry, and asking one question
-    more because there are two registries. What a check *decides* is the rule it reports
-    under, and that set and this file's rows are held equal both ways. What a check
-    *names* is wider: these groups cite the landing loop's rules by name where their
-    reasoning turns on one, so every id named here has to be registered by one of the two
-    files rather than by this one, which is what keeps a citation of a retired rule from
-    reading as prose that resolves.
-
-    It is a check of this gate rather than a K- rule of its own, because a K- id here
-    would be an id the landing loop's registry does not carry, and the closure K-00
-    already runs would then report it.
+    Every rule reported via `rep.report` here must have a unique row in `RULES`, and
+    every `K-nn` cited anywhere in `checks/*.py` must be registered in either `RULES`
+    or `LANDING_RULES`.
     """
     text = ctx.text(RULES)
     if not text:
@@ -308,18 +225,7 @@ def _registry(ctx: Context, rep: Reporter) -> None:
 
 def _one_mutant(mutant: Mutant, root: Path, corpus: Corpus, reg: Register,
                 art: Artifacts) -> Verdict:
-    """One case seeded into a context of its own, and what the two groups made of it.
-
-    Three of the four verdicts are reachable here and the fourth is not: a mutant that
-    would not apply is **unseeded**, one whose rule reported is **killed**, one whose
-    rule read it and said nothing is **survived**, and there is no **stillborn**,
-    because nothing is compiled and the oracle is a `run(ctx)` that always runs.
-
-    A kill names every rule that fired rather than only the one aimed at, which is the
-    same reading the checker's own oracle takes: a mutant that trips its neighbours as
-    well is expected, and a reader who cannot see which ones cannot tell that from a
-    mutant that tripped only a neighbour.
-    """
+    """Seed `mutant` into a fresh context and evaluate it against `GROUPS`."""
     with tempfile.TemporaryDirectory(prefix="vos-quarantine-") as scratch:
         ctx = _context(root, corpus, reg, art)
         if not mutant.seed(ctx, Path(scratch)):
@@ -339,21 +245,7 @@ def _one_mutant(mutant: Mutant, root: Path, corpus: Corpus, reg: Register,
 
 def _mutants(root: Path, corpus: Corpus, reg: Register, art: Artifacts,
              rep: Reporter, clean: bool) -> None:
-    """At least one seeded defect per rule, through the shared verdict vocabulary.
-
-    At least one is the honest shape and the landing loop's registry states why: one
-    defect does not always reach every direction a rule holds, so K-77 carries three
-    cases where K-58 carries one, for the reason the table itself gives at them.
-
-    Nothing below decides anything against a tree that was already failing, on the
-    checker's own oracle's ground: a mutant would be reported killed by whatever was
-    broken before it was introduced. That refusal is not a verdict about any mutant and
-    so stays a `Reporter` finding of its own rather than being dressed as one.
-
-    The finding count comes from `vos.seeded.findings_in` rather than from the lines
-    printed, because this reporter carries four other sections and the exit code is
-    over all five: `summarize`'s own exit code answers about the mutants alone.
-    """
+    """Run all `MUTANTS` when the unmutated baseline is clean."""
     if not clean:
         rep.report("mutants", "case(s) that could not be decided:",
                    [f"{len(MUTANTS)} case(s) were not run: the unmutated tree does not "
@@ -369,19 +261,12 @@ def _mutants(root: Path, corpus: Corpus, reg: Register, art: Artifacts,
 
 
 def _test_modules() -> list[str]:
-    """Every test module beside this file, sorted so the report order is fixed."""
+    """Return sorted stems of `test_*.py` modules under `tests/`."""
     return sorted(path.stem for path in (HERE / "tests").glob("test_*.py"))
 
 
 def _tests(rep: Reporter, slow: bool) -> None:
-    """Every test module in this directory, on `run.py test`'s own conventions.
-
-    Discovering no module at all is a failure rather than a green run, for the reason
-    that suite states about itself: an empty suite decides nothing, and what is here is
-    most of what holds the instruments' arithmetic, their wiring, each of the thirteen CI
-    predicates against a defect it must reject, and this gate's own reading of the
-    seeded verdicts.
-    """
+    """Run every test module under `tests/`, failing if none are found."""
     lane = "host" if sys.platform == "win32" else "guest"
     names = _test_modules()
     if not names:
@@ -412,8 +297,7 @@ def _tests(rep: Reporter, slow: bool) -> None:
 
 
 def run(root: Path, slow: bool = False) -> Reporter:
-    """One whole run, as data, on the convention `check.py` set: the caller decides what
-    to do with the verdict rather than parsing what was printed."""
+    """Run all five quarantine sections and return the [`Reporter`](../vos/report.py#Reporter)."""
     rep = Reporter()
     rep.line(HEADING)
 

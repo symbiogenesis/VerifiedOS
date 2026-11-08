@@ -1,23 +1,19 @@
 # SPDX-License-Identifier: Apache-2.0
-"""The instruments whose decisions are deferred, and the rules that hold them.
+"""Quarantined analysis instruments and their consistency checks.
 
-Two whole instruments live here, each answering a specification rather than an
-output, each tested and gated, and each waiting on a decision nobody can take yet:
-the profile-freeze analyzer, whose ordered act falls behind the M8a gate, and the
-bank-count exploration, whose hard constraint has no operands until R5 measures a
-macro, R4 having stated the architecture that defines them and no figure. Nothing about either is wrong. What was wrong is that both sat in
-a loop that runs before every landing, for decisions that will not be taken until
-after that gate, so they were taken out of it and put here whole.
+Two instruments live here while the measurements they depend on remain deferred:
+- the profile-freeze measurement analyzer ([freeze.py](freeze.py),
+  [freeze-report.py](freeze-report.py)), and
+- the second-class bank-count exploration ([banks.py](banks.py),
+  [bank-dse.py](bank-dse.py)).
 
-`README.md` beside this file states what each waits on and the condition that
-un-quarantines it, `check-rules.md` is this directory's own rule registry, and
-`gate.py` is the one command that runs everything here: the two rules over the live
-tree, the floors under them, one seeded mutant per rule, this registry against the
-checks carrying it, and every test module under `tests/`, which it finds by glob.
+[README.md](README.md) states what each instrument waits on and the condition that
+un-quarantines it. [check-rules.md](check-rules.md) is this directory's rule registry,
+and [gate.py](gate.py) runs the quarantined check groups (K-58 and K-77), their
+enumeration floors, the registry check, seeded mutants, and every test module under
+[tests/](tests/__init__.py).
 
-**The direction of the coupling is the whole point.** This package may read
-`vos`, which is where the parses and the reporting convention live. Nothing outside
-it may read this package, and rule K-83 in `vos.checks.meta` is what holds that:
-the directory is importable from `tools/`, so without the rule the quarantine would
-be a folder and the coupling would survive the move.
+This package imports shared parsing and reporting utilities from `vos`, while K-83 in
+[vos/checks/meta.py](../vos/checks/meta.py#run) forbids non-quarantine tools from
+importing `quarantine`.
 """

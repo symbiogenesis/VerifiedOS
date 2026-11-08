@@ -1,12 +1,8 @@
 # SPDX-License-Identifier: Apache-2.0
-"""The bank-grant parse and the coefficient-free arithmetic over it.
+"""Unit tests for [banks.py](../banks.py) parsing and coefficient-free schedule arithmetic.
 
-`banks.read` is exercised against the live tree on every run of the quarantine's
-gate, but `score()` and the `Score` properties have no caller there: only
-`bank-dse.py` runs them, and nothing held their arithmetic until this module. The fixture
-figures are transcribed from the configuration's own placeholders, so the
-near-deadline boundary here is the one the composition actually sits at today:
-8192 banks sweep in 59.392 billion cycles against a 60 billion cycle floor.
+The fixture figures match the configuration's placeholder values, where 8,192 banks
+sweep in 59.392 billion cycles against a 60-billion-cycle retention floor.
 """
 
 import json

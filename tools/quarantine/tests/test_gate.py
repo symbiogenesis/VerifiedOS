@@ -1,18 +1,11 @@
 # SPDX-License-Identifier: Apache-2.0
-"""What this gate's fourth section decides, and the distinction it used to lose.
+"""Unit tests for [gate.py](../gate.py) mutant verdicts and rule registration.
 
-The gate runs the two quarantined rules against at least one seeded defect each, and a
-case can fail in two ways that are repaired in two different places. A **survivor** is
-a defect the rule read and said nothing about: the repair is in the rule, which is not
-deciding. An **unseeded** case is one whose mutation no longer applies to an artifact
-that moved under it: the repair is in the case, and until it is made the rule reports
-live for as long as nobody looks. Merged into one findings list under one label, both failed the
-run and neither was named, which is the state this module holds against.
-
-Nothing here runs the gate. Its own run over the live tree is what `python
-tools/quarantine/gate.py` is, and a case that re-entered it would be the tool testing
-itself by running itself; what is held here is the reading between a seeded case and a
-verdict, which is a pure function of the two.
+Verifies that:
+- `Mutant.what` formats the target rule and defect description,
+- `seeded.summarize` distinguishes **survived** mutants from **unseeded** mutants,
+- a full mutant run reports the population size, and
+- every case in `MUTANTS` targets a rule registered in `tools/quarantine/check-rules.md`.
 """
 
 from pathlib import Path
@@ -24,8 +17,7 @@ from vos import seeded
 
 
 def _no_seeding(_ctx: Context, _scratch: Path) -> bool:
-    """A seed that is never called: every case here is about the report a verdict makes
-    rather than about applying one, and the table's own four are the live seedings."""
+    """No-op seed function for synthetic `Verdict` test cases."""
     return True
 
 
@@ -34,22 +26,13 @@ def _case(rule: str = "K-77", what: str = "a defect the contract states") -> Mut
 
 
 def _a_case_names_itself_by_rule_and_defect() -> None:
-    """`vos.seeded.Seeded` asks one thing of a mutant, a line naming the defect well
-    enough that a reader can go and look at it. An authored case has no site, so what
-    identifies it is the rule it is aimed at and the defect in words.
-
-    Held against a literal here rather than over `MUTANTS`, because `what` is computed
-    from the two fields: a pass over the live table would satisfy any table at all and
-    so would decide nothing about either. What the live table owes is that its rules are
-    the quarantine's, which is the case at the end of this module.
-    """
+    """Verify `Mutant.what` formatting."""
     named = _case().what
     ensure(named == "K-77: a defect the contract states", f"a case names itself {named!r}")
 
 
 def _the_two_failures_are_named_apart() -> None:
-    """The whole of what the absorption buys. Both fail the run, as they did before;
-    what is new is that the report says which is which and how many of each."""
+    """Verify that survived and unseeded verdicts are reported separately."""
     out: list[str] = []
     verdicts = [
         seeded.Verdict(_case("K-58"), seeded.KILLED, "the run reported K-58"),

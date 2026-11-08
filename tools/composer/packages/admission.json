@@ -84,7 +84,7 @@
     },
     {
       "path": "tools/vos/cli/__init__.py",
-      "sha256": "88ea3c2dfee96e384128d6dacfff3bf975cee97d17e4363bf7cf84721d7d4980"
+      "sha256": "7534add566beaf4238b417f39c85073f72b7be917f42ab6009768fe194d8284f"
     },
     {
       "path": "tools/vos/config.py",

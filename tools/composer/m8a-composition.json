@@ -522,7 +522,7 @@
         },
         {
           "path": "tools/vos/cli/__init__.py",
-          "sha256": "88ea3c2dfee96e384128d6dacfff3bf975cee97d17e4363bf7cf84721d7d4980"
+          "sha256": "7534add566beaf4238b417f39c85073f72b7be917f42ab6009768fe194d8284f"
         },
         {
           "path": "tools/vos/compiler_component.py",
@@ -647,7 +647,7 @@
       ],
       "descriptor": {
         "path": "tools/composer/packages/composer.json",
-        "sha256": "40d3d967640e6a9f2092ab44a854e834253d013a4869876dc5a37e9fccc09950"
+        "sha256": "350cc239df03fe734a6df2f242323600a5355ad184e8d9a6b09db93a7dca2086"
       },
       "artifact_slot": "composer-artifact",
       "entry": null,
@@ -746,7 +746,7 @@
         },
         {
           "path": "tools/vos/cli/__init__.py",
-          "sha256": "88ea3c2dfee96e384128d6dacfff3bf975cee97d17e4363bf7cf84721d7d4980"
+          "sha256": "7534add566beaf4238b417f39c85073f72b7be917f42ab6009768fe194d8284f"
         },
         {
           "path": "tools/vos/config.py",
@@ -835,7 +835,7 @@
       ],
       "descriptor": {
         "path": "tools/composer/packages/admission.json",
-        "sha256": "0d949fda5067f6360d213e712e1626b532c9036129c6530a476de1b1e73e43c8"
+        "sha256": "0f9fc3239d3c9584873655ec93d981740d38bc2f54bc7f6b7445a092a2e9f8ef"
       },
       "artifact_slot": "admission-artifact",
       "entry": null,

@@ -1,15 +1,10 @@
 # SPDX-License-Identifier: Apache-2.0
-"""The second class's bank grant, and the schedule the composition wraps around it.
+"""Parse the second-class bank grant and compute coefficient-free schedule metrics.
 
-One parse, read by two callers: `tools/quarantine/bank-dse.py`, which scores
-candidate bank counts against the arithmetic that exists today, and the `banks`
-check group beside it, which holds the contract's declared point against the
-configuration's.
-
-Everything here is a parse and never a decision, as it is in `vos`.
-What is admissible is `docs/hardware/bank-count-dse-contract.md`'s and the check group's; what
-is *stated* is the model configuration's, and the configuration says on its own face
-that every one of these figures is a placeholder until R-15-247m measures it.
+Shared by [bank-dse.py](bank-dse.py), which scores candidate bank counts against the
+shape constraints in [model/config/verifiedos.json](../../model/config/verifiedos.json),
+and [checks/banks.py](checks/banks.py), which checks K-58 against
+[docs/hardware/bank-count-dse-contract.md](../../docs/hardware/bank-count-dse-contract.md).
 """
 
 import re
@@ -25,35 +20,28 @@ DOCUMENT = "docs/hardware/bank-count-dse-contract.md"
 SECOND_CLASS = ("memory", "classes", "second")
 SEQUENCER = ("platform", "memory_sequencer")
 
-# Every column of the report that wants a coefficient, and the symbols it waits on.
-# Declared here rather than in the tool that prints it, because the check group holds
-# these symbols against the contract's own table: the tool and the document naming
-# different coefficients is exactly the drift a second copy of a list produces.
+# Coefficient-dependent report columns and the symbols they wait on, checked against
+# the contract table by K-58.
 PENDING_COLUMNS: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("droop headroom", ("I_bank_peak", "I_pdn_max")),
     ("island bandwidth", ("W_bank", "s_island")),
     ("read energy per bit", ("C_bl_per_row",)),
 )
 
-# The pair the hard constraint is stated over. While the class is unqualified these
-# must be pending, because a droop envelope with operands would mean a macro had been
-# measured, which is the one thing `qualified` records (R-15-247m).
+# Hard-constraint droop-envelope coefficients. While `qualified` is false, these must
+# remain `pending` (R-15-247m).
 PRUNING = PENDING_COLUMNS[0][1]
 
-# the contract's own declared point and candidate set, in the two forms it writes them.
-# Case-insensitive because either may open a sentence, which is the sentence's business
-# and not the figure's.
 DECLARED_RE = re.compile(r"(?i)the configuration declares \*\*(\d[\d,]*) banks\*\*")
 CANDIDATE_RE = re.compile(
     r"(?i)the candidate set is \*\*([\d,]+ through [\d,]+)\*\* banks")
-# one row of the coefficient table: the symbol, three cells, and its status
 PENDING_RE = re.compile(
     r"(?m)^\| `([A-Za-z_]+)` \|[^|]*\|[^|]*\|[^|]*\| (pending|stated) \|")
 
 
 @dataclass
 class Grant:
-    """What the composition declares about the second class, one field per figure."""
+    """Second-class bank parameters parsed from the configuration and DSE contract."""
 
     banks: int | None = None
     qualified: bool | None = None
@@ -67,15 +55,14 @@ class Grant:
     clock_hz: int | None = None
     region_bytes: int | None = None
 
-    # the contract's side
+    # Contract declarations
     declared_banks: int | None = None
     candidates: list[int] = field(default_factory=list)
     pending: list[str] = field(default_factory=list)
     stated: list[str] = field(default_factory=list)
 
     def complete(self) -> bool:
-        """Whether every figure the arithmetic below needs was found. A grant that is
-        short of one is reported as such rather than scored around."""
+        """Return whether all eight configuration figures required by `score()` are present."""
         return None not in (self.banks, self.retention_floor_us,
                             self.banks_per_refresh_phase, self.refresh_phase_cycles,
                             self.banks_per_discharge_phase, self.discharge_phase_cycles,
@@ -83,12 +70,7 @@ class Grant:
 
 
 def _region_bytes(path: Path, which: str) -> int | None:
-    """The size of the region a class is assigned, read out of the region list.
-
-    The list is walked rather than indexed, because a region's position in it is not a
-    fact about the class: what names the class is the `memory_class` attribute, which
-    is the same option the model reads.
-    """
+    """Sum the byte sizes of all memory regions assigned to `memory_class` `which`."""
     regions = config.value(path, "memory", "regions")
     if not isinstance(regions, list):
         return None
