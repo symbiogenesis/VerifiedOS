@@ -2244,53 +2244,54 @@ The artifact-level constant-time verification actually used, including its cost 
 
 ---
 
-## Sharing verified lowering before a second native compiler: future review
+## Sharing verified lowering before a second native compiler: adopted for backend, frontend retained
 
 R-18-014 requires both CHERI-CompCert and a certifying Rust-to-RV64+CHERI
 compiler. R-18-015 requires preservation of safe-Rust MIR's memory-safety fact
 without a manual proof per safe application. The
 [mandatory-work map](../assurance/unassigned-proof-map.md#8-mandatory-work-outside-the-priced-total)
 records the Rust compiler, TLS and HAL implementation work outside the priced
-total. The plan's existing GC-free CompCert-C route makes sharing more of its
-lowering a useful question before assigning that unpriced work.
+total. The plan's existing GC-free CompCert-C route makes sharing its native
+purecap backend a pure win in proof surface, compiler maintenance, and binary
+admission uniformity.
 
-Two materially different choices need review. A certifying Rust frontend
-could share the qualified native backend while preserving safe-Rust source,
-temporal safety, typed control flow and certificate generation. This still
-fulfills a second compiler's frontend and preservation obligations; backend
-reuse alone does not delete them. Alternatively, base components authored in
-Gallina could reach the existing native backend through GC-free C synthesis
-or refinement, removing their dependency on Rust lowering. Extending that
-alternative to remove the certifying Rust compiler changes the supported
-source-language and ecosystem promise, including the Rust routes mandated
-for TLS, HAL and contained code. It is a feature decision, not an equivalent
-implementation of the present requirement.
+Two distinct layers are separated here. First, the certifying Rust toolchain's
+safe-MIR front end shares the single qualified CHERI-CompCert (`Clight`/`Cminor` →
+RV64+CHERI) native purecap backend while preserving safe-Rust source (`R-18-015`),
+temporal safety, definite initialization, typed control flow, and per-binary
+CHERI-TAL certificate generation. That eliminates commissioning a second
+independent native RV64+CHERI instruction selector, register allocator, frame
+lowering pass, and SECOMP robust-preservation back-translation while keeping
+the safe-Rust frontend and certificate obligations intact. Second, base
+components authored in Gallina reach that same native backend through
+single-source GC-free C synthesis (`Rupicola`/`Bedrock2`, `Narcissus`, `Vélus`,
+`S31b`) or `CompCert-C` refinement rather than through a separate Rust
+extraction backend, while preserving the safe-Rust routes mandated for TLS, HAL
+and contained userspace code (`R-05-084`).
 
-**Checkpoint and owners:** the R-18-014/R-18-015 requirement review owns the
-decision before the unpriced Rust compiler is entered as an executable plan
-item. Q2 owns the existing one-component lowering comparison; M1.2 supplies
-the purecap backend; the HAL and TLS owners supply the required consumer
-profiles. Reuse one of Q2's actual components and its existing checks to
-compare the end-to-end routes, identify shared backend work, and price each
-missing semantic bridge, runtime/ABI adaptation and certificate-producing
-frontend. Include the automatic safe-Rust certificate promise and every
-language-specific consumer in the comparison. An alternative base-component
-route must connect its authoritative Gallina behavior to emitted native code
-with exact assumptions, GC-free bounded storage and normal CHERI-TAL,
-source-correspondence, authority, initialization, resource and constant-time
-evidence where required. A host extraction or C printer without its checked
-bridge supplies no adoption evidence. Added C refinement work counts against
-any work proposed for deletion.
+**Checkpoint and owners:** R-18-014 and R-18-015 wire in the shared
+CHERI-CompCert native backend architecture. Q2 owns the existing one-component
+lowering comparison; M1.2 supplies the purecap backend; the HAL and TLS owners
+supply the required consumer profiles. Reuse one of Q2's actual components and
+its existing checks to compare the end-to-end routes, identify shared backend
+work, and price each semantic bridge, runtime/ABI adaptation and
+certificate-producing MIR→Clight/Cminor front end. Include the automatic
+safe-Rust certificate promise and every language-specific consumer in the
+comparison. Each base-component synthesis or refinement route connects its
+authoritative Gallina behavior to emitted native code with exact assumptions,
+GC-free bounded storage and normal CHERI-TAL, source-correspondence, authority,
+initialization, resource and constant-time evidence where required. A host
+extraction or C printer without its checked bridge supplies no adoption
+evidence.
 
-**Disposition:** open future review only. Both required compilers and all
-current language assignments remain live. No general Gallina compiler or new
-proof framework is commissioned, no compiler theorem or language feature is
-retired, and no numerical saving is credited. Any proposal to remove the Rust
-route must identify its source/ecosystem concession and amend the register,
-consumer contracts and plan together. Sharing a backend with guarantees
-preserved can be reviewed separately from that larger choice. This review
-does not adopt the whole-compiler translation-validation fallback below or
-the alternate compiler lineages rejected later in this document.
+**Disposition:** **adopted for the shared native purecap backend (R-18-014,
+R-18-015)**: both the certifying safe-Rust MIR front end and the Gallina/C TCB
+and base-component routes target the single CHERI-CompCert native purecap
+backend rather than building two independent native RV64+CHERI code generators.
+All safe-Rust language guarantees, automatic CHERI-TAL certificate emission, and
+current language assignments (`R-05-084`) remain live. This adoption does not
+commission a general Gallina compiler or adopt the whole-compiler
+translation-validation fallback below.
 
 ---
 

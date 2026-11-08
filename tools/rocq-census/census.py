@@ -27,7 +27,19 @@ _ROW = re.compile(rf"^({_SEARCH_NAME}):\s*(.*)$")
 _ABOUT = re.compile(r'\(use "About" for full details on the implicit arguments of '
                     rf"({_SEARCH_NAME}(?:(?:, {_SEARCH_NAME})* and {_SEARCH_NAME})?)\)")
 _SEARCH_DIAGNOSTIC = re.compile(r'^\s*(?:(?:Error|Warning|Anomaly|Fatal error)\s*[:!]|File ")')
+_SCHEMA_PATTERNS = {r"^[0-9]+$": re.compile(r"^[0-9]+$"),
+                    r"^(?:[0-9a-f]{2})*$": re.compile(r"^(?:[0-9a-f]{2})*$")}
+_BLAKE2B_DIGEST = re.compile(r"[0-9a-f]{64}")
+_SIMPLE_IDENTIFIER = re.compile(r"[\w']+")
+_ALIAS_TOKEN = re.compile(r"[\w']+(?:\.[\w']+)*|[()]")
+_READING_HEADER = re.compile(r"\s*Module\s+(Type\s+)?([\w']+(?:\.[\w']+)*)\s*(?=[:=(])")
+_READING_QUOTED = re.compile(r'"(?:[^"]|"")*"')
+_READING_PUNCT = re.compile(r"(?::=|:|=)\s*\S")
+_READING_DIAGNOSTIC = re.compile(r"(?m)^\s*(?:Error|Warning|Anomaly|Fatal error)\s*[:!]")
+_READING_BODY = re.compile(r"(?<![\w'.])(?:Struct|Sig)(?![\w'])")
+_READING_CLOSING = re.compile(r"(?<![\w'.])End\s*(?::=\s*(.*?))?\s*$", re.DOTALL)
 _ABSTRACT = {"module-type", "functor-parameter", "functor-result"}
+_EXACT_SCALARS = {str, bool, int, type(None)}
 
 
 class CensusError(ValueError):
@@ -44,12 +56,9 @@ def _key(value: object) -> str:
 
 
 def _literal_equal(left: object, right: object) -> bool:
-    if type(left) is str and type(right) is str:
-        return left == right
-    if type(left) is bool and type(right) is bool:
-        return left is right
-    if left is None and right is None:
-        return True
+    left_type, right_type = type(left), type(right)
+    if left_type in _EXACT_SCALARS and right_type in _EXACT_SCALARS:
+        return left_type is right_type and left == right
     return _key(left) == _key(right)
 
 
@@ -249,8 +258,10 @@ def _visit(value: object, shape: _Shape, path: list[str | int], site: str) -> No
     if isinstance(value, str):
         if len(value) < schema.get("minLength", 0):
             _failure(path, site, "empty native string")
-        if "pattern" in schema and re.search(schema["pattern"], value) is None:
-            _failure(path, site, "invalid native string encoding")
+        if "pattern" in schema:
+            compiled = _SCHEMA_PATTERNS.get(schema["pattern"])
+            if (compiled.search(value) if compiled is not None else re.search(schema["pattern"], value)) is None:
+                _failure(path, site, "invalid native string encoding")
     if type(value) in {int, float}:
         if "minimum" in schema and not value >= schema["minimum"]:
             _failure(path, site, "invalid native index")
@@ -383,7 +394,7 @@ def _module_alias(text: str) -> bool:
     """Recognize the locked printer's path and parenthesized application suffixes."""
     tokens: list[str] = []
     cursor = 0
-    for match in re.finditer(r"[\w']+(?:\.[\w']+)*|[()]", text):
+    for match in _ALIAS_TOKEN.finditer(text):
         if text[cursor:match.start()].strip():
             return False
         tokens.append(match.group())
@@ -405,22 +416,22 @@ def _module_alias(text: str) -> bool:
 def _reading(text: str, kind: str, target: str) -> None:
     """Check the locked printer's framing without interpreting printed term syntax."""
     _require(isinstance(text, str) and bool(text.strip()), "missing complete native module reading")
-    header = re.match(r"\s*Module\s+(Type\s+)?([\w']+(?:\.[\w']+)*)\s*(?=[:=(])", text)
+    header = _READING_HEADER.match(text)
     suffixes = {".".join(target.split(".")[index:]) for index in range(len(target.split(".")))}
     if header is None:
         raise CensusError("native module reading header differs from query")
     _require(header.group(2) in suffixes
              and bool(header.group(1)) == (kind == "module-type"), "native module reading header differs from query")
     # Strings can contain punctuation/keywords that are not printer framing.
-    framed = re.sub(r'"(?:[^"]|"")*"', '""', text)
-    _require(re.match(r"(?::=|:|=)\s*\S", framed[header.end():]) is not None,
+    framed = _READING_QUOTED.sub('""', text)
+    _require(_READING_PUNCT.match(framed[header.end():]) is not None,
              "native module reading has an incomplete header")
     _require("..." not in framed and "…" not in framed and "<elided>" not in framed,
              "truncated native module reading")
-    _require(re.search(r"(?m)^\s*(?:Error|Warning|Anomaly|Fatal error)\s*[:!]", framed) is None,
+    _require(_READING_DIAGNOSTIC.search(framed) is None,
              "native module reading contains a diagnostic")
-    if re.search(r"(?<![\w'.])(?:Struct|Sig)(?![\w'])", framed):
-        closing = re.search(r"(?<![\w'.])End\s*(?::=\s*(.*?))?\s*$", framed, re.DOTALL)
+    if _READING_BODY.search(framed):
+        closing = _READING_CLOSING.search(framed)
         if closing is None:
             raise CensusError("native module reading is missing its outer closing body")
         _require(closing.group(1) is None or _module_alias(closing.group(1)),
@@ -504,7 +515,7 @@ def _native_semantics(value: dict[str, Any]) -> None:
             _require(node["inline_level"] is None or node["body_kind"] == "Undef",
                      "inline level on a non-abstract body")
         if {"algorithm", "encoding", "digest", "module_paths", "kernel_names"} == node.keys():
-            _require(re.fullmatch(r"[0-9a-f]{64}", node["digest"]) is not None,
+            _require(_BLAKE2B_DIGEST.fullmatch(node["digest"]) is not None,
                      "native body identity is not an exact lowercase BLAKE2b-256 digest")
         if {"kind", "expression", "structure", "algebraic_type", "resolver_id"} == node.keys():
             kind = node["kind"]
@@ -630,7 +641,13 @@ def _census(metadata: object, searches: dict[str, str], readings: dict[str, str]
     _require(value["requested_roots"] == expected_modules, "native requested population differs")
     _require([root["requested"] for root in value["roots"]] == expected_modules,
              "native root population/order differs")
-    requests = parse_search_requests(searches, expected_modules=expected_modules)
+    _require(bool(expected_modules) and len(set(expected_modules)) == len(expected_modules),
+             "missing or duplicate requested roots")
+    _require(set(searches) == set(expected_modules), "Search population differs from requested roots")
+    parsed_searches = {root: _search_evidence(searches[root]) for root in expected_modules}
+    requests: list[dict[str, Any]] = [{"id": f"{root}:{row['row_index']}", "requested_root": root,
+                                       "row_index": row["row_index"], "spelling": row["spelling"]}
+                                      for root in expected_modules for row in parsed_searches[root][0]]
     _require(value["resolution_requests"] == requests, "native requests differ from original Search rows")
     modules, fields, declarations, abbreviations, contexts, resolvers, descents = (
         _table(value, name) for name in ("modules", "fields", "declarations", "abbreviations", "contexts", "resolvers", "module_descents"))
@@ -754,7 +771,7 @@ def _census(metadata: object, searches: dict[str, str], readings: dict[str, str]
     targets = _reading_targets(value)
     _require(set(readings) == {kind + ":" + name for kind, name in targets}, "missing or foreign module readings")
     for kind, name in targets:
-        _require(bool(proofaudit.QUALIFIED.fullmatch(name)) or bool(re.fullmatch(r"[\w']+", name)),
+        _require(bool(proofaudit.QUALIFIED.fullmatch(name)) or bool(_SIMPLE_IDENTIFIER.fullmatch(name)),
                  "invalid native module reading target")
         _reading(readings[kind + ":" + name], kind, name)
     for module in modules.values():
@@ -800,7 +817,12 @@ def _census(metadata: object, searches: dict[str, str], readings: dict[str, str]
         raise CensusError("missing native resolver domain order")
     path_ranks = {key: index for index, key in enumerate(path_order)}
     kernel_ranks = {key: index for index, key in enumerate(kernel_order)}
+    for module in modules.values():
+        resolver = resolvers.get(module["implementation"]["resolver_id"], {})
+        _require(resolver.get("owner_module_id") == module["id"], "module implementation names a foreign resolver")
     for node in _nodes(metadata_view):
+        if "resolver_id" in node:
+            _require(node["resolver_id"] in resolvers, "missing native resolver connection")
         if {"algorithm", "encoding", "digest", "module_paths", "kernel_names"} != node.keys():
             continue
         body_paths = [_key(path) for path in node["module_paths"]]
@@ -814,12 +836,6 @@ def _census(metadata: object, searches: dict[str, str], readings: dict[str, str]
             if reference.get("tag") in {"MPfile", "MPbound", "MPdot"}:
                 _require(_key(reference) in body_path_set,
                          "native body footprint omits a kernel path or parent module path")
-    for module in modules.values():
-        resolver = resolvers.get(module["implementation"]["resolver_id"], {})
-        _require(resolver.get("owner_module_id") == module["id"], "module implementation names a foreign resolver")
-    for node in _nodes(metadata_view):
-        if "resolver_id" in node:
-            _require(node["resolver_id"] in resolvers, "missing native resolver connection")
 
     concrete_nested = {identifier for identifier, module in modules.items()
                        if module["parent_field_id"] is not None and module["kind"] == "module"
@@ -1049,7 +1065,7 @@ def _census(metadata: object, searches: dict[str, str], readings: dict[str, str]
     _require(len(value["resolutions"]) == len(requests), "missing native Search resolutions")
     resolved_ids: set[str] = set()
     search_types: dict[str, str] = {}
-    original_rows = {root: _search(searches[root]) for root in expected_modules}
+    original_rows = {root: parsed_searches[root][0] for root in expected_modules}
     for request, resolution in zip(requests, value["resolutions"], strict=True):
         _require(resolution["request_id"] == request["id"]
                  and resolution["root_module_id"] == root_ids[request["requested_root"]], "native resolution reordered or changed its root")
@@ -1083,6 +1099,25 @@ def _census(metadata: object, searches: dict[str, str], readings: dict[str, str]
                      and candidate["reference"] == abbreviation["interpretation"]["target_reference"],
                      "native Search abbreviation target differs")
 
+    modules_by_root: dict[str, list[dict[str, Any]]] = {root: [] for root in expected_modules}
+    fields_by_root: dict[str, list[dict[str, Any]]] = {root: [] for root in expected_modules}
+    declarations_by_root: dict[str, list[dict[str, Any]]] = {root: [] for root in expected_modules}
+    abbreviations_by_root: dict[str, list[dict[str, Any]]] = {root: [] for root in expected_modules}
+    descents_by_root: dict[str, list[dict[str, Any]]] = {root: [] for root in expected_modules}
+    resolutions_by_root_id: dict[str, list[dict[str, Any]]] = {root_id: [] for root_id in root_ids.values()}
+    for row in value["modules"]:
+        modules_by_root[owners[row["id"]]].append(row)
+    for row in value["fields"]:
+        fields_by_root[owners[row["parent_module_id"]]].append(row)
+    for row in value["declarations"]:
+        declarations_by_root[owners[fields[row["field_id"]]["parent_module_id"]]].append(row)
+    for row in value["abbreviations"]:
+        abbreviations_by_root[owners[row["module_id"]]].append(row)
+    for row in value["module_descents"]:
+        descents_by_root[owners[row["owner_module_id"]]].append(row)
+    for row in value["resolutions"]:
+        resolutions_by_root_id[row["root_module_id"]].append(row)
+
     result: dict[str, dict[str, Any]] = {}
     for root in expected_modules:
         # Preserve the prover's Search type when present. A field outside Search
@@ -1093,23 +1128,22 @@ def _census(metadata: object, searches: dict[str, str], readings: dict[str, str]
                else "native-constructor-json " + _key(declaration["type"])) + "\n"
             for declaration in owned[root])
         symbols = proofaudit.inventory(guard_text, root)
-        module_ids = {identifier for identifier, owner in owners.items() if owner == root}
-        root_fields = [row for row in value["fields"] if row["parent_module_id"] in module_ids]
-        root_field_ids = {field["id"] for field in root_fields}
-        root_declarations = [row for row in value["declarations"] if row["field_id"] in root_field_ids]
-        search_rows, search_footer = _search_evidence(searches[root])
+        root_modules = modules_by_root[root]
+        root_fields = fields_by_root[root]
+        root_declarations = declarations_by_root[root]
+        search_rows, search_footer = parsed_searches[root]
         result[root] = {"symbols": symbols, "raw_search": searches[root], "search_rows": search_rows,
                         "search_footer": search_footer,
-                        "modules": [row for row in value["modules"] if row["id"] in module_ids], "fields": root_fields,
+                        "modules": root_modules, "fields": root_fields,
                         "interfaces": [row for row in root_declarations if row["classification"] == "interface"],
                         "aliases": [row for row in root_declarations if row["classification"] == "alias"]
-                                   + [row for row in value["abbreviations"] if row["module_id"] in module_ids],
+                                   + abbreviations_by_root[root],
                         "alias_audits": alias_audits[root], "alias_obligations": alias_obligations[root],
-                        "module_descents": [row for row in value["module_descents"] if row["owner_module_id"] in module_ids],
-                        "resolutions": [row for row in value["resolutions"] if row["root_module_id"] == root_ids[root]],
+                        "module_descents": descents_by_root[root],
+                        "resolutions": resolutions_by_root_id[root_ids[root]],
                         "readings": {module["query"]["kind"] + ":" + module["query"]["target"]:
                                      readings[module["query"]["kind"] + ":" + module["query"]["target"]]
-                                     for module in modules.values() if module["id"] in module_ids},
+                                     for module in root_modules},
                         "declarations": root_declarations}
     return result
 

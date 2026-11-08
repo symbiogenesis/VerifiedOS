@@ -608,8 +608,9 @@ class SailSupportCensusTests(unittest.TestCase):
         def no_encoding(_value: object) -> str:
             raise AssertionError("built-in scalar literal comparisons must not encode JSON")
         with patch.dict(equal.__globals__, {"_key": no_encoding}):
-            for left, right in (("λ雪", "λ雪"), ("first", "second"), (True, False), (True, True), (None, None)):
-                self.assertEqual(equal(left, right), left == right)
+            for left, right in (("λ雪", "λ雪"), ("first", "second"), (True, False), (True, True),
+                                (None, None), (1, 1), (1, 2), (None, "first"), (True, "true"), (1, None)):
+                self.assertEqual(equal(left, right), type(left) is type(right) and left == right)
         for allowed in ([], [None, True, "λ雪"], [1, [1.0], {"value": 1}]):
             definition = {"enum": allowed}
             for value in values:
@@ -843,8 +844,16 @@ class SailSupportCensusTests(unittest.TestCase):
         def no_unused_fallback(item: object) -> str:
             self.assertIsNot(item, typ, "a present Search type must avoid constructor-JSON fallback encoding")
             return key(item)
-        with patch.dict(census.__globals__, {"_key": no_unused_fallback}):
+        search_evidence = cast("Callable[[str], tuple[list[dict[str, Any]], dict[str, Any] | None]]",
+                               census.__globals__["_search_evidence"])
+        search_parses = 0
+        def counted_search_evidence(stdout: str) -> tuple[list[dict[str, Any]], dict[str, Any] | None]:
+            nonlocal search_parses
+            search_parses += 1
+            return search_evidence(stdout)
+        with patch.dict(census.__globals__, {"_key": no_unused_fallback, "_search_evidence": counted_search_evidence}):
             self.assertEqual(census(value, searches, readings, expected_modules=["Root"])["Root"]["symbols"][0]["type"], "Prop")
+        self.assertEqual(search_parses, 1, "each root's Search log is parsed once per census invocation")
         self.assertEqual(value, original)
         for table, member, reason in (("fields", "parent_module_id", "native field population differs from its owner"),
                                       ("declarations", "field_id", "incomplete native declaration population")):

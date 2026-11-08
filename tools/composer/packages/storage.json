@@ -4,19 +4,19 @@
   "sources": [
     {
       "path": "proofs/ExecutableIndex.v",
-      "sha256": "0bd5d987c7b478985a7bac45e03d555459ba7d0cb28f290d59913df2b1482d90"
+      "sha256": "7f0eebdca50a167d06cc9f38ddd851da7159c5df8d4fcadd71218480aea924c2"
     },
     {
       "path": "proofs/JournalIndex.v",
-      "sha256": "64318ab18e9f06dfb02f09889b74fdf13ce403f7ef1ed935dd0a3b35507a8e0e"
+      "sha256": "13aa077f4d7654a29931992157535dc41a5c9af96a5f56c764bea01666f72ae8"
     },
     {
       "path": "proofs/StorageRecovery.v",
-      "sha256": "789d4702371963d7bd079498438394c6f6e5c199ee0dee67578a5acf66fdd1a6"
+      "sha256": "378606c35c412bd0f6476f60b122056c81884c231229a7d8e3050111a043e878"
     },
     {
       "path": "proofs/KeyspaceDomains.v",
-      "sha256": "32a7a31a7889205c9189076cded5cc8bb9b117adf5cc89668168d873d666857c"
+      "sha256": "d4814cb5e654b6cc96fb884d66d5c5090fb5547aedbee6e2c3d586411554cf20"
     }
   ],
   "interfaces": [
