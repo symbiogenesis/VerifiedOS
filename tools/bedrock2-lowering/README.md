@@ -1,6 +1,18 @@
 # The Bedrock2 lowering loop, on one wire parser
 
-One Gallina source, one mechanically regenerated C implementation, one checked relation between them, run by hand in a dedicated Rupicola switch. This is Q2a's host-only experiment: the component is a wire-parser-shaped check over the ring descriptor the [generated interface artifact](../../proofs/RingContract.v) fixes, the imperative output is bedrock2 code Rupicola derives from the source with its functional relation closed at `Qed`, and the C is what bedrock2's printer emits from that code, cut out of the prover's output and never edited. What stops here is the device leg: the C reaches M1.2's contained `ccomp` and comes out as plain RV64 with the capability arms stubbed, which is the exit M1.6 measured and what Q2b closes after M1.2f. Nothing in this directory is sold as compilation of the golden model, and no theorem here reaches the Sail model, constant-time behaviour, resource bounds or the hardware refinement. The same loop now carries a second, smaller component: the frame-kernel pair in [the measurements below](#measurements), two derivations of one pure value kernel that differ only in how many buffers they keep live. That pair is a proxy figure for [the static-memory research](../../docs/implementation/static-memory/census.md) and no part of Q2a's exit.
+This directory holds Q2a's host-only Gallina-to-C lowering experiment in a dedicated
+Rupicola switch. The primary component is a wire-parser header check over the ring
+descriptor defined by the [generated interface artifact](../../proofs/RingContract.v):
+Rupicola derives imperative bedrock2 code from the Gallina source with its functional
+refinement closed at `Qed`, and bedrock2's printer emits C from that code verbatim.
+Device lowering stops at M1.2's contained `ccomp`, which emits plain RV64 assembly under
+`-S` or stubbed capability pseudo-instructions under `-S -dcapasm` (measured in M1.6 and
+scheduled for closure in Q2b after M1.2f). No theorem here reaches the Sail model,
+constant-time behavior, resource bounds, or hardware refinement. The directory also
+includes the frame-kernel pair in [the measurements below](#measurements)—two derivations
+of a pure value kernel that differ only in how many buffers they keep live, used as a
+proxy figure for [the static-memory research](../../docs/implementation/static-memory/census.md)
+rather than Q2a's exit.
 
 ## What is here
 
@@ -14,7 +26,12 @@ One Gallina source, one mechanically regenerated C implementation, one checked r
 | [regenerate.py](regenerate.py) | The driver: stages the sources outside every checkout, compiles them in the switch, cuts the C out, prints the figures, and under `--check` holds the C to its digest. |
 | [DIGESTS.md](DIGESTS.md) | The record `--check` compares against: SHA-256, bytes and lines of each emitted file. The C itself is not tracked. |
 
-The precedent is [the Wasm oracle's](../wasm-oracle/README.md): a loop a later reader re-runs, one source against released packages, with a hand-run recipe and no `run.py` command, the label naming a validator the entry point does not carry. The emitted C stays outside the tree for two reasons stated at [THIRD-PARTY.md](../../THIRD-PARTY.md): bedrock2's printer prepends its own load-and-store preamble, which is bedrock2's text under bedrock2's terms, and the license-mark rule has no ruling for a `.c` kind. Nothing under `proofs/` moves: the proof gate compiles that directory in a switch of its own that carries none of the five packages this loop stands on, so a file requiring Rupicola there would turn `run.py proofs` red.
+Like [the Wasm oracle](../wasm-oracle/README.md), this loop is run manually against
+released packages rather than through `run.py`. The emitted C is not tracked in Git for
+two reasons documented in [THIRD-PARTY.md](../../THIRD-PARTY.md): bedrock2's printer
+prepends its own load/store preamble under bedrock2's license terms, and the repository's
+license-mark rule (K-53) does not admit generated `.c` files here. Keeping these `.v`
+sources outside `proofs/` also keeps `run.py proofs` independent of the Rupicola switch.
 
 ## Pinned environment
 

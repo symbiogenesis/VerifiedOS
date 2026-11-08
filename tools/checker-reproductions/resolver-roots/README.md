@@ -1,24 +1,16 @@
 # The checker's "Incompatible resolver roots" anomaly
 
-Q35h's standalone reproduction of F-486. `rocqchk`, the Rocq kernel checker, aborts with
-the anomaly `Incompatible resolver roots: <application path> is not a subpath of
-<functor path>` on a functor whose body opaquely ascribes a module that holds a
-submodule, once the functor is applied. The compiler, `rocq c`, accepts every file here.
-The anomaly is raised by `add_delta_resolver` in the kernel's `mod_subst.ml`, a root
-check PR #20124 added on 2025-01-27 and every release from 9.1 carries. VST 2.17's
-`floyd/SeparationLogicAsLogicSoundness.v` has this shape, which is how the proof gate
-met it. [The record](../../../docs/assurance/checker-resolver-anomaly.md) holds the
-reduction, the readings of released checkers and of rocq master, which gives the 9.3.0
-column's results at `981bb63f`, and the upstream state; the report is
-[rocq-prover/rocq#22555](https://github.com/rocq-prover/rocq/issues/22555). This
-directory holds the files and the runner.
-
-[The anomaly record](../../../docs/assurance/checker-resolver-anomaly.md#disposition)
-owns upstream status and the remaining qualification work. The table and runner
-retain their expectations for the measured releases; a run with a fixed checker
-is a new measurement, including the related `AliasTypedField.v` symptom.
-
-Every file is authored here from scratch and carries none of VST's content.
+Q35h's standalone reproduction of F-486 ([rocq-prover/rocq#22555](https://github.com/rocq-prover/rocq/issues/22555)).
+While `rocq c` accepts every file in this directory, `rocqchk` aborts with
+`Incompatible resolver roots: <application path> is not a subpath of <functor path>` when
+checking an applied functor whose body opaquely ascribes (`:`) a module containing a
+submodule. The anomaly is raised by `add_delta_resolver` in `kernel/mod_subst.ml`
+(introduced in PR #20124 on 2025-01-27 and present in Rocq 9.1 through 9.3.0). The proof
+gate encountered this shape in VST 2.17's `floyd/SeparationLogicAsLogicSoundness.v`.
+[The anomaly record](../../../docs/assurance/checker-resolver-anomaly.md) documents the
+reduction, measurements across released checkers and `rocq` master (`981bb63f`), and
+[disposition](../../../docs/assurance/checker-resolver-anomaly.md#disposition). All files
+here are authored from scratch and contain no VST code.
 
 | File | What it holds | `rocq c` | `rocqchk -silent -o` at 9.1.1, 9.2.0 and 9.3.0 |
 | --- | --- | --- | --- |
