@@ -1,29 +1,19 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: Apache-2.0
-"""The instrument switch route's plan, step limits, staging, comparison and join.
+"""Instrument switch route plan, step limits, staging, comparison, and join.
 
 [instrument-switches.yml](../../.github/workflows/instrument-switches.yml) builds and
-checks QuickChick's switch on GitHub-hosted runners, and every one of its jobs runs
-this file from the dispatching commit's checkout, never from the revision a side
-tests. The plan refuses a dispatch before any requested revision is checked out; each
-instrument step runs under the limit wrapper and its sampler; each job's staging
-decides what leaves its runner; the import job's comparison holds a re-imported switch
-to the one the build job exported; and the join reads one artifact per job into
-`report.json`. [`run.py instrument-ci read`](../vos/cli/instrument_ci.py) reads the
-same records back on the host. [The route's contract](README.md#instrument-switch-route)
-states what a run decides and what it leaves to the item that owns the switch.
+checks QuickChick's switch on GitHub-hosted runners, running this module from the
+dispatching commit's checkout rather than the tested revision. The plan validates the
+dispatch before checking out any target revision; each instrument step runs under a
+timeout wrapper and resource sampler; job staging selects exported artifacts; the import
+job compares a re-imported switch against the build job's export; and the join merges per-job
+artifacts into `report.json` (read on the host by [`run.py instrument-ci read`](../vos/cli/instrument_ci.py)).
+See [the route contract](README.md#instrument-switch-route).
 
-**A step that reaches its limit decides nothing.** Each step runs under coreutils
-`timeout` at the limit stated below, inside the step, so the wrapper outlives it and
-records why it ended. An exit of 124, or of 137 where the kernel recorded no OOM kill
-during the step, once the step has run for its limit, is the limit reached, and either
-exit sooner leaves its cause unread; a step the OOM killer acted on, or that ran short
-of disk, is the runner's want rather than the instrument's answer; and a compile that
-reached gallina's per-file timeout and raised out of the step, as one does from
-`quickchick properties`, read from an output line naming `TimeoutExpired`, met a limit.
-Each of those is recorded `undecided`, never as a failure, because a failure moves a pin
-and a runner's limit is not evidence about one. `seed coq` prints no such line: it
-journals the mutant whose compile reached that timeout undecided and goes on.
+Step timeouts, OOM kills, disk exhaustion, and per-file `TimeoutExpired` compilation
+limits record `undecided` rather than `failed`, since runner resource limits are not
+evidence against a pin (`seed coq` journals timed-out mutants as `undecided` directly).
 """
 
 import argparse

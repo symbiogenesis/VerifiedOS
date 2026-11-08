@@ -1,31 +1,16 @@
 # SPDX-License-Identifier: Apache-2.0
-"""The freeze density model's host half: the arithmetic, the domain, and the comparison.
+"""Host tests for the freeze density model ([vos/freezemodel.py](../vos/freezemodel.py) and [FreezeModel.v](../quickchick/FreezeModel.v)).
 
-The prover is the guest's and is not reachable here, so what this module exercises is
-everything that decides the comparison's *answer* before the prover is asked. Three
-things fail quietly and each has cases below.
-
-**The rearrangement.** [freezemodel.py](../vos/freezemodel.py) states the model over
-exact rationals and [FreezeModel.v](../quickchick/FreezeModel.v) states it over integer
-numerators and denominators, because Rocq has no rational this comparison would want.
-That is an algebraic rearrangement per figure, `2 - bar*(k - 1)/(per_slot*k)` becoming
-`(200*bundle - bar*(k - 1))/(100*bundle)`, and a rearrangement is where an arithmetic
-loses a factor without losing its shape. `_the_rearrangement_is_the_same_arithmetic`
-rebuilds every vector by the harness's own integer recipe and holds the two lists equal.
-
-**The domain.** Two grids that drift apart do not disagree, they stop overlapping, and
-the comparison then reports missing points rather than a wrong answer. The grids and the
-scales are read out of the harness text and held against the module's.
-
-**The floors.** A prover that printed nothing, a family whose grid went empty, and a
-register sentence that moved out from under the reader are each a pass this comparison
-must not be able to make.
-
-**What is NOT decided here, and it is the residue this module cannot close.** The mirror
-below is a *transcription* of the harness's definitions into Python, so it decides that
-the harness's arithmetic is the model's and not that the harness compiles, that its
-renderer prints what these expressions compute, or that a later edit to the `.v` is
-reflected here. Only `run.py quickchick freeze`, in the guest, decides those.
+Verifies that:
+- the rational arithmetic in [freezemodel.py](../vos/freezemodel.py) matches the integer
+  numerator/denominator formulation in [FreezeModel.v](../quickchick/FreezeModel.v) across
+  all generated points;
+- the parameter grids, scaling constants, and family tags in `FreezeModel.v` match
+  `freezemodel.py`;
+- empty families, silent harnesses, and unparseable register anchor sentences fail
+  closed; and
+- the register's stated reference figures (R-15-036h, R-15-036j, R-15-036p) match the
+  emitted vectors.
 """
 
 import re
@@ -35,15 +20,7 @@ from tests.harness import Case, ensure, sandbox_tree
 from vos import corpus as corpus_mod
 from vos import freezemodel as fm
 
-# =====================================================================================
-# the harness's own arithmetic, transcribed
-# =====================================================================================
-#
-# One function per `Definition` in FreezeModel.v, spelled as that file spells it: an
-# unreduced numerator and denominator, one flooring division, and no `Fraction`
-# anywhere. The grids are deliberately not transcribed, the domain case below holding
-# them equal against the file's own text instead, so this mirror carries the arithmetic
-# and nothing else and there is one transcription here rather than two.
+# Integer arithmetic mirror of FreezeModel.v definitions.
 
 _P = fm.P_SCALE
 _BITS = fm.BITS_SCALE
@@ -109,11 +86,9 @@ def _z_bit(flag: bool) -> str:
 
 
 def _z_lines() -> list[str]:
-    """Every vector the harness states, by the harness's own expressions."""
+    """Emit all harness vectors using the integer expressions from `FreezeModel.v`."""
     out = [f"fm bar -> {_CANON} {_OPT_PCT} {_PESS_PCT} {_BAR} {_PESS_PCT * _CANON}"]
     for w in fm.SLOT_WIDTHS:
-        # the harness spells the first and third `Z.leb <constant> <expression>`; the
-        # operands are turned around here and the relation is not
         escape, waste, index = 2 * w >= _CANON, w <= _ESCAPE_PAIR, w >= _INDEX_BOUND
         out.append(f"fm swd {w} -> {_z_bit(escape)} {_z_bit(waste)} {_z_bit(index)} "
                    f"{_z_bit(escape and waste and index)}")
@@ -150,10 +125,6 @@ def _z_lines() -> list[str]:
     return out
 
 
-# =====================================================================================
-# the harness text, read for what it declares
-# =====================================================================================
-
 _LIST = re.compile(r"^Definition (\w+) : list Z :=\s*([^.]*)\.", re.MULTILINE)
 _CONST = re.compile(r"^Definition (\w+) : Z := (-?\d+)\.", re.MULTILINE)
 _FAMILY = re.compile(r'"fm (\w+) ')
@@ -168,14 +139,8 @@ def _harness_lists(text: str) -> dict[str, tuple[int, ...]]:
             for name, body in _LIST.findall(text)}
 
 
-# =====================================================================================
-# the cases
-# =====================================================================================
-
-
 def _scaled_rounds_half_up() -> None:
-    """One flooring division and therefore one rule, sign included: a value that rounds
-    to zero from below is `0` and never `-0`, which Z has no way to spell either."""
+    """Verify `scaled` rounds half up across positive and negative rationals."""
     for value, scale, want in ((Fraction(1, 2), 1, 1), (Fraction(3, 2), 1, 2),
                                (Fraction(1, 3), 1, 0), (Fraction(-1, 2), 1, 0),
                                (Fraction(-3, 2), 1, -1), (Fraction(-1, 3), 1, 0)):
@@ -184,8 +149,7 @@ def _scaled_rounds_half_up() -> None:
 
 
 def _scaled_ignores_the_reduction() -> None:
-    """The module reduces its fractions and the harness does not, so the two agree only
-    because the recipe depends on the rational's value and never on its spelling."""
+    """Verify `scaled` over reduced `Fraction` matches `_z_scaled` over unreduced integers."""
     for num, den, scale in ((2000, 6000, 10000), (1, 3, 10000), (128, 7, 100),
                             (-106, 165, 10000), (-212000, 330000, 10000)):
         got = fm.scaled(Fraction(num, den), scale)
@@ -196,12 +160,7 @@ def _scaled_ignores_the_reduction() -> None:
 
 
 def _the_rearrangement_is_the_same_arithmetic() -> None:
-    """Every vector, rebuilt by the harness's integer expressions.
-
-    This is the case the whole module is for. The two statements are not compiled
-    against each other and cannot be, so what would otherwise decide their agreement is
-    a guest run that costs a prover; this decides the part of it that is arithmetic.
-    """
+    """Verify `fm.vector_lines()` equals `_z_lines()` at every generated point."""
     ours, mirror = fm.vector_lines(), _z_lines()
     ensure(len(ours) == len(mirror),
            f"the module states {len(ours)} vector(s) and the harness's recipe "
@@ -214,20 +173,14 @@ def _the_rearrangement_is_the_same_arithmetic() -> None:
 
 
 def _every_vector_is_keyed_once() -> None:
-    """The comparison is keyed by the fields before the arrow, so a key stated twice is
-    a point that silently leaves the comparison at whichever value came last."""
+    """Verify every vector key before ` -> ` is unique."""
     keys = [line.split(" -> ")[0] for line in fm.vector_lines()]
     twice = sorted({key for key in keys if keys.count(key) > 1})
     ensure(not twice, f"these points are stated more than once: {twice}")
 
 
 def _the_domain_is_the_harness_s() -> None:
-    """The grids the module walks are the grids the harness walks.
-
-    Read out of the `.v` rather than transcribed, because two grids that drift apart do
-    not disagree on a figure: they stop overlapping, and the guest run then reports
-    missing points at both ends where the defect is one edit in one file.
-    """
+    """Verify the parameter grids in `FreezeModel.v` match `freezemodel.py`."""
     lists = _harness_lists(_harness_text())
     for name, want in (("slot_widths", fm.SLOT_WIDTHS), ("headers", fm.HEADERS),
                        ("slot_counts", fm.SLOT_COUNTS), ("hit_rates", fm.HIT_RATES),
@@ -239,8 +192,7 @@ def _the_domain_is_the_harness_s() -> None:
 
 
 def _the_scales_are_the_harness_s() -> None:
-    """And so are the constants the format fixes: a scale stated at two values makes
-    every figure in its family differ by a factor nobody would read as one."""
+    """Verify the scaling and reference constants in `FreezeModel.v` match `freezemodel.py`."""
     consts = dict(_CONST.findall(_harness_text()))
     for name, want in (("p_scale", _P), ("bits_scale", _BITS), ("rate_scale", _RATE),
                        ("coeff_scale", _COEFF), ("canonical_bits", fm.CANONICAL_BITS),
@@ -263,8 +215,7 @@ def _the_families_are_the_harness_s() -> None:
 
 
 def _an_empty_family_is_a_finding() -> None:
-    """Fail-closed on the narrowing the comparison cannot otherwise see: two grids
-    emptied in step agree with each other on everything they still carry."""
+    """Verify `empty_families` reports every missing family."""
     got = fm.empty_families([], "a side that printed nothing")
     ensure(len(got) == len(fm.FAMILIES),
            f"an empty side yielded {len(got)} finding(s) for {len(fm.FAMILIES)} "
@@ -274,8 +225,7 @@ def _an_empty_family_is_a_finding() -> None:
 
 
 def _a_silent_harness_is_one_finding() -> None:
-    """One finding rather than one per point. A harness that printed nothing disagrees
-    with every vector at once, and a report saying so line by line buries the fact."""
+    """Verify an empty harness output produces a single summary finding."""
     got = fm.compare([], fm.vector_lines())
     ensure(len(got) == 1, f"a silent harness yielded {len(got)} finding(s): {got[:3]}")
     ensure("no vector at all" in got[0], f"the finding read {got[0]!r}")
@@ -294,9 +244,7 @@ def _a_disagreement_is_named_both_ways() -> None:
 
 
 def _a_moved_register_sentence_decides_nothing() -> None:
-    """Fail-closed on the third reading. Two statements agreeing with each other say
-    nothing about either agreeing with the entry, so a register this reader cannot
-    parse is a finding and never a comparison quietly made without it."""
+    """Verify `anchors` fails closed when the register is missing or its anchor sentences change."""
     with sandbox_tree({fm.REGISTER: "**R-15-036h** IS: the model, restated.\n"}) as root:
         fixed, said = fm.anchors(root)
     ensure(fixed is None, "a register stating neither figure was read as stating both")
@@ -308,13 +256,7 @@ def _a_moved_register_sentence_decides_nothing() -> None:
 
 
 def _the_register_states_the_four_figures() -> None:
-    """The live register, read for the four figures R-15-036h and R-15-036j quote, and
-    the module's own vectors held against them.
-
-    This is the reading the guest run makes of the harness, made here of the module: the
-    register's prose is the only statement of this arithmetic outside the two files that
-    compute it, and it is the one a person checks by eye.
-    """
+    """Verify the live register's R-15-036h and R-15-036j figures match `fm.vector_lines()`."""
     fixed, said = fm.anchors(corpus_mod.find_root())
     ensure(fixed is not None and not said,
            f"{fm.REGISTER}'s own figures were not read: {said}")
@@ -335,17 +277,14 @@ def _a_side_stating_no_reference_point_is_a_finding() -> None:
 
 
 def _the_bar_is_a_product_and_not_a_figure() -> None:
-    """22.4 is nowhere computed as a figure: it is 70% of 32, and the two operands are
-    what make the freeze measurement contract's own sentence checkable at all."""
+    """Verify `exact_bar()` is `70 * 32 / 100 = 112/5`."""
     ensure(fm.exact_bar() == Fraction(fm.OPTIMISTIC_SHARE_PCT * fm.CANONICAL_BITS, 100),
            f"the bar is not the product of its operands: {fm.exact_bar()}")
     ensure(fm.exact_bar() == Fraction(112, 5), f"the bar came out {fm.exact_bar()}")
 
 
 def _a_one_slot_bundle_is_refused_where_it_is_not_stated() -> None:
-    """R-15-036j's bound is `(2 - p)/(k - 1)`, which is not a bound on anything at
-    `k = 1`, so the exact scoring refuses it rather than dividing by zero or inventing
-    an answer; the float-facing reader carries the degenerate case explicitly."""
+    """Verify `score` refuses `k = 1` and `geometry` handles the single-slot degenerate case."""
     try:
         fm.score(16, 1)
     except ValueError as err:
@@ -360,8 +299,7 @@ def _a_one_slot_bundle_is_refused_where_it_is_not_stated() -> None:
 
 
 def _the_outlining_break_even_is_the_register_s() -> None:
-    """R-15-036p states one worked figure in its own prose: a two-instruction region
-    pays from four sites under the absolute form and never under the PC-relative one."""
+    """Verify R-15-036p's 2-instruction outlining break-even (4 sites absolute, None PC-relative)."""
     rows = {row.n: row for row in fm.outlining_break_even([2, 3])}
     ensure(rows[2].break_even_absolute == 4,
            f"a two-instruction region pays from {rows[2].break_even_absolute} sites")
@@ -370,10 +308,6 @@ def _the_outlining_break_even_is_the_register_s() -> None:
 
 
 def cases() -> list[Case]:
-    # Every case here is a read of this checkout and of nothing else, so none carries a
-    # lane. The prover is the guest's and `run.py quickchick freeze` is what asks for
-    # it; a case marked "host" would be one the Ubuntu runner in CI never ran, which is
-    # the wrong half of the world to leave this arithmetic unchecked on.
     return [
         Case("scaled-rounds-half-up", _scaled_rounds_half_up),
         Case("scaled-ignores-the-reduction", _scaled_ignores_the_reduction),

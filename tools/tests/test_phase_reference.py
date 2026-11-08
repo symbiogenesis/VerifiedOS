@@ -1,58 +1,23 @@
 # SPDX-License-Identifier: Apache-2.0
-"""An independent bounded-horizon reference for the two finite phase checkers.
+"""Independent bounded-horizon reference simulator for [vos/phase_service.py](../vos/phase_service.py) and [vos/phase_completion.py](../vos/phase_completion.py).
 
-The simulator below is *not* the checker. It is written from the documented
-semantics only, which are the module docstrings of
-[phase_service.py](../vos/phase_service.py) and
-[phase_completion.py](../vos/phase_completion.py), the cycle, ordering and drain
-conventions of the
-[completion model](../../docs/implementation/phase-service/completion-model.md), and
-the verdict table of the
-[store-buffer comparison](../../docs/implementation/comparisons/store-buffer.md). It keeps every
-quantity in absolute cycle time instead of the checkers' per-boundary residues, it
-enumerates arrival histories forward from an empty state instead of exploring a
-state graph, and it never imports the checkers' step functions. Two implementations
-that share no code and agree on a verdict are evidence the verdict follows from the
-semantics rather than from one loop's arithmetic.
+Implements the cycle, ordering, and drain semantics of
+[completion-model.md](../../docs/implementation/phase-service/completion-model.md) and
+[store-buffer.md](../../docs/implementation/comparisons/store-buffer.md) in absolute
+cycle time without importing the checkers' step functions:
 
-Absolute-time conventions, each traced to a sentence of the prose:
-
-  R1  "Refresh reserves its bank first." "They must start on idle banks; neither
-      refresh nor requests may preempt a residual operation."
-  R2  "Requests completing transit accept next" and "a request that finds its bank
-      taken on arrival is a queue in the fabric, which the predicate forbids."
-  R3  "One hart's requests must be accepted in issue order, batch order standing
-      for issue order within a cycle and acceptance within one cycle counting as
-      ordered."
-  R4  "the current phase's joint batch issues last" and "phase grants bound total
-      injection at issue."
-  R5  "The same bank cannot accept two operations in one cycle."
-  R6  "For each hart, a later operation may complete in the same cycle as an
-      earlier operation, but never before it."
-  R7  "Fabric transit counts cycles from the boundary after issue; occupancy
-      includes the acceptance cycle" and "at the boundary immediately after issue
-      its remaining time to completion is p+n-1. Both terms include the same
-      acceptance cycle; adding another cycle would count it twice."
-  R8  "At each reachable boundary the checker stops all new arrivals and replays
-      the remaining operations to completion ... Scheduled refresh continues with
-      its original phase and occupancy."
-  R9  "The initial state is empty at phase zero" and the exploration "retains
-      operation residue across every frame wrap."
-
-An operation issued in cycle `issue` to a bank with path `path` and occupancy `occ`
-accepts in cycle `issue + path` and occupies `accept .. accept + occ - 1`. A refresh
-started in cycle `start` for `dur` cycles occupies `start .. start + dur - 1`.
-
-The exploration takes every arrival alternative in every cycle up to a horizon.
-Histories reaching an identical residual situation at the same cycle are merged,
-which is memoisation of a deterministic cycle function and changes no history. A
-frame boundary whose residual set repeats the previous frame boundary's is a
-fixpoint, so a finite horizon still reports closure over arbitrarily many frames.
-
-The cases are a positive control (the reference alone decides every tracked fixture
-and scenario as the documents say), a seeded differential campaign against both
-checkers, a perturbation control showing the campaign can detect a one-convention
-error, and the two contracts whose reading the campaign had to adjudicate.
+- R1: Refresh reserves first on idle banks without preempting residual operations.
+- R2: Requests completing transit accept next; finding a bank taken is `path-blocked`.
+- R3: Per-hart requests accept in issue order.
+- R4: The current phase's joint batch issues last, bounded by the phase grant.
+- R5: At most one operation accepts per bank per cycle.
+- R6: Per-hart operations complete in issue order (same-cycle completion allowed).
+- R7: An operation issued at `t` with path `p` and occupancy `n` accepts at `t + p`
+  and occupies `t + p .. t + p + n - 1`.
+- R8: Quiescent drain stops new arrivals at each reachable boundary while continuing
+  scheduled refresh until all issued operations complete.
+- R9: Exploration starts empty at phase zero and retains operation residue across
+  frame wraps until a frame-boundary residual set repeats.
 """
 
 import json

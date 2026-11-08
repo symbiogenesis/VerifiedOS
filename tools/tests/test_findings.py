@@ -1,17 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""The findings register's parse, the notes' own findings blocks, and the relation.
-
-`findings.parse` and `findings.plan` are exercised against the live tree on every
-`check.py` run, which decides that today's three documents agree and nothing about the
-readings themselves: a block whose bullets a rewritten note indents differently, a
-count word that stops being a count, an entry whose disposition is misspelled, a log
-entry whose heading no landed item answers to. Those are what this module fixes, on
-fixtures small enough to read.
-
-The fixtures are written in the live documents' own shapes rather than in a
-simplified one, indentation included, because indentation is what `_block_size`
-decides on and a fixture that flattened it would hold nothing.
-"""
+"""Unit tests for [`vos/findings.py`](../vos/findings.py) register parsing, note blocks, and cross-checks."""
 
 from typing import Final
 

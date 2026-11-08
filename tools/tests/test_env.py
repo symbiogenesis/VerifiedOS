@@ -1,26 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""The build environment's host-testable seams.
-
-`vos/env.py` runs its loops in the guest, but it is imported on both lanes, so what
-is held here is everything that must be true before a loop starts: the module
-imports cleanly on win32 and `load()` refuses the lane by name, `lane_of` derives the
-lane from the checkout's `.git` shape, `_jobs` sizes from cores under the memory
-guard, the proof gate's kernel budget stands at or above the runner peaks
-`proof_jobs` records, and the overrides wave 1 moved to validated call-time reads
-take effect when set after the import, which is the hook a test like this one
-stands on. The proof gate's share of the environment lives in `vos/proofenv.py`,
-whose public names env.py binds as its own; a case that patches what one of those
-functions calls patches it there, where the function looks it up.
-
-One case here runs real `git` over a throwaway checkout rather than reading a
-function's return, because what `git_env` is for is a *child's* answer: the overlay
-is correct exactly when the `git describe` cmake runs at configure reports a clean
-lane clean and an edited one edited, and no assertion about a dictionary decides that.
-
-One case is guest-only, and it is the arm the host cannot reach at all: `load()` on
-win32 returns at the platform refusal before it gets to the preparations, so what
-`toolchain=False` skips is decidable only where a toolchain could have been prepared.
-"""
+"""Host and guest tests for [vos/env.py](../vos/env.py) and [vos/proofenv.py](../vos/proofenv.py)."""
 
 import ast
 import io

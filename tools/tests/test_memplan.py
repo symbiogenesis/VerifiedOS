@@ -1,37 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""The memory plan's reader, its exact check and its enumerator, held to the proof file.
-
-K-88 decides that the tracked export is the bytes the reader writes, so what is worth
-pinning here is what a byte comparison cannot see, in four claims.
-
-**The reader reads the file and refuses a shape it does not read.** A regex over
-Gallina that stopped matching would yield an empty roster and a green report about
-nothing, so the first cases hand the reader the live file and hold the roster, the
-literals and the lists to what the `.v`'s own `the_demo_plan_declares` states, and then
-hand it shapes with a list missing, a chain malformed and a kind unknown and require
-`PlanError` each time. Every head reads a declaration under a decoration of the shared
-lexer's grammar as the bare one, while a variant or a list under `Fail`, indented,
-respaced, untyped or commented apart from its head, and a value completed from a base
-with `with` that assigns a field of `Plan`, are refused by name. One after `Fail }` or
-`Succeed {` is read, the flag being the brace's.
-
-**The port agrees with the proof file on every plan the file decides.** The `.v` ships
-one admitted plan and fifteen variants each moving one declared quantity, and states in
-`Example` form which check refuses which. Those verdicts are the oracle here: a port
-that drifted from the file would admit a plan the file refutes or refuse the one it
-admits. The granule port is held separately, against R-15-007c's own figures the file
-states at `the_two_regimes_meet_at_the_threshold` and against every declared granule
-count of the demo plan. The admission CLI exposes an exact-check refusal through
-its exit status as well as its printed verdict.
-
-**The enumerator is complete over what it declares.** On a two-region toy the grid is
-counted by hand and every point is decided, pruned or admitted, with the standing point
-among them.
-
-**The export is the tracked artifact.** The one case over the real tree, as
-`test_socmap.py` keeps one: the emitter reads the live file and the bytes it writes are
-the bytes tracked, or the repair command is named.
-"""
+"""Host tests for [vos/memplan.py](../vos/memplan.py) and [vos/cli/placement.py](../vos/cli/placement.py) against [proofs/MemoryPlan.v](../../proofs/MemoryPlan.v)."""
 
 from contextlib import redirect_stdout
 from dataclasses import replace
@@ -42,13 +10,10 @@ from vos import corpus as corpus_mod
 from vos import memplan
 from vos.cli import placement
 
-# R-15-007c's two regimes as the `.v` states them at
-# `the_two_regimes_meet_at_the_threshold`: byte-exact below 128, then the coarsest power
-# of two whose 2^6 multiple fits.
+# R-15-007c representable granule thresholds from `MemoryPlan.v`.
 _GRANULES = ((1, 1), (127, 1), (128, 2), (129, 2), (192, 2), (384, 4), (512, 8), (1024, 16))
 
-# Which check refuses which variant, as the `.v`'s own Examples decide it. A plan
-# absent here is admitted by every check the search can move.
+# Expected refusal checks per variant in `MemoryPlan.v`.
 _REFUSALS = {
     "island_escaping_plan": ["containment_ok"],
     "island_underflow_plan": ["containment_ok"],
@@ -59,10 +24,7 @@ _REFUSALS = {
     "unquantized_length_plan": ["slot_lengths_quantized"],
 }
 
-# The two-region toy: one island of 64 bytes, a 16-byte region and a 32-byte region
-# whose live ranges overlap, the first at the island's base and the second right after
-# it in the standing plan, so that the quantum reads as sixteen and the enumerated grid
-# is every sixteenth byte while the finer grid at every byte is counted beside it.
+# Two-region toy fixture (one 64-byte island with overlapping 16-byte and 32-byte regions).
 _TOY = """
 Inductive RegionKind : Type :=
 | ScalarWorkingSet

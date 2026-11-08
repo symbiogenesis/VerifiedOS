@@ -1,26 +1,12 @@
 # SPDX-License-Identifier: Apache-2.0
-"""The verdict arithmetic every mutation loop here shares.
+"""Unit tests for [`vos/seeded.py`](../vos/seeded.py) verdict accounting, `Seeded` protocol, and journals.
 
-What is pinned is what a run's output cannot show. Counting a stillborn mutant as a
-kill is the standard way a mutation score is inflated, and a run that did it would
-print a larger number and read exactly like a better one. Counting an unseeded case
-the same way as a stillborn mutant would be the quieter version of it: a case that has
-stopped applying to the document it was written against decides nothing and would
-report its rule live for as long as nobody looked, so the two verdicts are apart here
-and one of them fails the run. An undecided mutant, whose oracle gave no answer, is held
-the same way: never a kill, and a finding.
-
-The other half is the protocol. Two populations reach `summarize`, one walked out of a
-source and one authored, and each satisfies `Seeded` from a different shape: a walked
-mutant carries a site and a rewrite, an authored case carries the rule it is aimed at
-and the defect in words. Both are held here, because a signature that admitted only
-one of them would be found by running the loop that carries the other.
-
-The third part is the journal, and what it pins is what a *report* cannot: the report
-is printed once at the end, so a run torn down before that end says nothing at all, and
-a whole-population run over the prover is exactly the run that outlives its lane. So
-the file is held to being complete up to the moment the process stopped, to carrying
-the scope before the first verdict, and to closing only where a run reached its report.
+Verifies that:
+- `SURVIVED`, `UNSEEDED`, and `UNDECIDED` verdicts fail the run and are counted
+  separately from `KILLED` and `STILLBORN`.
+- Both `mutate.Mutant` and `selftest.SeededDefect` satisfy the `Seeded` protocol.
+- Incremental journals record scope before verdicts and close only when `summarize`
+  completes.
 """
 
 import tempfile
