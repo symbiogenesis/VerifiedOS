@@ -24,7 +24,7 @@
     },
     {
       "path": "proofs/AdmissionPath.v",
-      "sha256": "c4793c6838b945c57d071d4f1b244b4cd7f5f9c3f107f8b6ddb37bbaaffefa59"
+      "sha256": "c804f3736dd3d825f03af965ea23824dcd7ac1d4756013c78ecb5a59f8e44b5d"
     },
     {
       "path": "tools/vos/composer.py",
@@ -32,7 +32,7 @@
     },
     {
       "path": "proofs/HandlerGraph.v",
-      "sha256": "98cdb2609c15cf18b52c10412424ae491c052e5620e56e926c3ec168d093edba"
+      "sha256": "0f779ec5f3fb93552ea47302f2e71bc0d2d4fd5fbed82c879b3370bf56a2972e"
     },
     {
       "path": "tools/vos/composition.py",

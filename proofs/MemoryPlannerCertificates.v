@@ -1,32 +1,28 @@
 (* SPDX-License-Identifier: Apache-2.0 *)
 (* =========================================================================
-   Finite one-hot encoding in both directions, for optional host LRAT research.
+   MemoryPlannerCertificates.v
 
-   A row is one finite placement domain or the finite domain of height vectors.
-   At-least-one and at-most-one clauses choose a value in every row. Negative
-   binary clauses forbid incompatible selections. The Python encoder represents
-   alignment, fixed locations, pools and reservations in the row domains; extent
-   overlap, aliases and height bounds become forbidden pairs. A distinct DIMACS
-   variable names each (row,value) cell.
+   Bidirectional finite one-hot encoding for optional host LRAT placement
+   certificates.
 
-   `finite_encoding_equivalent` proves equivalence between this finite constraint
-   model and the corresponding one-hot Boolean clause semantics. Its constructive
-   completeness direction is the one needed to transfer an LRAT refutation back
-   to absence of a finite selection. Decoding safety alone does not imply that.
+   A row represents one finite placement domain or the finite domain of height
+   vectors. At-least-one and at-most-one clauses select a value in every row,
+   and negative binary clauses forbid incompatible selections (extent overlap,
+   aliases, and height bounds), with a distinct DIMACS variable per `(row, value)`
+   cell. `finite_encoding_equivalent` proves equivalence between the finite
+   constraint model (`legal_selection`) and one-hot Boolean clause satisfaction
+   (`encoded_sat`), supplying the completeness direction needed to transfer an
+   LRAT refutation back to absence of a valid finite selection.
 
-   Scope: this file does not prove Python domain extraction, integer serialization,
-   cell-to-DIMACS numbering, physical lifetime extraction, or native checker I/O.
-   Those are explicit implementation/refinement obligations. The external checker
-   is upstream lrat_isa, whose Isabelle proof reaches its exported LLVM; this Rocq
-   file does not import that proof or claim a theorem about the retargeted binary.
-   No clause, parser, producer or checker is admitted here. These are optional host
-   experiments and do not amend R-05-104 or R-05-105 production optimizer policy.
-
-   R-08-014 supplies the interference obligation represented by forbidden pairs;
-   R-08-012d motivates a stated objective, not an unstated physical-memory metric.
-   This model does not discharge those admission obligations. R-05-163 audits the
-   compiled constants. For R-05-165 and R-05-166, examples construct both a legal
-   selection and its one-hot witness, and reject an overlapping Boolean choice.
+   Scope and obligations:
+   - Python domain extraction, integer serialization, cell-to-DIMACS numbering,
+     physical lifetime extraction, and native checker I/O (upstream `lrat_isa`)
+     remain outside this model. These optional host experiments do not amend
+     R-05-104 or R-05-105 production optimizer policy.
+   - R-08-014 supplies the interference obligation represented by forbidden
+     pairs; R-08-012d motivates the stated objective. R-05-163, R-05-165, and
+     R-05-166 are witnessed by a legal selection, its one-hot encoding, and a
+     rejected overlapping Boolean assignment.
    (*| BEGIN derived: cited entries |*)
    Owner: docs/requirements-register.md
    Requirements: R-05-104 R-05-105 R-05-163 R-05-165 R-05-166 R-08-012d R-08-014

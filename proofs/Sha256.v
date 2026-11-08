@@ -2,108 +2,32 @@
 (* =========================================================================
    Sha256.v
 
-   Functional SHA-256 and HMAC references for HmacDrbg.v, following FIPS
-   180-4 s5.1.1, s5.2.1, s5.3.3, s6.2.1 and s6.2.2, and FIPS 198-1 s4
-   and s5. Known-answer checks use the standards, NIST's validation corpus
-   and RFC 4231. No target binary or implementation-refinement theorem is
-   supplied. R-15-041 and R-15-055 concern hardware SHA-2 datapaths, which
-   this file does not model.
+   Functional SHA-256 and HMAC references for [HmacDrbg.v](HmacDrbg.v)
+   (R-15-241d), following FIPS 180-4 s5.1.1, s5.2.1, s5.3.3, s6.2.1, and
+   s6.2.2, and FIPS 198-1 s4 and s5. R-15-041 and R-15-055 concern hardware
+   SHA-2 datapaths, which this file does not model.
 
-   Scope: functional reference only. This supplies neither a shipped
-   primitive satisfying R-05-059, binary constant-time evidence under
-   R-05-062 and R-05-067, masking under R-05-004a, nor the cryptographic
-   assumptions of R-05-077a. R-05-163 and R-05-164 audit the global
-   assumption closure; compilation and known answers do not establish
-   security or correspondence to an implementation.
+   Scope: functional reference only (R-05-059), without binary constant-time
+   evidence (R-05-062, R-05-067), probing masking (R-05-004a), or
+   cryptographic reductions (R-05-077a). R-05-163 and R-05-164 govern the
+   assumption closure.
 
-   Representation:
-   - Bytes and 32-bit words are most-significant-bit-first lists of bools
-     (FIPS 180-4 s3.1). Messages are bit strings, with a 64-bit big-endian
-     length field (s5.1.1). Published vectors exercise byte-aligned messages.
-   - Word addition reverses the bits for ripple carry and discards the final
-     carry, implementing reduction modulo 2^32 without large unary naturals.
-   - Constant derivation alone uses arbitrary-precision, least-significant-
-     bit-first lists. Collection helpers come from the shared prelude-only
-     support; numeric helpers remain local.
-
-   Constants and structural checks:
-   - Trial division supplies the primes. A bit-serial restoring root derives
-     the fractional square-root bits for the initial hash words (s5.3.3)
-     and cube-root bits for the round constants (s4.2.2). The hash uses these
-     derived tables, which are checked against the published tables.
-   - Ch, Maj and the four sigmas follow s4.1.2, equations 4.2--4.7. K-107
-     checks sigma rotation amounts against model/model/extensions/vector_crypto/
-     zvk_utils.sail; it does not prove agreement with the model's logical
-     functions in zvknhab_insts.sail. That oracle-pair gap has F-205b's shape.
-   - The ten rotations, four schedule taps, sizes and round count come from
-     FIPS 180-4; ipad 0x36 and opad 0x5C come from FIPS 198-1. Block/digest
-     word counts and HMAC's block-byte count are size quotients. The 16-bit
-     prime representation is local to the derivation.
-   - Quantified theorems cover adder commutativity, complementary rotations
-     on 32-bit words and preservation of the schedule's first sixteen words.
-     Compression is not claimed invertible: its 768-bit input has a
-     256-bit output.
-
-   Known answers and distinguishing cases (R-05-165, R-05-166):
-   - Padding vectors cover 55, 56, 63 and 64 bytes and a three-block message.
-     Alternatives omit the one bit, reverse the length bytes, exchange the
-     lower-case sigmas, or replace Maj with Ch. Both defective pads preserve
-     length. Reversing the length field is invisible on the empty message.
-   - HMAC alternatives exchange its pads or truncate a long key instead of
-     hashing it. Truncation agrees with the reference for keys at most one
-     block long; 70-, 74- and 131-byte keys exercise the long-key branch.
-   - Published answers occur in Example statements, outside the seeded
-     mutation population of Definitions; no reference function depends on
-     them. Digests and table entries were independently recomputed before
-     transcription, as recorded below.
-
-   Choices left outside the register: R-15-241d names a verified DRBG; the
-   plan selects HMAC-DRBG-SHA-256. The register does not select this hash,
-   its oracle pair or this representation. HMAC truncation takes a byte
-   count parameter, following FIPS 198-1 s5; the DRBG never truncates.
-
-   Where each published answer came from, and under what instrument. The
-   round-constant and initial-hash tables are FIPS 180-4's own, s4.2.2 and
-   s5.3.3. The digests of "abc" and of the fifty-six-byte two-block message
-   and the first-round working variables are read from NIST's SHA-256
-   example document `SHA256.pdf` under
-   csrc.nist.gov/CSRC/media/Projects/Cryptographic-Standards-and-Guidelines/documents/examples/,
-   on 2026-09-05. The five boundary-length digests are read from
-   `SHA256ShortMsg.rsp` and `SHA256LongMsg.rsp` in NIST's CAVP archive
-   `shabytetestvectors.zip` (header "CAVS 11.0", generated 2011-03-15), and
-   the five keyed answers from `HMAC.rsp` in `hmactestvectors.zip` (header
-   "CAVS 11.0", generated 2011-02-28), both under
-   csrc.nist.gov/CSRC/media/Projects/Cryptographic-Algorithm-Validation-Program/documents/,
-   on the same date. **The instrument on NIST's files is the one NIST states
-   at nist.gov/oism/copyrights**, read the same day, and it is not the flat
-   grant a first reading takes it for. That page carries three paragraphs
-   that could each reach these files and they do not say the same thing: its
-   *Software disclaimer* states the same three conditions the ACVP
-   repository's README states, notice retention, a change notice on a
-   modified work and explicit acknowledgement of NIST as the source, and
-   ends "The software developed by NIST employees is not subject to
-   copyright protection within the United States"; its *Data disclaimer*
-   states a warranty term and no condition at all; and its *Use of NIST
-   information* paragraph makes what is on NIST's pages public information
-   with a byline credit requested. **Which of the three reaches a `.rsp`
-   file the CAVS system emitted is not settled by the page**, so what is
-   done here is to meet the strictest of them: the archive, its own CAVS
-   header line and NIST as the source are named above, the answers are
-   quoted unmodified, and no change notice is owed because nothing was
-   changed. Reading the last sentence alone and concluding that no condition
-   is stated would be a grant inferred from one paragraph of an instrument
-   that carries three. The seven HMAC cases of RFC 4231 s4.2 through s4.8 are read at
-   rfc-editor.org/rfc/rfc4231.txt on the same date; its notice reads
-   "Copyright (C) The Internet Society (2005)" and "This document is subject
-   to the rights, licenses and restrictions contained in BCP 78", which is
-   the instrument on a quotation of its test cases, and no residue of it
-   reaches a reader of this file beyond the notice retained here. **Every
-   literal was recomputed on 2026-09-05 by a second and independent
-   transcription before it was written down here**, the two tables by an
-   integer root in Python over the same primes and the digests and keyed
-   answers by the host's `hashlib` and `hmac`, so each reached this file by
-   two routes and not one. Neither instrument is pinned, neither enters any
-   trust base, and nothing above the answers depends on them.
+   Representation and structural checks:
+   - Bytes and 32-bit words are MSB-first `list bool` (FIPS 180-4 s3.1), with
+     64-bit big-endian message-length padding (s5.1.1).
+   - Initial hash words and round constants are derived by bit-serial integer
+     square and cube roots over trial-division primes and checked against FIPS
+     180-4's published tables; sigma rotation amounts match
+     [zvk_utils.sail](../model/model/extensions/vector_crypto/zvk_utils.sail)
+     (checked by K-107).
+   - Known-answer vectors and defective padding/HMAC alternatives (R-05-165,
+     R-05-166) use FIPS 180-4 s4.2.2/s5.3.3, NIST `SHA256.pdf`, NIST CAVP
+     `SHA256ShortMsg.rsp` / `SHA256LongMsg.rsp` (`shabytetestvectors.zip`,
+     header "CAVS 11.0", 2011-03-15) and `HMAC.rsp` (`hmactestvectors.zip`,
+     header "CAVS 11.0", 2011-02-28; quoted unmodified with NIST acknowledged
+     as source per `nist.gov/oism/copyrights`), and RFC 4231 s4.2--s4.8
+     ("Copyright (C) The Internet Society (2005)", subject to BCP 78), all
+     independently recomputed via Python integer roots, `hashlib`, and `hmac`.
    (*| BEGIN derived: cited entries |*)
    Owner: docs/requirements-register.md
    Requirements: R-05-004a R-05-059 R-05-062 R-05-067 R-05-077a R-05-163 R-05-164 R-05-165

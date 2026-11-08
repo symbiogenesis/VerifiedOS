@@ -2,7 +2,8 @@
 (* =========================================================================
    CryptoLists.v
 
-   Equal-length lifting for the executable crypto references. The functions
+   Equal-length lifting for the executable crypto references over
+   [ProofSupport.v](ProofSupport.v). The functions
    remain total on unequal lists: zip_with stops at the shorter input.
    R-05-163 audits the shared laws; the concrete unequal-length examples
    retain the boundary evidence required by R-05-165 and R-05-166.

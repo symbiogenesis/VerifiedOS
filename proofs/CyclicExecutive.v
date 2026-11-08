@@ -2,103 +2,28 @@
 (* =========================================================================
    CyclicExecutive.v
 
-   The static cyclic executive as the register fixes it: R-07-032's
-   table-driven schedule with no runtime decision, R-11-006's
-   interval-arithmetic admission check, R-11-020's reserved band identical
-   across rungs, R-11-021's rung ladder, R-11-022's one focus slot plus the
-   rest, R-11-023's slot-to-tenant permutation and the invariance it
-   asserts, R-11-024's table swap, R-11-025's non-load-following rung
-   index, R-11-026's hard ceiling, and R-11-014a and R-11-014d's one phase
-   offset and one major-frame length.
+   Specification model of the static cyclic executive:
+   - Table-driven scheduling with no runtime decision (R-07-032), temporal
+     isolation per slot and non-work-conserving frames (R-07-033, R-07-036,
+     R-07-040), and interval-arithmetic admission counting the full padded
+     boundary from [BoundaryCost.v](BoundaryCost.v) and
+     [PartitionContext.v](PartitionContext.v#switch_cost) (R-11-006, R-11-009,
+     R-11-015, R-15-220, R-15-220a).
+   - Identical reserved bands across rungs (R-11-020), the rung ladder
+     (R-11-021), focus-plus-background band shape and focus-visit period
+     invariance (R-11-022, R-11-022a), tenant-permutation invariance
+     (R-11-023), table swaps across a single phase offset and major-frame
+     length (R-11-014a, R-11-014d, R-11-024), non-load-following rung
+     indexing (R-11-025), and hard population ceilings with suspension
+     (R-11-026).
+   - Schedule transitions and intra-slot rotation
+     ([PartitionContext.v](PartitionContext.v#Rotation), R-07-037b, R-11-006b)
+     separate from the endpoint/notification IPC surface (R-07-007, R-07-029,
+     R-07-031, R-07-031a) and extended by [ScheduleRecord.v](ScheduleRecord.v)
+     with R-11-017's composition outputs.
 
-   The Require is load-bearing rather than decorative: R-11-009 has
-   admission count the full padded boundary explicitly instead of absorbing
-   it into slack. BoundaryCost.v adds the declared residency and context
-   bounds to PartitionContext.v's unchanged R-15-220 platform cost.
-
-   Composition constants are Composition fields. R-11-021's 4/8/16/32
-   ladder is a reference instantiation; focus majority, phase offsets, and
-   slot widths remain composition inputs. Per-slot WCET magnitudes require
-   R-11-015's derivation and its unauthored timing-annotation specification.
-   No axioms or admitted proofs are introduced. Computed examples are proved
-   by kernel conversion; this file supplies no implementation or target run.
-
-   Readings of the register this statement takes:
-
-   1. Admission reads the declared slot geometry and never an occupant.
-      R-11-023's criterion enumerates the check's inputs as slot widths,
-      slot offsets, each task's period and the switch-duty ratio R-11-009
-      requires counted, and never an occupant, which is the check R-11-006
-      and R-11-009 state between them. The load-bearing half is "never
-      occupants", so the geometry a slot declares here is its width, its
-      offset, its declared in-slot bound, and its declared visit period,
-      and the invariance is stated over all four of those. That the
-      criterion once read narrower than the check was reported here and
-      resolved at that entry's own Accept (S1); carried back at S25.
-   2. A slot's declared bound is a property of the slot and not of its
-      tenant, which is what keeps reading 1 true. R-11-022a makes the visit
-      period a shape choice for the same reason: two shorter focus slots
-      per frame halve the focus visit period "at identical share,
-      admissible because the interval arithmetic quantifies over widths and
-      offsets and never occupants".
-   3. Harmonicity is a parameter. R-11-006 says a task's period is
-      "harmonic with" the major frame and does not say in which direction,
-      so harmonic is a field and no direction is fixed here.
-   4. R-11-022's shape is a record and not an invariant. "One focus slot
-      plus (n-1) background slots" is realized as a Band carrying one focus
-      and a list of background slots, which cannot be violated rather than
-      being proved unviolated; what is proved of it is that the focus
-      majority reads widths alone and that the shape survives every
-      retenanting.
-   5. R-11-020 and R-11-014d are stated of a ladder as a side condition and
-      not built into its shape, so a ladder whose rungs disagree is
-      expressible and the theorems have something to exclude.
-   6. The four kernel acts this file touches are transitions of the
-      schedule and never ABI entry points: R-11-023's focus rebinding is a
-      retenanting of a frame, R-11-024's rung change is a selection among a
-      ladder's rungs, R-11-026's suspension is an arm of the arrival step,
-      and R-07-037b's poll-site yield is PartitionContext.v's Rotation.
-      None is named, signed, or numbered as an invocation.
-
-   What this file deliberately does not author, with the entry that owes
-   each decision:
-
-   a. The frozen ABI's invocation list. R-07-031a's criterion audits an
-      enumeration no artifact carries. Owed at R-07-031a.
-   b. Endpoint and notification IPC in every part: object state, the
-      blocking discipline, badges, the message transfer shape, the
-      notification object's representation, and whether a reply object
-      exists. Owed at R-07-029, R-07-031, R-07-031a, and R-07-007.
-   c. A closed inductive of kernel object classes. The Outcome inductive
-      below is over R-11-026's own three arms for what an arrival meets and
-      is not an object inventory.
-   d. Which direction R-11-006's harmonicity runs (reading 3).
-   e. Every composition magnitude: the ladder's rungs, the focus majority,
-      the phase offsets, the slot widths and offsets, the per-slot WCET
-      magnitudes, the top rung's capacity, and the table-load constant.
-      The demo composition below instantiates them with arbitrary witness
-      values that carry no composition claim.
-   f. R-11-006b's intra-group cadence check and its rotation-step constant.
-      That entry's arithmetic is over declared visit cadences and rotation
-      orders that no artifact carries, so this file states the rotation's
-      relation to the switch (in PartitionContext.v) and not its admission.
-   g. R-11-015's WCET magnitudes. A slot's bound and a machine's cost
-      fields are declared inputs here. ScheduleRecord.v extends these
-      frames with R-11-017's three outputs and symbolic OPP admission.
-
-   Non-vacuity (R-05-165, R-05-166). Every obligation below is stated as a
-   property of an arbitrary check, cost function, index function, arrival
-   step or time-to-slot map, proved of the specification, and refuted of an
-   alternative construction the register's own sentence excludes. Two of
-   the statements are definitional rather than proved content and are
-   labelled where they stand: R-11-022's focus shape is a record shape
-   (reading 4), and R-11-024's cost ignores the rung's size by
-   construction, its content sitting in the refutation beside it.
-   Inhabitation is concrete rather than assumed: a two-rung ladder that is
-   well formed and admitted, and computed checks in the silent Example form
-   for a frame that admits, a frame whose slots overlap, a frame whose
-   declared bound plus the switch constant exceeds its width, and a
-   composition whose harmonic predicate refuses.
+   Composition constants are carried as `Composition` fields (R-05-163), with
+   concrete multi-rung witnesses and refutations (R-05-165, R-05-166).
    (*| BEGIN derived: cited entries |*)
    Owner: docs/requirements-register.md
    Requirements: R-05-163 R-05-165 R-05-166 R-07-007 R-07-029 R-07-031 R-07-031a R-07-032
@@ -780,7 +705,7 @@ Qed.
 (* Exactly R-11-026's three arms: a slot granted below the ceiling, no slot
    at all past it, or a live tenant suspended to retained state to make
    room. This is a list of what an arrival meets and not an object
-   inventory (gap c). *)
+   inventory. *)
 Inductive Outcome (T : Type) : Type :=
 | Granted : Slot T -> Outcome T
 | NoSlot : Outcome T
@@ -916,8 +841,8 @@ Proof.
 Qed.
 
 (* Inhabited demo composition for R-05-165 and the refutation witnesses.
-   All schedule quantities are arbitrary fixtures, not composition choices
-   (gap e). The harmonic predicate is deliberately unconstrained. *)
+   All schedule quantities are arbitrary fixtures, not composition choices.
+   The harmonic predicate is deliberately unconstrained. *)
 
 Definition demo_composition : Composition := {|
   machine := demo_rotation_swaps;

@@ -2,197 +2,25 @@
 (* =========================================================================
    EnsembleSchedule.v
 
-   R-11-017a's fourth output, stated as a field of the admission artifact
-   the register already has a record for: on a member of an ensemble
-   (R-02-003a) the artifact R-11-017 emits carries that member's ensemble
-   link slot tables, each slot's instant against the member's own origin
-   (R-11-014a), its direction and its guard band, one frame length per link
-   (R-15-228d), the leader link's leap slot at its re-alignment cadence
-   (R-15-196a), the leader tree, the declared oscillator tolerances and the
-   skew bound, and the digest each end binds into the session's context
-   (R-12-015d). Beside the record sit the three checks R-11-017a names, the
-   composer's own: that the two views of one link agree, that every guard
-   band is at or above the skew bound plus that link's latency bound, and
-   that the cadence times both members' declared tolerance lies inside the
-   guard band. Beside those sits R-11-014b's chain term over a link hop,
-   computed from the operands the ensemble schedule states rather than
-   declared.
+   Specification model of the ensemble schedule admission output (R-11-017,
+   R-11-017a) for multi-device ensembles (R-02-003a):
+   - Link slot tables per ensemble member with slot instants against the
+     member's origin (R-11-014a), direction, guard band, single frame length
+     per link (R-15-228b, R-15-228d, R-15-228e), leader-link leap slot at the
+     re-alignment cadence, acyclic leader tree, oscillator tolerances, derived
+     skew bound (R-15-196a), and session-bound link table digest (R-12-015d).
+   - Composer self-checks verifying that both views of a link agree, every
+     guard band covers the skew bound plus link latency bound, and the
+     re-alignment cadence times both members' tolerances fits inside the guard
+     band, while per-member cores are admitted by
+     [CyclicExecutive.v](CyclicExecutive.v#admits) under R-11-006 interval
+     arithmetic and R-11-023 tenant-invariance without a separate schedule
+     emitter (R-11-015b, R-17-041).
+   - End-to-end chain latency term over an ensemble link hop (R-11-014b) beside
+     on-die hop and pinned-core terms (R-07-007, R-11-011).
 
-   The Require is load-bearing rather than decorative. CyclicExecutive.v
-   carries Composition, Slot, Band, Frame, Ladder and admits; R-11-017a puts
-   the link server's slots, the endpoint's encode and decode latencies, the
-   crypto core's per-frame operations and the endpoint's window grants into
-   the member's own R-11-006 interval arithmetic "as ordinary tasks and
-   grants", so this file adds no second admission check and every member's
-   cores are admitted by that file's `admits` and by nothing else. A link
-   task that does not fit its slot is therefore refused by R-11-006's own
-   arithmetic, which is the reading gap f records and
-   `a_link_task_that_does_not_fit_its_slot_is_refused` exhibits.
-
-   What this file is. A statement artifact in ApexTheorem.v's idiom.
-   Nothing is admitted, nothing is axiomatized, and no magnitude is
-   invented: every quantity is a field, and the demo emission at the end
-   instantiates the fields with arbitrary witness values that carry no
-   composition claim (gap a).
-
-   What this file does not do. It emits nothing. R-11-017a's emission is an
-   act of the composition tool, whose frame synthesizer is R-11-015b's
-   untrusted evidence-producing machinery and is unbuilt: no schedule
-   emitter exists in this tree, M6.10 owns the on-device composition act
-   that would carry one, and the first three outputs of R-11-017 are owed
-   elsewhere (gaps e and g). What is stated here is the fourth output's
-   shape and the refusals an emitter is measured against, which is the half
-   R-02-003a names as the third of the five artifacts an ensemble is
-   admitted only when they exist.
-
-   What the gate's green line means. Compiled, axiom-free, witnessed and
-   enumerated. It does not mean verified: nothing here is run on either
-   emulator, no frame is encoded, no digest is computed by any hash, and the
-   computed checks below are decided inside the kernel by conversion and
-   print nothing.
-
-   Readings of the register this statement takes, each a reviewable judgment
-   rather than a neutral transcription:
-
-   1. The fourth output extends the existing record and does not replace it.
-      R-11-017a says the artifact R-11-017 emits "carries a fourth output",
-      so `Emission` below holds the member schedules whose cores are
-      CyclicExecutive.v's own `Frame`s, and the link tables, the leaps and
-      the skew declaration beside them. A second schedule record would be a
-      second owner of the frame geometry R-11-023's invariance is stated
-      over.
-   2. Two views of one link, and two readers of them. R-11-017a has one
-      composition act emit every member's artifact and the ensemble schedule
-      together, "so the two tables of one link are two views of one table",
-      and separately has each member's admission refuse "its own artifact".
-      The check this file states is the composer's, which reads both views
-      of one link; a member's own admission reads its own view. That
-      distinction is what makes `views_agree` a composer's self-check rather
-      than a runtime exchange, and R-11-017a's "no runtime exchange
-      establishes or amends a slot" is why no other reader exists.
-   3. The leap window is an absence and not a reservation list. R-15-196a
-      makes the leap "a kernel-owned idle slot between rotations that
-      belongs to no partition and that the executive reserves on every core
-      of the member at the same absolute instant", so that "no partition's
-      slot straddles the step". A reservation carried as a fourth band would
-      be a second way of saying what the absence of an overlapping slot
-      already says, so `core_admits_the_leap` decides the window by finding
-      no slot of that core across it. That the instant is one and the same
-      on every core is structural: `leap_instant` is one field.
-   4. A slot's absolute instant is its frame's phase offset plus its own
-      offset. R-11-014a gives each core one composition-fixed phase offset
-      against one platform-wide origin, and CyclicExecutive.v's `admits`
-      reads slot offsets inside the frame and never adds the phase. The leap
-      is stated against the member's own origin, so the comparison here adds
-      the phase and the containment is stated against each core's own frame
-      span. Gap c records what that leaves undecided.
-   5. The leader tree is a parent index strictly below the child's.
-      R-15-196a fixes "a composition-fixed leader tree carried in every
-      attested devicetree", the root taking no leap and every other member
-      being follower on exactly one link. Presented as a parent index the
-      check compares with `Nat.ltb`, acyclicity is decided by conversion and
-      no reachability relation is needed; any tree admits such a numbering
-      and the numbering is the composition's. `the_leader_tree_is_acyclic`
-      and `member_zero_is_not_a_follower` are what that presentation buys.
-   6. The digest is a function of the link's table. R-12-015d has the
-      session's context bind "the digest of the link's slot table each end
-      holds", so an end holding a different table is refused at
-      establishment. `link_digest_ok` holds each end's declared digest to
-      one function of one table, which is why both ends bind one value
-      (`both_ends_bind_one_digest`). That a different table yields a
-      different digest is a property of the hash and not of this statement,
-      and it is owed at R-12-015d's construction rather than claimed here;
-      `a_constant_digest_binds_nothing` is the construction that shows the
-      digest check does not carry the agreement check.
-   7. R-11-014b's on-die hop term is a declared quantity here and its link
-      hop term is computed. That entry states the whole chain arithmetic,
-      "computed from the frame offsets and the per-hop slot periods over the
-      R-07-007 edges, a pinned core (R-11-011) contributing its poll-loop
-      period in place of a frame offset"; what Q23d owns is the one clause
-      that reads "an ensemble link hop being one more edge kind whose
-      per-hop term is its slot period plus its guard band". So `on_die_hop`
-      carries its term as a number this file does not derive, and
-      `link_hop_term` is the only term computed below. Restating the on-die
-      arithmetic would be a second owner of R-11-014b's own sentence.
-   8. The link hop's guard term is the worst guard band the link's own table
-      states. R-11-014b wants a worst-case end-to-end bound and R-11-017a
-      makes the guard band a per-slot field, so the per-hop term takes the
-      maximum over the link's slots rather than a per-slot value a chain
-      does not name.
-
-   Two readings the register leaves open, both carried and neither decided
-   here:
-
-   9. Which slots carry the guard-band floor. R-15-196a states it of "every
-      receive slot of a link table"; R-11-017a refuses an artifact "where a
-      guard band on any of its links is below the composition's skew bound
-      plus that link's latency bound", which over a field set that gives
-      every slot a guard band reads as every slot. Both scopes are exhibited
-      (`receive_only`, `every_slot`) and every statement below quantifies
-      over an arbitrary scope. The question turns out not to need a register
-      act: `the_two_guard_scopes_agree_on_an_agreeing_link` proves the two
-      readings are the same check on any link whose two views agree, because
-      agreement pairs each slot with a slot of the opposite direction at the
-      same guard band, so the union of the receive slots of the two views is
-      every slot of both. They differ only on a link the composer already
-      refuses, which is
-      `the_scopes_differ_only_on_a_link_the_composer_refuses`.
-   10. The derived bound and measured qualification are distinct inputs.
-      R-15-196a requires a bound derived from tolerances and cadence, with
-      a measured pair exceeding that bound failing qualification. The
-      qualified_emission_admits entry point checks the attested bound equals
-      the derivation, checks the measurement against it, and uses the derived
-      bound for every guard. The parameterized declared arm below is retained
-      as a refuting alternative, not an unresolved register interpretation.
-
-   What this file deliberately does not author, with the entry or item that
-   owes each:
-
-   a. Every magnitude. The frame length, the latency bound, the slot period,
-      the cadence, the tolerances, the guard bands, the skew bound and the
-      digests are fields. The link contract's constant table carries one row
-      per constant with its owner and no number, and R-17-041's magnitudes
-      are unauthored, so no value below carries a composition claim.
-   b. The relation between a link's declared slot period and the instants
-      its table lists. R-11-017a's per-slot field set is instant, direction
-      and guard band and carries no period; the slot period is the link's,
-      stated by the ensemble schedule and read by R-11-014b's chain term. No
-      entry says whether the declared period must be the spacing the
-      instants exhibit, so `lt_period` is declared here and checked against
-      nothing. Whether the emitter owes that self-check is a register act
-      this file reports and does not take.
-   c. How the leap window recurs. R-15-196a puts one leap per re-alignment
-      cadence and R-11-017a states the cadence in slots of the leader link,
-      while a core's frame repeats at a major frame stated in spine cycles.
-      No entry relates the two, so the check below decides one window
-      against one frame span per core and says nothing about later
-      repetitions.
-   d. The actual measured qualification observation, independently of the
-      derived bound. The normative wrapper checks their required relation.
-   e. The composition tool's emission. R-11-015b makes frame construction a
-      composition-tool duty discharged by search, and no such tool exists in
-      this tree.
-   f. R-11-006's interval arithmetic itself, which is CyclicExecutive.v's,
-      and R-11-017's first three outputs, the OPP assignment, the TDM NoC
-      schedule and the watchdog windows, which this file neither states nor
-      restates.
-   g. The digest function. `demo_digest` is an arbitrary witness function
-      standing where a hash belongs, exactly as CyclicExecutive.v's harmonic
-      predicate stands where a composition constant belongs.
-   h. Everything the link itself is. The frame grammar, the code, the
-      endpoint's registers and the session are R-15-228b through R-15-228e's
-      and R-12-015d's; `lt_frame_length` is carried because R-15-228d makes
-      every slot of a link carry the link's one frame length, and no field
-      below reads a frame's contents.
-
-   Non-vacuity (R-05-165, R-05-166). Every obligation below is stated as a
-   property of an arbitrary guard scope, skew rule, digest function, chain
-   term or retenanting, proved of the specification, and refuted of an
-   alternative construction the register's own sentence excludes.
-   Inhabitation is concrete: a two-member, one-link emission that is
-   admitted, and computed checks in the silent Example form for each of the
-   refusals R-11-017a and R-15-196a name, each seeded so that it fails the
-   one conjunct it is about.
+   All schedule and link magnitudes are record fields (R-05-163), paired with
+   concrete two-member witnesses and refutations (R-05-165, R-05-166).
    (*| BEGIN derived: cited entries |*)
    Owner: docs/requirements-register.md
    Requirements: R-02-003a R-05-163 R-05-165 R-05-166 R-07-007 R-11-006 R-11-011 R-11-014a
@@ -338,7 +166,7 @@ Record LinkTable : Type := {
   lt_latency : nat;              (* the link's latency bound, an attested
                                     devicetree constant (R-15-196a)         *)
   lt_period : nat;               (* the link's slot period the ensemble
-                                    schedule states (R-11-017a); gap b      *)
+                                    schedule states (R-11-017a)             *)
   lt_cadence : nat;              (* the re-alignment cadence, in slots      *)
   lt_asserted_bound : nat;       (* carried so that the asserting arm of
                                     R-11-014b's chain term is expressible
@@ -1190,9 +1018,9 @@ Proof.
 Qed.
 
 (* Two-member, one-link demo for R-05-165 and refutation witnesses.
-   Magnitudes are arbitrary fixtures, not composition choices (gap a).
-   These frames reserve an idle leap window; CyclicExecutive.v's demo
-   frames fill their major frames. *)
+   Magnitudes are arbitrary fixtures, not composition choices.
+   These frames reserve an idle leap window; [CyclicExecutive.v](CyclicExecutive.v)'s
+   demo frames fill their major frames. *)
 
 (* Two cores of one member. `demo_composition`'s full boundary cost
    is what each slot's declared bound is checked against, so a slot's bound
@@ -1240,9 +1068,9 @@ Definition follower_member : MemberSchedule bool := {|
   ms_role := Follower 0 0
 |}.
 
-(* The digest: an arbitrary witness function standing where a hash belongs
-   (gap g). It reads the table's own declared quantities, which is the
-   whole of what `link_digest_ok` needs of it. *)
+(* The digest: an arbitrary witness function standing where a hash belongs.
+   It reads the table's own declared quantities, which is the whole of what
+   `link_digest_ok` needs of it. *)
 Definition demo_digest (t : LinkTable) : nat :=
   lt_period t + lt_frame_length t
   + max_guard (lv_slots (lt_near t)) + max_guard (lv_slots (lt_far t)).
@@ -1525,7 +1353,7 @@ Example a_verifying_slot_that_is_not_there_is_refused :
    link's own work is ordinary slots of the member's own frames, so a link
    task whose declared bound plus the full boundary cost overruns its
    slot is refused by R-11-006's interval arithmetic and by nothing added
-   here (reading 1, gap f). *)
+   here. *)
 Definition core_one_overlong_verify : Slot bool := Build_Slot bool 50 110 31 200 true.
 
 Definition core_one_overlong : Frame bool :=

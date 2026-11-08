@@ -2,362 +2,62 @@
 (* =========================================================================
    KeyspaceDomains.v
 
-   The two storage layers above the journal and the index, as the register
-   fixes them: R-10-002's L2, filesystem semantics following RefFS with
-   (S)FSCQ, and its L3, the SFSCQ/DiskSec data-noninterference method;
-   R-10-005's inodes, dirents, extents and xattrs as typed keys in one
-   keyspace with the snapshot version a field *in* the key; R-10-005a's
-   metadata and queries as views of that keyspace rather than a second
-   database; R-10-005b's secondary indexes as instantiations of R-10-003's
-   one parametric index, keyed by confidentiality domain and namespace
-   identifier, carrying no capability in a key, spanning no domain,
-   returning no capability the presented one does not derive, and updating
-   in the same L0 transaction as the object and its metadata; R-10-005c's
-   live query as a bounded, volatile subscription whose deltas are derived
-   only after the committing transaction and whose overflow is one
-   rescan-required marker rather than unbounded buffering or backpressure on
-   commit; R-12-024a and R-12-024e's resolution and handoff over a delegated
-   namespace capability; R-14-012a's private namespace as a manifest-derived
-   typed view with no path-based capability lookup and no escape, read
-   against R-08-001's deletion of global namespaces; R-10-022's per-extent
-   AEAD keyed per confidentiality domain with keys resident only in the
-   crypto core, R-10-022a's nonce and tag held by the referring index node,
-   and R-10-023's separation of the tag from the dedup address; R-10-015's
-   KDF-separated keyed dedup digest and R-10-016's cross-domain
-   incomparability; R-10-017's refusal of convergent encryption and
-   R-10-018's deletion of the compress-then-encrypt ratio oracle; R-10-027's
-   per-domain subvolumes; R-10-014, R-10-032 and R-09-022 on crypto-erase
-   and on what a lock is not; R-10-037 on what no restore returns; and
-   R-08-021 through R-08-027a and R-05-156 on what an observation is and
-   what shape the statement takes.
+   Statement and reference model for the two storage layers above the journal
+   and index (R-10-002): L2 typed-keyspace filesystem semantics (RefFS/(S)FSCQ
+   lineage) and L3 data-noninterference and domain-keyed sealing (SFSCQ/DiskSec
+   lineage), expressed in [ApexTheorem.v](ApexTheorem.v)'s parameterized record
+   style over [JournalIndex.v](JournalIndex.v) and
+   [ProofSupport.v](ProofSupport.v).
 
-   What this file is. A statement artifact in ApexTheorem.v's idiom, not a
-   proof development and not an implementation. Every quantity the register
-   leaves to composition is a field of the Composition record, of the
-   Sealing record, or of the Keyring record, rather than a literal or a
-   top-level Parameter, which is what keeps the R-05-163 assumption gate
-   green while leaving the decision where its owner can make it. Nothing is
-   admitted and nothing is axiomatized: the native assumption audit reports
-   every shipped constant closed under the global context.
+   Governing obligations:
+   - L2 keyspace and secondary indexes: typed keys carrying snapshot version
+     in the key, O(1) writable snapshots, metadata/query views, domain- and
+     namespace-scoped secondary indexes instantiated from [JournalIndex.v](JournalIndex.v)'s
+     parametric L1 index (R-10-003) and updated atomically in the same L0
+     transaction, and bounded volatile live-query deltas with a single
+     rescan-required overflow marker and no commit backpressure (R-10-005,
+     R-10-005a, R-10-005b, R-10-005c).
+   - Namespace authority and capability discipline: delegated namespace
+     resolution and attenuated object-capability derivation (R-12-024a,
+     R-12-024e), manifest-derived private namespaces with no global path lookup
+     (R-08-001, R-14-012a), no capability persisted in an index key, and no
+     authority resurrected on restore (R-08-037a, R-10-037).
+   - L3 confidentiality, deduplication, and crypto-erase: per-domain subvolumes
+     and AEAD keying with keys resident only in the crypto core, parent-held
+     nonce and tag separated from the dedup address, KDF-separated per-domain
+     dedup digests, no convergent encryption or compress-then-encrypt ratio
+     oracle, and two-state observational non-interference (R-05-156, R-05-160,
+     R-08-021, R-08-027a, R-09-022, R-10-014, R-10-015, R-10-016, R-10-017,
+     R-10-018, R-10-022, R-10-022a, R-10-023, R-10-024, R-10-025, R-10-027,
+     R-10-032). CompCert-C/VST/Iris refinement is covered by R-10-007 and
+     R-10-008.
+   - Durable component freshness: while the mutable user-data volume surrenders
+     RoT counter freshness (R-10-011, R-10-012), R-10-013b's three-way split
+     places manifest-declared `Fresh` durable component regions (R-10-013d,
+     R-10-035) under a freshness-epoch root (R-10-013, R-10-013c, R-10-013e;
+     see [RotFirmware.v](RotFirmware.v)).
 
-   What the gate's green line means. Compiled, axiom-free, non-vacuous and
-   enumerated, and it does not mean verified. No constant here is compiled,
-   lowered, or run on either emulator, and nothing here executes anywhere.
-   The computed checks are decided inside the kernel by conversion and print
-   nothing.
+   Key readings:
+   1. `l2_keys` instantiates [JournalIndex.v](JournalIndex.v)'s `KeyAlgebra`
+      over the six-component key `K2` (domain, namespace, kind, object,
+      attribute, snapshot version); `kind_count` is a `Composition` field rather
+      than a closed inductive (compare R-07-027a's closed three-class object
+      inventory).
+   2. `Delta` is the three-constructor inductive closed by R-10-005c (`Added`,
+      `Removed`, `Rescan`), with overflow emitting at most one `Rescan` marker.
+   3. Non-interference is stated over an arbitrary observer key set (`holds_key`)
+     equating volumes that agree on authorized extents and on public metadata
+      shape (presence, domain, and plaintext length).
+   4. Crypto-erase (`R-10-014`) destroys the sealing root and zeroizes key
+      residency, whereas locking (`R-10-032`) clears residency while retaining
+      the wrapped blob.
 
-   The one Require, and why it is a dependency rather than a citation.
-   `Require Import JournalIndex.` names the sibling artifact this file's
-   own obligations are stated over, and it is load-bearing at two places
-   R-10-005b puts it. That entry makes a secondary metadata index an
-   *instantiation of the one parametric L1 index*, so `l2_keys` below is
-   that file's `KeyAlgebra` record discharged at this key type and every
-   index property comes from there: not one of
-   `inserting_preserves_the_order`, `the_key_just_written_reads_back`,
-   `no_other_key_moves` or
-   `transposing_two_distinct_writes_answers_the_same_everywhere` is restated
-   here, and each is instantiated at this key algebra by a single `exact` so
-   that the sharing is a conversion rather than a sentence. That is what
-   R-10-003's "verified once and instantiated per object class" costs when
-   it is taken literally. Every name declared here is its own: nothing the
-   imported file exports is shadowed, so the native assumption audit
-   follows the imported constants and not local twins of them, which is a
-   hazard a `Require` carries and no gate reads.
-   And the same entry makes the object, the metadata and the index update
-   land *in the same L0 transaction*, so the atomicity obligation below is
-   stated over that file's own `Rec`, `scan`, `commits`, `touched` and
-   `cuts`, and the prepare-time deriver is refuted on that file's own
-   six-record journal, whose third transaction never commits. Nothing beyond the Rocq prelude is
-   reachable besides it, so Classical and FunctionalExtensionality are
-   unavailable and every equality below is stated pointwise or over a
-   decidable boolean for that reason: a volume, a store and an ambient
-   directory are functions, and two of them are compared extent by extent or
-   block by block rather than as functions.
-
-   What is deferred, and to which item. R-10-007 and R-10-008 put this stack
-   through CompCert-C with VST/Iris and M5.3 runs it on the emulator;
-   nothing below states a refinement, a WCET or a compilation property. The
-   AE half of R-10-025 is not here and is not this item's: that entry makes
-   the verifiable-encryption claim a *composition*, the scheme's
-   IND-CCA/INT-CTXT joined with the filesystem's non-interference at
-   R-05-160's fifth seam, so no ciphertext byte is modelled, no cipher is
-   named, R-10-024's freeze to AES-GCM appears nowhere, and what the
-   filesystem holds of a sealed extent is a stored length, a nonce and a
-   keyed digest.
-
-   Freshness is a three-way split and this file carries the storage side of
-   the third class. R-10-013b says the split "is three-way and not two":
-   beside the low-rate platform state the counter keeps fresh and the bulk
-   user data whose freshness is surrendered stands durable component state,
-   "declared `Fresh` and carried by a freshness epoch rather than by the
-   mutable volume's root". R-10-011's MUST NOT is scoped to the mutable
-   user-data volume alone, so it surrenders freshness for one class of the
-   three and not for this file's whole subject. R-10-035 puts a
-   compartment's declared durable regions in the owning domain's subvolume,
-   which is the keyspace below, so the storage side of R-10-013c and
-   R-10-013e is owed here: the epoch root over the version of every declared
-   `Fresh` region and of nothing else, the acknowledgement of a `Fresh`
-   write at the seal and never at the data commit, the loss of an unsealed
-   epoch's writes rather than their presentation as fresh, and the refusal
-   of a region whose version does not verify against the sealed root. All
-   four are stated below.
-
-   What is *not* here is the counter and the crypto core, and neither is
-   unowned. R-10-013c makes the epoch root a crypto-core operation beside
-   seal/open, which R-10-025 puts outside this item; and R-10-013's
-   freshness-epoch-root counter is M3.2's, shipped in RotFirmware.v with the
-   sealed epoch as its only advancing event and the data commit refused, so
-   the construction refuted below is that file's own commit-advancing twin
-   seen from the storage side. That file is named and not Required: this
-   file's one `Require` is JournalIndex.v's, and the seam between the two is
-   the epoch boundary rather than a shared definition. The authoring
-   constraint this file does
-   keep is the restricted subset that lowering admits: no general recursion,
-   every recursive function structural over a list or a finite index, and
-   records and finite indices wherever a datatype is not owed.
-
-   One inductive is owed and no second, and the licence is R-10-005c's alone.
-   That entry writes "ordered add/remove deltas", which names what a delta
-   *is* rather than sampling what one might be, and "overflow emits one
-   rescan-required marker", which names the overflow answer and its
-   cardinality; no entry of this register names a third delta form. So
-   `Delta` carries three constructors, and R-10-005c is what closes it.
-   R-10-005's typed key kinds get the opposite treatment for the opposite
-   reason: that entry lists inodes, dirents, extents and xattrs as things L2
-   represents and says nothing about the list being complete, and R-10-005b
-   names a further typed thing beside them, so `kind_count` is a field of
-   the Composition record and a kind is a finite index below it. What is
-   read off the register is stated with its entry; what the register leaves
-   open is a field. Gap a records that closing the kind enumeration is a
-   register act nobody has performed.
-
-   What this file does not do, against the word its own checklist cell
-   carries. The M5.2 cell reads "Compose L2 semantics and L3
-   confidentiality *host-side*", and "host-side" is the word that
-   distinguishes it from M5.3's "run on the emulator". This file delivers
-   the statement half and not the execution half: nothing below is compiled,
-   extracted, lowered or run, on any host or any emulator, and the computed
-   checks are decided inside the kernel by conversion and print nothing.
-   What the execution half would take is the route the cell's own
-   Wasm-parallel label points at: a QuickChick generator over `K2`, `Delta`
-   and `Volume` in [tools/quickchick/](../tools/quickchick/), an extraction
-   of the decidable predicates below to a runnable form, and a harness that
-   runs them. Nothing here narrows that cell, and the completion note for it
-   says the same rather than reading the verb down to what was done.
-
-   Readings of the register this statement takes, each a reviewable
-   judgment rather than a neutral transcription:
-
-   1. R-10-005's typed key kinds are a composition's roster and not a
-      closed enumeration. The entry names inodes, dirents, extents and
-      xattrs without saying the list is complete, and R-10-005b adds "typed
-      attribute value" beside them, so `kind_count` is a field of the
-      Composition record and a kind is a finite index below it, exactly as
-      a supervised unit is an index below its roster count.
-      `the_kind_roster_is_the_composition_s` exhibits a composition
-      declaring five and a keyspace the four-kind one refuses, so nothing
-      here is closed by fiat. Gap a records that closing it is a register
-      act.
-   2. A key is six components and its order is lexicographic over them.
-      R-10-005b names the confidentiality domain, the stable namespace
-      identifier, the typed attribute value and the object identity;
-      R-10-005 adds the kind and puts the snapshot version *in* the key. The
-      order over the six is this file's, no entry stating one, and what the
-      index needs of it is exactly the five laws JournalIndex.v's record
-      asks for.
-   3. "O(1) writable snapshots" fixes a class and not a constant, and the
-      constant is a field. With the version in the key there is nothing to
-      copy, so a snapshot writes no entry; but a snapshot writing a fixed
-      number of bookkeeping entries is O(1) too and the entry's own words
-      admit it, so `AddsAtMostTheDeclaredConstant` reads
-      `snapshot_cost` and never zero. Two obligations stand beside it:
-      `KeepsEveryReadItAlreadyHad`, which is what makes a snapshot a
-      snapshot, and `ChangesNoReadAtAll`, which is strictly stronger than
-      R-10-005 states and is exhibited only so that the first is visibly the
-      weaker one. Four constructions decide the three differently, and the
-      copying snapshot is refuted of *every* declared constant rather than
-      of the demo's.
-   4. Non-interference is stated of an arbitrary observer and an arbitrary
-      authority set as the two-state agreement R-05-156 makes T: two volumes
-      agreeing on everything that authority set covers, and on the declared
-      public shape of everything it does not, produce equal observations.
-   5. What an observer holds is a key and not a label. Authorisation is
-      therefore decided by `holds_key` over the composition's own domain
-      roster, and R-10-022's per-domain keying enters as a hypothesis rather
-      than as an assumption, which is what makes the shared-key construction
-      below expressible at all.
-   6. The declared public shape is presence, confidentiality domain and
-      plaintext length. No entry of this register admits or denies that any
-      of the three is observable, so the weakest reading is taken, the
-      relation equates only volumes agreeing on them, and the theorem says
-      nothing about hiding them. Gaps b, c and d record the three.
-   7. R-10-018 is read onto the *stored length*: with no compressor on any
-      path the stored length is a function of the declared length alone. It
-      is that reading that makes the compress-then-encrypt ratio oracle an
-      expressible construction rather than an absence nothing can refute.
-   8. R-10-017 and R-10-023 are read onto the *nonce*. Neither entry states
-      what a filesystem observes, and the observable form of both the
-      convergent-key prohibition and the per-extent-random nonce is that
-      equal plaintexts must not present equal stored forms; a nonce that is
-      a function of the plaintext is exactly that leak.
-   9. R-10-016 is read as a bounded separation the composition can decide,
-      because the digest is a field and "incomparable across domains" is a
-      property of the function rather than of a carrier. The confirmation-
-      of-file clause is extracted from the bounded check rather than
-      asserted beside it.
-  10. Crypto-erase is a three-part recoverability predicate: a key is
-      recoverable if it is resident in the crypto core, or if the sealing
-      root still opens its wrapped blob. R-10-014 destroys the root and
-      R-10-032 zeroizes residency, and the two are stated apart because
-      R-10-032's lock is *not* an erase and a construction shows it.
-  11. R-12-024e's "derived only from the namespace capability the caller
-      delegated" is read as an attenuation: the object capability carries
-      the cap's own domain and namespace and the entry's object identity, at
-      rights no wider than the cap's. So minting is a rights property and
-      reach is a keyspace property, and the two are separate obligations
-      with a construction apiece.
-  12. R-10-005b's "no capability is written into a key" is read as: the
-      persisted keyspace is a function of what was written and never of the
-      authority under which it was written. That is the half a proof can
-      hold, and it is what makes R-10-037's "no restore resurrects an
-      authority a revocation retired" observable here (gap f).
-  13. Boolean rather than propositional wherever the witnesses must compute:
-      selection, admission, derivability, agreement, separation and
-      recoverability are decidable, so the generated families below are
-      checked by conversion in the silent Example form rather than by a
-      proof per member.
-  14. Freshness is surrendered for one asset class of three and this file
-      carries the storage side of a second. R-10-011's MUST NOT is scoped to
-      "The mutable user-data volume" and gives its reason, that sealing its
-      root would advance the counter at CoW-commit frequency; R-10-013b says
-      the split "is three-way and not two" and puts durable component state
-      beside it, "declared `Fresh` and carried by a freshness epoch rather
-      than by the mutable volume's root". R-10-035 lands that class in this
-      keyspace, so R-10-013c's epoch root, its acknowledgement at the seal
-      and R-10-013e's refusal are owed here. A region is a finite index
-      below `region_count` and its declaration is an arbitrary predicate,
-      because R-10-013d makes both a per-compartment manifest declaration
-      admission prices. What is not here is the counter and the crypto core:
-      R-10-013's freshness-epoch-root counter is M3.2's and is shipped, so
-      the commit-acknowledging construction below is that item's own
-      commit-advancing twin seen from this side of the seam.
-
-   The literals taken from the design, and there are two, both R-10-005c's.
-   That entry's delta alphabet is adds, removes and the one rescan-required
-   marker, so `Delta` carries three constructors and no fourth; and its
-   overflow answer is *one* marker, so `AtMostOneMarker` compares a count
-   against 1. Nothing else below is a count this file closes. In particular
-   the typed key kinds are not: `kind_count` is a field, `k_inode` through
-   `k_acl` are five witness *names* for indices carrying no closure claim,
-   and the day an entry admits a fifth kind is a day this file needs no
-   edit. Every other magnitude is a field too: the domain and namespace
-   rosters, the kind roster, the snapshot's declared cost, the extent count,
-   the plaintext span the bounded separation checks range over, the queue
-   and result bounds, the transaction identifier and the three blocks its
-   records occupy, the record's granule count, the live snapshot version,
-   every key and dedup key, the nonce, the stored length and the digest, and
-   the sealing root, residency and blob bits.
-
-   How the refutations are generated. A refutation is a seeded weakening the
-   theorem must reject, so the families below are produced over the
-   specification's own structure rather than authored member by member. Over
-   the entry list's insertion order: `k2_transpositions` transposes an
-   adjacent pair, `k2_deletions` deletes one entry, `k2_suffixes` re-enters
-   at a proper suffix and `k2_duplications` writes one key a second time,
-   which is twenty orders, every one refused or admitted as one conversion
-   and again as a theorem quantified over the index. Over the keyring: the
-   three independent bits are enumerated exhaustively at eight states and
-   every eraser is decided at every one of them. Over the volume: one twin
-   volume per extent, differing in that extent's plaintext alone, held
-   against five sealings at once, so the leak table is a family rather than
-   a case. Over the delta stream and the batch: every prefix, which is every
-   crash point, read through JournalIndex.v's own cuts. And over the domain
-   roster and the plaintext span: the dedup separation is a grid the
-   composition's own counts size. Beside every family the generic theorem
-   quantifies over the index rather than enumerating. The hand-authored
-   refutations are the ones no index generates, being alternative
-   constructions rather than mutations of a list.
-
-   What this file deliberately does not author, with the entry that owes
-   each decision. A register gap is reported, not closed:
-
-   a. Whether R-10-005's four typed kinds are a closed enumeration. The
-      entry lists inodes, dirents, extents and xattrs without saying the
-      list is closed, and R-10-005b adds "typed attribute value" without
-      saying whether an attribute is a fifth kind or a component of the four.
-      Nothing below closes it: the count is a field, a kind is an index, and
-      `the_kind_roster_is_the_composition_s` exhibits a composition
-      declaring five. Closing it is a register act, and M4.2b is the
-      precedent, R-07-027a having had to close the object inventory at three
-      classes before authoring could proceed. Owed at R-10-005.
-   b. Whether the existence of a stored extent is observable to a reader who
-      holds no key for its domain. Nothing in §10 says, and the weakest
-      reading is taken. Owed at R-10-022 or R-10-012.
-   c. Whether an extent's plaintext length is observable, and if not what
-      bounds the leak. R-10-018 deletes the compress-then-encrypt ratio
-      oracle and no entry states a padding, chunking or length-hiding
-      obligation, so no bound is invented here: the length is public in the
-      relation below and the theorem claims nothing about hiding it. This is
-      the gap with the largest consequence of the nine, a file-length
-      channel being the residual a disk-encryption design ordinarily books
-      explicitly. Owed at R-10-022 or R-10-018.
-   d. Whether the confidentiality-domain label of a stored extent is
-      observable. R-10-022 keys per domain and R-10-005b keys the index per
-      domain, and neither says whether the label a non-holder meets is
-      itself hidden. Owed at R-10-022.
-   e. Whether R-10-005c's rescan-required marker occupies a slot of the
-      declared queue bound or stands beside it. The reading here puts it
-      inside, which is the stronger constraint on the emitter and the weaker
-      guarantee to the subscriber, and `BoundsTheQueue` therefore carries
-      the hypothesis that the declared bound is at least one. Owed at
-      R-10-005c.
-   f. Whether a *recorded* right may be persisted into a key where a
-      capability may not. R-10-005b forbids a capability in a key and
-      R-10-037 forbids a restore that returns authority, while R-08-037a
-      admits exactly one durable record that names rights and confers none.
-      Whether an index key may carry the same is unstated, and the weakest
-      reading is taken. Owed at R-10-005b or R-08-037a.
-   g. What order R-10-005c's deltas are in. The entry says "ordered
-      add/remove deltas" and names no order, so nothing below states one and
-      the emitter is required only to deliver the stream's own prefix. Owed
-      at R-10-005c.
-   i. What a `Fresh` region's *version* is, and what unit a region is.
-      R-10-013c computes one root over "the version of every `Fresh`
-      region" without saying whether that version is a counter, a content
-      digest, or R-10-005's own snapshot version; R-10-035 makes a region a
-      typed region of a compartment's manifest without fixing its extent in
-      the keyspace. So the version is an arbitrary map from a region index
-      and nothing below reads its representation, only which versions reach
-      the root. Owed at R-10-013c or R-10-035.
-   h. Every composition magnitude. The domain, namespace and kind rosters,
-      the snapshot's declared cost, the durable-region count, the extent
-      count, the plaintext span, the queue and result bounds, the
-      transaction and its three blocks, the granule count, the snapshot
-      version, the whole of the sealing and the whole of the keyring are
-      fields; the demo composition, sealing, volumes, keyspace, batch, delta
-      stream, freshness declaration and alias table at the end instantiate
-      them with arbitrary witness values that carry no composition claim,
-      and so do the five names `k_inode` through `k_acl`.
-
-   Non-vacuity (R-05-165, R-05-166). Every obligation below is stated as a
-   property of an arbitrary resolver, snapshotter, metadata reader,
-   persister, writer, emitter, committer, deriver, resumer, path resolver,
-   sealing, observer, eraser, epoch root, acknowledger or fresh reader,
-   proved of the specification, and refuted of an alternative construction
-   the register's own sentence excludes. Every refuting construction is also
-   shown to satisfy the obligations it does not break, so what refuses it is
-   the named defect and not its shape. Inhabitation is concrete: a keyspace
-   of five entries over two domains, two namespaces and four kinds, beside a
-   sixth entry at a fifth kind a composition declaring five admits and one
-   declaring four does not; a capability that admits one query and not two
-   others; a batch of three records over one transaction beside one that
-   splits it and one that closes it early; a stream of five deltas against a
-   queue of three; two volumes agreeing at one authority set and differing
-   under it; five sealings of which four are refuted; four snapshotters
-   deciding three obligations differently; three durable regions of which
-   two are declared `Fresh`, held against three epoch roots; four epoch
-   states against three readers; and eight keyring states of which four
-   erasers decide differently.
+   Non-vacuity (R-05-163, R-05-164, R-05-165, R-05-166):
+   - Every obligation is proved for the specification and refuted on mutated
+     constructions across key-insertion permutations (`k2_transpositions`,
+     `k2_deletions`, `k2_suffixes`, `k2_duplications`), keyring states,
+     extent-sealing variants, crash prefixes, epoch states, and namespace
+     resolvers.
    (*| BEGIN derived: cited entries |*)
    Owner: docs/requirements-register.md
    Requirements: R-05-156 R-05-160 R-05-163 R-05-164 R-05-165 R-05-166 R-07-027a R-08-001
@@ -3759,12 +3459,7 @@ Example the_alias_table_answers_its_own_names_and_no_others :
 
 
 (* -------------------------------------------------------------------------
-   R-05-166's inhabitation witnesses: one closed definition per record this
-   file's statements quantify over, named for that record and ascribed at it.
-   The prover decides inhabitation by type-checking the ascription, so
-   `run.py proofs` reads a name rather than approximating a type judgement.
-   A record this file reaches through a Require is witnessed in the file that
-   declares it.
+   Inhabitation witnesses (R-05-166) for each record type declared here.
    ------------------------------------------------------------------------- *)
 
 Definition witness_Batch : Batch := demo_batch.

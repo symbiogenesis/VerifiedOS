@@ -3,7 +3,7 @@
    MlKem.v
 
    Functional ML-KEM-1024 reference against FIPS 203 (2024-08-13), using
-   PqArith's shared ring/NTT/codec and Keccak's SHA3/SHAKE definitions.
+   [PqArith.v](PqArith.v)'s shared ring/NTT/codec and [Keccak.v](Keccak.v)'s SHA3/SHAKE definitions.
    The concrete adapter follows Algorithms 7 and 8, matrix index order,
    PRF counter bytes, G=SHA3-512, H=SHA3-256 and J=SHAKE256. The K-PKE core,
    key layout and Fujisaki-Okamoto re-encryption/implicit rejection steps
@@ -19,11 +19,11 @@
    1568/3168/1568 bytes. The generic Oracles record also supports deterministic
    algebraic examples; demo_oracles is explicitly neither random nor the
    standard hash adapter. Those examples are separate from the independent
-   official known-answer campaign in proofs/campaigns/mlkem_vectors.py.
+   official known-answer campaign in [mlkem_vectors.py](campaigns/mlkem_vectors.py).
    That campaign downloads the pinned NIST ACVP-Server corpus and runs the
    actual extracted Gallina, including Keccak, through key generation,
    encapsulation, decapsulation and both input-validation categories.
-   mlkem_openssl.py separately compares generated test inputs with the
+   [mlkem_openssl.py](campaigns/mlkem_openssl.py) separately compares generated test inputs with the
    independent OpenSSL implementation, including both encapsulation directions.
    Extraction, OCaml, Zarith and the host execution are evidence boundaries,
    not a proved compiler bridge; receipts bind exact source and input hashes.
@@ -37,7 +37,7 @@
    of the check, a recognizable failure constant, a tolerance comparison,
    message omission, sampler reduction and short-stream acceptance.
 
-   PqArith proves NTT inversion for arbitrary reduced polynomials and a
+   [PqArith.v](PqArith.v) proves NTT inversion for arbitrary reduced polynomials and a
    general bounded byte-codec roundtrip. Its transform multiplication
    equivalence and selected compression bounds are finite checks. Neither
    these algebraic results nor the official vectors prove universal K-PKE
@@ -45,7 +45,7 @@
    random-oracle assumptions, malicious-key binding or a hybrid combiner.
    No CompCert-C/target refinement, constant-time or masking claim is made;
    R-05-022's interim-crypto retirement condition remains separate.
-   The committed contract is docs/assurance/pq-reference-contract.md.
+   The committed contract is [pq-reference-contract.md](../docs/assurance/pq-reference-contract.md).
    No global axioms or admitted proofs are introduced. Native inventory,
    assumption closure and rocqchk, separately from the executable campaign,
    determine the proof evidence.
@@ -63,10 +63,7 @@ From Stdlib Require Import ZArith List Arith Lia.
 
 Open Scope Z_scope.
 
-(* An equality closed by one evaluation. `vm_compute. reflexivity.` evaluates
-   the goal in the tactic and again where the kernel checks its cast at Qed;
-   this casts eq_refl to the goal unevaluated, so only the check at Qed
-   evaluates it. *)
+(* Casts eq_refl to the goal unevaluated so only Qed evaluates it. *)
 Local Ltac vm_reflexivity :=
   intros; lazymatch goal with |- _ = ?b => vm_cast_no_check (@eq_refl _ b) end.
 
@@ -669,15 +666,8 @@ Definition demo_tampered : list Z :=
   | b :: rest => ((b + 1) mod 256) :: rest
   end.
 
-(* The values the examples below share, each evaluated once into a literal
-   and equated to its source. The compiling machine keeps a constant's value
-   from one example to the next, and the kernel's recheck does not: each
-   example rewritten through these lemmas reads the literal where it would
-   otherwise run the key generation, the encapsulation or a decapsulation
-   again. Each lemma is proved from the ones before it, so the recheck runs
-   each of them once, and unfolds its literal before the cast: the recheck
-   compares a computation with an unfolded literal several times faster
-   than with the constant that names it. *)
+(* Pre-evaluated literals for shared demonstration values to avoid redundant
+   VM evaluation during Qed rechecking. *)
 Definition demo_ek_literal : list Z := Eval vm_compute in demo_ek.
 Definition demo_dk_literal : list Z := Eval vm_compute in demo_dk.
 Definition demo_ct_literal : list Z := Eval vm_compute in demo_ct.

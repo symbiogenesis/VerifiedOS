@@ -2,12 +2,13 @@
 (* =========================================================================
    MModeFirmwareSealing.v
 
-   Sealing-aware refinement of MModeFirmware's installed graph for R-07-028.
-   Purecap ABI sections 4 and 7 admit invocation-only kernel sentries.
-   The legacy holder/region/permission graph cannot distinguish their sealed
-   bits from an unsealed authority. Its original predicates and theorems remain
-   unchanged. This module adds exact tag, seal, locality and entry-site identity
-   and proves the usable-authority restriction over the actual installed view.
+   Sealing-aware refinement of [MModeFirmware.v](MModeFirmware.v#Handoff)'s
+   installed graph for R-07-028. Purecap ABI sections 4 and 7 admit
+   invocation-only kernel sentries. The unsealed holder/region/permission
+   graph in [MModeFirmware.v](MModeFirmware.v) cannot distinguish their sealed
+   bits from an unsealed authority; its predicates and theorems remain
+   unchanged, while this module adds exact tag, seal, locality, and entry-site
+   identity and proves the usable-authority restriction over the installed view.
 
    Regions retain the plan's exact-extent abstraction. Entry cursors below are
    offsets within that named extent. The policy lists are immutable composition

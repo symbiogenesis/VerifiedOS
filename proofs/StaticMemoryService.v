@@ -2,52 +2,18 @@
 (* =========================================================================
    StaticMemoryService.v
 
-   Functional models of the frame service in
-   tools/vos/static_memory_transform.py. Each model returns `reference` on
-   every list of naturals; chunked models require chunk starts and lengths
-   to partition the input index interval. The argument is modular checksum
-   associativity, map equivalence and read-before-overwrite ordering, as
-   described in docs/implementation/static-memory/transformations.md.
-
-   Models and emitted variants:
-   - `retained`: keep the mapped list, reduce, then XOR (lexical-cache and
-     phased-cache share this data flow and differ only in retirement).
-   - `early_release`: map/reduce slices, then XOR the complete mapped list
-     (early-input-release).
-   - `chunked`: map/reduce slices, then XOR and concatenate the kept chunks
-     (chunked-cache). The staging copy has no functional effect.
-   - `tiled`: recompute each mapped slice for the XOR pass
-     (tiled-rematerialized).
-   - `fused`: map during reduction, then recompute for XOR
-     (fused-rematerialized).
-   - `in_place`: read and overwrite each index while accumulating the
-     checksum, then run XOR after the complete reduction (in-place-phased).
-
-   `generator_chunks_partition` proves the positive-tile generator satisfies
-   the chunk hypothesis; `generator_chunks_clamp` preserves it when the tile
-   is clamped to the length. Partitioning is sufficient, not necessary: a
-   final chunk extending beyond the input still agrees because slices
-   truncate. Missing or repeated indices can change the result.
-
-   Bytes are naturals below 256. Equivalence holds for all natural inputs;
-   `reference_bytes` proves the output is byte-valued. The shift/add/mask map
-   is algebraically equal to the multiply/mod map and is also checked on
-   all 256 byte values.
-
-   Scope: these are list functions, not an interpreter or schedule refinement.
-   Agreement between emitted programs and these models remains the finite
-   executable claim of `equivalence_findings`. The chunk models concatenate
-   by chunk order; emitted schedules write at start offsets, which agree
-   under the partition hypothesis. Authority, index checks, zeroization,
-   staging copies, DMA, reservations, traffic and operation costs are outside
-   the theorems. R-08-019e's recompute-rather-than-store lever motivates the
-   tiled and fused models; no peak or space/time certificate is proved here.
-
-   R-05-163 audits the global assumption closure. For R-05-165 and R-05-166,
-   `demo_frame` exercises every model and refutes an omitted XOR, omitted
-   indices and repeated indices by output values, not length alone.
-   `witness_InPlaceState` supplies record inhabitation. These are research
-   results and do not discharge the cited requirements.
+   Functional equivalence models for the static-memory frame transformations
+   in [static_memory_transform.py](../tools/vos/static_memory_transform.py)
+   and [transformations.md](../docs/implementation/static-memory/transformations.md)
+   (R-08-019e; consuming [IndexedUpdates.v](IndexedUpdates.v)):
+   - `retained`, `early_release`, `chunked`, `tiled`, `fused`, and `in_place`
+     models proved equal to `reference` on every list of naturals (and
+     under partitioning chunk intervals for the chunked variants via
+     `generator_chunks_partition` and `generator_chunks_clamp`).
+   - Byte-range preservation (`reference_bytes`) and equivalence of the
+     shift/add/mask and multiply/mod byte maps across all 256 byte values,
+     with concrete witnesses and refutations on `demo_frame` (R-05-163,
+     R-05-165, R-05-166).
    (*| BEGIN derived: cited entries |*)
    Owner: docs/requirements-register.md
    Requirements: R-05-163 R-05-165 R-05-166 R-08-019e

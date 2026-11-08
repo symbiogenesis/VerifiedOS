@@ -2,221 +2,34 @@
 (* =========================================================================
    AesGcm.v
 
-   The AES block cipher at all three key lengths, the GF(2^128) multiplication
-   and GHASH, the counter mode over them, and the authenticated encryption and
-   authenticated decryption functions of AES-GCM, written in Gallina against
-   FIPS 197 and NIST SP 800-38D and checked against the standards' own
-   published known answers.
+   Functional Gallina reference for the AES block cipher at 128-, 192-, and
+   256-bit key lengths, GF(2^128) multiplication and GHASH, counter mode, and
+   AES-GCM authenticated encryption and decryption (FIPS 197 and NIST SP
+   800-38D), paired with the Sail vector-crypto model
+   ([types_kext.sail](../model/model/extensions/K/types_kext.sail) and
+   [zvkg_insts.sail](../model/model/extensions/vector_crypto/zvkg_insts.sail))
+   for the AEAD frozen by R-10-024 (with R-05-058a fixing Category 5
+   asymmetric parameters and R-10-021, R-10-022, R-10-022a, and R-10-023
+   governing per-extent storage AEAD, nonces, and tags; R-05-126b grades
+   nonces linearly).
 
-   This functional reference covers the AES-GCM cipher frozen by R-10-024
-   via Zvkned/Zvkg; ChaCha20/Poly1305 is excluded. It transcribes the same
-   standards as the curated vector-crypto model for differential comparison.
-   It supplies no binary implementation, correspondence proof, or requirement
-   discharge.
+   Scope: functional specification layer of R-05-059 only. Binary constant-time
+   behavior (R-05-062, R-05-067), d-probing masking (R-05-004a, R-15-053a),
+   and distributional security reductions (R-05-077a) are separate obligations
+   (compare R-15-058 for the model's Keccak unit).
 
-   Only R-05-059's functional layer is addressed. The remaining obligations are:
-
-   - Binary constant-time behavior (R-05-062, R-05-067), including gcm_open's
-     tag comparison, which is ordinary structural equality here.
-   - Artifact-level d-probing and composition security (R-05-004a) against
-     R-15-053a's probing model; this reference contains no masking.
-   - Reduction-level security over uniformly drawn keys and nonces
-     (R-05-077a). The nonce-reuse example is a computation, not a security game.
-
-   The proof gate checks compilation, assumptions, non-vacuity, and inventory.
-   Known-answer equalities are checked by conversion or VM evaluation in the
-   kernel. These checks provide no target-execution evidence.
-
-   The shared ProofSupport and CryptoLists modules use only the Rocq prelude.
-   The list operations below retain the same total representation and the native
-   R-05-163 audit follows that support's assumptions as well as this file's.
-
-   The representation, and the one place it deliberately disagrees with
-   Keccak.v. No register entry fixes any of this, so all four are readings of
-   this file:
-
-   1. A **byte** is a `list bool` of length 8 with the **most significant bit
-      at the head**, which is FIPS 197 s3.1's own left-to-right writing of
-      {b7 b6 b5 b4 b3 b2 b1 b0} and the order in which that byte's polynomial
-      coefficients descend. `bit_num` reads FIPS 197's own index, where b0 is
-      the least significant, and it is the only place the two orders meet.
-   2. A **block** is a `list bool` of length 128 and is the concatenation of
-      its sixteen bytes with **no reversal anywhere**, so the head of a block
-      is the most significant bit of its first byte. That is SP 800-38D's own
-      bit string x_0 x_1 ... x_127, and its head is the standard's x_0.
-   3. **The GF(2^128) convention is the standard's own and it is reflected.**
-      SP 800-38D s6.3 reads the block x_0 ... x_127 as the field element
-      x_0 + x_1 a + ... + x_127 a^127, so the **leftmost** bit is the constant
-      term, and its Algorithm 1 multiplies by a with a **right** shift and a
-      reduction by R = 11100001 || 0^120 at the left end. That is the opposite
-      of the convention an implementer reaches for, and getting it wrong is
-      the defect `ghash_mul_without_the_reflection` below exhibits.
-   4. Keccak.v puts the **least** significant bit of a lane at the head,
-      because FIPS 202 s3.1.2 numbers a lane by z upward and reads a squeezed
-      byte least significant bit first. The two files therefore disagree about
-      bit order **on purpose**: each takes its own standard's, and a shared
-      convention would have made one of the two a transcription of the other
-      rather than of its source.
-
-   The readings of the register this file takes:
-
-   1. **R-10-024 fixes the cipher and this file is that cipher.** The entry
-      freezes AES-GCM and names ChaCha20/Poly1305 the frozen-out alternative,
-      so there is one AEAD to author and no menu. The plan's own M3.4 cell has
-      *both AEADs* authored in Gallina, which disagrees with that entry; the
-      disagreement is F-205d, it is open, and it is reported here rather than
-      resolved, an entry being the review gate's to move.
-   2. **The pair with the model is a pair because one derives what the other
-      writes down.** `model/model/extensions/K/types_kext.sail` transcribes the
-      forward and inverse S-box tables as 256-entry vectors and decodes the
-      round constants by a case table; this file derives the S-box from the
-      multiplicative inverse in GF(2^8) composed with the affine transform, and
-      the round constants from the x^i recurrence, and then computes that what
-      it derived is what FIPS 197 publishes. A derived-versus-published
-      equality catches a transcription defect from the other side, which a
-      second transcription of the same table cannot.
-   3. **The two GHASH forms are stated against each other.**
-      `model/model/extensions/vector_crypto/zvkg_insts.sail` reverses the bits
-      inside each byte and then multiplies with a **left** shift and a
-      reduction by 0x87 at the low byte, which is the standard's Algorithm 1
-      seen through `brev8`. Both forms are written below and computed equal, so
-      either is the other's image or one of them is wrong.
-   4. **The oracle enters no trust base.** Every published answer below is a
-      constant inside an `Example`'s own statement, never a `Definition`, and
-      nothing above it depends on the answer being right: what a known-answer
-      check buys is that the constant and the transcription were produced by
-      different routes. Putting an answer in a `Definition` would also put it
-      inside the seeded-mutation population, where a published byte moved off
-      by one would score as a kill of the oracle rather than of the subject.
-   5. **The four step mappings are the standard's own, by the standard's own
-      names, in the standard's own order, and unfused**: SubBytes, ShiftRows,
-      MixColumns and AddRoundKey, one definition each, composed once in
-      `aes_round_over`; and their four inverses composed once in `inv_round`.
-   6. **How much of the word "invertible" is discharged, and whose obligation
-      that is.** No entry calls AES a permutation, so the obligation is one
-      **this file states of itself**. Three of the four step maps carry it
-      outright: SubBytes is a bijection on a byte, checked over all 256 and
-      inverted by `inv_sub_byte` over all 256; ShiftRows is a permutation of
-      the sixteen positions whose inverse recovers a state of sixteen
-      **arbitrary** bytes; and AddRoundKey is an involution in the round key
-      over arbitrary bits of equal length. **MixColumns is not shown a
-      bijection.** What is shown is the algebraic fact underneath it, that the
-      standard's a(x) and a^-1(x) multiply to {01} modulo x^4 + 1, and the
-      round trip on the thirty-two single-bit columns, which span the column
-      space over GF(2). The step from a spanning set to the whole map is
-      GF(2)-linearity, which this file does not prove, so the composite claim
-      that AES is a bijection is an obligation this file states and does not
-      close. What stands beside it is the whole-cipher round trip at each of
-      the three published key lengths, which is a value and not a proof.
-   7. **The nonce is where the AEAD's security lives and the reference cannot
-      hold it.** Two ciphertexts drawn under one key and one nonce carry the
-      exclusive-or of their plaintexts, which is computed below at a published
-      key. That is why R-05-126b gives a nonce-typed value the linear grade and
-      why R-10-023 keeps the nonce per-extent random; neither is a property of
-      this text, and the bound SP 800-38D places on one key's invocations is
-      carried by no entry at all.
-
-   Where this file sits in the storage stack, which is why the AEAD was the
-   half of M3.4c worth authoring on its own. R-10-022 makes confidentiality and
-   integrity of data at rest one pass, per-extent AEAD with a per-extent nonce
-   and the tag serving as the stored checksum; R-10-022a puts the nonce and the
-   tag in the index node rather than beside the ciphertext; R-10-023 keeps the
-   tag off the dedup address. All three quantify over an AEAD, and until this
-   file there was none in the tree.
-
-   What is deliberately absent, with the entry that owes each decision. A
-   register gap is reported, not closed:
-
-   a. **No entry fixes the key length.** R-10-024 says AES-GCM and stops.
-      R-05-058a freezes the suite by parameter set at Category 5 throughout and
-      names ML-KEM-1024, ML-DSA-87 and SLH-DSA-SHAKE-256s, all three of them
-      asymmetric or hash-based; Category 5 is itself *defined* by reference to
-      the difficulty of an AES-256 key search, so reading a symmetric key
-      length out of it would be reading the yardstick as the measurement. So
-      the key length is a parameter here, `key_words`, and all three of FIPS
-      197's own key lengths carry a published answer below.
-   b. **No entry fixes the tag length.** SP 800-38D s5.2.1.2 admits 128, 120,
-      112, 104 and 96 bits generally and 64 and 32 for named applications
-      only; R-10-022 makes the tag the stored checksum and fixes no t. It is
-      the parameter `tag_bits`, and `gcm_open` truncates by it.
-   c. **No entry fixes the nonce length or which J0 construction is taken.**
-      SP 800-38D s7.1 splits at a 96-bit IV, the short arm being a
-      concatenation and the long one a GHASH. Both arms are exercised below at
-      published answers. R-10-022 wants a per-extent nonce and R-10-023 wants
-      it random, and neither is a length.
-   d. **No entry carries the invocation bound.** SP 800-38D s8.3 bounds the
-      invocations of the authenticated encryption function under one key. It
-      is the field `invocations_per_key` below, and the theorem beside it is
-      that nothing this file computes reads it, which is the shape of the gap:
-      the bound is a discipline on the caller and no artifact here states one.
-   e. **What a per-extent AEAD authenticates besides the extent is unstated.**
-      R-10-022 and R-10-022a say where the nonce and the tag live and say
-      nothing about the associated data. An extent sealed with empty A and one
-      sealed with its own address are different constructions against the
-      block services R-10-021 puts below the integrity line, and no entry
-      chooses. It is the field `associated_data`.
-   f. **R-10-022 names two tag constructions and R-10-024 freezes one out.**
-      The entry says *the Poly1305/GHASH tag serving as the stored checksum*
-      where R-10-024 freezes the cipher to AES-GCM and names ChaCha20/Poly1305
-      the frozen-out alternative. Only GHASH is authored here.
-   g. **No entry fixes the oracle pair for an authored AEAD**, exactly as none
-      fixes it for an authored hash. R-15-058 names FIPS 202 and the ACVP
-      vectors for the *model's* Keccak unit; nothing names anything for this.
-
-   The literals taken from the standards, and there are no others. FIPS 197's
-   8-bit byte, 4-by-4 state and four-word round key; the key lengths 4, 6 and 8
-   words with Nr = Nk + 6 and the second substitution's Nk-above-six guard,
-   which is a parameter here rather than a literal for the reason its own
-   definition states; the reduction polynomial x^8 + x^4 + x^3 + x + 1 as
-   its own exponent list; the affine transform's taps {0, 4, 5, 6, 7} and
-   constant 0x63 and the inverse transform's taps {2, 5, 7} and constant 0x05;
-   the MixColumns polynomial {03}x^3 + {01}x^2 + {01}x + {02} and its inverse
-   {0b}x^3 + {0d}x^2 + {09}x + {0e}; and SP 800-38D's 128-bit block, its
-   96-bit IV split, its 32-bit counter field, its 64-bit length fields, its
-   s5.2.1.2 tag lengths as the two lists it states them in, five general and
-   two restricted, and its reduction polynomial a^128 + a^7 + a^2 + a + 1 as
-   its own exponent list.
-   Everything else is derived: the round constants are the recurrence's, the
-   S-box is the inverse and the affine map's, 0x1B is computed from the
-   modulus, 0xE1 is computed from R's exponents, and the MixColumns matrix is
-   computed from its polynomial.
-
-   Non-vacuity (R-05-165, R-05-166). Every structural obligation below is
-   stated of an arbitrary byte, state, key or construction, or enumerated over
-   a domain the statement names, and seven constructions the standards' own
-   sentences exclude are built here and refuted: an affine transform with the
-   constant one below the standard's, a ShiftRows written against a transposed
-   flattening of the state, the forward and inverse ShiftRows exchanged, a key
-   expansion whose second-substitution guard is one higher, a GF(2^128)
-   multiplication without the standard's byte-wise bit reflection, a GHASH
-   input with A and C concatenated unpadded, and a counter mode started at J0
-   rather than at inc32(J0). **Each is held to the single difference it
-   exists to exhibit**, and each is shown to satisfy the obligations it does
-   *not* break, so what refuses it is the named defect and not its shape.
-   **Three of the seven are invisible to a whole family of inputs and the file
-   says which**: the unpadded GHASH agrees with the standard's at every input
-   whose associated data and ciphertext are both block-aligned, the counter
-   started at J0 agrees at every empty plaintext, and the raised guard agrees
-   at every key length FIPS 197 admits, parting from the standard's only at a
-   key of seven words, which the standard does not carry. Inhabitation is the published
-   answers themselves, so no check below holds of everything and none holds of
-   nothing.
-
-   Where each published answer came from, and under what instrument. The
-   S-box table, the round-constant table, the MixColumns matrices, the key
-   expansion words for the Appendix A key and the Appendix B ciphertext are
-   FIPS 197's own, read at Appendices A.1, B and C.1 through C.3 and at
-   sections 5.1.1, 5.1.3, 5.2 and 5.3.3. The five AES-GCM cases are the test
-   cases published with the GCM specification, numbered 1 through 5 there, and
-   that is the whole of their provenance: no ACVP file is quoted here and
-   nothing in this repository pins what NIST's own validation sets carry, so
-   saying these were those would be a claim about an external corpus with no
-   measurement under it. **Every one of them was recomputed on 2026-09-03 by a
-   second implementation before it was written down here**, an independent
-   transcription of the two standards run against OpenSSL 3.5.5 through its
-   Python binding, so each literal below reached this file by two routes and
-   not one. Neither instrument is pinned, neither enters any trust base, and
-   nothing above the answers depends on them.
+   Representation and derived tables:
+   - Bytes are 8-element MSB-first `list bool` (FIPS 197 s3.1); blocks are
+     128-element MSB-first `list bool` (SP 800-38D s6.3, opposite to
+     [Keccak.v](Keccak.v)'s LSB-first lanes).
+   - Forward/inverse S-boxes and round constants are derived from the GF(2^8)
+     multiplicative inverse, affine transform, and x^i recurrence and checked
+     against FIPS 197's published tables; reflected SP 800-38D GHASH
+     multiplication is proved equal to the byte-bit-reversed `brev8` form.
+   - Known-answer vectors from FIPS 197 Appendices A.1, B, C.1--C.3 and GCM
+     test cases 1--5 (independently recomputed against OpenSSL 3.5.5) sit in
+     `Example` statements outside `Definition`s, with seven refuting
+     constructions for non-vacuity (R-05-163, R-05-164, R-05-165, R-05-166).
    (*| BEGIN derived: cited entries |*)
    Owner: docs/requirements-register.md
    Requirements: R-05-004a R-05-058a R-05-059 R-05-062 R-05-067 R-05-077a R-05-126b R-05-163

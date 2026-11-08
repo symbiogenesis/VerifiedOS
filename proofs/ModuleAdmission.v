@@ -1,29 +1,26 @@
 (* SPDX-License-Identifier: Apache-2.0 *)
 (* =========================================================================
-   ModuleAdmission.v: Q24c/Q24d typed source candidate.
-   Contract: docs/hardware/immutable-module-admission.md, committed before this
-   implementation. R-12-085g, R-12-085h, R-12-085i, R-12-085j,
-   R-15-228f, R-15-228g, R-15-228h and R-15-228i own the obligations.
+   ModuleAdmission.v
 
-   The arbitrary-card theorem is over the digital host transition, assuming
-   bounded detection/isolation, connector sequencing, current/inrush/backfeed,
-   short/overvoltage/thermal protection, independent host rails/reset, and module
-   clocks terminating at bounded endpoint FIFOs. R-15-228i/Q24f must qualify
-   these electrical assumptions; arbitrary physical sabotage is outside them.
+   Typed reference model for immutable expansion-module admission and session
+   binding (see
+   [immutable-module-admission.md](../docs/hardware/immutable-module-admission.md)).
+   Governing obligations: R-12-085g, R-12-085h, R-12-085i, R-12-085j,
+   R-15-228f, R-15-228g, R-15-228h, and R-15-228i.
 
-   Manifest identities below denote exact immutable byte artifacts. Equality is
-   symbolic identity, not a cryptographic hash theorem or a canonical byte parser.
-   Kernel receipts and authenticated issuance are trusted host inputs, not card
-   claims. No CIC checker, signature, TLS implementation or entropy source is
-   implemented here. The model states the binding each must refine. Freshness
-   histories survive modeled reset; a real bounded reset-safe construction is
-   owed. Unit-key compromise or corrupt issuance invalidates authentication.
-
-   The socket emits proposals into precomposed host-selected endpoint objects.
-   It never changes host memory, capabilities, schedule or quota. The later broker
-   mover must refine this relation with capability checks and a completion barrier.
-   These statements are not a Sail/RTL, whole-path, honest-card erasure or
-   fabrication theorem. All constants below are fixtures, not platform values.
+   Model and assumptions:
+   - Digital host transition: the arbitrary-card theorem ranges over digital
+     host transitions assuming bounded detection and isolation, connector
+     sequencing, current/inrush/backfeed limits, short/overvoltage/thermal
+     protection, independent host rails and reset, and module clocks terminating
+     at bounded endpoint FIFOs (qualified under R-15-228i).
+   - Manifest and session binding: manifest identities denote immutable byte
+     artifacts (canonical wire encoding lives in
+     [ModuleFormats.v](ModuleFormats.v)); kernel receipts and authenticated
+     issuance are trusted host inputs rather than card-supplied claims.
+   - Endpoint confinement: the socket emits proposals into pre-composed
+     host-selected endpoint objects without altering host memory, capabilities,
+     schedules, or quotas.
    (*| BEGIN derived: cited entries |*)
    Owner: docs/requirements-register.md
    Requirements: R-12-085g R-12-085h R-12-085i R-12-085j R-15-228f R-15-228g R-15-228h R-15-228i

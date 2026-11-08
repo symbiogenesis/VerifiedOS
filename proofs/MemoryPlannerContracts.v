@@ -3,52 +3,35 @@
    MemoryPlannerContracts.v
 
    Conditional contract extraction and checked-candidate selection for the
-   standalone memory planner. The Python implementation lives in
-   tools/vos/memory_planner_contracts.py and tools/vos/memory_planner.py.
+   standalone memory planner (see
+   [memory_planner_contracts.py](../tools/vos/memory_planner_contracts.py) and
+   [memory_planner.py](../tools/vos/memory_planner.py)).
 
-   A component contract supplies all paths, with each path recording the
-   allocated identities at every event boundary. An identity stays allocated
-   through lexical release, retained values, outstanding device work and the
-   reuse barrier. `conflictb` unions coexistence over every supplied path.
-   `extracted_placement_safe` proves that a layout checked against that graph
-   separates all simultaneously allocated objects on every supplied path.
-   `coexisting_objects_cannot_touch_one_byte` gives its physical-address form.
-   Paths may end normally, exceptionally, by cancellation or by timeout: the
-   theorem depends on membership in the supplied contract, not the outcome.
+   Model and theorems:
+   - Conflict graph and physical separation (R-08-014): a component contract
+     supplies execution paths recording allocated identities at each event
+     boundary across lexical release, retained values, outstanding device work,
+     and the reuse barrier. `conflictb` unions coexistence over all supplied
+     paths; `extracted_placement_safe` and
+     `coexisting_objects_cannot_touch_one_byte` prove that a layout checked
+     against that conflict graph separates all simultaneously allocated objects
+     on every supplied path regardless of termination outcome.
+   - Reuse barrier soundness (R-08-006, R-08-007a, R-08-015): `barrier_sound`
+     proves that full barrier acceptance entails no lexical or retained holders,
+     no live authority, zero outstanding device work, and completed sweep and
+     scrub passes; `late_device_blocks_barrier` separates lexical release and
+     revocation from device completion.
+   - Checked candidate selection (R-08-012d): `selection_nonregression` proves
+     that choosing among candidates that pass both validity and a componentwise
+     baseline bound preserves validity and never regresses any pool's objective
+     relative to the baseline.
 
-   `barrier_sound` proves the separate reuse premise: acceptance of the full
-   barrier entails that lexical and retained holders and authority have ended,
-   accepted device work is zero, and the post-completion sweep and scrub hold.
-   `late_device_blocks_barrier` distinguishes lexical release and revocation
-   from device completion. These are modeled completion facts, not measured
-   deadlines, and no hypothesis says that timeout implies completion.
-
-   The source-to-contract and implementation boundary is explicit. Theorems
-   quantify over contract paths, not Vela source or machine executions. To
-   apply them to a program, its frontend must establish that every reachable
-   occupancy state is represented in one of those paths and that its barrier
-   operations establish these facts. Python parsing, bounded path expansion,
-   graph construction and target enforcement have not been proved to refine
-   these Gallina definitions. Their negative and generated tests are bounded
-   executable evidence. This file does not discharge an admission requirement.
-
-   The checked selector has a second independent theorem. Starting with a
-   valid baseline, every accepted candidate passes a sound validity check and
-   a sound componentwise baseline bound. Any deterministic preference function
-   can choose among those candidates: `selection_nonregression` proves that
-   the returned candidate is valid and no pool's selected objective exceeds
-   the baseline's. Missing candidates include timeout and search failure. This
-   says nothing about planning cost, runtime speed, residency or optimality.
-
-   R-08-014 supplies the interference obligation this graph model addresses;
-   R-08-015 keeps that obligation separate from safe reuse, whose containment
-   and full sweep prerequisites are stated by R-08-006 and R-08-007a. The
-   selector's componentwise bound illustrates R-08-012d's span non-regression
-   constraint without proving its locality or timing clauses. All are cited,
-   never claimed. R-05-163 audits the compiled assumptions. For R-05-165 and
-   R-05-166, each record has a named witness, a safe two-object layout is
-   instantiated, an aliased layout is rejected, late completion blocks the
-   barrier and a selector example rejects invalid and over-budget candidates.
+   Scope and non-vacuity (R-05-163, R-05-165, R-05-166):
+   - Theorems quantify over contract paths rather than source programs or
+     machine executions; Python parsing, bounded path expansion, and target
+     enforcement are outside this model. Named witnesses inhabit each record,
+     accept a non-overlapping two-object layout, and reject an aliased layout,
+     an incomplete device barrier, and invalid or over-budget candidates.
    (*| BEGIN derived: cited entries |*)
    Owner: docs/requirements-register.md
    Requirements: R-05-163 R-05-165 R-05-166 R-08-006 R-08-007a R-08-012d R-08-014 R-08-015

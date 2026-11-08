@@ -1,14 +1,16 @@
 (* SPDX-License-Identifier: Apache-2.0 *)
 (* =========================================================================
-   Finite workflow qualification for Q32a. R-08-015a keeps fixed placement;
-   R-11-018 and R-11-018a require admitted edges and continuing service;
-   R-14-011a and R-14-011b require semantic checkpoints and complete reuse.
-   This is a source-level two-app, one-arena contract, not runtime evidence.
-   Root receipts denote the complete Q22a inventory, including minting roots,
-   narrowed bases, saved state, loans, proxies and devices. Storage receipts
-   denote authenticated durable commits under the existing Fresh policy.
-   Timing numbers are abstract units supplied by the schedule adapter.
-   No physical fact follows merely from constructing one of these records.
+   WorkflowProfiles.v
+
+   Two-application, single-arena workflow transition model for fixed placement
+   (R-08-015a), admitted mode-transition edges and continuing service (R-11-018,
+   R-11-018a), and semantic checkpoints with complete arena reuse (R-14-011a,
+   R-14-011b).
+
+   `Roots` captures the complete revocation and reuse-barrier postconditions
+   (minting roots, narrowed bases, saved state, loans, proxies, and device
+   completion), and `Checkpoint` captures authenticated durable semantic
+   commits.
    (*| BEGIN derived: cited entries |*)
    Owner: docs/requirements-register.md
    Requirements: R-08-015a R-11-018 R-11-018a R-14-011a R-14-011b
@@ -518,7 +520,7 @@ Example failed_restore_keeps_quarantine :
    else false) = true.
 Proof. vm_reflexivity. Qed.
 
-(* Fault constructors generate one failed Q22a clause at a time. *)
+(* Fault constructors generate one failed root-clearance clause at a time. *)
 Definition missing_root_clause (n : nat) : Roots :=
   {| inventory_complete := negb (n =? 0); bases_closed := negb (n =? 1);
      ingress_closed := negb (n =? 2); live_registers_clear := negb (n =? 3);

@@ -1,207 +1,44 @@
 (* SPDX-License-Identifier: Apache-2.0 *)
 (* =========================================================================
-   ExecutableIndex.v: M5.3d's executable L1 index, and only its index half.
+   ExecutableIndex.v
 
-   What this is. The explicitly admitted plain copy-on-write B+ tree that
-   R-10-004 names beside the incumbent B^epsilon buffered-update refinement,
-   written as an executable structure over a bounded arena: key and separator
-   routing, lookup, insert with replacement, leaf and internal split,
-   copy-on-write path copying, and a structural admission the writer
-   re-decides on what it has just published. Its correspondence is stated
-   against the ordered association list JournalIndex.v's L1 Index already is,
-   and against that file's `look`, `ins` and `sorted` rather than against a
-   second statement of the same map. R-10-002 makes L1 one of four verified layers
-   on one prover and its acceptance clause is that each layer's proof is a
-   Coq artifact; this file is that prover throughout and carries no foreign
-   proof anchor.
+   Executable copy-on-write B+ tree index over a bounded arena, corresponding
+   to [JournalIndex.v](JournalIndex.v)'s ordered-association-list L1 `Index`
+   (`look`, `ins`, `sorted`) under R-10-002, R-10-003, and R-10-004.
 
-   Why the fallback is implemented first, which is a sequencing judgment and
-   not a selection. Q22f's bounded comparison retains B^epsilon provisionally
-   and admits no target composition, and M5.3's executable-index obligation
-   admits either that index or this explicitly admitted fallback. The two
-   arms share everything below: the geometry, the arena and its refusal, the
-   separator routing, the splits, the copy-on-write discipline and the
-   structural admission. What the buffered arm adds is a per-node message log
-   read before the entries beneath it and a flush that drains it, which
-   JournalIndex.v already states as `blook`, `plain_look` and `flush`. That
-   is a difference to add to this body, not a rewrite of it, so writing the
-   fallback first buys the shared half now and costs the buffered arm
-   nothing. Nothing here selects an index: R-10-004's selection predicate is
-   a measurement under the actual geometry, batching, acknowledgement policy,
-   authenticated block-service cost and NAND amplification, and no such
-   measurement is taken below.
+   Scope and relation to sibling storage proofs:
+   - Implements the plain copy-on-write B+ tree fallback admitted by R-10-004:
+     key and separator routing, lookup (`lookup` and `seek`), insertion with
+     replacement, leaf and internal splitting, copy-on-write path allocation
+     (R-10-010), and post-write structural and depth-balance verification.
+   - B^epsilon buffered-update message logs (`blook`, `plain_look`, `flush` in
+     [JournalIndex.v](JournalIndex.v)), L0 transaction recovery
+     ([StorageRecovery.v](StorageRecovery.v), [StorageBridge.v](StorageBridge.v),
+     R-10-002a, R-10-036), L2 snapshot-versioned keys (R-10-005), and whole-stack
+     composition outside the trust base (R-10-009) are separate obligations.
 
-   What this file is the index half of. M5.3d owns the executable index,
-   persistent backing and reopen, byte authentication, executable crypto, the
-   recovery join and the two-instance target run. **Only the first is here.**
-   No byte of this file reaches a device, a disk image, a reopen path, an
-   authenticator, a cipher or an emulator; R-10-002a's complete authenticated
-   prefix redo is StorageRecovery.v's and its byte decoder is still owed;
-   nothing below is compiled, lowered or run, and R-10-009's whole stack
-   staying outside the trust base is a property of the composition rather
-   than of this statement. M5.1's sorted association list is the oracle here
-   and this implementation is not: where the two disagree the association
-   list is right, and the theorems below are the claim that they do not.
+   Arena, structural admission, and balance:
+   - Nodes reside in an append-only `Arena` bounded by `arena_cap` in
+     `Geometry`; `alloc` appends at the next address and returns `None` when
+     capacity is exhausted, never overwriting or wrapping around (R-10-010).
+   - `spans` checks that all reachable addresses lie within `arena` and
+     terminate within the caller's walk bound (excluding cycles). `admitted`
+     adds `node_fits` (occupancy at most `fan` and one separator fewer than
+     children), sorted leaves within bounds, and child range invariants.
+   - `well_formed` strengthens `admitted` with strict separator monotonicity so
+     that splits never produce empty separator intervals (`an_admitted_input_the_check_refuses`).
+   - `at_depth` and `leaves_share_one_depth` enforce the B+ equal-leaf-depth
+     invariant; `insert_gate` and `read_gate` enforce `published` (`well_formed`,
+     equal leaf depth, and height within `depth`).
+   - `seek` distinguishes structural refusals (`None`) from key misses
+     (`Some None`), whereas `lookup` collapses both to `None`.
 
-   The arena, and what a refusal is. A node lives at an index into a list
-   whose declared capacity is a field of the Geometry record; `alloc` appends
-   at the next address and refuses when the declared capacity is spent, so an
-   exhausted arena is `None` and never a reused or wrapped address. A write
-   appends and rewrites nothing, which is R-10-010's copy-on-write read as an
-   arena discipline and is the single fact every retained-snapshot statement
-   below rests on.
-
-   Structural admission, in two layers, and where it actually runs. `spans`
-   refuses an address outside the arena, a reference its walk bound does not
-   reach, and a cycle; the cycle is refused because a cycle admits no finite
-   walk and the walk is structural in the bound its caller passes, which is
-   JournalIndex.v's `bounded_tree` argument over this arena. `admitted` adds
-   the occupancy ceiling and the key order: each node holds no more entries
-   and no more children than the declared fanout and carries exactly one
-   separator fewer than its children, each leaf is sorted and inside its
-   declared range, and each child is admitted between the separators that
-   bound it. Both are booleans, so a witness is decided by conversion.
-
-   **No operation runs either layer on its input before trusting it.**
-   `lookup`, `seek`, `flatten`, `insert`, `publish_leaf` and
-   `publish_branch` call neither `spans` nor `admitted`; what bounds each of
-   them is the fuel its own caller passes, which is why a walk that runs out
-   of it answers `None` or `nil` rather than diverging, and why a cycle costs
-   a bounded walk and not termination. Every admission call in this file is
-   *after* a write, on what was just published: `insert_checked` re-decides
-   `admitted_grown`, `insert_root` re-decides `admitted` on a new root it
-   allocated, and `insert_gate` decides `published` on what `insert_root`
-   returned. Where a theorem below needs an admitted or well formed input it
-   takes that as a hypothesis, and the gate's own output discharges that
-   hypothesis for the next gated call.
-
-   The fail-closed discipline, and which inputs it is complete for.
-   `insert_checked` re-decides `admitted` on what it published and refuses a
-   result that does not decide true, so an admitted tree is followed by an
-   admitted tree or by a refusal and never by a tree nothing checked. That
-   the check never refuses a well formed insert holds for the inputs
-   `well_formed` decides and fails for `admitted` alone. `rising` lets a
-   separator equal the bound before it, and a split that cuts between two
-   equal separators publishes a half the check refuses;
-   `an_admitted_input_the_check_refuses` computes that refusal on an admitted
-   input with ample arena and an in-range key. `well_formed` is `admitted`
-   with every separator strictly above the bound before it, it holds of an
-   empty leaf root, and every write keeps it. Over it the check never refuses
-   what the write answered, and the write answers whenever the arena has room
-   for the walk's worst case, so a spent arena is the only refusal left.
-
-   Balance splits in two against the check. Its occupancy half is inside it:
-   `node_fits` is a conjunct of `admitted`, `node_fits_everywhere` names that
-   conjunct on its own down the walk, and `an_admitted_tree_fits_everywhere`
-   is the reading between them. Its equal-leaf-depth half, which is the B+
-   property, is outside `admitted`, so `insert_checked` and `insert_root`
-   neither enforce nor repair it, and the skew witness at the end of this
-   file is admitted while one of its leaves sits a level above the others.
-   `at_depth` and `leaves_share_one_depth` decide that half, their
-   preservation theorems carry it from input to output, and `insert_gate`
-   decides it inside the published gate: it refuses a result whose leaves do
-   not all sit at exactly the height it returns, and on an input it published
-   that check never fires.
-
-   The read path, and the refusal it tells from a miss. `lookup` answers
-   `None` for an address outside the arena, for a walk that runs out of
-   bound, for a routed child index outside the child list and for a cycle,
-   which is the same answer it gives for a key that is simply absent. `seek`
-   walks the same route and answers `None` for those structural refusals
-   alone and `Some None` for a miss, `lookup` being `seek` with that
-   distinction forgotten. On an admitted tree `seek` never refuses, so a
-   refusal is evidence against admission and a miss is the logical map's own.
-
-   Readings of the register this file takes, each a reviewable judgment.
-
-   1. A separator is the first key of the child to its right, so a child
-      holds the keys at or above its own left separator and strictly below
-      the next one. R-10-003 fixes no routing convention, so this is chosen
-      and stated rather than found; `route` and the range chain are two
-      readings of the one convention and no third reading appears.
-   2. Every walk below takes its bound as an argument rather than reading one
-      from the geometry, and the tree's height is not assumed to stay put:
-      the height a walk needs comes back with a result that split the root.
-      Geometry's `depth` is the declared height ceiling, and the gated pair
-      reads it: `insert_gate` refuses a result whose returned height passes
-      it, which makes a root split past the ceiling a spent-capacity refusal
-      like a spent arena, and `read_gate` refuses a walk bound past it. The
-      gate also decides that every leaf sits at exactly the returned height,
-      so the bound a gated call hands on is the tree's own height and not an
-      over-approximation. R-10-003 fixes neither quantity, so both are
-      declared magnitudes the composition supplies.
-   3. A logical map is a list, so two of them are compared as lists and every
-      equality below is an equality of lists or of a decidable boolean.
-      `flatten` answers `nil` at a node it refuses, which conflates a refused
-      subtree with an empty one, and that is why every statement below is
-      gated on `spans` or on `admitted` and none is read off `flatten` alone.
-   4. A leaf's entries are JournalIndex.v's Index and a leaf's insertion is
-      that file's `ins`, so replacement, ordering and the two S12 half
-      theorems are reused rather than restated. R-10-005's snapshot version
-      inside the key is L2's and no key here carries one.
-   5. R-10-003's "generic over key type, verified once" is a
-      parameterization: every definition and every theorem below takes the
-      KeyAlgebra record, no instance appears in any statement, and the demo
-      instance at the end is a witness and not a second index.
-
-   What is deliberately not authored, and where each is owed. A register gap
-   is reported rather than closed, and an absent operation is named rather
-   than implied.
-
-   a. Deletion, merge and rebalancing on removal. R-10-003 states no minimum
-      occupancy and the executable-index obligation names insertion,
-      replacement and split, so `node_fits` states a ceiling and no floor and
-      no removal path exists below. Owed at R-10-003, beside JournalIndex.v's
-      gap b and gap g, which this file inherits unchanged.
-   b. The buffered arm's multilevel flush, its message-order and duplicate
-      precedence obligations, and the invariant joining buffered updates with
-      recovery. Owed at R-10-004, and the comparison that decides between the
-      arms is Q22f's to re-run under the actual composition.
-   c. Every cost. No worst-case query or flush work, no write amplification,
-      no barrier count and no WCET is stated or implied; `fan`, `depth` and
-      `arena_cap` are declared magnitudes and not measured ones. The capacity
-      figure the completeness statements take, two nodes per level the walk
-      bound admits and one more for a new root, is a sufficient condition
-      read off the definitions and not a cost bound, and each post-write
-      check re-walks the whole published tree at a price nothing here states.
-      Owed at R-10-004 and at the composition's own timing admission.
-   d. Persistence. R-10-036 commits a checkpoint as a single L0 transaction
-      and no transaction, journal record or commit appears below; the join
-      between this index and JournalIndex.v's L0 is M5.3d's and is open.
-   e. Concurrency. One writer, no reader visibility rule, no barrier.
-
-   Non-vacuity (R-05-165, R-05-166). Every obligation is stated of an
-   arbitrary key algebra, geometry, arena, walk bound, subtree, key and
-   query, proved there, and computed on a witness family at the end: an
-   admitted three-node tree whose leaves share one depth, two inserts that
-   split, one of them splitting a leaf and an internal node and publishing a
-   new root and the other routing past every separator, one replacement that
-   splits nothing, the same three read again for equal leaf depth, a skewed
-   tree that is admitted and occupancy-fitting while its leaves share no
-   depth together with the insert that does not repair it, and the four
-   refusals, which are an arena whose declared capacity is spent, an address
-   outside the arena, a reference past the walk bound, and a cycle among
-   whole addressable nodes. The last is the case block completeness alone
-   cannot decide, which is what the bounded walk is for. Beside them: the
-   occupancy walk refusing the address outside the arena and the reference
-   past the walk bound as the structural walk does; an admitted input with
-   two equal separators on which the write answers and the check refuses,
-   which is why completeness is stated over `well_formed`;
-   the three demo inserts published by the gate unchanged; the gate's three
-   refusals, of the skewed tree's insert, of a root split past a one-level
-   ceiling and of a walk bound past the declared depth, with a gated write
-   from an empty root; and the read path's hit and miss beside four
-   structural refusals `lookup` answers as absence. Nothing below is
-   admitted, axiomatized or parameterized at top level: every composition
-   magnitude is a field of the Geometry record. The native assumption audit
-   enumerates every constant, including local lemmas, and queries its
-   assumption set. `Closed under the global context` is that emptiness
-   checked by the proof gate.
-
-   Requires. JournalIndex.v, for the KeyAlgebra record and its five laws, the
-   L1 Index, `look`, `ins`, `sorted` and the list helpers; and the Rocq
-   standard library's List, Bool, Arith and Lia, on the precedent
-   StorageRecovery.v sets for a sibling of that file.
+   Non-vacuity (R-05-163, R-05-164, R-05-165, R-05-166):
+   - All theorems are parameterized over an arbitrary `KeyAlgebra` and
+     `Geometry` and instantiated on a concrete witness family covering leaf and
+     root splits, replacements, equal-leaf-depth preservation, skewed-tree
+     rejection, duplicate-separator counterexamples, and arena/depth/cycle
+     refusals.
    (*| BEGIN derived: cited entries |*)
    Owner: docs/requirements-register.md
    Requirements: R-05-163 R-05-164 R-05-165 R-05-166 R-10-002 R-10-002a R-10-003 R-10-004

@@ -1,14 +1,13 @@
 (* SPDX-License-Identifier: Apache-2.0 *)
 (* =========================================================================
-   Q28a's finite model-boundary witness for R-05-162a and R-17-049f.
-   This is not a GCM reduction, a cryptographic hash, or a quantum game.
-   Uniformly enumerating the four Boolean function tables defines the ideal
-   distribution inside the logic. No axiom supplies its randomness. An attacker
-   reads the answer at false and guesses the answer at the fresh input true.
-   Counting successes gives the numerator over four equally weighted tables.
-   Replacing that distribution by a constant function changes the experiment,
-   even though both computations and their proofs have no global assumptions.
-   No claim annotation discharges a platform requirement from this toy model.
+   OracleInstantiation.v
+
+   Finite model-boundary witness for R-05-162a and R-17-049f: uniform
+   enumeration of the four Boolean function tables (`bool -> bool`) defines
+   an ideal distribution inside the logic without axioms, where any guesser
+   predicting `oracle a b true` from `oracle a b false` succeeds on exactly
+   2 of 4 tables, whereas instantiating the oracle with a constant function
+   allows 4 of 4 successes.
    (*| BEGIN derived: cited entries |*)
    Owner: docs/requirements-register.md
    Requirements: R-05-162a R-17-049f

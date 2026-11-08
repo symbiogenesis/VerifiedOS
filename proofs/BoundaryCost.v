@@ -1,17 +1,16 @@
 (* SPDX-License-Identifier: Apache-2.0 *)
 (* =========================================================================
-   Boundary admission arithmetic for R-07-040 and R-11-009. R-15-220's
-   platform cost remains owned by PartitionContext; R-15-220a's context
-   bound is a separate composition input. These are declared cycle bounds,
-   not measured timing evidence. A residency case covers one complete
-   timer-to-handler prefix: remaining irrevocable operation followed by its
-   consequent handler, or the remainder of an already live kernel path.
-   The two fields cover non-overlapping execution, so they add.
+   BoundaryCost.v
 
-   Refinement must establish coverage of every reachable successful prefix,
-   soundness of its costs and continued service after timer delivery. The
-   arithmetic below establishes none of those physical premises. Faults
-   requiring fail-stop have no successful-release obligation.
+   Boundary admission arithmetic for R-07-040 and R-11-009 over
+   [PartitionContext.v](PartitionContext.v) and [ProofSupport.v](ProofSupport.v).
+   R-15-220's platform switch cost (`switch_cost`) is imported from
+   [PartitionContext.v](PartitionContext.v), and R-15-220a's context bound
+   (`context_cost`) is a separate composition input. Each `ResidencyCase` covers
+   one complete timer-to-handler prefix (`remaining_operation` followed by
+   `remaining_handler`). Target refinement must establish coverage of every
+   reachable prefix (`ResidencyRefines`), soundness of declared cycle bounds,
+   and continued service after timer delivery.
    (*| BEGIN derived: cited entries |*)
    Owner: docs/requirements-register.md
    Requirements: R-07-040 R-11-009 R-15-220 R-15-220a

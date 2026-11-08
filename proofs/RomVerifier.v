@@ -2,190 +2,68 @@
 (* =========================================================================
    RomVerifier.v
 
-   What the boot chain's ROM verifier needs, stated over Keccak.v's
-   `shake256`: the SLH-DSA-SHAKE-256s parameter set R-05-058a freezes, the
-   six function instantiations FIPS 205 s11.1 puts over SHAKE256, the sizes
-   and the hash-call census that parameter set determines, and the shape
-   R-09-005, R-09-005a and R-09-036 put on the object that runs them.
+   Specification and parameter census for the boot chain's ROM verifier over
+   [Keccak.v](Keccak.v#shake256)'s `shake256`: the SLH-DSA-SHAKE-256s
+   parameter set R-05-058a freezes, the six function instantiations FIPS 205
+   s11.1 puts over SHAKE256, the sizes and hash-call census that parameter
+   set determines, and the structural predicates R-09-005, R-09-005a and
+   R-09-036 place on the verifier record.
 
-   What this file is, and what it is not. It is a **statement** and not a
-   scheme. **No part of SLH-DSA is authored here**: there is no WOTS+ chain,
-   no FORS tree, no Merkle path, no hypertree and no verification algorithm,
-   because authoring one is M3.4b-class work and because the item this file
-   lands under owes a statement of what the verifier needs rather than a
-   scheme nothing in the frozen suite names. What is here is the substrate,
-   the parameter literals, the arithmetic those literals determine, and the
-   record the register's own clauses become when they are written as things
-   a construction either has or does not have. It is not an implementation,
-   no binary corresponds to it, and it discharges no acceptance clause of
-   any entry.
+   Scope and layer. This module is a parameter-set and structural-shape
+   artifact at the functional layer, not a full SLH-DSA verification
+   algorithm (WOTS+, FORS, Merkle path, or hypertree). No constant-time
+   property (R-05-062, R-05-067), masking property (R-05-004a), or
+   cryptographic reduction or distributional claim (R-05-077a) is stated here,
+   and R-17-049's irreducible assumptions remain unchanged. R-17-049b's
+   role-separated diversity (ROM-verified SLH-DSA vs re-signable ML-DSA, with
+   no hybrid signature) defines the boundary this hash-only ROM verifier
+   occupies.
 
-   What the gate's green line means. Compiled, axiom-free, non-vacuous and
-   enumerated, and it does not mean verified. Nothing here executes on
-   either emulator. The computed checks are decided inside the kernel, the
-   light ones by conversion in the silent `Example ... := eq_refl` form and
-   the ones that run a sponge by the bytecode machine, which contributes
-   nothing to the native assumption audit.
+   Representation:
+   1. Bit strings and `shake256` come from [Keccak.v](Keccak.v), with output
+      lengths in bits (`8 * hash_bytes p`).
+   2. `ParameterSet` records the seven independent quantities from FIPS 205
+      Table 2; the two Winternitz lengths, message-digest length, public-key
+      size, and signature size are derived from the standard's formulas and
+      checked against the published columns across all six SHAKE rows.
+   3. `RomVerifier` records the verifier's phase list, primitive-call tags,
+      lifecycle-indexed root map, header layout, and anti-rollback floor so
+      each register obligation is decidable by conversion.
+   4. `accepted_roots` has type `Lifecycle -> list Root` with no unlock-token
+      parameter (R-09-036), modelling the absence of an unlock path in the
+      record signature.
 
-   The three assurance layers, and which one this is. What is here is the
-   **functional layer** and, for the verifier itself, a **shape**. No
-   constant-time property is claimed (R-05-062, R-05-067); no masking claim
-   is made (R-05-004a); no reduction and no distributional claim is made
-   (R-05-077a), and this file states nothing at all about the hardness the
-   hash-only assumption rests on. R-17-049's irreducible assumptions stay
-   irreducible and this file neither weakens nor discharges one.
+   Register readings and explicit boundaries:
+   1. `HashOnly` encodes R-05-058c's hash-only ground: every primitive call
+      in `calls` tags `Shake256`, excluding the four lattice-verifier
+      primitives (`Ntt`, `MatrixExpansion`, `RejectionSampler`, `HintDecoder`).
+   2. In FIPS 205 s11.1's SHAKE instantiations, `F`, `H` and `T_l` share the
+      body `SHAKE256(PK.seed || ADRS || M, 8n)` and are separated solely by
+      `ADRS`; the address-free variant `f_without_its_address` is constructed
+      and refuted. `PRF(PK.seed, SK.seed, ADRS)` concatenates as
+      `PK.seed || ADRS || SK.seed`; `prf_in_its_argument_order` is constructed
+      and shown to diverge whenever `SK.seed` and `ADRS` differ.
+   3. For R-09-005a, the 29,792-byte signature size is checked to lie between
+      10 KiB and 100 KiB. The census counts hash-function calls (764 to 8,444
+      calls per verification), which lower-bound Keccak permutations because
+      each call absorbs at least one block.
+   4. R-09-005 requires a fixed-layout, length-bounded header; `fields_pack`
+      strengthens this to contiguous, non-empty fields summing to
+      `header_bytes`.
+   5. R-09-005 leaves the anti-rollback floor's width and storage to the
+      hardware model (`rollback_floor : nat`), R-09-036 leaves non-production
+      root sets to policy, and R-05-058c leaves `ADRS` formatting to FIPS 205.
 
-   One Require, and what it reaches. `Require Import Keccak.` is a sibling
-   artifact under proofs/ that Requires nothing, so the reach of this file
-   is the prelude, that file and this one, and every constant enumerated at
-   the end of both is closed under the global context. `shake256` below is
-   that file's, at that file's bit order, and no second transcription of
-   FIPS 202 is made here.
+   Non-vacuity (R-05-165, R-05-166). `demo` inhabits the parameter set,
+   header, call list, phase order, and verifier, satisfying `Admissible` by
+   conversion. Five single-defect verifiers (a lattice verifier, unmeasured
+   execution, omitted floor check, widened production root set, and
+   public-key-sized signature field) and three single-defect headers are
+   constructed and refuted while preserving the remaining clauses.
 
-   The representation, which no register entry fixes and which is therefore
-   a reading of this file:
-
-   1. **Bit strings are Keccak.v's**, and an output length is in bits, so
-      the standard's `8n` is written `8 * hash_bytes p` and reaches
-      `shake256` as its first argument.
-   2. **A parameter set is a record of the seven quantities FIPS 205's
-      Table 2 tabulates independently** and every other quantity, the two
-      Winternitz lengths, the message-digest length, the public key size and
-      the signature size, is computed from them by the standard's own
-      formulas. The table's own `m`, its public key size and its signature
-      size are then held equal to what the formulas give, which is the
-      differential shape M3.4a and M3.4d set at FIPS 202 and FIPS 197: what
-      is derived is checked against what the standard publishes.
-   3. **The verifier is a record of what it has rather than a function that
-      runs.** Its phases are a list, its primitive calls are a list of tags
-      naming which primitive each reaches, its accepted roots are a map from
-      the lifecycle state, and its anti-rollback floor is a number. A
-      predicate over that record is decidable, which is what lets each of
-      the register's clauses be a thing the witness does rather than a
-      sentence beside it.
-   4. **The absence of an unlock path is modelled as the absence of an
-      argument.** R-09-036 wants no fuse, strap or signed unlock token to
-      widen the accepted root set, and the field's type here is
-      `Lifecycle -> list Root`, which has nowhere for such a token to enter.
-      That is a **shape and not a proof**: it says this model cannot express
-      the widening, not that no implementation can, and the file says so
-      here rather than letting the type read as evidence.
-
-   The readings of the register this file takes:
-
-   1. **R-05-058c's ground is the hash-only assumption, and `HashOnly` is
-      that ground made decidable.** The entry splits the schemes by verifier,
-      puts SLH-DSA at everything a metal-mask ROM verifies, and its
-      acceptance is that no ROM-resident lattice verifier exists. The four
-      things it names a lattice verifier needing, an NTT, a matrix
-      expansion, a rejection sampler and a hint decoder, are four
-      constructors of `Prim` here, and a verifier is hash-only exactly when
-      every call it makes tags `Shake256`. The refuted instance below is a
-      verifier carrying all four, and it is held to that single difference:
-      it still measures before it executes, still checks the floor and still
-      accepts the production root alone.
-   2. **The six instantiations are FIPS 205 s11.1's and three of them are
-      one function.** At the SHAKE parameter sets `F`, `H` and `T_l` are all
-      `SHAKE256(PK.seed || ADRS || M, 8n)`, so what separates a chain step
-      from a tree node from a leaf compression is the address and nothing
-      else. That is stated here as an equality holding at every argument,
-      and the near alternative it exists to exclude is the same call with
-      the address dropped, which has the same output length, is `shake256`
-      in every other respect, and collapses the three roles into one.
-      **`PRF` is the one of the six whose signature and whose concatenation
-      disagree**, the standard writing `PRF(PK.seed, SK.seed, ADRS)` and
-      instantiating it over `PK.seed || ADRS || SK.seed`, so both are
-      written out below and the alternative that concatenates in its own
-      argument order is built and refuted. That alternative agrees with the
-      standard's at every input whose address and secret seed are the same
-      string, which is exactly the family a test reusing one value for both
-      would not separate them on, and the file computes that agreement
-      rather than leaving it to be found.
-   3. **R-09-005a's two figures are read differently, and the file says
-      which is which.** *Tens of kilobytes* is made a figure: the signature
-      size the parameter set determines is 29,792 bytes, which the file
-      computes and holds inside ten and a hundred kibibytes. *Thousands of
-      Keccak permutations* is left unaudited, and deliberately: what the
-      census below computes is **calls**, running from 764 where every
-      message digit is w - 1 and only each layer's three checksum chains are
-      walked whole, to 8,444 where every chain is. By reading 4 each call
-      costs at least one permutation, so those figures bound the permutation
-      count from below and never from above, and a lower bound of 764 calls
-      neither establishes the entry's figure nor refutes it. Nothing here
-      computes a permutation count, so that half of the entry is reported as
-      unaudited rather than decided.
-   4. **The census counts calls and not permutations.** Every call of the
-      six absorbs at least one block and so costs at least one Keccak
-      permutation, and the two tree-root compressions absorb more than one,
-      so the census is a lower bound on the permutations of a verification
-      that makes those calls. It is arithmetic over the parameter set with
-      each term named to the clause of FIPS 205 it counts, and it is not a
-      construction: nothing here computes a chain, a path or a root.
-   5. **The oracle enters no trust base.** Every published answer below is a
-      constant inside an `Example`'s own statement, never a `Definition`.
-
-   What is deliberately absent, with the entry that owes each decision. A
-   register gap is reported, not closed:
-
-   a. **No verification algorithm.** WOTS+, FORS, the Merkle path and the
-      hypertree are M3.4b's, and a classical signature scheme is what the
-      frozen suite does not contain at all (R-17-049b: no requirement claims
-      a hybrid signature, and the two roles the diversity is stated over are
-      the ROM-verified and the re-signable). Owed at M3.4b.
-   b. **No entry states the header's field offsets, its length bound or the
-      order of its fields**, and **that the four fields pack the header
-      exactly is this file's reading and not the entry's**: a gap between
-      two declared fields is a run of bytes no field names, which is what a
-      reader that is not a parser has no business walking into, so the
-      predicate here asks for packing where the entry asks only for a fixed
-      layout. R-09-005 says fixed-layout and length-bounded
-      and states no number, so the witness's offsets are this file's and the
-      predicate holds the shape rather than the values. Owed at R-09-005.
-   c. **No entry states the anti-rollback floor's width, its unit or where
-      it is stored.** The floor is a `nat` here and the comparison is the
-      only thing stated of it. Owed at R-09-005.
-   d. **No entry says which roots the four lifecycle states other than
-      production accept.** R-09-036 fixes production's set at one and says
-      nothing of raw, test, development or RMA; the witness's other four
-      sets are this file's reading and are not held by the predicate. Owed
-      at R-09-036.
-   e. **Nothing in the register names an address at all**, so whether the
-      domain separation `ADRS` supplies is the reading R-05-058c's hash-only
-      ground wants is unstated. Owed at R-05-058c.
-   f. **No constant-time claim, no masking claim, no reduction** (above).
-
-   The literals taken from the standards, and there are no others. FIPS
-   205's Table 2 row for SLH-DSA-SHAKE-256s, which is n = 32, h = 64,
-   d = 8, h' = 8, a = 14, k = 22 and lg_w = 4 together with that row's own
-   m = 47, public key of 64 bytes and signature of 29,792 bytes; and s11.1's
-   32-byte address, which is the full `ADRS` the SHAKE parameter sets use
-   where the SHA-2 sets compress it. Every other quantity here is computed.
-
-   Non-vacuity (R-05-165, R-05-166). `demo` inhabits the parameter set, the
-   header, the call, the phase order and the verifier, and discharges
-   `Admissible` by conversion. Five verifiers the predicate refuses are
-   built and refuted, one carrying a lattice verifier's four primitives, one
-   executing before it is measured, one with no floor check, one accepting a
-   development root in production, and one whose header sizes the signature
-   field at the public key's size; each is held to its single difference,
-   keeping every clause it does not break. Beside them the address-free hash
-   is built and refuted at two addresses that separate under the standard's
-   own form. Inhabitation is the published sizes themselves, so no check
-   below holds of everything and none holds of nothing.
-
-   Where each published answer came from. FIPS 205, *Stateless Hash-Based
-   Digital Signature Standard*, read on 2026-09-05 at the copy fetched from
-   nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.205.pdf: Table 2 for the
-   parameter row and the three published sizes, s5 for the two Winternitz
-   lengths, s10.1 for the message-digest length, and s11.1 for the six
-   instantiations and the address size. The instrument is the one
-   Sha256.v records for NIST's own files at nist.gov/oism/copyrights, whose
-   three paragraphs do not agree on what reaches a published standard, so
-   the strictest is met here as it is there: the document and NIST as its
-   source are named, the parameters are quoted unmodified, and no change
-   notice is owed because nothing was changed. Every derived quantity was
-   recomputed by hand from the standard's formulas before it was written
-   down here.
+   Provenance. Parameter rows, formulas, and function instantiations follow
+   NIST FIPS 205 (Stateless Hash-Based Digital Signature Standard, Table 2,
+   s5, s10.1, s11.1); see [Sha256.v](Sha256.v) for the NIST attribution note.
    (*| BEGIN derived: cited entries |*)
    Owner: docs/requirements-register.md
    Requirements: R-05-004a R-05-058a R-05-058c R-05-062 R-05-067 R-05-077a R-05-163 R-05-165
@@ -204,7 +82,7 @@ Local Ltac vm_reflexivity :=
   intros; lazymatch goal with |- _ = ?b => vm_cast_no_check (@eq_refl _ b) end.
 
 (* -------------------------------------------------------------------------
-   Helpers this file adds to Keccak.v's, in the same idiom.
+   Helpers added on top of [Keccak.v](Keccak.v).
    ------------------------------------------------------------------------- *)
 
 Definition ceil_div (a b : nat) : nat := Nat.div (a + b - 1) b.
@@ -1155,13 +1033,8 @@ Example the_witness_and_its_order_place_every_phase_where_the_entry_wants_it :
 Proof. vm_reflexivity. Qed.
 
 (* -------------------------------------------------------------------------
-   The edges the statements above reach past, each one a site `run.py seed`
-   found and no statement of this file decided: the arm a total function
-   takes where its list runs out, the answer the digit count gives when its
-   fuel does, and the floor the field-length clause sets. Nothing above
-   hands any of them the input that reaches the arm, which is why the
-   answers are the transcription's own and are stated here rather than left
-   to be inferred from the callers that never ask.
+   Boundary and empty-list base cases for `fields_pack`, `last_end`,
+   `digits_base`, and single-byte header fields.
    ------------------------------------------------------------------------- *)
 
 Example the_packing_of_no_fields_at_all_holds :
@@ -1176,9 +1049,8 @@ Example the_digit_count_out_of_fuel_answers_zero :
   Nat.eqb (digits_base 0 (winternitz shake_256s) (signature_bytes shake_256s)) 0 = true.
 Proof. vm_reflexivity. Qed.
 
-(* The field-length clause's floor is one byte and not two: a one-byte
-   field names a byte, so the header below packs its four fields exactly,
-   stays inside its own declared length and is admitted whole. *)
+(* A one-byte field is the minimum positive field length admitted by
+   `header_is_fixed_layout`. *)
 Definition header_with_a_one_byte_field : Header :=
   {| image_offset := {| field_offset := 0; field_length := 1 |};
      image_length := {| field_offset := 1; field_length := 8 |};
@@ -1194,11 +1066,6 @@ Proof. vm_reflexivity. Qed.
 (* -------------------------------------------------------------------------
    R-05-166's inhabitation witnesses: one closed definition per record this
    file's statements quantify over, named for that record and ascribed at it.
-   The prover decides inhabitation by type-checking the ascription, so
-   `run.py proofs` reads a name rather than approximating a type judgement.
-   Both alias the instance the statements above already compute over: the
-   frozen SLH-DSA-SHAKE-256s parameter set, and the verifier whose every
-   primitive field is shake256.
    ------------------------------------------------------------------------- *)
 
 Definition witness_ParameterSet : ParameterSet := shake_256s.

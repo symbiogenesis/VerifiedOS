@@ -2,49 +2,28 @@
 (* =========================================================================
    CredentialHandles.v
 
-   Source-level request guards and delegation for M6.3b's credential-handle
-   package, read against R-12-015a, R-12-015b and their sealing-service prose.
-   The seven bindings are a protocol role, principal, peer/origin scope,
-   permitted operation, transcript/domain separator, use count and expiry.
-   Scope and operation authority are finite sets; this package narrows those
-   sets while retaining the same role, principal and transcript. It chooses
-   no hierarchy between roles, principals or transcript identifiers.
+   Source-level request guards and attenuation for protocol-bound credential
+   handles (R-12-015a, R-12-015b; companion to [ObjectRouter.v](ObjectRouter.v)).
 
-   A schema supplies the finite identifier bounds, protocol-specific operation
-   relation and request bound. Their numeric values below are fixtures, not a
-   credential IDL or a declaration of the platform's protocol vocabulary.
-   Expiry validity and attenuation are supplied by policy; the general
-   attenuation theorem explicitly requires their monotonicity. The fixture's
-   half-open natural-number clock makes no claim about the platform's clock,
-   units, unknown-time handling or selected expiry policy.
+   Model and theorems:
+   - Seven-part credential binding (R-12-015a): each `Credential` binds a
+     protocol role, principal, finite peer/origin scope set, finite permitted
+     operation set, transcript/domain separator, use-count ceiling, and expiry
+     over a shared server-owned account (`credential_account`). Delegation
+     (`delegates`) narrows scopes, operations, use-count ceiling, and expiry
+     while preserving role, principal, transcript, and shared account;
+     `delegated_authority_is_monotone` proves that any request authorized by a
+     delegated handle's authority guards is also authorized by its parent's.
+   - Trusted-path consent and shared use accounting (R-12-015b): `ServerState`
+     supplies the current use count, server clock, and powerbox/trusted-path
+     consent callback (`consent_allows`), separate from `ClientRequest`. Both
+     parent and delegated handles spend from the same `account_used` counter
+     (`authorize_and_charge`).
 
-   ServerState is a trusted input, separate from ClientRequest. Its consent
-   callback is indexed by the credential, request and shared use ordinal.
-   A client request contains no approval bit. The guard theorem is conditional
-   on this callback being the powerbox/trusted-path decision required by
-   R-12-015b; callback authenticity and freshness are target integration
-   obligations. A boolean answer is not itself a proof of either property.
-
-   Delegation retains the same server-owned account, and its use count is an
-   absolute ceiling on that account's consumed operations. Both handles spend
-   that one counter. This is a concrete conservative candidate: delegating a
-   ceiling already reached yields an unusable handle, and delegation creates
-   no independently spendable quota. The serial transition below charges one
-   authorized invocation. Atomicity under concurrent clients and the point at
-   which a real protocol operation consumes its use are separate join inputs.
-
-   The input credential is the authority the service obtains after authentic
-   sealed-handle lookup. Gallina record construction models no CHERI sealing
-   or unforgeability. No key bytes or generic sign/decrypt/derive operation
-   are introduced here, and no cryptographic result is implemented. The finite
-   schema must still be instantiated by the reviewed protocol IDL, the lookup
-   and counter must join the actual service, and M6.3b's ring/storage target
-   acceptance remains open. No whole-entry discharge is claimed.
-
-   All functions terminate structurally. The computed examples distinguish
-   weakened guards, widened delegations, cloned counters and client-supplied
-   consent from the reference candidate. R-05-163's native assumption audit
-   and R-05-166's closed record witnesses apply to this source artifact.
+   Non-vacuity (R-05-163, R-05-166):
+   - Every record has a closed witness, and computed examples distinguish the
+     reference guard from weakened guards, widened delegations, cloned counters,
+     and client-supplied consent.
    (*| BEGIN derived: cited entries |*)
    Owner: docs/requirements-register.md
    Requirements: R-05-163 R-05-166 R-12-015a R-12-015b

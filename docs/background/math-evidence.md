@@ -47,7 +47,7 @@ Evidence stage: **independent replay**. Disposition: **evaluate now**. Inspected
 Selected sources:
 
 - [tools/vos/composer.py](../../tools/vos/composer.py); identity `b96169f76319dd55c7597462472257830370fe9c86c44236ae3379efe34bcd3e`.
-- [proofs/HandlerGraph.v](../../proofs/HandlerGraph.v); identity `98cdb2609c15cf18b52c10412424ae491c052e5620e56e926c3ec168d093edba`.
+- [proofs/HandlerGraph.v](../../proofs/HandlerGraph.v); identity `0f779ec5f3fb93552ea47302f2e71bc0d2d4fd5fbed82c879b3370bf56a2972e`.
 
 Assumptions and exclusions:
 
@@ -297,7 +297,7 @@ Sorted reference payload SHA-256: `23b690105f12b96f3ef7a997cf508a5b775e70bcaf077
 | [tools/pyproject.toml](../../tools/pyproject.toml) | `db314a13c9a3d4a4e7616a938ce428f46c9961fd300aab5e1cc96772a66fd9cd` |
 | [tools/uv.lock](../../tools/uv.lock) | `55edc4312a572821133088601ca959d21d6042cfdc5e1c9caa67f24b5194b9f6` |
 | [tools/vos/composer.py](../../tools/vos/composer.py) | `b96169f76319dd55c7597462472257830370fe9c86c44236ae3379efe34bcd3e` |
-| [proofs/HandlerGraph.v](../../proofs/HandlerGraph.v) | `98cdb2609c15cf18b52c10412424ae491c052e5620e56e926c3ec168d093edba` |
+| [proofs/HandlerGraph.v](../../proofs/HandlerGraph.v) | `0f779ec5f3fb93552ea47302f2e71bc0d2d4fd5fbed82c879b3370bf56a2972e` |
 | [tools/vos/math_evidence.py](../../tools/vos/math_evidence.py) | `cbe9e115518178c4ad00db96377ccbd9508544e9b24fbe78055b3d921d700a3c` |
 | [tools/vos/__init__.py](../../tools/vos/__init__.py) | `f4212439e361dd2a6d2b25d97c82b6ba6ab8aa4cf3814a69023d8a745b11d49c` |
 | [tools/vos/atomic.py](../../tools/vos/atomic.py) | `384e706e945f8cead1e1b3791f916f6e7f8783a7497c17dd3a551a765e670471` |

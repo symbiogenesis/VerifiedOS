@@ -97,10 +97,8 @@
    excludes something and the feasibility theorem needs it. A padded
    placement of the laminar family is feasible with span above its load,
    so feasibility alone does not force the equality the theorem proves.
-   And a seven-object crossing family, found by a scratch search and
-   confirmed by `run.py static-memory compare` over an unshipped
-   hand-written contract and mechanized here by finite
-   case analysis, has an optimum strictly above its load: every placement
+   And a seven-object crossing family, mechanized here by finite case
+   analysis, has an optimum strictly above its load: every placement
    whose bases lie below the load is enumerated and refused by
    computation, a completeness lemma places every placement of span at
    most the load in that enumeration, and a placement of span one above

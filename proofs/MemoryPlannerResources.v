@@ -3,54 +3,32 @@
    MemoryPlannerResources.v
 
    Logical credit and elapsed-bound arithmetic for preallocated component
-   request slots. The host contract checker additionally requires checked fixed
-   offsets and accounts for overhead: scalar free bytes alone do not guarantee
-   a contiguous, aligned extent. Neither an online allocator nor a collector
-   is implemented by these definitions. No donor implementation or proof is
-   imported. The specification pattern is discussed in
-   docs/implementation/static-memory/resource-contracts.md.
+   request slots (see
+   [resource-contracts.md](../docs/implementation/static-memory/resource-contracts.md)
+   and [MemoryPlannerContracts.v](MemoryPlannerContracts.v)).
 
-   required_credit is the exact initial credit required for a finite sequence
-   of Take and Return actions. Returns are protocol facts, supplied only at
-   validated reuse barriers by the host extractor. run_credit independently
-   executes forward. required_credit_exact proves success precisely at or
-   above the inferred requirement; below_requirement_fails exhibits failure
-   below it. credit_conservation accounts for every issued and returned byte.
-   balanced_trace_restores_credit states the reusable-slot postcondition, and
-   repeated_balanced_traces_fit extends it to any finite number of invocations.
+   Model and theorems:
+   - Exact prefix credit accounting (R-08-046): `required_credit` computes the
+     exact initial credit needed for a finite sequence of `Take` and `Return`
+     actions, and `run_credit` executes forward. `required_credit_exact` and
+     `below_requirement_fails` prove success if and only if initial credit meets
+     `required_credit`; `credit_conservation`, `balanced_trace_restores_credit`,
+     and `repeated_balanced_traces_fit` establish byte conservation and
+     reusable-slot restoration across repeated invocations.
+   - Sequential composition: `required_credit_app`,
+     `required_credit_prefix_exact`, and `run_credit_prefix_exact` characterize
+     sequential phases and prefix demand.
+   - Elapsed-bound transport (R-11-015): `release_deadline_sound` transports
+     pointwise admitted elapsed upper bounds (already accounting for preemption,
+     blocking, device completion, and cleanup) through their sum.
 
-   required_credit_app gives the exact requirement for sequential phases,
-   accounting for the first phase's net use. A balanced first phase permits
-   reuse of the larger phase requirement, rather than their sum.
-   required_credit_prefix_exact and run_credit_prefix_exact characterize
-   sufficient credit and successful execution by the demand at every prefix.
-   Final balance alone supplies no peak bound: equal-total traces below need
-   different credit, and a balanced trace can require any natural amount.
-   These are finite accounting facts, not a discrepancy theorem or permission
-   to reorder operations whose dependencies the credit model does not carry.
-
-   These credit theorems do not prove that a Return names its own outstanding
-   allocation or that holders and device users drained. Those independent
-   identity and barrier checks belong to the bounded component interpreter and
-   MemoryPlannerContracts.v. The host checks each pool/slot separately and
-   checks fixed placement before presenting success. Its certificate emitter
-   produces concrete run_credit and deadline examples for independent kernel
-   replay; no theorem equates its Python code to this Gallina implementation.
-
-   release_deadline_sound transports pointwise admitted elapsed upper bounds
-   through their sum. The bounds must already include preemption, blocking,
-   device completion and cleanup. It neither derives hardware timing nor
-   turns fairness, wait-freedom or an event count into a wall-clock deadline.
-
-   R-08-046 supplies bounded structure admission; R-08-014 still owns physical
-   interference, and R-08-015 keeps safe reuse separate. R-08-006 and R-08-007a
-   supply containment and the subsequent full pass; credit returns before
-   those facts are outside this contract. R-11-015 owns actual placed-image
-   timing. These entries are cited, never discharged. R-05-163 audits every
-   compiled assumption. R-05-165 and R-05-166 are witnessed by a concrete
-   balanced nonlexical trace, failure one byte below its required credit, a
-   lost return that fails restoration, a delayed cleanup refutation, and
-   serial versus overlapping traces with equal totals but distinct peaks.
+   Scope and non-vacuity (R-05-163, R-05-165, R-05-166):
+   - Physical interference (R-08-014), safe reuse separation (R-08-015), and
+     containment/sweep barriers (R-08-006, R-08-007a) are checked by
+     [MemoryPlannerContracts.v](MemoryPlannerContracts.v) and the host contract
+     checker. Witnesses exhibit a balanced non-lexical trace, failure one byte
+     below required credit, a lost return, a delayed cleanup refutation, and
+     serial versus overlapping traces with equal totals but distinct peaks.
    (*| BEGIN derived: cited entries |*)
    Owner: docs/requirements-register.md
    Requirements: R-05-163 R-05-165 R-05-166 R-08-006 R-08-007a R-08-014 R-08-015 R-08-046

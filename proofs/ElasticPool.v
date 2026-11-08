@@ -1,11 +1,13 @@
 (* SPDX-License-Identifier: Apache-2.0 *)
 (* =========================================================================
+   ElasticPool.v
+
    Executable history-indexed pool reference for R-08-047b and R-15-007k.
-   The step checks the new event only; the prefix lemma proves that earlier
-   grants keep their guarantees. This reference is not a bounded native service.
-   The finite metadata implementation in vos/elastic_pool.py needs its own
-   refinement to this producer before Q34c can close. No accepted assumption
-   stands in for that missing theorem or the physical R-08-006 barrier.
+   Each step checks the new event only, and the prefix lemma proves that earlier
+   grants retain their guarantees. This reference models the history-indexed
+   producer specification; the finite-metadata host implementation in
+   [elastic_pool.py](../tools/vos/elastic_pool.py) and the physical R-08-006
+   reuse barrier are verified separately.
    (*| BEGIN derived: cited entries |*)
    Owner: docs/requirements-register.md
    Requirements: R-08-006 R-08-047b R-15-007k

@@ -2,25 +2,16 @@
 (* =========================================================================
    SeamWitnesses.v
 
-   Distinguishing witnesses for R-05-160's nine seam statements and the
-   composition meta-lemma, following R-05-165 and R-05-166. Each witness
-   satisfies a seam's premises and refutes its conclusion. This catches
-   weakening a seam into a tautology even when T's global witnesses survive.
-
-   The parameterized model uses trivial_vocabulary's one-point machine with
-   nine independently chosen seam conclusions. To refute seam k, conclusion
-   k is False and the rest are True. A conclusion may also be another seam's
-   premise: composed_schedulability feeds seam 6 and ae_ind_cca_int_ctxt
-   feeds seam 5. The witness makes no claim about those other seams.
-
-   At leaky_vocabulary, the substrate invariants, seams and tower rungs hold
-   while T fails. This refutes the ledger-only implication and shows why
-   R-18-031(b)'s linking theorem needs actual semantic transports. Each statement
-   family is also inhabited at trivial_vocabulary, so the refutations do not
-   rely on unsatisfiable statements.
-
-   This companion imports ApexTheorem without changing Vocabulary, the
-   seam statements or crown-jewel row 1. It adds no axioms or obligations.
+   Distinguishing witnesses for the nine seam statements (R-05-160) and the
+   composition meta-lemma (R-05-161, R-18-031) in
+   [ApexTheorem.v](ApexTheorem.v#Vocabulary), under R-05-163, R-05-164,
+   R-05-165, and R-05-166:
+   - `conclusion_witness_vocabulary` parameterizes the nine seam conclusions
+     over `trivial_vocabulary` so each seam's premises hold while its own
+     conclusion is refuted.
+   - `leaky_vocabulary` satisfies all substrate invariants, seams, and tower
+     rungs while `T` fails, showing that linking requires explicit semantic
+     transports (`Transports`).
    (*| BEGIN derived: cited entries |*)
    Owner: docs/requirements-register.md
    Requirements: R-05-160 R-05-161 R-05-163 R-05-164 R-05-165 R-05-166 R-18-031

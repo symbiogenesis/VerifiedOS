@@ -2,336 +2,56 @@
 (* =========================================================================
    ObjectRouter.v
 
-   M6.3b's contained object router, at the two of its five subjects whose
-   register entries carry an acceptance clause that decides and whose
-   measurement is the router's own act rather than the storage layer's:
-   R-10-005b's private namespaces and R-10-005c's live queries, read
-   together with R-12-024a, which is the fabric entry itself, R-12-024e's
-   resolution face, R-12-005's bounded ring, R-12-095's full-ring result,
-   and R-08-046's declared bounded pool over the subscription queue.
+   Statement and reference model for the contained object router's private
+   namespaces and live-query subscriptions, expressed in
+   [ApexTheorem.v](ApexTheorem.v)'s parameterized record style over
+   [RingContract.v](RingContract.v) and [ProofSupport.v](ProofSupport.v).
 
-   Which entries this file is stated over is a judgment and not a reading of
-   its own cell, and the judgment is taken in three steps a reviewer can
-   check one at a time. **Step one** reads the two entries off M6.3b's own
-   cell, which cites them by id: R-10-005b for private namespaces and
-   R-10-005c for live queries. **Step two** takes the ids those two spell
-   out, which is a reading and not a judgment: R-10-005b's sentence cites
-   R-10-003 for the one parametric index it instantiates, and R-10-005c's
-   cites nothing. Of the one step two reaches, R-10-003 carries no statement
-   below: this file states nothing about an index's internal structure, that
-   being JournalIndex.v's subject and KeyspaceDomains.v's instantiation of
-   it, and a derived scope that named it and stated nothing over it would be
-   a scope a reviewer cannot check, so it is named here with what it is owed
-   by. **Step three** is the judgment, and it reaches five entries by a noun
-   one of the two uses and does not itself define. R-10-005b's "the
-   presented namespace capability" reaches R-12-024a, which is where a
-   caller's delegation of a namespace capability for the duration of a
-   session is defined, and R-12-024e, which is where what a resolution may
-   derive from it is defined; R-10-005c's "bounded SPSC ring" reaches
-   R-12-005, which is where a bounded ring is defined, and R-12-095, which
-   is where a full ring's one typed result is defined; and its "queue bound"
-   reaches R-08-046, which is what a declared bounded pool is. A reviewer
-   who disagrees with the scope disagrees with step three rather than with a
-   statement below; steps one and two are checkable against the register's
-   own text.
+   Governing obligations:
+   - Private namespaces and session-scoped delegation: domain- and
+     namespace-scoped secondary indexes (instantiating
+     [JournalIndex.v](JournalIndex.v)'s R-10-003 parametric index over
+     [KeyspaceDomains.v](KeyspaceDomains.v)'s R-10-005 typed keyspace) whose
+     declared extents never overlap across confidentiality domains, whose index
+     write records carry no capability validity tags, and whose queries return
+     only object capabilities derivable from the caller's session-delegated
+     namespace capability, with no standing cross-caller authority surviving the
+     session's revocation epoch (R-10-005b, R-12-024a, R-12-024e).
+   - Bounded live-query delta streams: subscriptions with composition-time
+     result and queue bounds (R-08-046) delivering `Added`, `Removed`, and at
+     most one `Rescan` overflow marker (followed by no further deltas) over a
+     bounded SPSC ring (R-10-005c, R-12-005) whose full-ring outcome is
+     [RingContract.v](RingContract.v)'s `submit_result` (R-12-095), without
+     backpressuring transaction commit.
+   - Layer boundaries: protocol-bound credential handles live in
+     [CredentialHandles.v](CredentialHandles.v); composition-time handler graphs
+     (R-12-024b) and closed intent variants (R-12-013a) live in
+     [HandlerGraph.v](HandlerGraph.v).
 
-   What this file is. A statement artifact in ApexTheorem.v's idiom, not a
-   proof development and not an implementation. Every quantity a composition
-   fixes is a field of the Composition record rather than a literal or a
-   top-level Parameter, which is what keeps the R-05-163 assumption gate
-   green while leaving the decision where its owner can make it. Nothing is
-   admitted and nothing is axiomatized: the native assumption audit reports
-   every shipped constant closed under the global context.
+   Key readings and open register boundaries:
+   1. Seam with [KeyspaceDomains.v](KeyspaceDomains.v): R-10-005b's tag
+      prohibition is checked here on write records inside declared index extents
+      (`CarriesNoTagInsideAnExtent`), which is proved independent of
+      [KeyspaceDomains.v](KeyspaceDomains.v)'s authority-independent keyspace
+      reading (`the_two_readings_of_one_sentence_are_independent`).
+   2. Overflow and non-backpressure (R-10-005c): overflowing subscriptions
+      transition to a terminal `Rescan` phase (`EmitsExactlyOneMarkerOnOverflow`,
+      `NoFurtherDeltaAfterTheMarker`), and commit behaviour is invariant across
+      subscription-table states and ring `submit_result` outcomes.
+   3. Open register boundaries remain parameterized: the answer discipline when
+      a query exceeds the presented namespace capability (`Refusal`, `Empty`, or
+      `Truncated`; R-10-005b), secondary-index extent layout and whether the tag
+      prohibition extends outside declared index extents (R-10-005b), whether
+      `result_bound` bounds per-delivery batches or lifetime matching sets
+      (R-10-005c), and the dedicated live-query IDL world (R-12-005).
 
-   What the gate's green line means. Compiled, axiom-free, non-vacuous and
-   enumerated, and it does not mean verified. Nothing below is compiled,
-   lowered, or run on either emulator; no key is persisted, no index is
-   instantiated, no ring is created, no transaction commits and no
-   subscription delivers. The computed checks are decided inside the kernel
-   by conversion and print nothing.
-
-   The one Require, and why it is a dependency rather than a citation.
-   `Require Import RingContract.` names M6.4's generated ring interface,
-   which M6.3b's dispatch note makes this item's start condition, and it is
-   load-bearing at two places R-10-005c puts it. That entry delivers a live
-   query's deltas *over a bounded SPSC ring*, so the answer a publication
-   gets from the ring is that file's own closed `submit_result` and not a
-   local twin of it, and the backpressure obligation below is stated over
-   both of its constructors rather than over a boolean this file invented.
-   And the declared queue bound has to fit the ring that carries it, so
-   conjunct 3 of the composition's admission compares the bound against a
-   declared capacity, which the demo instantiates with that file's own
-   `ring_capacity`. Nothing else it exports is read, and no name declared
-   here shadows one it exports, so the native assumption audit follows
-   the imported constants and not local twins of them, which is a hazard a
-   `Require` carries and no gate reads. **What is not claimed is that the
-   subscription rides the reference world**: that declaration's five
-   operations are extents a storage server serves, a delta stream is none of
-   them, and a live-query world is a world no landed declaration carries,
-   exactly as M6.5b's cell says of the DMA world. Gap f records it.
-
-   The two Requires this file declines, and the reason differs in each case.
-   KeyspaceDomains.v states R-10-005b and R-10-005c at the *keyspace* and
-   the *journal*, and its vocabulary meets this file's subject at a name
-   rather than at a type: its `Delta` is indexed by the six-component
-   storage key `K2`, which a router holds no part of, and reaching its
-   `NsCap` would drag JournalIndex.v in behind it and put four hundred
-   kilobytes of exported names in a position to shadow this file's
-   silently. HandlerGraph.v is M6.3a's emitted graph and carries no
-   namespace, no subscription and no key at all. So both are cited here and
-   neither is required, and the seams between the three are drawn below
-   rather than left for a reviewer to find.
-
-   Where the seam with KeyspaceDomains.v runs, because the two files read
-   two of the same sentences and do not state the same thing.
-
-   * R-10-005b's "no capability is written into a key" has two readings and
-     they are independent. That file reads it as *the persisted keyspace is
-     a function of what was written and never of the authority under which
-     it was written*, which is its reading 12 and is stated over a
-     `Keyspace`. M6.3b's cell reads it as *no W record inside a declared
-     index extent carries a tag*, which is a property of the write records
-     the router emits and of the machine's tag plane. Neither implies the
-     other, and this file machine-checks that:
-     `the_two_readings_of_one_sentence_are_independent` exhibits a writer
-     that is authority-independent and tagged and a second that is untagged
-     and authority-dependent, each keeping the reading the other breaks.
-     Finding a below is that independence reported at its entry.
-   * R-10-005b's "no index spans confidentiality domains" is read there as a
-     two-state agreement over the *contents* of a keyspace and here, as
-     M6.3b's cell puts it, as a property the *composed image's declared
-     extents* decide: no two declared extents carrying different domains
-     overlap, and every record a key writer emits for an entry lands inside
-     the extent declared for that entry's own domain and namespace. Those
-     are two different obligations over two different objects and both are
-     owed.
-   * R-10-005c's overflow answer is bounded there and *counted* here.
-     `AtMostOneMarker` over that file's emitter compares a marker count
-     against 1; M6.3b's cell says *exactly one* marker and *no further
-     delta*, which is strictly stronger in both halves and needs a
-     subscription with a phase rather than an emitter with a list.
-     `EmitsExactlyOneMarkerOnOverflow` is the first half and
-     `NoFurtherDeltaAfterTheMarker` the second, and the resuming publisher
-     below keeps every other obligation and breaks the second alone.
-   * What this file does not restate is that file's own subjects: no index
-     order, no journal, no crash cut, no transaction record, no extent
-     encryption, no dedup digest and no freshness epoch appears below, and
-     `Txn` here carries an identifier and a committed bit and nothing that
-     would make it a second journal.
-
-   What is deferred, and to which item. Three of the router's five subjects
-   are not stated here and the reason differs.
-
-   * Protocol-bound credential handles are M6.3b's third decided subject and
-     are stated in CredentialHandles.v, which this item extends rather than
-     duplicates. Nothing below carries a credential, a role, a transcript or
-     a use count.
-   * Intents and the deterministic translation cache have no predicate and
-     the ground is the register's. No entry enumerates the intent variants
-     R-12-013a calls closed, and no entry says whether a graph may carry two
-     edges matching one intent; HandlerGraph.v exhibits a first-match and a
-     last-match selector, each proved to keep every obligation the other
-     keeps and the two differing observably on an ambiguous graph. A cache
-     keyed on an intent therefore has no closed vocabulary to quantify over
-     and no settled selection discipline to be deterministic against. This
-     file states neither, carries no intent and no cache key, and reports
-     both as open register acts at R-12-013a and R-12-024b rather than
-     closing either by writing a predicate for it.
-   * The measurements M6.3b's cell states are a member's and not an
-     artifact's: a W record read out of a declared extent on the machine, a
-     composed image's extents, an HTIF refusal verdict, and two runs of a
-     subscription over an executable ring. None of them is decided here, all
-     of them join M5.3's storage and an executable ring service, and nothing
-     below narrows that predicate or claims any part of it discharged.
-
-   Readings of the register this statement takes, each a reviewable judgment
-   rather than a neutral transcription:
-
-   1. A key's components are a composition's list and not a closed set. The
-      entry keys a secondary index by "confidentiality domain and a stable
-      namespace identifier as well as typed attribute value and object
-      identity", which is four; R-10-005 puts the kind and the snapshot
-      version in the key too, and KeyspaceDomains.v's `K2` carries six. So
-      `en_components` is a list of values and no count is closed here, and
-      the tag obligation is over whatever list the composition's key shape
-      gives. The demo carries six, matching that file's shape, and the
-      ledger pins the figure as the demo's rather than as a claim.
-   2. A key is written into an extent the composed image declares, and the
-      extent is what makes "inside a declared index extent" decidable. No
-      entry states a layout, so `Extent` carries a base, a span, a domain
-      and a namespace, the index for a domain and namespace pair is the
-      extent declared for it, and an entry names the slot inside that extent
-      it occupies. Gap b records that the placement is this file's.
-   3. A tag is a bit on a word. R-10-005b's prohibition is over authority
-      and the machine's authority is the validity tag, so `Word` carries a
-      bit beside its bits and a write record carries an address and a word.
-      Writing a tagged word is therefore a construction the obligation
-      refutes rather than an absence nothing can express, which is reading 3
-      of HandlerGraph.v taken at the tag plane.
-   4. A delegation is a session and it dies with its epoch. R-12-024a has
-      the caller delegate its namespace capability "for the duration of a
-      session" and the service hold "no standing cross-caller namespace
-      authority, each delegation ending with its session at the revocation
-      epoch", so a `Session` carries an identifier, a capability and an
-      epoch, a session is live exactly where its epoch is the composition's,
-      and both defects are constructions: `standing_route` reads a
-      capability the composition gave the fabric and `immortal_route` reads
-      a session whose epoch has passed.
-   5. The answer space is three-valued because three candidate disciplines
-      inhabit it, not because an entry closes it. R-10-005b constrains what
-      a query *returns* and nothing else, so a typed refusal, an empty
-      result and a truncated grant all keep its clause while a holder tells
-      them apart; `Answer` carries one constructor per candidate and
-      `answer_discipline` is a field. Gap a is that question at its entry.
-   6. Resolution is a per-ask relation and not a result set. R-12-024e makes
-      resolution derive an object capability from the delegated namespace
-      capability, and the bounded result set R-10-005c's own clause declares
-      is a composition figure the router reads rather than a list this file
-      quantifies over, so `result_bound` is a field the admission check
-      reads and no theorem below enumerates a result set.
-   7. A subscription has a phase, because "no further delta" is a property
-      of what the subscription does *next*. R-10-005c's overflow answer is
-      one marker, and a queue that carried the marker and then carried a
-      delta would have emitted the marker and gone on publishing; the phase
-      is what makes that a refutable construction.
-   8. Backpressure is a two-state agreement. R-10-005c's "rather than
-      backpressuring commit" is the statement that what a commit does is not
-      a function of the subscription table's state nor of the ring's answer,
-      so the obligation quantifies over two tables and two `submit_result`
-      values and the two blocking committers below are refuted at exactly
-      that quantifier.
-   9. Every generated family is a list of constructions whose fallback past
-      the last index is the specification's own. That is what makes a
-      bounded quantifier over the index decide anything: a bound raised by
-      one reaches the fallback, where the specification's construction
-      satisfies the obligation the family is refuted for breaking, so the
-      theorem fails rather than holding vacuously wider.
-  10. Boolean rather than propositional wherever the witnesses must compute:
-      the composition's admission conjuncts, the extent arithmetic, the
-      derivability check and the queue arithmetic are decidable, so the
-      generated families below are checked by conversion in the silent
-      Example form rather than by a proof per member.
-
-   The literals taken from the design, and there are three. The criterion is
-   the same at each: one sentence of one entry names its members and closes
-   the set, and the count sits beside the sentence rather than in prose.
-
-   - R-10-005b's acceptance clause, "no capability is written into a key
-     ..., no index spans confidentiality domains, and no query returns an
-     object capability not derivable from the presented namespace
-     capability", is three, so `all_namespace_prohibitions` is that list and
-     `there_are_three_namespace_prohibitions` is its count. Each of the
-     three carries its own obligation below and its own refuting
-     construction, so dropping a constructor drops an obligation.
-   - R-10-005c's delta alphabet is adds, removes and the one rescan-required
-     marker, which names what a delta *is* rather than sampling what one
-     might be, so `Delta` carries three constructors and no fourth. That is
-     KeyspaceDomains.v's licence read at the router's object identity rather
-     than at the storage key.
-   - R-10-005c's overflow answer is *one* marker, so
-     `EmitsExactlyOneMarkerOnOverflow` compares a count against 1 rather
-     than bounding it by 1.
-
-   Every other magnitude is a field: the declared index extents with their
-   bases, spans, domains and namespaces; the queue bound, the result bound
-   and the declared ring capacity; the live revocation epoch; the answer
-   discipline; and the standing capability no obligation reads. The demo at
-   the end instantiates each with a witness value that carries no
-   composition claim, and the ledger pins every one of them.
-
-   How the refutations are generated. A refutation is a seeded weakening the
-   theorem must reject, so the families below are produced mechanically
-   rather than authored one by one, which is DischargeSequence.v's method
-   and HandlerGraph.v's, taken to an extent list and a subscription. Over
-   the composition's five admission conjuncts: `spoiled_composition_at`
-   moves one field of the demo composition to that conjunct's own boundary
-   and `admit_without` drops one conjunct from the admission check, so the
-   five are decided twice, once from the composition's side and once from
-   the checker's. Over the key writers: one combinator at two axes, a key
-   body and a placement offset, so the five writers are points of a grid and
-   the three obligations are a table over them rather than fifteen
-   sentences. Over the three answer disciplines: one router per discipline,
-   each proved to mint nothing and the three proved pairwise
-   distinguishable on one widening ask. The hand-authored refutations are
-   the ones no index generates, being alternative constructions rather than
-   mutations of a list.
-
-   What this file deliberately does not author, with the entry that owes
-   each decision. A register gap is reported, not closed:
-
-   a. What a query the presented namespace capability does not admit is
-      answered by. R-10-005b's acceptance clause constrains only what a
-      query *returns*, "no object capability not derivable from the
-      presented namespace capability", and a typed refusal, an empty result
-      and a grant truncated to the presented capability's own rights all
-      keep it. A holder distinguishes all three, and only one of them lets a
-      caller tell an authority error from an empty namespace. The two landed
-      readings already differ: KeyspaceDomains.v's resolver answers `nil`
-      where the presented capability does not admit the query, and M6.3b's
-      cell has the member report a refusal. `answer_discipline` is therefore
-      a field, all three disciplines are exhibited, each is proved to mint
-      nothing, and `the_answer_discipline_is_observable` machine-checks that
-      the three differ on one ask. Owed at R-10-005b.
-   b. Where a secondary index sits. R-10-005b requires an index per
-      confidentiality domain and namespace and states no layout, so the
-      extent list, its bases and its spans are fields and the placement rule
-      below, one extent per domain and namespace pair with the entry naming
-      its slot, is this file's. What is not this file's is the separation
-      obligation over those extents, which is the entry's own sentence.
-      Owed at R-10-005b.
-   c. Whether a capability may be written outside a declared index extent.
-      M6.3b's cell scopes the tag prohibition to a W record *inside a
-      declared index extent*, and `CarriesNoTagInsideAnExtent` is scoped the
-      same way, so a writer that emits a tagged word at an address no extent
-      covers is refuted by the placement obligation and not by this one.
-      Whether the entry means the narrower or the wider prohibition is not
-      settled anywhere. Owed at R-10-005b.
-   d. What the declared result bound bounds. R-10-005c gives a subscription
-      "a composition-time result and queue bound" and the queue bound is
-      what the overflow clause is stated against; nothing says whether the
-      result bound bounds one delivery, one rescan's result set or the
-      matching set itself. `result_bound` is a field the admission check
-      requires positive; bounded_result_delivery additionally bounds each returned
-      batch. A lifetime matching-set budget remains a query-engine join at
-      R-10-005c.
-   e. Whether the rescan-required marker occupies a slot of the declared
-      queue bound or sits beside it. The reading taken below is
-      KeyspaceDomains.v's, the marker inside the bound, so an overflowing
-      publication is the bound's first steps and then the one marker and
-      never one delta more than the bound admits. That file's gap e records
-      the same question and this file takes the same arm rather than a
-      second one. Owed at R-10-005c.
-   f. Which interface world a live subscription's ring is. R-10-005c
-      delivers deltas over a bounded SPSC ring and M6.4's landed
-      declaration carries one world, whose five operations are extents a
-      storage server serves and none of which is a delta stream. So the
-      declared ring capacity is a field of the composition, the demo
-      instantiates it with the reference world's own constant and claims
-      nothing by doing so, and the world itself is owed at the declaration
-      exactly as M6.5b's DMA world is. Owed at R-12-005.
-   g. Every composition magnitude. The extent list with each extent's base,
-      span, domain and namespace; the queue bound, the result bound and the
-      declared ring capacity; the live epoch; the answer discipline; and the
-      standing capability are fields, the demo instantiates each with a
-      witness value that carries no composition claim, and the ledger pins
-      every one of them.
-
-   Non-vacuity (R-05-165, R-05-166). Every obligation below is stated as a
-   property of an arbitrary key writer, composition, router, publisher,
-   committer, reboot or establishment, proved of the specification, and
-   refuted of an alternative construction the register's own sentence
-   excludes or, where the register does not exclude one, exhibited beside
-   its siblings with the question reported rather than decided.
-   Inhabitation is concrete: three declared extents over two confidentiality
-   domains, an entry of six components sitting inside one of them, five
-   compositions each breaking one admission conjunct, five key writers
-   decided at three obligations apiece, a fabric of three sessions of which
-   one is a peer's and one has outlived its epoch, four asks of which one
-   sits exactly on the rights boundary and three widen, and a subscription
-   whose publication lands exactly on its bound and one past it. The ledger
-   at the end pins every field of every witness no obligation reads, which
-   is the hazard M6.2a measured: a field nothing reads is a field a
-   weakening moves in silence.
+   Non-vacuity (R-05-163, R-05-164, R-05-165, R-05-166):
+   - Every obligation is proved for the specification and refuted on generated
+     families following [DischargeSequence.v](DischargeSequence.v) and
+     [HandlerGraph.v](HandlerGraph.v): five spoiled-composition and
+     dropped-conjunct families (`spoiled_composition_at`, `admit_without`), a
+     two-axis grid of key writers, three pairwise-distinguishable answer
+     disciplines, and single-defect routers and publishers.
    (*| BEGIN derived: cited entries |*)
    Owner: docs/requirements-register.md
    Requirements: R-05-163 R-05-164 R-05-165 R-05-166 R-08-046 R-10-003 R-10-005 R-10-005b
@@ -810,7 +530,7 @@ Definition extents_separated (xs : list Extent) : bool :=
 
 Definition composition_conjuncts (c : Composition) : list bool :=
   (* 0: R-10-005b's "no index spans confidentiality domains", read as
-     M6.3b's cell reads it, over the composed image's declared extents. *)
+     this router specification reads it, over the composed image's declared extents. *)
   cons (extents_separated (index_extents c))
   (* 1: an extent that covers no address is an index the composition did
      not place, and the separation above would hold of it vacuously. *)
@@ -879,7 +599,7 @@ Proof.
 Qed.
 
 (* =========================================================================
-   R-10-005b's first two prohibitions, at the places M6.3b's cell puts them:
+   R-10-005b's first two prohibitions, at the places this router specification puts them:
    no W record inside a declared index extent carries a tag, and every
    record lands inside the extent the composed image declared for its own
    domain and namespace.
@@ -1020,12 +740,12 @@ Definition spec_write : KeyWriter := placed plain_key slot_offset.
 Definition sealing_write : KeyWriter := placed sealed_key slot_offset.
 
 (* A key carrying the presented capability itself, tagged, in the slot the
-   key's last component occupies: the construction M6.3b's cell names. *)
+   key's last component occupies: the construction this router specification names. *)
 Definition capability_write : KeyWriter := placed capability_key slot_offset.
 
 (* The presented capability's rights written into a key as an ordinary
    untagged number, which is what KeyspaceDomains.v's stamped persister does
-   at the keyspace. No tag is set, so the reading M6.3b's cell takes is
+   at the keyspace. No tag is set, so the reading this router specification takes is
    kept and the reading that file takes is broken. *)
 Definition stamped_write : KeyWriter := placed stamped_key slot_offset.
 
@@ -1033,7 +753,7 @@ Definition stamped_write : KeyWriter := placed stamped_key slot_offset.
    for it, which is an index reaching where the composition placed another. *)
 Definition spilling_write : KeyWriter := placed plain_key past_offset.
 
-(* M6.3b's cell's own sentence, and it is scoped to a record inside a
+(* this router specification's own sentence, and it is scoped to a record inside a
    declared extent rather than to every record (gap c). *)
 Definition record_inside_some_extent (c : Composition) (r : WriteRecord) : bool :=
   any_of (fun x => inside x (wr_address r)) (index_extents c).
@@ -1502,7 +1222,7 @@ Definition StaysInsideTheDeclaredBound (pb : Publisher) : Prop :=
     Nat.leb (count_of (sb_queue s)) (queue_bound c) = true ->
     Nat.leb (count_of (sb_queue (pb c x s ds))) (queue_bound c) = true.
 
-(* M6.3b's cell's own words, and the count is exactly one rather than at
+(* this router specification's own words, and the count is exactly one rather than at
    most one, which is the half KeyspaceDomains.v's emitter does not carry. *)
 Definition EmitsExactlyOneMarkerOnOverflow (pb : Publisher) : Prop :=
   forall (c : Composition) (x : Txn) (s : Subscription) (ds : list Delta),
@@ -2055,7 +1775,7 @@ Proof.
   vm_compute in H. discriminate H.
 Qed.
 
-(* The independence M6.3b's cell and KeyspaceDomains.v's reading 12 leave
+(* The independence this router specification and KeyspaceDomains.v's reading 12 leave
    between them, machine-checked rather than asserted: one writer keeps each
    reading of one sentence and breaks the other. *)
 Theorem the_two_readings_of_one_sentence_are_independent :
@@ -2317,10 +2037,8 @@ Example the_commit_answers_both_of_the_ring_s_results :
 (* =========================================================================
    The demo's own pedigree ledger, and the figures no obligation reads.
 
-   Gap g is what these figures are; this is where they are pinned. M6.2a
-   measured the hazard and F-191 records it: a field no rule reads is a
-   field a weakening moves in silence, and forty-six of that item's
-   fifty-five seeded survivors were exactly such fields. So every field of
+   Gap g is what these figures are; this is where they are pinned: a field no
+   rule reads is a field a weakening could otherwise move in silence. So every field of
    every witness this file defines is stated in a conversion here, whether
    or not an obligation above happens to read it, and so is every magnitude
    the demo composition carries.

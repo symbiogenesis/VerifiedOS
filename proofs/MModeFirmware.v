@@ -2,186 +2,56 @@
 (* =========================================================================
    MModeFirmware.v
 
-   The M-mode firmware, as the register fixes it: R-07-028's initialisation
-   refinement over the composed capability graph, R-07-019's per-core
-   partition-bounded root derivation and the quiescence that follows,
-   R-07-024's one-entry resident inventory, R-14-002's W^X discharged at
-   R-15-007l's permission encoding over R-15-007b's 32 codepoints,
-   R-14-003's absent promotion primitive, R-15-075's absence of any region
-   register, R-07-018 and R-07-023's permission-decides-not-mode reading,
-   and R-05-091's no-ambient-state obligation over the firmware's
-   statically planned state.
+   Specification obligations for the M-mode initialisation firmware:
+   - Initialisation refinement and quiescence (R-07-025, R-07-028, R-07-019,
+     R-07-005, R-07-006, R-07-020, R-07-024): exact installation of the
+     composed capability graph (`InstallsExactly`), per-core partition-bounded
+     root derivation (`RootsAreBounded`, `EveryCoreIsRooted`), single-entry
+     resident code inventory (`InventoryHasOneEntry`, `TheKernelIsResident`),
+     and post-handoff firmware quiescence (`Quiescent`).
+   - W^X at the permission encoding (R-14-002, R-14-003, R-15-007b,
+     R-15-007l, R-15-007p): finite decidability of W^X across all 32
+     5-bit permission codepoints (`the_finite_check_decides_wx`), propagation
+     to every composed or installed distribution, non-existence of any
+     writable-to-executable promotion primitive (`no_promotion_primitive_exists`),
+     and distinct store/execute roots when both authorities are required.
+   - Capability-gated privilege and absence of region registers (R-07-018,
+     R-07-023, R-15-003, R-15-075): single hardware execution mode (`Mode`),
+     system-register access decided by capability permission rather than mode,
+     propagation of build-time ASR checks to the booted machine via R-07-028
+     (`the_build_time_check_becomes_an_installed_property`), and region access
+     decided by the capability alone without a PMP/MPU region table.
+   - Statically planned firmware state (R-05-086, R-05-087, R-05-091):
+     `NoAmbientAuthority` and `DoesNotDependOnTheCall` over the firmware's
+     working set.
 
-   What this file is. A statement artifact in ApexTheorem.v's idiom, not a
-   proof development and not an implementation. Every quantity the register
-   leaves to composition, to the profile freeze, or to another artifact is
-   a field of the Machine record rather than a literal or a top-level
-   Parameter, which is what keeps the R-05-163 assumption gate green while
-   leaving the decision where its owner can make it. Nothing is admitted
-   and nothing is axiomatized: the native assumption audit
-   reports every shipped constant closed under the global context.
+   Scope and relation to sibling modules. Following [ApexTheorem.v](ApexTheorem.v),
+   this module is a self-contained specification artifact over
+   [ProofSupport.v](ProofSupport.v) with composition and profile parameters
+   stored as `Machine` fields (R-05-163). The sealing-aware ABI distribution
+   is refined in [MModeFirmwareSealing.v](MModeFirmwareSealing.v), which
+   preserves `Handoff` and its root/residency obligations while checking tag,
+   seal, locality, and entry-site fields for exported switcher sentries.
+   [PartitionContext.v](PartitionContext.v) covers R-07-015 partition switching
+   in the resident kernel.
 
-   What the gate's green line means. Compiled, axiom-free, non-vacuous and
-   enumerated, and it does not mean verified. No constant here is compiled,
-   lowered, or run on either emulator, and nothing here executes anywhere.
-   There is no firmware in this file: what is written down is the
-   obligations a firmware discharges, each stated of an arbitrary installer,
-   gate, decision or working set and refuted of an alternative construction.
-   The computed checks are decided inside the kernel by conversion and print
-   nothing.
-
-   The sealing-aware ABI distribution is refined in MModeFirmwareSealing.v.
-   That module preserves this Handoff and its root/residency obligations while
-   comparing installed tag, seal, locality and exact entry-site fields. This
-   file's original ASR checker remains the stricter seal-erased predicate; it
-   cannot qualify exported switcher sentries on its own.
-
-   Only the shared prelude-only support is required, so Classical
-   and FunctionalExtensionality are unavailable and every state equality
-   below is stated pointwise for that reason. Domain-specific sibling artifacts remain independent: PartitionContext
-   .v speaks about the partition switch, which is R-07-015's obligation on
-   the resident kernel and not on the firmware, and ApexTheorem.v's
-   init_realizes_topology is a Prop field of a record this file does not
-   share. The two meet at that field's intended reading and not at a
-   definition, so a Require here would be a citation rather than a
-   dependency.
-
-   Readings of the register this statement takes, each a reviewable
-   judgment rather than a neutral transcription:
-
-   1. The composed capability graph is a list of edges and an edge is a
-      holder, a region, and a permission codepoint. R-07-025 fixes the
-      component graph and the capability distribution at build time,
-      R-08-011 makes the slot plan the unit a capability is bounded to, and
-      R-15-007b makes the permission field a 5-bit enumerated lattice, so
-      those three coordinates are what an edge carries and nothing else is.
-      Bounds are modelled as region identity because R-08-011 makes the
-      region the plan's own unit; a sub-region bounds algebra is
-      R-15-007a's and is not restated here.
-   2. What the firmware installs has exactly three components. R-07-028
-      names the capability distribution as running kernel state, R-07-019
-      names the per-core root derivation and the residency, and no entry of
-      section 7.4 or 7.5 names a fourth. The partition contexts (R-07-015)
-      and the schedule table (R-11-024) are not components here: whether
-      R-07-028's *running kernel state* reaches them is unstated, and gap b
-      below reports it rather than deciding it.
-   3. The installer is a relation and not a function. The obligations
-      R-07-028 and R-07-019 state are per-component write obligations, and
-      stating them relationally is what lets an alternative construction be
-      exhibited and refuted rather than merely differing from an
-      implementation this file chose. That is PartitionContext.v's fifth
-      reading, taken here for the same reason.
-   4. The permission decode is a field. R-15-007b enumerates the lattice
-      *at freeze time* and no artifact in this repository carries the
-      enumeration, so which codepoint names which set is the freeze's to
-      say. What is stated is the obligation on any decode, and the demo
-      decodes at the end are witness values carrying no freeze claim.
-   5. R-14-002's absence is discharged at the encoding and confirmed at the
-      distribution, in that order, which is that entry's own criterion.
-      What makes the criterion a criterion rather than an approximation is
-      that the finite check over the 32 codepoints is proved *sound and
-      complete* for the universally quantified statement, so the check is
-      the property rather than a test of it. The derivation-forest check is
-      kept beside it and is shown to be strictly weaker: it passes on a
-      machine whose encoding admits a Store-and-Execute codepoint, which is
-      the redundancy the criterion names read from the other side.
-   6. Mode is a single-constructor inductive. R-07-018's Accept is *there is
-      no S-mode and no U-mode*, so the absence is stated by construction and
-      its consequence, that a mode check separates nothing, is proved rather
-      than asserted. That consequence is R-07-023's whole content: a
-      compartment is refused because its PCC lacks the permission and not
-      because a mode check fires, and here a mode check cannot fire because
-      there is one mode.
-   7. R-15-075's absence is stated in the shape of the decision. An access
-      decision is a function of the capability and the region alone, with no
-      region-table argument for a region register to be read from, and the
-      Installed record carries no region-table component. Beside the
-      structural absence the file states what a region table could do if one
-      existed: it can only subtract, which is R-15-075's *strict subset*
-      reading made checkable, and it is refuted as a decision because a
-      subtraction is still a second mechanism to get right.
-   8. The build-time check and the installed-state property are joined by
-      R-07-028 and by nothing else. R-07-025's check runs over the composed
-      graph and R-07-023's obligation is about the booted machine, and what
-      carries the first to the second is the initialisation refinement.
-      That join is this file's load-bearing theorem, and the construction
-      beside it shows that without the refinement the build-time check says
-      nothing about the machine that runs.
-   9. Boolean rather than propositional wherever the witnesses must compute:
-      the codepoint check, the graph checks, the inventory check and the
-      root check are decidable, so the generated families below are checked
-      by conversion in the silent Example form rather than by a proof per
-      member.
-
-   The literals taken from the design, and there are two. R-15-007b fixes
-   the permission field at 5 bits and its enumeration as total over all 32
-   codepoints, so Perm is five booleans and all_perms is generated over
-   them; and R-07-024's criterion fixes the resident-code inventory at one
-   entry, so inventory_ok compares against 1. Every other magnitude is a
-   field: the decode, the node and region types with their decidable
-   equalities, the kernel and firmware nodes, the core roster, and each
-   core's partition.
-
-   How the refutations are generated. A refutation is a seeded weakening
-   the theorem must reject, so four generators produce families of them
-   mechanically rather than a person authoring each. Over the permission
-   field's own bits, a nested boolean generator yields the 32 codepoints the
-   W^X check is decided over. Over the register's own residency names,
-   `intruded` yields one weakening per kind other than the microkernel.
-   Over the specification's own plan, `drop_at` deletes an edge and yields
-   one weakening per position, and `insert_at` adds the unplanned edge and
-   yields one per position. Beside them the generic theorems quantify over
-   the edge rather than enumerating, so the added-edge and dropped-edge
-   refutations are stated once for every plan and every edge rather than
-   once for the demo's five. The hand-authored refutations below are the
-   ones no generator produces, being alternative constructions rather than
-   mutations of a list.
-
-   What this file deliberately does not author, with the entry that owes
-   each decision. A register gap is reported, not closed:
-
-   a. Which codepoint names which permission set. R-15-007b enumerates the
-      lattice at freeze time and no artifact in this repository carries the
-      enumeration, so `decode` is a field and every obligation over it is
-      stated of an arbitrary one. Owed at R-15-007b, or at whatever artifact
-      the freeze lands in.
-   b. What *running kernel state* comprises. R-07-028 obliges the firmware
-      to instantiate exactly the composed cap graph as running kernel state
-      and no entry says whether the partition contexts R-07-015 restores and
-      the schedule table R-11-024 swaps are inside that phrase or beside it.
-      This file states the distribution alone. Owed at R-07-028.
-   c. What completes a core's root set. R-07-019 has the firmware derive
-      each core's partition-bounded root capability and R-07-006 fixes the
-      bound; R-15-007p makes the root a permission-split set over the
-      partition, an execute-side authority over text extents and a
-      store-side authority over data, and no artifact here distinguishes
-      text from data at a region. So the bound is stated and the totality is
-      stated only as *some root per core*, which is the weakest thing the
-      entries fix. Owed at R-07-019 or R-15-007p.
-   d. The resident-code inventory itself. R-07-024's criterion audits an
-      enumeration no artifact carries: not the register, the spec, proofs/,
-      the model, or corpus/. The Resident inductive below is over R-07-019's
-      and R-07-024's own four names for what must not be resident plus
-      R-07-020's one name for what is, and it is not an inventory. Owed at
-      R-07-024. This is R-07-031a's shape one entry over, and R-07-031b is
-      the precedent for how it closes.
-   e. Where the firmware's own Tier-0 proof lands. R-05-091 puts the
-      no-ambient-state obligation on the firmware as ordinary Tier-0 proof
-      over its statically planned state, and no artifact here is that proof;
-      what is below is the obligation stated and refuted, which is a
-      statement and not a discharge.
-   f. Every composition magnitude. The node and region types, the kernel and
-      firmware nodes, the core roster and each core's partition are fields;
-      the demo machines at the end instantiate them with arbitrary witness
-      values that carry no composition claim.
-
-   Non-vacuity (R-05-165, R-05-166). Every obligation below is stated as a
-   property of an arbitrary installer, decode, gate, decision, promotion or
-   working set, proved of the specification, and refuted of an alternative
-   construction the register's own sentence excludes. Inhabitation is stated
-   twice: canonically at every machine whose plan roots every core, and
-   concretely at two machines whose every domain is inhabited, one whose
-   encoding excludes W+X and one whose encoding admits it.
+   Key readings and explicit boundaries:
+   1. Composed capability graph (R-07-025, R-08-011, R-15-007a, R-15-007b):
+      each `Edge` pairs a holder, a slot-plan `Region`, and a 5-bit `Perm`
+      codepoint; sub-region bounds arithmetic belongs to R-15-007a.
+   2. Installed state (`Installed`): comprises `ins_holds` (R-07-028),
+      `ins_resident` (R-07-024, whose closed five-constructor `Resident`
+      enumeration parallels R-07-031a / R-07-031b), and `ins_roots`
+      (R-07-019); partition contexts (R-07-015) and schedule tables
+      (R-11-024) are modelled in their respective modules.
+   3. Relational installer (`Installer`): `Handoff` is a relation between a
+      planned `Graph` and an `Installed` state so over-installing,
+      under-installing, wide-root, and resident-handler alternatives can be
+      exhibited and refuted (R-05-165, R-05-166).
+   4. Encoding vs distribution W^X (R-14-002): `wx_check` over `all_perms` is
+      proved sound and complete for `WxAtTheEncoding`, whereas the
+      distribution check `no_wx_edge` is shown to be strictly weaker on a
+      machine whose decode admits a W+X codepoint (`demo_leaky`).
    (*| BEGIN derived: cited entries |*)
    Owner: docs/requirements-register.md
    Requirements: R-05-086 R-05-087 R-05-091 R-05-163 R-05-164 R-05-165 R-05-166 R-07-005
@@ -194,7 +64,8 @@
 
 (* -------------------------------------------------------------------------
    Shared collection implementations and compatibility lemmas live in
-   ProofSupport. Numeric and domain-specific helpers remain local.
+   [ProofSupport.v](ProofSupport.v). Numeric and domain-specific helpers
+   remain local.
    ------------------------------------------------------------------------- *)
 
 Require ProofSupport.
@@ -1578,10 +1449,6 @@ Proof. intros g st [ Hd _ ] e. exact (Hd e). Qed.
 (* -------------------------------------------------------------------------
    R-05-166's inhabitation witnesses: one closed definition per record this
    file's statements quantify over, named for that record and ascribed at it.
-   The prover decides inhabitation by type-checking the ascription, so
-   `run.py proofs` reads a name rather than approximating a type judgement.
-   A record this file reaches through a Require is witnessed in the file that
-   declares it.
    ------------------------------------------------------------------------- *)
 
 Definition witness_Edge : Edge demo_wx := demo_wide_edge.

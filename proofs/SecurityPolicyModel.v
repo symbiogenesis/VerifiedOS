@@ -2,53 +2,36 @@
 (* =========================================================================
    SecurityPolicyModel.v
 
-   The security policy model: crown-jewel inventory row 2, the specification
-   R-08-028 confers the status on and R-17-012 names by its two halves, the
-   delimited-release bound and the robust-declassification statement. The
-   prose half is docs/assurance/security-policy-model.md; this file is the
-   machine-checked side of the same specification, and where the two
-   disagree the register wins and both are defective.
+   Machine-checked specification and finite reference model for the security
+   policy model (crown-jewel row 2; R-08-028, R-17-012): the delimited-release
+   bound and the robust-declassification statement, paired with
+   [security-policy-model.md](../docs/assurance/security-policy-model.md) and
+   instantiating [ApexTheorem.v](ApexTheorem.v)'s policy interfaces.
 
-   A specification and finite reference examples, not a proof of the composed
-   machine. PolicyModel instantiates ApexTheorem's policy interfaces; the
-   first and seventh seam targets have concrete predicates. Other Vocabulary
-   fields are True only in these examples and are not discharged workstreams.
-
-   Decisions and remaining refinement obligations:
-   - Levels form a nonempty finite lattice, with checked binary joins and
-     meets. Domains are any sets of carried compartments; non-TCB membership
-     is ApexTheorem.admissible's separate condition.
-   - Ordinary external stimuli have separate content and cycle-arrival labels
-     (R-05-156a). Authority to drive a site is separate from authority to
-     observe it (R-05-156b). Labelling and input functions are total; indices
-     beyond the checked finite region remain in the relation. Binding those
-     total functions and the finite manifest to a real composition is open.
-   - Typed consent evidence names an exact Grant. GrantState is a trusted
-     lifecycle snapshot. Its freshness, revocation, one-shot consumption,
-     unlock, compatibility, request and call-lifetime facts are input
-     abstractions, not proofs of their producers. R-08-025's persistent-store
-     freshness premise is explicit in the Persistent arm of live.
-   - Robustness quantifies over arbitrary off-consent input variation with
-     the authenticated consent and trusted lifecycle context fixed. Relating
-     an interactive compromised strategy and its allowed revoke-only actions
-     to this input-pair abstraction remains an implementation obligation.
-   - The release relation equates only live named-object input content in
-     addition to the base policy. Every output observation remains visible,
-     so another secret cannot be smuggled through the named output slot. The compose-time timing alternative is exhibited below;
-     the register must settle whether object release includes arrival time.
-   - The reference progress observation depends on visible inputs. Its NI
-     proof does not establish R-08-027b's stronger schedule-only statement.
-     The concrete encoding of termination, restart, slot widths and repeated
-     external events belongs to the trace refinement still owed.
-   - T uses Leibniz equality. For this predicate-valued observation encoding,
-     the bridge assumes functional extensionality at two arities and
-     propositional extensionality as explicit premises. The proof declares
-     no global axiom. This is conditional reference evidence, not an
-     unconditional proof of T or a proof that other encodings cannot avoid
-     these premises. R-05-164's declared global assumption set stays empty.
-
-   The rejected examples establish that the model has content (R-05-165 and
-   R-05-166); they do not replace independent R-08-028 specification review.
+   Key readings and refinement boundaries:
+   - Confidentiality lattice and observation sites: levels form a nonempty
+     finite lattice with checked binary joins and meets; external stimuli carry
+     separate content and cycle-arrival labels (R-05-156a), and authority to
+     drive a site is distinct from authority to observe it (R-05-156b).
+   - Consent and lifecycle grants: typed consent evidence names an exact
+     `Grant`, and `GrantState` captures freshness, revocation, one-shot
+     consumption, profile unlock, compatibility, request, and call-lifetime
+     premises (including R-08-025's persistent-store freshness premise in the
+     `Persistent` arm of `live`).
+   - Delimited release and robustness: the release relation equates live
+     named-object input content in addition to the base policy while keeping
+     every output observation visible; both narrow (content-only) and wide
+     (content-plus-arrival-instant) compose-time channel timing readings are
+     exhibited. Robustness quantifies over off-consent input variation with
+     authenticated consent and trusted lifecycle context fixed.
+   - Progress and extensionality premises: the reference progress observation
+     depends on visible inputs rather than R-08-027b's stronger schedule-only
+     statement. Bridging the predicate-valued observation encoding to
+     [ApexTheorem.v](ApexTheorem.v)'s Leibniz-equality `T` takes functional and
+     propositional extensionality as explicit theorem premises rather than
+     global axioms, keeping R-05-164's declared global assumption set empty.
+   - Non-vacuity (R-05-165, R-05-166): accepted and rejected examples witness
+     every carrier and obligation.
    (*| BEGIN derived: cited entries |*)
    Owner: docs/requirements-register.md
    Requirements: R-01-002 R-05-156 R-05-156a R-05-156b R-05-160 R-05-161 R-05-163 R-05-164

@@ -2,92 +2,24 @@
 (* =========================================================================
    ApexTheorem.v
 
-   The machine-checked statement of the apex theorem T, the nine seam
-   obligations and a generic semantic transport interface: day-one
-   deliverable (iii) of R-18-003b, sub-deliverable (a) of R-18-031,
-   row 1 of the crown-jewel inventory. Concrete interface bindings remain open.
-
-   This file states propositions over the Vocabulary record, whose fields
-   are interfaces supplied by the other crown-jewel workstreams. It depends
-   only on the Coq prelude and introduces no axioms or admitted proofs.
-   R-05-163 audits assumptions against R-05-164's currently empty declared
-   set; no admission axiom, bootstrap root, or Ax-ledger entry is authored.
-
-   R-18-031(a)'s coverage checklist is the record's set of side-properties:
-   each uninstantiated field names an uncovered obligation. R-18-031(b) owns
-   the linking proof in the Iris-over-Sail logic required by R-05-158.
-
-   Decisions this statement takes, each a reviewable reading of the
-   register rather than a neutral transcription:
-
-   1. Execution is a function of the whole-system input. R-15-101 makes
-      cycle-level timing and memory traffic a function of the instruction
-      stream and architectural state alone, so the model carries no
-      further source of nondeterminism for the observations T ranges
-      over.
-   2. The refinement tower conjoins four theorem rungs; the fifth,
-      die-matches-RTL, is an element of Ax's machine class rather than a
-      conjunct (R-05-158: "the last an axiom and the rest theorems";
-      R-05-162, R-05-162a).
-   3. NI joins timing and WCET joins isolation at the same premise, the
-      one timing_isolation field, per R-17-041: "WCET soundness and
-      timing-channel deletion share one non-interference proof".
-   4. CT joins RTL and Sail at the tower's own rung: the third seam's
-      second premise is the rtl_refines_sail field the tower conjoins,
-      which is the rung R-05-160 names outright and R-17-042 books as
-      "CT inherits the RTL and Sail residual".
-   5. Crypto joins hardness at the AE property that AE joins
-      non-interference on: the eighth seam concludes the
-      ae_ind_cca_int_ctxt field the fifth consumes, the join R-17-049
-      places at the primitive's functional specification (row 14) and
-      R-10-025 composes.
-   6. WCET joins isolation at the schedulability liveness consumes: the
-      second seam concludes the composed_schedulability field the sixth
-      consumes, the admission-proved schedule (R-11-017) being the one
-      artifact both speak about.
-   7. Attestation joins capability safety at the substrate: the ninth
-      seam's second premise is the spatial_safety invariant, R-05-159's
-      Cerise universal contract.
-   8. Consent joins declassification at T's own D: the flows the seventh
-      seam authorizes are the ones the release_* quotients forget, and
-      its premise sits inside Ax (R-05-162's "human consent
-      correctness"), carried by the ax_carries_consent field.
-   9. The observation is three channels (value, timing, and the in-scope
-      architectural channels), R-05-156's second element. Progress
-      observations live inside the channels per R-08-027a, bound when
-      row 2's policy model lands; "in-scope" is §17's scoping, so the
-      analog power and EM observation is outside T (R-05-162, R-17-058a).
-   10. Ax indexes machine, computational, idealized-model, concrete-estimate
-      and human premises (R-05-162a), each a field, with Ax conjoining them; a
-      companion theorem over this record cites only the classes it
-      consumes, and the ledger elements some seam or rung consumes are
-      pinned inside their classes by the coercions.
-   11. The boot binding has two halves (R-05-161a): the ninth seam
-      consumes R-07-028's initialisation refinement as a third premise,
-      and the image binding it concludes is code identity and installed
-      capability distribution at once, which is what entitles exec and
-      graph_permits to be stated of the booted machine.
-   12. The admission judgment's locus is decided elsewhere and read here:
-      admission_type_check is concluded on-device by the R-06-008
-      checkers, themselves built like the TCB (R-06-012) and bottoming
-      out at the R-06-014 De Bruijn root, an element of the R-05-164
-      declared set rather than of Ax, so this record carries no
-      checker-trust field.
-   13. Input is the whole-system input (R-05-156a): the content and
-      cycle-level arrival timing of every external stimulus, DMA-visible
-      device events included; decision 1's functionality rests on
-      R-15-101 plus the R-07-021 entry discipline, and every device-borne
-      quantity indist equates across a pair is quantified out of T, so
-      row 2's policy model names the device observations it equates.
-   14. T at a victim-shaped C is the influence direction (R-05-156b),
-      noninfluence rather than only nonleakage, under that entry's two
-      provisos on row 2's policy model; if either fails, the surface
-      nonleakage reading is the claim.
-
-   The lemmas at the end are the statement's own non-vacuity witnesses
-   (R-05-165, R-05-166): a model in which T is provable, so no premise
-   is unsatisfiable and no quantifier domain is empty, and a model in
-   which T is refutable, so the statement excludes something.
+   Machine-checked statement of the apex theorem `T`, the nine seam
+   obligations, and the generic semantic transport interface (R-18-003b,
+   R-18-031):
+   - Whole-system execution as a deterministic function of stimulus content
+     and cycle-level arrival timing (R-05-156, R-05-156a, R-05-156b,
+     R-07-021, R-15-101) across value, timing, and in-scope architectural
+     channels (R-08-026, R-08-027, R-08-027a, R-08-028, R-17-058a).
+   - Four theorem rungs of the refinement tower plus the machine-axiom class
+     `Ax` (R-05-158, R-05-162, R-05-162a), and the nine seams joining
+     partition isolation, WCET/schedulability, constant-time, capability
+     safety, AEAD/cryptography, liveness, consent/declassification, and boot
+     attestation (R-01-002, R-05-102, R-05-159, R-05-160, R-05-161,
+     R-05-161a, R-07-028, R-10-025, R-11-017, R-17-003, R-17-013, R-17-013e,
+     R-17-041, R-17-042, R-17-043, R-17-049, R-17-049e, R-17-049f).
+   - On-device admission checking bottoming out at the De Bruijn root
+     (R-06-008, R-06-012, R-06-014) under the empty global assumption set
+     (R-05-163, R-05-164), with provable and refutable model witnesses
+     (R-05-165, R-05-166; see [SeamWitnesses.v](SeamWitnesses.v)).
    (*| BEGIN derived: cited entries |*)
    Owner: docs/requirements-register.md
    Requirements: R-01-002 R-05-102 R-05-156 R-05-156a R-05-156b R-05-158 R-05-159 R-05-160

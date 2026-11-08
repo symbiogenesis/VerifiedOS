@@ -1,44 +1,31 @@
 (* SPDX-License-Identifier: Apache-2.0 *)
 (* =========================================================================
-   AttestedSession: symbolic session agreement for the source-object-fetch
-   protocol fixed in docs/implementation/attested-tls-protocol.md before code.
-   It reuses CredentialHandles.authorize_and_charge for the seven authority
-   bindings of R-12-015a. R-12-015c joins measured state, challenge, protocol,
-   peer policy and holder of TLS traffic keys; R-09-025a keeps software-only
-   policy distinct from a relying-party-specific unit pseudonym.
+   AttestedSession.v
 
-   Q22c's finite experiment is generalized over arbitrary received evidence,
-   issuer events, measured generations, policies and completed contexts.
-   Exporters, origins, nonces and protocol identifiers are symbolic atoms.
-   This is not a TLS, hash, signature, entropy or byte-parser proof. There is
-   no admitted TLS implementation in the inspected pins. U-20 still owes the
-   cryptographic foundation, and M6.9b owes its implementation connection.
+   Symbolic session-agreement model for the attested source-object-fetch
+   protocol (see
+   [attested-tls-protocol.md](../docs/implementation/attested-tls-protocol.md)),
+   reusing [CredentialHandles.v](CredentialHandles.v#authorize_and_charge) for
+   R-12-015a's seven authority bindings. R-12-015c binds measured state,
+   challenge, protocol, peer policy, and the holder of TLS traffic keys;
+   R-09-025a keeps software-only policy distinct from a relying-party-specific
+   unit pseudonym.
 
-   ExporterSecurity, EvidenceAuthenticity, LocalContextIntegrity,
-   UncompromisedSessionKeys and AuthenticatedUnitPseudonyms are explicit
-   premises. Evidence authenticity is scoped to actual received evidence and
-   a ledger of issuance events. It never quantifies an authenticity flag over
-   every freely constructible quote. The complete premise conjunction is
-   inhabited below, for both software and unit policies, and the quantified
-   theorem is applied to it. Removing key custody or exporter integrity has
-   concrete accepted attacks. A byte-forwarding relay retains the intended
-   key holder and adds no record authority; it is distinct from substitution.
-
-   The interface makes the exporter structurally local to broker issuance:
-   no exporter argument exists. A caller presents a credential request and
-   challenge; the protected context contributes holder, principal, origin,
-   measured generation and exporter. Atomic credential charge and the single
-   appraisal lifecycle are explicit. Sizes/deadlines are composition inputs;
-   nonempty fresh challenges are checked against trusted nonce history. Real
-   context handles, nonces, canonical evidence bytes and durable state are
-   adapter obligations, not consequences of the symbolic constructors.
-
-   Acceptance: native compilation, complete empty assumption closure,
-   rocqchk, named record witnesses and inhabited theorem premises, plus replay,
-   concurrency, other approved unit, wrong unit alias, refusal, relay and
-   compromise cases. Q22c's session-binding command remains finite supporting
-   evidence. This artifact does not close the admitted-TLS implementation or
-   computational session-key security portions of M6.9a/c.
+   Model and explicit premises:
+   - Broker-local exporter binding: `issue_local` takes a credential request and
+     challenge while reading the holder, principal, origin, measured generation,
+     and exporter directly from `ProtectedContext`
+     (`local_issuance_reads_the_exporter_from_its_own_context`). Single-attempt
+     appraisal (`begin_appraisal`, `decide`) and bounded object fetch
+     (`fetch_one`) enforce positive bounds, nonce/context freshness, and
+     fail-closed session closure on any malformed, absent, or unauthenticated
+     input.
+   - Conditional agreement theorems: `ExporterSecurity`,
+     `EvidenceAuthenticity` (scoped to received evidence and an issuance-event
+     ledger), `LocalContextIntegrity`, `UncompromisedSessionKeys`, and
+     `AuthenticatedUnitPseudonyms` enter as explicit premises, inhabited for
+     both software and unit policies and paired with concrete attacks when key
+     custody, exporter integrity, or unit-alias checks are weakened.
    (*| BEGIN derived: cited entries |*)
    Owner: docs/requirements-register.md
    Requirements: R-09-025a R-12-015a R-12-015c

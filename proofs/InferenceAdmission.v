@@ -2,143 +2,47 @@
 (* =========================================================================
    InferenceAdmission.v
 
-   The inference server's session-open arithmetic as the register fixes it:
-   R-12-084b's shape applied to R-12-085, the canonical model shape
-   descriptor R-12-085 requires and R-05-051a, R-05-051b and R-05-051c
-   govern, R-15-171's all-experts-resident condition with the fixed top-k
-   work argument and its storage-boundary refusal, R-15-247p's bank grant as
-   an explicit ceiling term with the admitted token rate derived from it,
-   R-15-188's composition-time operating point read as a rate that follows
-   no load signal, R-08-046 and R-08-047's bounded session pool with its
-   typed exhausted verdict, R-12-085f's refusal to re-route an unqualified
-   inference destination, and R-15-171a's per-member reading of the same
-   rate on an ensemble.
+   Statement and reference model for the inference server's session-open
+   admission and fixed-rate token arithmetic, expressed in
+   [ApexTheorem.v](ApexTheorem.v)'s parameterized record style.
 
-   What this file is. A statement artifact in ApexTheorem.v's idiom, not an
-   implementation and not a measurement. Every quantity the register leaves
-   to composition or to a design-space exploration is a field of a record
-   rather than a literal: the field widths of the descriptor, the seven
-   terms of the declared ceiling, the server's slot, worker set and pools,
-   the per-token work constants, the residency declaration, and the bank
-   grant itself. Nothing is admitted and nothing is axiomatized.
+   Governing obligations:
+   - Canonical model-shape descriptor and seven-term ceiling (R-05-051a,
+     R-05-051b, R-05-051c, R-12-084b, R-12-085): fixed-width non-recursive
+     descriptor schema with local round-trip and unique-encoding canonicity,
+     checked at session open against the seven-term declared ceiling (resident
+     bytes, context length, quantization formats, expert count, fixed `top_k`,
+     per-token KV footprint, and the R-15-247p bank grant from the R-15-108
+     design-space exploration), returning a typed refusal on R-12-084b's shape
+     whenever any bound is exceeded.
+   - Mixture-of-experts residency and fixed token rate (R-08-046, R-08-047,
+     R-12-085f, R-15-171, R-15-171a, R-15-188, R-15-247p): all-experts-resident
+     requirement with fixed `top_k` work and storage-boundary refusal
+     (R-15-171), composition-time token rate derived from the bank grant and
+     model shape without load-following or runtime rate degradation (R-15-188,
+     R-15-247p), bounded session pool returning `CapacityExhausted` on full
+     pools (R-08-046, R-08-047; detector-to-action mapping belongs to R-12-087),
+     refusal of unqualified inference destinations (R-12-085f), and per-member
+     ensemble rate accounting (R-15-171a).
+   - Layer boundaries: whole-program KV-cache class placement (R-08-012a,
+     R-18-004a), kernel WCET derivation (R-11-015), and part-qualification
+     supply floors and latency constants (R-15-247m, R-18-004b) remain with
+     their respective owners.
 
-   composition_opening is the complete finite-residency and resource admission
-   entry point; opening is its ceiling/resource core. checked_routed_work
-   rejects invalid routes. No executable target server or measured rate is
-   supplied by these Gallina definitions.
+   Key readings and open register boundaries:
+   1. `top_k` is tested by equality while `expert_count` is bounded by the
+      residency ceiling (R-15-171); uniform per-expert width is made explicit as
+      the condition needed for constant per-token work.
+   2. Both per-token byte-count arms (weights alone vs. weights plus KV cache)
+      are exhibited as parameters until R-08-012a's memory plan fixes the KV
+      cache's latency class.
+   3. Zero bytes per token is refused explicitly as an arithmetic domain
+      condition before division.
 
-   What this file does not do. It performs no target run or measurement.
-   The computed checks below are decided inside the kernel by conversion and
-   print nothing; the gate's green line means compiled, axiom-free and
-   enumerated rather than verified. No figure here is a performance claim,
-   and the demo composition's magnitudes are arbitrary witness values.
-
-   Every rate this file derives is symbolic. R-15-247p's bank grant is an
-   output of the R-15-108 design-space exploration, which has not run, and
-   the latency and density constants beneath it are measured at part
-   qualification and not before. A grant is therefore a field, an admitted
-   rate is arithmetic over a field, and symbolic arithmetic settles no
-   physical admission. R-18-004a's floor and R-18-004b's supply figures are
-   those entries' and this file carries none of them.
-
-   Readings of the register this statement takes, each a reviewable judgment
-   rather than a neutral transcription:
-
-   1. The declared ceiling has exactly seven terms and they are R-12-085's
-      own: the resident bytes, the context length, the quantization formats,
-      the expert count, top-k, the KV footprint per token, and the
-      R-15-247p bank grant. Six of them bound the model and the seventh is a
-      supply term the composition declares, which is why the descriptor
-      below carries six fields and the Ceiling record seven. No entry states
-      that split; it is read from what a model can carry and reported.
-   2. Top-k is an equality and the expert count is a bound. R-15-171 admits
-      a mixture of experts only with every expert resident and top-k fixed,
-      so the ceiling's top-k term is tested with equality and its
-      expert-count term with an inequality, the residency condition being
-      what bounds the count.
-   3. Work per token is constant because the routed experts cost the same,
-      and R-15-171 states the residency half of that and not the uniformity
-      half. So the constancy theorem below is stated over an arbitrary
-      per-expert cost and proved of a uniform one, all-residency is proved
-      to make the specified cost uniform, and a mixture whose experts differ
-      in width, every one of them resident, is exhibited and refuted. The
-      second refutation is a gap this file reports rather than closes
-      (gap d).
-   4. R-12-085 says a model above the ceiling is answered when the session
-      opens, where R-12-084b, whose shape it applies, says refused. This
-      file takes the answer to be a typed refusal on R-12-084b's shape and
-      checks that inherited refusal contract at the session boundary.
-   5. Which class the KV cache sits on is undecided, so the per-token byte
-      count the rate is derived from is a parameter and both arms are
-      exhibited: the weight stream alone and the weight stream with the
-      cache. R-18-004a places the model on the second class and fixes
-      nothing about the cache, and the placement is the whole-program memory
-      plan's (R-08-012a). Neither arm is normative here and the admitted
-      rate differs between them.
-   6. Above the grant is refused and never degraded. R-15-247p makes the
-      token rate a composition-time constant of the bank grant a server is
-      given rather than a performance property of the machine, and
-      R-12-084b refuses at the session boundary rather than admitting
-      against a slot no schedulability proof covers. That an admitted
-      session runs at the composition constant and never at a reduced rate
-      follows their combined session and fixed-rate contract.
-   7. The rate reads the grant and the shape and no load signal. R-15-188
-      makes each partition's operating point a composition-time constant and
-      lets the shared resources never scale, so a rate moving with prompt
-      length, queue depth or utilization would be the load-following that
-      entry excludes.
-   8. The reference descriptor codec has local round-trip and canonicity
-      proofs. It is not a Narcissus-derived parser, which remains required
-      by R-12-085 at the executable parser join. The model stays untrusted
-      data. Every field of the Shape record below is a number, so nothing
-      the decoder produces is code, and R-12-085's reading that
-      proof-carrying weights are a category error needs no theorem here:
-      what carries obligations is the server's kernels, which this file does
-      not author.
-
-   What this file deliberately does not author, with the entry that owes
-   each decision:
-
-   a. The Narcissus schema and generated parser correspondence to this
-      bounded reference codec. No library derivation is claimed here.
-   b. The executable server's correspondence to composition_opening and
-      its symbolic fixed-rate resource contract.
-   c. Which class the KV cache sits on, and so which arm of the per-token
-      byte count the rate is derived from (reading 5). Owed at R-08-012a's
-      plan or at a register act beside R-12-085.
-   d. That a mixture's experts are of one declared width, which R-15-171's
-      constant-work conclusion needs and its sentence does not state
-      (reading 3). Owed at R-15-171.
-   e. Whether a declared shape may state zero bytes per token. No entry
-      forbids it and the derived rate would divide by zero, so the decision
-      below refuses such a shape with a cause of its own, which is the
-      arithmetic's domain condition and not an eighth ceiling term. No new
-      register policy is needed to decline an undefined resource request.
-   f. Every composition magnitude: the descriptor's field widths, the
-      ceiling's seven values, the server's slot, worker set and pools, the
-      session capacity, the per-token work constants, the residency
-      declaration and the bank grant. The demo composition instantiates them
-      with arbitrary witness values that carry no composition claim.
-   g. The server's GEMM and attention kernels, their WCET derivation and
-      their placement in an admitted slot. R-11-015's timing-annotation
-      specification is not authored, so a slot's cost is a declared input
-      here and never derived.
-   h. The exhaustion action R-12-087 maps a full session pool to. This file
-      states R-08-047's typed refusal at the binding and takes no
-      detector-to-action mapping.
-   i. Every measured quantity. R-18-004b's supply floors, R-15-247m's
-      qualification constants and the R-15-108 exploration's outputs are
-      their owners' and none is restated here.
-
-   Non-vacuity (R-05-165, R-05-166). Every obligation below is stated as a
-   property of an arbitrary codec, cost function, opening step, rate
-   function, dispatch or ensemble reduction, proved of the specification and
-   refuted of an alternative construction the register's own sentence
-   excludes. Inhabitation is concrete: a demo composition whose descriptor
-   round-trips, whose model sits inside the declared ceiling and whose
-   requested rate sits inside the derived one, with computed checks in the
-   silent Example form for the admitting case, for each refusing case, and
-   for the descriptor a trailing byte makes inadmissible.
+   Non-vacuity (R-05-163, R-05-165, R-05-166):
+   - Every obligation is proved for the specification (`composition_opening`,
+     `opening`, `checked_routed_work`) and refuted on alternative codecs, cost
+     functions, opening steps, rate functions, and non-uniform expert mixtures.
    (*| BEGIN derived: cited entries |*)
    Owner: docs/requirements-register.md
    Requirements: R-05-051a R-05-051b R-05-051c R-05-163 R-05-165 R-05-166 R-08-012a R-08-046

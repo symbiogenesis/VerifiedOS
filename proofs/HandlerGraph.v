@@ -2,389 +2,71 @@
 (* =========================================================================
    HandlerGraph.v
 
-   The package composer's emitted object, as the register fixes it:
-   R-12-024b's finite signed composition-time handler and translator graph,
-   compiled from installed packages' interface descriptors, rebuilt and
-   re-signed with the generation an install composes, never amended in a
-   running one, with deterministic typed routing and none of the five
-   mechanisms that entry names; R-13-002's installation path that executes
-   no package-supplied code; R-13-001a's install-is-a-generation, with
-   uninstall the same operation over a roster with the package removed;
-   R-12-013a's closed intent variant, bounded input and output types,
-   declared resource limits and interface world; R-12-024c's composition-time
-   template bound from pre-composed node and bounded-ring pools, with every
-   node's WCET, memory, labels and device reservation admitted under
-   section 11 before it may be bound, at release time for base-image nodes
-   and at install time for package-supplied ones, and its acceptance clause
-   that a runtime binding creates no code, compartment, edge type or
-   unbounded queue; R-13-001b's rule that no reservation is composed ahead of
-   the content that would occupy it; R-08-046's declared bounded pool and
-   R-08-047's typed CapacityExhausted verdict; R-12-005's bounded rings;
-   R-12-024f with R-05-042 on every parsed format being inventoried
-   attacker-facing wire carrying a verified parser; R-12-024e's composition
-   half, that no composed edge carries authority absent from the declaring
-   package's manifest; and R-08-021's flow condition read over a bound
-   template's chain.
+   Statement and reference model for the package composer's emitted handler and
+   translator graph and pre-admitted media templates, expressed in
+   [ApexTheorem.v](ApexTheorem.v)'s parameterized record style over
+   [ProofSupport.v](ProofSupport.v).
 
-   Which entries this file is stated over is a judgment and not a reading of
-   its own cell, and the judgment is taken in three steps a reviewer can check
-   one at a time. M6.3a's cell cites no requirement id: it carries the class-X
-   ground and points at the inspirations note. **Step one** reads the four
-   core entries off the milestone's own sentence, that the package composer
-   emits the finite typed handler and translator graph and pre-admitted media
-   templates: R-12-024b is the graph, R-12-024c the template, R-12-024f the
-   formats it parses, R-12-013a the transformation type an edge is.
-   **Step two** takes the ids those four spell out, which is a reading and not
-   a judgment: R-12-024b's sentence cites R-13-001a and its acceptance clause
-   R-13-001 and R-13-002, and R-12-024f's acceptance clause cites R-05-042.
-   Those four and no others. One entry cites back the other way and is
-   therefore also a reading: R-13-001b's acceptance clause names R-12-024c by
-   id, to say that a composition-time template is not the pre-proved empty
-   slot it forbids. Of the five step two reaches, four carry a statement
-   below and R-13-001 carries none: it is the ordinary install path the graph
-   is admitted on, which is the act M6.2a states in AdmissionPath.v, and this
-   file says that the graph is emitted and never how it is admitted. A
-   derived scope that named it and stated nothing over it would be a scope
-   a reviewer cannot check, so it is named here with what it is owed by.
-   **Step three** is the judgment, and it reaches five
-   entries by a noun one of the four uses and does not itself define:
-   R-12-024c's "pools" reaches R-08-046, which says what a declared bounded
-   pool is, and R-08-047, which says what a full one answers; its
-   "bounded-ring" reaches R-12-005; its acceptance clause's "confidentiality
-   domain" reaches R-08-021, which is where a flow condition over levels
-   lives; and R-12-024b's "routing" reaches R-12-024e, which is the entry
-   that says what routing may and may not carry. A reviewer who disagrees
-   with the scope disagrees with step three rather than with a statement
-   below; steps one and two are checkable against the register's own text.
+   Governing obligations:
+   - Finite composition-time handler and translator graph: compiled from
+     installed packages' interface descriptors, rebuilt and re-signed with each
+     install/uninstall generation (R-13-001a) without executing package-supplied
+     code (R-13-002), immutable at runtime, with deterministic typed routing and
+     none of the five banned dynamic mechanisms (R-12-024b); closed intent
+     variants (under R-05-150's closed-enumeration discipline), bounded input
+     and output types, declared resource limits, and interface worlds without
+     introducing desktop wire protocols, open-ended intent strings, or
+     authority-bearing paths (R-12-013a); and manifest-bounded edge authority
+     (R-12-024e). Ordinary install-path admission (R-13-001) and composer
+     exclusion from the trust base (R-13-001c) are modelled in
+     [AdmissionPath.v](AdmissionPath.v), while runtime namespace/intent routing
+     and translation caching (R-12-024d) belong to
+     [ObjectRouter.v](ObjectRouter.v).
+   - Pre-composed media templates and bounded pools: templates bound from
+     pre-composed node and bounded-ring pools (R-08-046, R-12-005, R-12-024c)
+     with no pre-proved empty reservation ahead of occupying content (R-13-001b),
+     each node's WCET, memory, labels, and device reservation admitted under
+     Section 11 at release time for base-image nodes and at install time for
+     package-supplied nodes, no code/compartment/edge-type/unbounded-queue
+     creation at runtime binding, confidentiality flow across template chains
+     (R-08-021), and non-droppable, non-waiting, non-borrowing
+     `CapacityExhausted(pool)` verdicts (R-08-047; IDL/ABI relevance-grading
+     enforcement under R-05-097 and R-05-098 belongs to the typed IDL and
+     CHERI-TAL tracks).
+   - Verified parsers across all admitted format classes: every image, media,
+     font, archive, and document format parsed by a graph node appears in the
+     R-05-042 inventory with a Narcissus verified parser (R-12-024f, R-12-084a);
+     R-05-050's single hand-transcribed 5G-core NAS exception does not reach
+     graph-node formats.
 
-   What this file is. A statement artifact in ApexTheorem.v's idiom, not a
-   proof development and not an implementation. Every quantity a composition
-   fixes is a field of the Machine record rather than a literal or a
-   top-level Parameter, which is what keeps the R-05-163 assumption gate
-   green while leaving the decision where its owner can make it. Nothing is
-   admitted and nothing is axiomatized: the native assumption audit reports
-   every shipped constant closed under the global context.
+   Key readings and open register boundaries:
+   1. Ambient independence and script non-execution: the emitted graph is
+      invariant under arbitrary composition-time `Ambient` observations and
+      under replacing any package's `script` field (R-12-024b, R-13-002).
+   2. Edge well-formedness (`admissible_edge`) is a 12-conjunct list
+      (`edge_conjuncts`) covering R-12-005, R-12-013a, R-12-024b, R-12-024e,
+      and R-12-024f, tested from both the edge side (`spoiled_at`) and the
+      composer filter (`compose_without`).
+   3. Closed register enumerations fix counts for banned mechanisms (5),
+      admitted node quantities (4), forbidden binding creations (4), node
+      origins (2), pool kinds (2), format classes (5), and forbidden protocol
+      introductions (3).
+   4. Open register boundaries remain parameterized: media-template stage
+      vocabulary and whether runtime binding consumes a standing schedule
+      reservation (R-11-008, R-12-024c), ambiguous multi-edge routing discipline
+      and per-generation vs. per-graph signature granularity across retained
+      roots (R-10-030, R-11-002, R-12-024b), intent variant vocabulary and
+      selection-vs.-binding resource comparison (R-12-013a), shared service
+      compartment endpoints (R-13-010b), and assurance-tier assignment for
+      signed configuration data (R-13-011).
 
-   What the gate's green line means. Compiled, axiom-free, non-vacuous and
-   enumerated, and it does not mean verified. Nothing here is compiled,
-   lowered, or run on either emulator; no content format is decoded, no
-   object is hashed, no ring is instantiated, no signature is checked, and no
-   node executes. The computed checks are decided inside the kernel by
-   conversion and print nothing.
-
-   What is deferred, and to which item. M6.3b owns the contained object
-   router: private namespaces, intents at run time, live queries,
-   R-12-024d's deterministic translation cache and its key, and
-   protocol-bound credential handles. Nothing below states any of that, and
-   in particular no cache, no cache key and no domain confinement appears
-   here. M6.2a owns the admission of the object this file emits:
-   AdmissionPath.v's package, derivation and verdict belong to the act this
-   graph is admitted *by*, and R-13-001c is what puts the composer outside
-   every trust base on both sides of that seam. KeyspaceDomains.v already
-   states R-12-024e's *resolution* face at the storage side, its namespace
-   and object capabilities and its derivability relation; this file states
-   only that entry's composition-side half, that no composed edge's declared
-   bounds exceed the declaring package's manifest, and states nothing about
-   how an object capability is derived or what a session delegates.
-
-   One clause of a cited entry is deferred rather than stated, and it is
-   named here rather than left to a reader to notice. R-08-047's sentence
-   names four obligations of the typed `CapacityExhausted(pool)` verdict: it
-   cannot be dropped, it cannot be converted into an implicit wait, it cannot
-   be answered by borrowing from another pool, and it is relevance-graded
-   under R-05-097's discipline. Three of the four are stated at O14 below,
-   where the entry's own fail-closed line adds a further predicate beside
-   them. The relevance grade is not, and it is not a
-   gap either: R-05-098 puts "bounded-pool binding outcomes (R-08-047)" on
-   its closed list of results that carry the grade, and its acceptance clause
-   puts the grade *in the IDL or ABI declaration*, which M6.0b's typed IDL
-   profile authors and M6.4 generates bindings from. R-05-097's own
-   acceptance clause puts the enforcement in a derivation that fails to
-   type-check when a graded value is dropped, which is the CHERI-TAL track's.
-   Neither is a composer's act, and a Gallina function cannot exhibit the
-   denial of weakening in any case, its own metatheory admitting it. So
-   `Verdict` below carries no grade marker and nothing below claims one.
-
-   Three landed artifacts state neighbouring facts, and the lines between
-   them are drawn here rather than left for a reviewer to find. AdmissionPath.v
-   has a composer that turns a roster into a generation and an `Ambient` its
-   *checker* must not read; this file's `Ambient` is the *composer's*, being
-   what a composition observes at the moment it runs, and obligation 1 below
-   is that file's reading 1 at a different subject rather than a second
-   statement of one fact. SupervisionTree.v has a loader obliged to return
-   the signed composition whatever it observes; that loader reads a roster
-   out of a generation and this composer compiles a graph out of interface
-   descriptors, so the two are the same shape at two objects. Neither of
-   those files carries a handler-graph edge, a media template, a node or
-   ring pool, or a parsed format.
-
-   ProofSupport supplies the shared prelude-only collection laws. Classical
-   and FunctionalExtensionality remain outside the dependency closure, and
-   equality is stated pointwise or over decidable booleans. The domain
-   interfaces above remain separate: they carry no handler edge or template.
-
-   Readings of the register this statement takes, each a reviewable judgment
-   rather than a neutral transcription:
-
-   1. What a composer observes at composition time is the ambient, and the
-      emitted graph does not vary with it. R-12-024b makes the graph a
-      composition-time object compiled from installed packages' interface
-      descriptors, so the descriptors and the roster are its whole input and
-      anything else the composition can see is excluded by that sentence.
-      `Ambient` below carries a probe and a clock, standing for whatever a
-      composer could read, and the obligation quantifies over two of them.
-   2. A node is a package on the composed roster and an edge is a
-      transformation one package declares. R-12-024b's own sentence gives no
-      node set beyond "compiled from installed packages' interface
-      descriptors", and it is the spec's prose at that entry's anchor that
-      says nodes are already-admitted compartments and an edge is the
-      section 12 IDL transformation type. This file takes the register's
-      narrower reading: a node is an index below the package count and an
-      edge names its declaring package and the node it routes to. That is
-      the finite-index choice SupervisionTree.v took at the roster, taken
-      here at the package set, and the distance between the two readings is
-      exactly what gap d is about, the prose's compartment set being wider
-      than the roster the entry gives.
-   3. Executing package-supplied code is modelled refutably rather than as an
-      absence. R-13-002 forbids maintainer scripts, post-install execution
-      and runtime code fetching, and an absence cannot be refuted, so the
-      machine carries a `script` field per package producing edges and the
-      obligation is that the emitted graph is unchanged when that field is
-      replaced by an arbitrary other one. The executing composer appends what
-      the script produced and is refuted at exactly that quantifier.
-   4. Well-formedness is a list of conjuncts rather than a nest of
-      conjunctions. `edge_conjuncts` holds twelve predicates and
-      `admissible_edge` is `all_of` over them, so a composer that drops one
-      conjunct is `compose_without` at that index rather than a construction
-      authored by hand, and the count of conjuncts a malformed edge breaks is
-      a measure rather than an assertion. R-12-024b, R-12-013a, R-12-024e,
-      R-12-024f and R-12-005 each own one or more of the twelve, and the
-      comment at each conjunct says which.
-   5. Routing is stated at selection and not at binding. R-12-013a declares a
-      transformation's resource limits and the spec's prose makes routing
-      deterministic graph selection under the caller's requested intent and
-      resource bound; neither entry puts the comparison of the two on a side,
-      and this file compares them where the selection happens. Gap h records
-      that the register does not choose.
-   6. An intent is an index below a count and a name beside it. R-12-013a
-      fixes that an intent is a closed variant rather than an executable name
-      or command string and closes no variant set anywhere, so `Intent`
-      carries an index the specification routes on and a caller-supplied name
-      it ignores, and the obligation is that two intents agreeing on the
-      index route identically. Inventing an inductive for the variants would
-      be closing an enumeration the R-05-150 review gate audits, which is the
-      author's act and not this file's.
-   7. A media template is an ordered chain of stages and its ends are typed.
-      R-12-013a's bounded input and output types are read over the chain: the
-      output type of stage i is the input type of stage i+1, and the chain's
-      own first input and last output are the template's declared ones. The
-      stage *set* is a field, because no entry closes it; the spec's
-      parenthetical names four stages and a parenthetical the register does
-      not carry is not an enumeration the review gate audits (gap a).
-   8. Boundedness is stated at two places because the register states it at
-      two. R-12-005 and R-12-024c's bounded-ring pools fix a declared ring
-      depth at *composition*, which is conjunct 10 and conjunct 11 below and
-      the template's own ring conjuncts; R-12-024c's acceptance clause
-      forbids an unbounded queue at *binding*, which is `CreatedUnboundedQueue`
-      in the forbidden-creation enumeration. They are two halves and not one
-      clause stated twice: a composer can emit a zero-depth ring without any
-      binding creating a queue, and a binder can create one over a graph
-      whose every declared depth is inside the ceiling.
-   9. Every generated family is a list of constructions whose fallback past
-      the last index is the specification's own. That is what makes a bounded
-      quantifier over the index decide anything: a bound raised by one reaches
-      the fallback, where the specification's construction satisfies the
-      obligation the family is refuted for breaking, so the theorem fails
-      rather than holding vacuously wider.
-  10. Boolean rather than propositional wherever the witnesses must compute:
-      the well-formedness conjuncts, the template check, the selection and
-      the pool arithmetic are decidable, so the generated families below are
-      checked by conversion in the silent Example form rather than by a proof
-      per member.
-
-   The literals taken from the design, and there are seven. The criterion is
-   the same at each: one sentence of one entry names its members and closes
-   the set, and the count sits beside the sentence rather than in prose. A
-   sentence that names no member closes nothing, which is why the stage set
-   (gap a) and the intent variants (gap c) are fields and not enumerations:
-
-   - R-12-024b's "no runtime registration, executable lookup, shell command,
-     plugin load, or content sniffing" is five, so `all_banned_mechanisms` is
-     that list and `there_are_five_banned_mechanisms` is its count.
-   - R-12-024c's "every node's WCET, memory, labels, and device reservation
-     admitted under section 11" is four, so `all_admitted_quantities` is that
-     list and `there_are_four_admitted_quantities` is its count.
-   - R-12-024c's acceptance clause, "runtime binding creates no code,
-     compartment, edge type, or unbounded queue", is four, so
-     `all_forbidden_creations` is that list and
-     `there_are_four_forbidden_creations` is its count.
-   - R-12-024c's "at release time for base-image nodes and at install time
-     for package-supplied ones" is two, so `NodeOrigin` has two constructors
-     and `there_are_two_node_origins` is its count. The admission *time* is
-     not a third enumeration: a node's admission time is named by the origin
-     whose time it is, so the obligation is an equality between two values of
-     one type rather than a correspondence between two types.
-   - R-12-024c's "pre-composed node and bounded-ring pools" is two, so `Pool`
-     has two constructors and `there_are_two_pools` is its count. R-08-047's
-     `CapacityExhausted(pool)` is a verdict over that type rather than an
-     enumeration of its own.
-   - R-12-024f's acceptance clause, "the image, media, font, archive, and
-     document formats the graph admits appear in the R-05-042 inventory on
-     the same terms as the radio and USB grammars", is five, so `FormatClass`
-     has five constructors and `there_are_five_format_classes` is its count.
-     What "on the same terms" is made to decide is that no class of the five
-     is exempt: the obligation is quantified over the closed list, so
-     dropping a constructor drops an obligation, and one exempting composer
-     per class is refuted.
-   - R-12-013a's acceptance clause, "no desktop-specific wire protocol,
-     open-ended intent string, or authority-bearing path is introduced", is
-     three, so `ForbiddenIntroduction` has three constructors and
-     `there_are_three_forbidden_introductions` is its count. Each of the
-     three is read at a quantity the composition already fixes, so the
-     enumeration collects three obligations rather than inventing a fourth,
-     and each is refuted by a construction this file already carries.
-
-   Every other magnitude is a field: the package count and the composed
-   roster, each package's declared edges, script, manifest width, origin,
-   admission time, admitted quantities and confidentiality label, the type
-   count, the intent count, the world count, the wire-format inventory with
-   its per-format verified-parser flag and its per-format class, the node and
-   ring pool capacities,
-   the ring depth ceiling, the template's stage list and its declared end
-   types, the declared inter-level channels, whether an ambiguous graph is
-   admitted, and the graph's own identity.
-
-   How the refutations are generated. A refutation is a seeded weakening the
-   theorem must reject, so the families below are produced mechanically
-   rather than authored one by one, which is DischargeSequence.v's method and
-   SupervisionTree.v's, taken to a graph and a chain. Over the demo
-   template's stage chain: `swap_at` transposes an adjacent pair, `drop_at`
-   deletes a stage, `suffix_at` re-enters at a proper suffix, and `insert_at`
-   binds one stage a second time, and the four families are refused as one
-   conversion and again per family and again as theorems quantified over the
-   index. Over the twelve well-formedness conjuncts: `spoiled_at` sets one
-   field of the composed edge to the value on that conjunct's own boundary
-   and `compose_without` drops one conjunct from the composer's own filter,
-   so the twelve conjuncts are decided twice, once
-   from the edge side and once from the composer side. Over the four closed
-   enumerations that name a defect: five amenders, one per banned mechanism;
-   four partial binders, one per admitted quantity dropped; four creating
-   binders, one per forbidden creation; and five exempting composers with an
-   uninventoried edge apiece, one per format class. The hand-authored
-   refutations are the ones no index generates, being alternative
-   constructions rather than mutations of a list.
-
-   What this file deliberately does not author, with the entry that owes each
-   decision. A register gap is reported, not closed. One lettered item, e, is
-   not a gap and keeps its letter, so that the letters below it do not move
-   and the finding indexed at it goes on naming the question it answers:
-
-   a. What stages a media template may carry. R-12-024c names templates,
-      pools and the four admitted quantities and names no stage; the spec's
-      parenthetical names demux/decode, colour or sample conversion,
-      resample/mix, and render or audio output, and a parenthetical the
-      register does not carry is not an enumeration the review gate audits.
-      So the stage count and the stage kinds are fields and the demo
-      instantiates them. Owed at R-12-024c.
-   b. Whether a graph may carry two edges matching one intent. R-12-024b
-      requires deterministic typed routing, and a deterministic selector over
-      an ambiguous graph and one over an unambiguous graph are both
-      deterministic; the two disciplines differ observably on a graph with
-      two matching edges, where a first-match and a last-match selector
-      disagree and each is a function of the graph, the intent and the bound.
-      `ambiguity_admitted` is a field, both disciplines are exhibited, each is
-      proved to keep every obligation the other keeps, and
-      `the_ambiguity_is_observable` machine-checks the difference. Owed at
-      R-12-024b.
-   c. Which intent variants the closed variant closes. R-12-013a fixes that
-      an intent is a closed variant rather than an executable name or command
-      string and closes no variant set anywhere, so `intent_count` is a field
-      and an intent is a finite index below it. Owed at R-12-013a.
-   d. Whether the graph may carry a node for R-13-010b's shared service
-      compartment. That entry's duplication pass emits one shared service
-      compartment into the composed image in place of a library statically
-      linked into each consumer: a compartment, and no package on the roster
-      the composer was handed. Nothing says whether a handler-graph edge may
-      name it as an endpoint. The closure obligation below refuses one,
-      because R-12-024b's own sentence gives the composer no node set but the
-      installed packages it compiled the descriptors from; the spec's prose
-      at that anchor says nodes are already-admitted compartments, which is
-      the wider set that would admit it, and the two readings differ exactly
-      here (reading 2). Owed at R-13-010b or R-12-024b.
-   e. Not a gap, and named here because it reads like one. The question is
-      whether R-05-050's hand-transcribed exception reaches a graph node's
-      format, and three entries answer it. R-12-024f's own sentence: every
-      content format a translator or media node parses "carries a section 5
-      Narcissus copy-once verified parser and is enumerated in the wire-format
-      inventory", with no exception clause; R-05-042 makes the hand-written
-      attacker-facing set empty except as R-05-050 permits, and R-05-050
-      permits exactly one format, 5G-core NAS, which is neither an image,
-      media, font, archive nor document format the graph admits. R-12-084a
-      decides the media case a third time by name. So the exception does not
-      reach a graph node's format, conjunct 8 below requires the verified
-      parser of every admitted edge unconditionally, and `verified_parser`
-      stays a per-format field only because *which* formats an inventory
-      carries is a composition (gap j), not because the obligation over them
-      is open. What R-12-024f does leave to this file is the "same terms"
-      clause over the five families it names, which is O20 and the sixth
-      closed enumeration.
-   f. At what granularity the graph is re-signed. R-12-024b has it rebuilt
-      and re-signed with the generation an install composes and its
-      acceptance clause calls it a typed signed configuration object carried
-      by the generation root; whether that is one signature or a second one
-      over the graph object is not fixed, and the difference is observable on
-      R-10-030's retained roots when R-11-002 pins a prior one.
-      `graph_identity` is a field and nothing below reads it as a signature.
-      Owed at R-12-024b or R-10-030.
-   g. Whether binding a template consumes a schedule slot the composition
-      reserved. R-12-024c requires each node's four quantities admitted under
-      section 11 before it may be bound, section 11's admission is over the
-      task set and the schedule, and R-11-008's two standing reservations are
-      the display scanout and the revocation sweep and name neither a node
-      pool nor a template. So whether a run-time binding is free against an
-      already-admitted schedule or consumes a reserved class is undecided,
-      and the four-quantity obligation below is stated without deciding it.
-      Owed at R-12-024c or R-11-008.
-   h. Whether an edge's declared resource limit is compared against the
-      caller's requested bound at selection or at binding, and what a caller
-      bound looser than the edge's limit means. R-12-013a declares the
-      transformation's resource limits and the spec makes routing selection
-      under the caller's requested intent and resource bound; neither puts
-      the comparison on a side. This file compares at selection and says so
-      as reading 5. Owed at R-12-013a or R-12-024b.
-   i. Whether the graph carries one of R-13-011's three assurance tiers.
-      R-12-024b makes it a typed signed configuration object admitted on the
-      ordinary install path, and R-13-011's acceptance clause is that every
-      admitted artifact carries exactly one tier and its required evidence; a
-      configuration object is data rather than code, so either it is not an
-      admitted artifact in that entry's sense or it carries a tier and
-      required evidence nothing names. This file assigns none. Owed at
-      R-13-011 or R-12-024b.
-   j. Every composition magnitude. The package count, the roster, each
-      package's declared edges, script, manifest width, origin, admission
-      time, admitted quantities and label, the type, intent and world counts,
-      the inventory with its per-format parser flag and its per-format class,
-      the two pool capacities,
-      the ring depth ceiling, the template's stages and end types, the
-      declared channels, the ambiguity discipline and the graph identity are
-      fields; the demo machine at the end instantiates each with a witness
-      value that carries no composition claim, and the ledger pins every one
-      of them.
-
-   Non-vacuity (R-05-165, R-05-166). Every obligation below is stated as a
-   property of an arbitrary composer, selector, installer, binder, admission
-   schedule, template or amender, proved of the specification, and refuted of
-   an alternative construction the register's own sentence excludes.
-   Inhabitation is concrete: a roster of four packages whose descriptors
-   declare sixteen edges of which four are admissible and twelve break one
-   conjunct each, a composed graph, intents that route and an intent that
-   fails closed, a media template that binds and sixteen generated weakenings
-   of it that do not, one edge per format class carrying a format the
-   inventory does not hold, both pools with an occupancy sitting exactly on
-   the capacity boundary, and a value on the boundary of every comparison the
-   file makes. The ledger at the end pins every field of every witness no
-   obligation reads, which is the hazard M6.2a measured: a field nothing
-   reads is a field a weakening moves in silence.
+   Non-vacuity (R-05-163, R-05-164, R-05-165, R-05-166):
+   - Every obligation is proved for the specification and refuted on generated
+     mutation families following [DischargeSequence.v](DischargeSequence.v) and
+     [SupervisionTree.v](SupervisionTree.v): stage-chain transpositions,
+     deletions, suffixes, and duplications (`swap_at`, `drop_at`, `suffix_at`,
+     `insert_at`), 12 spoiled-edge and dropped-conjunct families, and per-member
+     refutations across the closed defect enumerations.
    (*| BEGIN derived: cited entries |*)
    Owner: docs/requirements-register.md
    Requirements: R-05-042 R-05-050 R-05-097 R-05-098 R-05-150 R-05-163 R-05-164 R-05-165
@@ -3913,10 +3595,8 @@ Qed.
 (* =========================================================================
    The demo's own pedigree ledger, and the figures no obligation reads.
 
-   Gap j is what these figures are; this is where they are pinned. M6.2a
-   measured the hazard and F-191 records it: a field no rule reads is a field
-   a weakening moves in silence, and forty-six of that item's fifty-five
-   seeded survivors were exactly such fields. So every field of every witness
+   Gap j is what these figures are; this is where they are pinned: a field no
+   rule reads is a field a weakening could otherwise move in silence. So every field of every witness
    this file defines is stated in a conversion here, whether or not an
    obligation above happens to read it, and so is every magnitude the demo
    machine carries.
