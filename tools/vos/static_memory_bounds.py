@@ -1,25 +1,12 @@
 # SPDX-License-Identifier: Apache-2.0
-"""Lower bounds on the minimal span of a legal placement, decided without a search.
+"""Search-free lower bounds on the minimal span of a legal static-memory placement.
 
-Each bound restricts an arbitrary legal placement to a subset of one arena's objects
-and to one or two instants. Restriction keeps every constraint the retained objects
-already carried and drops the rest, and deleting objects never raises a span, so the
-minimum of a restricted problem never exceeds the minimum of the whole arena. The
-bounds differ in which restriction they take and in what each can afford: the charged
-load of one instant, which the oracle already computes and this module cross-checks;
-an alignment block count for an instant of any size; an exact enumeration of orders
-for one small instant; and an exact enumeration of the relaxation that keeps two
-instants and forgets every other interference.
-
-A bound is evidence about the declared finite integer model alone. It accepts no
-requirement and confers no landing credit. It reads no candidate placement and calls
-no search, so it can be used to check one; a value that exceeds an exact optimum is a
-defect, which is what the tests decide against bounded exact search.
-
-Every row also states how much of its own domain its scan reached. A value drawn from
-part of a trace remains a lower bound, being a maximum over the restrictions actually
-scored, but it is not the strongest that bound could give, and a row that read like a
-finished one would say otherwise.
+Computes four sound lower bounds per arena by restricting the placement problem to
+subsets of objects and instants:
+- `charged-load`: peak simultaneous byte load at a single instant.
+- `alignment-block`: alignment-block padding accounting for a single instant of any size.
+- `alignment-clique`: exact subset-DP span over a single small instant (`<= MAX_CLIQUE_OBJECTS`).
+- `two-instant`: exact Pareto-front subset-DP span over pairs of instants (`<= MAX_UNION_OBJECTS`).
 """
 
 from collections.abc import Sequence
@@ -31,7 +18,6 @@ from vos import static_memory as memory
 BOUNDS: tuple[str, ...] = ("charged-load", "alignment-block", "alignment-clique",
                            "two-instant")
 MEMBERSHIP: tuple[str, ...] = ("both", "first", "second")
-# A status reports how far a scan got, never whether some value appeared.
 STATUSES: tuple[str, ...] = ("computed", "partial", "over-budget", "over-limit",
                              "dominated-by-single-instant", "no-live-set",
                              "no-instant-pair", "unattained-by-any-live-set")
@@ -43,13 +29,7 @@ type Item = tuple[int, int]
 
 
 class Coverage(TypedDict):
-    """How much of one bound's own domain its scan reached, and what it left behind.
-
-    `pruned` counts restrictions proved unable to raise the value already in hand, so
-    skipping them costs nothing. `over_limit` and `over_budget` count the ones nothing
-    here examined: either of those makes the row partial evidence, because a
-    restriction never scored could have carried a larger value.
-    """
+    """Domain coverage counts for one bound scan (`scored`, `pruned`, `over_limit`, `over_budget`)."""
 
     scored: int
     pruned: int
@@ -58,7 +38,7 @@ class Coverage(TypedDict):
 
 
 class BoundRow(TypedDict):
-    """One bound's value, how far its computation got, and what it read."""
+    """Result, completion status, domain coverage, and witness for one lower bound."""
 
     bound: str
     value: int | None
@@ -69,13 +49,7 @@ class BoundRow(TypedDict):
 
 
 class ArenaBounds(TypedDict):
-    """Every bound for one arena, and the strongest of them with its source.
-
-    `proven_lower_bound_complete` says whether the row that supplied the value covered
-    its own domain, so whether that value stands at any larger budget.
-    `scans_complete` says whether every row did, so whether a stronger value was left
-    unexamined at these settings. The first can hold while the second does not.
-    """
+    """All computed lower bounds for one arena and the strongest proven bound."""
 
     arena: str
     charged_load: int
@@ -89,7 +63,7 @@ class ArenaBounds(TypedDict):
 
 @dataclass
 class Work:
-    """Deterministic work limit. Unfinished restrictions supply no bound value."""
+    """Deterministic work counter bounded by `limit`."""
 
     limit: int
     spent: int = 0
@@ -105,14 +79,14 @@ class Work:
 
 
 def align_up(value: int, alignment: int) -> int:
-    """The least multiple of `alignment` at or above `value`; the one rounding here."""
+    """Round `value` up to the nearest multiple of positive `alignment`."""
     if type(alignment) is not int or alignment < 1:
         raise memory.CaseError("alignment must be a positive integer")
     return ((value + alignment - 1) // alignment) * alignment
 
 
 def sequential_span(items: tuple[Item, ...]) -> int:
-    """Span of stacking these extents in the given order: an achievable upper bound."""
+    """Return the span of stacking `(size, alignment)` `items` in order."""
     end = 0
     for size, alignment in items:
         end = align_up(end, alignment) + size
@@ -120,11 +94,7 @@ def sequential_span(items: tuple[Item, ...]) -> int:
 
 
 def _record(target: dict[int, int], first_end: int, second_end: int) -> None:
-    """Keep the Pareto-minimal front pairs only.
-
-    Both transitions and the objective are monotone in each front, so a pair no
-    smaller than another in both coordinates can complete no better and is dropped.
-    """
+    """Insert `(first_end, second_end)` into `target`, retaining only Pareto-minimal pairs."""
     standing = target.get(first_end)
     if standing is not None and standing <= second_end:
         return
@@ -138,19 +108,7 @@ def _record(target: dict[int, int], first_end: int, second_end: int) -> None:
 
 def pack_span(items: tuple[Item, ...], membership: Sequence[str],
               work: Work) -> int | None:
-    """Exact minimal span for one instant, or for the two-instant relaxation.
-
-    Objects marked `both` are disjoint from everything; `first` objects are disjoint
-    from each other and from `both`, and so are `second` objects, while a `first` and
-    a `second` object may share bytes. Sorting a legal placement by base makes each
-    object start at or above the highest end already placed in each set it belongs
-    to, and lowering a base to exactly that aligned front never constrains a later
-    object more, so enumerating subsets with the reachable front pairs is exact.
-
-    Every object marked `both` is the single-instant case, where one front is kept
-    and the result is the least span of any placement of that instant's live set.
-    Returns None when the work limit is reached, which withholds the bound.
-    """
+    """Return the exact minimal span for one instant or a two-instant relaxation (`None` on budget exhaustion)."""
     if len(items) != len(membership) or set(membership) - set(MEMBERSHIP):
         raise memory.CaseError(f"membership must label every item one of {MEMBERSHIP}")
     count = len(items)
@@ -188,17 +146,7 @@ def pack_span(items: tuple[Item, ...], membership: Sequence[str],
 
 
 def block_bound(objects: tuple[memory.Object, ...]) -> int:
-    """Alignment block accounting for one instant's live set, at any size.
-
-    Fix an alignment A and let G be the objects whose alignment is a multiple of A.
-    Each of them starts at a multiple of A, so it owns the whole A-sized blocks its
-    extent meets, and no other member of G can start inside them. Let t be the object
-    of the live set with the highest base: every other live object ends at or below
-    base(t), so base(t) is at least the block bytes owned by the members of G below
-    it, and at least the sizes of every other live object plus the block padding that
-    no live object can cover. Minimizing over the choice of t and maximizing over A
-    gives a bound that needs no search and holds for a live set of any size.
-    """
+    """Compute an alignment-block lower bound for a single instant's live set `objects`."""
     load = sum(obj.size for obj in objects)
     strongest = load
     for alignment in sorted({obj.alignment for obj in objects if obj.alignment > 1}):
@@ -214,13 +162,10 @@ def block_bound(objects: tuple[memory.Object, ...]) -> int:
         candidates: list[int] = []
         for top in objects:
             if top.id in blocks:
-                # The highest object owns its own blocks; the rest sit below them.
                 below = owned - blocks[top.id]
                 unusable = padding - pads[top.id]
                 coverable = fillers
             else:
-                # The highest member of G may straddle base(t): drop its padding, and
-                # charge the others one block less than their own count.
                 below = max(0, owned - alignment + 1)
                 unusable = padding - widest
                 coverable = fillers - top.size
@@ -232,20 +177,14 @@ def block_bound(objects: tuple[memory.Object, ...]) -> int:
 
 def live_objects(case: memory.Case, arena_id: str,
                  time: int) -> tuple[memory.Object, ...]:
-    """The arena's objects charged at `time`, in identity order."""
+    """Return objects in `arena_id` live at `time`, sorted by `id`."""
     return tuple(sorted((obj for obj in case.objects if obj.arena == arena_id
                          and obj.start <= time < obj.reuse), key=lambda obj: obj.id))
 
 
 def cliques(case: memory.Case,
             arena_id: str) -> list[tuple[int, tuple[memory.Object, ...]]]:
-    """One representative instant per distinct live set, by earliest start time.
-
-    A live set is maximal at some object's start, so the starts carry every clique of
-    the interference graph. Two instants whose live sets agree on the multiset of
-    sizes and alignments have the same bound, so one representative is kept; that
-    can only withhold pair evidence, never raise a bound.
-    """
+    """Return one representative `(time, live_objects)` per distinct `(size, alignment)` multiset."""
     if arena_id not in {arena.id for arena in case.arenas}:
         raise memory.CaseError(f"unknown arena {arena_id}")
     seen: set[tuple[Item, ...]] = set()
@@ -271,13 +210,7 @@ def _coverage(scored: int = 0, pruned: int = 0, over_limit: int = 0,
 
 
 def _decide(best: int, coverage: Coverage, empty: str) -> tuple[int | None, str, bool]:
-    """Read a status off what the scan covered, never off whether a value appeared.
-
-    A scan that skipped part of its domain for a limit or a budget is `partial`: its
-    value is still a lower bound, being a maximum over the restrictions it did score,
-    and it is not the strongest this bound could give. A scan that scored nothing
-    names the limit that stopped it and claims no value at all.
-    """
+    """Derive `(value, status, complete)` from `best` and `coverage`."""
     complete = not (coverage["over_limit"] or coverage["over_budget"])
     if coverage["scored"]:
         return best, "computed" if complete else "partial", complete
@@ -298,13 +231,7 @@ def _row(bound: str, value: int | None, status: str, complete: bool,
 
 def _load_row(arena_id: str, load: int,
               found: list[tuple[int, tuple[memory.Object, ...]]]) -> BoundRow:
-    """The charged load, with the instant that attains it as an independent witness.
-
-    A live set only grows at a start, so the charged peak is attained at one of the
-    instants enumerated here; a load no live set attains says so rather than passing.
-    The oracle scans the whole trace for this value, so the row is complete unless
-    that cross-check fails, which is a finding the report turns into an error.
-    """
+    """Build the `charged-load` row with a witness instant attaining `load`."""
     coverage = _coverage(scored=len(found))
     for time, live in found:
         if sum(obj.size for obj in live) == load:
@@ -319,13 +246,7 @@ def _load_row(arena_id: str, load: int,
 
 def _clique_rows(found: list[tuple[int, tuple[memory.Object, ...]]], work: Work,
                  max_clique: int) -> tuple[BoundRow, BoundRow]:
-    """The block bound over every live set and the exact bound over the small ones.
-
-    Live sets are taken by descending charged total, so a scan the budget stops still
-    carries the strongest evidence it reached. Each row counts what it skipped and
-    whether an object-count setting or the work limit was what skipped it, because a
-    live set never scored could have carried a larger value than the one reported.
-    """
+    """Compute `alignment-block` and `alignment-clique` bound rows over `found`."""
     ordered = sorted(found, key=lambda item: (-sum(obj.size for obj in item[1]),
                                               item[0]))
     block = _coverage()
@@ -349,8 +270,6 @@ def _clique_rows(found: list[tuple[int, tuple[memory.Object, ...]]], work: Work,
         if count > max_clique:
             clique["over_limit"] += 1
             continue
-        # The cost of one exact live set is known before it starts, so an unaffordable
-        # one is skipped whole rather than spending the budget on a partial answer.
         if not work.affordable(count * (1 << count)):
             clique["over_budget"] += 1
             continue
@@ -376,13 +295,7 @@ def _union(first: tuple[memory.Object, ...],
 
 def _pair_row(found: list[tuple[int, tuple[memory.Object, ...]]], work: Work,
               max_union: int, standing: int) -> BoundRow:
-    """The exact bound for the relaxation that keeps two instants and drops the rest.
-
-    A pair whose objects stacked in one order already fit below the strongest bound
-    in hand cannot raise it, so it is skipped without enumeration and counted as
-    pruned rather than as unexamined; the value here is therefore the strongest pair
-    evidence found, not a survey of every pair.
-    """
+    """Compute the `two-instant` relaxation bound row over pairs from `found`."""
     members = dict(found)
     identities = {time: frozenset(obj.id for obj in live) for time, live in found}
     times = sorted(members)
@@ -430,7 +343,7 @@ def arena_bounds(case: memory.Case, arena_id: str,
                  work_budget: int = DEFAULT_WORK_BUDGET,
                  max_clique: int = MAX_CLIQUE_OBJECTS,
                  max_union: int = MAX_UNION_OBJECTS) -> ArenaBounds:
-    """Every bound for one arena, and the strongest with the bound that supplied it."""
+    """Compute all four lower bounds for `arena_id` and select the strongest proven bound."""
     for setting in (work_budget, max_clique, max_union):
         if type(setting) is not int or setting < 0:
             raise memory.CaseError("bound settings must be nonnegative integers")
@@ -452,8 +365,6 @@ def arena_bounds(case: memory.Case, arena_id: str,
             proven = value
             source = row["bound"]
             settled = row["complete"]
-    # The unit is one subset-enumeration transition or one live set examined; the
-    # report states it once beside the settings rather than once per arena.
     return {"arena": arena_id, "charged_load": load, "proven_lower_bound": proven,
             "proven_lower_bound_source": source,
             "proven_lower_bound_complete": settled,
@@ -464,6 +375,6 @@ def arena_bounds(case: memory.Case, arena_id: str,
 def case_bounds(case: memory.Case, work_budget: int = DEFAULT_WORK_BUDGET,
                 max_clique: int = MAX_CLIQUE_OBJECTS,
                 max_union: int = MAX_UNION_OBJECTS) -> list[ArenaBounds]:
-    """Bounds for every arena; arenas are independent and are never added together."""
+    """Compute `ArenaBounds` for every arena in `case`."""
     return [arena_bounds(case, arena.id, work_budget, max_clique, max_union)
             for arena in case.arenas]

@@ -530,7 +530,7 @@
         },
         {
           "path": "tools/vos/compiler_diff.py",
-          "sha256": "4189e591ecd11bee4672c26656a8ed1645ed4fbccd0bb8586759dbde6e4e6b9a"
+          "sha256": "6721079d2d47e5dbdb93e8ac40947b1da7259d65c8b9c7bc1eb9d9daaed0cfca"
         },
         {
           "path": "tools/vos/compiler_provenance.py",
@@ -647,7 +647,7 @@
       ],
       "descriptor": {
         "path": "tools/composer/packages/composer.json",
-        "sha256": "2df88e5f160c518527f8109367d8dcd48b0274cd52c43fedbef229b1099fdabf"
+        "sha256": "0592f1699fc0aebd56556b5c216fe5561a9c0f43924b980ac5933ec97920e2ce"
       },
       "artifact_slot": "composer-artifact",
       "entry": null,

@@ -1,62 +1,13 @@
 # SPDX-License-Identifier: Apache-2.0
-"""The memory plan's placement problem, read out of MemoryPlan.v, and an exact check over it.
+"""Parse the memory placement problem from [MemoryPlan.v](../../proofs/MemoryPlan.v) and evaluate placement constraints.
 
-[proofs/MemoryPlan.v](../../proofs/MemoryPlan.v) is M1.9's statement artifact: the
-`Plan` record every composition magnitude is a field of, the boolean checks the
-register's memory-plan obligations decide by, and one demo plan instantiating them
-with witness values. Q5 wants that problem as structured data a search can read and an
-exact check every proposed placement is re-admitted by, and this module is both halves,
-on two rules the plan states.
-
-**One owner.** Every figure here is read out of the `.v` and none is typed in: the
-`Definition demo_* : list ...` lists, the literal fields of `build_plan`, the
-`Definition <name> : Plan := build_plan ...` applications, `placed_by_name`'s arms and
-the `RegionKind` constructors. A list this reader cannot find or cannot read is
-`PlanError` and never an empty roster, on the fail-closed ground the generated group
-states (K-67, K-75): a regex that stops matching would otherwise yield zero regions and
-a green report about nothing. A declaration under a decoration, in the grammar the
-shared lexer writes once for every reader ([proofs.py](proofs.py)), is read as the bare
-one, and a list or an application of `build_plan` to bare words spelled where no head
-reads it, or a value of any written type completed from a base with `with` that assigns
-a field of `Plan`, is `PlanError` too, since the export would otherwise lack it with only
-a floor on its plan count to notice. So is a declaration a head reads under `Fail` or
-`Succeed`, on its line or above it, the file keeping nothing it states. Those audits read
-the file with its comments blanked, so a comment's `match` or full stop hides nothing
-from them.
-
-**What the export does not carry, knowingly.** A variant is carried by the lists it
-names, so an application of `build_plan` to an inline term names no list to carry it
-by and is neither read nor refused: `interior_empty_region_plan` applies it to two
-`cons` chains, and the export lacks it without a finding. The audits above hold every
-other spelling of a variant.
-
-`emit` writes the export K-88 holds byte-identical to what this reader writes, so a
-hand edit of the artifact is a finding at the next gate and an edit of the `.v` that
-this reader no longer follows is a raise at the same gate.
-
-**The check is a port and it admits nothing.** Each predicate below is one Gallina
-definition of the `.v`, named in its docstring, re-implemented over Python integers so
-that a placement the enumerator proposes is decided by arithmetic the search's own
-objective never touches. The plan's item says what that port is: development hygiene,
-with the proof status staying with the `.v`. Nothing here is evidence about the
-machine, and the `.v`'s own refutation variants are what the tests hold this port to,
-so a port that drifted from the file would disagree with a plan the file refutes.
-
-**What the search may move, and what it may not.** A candidate placement moves slot
-bases alone. The roster, the kinds, the cycle-criticality judgment, the class
-assignment, the lengths, the live ranges, the island map, the fetch counts and the
-charged slots are the plan's own fields and stay where the `.v` declares them, because
-the item's own text makes a cross-owner borrowing or a new shared-lifetime assumption
-an architecture change taken elsewhere, and because the class is the register's
-placement rather than a degree of freedom (R-15-247s, `register_place`).
-
-**What the port takes of R-08-014.** That entry states the side condition as slot
-disjointness wherever live ranges *overlap*, which is the `.v`'s reading 7 and the
-predicate ported here: `colouring_ok` below is that reading, so the enumerator shares a
-slot exactly where `live_overlap` is false. The inverted antecedent, disjointness over
-*disjoint* live ranges, refuses the mechanism the plan exists to use, and
-`literal_colouring_ok` is carried beside it only so that a test can show the two answer
-opposite ways on the same two plans the file shows it on.
+Reads the `Plan` record, `RegionKind` constructors, `placed_by_name` arms, `build_plan`
+fields, and plan definitions directly from [MemoryPlan.v](../../proofs/MemoryPlan.v),
+failing closed (`PlanError`) on missing or unrecognized declarations (K-67, K-75, K-88).
+Ports the `.v` admission predicates to Python integers and enumerates candidate slot-base
+placements per island while keeping region kinds, classes, lengths, live ranges, islands,
+fetch counts, and charged slots fixed (R-08-012c, R-08-014, R-08-045, R-14-010,
+R-15-007k, R-15-247j, R-15-247s).
 """
 
 import dataclasses
@@ -177,52 +128,35 @@ _PLAN_RE = re.compile(
     r"^" + CONTROL_PREFIXES + r"Definition (?P<name>\w+) : Plan :=\s*"
     r"build_plan (?P<args>[\w\s]+?)\.", re.MULTILINE)
 
-# The typed lists and the values as the file spells them, at any column, under any
-# prefix, at any spacing and with any binders or none, read over the file with its
-# comments blanked. A list, or an application of `build_plan` to bare words, found here
-# and not by the heads above is one the export would silently lack, so it is `PlanError`
-# rather than a shorter `lists_read` or one variant fewer, which only a floor on the plan
-# count would notice. An application to an inline term is no variant the export can
-# name by its lists, and `_APPLIED_RE` leaves it outside the audit as it is outside the
-# export. `Example` is `Definition` by another name and `Let` is one inside a section, so
-# each is read as one. The keyword's own boundary is checked on the hits rather than
-# written into the pattern, a leading lookbehind being re-decided at every position of a
-# file this size. A value's body runs to the full stop the shared sentence split ends it
-# at, so a string's full stop ends none early.
+# Match typed lists and `build_plan` applications anywhere in comment-stripped text
+# so declarations missed by the primary regexes fail closed with `PlanError`.
 _LIST_SPELLED_RE = re.compile(
     r"(?:Definition|Example)\s+(\w+)\s*:\s*list\s+(?:nat|bool|RegionKind)\s*:=")
 _VALUE_SPELLED_RE = re.compile(r"(?:Definition|Example|Let)\s+(\w+)")
 _CONTINUES_RE = re.compile(r"[\w']")
 _APPLIED_RE = re.compile(r"\s*build_plan\s+[\w\s]+")
 
-# A record value completed from a base, `{| demo_plan with second_fetch := 16 |}`, copies
-# every field it does not assign and names none of them, so a plan spelled that way is
-# no application of `build_plan` and no literal this reader can carry. Its `with` is the
-# token that says so, a `match` accounting for every other one a value's body writes, and
-# a field of `Plan` among the names it assigns is what makes the record a plan, whether
-# or not the value's type is written.
+# Detect `{| base with field := ... |}` record updates, which this reader refuses.
 _WITH_RE = re.compile(r"(?<![\w'])with(?![\w'])")
 _MATCH_RE = re.compile(r"(?<![\w'])match(?![\w'])")
 _ASSIGNED_RE = re.compile(r"(?<![\w'])(\w+)\s*:=")
 
 
 def _spelled(head: re.Pattern[str], text: str) -> Iterator[re.Match[str]]:
-    """Every hit of a declaration head that opens a word rather than ending one."""
+    """Yield matches of `head` that start on a word boundary."""
     for found in head.finditer(text):
         if not found.start() or not _CONTINUES_RE.match(text, found.start() - 1):
             yield found
 
 
 def _completed(body: str) -> bool:
-    """Whether a body writes a `with` no `match` accounts for: a record completed from a
-    base, or some other shape this reader does not read as a literal."""
+    """Return whether `body` contains a record `with` update not accounted for by `match`."""
     return "with" in body and len(_WITH_RE.findall(body)) > len(_MATCH_RE.findall(body))
 
 
 def _kept(found: re.Match[str] | None, blank: str, ends: list[int],
           what: str) -> re.Match[str] | None:
-    """A head's match, refused where the declaration it reads stands under a control flag
-    that keeps nothing it states. `ends` is where the blanked text's sentences end."""
+    """Reject matches standing under a voiding control flag (`Fail` or `Succeed`)."""
     if found is not None and (flag := void_flag(blank, found.start(), ends)) is not None:
         raise PlanError(f"{SOURCE} states {what} under `{flag}`, which keeps nothing it "
                         f"states, so it is no declaration the export can carry")
@@ -231,22 +165,14 @@ def _kept(found: re.Match[str] | None, blank: str, ends: list[int],
 
 def _heads(head: re.Pattern[str], text: str, blank: str,
            ends: list[int]) -> Iterator[re.Match[str]]:
-    """Every match of a head over the text, each held to `_kept`."""
+    """Yield every non-voided match of `head` in `text`."""
     for found in head.finditer(text):
         _kept(found, blank, ends, found.group("name"))
         yield found
 
 
 def _cons(body: str, name: str) -> list[str] | None:
-    """The members of one `cons x (cons y ... nil)` chain, as the tokens spelling them.
-
-    Read by walking the chain rather than by collecting every token, so a body that
-    opens as a chain and is not one is refused instead of being read as whichever
-    tokens it happens to carry: the count of `cons` is the count of members and the
-    chain ends in `nil`. A body that is no chain at all, `app` of two lists being the
-    `.v`'s one such shape, answers `None` and is left unread; whether an unread list
-    mattered is decided where `build_plan` is resolved against the lists found.
-    """
+    """Extract element tokens from a `cons x (cons y ... nil)` chain, or `None` if not a `cons`/`nil` expression."""
     tokens = re.findall(r"[A-Za-z_]\w*|\d+", body)
     if not tokens or tokens[0] not in ("cons", "nil"):
         return None

@@ -51,17 +51,12 @@ def _sha256(data: bytes) -> str:
 
 @dataclass(frozen=True)
 class Refusal:
-    """One line of an emitted stream the in-tree assembler will not take, and why.
+    """One line of an emitted assembly stream rejected by the in-tree assembler.
 
-    `kind` is `mnemonic` for a name the dialect table and the pseudo-instructions do not
-    spell, `directive` for a directive the parser does not know, `section` for a `.section`
-    naming one the image does not have, `label` for a numeric local label, which the
-    assembler's label grammar has no form for, `relocation` for a `%pcrel_hi(...)`-style
-    operator, which the assembler has none of by design (R-15-002b, R-15-036l: layout is
-    absolute, so there is nothing to relocate), `operand` for a known mnemonic or directive
-    whose operands the assembler refused, `symbol` for a stream that defines no `main`, and
-    `layout` for an image the composer cannot place. `line` is 1-based in the emitted
-    stream, and 0 where the refusal is not a line's.
+    `kind` is one of `mnemonic`, `directive`, `section`, `label` (numeric local label),
+    `relocation` (`%pcrel_hi(...)`-style operator, unsupported under absolute layout
+    R-15-002b, R-15-036l), `operand`, `symbol` (missing `main`), or `layout`. `line` is
+    1-based in the emitted stream, or 0 for whole-stream/layout refusals.
     """
 
     kind: str
@@ -77,25 +72,12 @@ _ASM_ERROR_RE = re.compile(r"^(.*?):(\d+): (.*)$", re.DOTALL)
 
 
 def normalize(stream: str) -> str:
-    """The emitted stream with every tab a space, which is the one rewrite the driver makes.
-
-    CompCert's printer separates a mnemonic from its operands with a tab and the assembler's
-    line parse splits the two on a space alone, so an unnormalized stream is refused whole,
-    every instruction reading as a mnemonic with its first operand glued on. A tab inside a
-    string literal would move with the rest, which the generator never writes and a reader
-    of the refusal list would see as a changed `.ascii`.
-    """
+    """Replace tabs with spaces so CompCert's tab-separated mnemonics parse cleanly."""
     return stream.replace("\t", " ")
 
 
 def _split(raw: str) -> tuple[list[str], str]:
-    """One line as the assembler reads it: the labels it declares, and what follows them
-    once the comment is gone.
-
-    A numeric local label is taken off the front too, spelled with its colon so a reader
-    tells `1:` from a symbol: the assembler does not read one, and leaving it in place
-    would make the mnemonic behind it read as the refusal.
-    """
+    """Split a line into leading labels (including numeric labels with `:`) and comment-stripped body."""
     text = raw.split("#", 1)[0].split("//", 1)[0].strip()
     labels: list[str] = []
     while text:
@@ -108,8 +90,7 @@ def _split(raw: str) -> tuple[list[str], str]:
 
 
 def _head(raw: str) -> tuple[str, str] | None:
-    """A line's mnemonic or directive and its operand text, or `None` for a line carrying
-    neither."""
+    """Return `(mnemonic_or_directive, operands)` for `raw`, or `None` if empty."""
     _, text = _split(raw)
     if not text:
         return None
@@ -118,12 +99,7 @@ def _head(raw: str) -> tuple[str, str] | None:
 
 
 def _directive_refusal(head: str, rest: str, number: int) -> Refusal | None:
-    """Whether the assembler takes this directive line on its own, and how it refuses it.
-
-    The parser is asked rather than a list of its directives restated here: the line is
-    parsed alone, which is enough to decide a directive's name and a section's, and an
-    operand the parser refuses is reported as the parser words it.
-    """
+    """Test whether `asm.Assembler` accepts a standalone directive line."""
     try:
         asm.Assembler(f"{head} {rest}".strip(), "stream")
     except AsmError as exc:
@@ -137,12 +113,7 @@ def _directive_refusal(head: str, rest: str, number: int) -> Refusal | None:
 
 
 def refusals(stream: str) -> list[Refusal]:
-    """Every line of `stream` the assembler refuses by name, before anything is laid out.
-
-    A mnemonic is decided against the dialect table and the pseudo-instructions, a
-    directive by parsing its line alone. Operand-level refusals of an instruction are not
-    found here, because deciding one needs the layout; `assemble` reports those.
-    """
+    """Return pre-layout refusals in `stream` (numeric labels, relocations, directives, unknown mnemonics)."""
     found: list[Refusal] = []
     for number, raw in enumerate(normalize(stream).splitlines(), 1):
         labels, text = _split(raw)

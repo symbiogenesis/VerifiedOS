@@ -1,39 +1,12 @@
 # SPDX-License-Identifier: Apache-2.0
-"""Legal slot positions under the profile's own representability granule.
+"""Representability-granule placement layer for static-memory research contracts.
 
-The research placement oracle models an object as a charged extent with an alignment
-and says that arbitrary CHERI representability is outside its declared model. This
-layer closes the representability half of that gap for the format this repository
-actually fixes, and closes nothing else.
+Evaluates static-memory contracts under three models:
+- `alignment_only`: alignment constraints without CHERI representability granules.
+- `representable`: alignment plus R-15-007c base-granule quantization (`memplan.representable_granule`).
+- `quantized_lengths`: R-15-007k granule-quantized extents and base-granule quantization.
 
-**The granule is derived, never restated.** A region's granule is R-15-007c's
-function of its own charged length, ported once from `MemoryPlan.v` into
-[memplan](memplan.py) as `representable_granule` and called here through that module,
-so a change to the function moves this layer with it and a mutant of it refuses the
-placements it should. Every parameter of the format itself is read where
-[capformat](capformat.py) reads it and is named rather than copied.
-
-**Two decisions, kept apart because the register keeps them apart.** A base off its
-granule is a position the plan may not choose, so it is offered to the oracle as a
-legal-base layer and every search, checker and replay obeys it. A *length* its own
-granule does not divide has no exact bounds at any base whatever, so it is reported
-per object as an exact-length refusal and is never quietly rounded: R-15-007k puts
-that rounding in the static memory plan, which lays each object at its representable
-alignment and at a granule-quantized length, and declines `CSetBoundsExact` so that
-an outward round is a defect in the plan rather than a runtime event. The quantized
-length this module computes is what such a plan would have to charge, and it is
-reported beside the object rather than substituted for its charged size.
-
-**A base-quantized placement is therefore not yet a representable one**, and the
-receipt says so in figures rather than in prose: beside the two models it solves a
-third over a derived contract whose every extent is grown to its own granule, which is
-the span a plan meeting R-15-007k must charge. The derived contract is an artifact
-beside the supplied one and never a rewrite of it: the charged sizes stay as stated.
-
-Everything else the format decides stays outside, and
-[the representability document](../../docs/implementation/static-memory/representability.md)
-names each part. This module is host research: it admits nothing, plans nothing, and
-credits nothing to the product.
+See [representability.md](../../docs/implementation/static-memory/representability.md).
 """
 
 import hashlib
@@ -50,24 +23,17 @@ from vos import static_memory_corpus as witnesses
 GENERATOR = "tools/vos/static_memory_repr.py"
 VERSION = "static-memory-representability-v1"
 
-# The exact search and its replay are bounded here rather than by the command, so the
-# receipt's statuses are a property of the fixtures and this constant alone.
 WORK_BUDGET = 200_000
 
-# Above this many simultaneously live objects the stacked bound is not computed for
-# that instant and the charged load stands for it. The bound below is exponential in
-# the size of one live set, and an instant left out weakens the bound without making
-# it unsound: it is a maximum over instants, each of which is a lower bound on its own.
+# Skip exponential subset-stacking bound when an instant has more than 14 live objects.
 MAX_STACKED_OBJECTS = 14
 
-# How many times the quantized length is allowed to move before the module refuses.
-# One step always suffices at the ported granule, and the proof is in the document;
-# the bound is here so that a mutated granule raises instead of looping.
+# Fixed-point iteration cap for `quantized_size`.
 MAX_QUANTIZE_STEPS = 4
 
 
 class Refusal(TypedDict):
-    """One object whose charged extent has no exact bounds at any base."""
+    """An object whose charged extent is not a multiple of its representability granule."""
 
     id: str
     arena: str
@@ -78,7 +44,7 @@ class Refusal(TypedDict):
 
 
 class SideRow(TypedDict):
-    """One arena's result under one of the two legal-position models."""
+    """Placement result and lower bound for one arena under one model."""
 
     best_span: int | None
     status: str
@@ -89,15 +55,7 @@ class SideRow(TypedDict):
 
 
 class ArenaRow(TypedDict):
-    """The three models beside each other for one arena, and what separates them.
-
-    `alignment_only` is the model the existing receipts were computed under,
-    `representable` adds the legal-base layer, and `quantized_lengths` solves the
-    derived contract every extent of which is grown to its own granule, which is what
-    R-15-007k's plan would have to charge. The span under the middle model is a legal
-    *base* assignment and not yet a representable plan, so a reader who needs the
-    compliant figure reads the third.
-    """
+    """Comparison of `alignment_only`, `representable`, and `quantized_lengths` for one arena."""
 
     arena: str
     owner: str
@@ -113,7 +71,7 @@ class ArenaRow(TypedDict):
 
 
 class AgreementRow(TypedDict):
-    """One exported region, decided by this layer and by the memory plan's own port."""
+    """Cross-check row comparing this module's predicates with `memplan`'s for one region."""
 
     region: int
     length: int
@@ -128,32 +86,21 @@ class AgreementRow(TypedDict):
 
 
 def _round_up(value: int, step: int) -> int:
-    """The least multiple of `step` at or above `value`, for positive `step`."""
+    """Round `value` up to the nearest multiple of positive `step`."""
     if step < 1:
         raise memory.CaseError("a legal-position step must be a positive integer")
     return ((value + step - 1) // step) * step
 
 
 def granule_of_size(size: int) -> int:
-    """R-15-007c's granule for a charged extent, from the memory plan's own port.
-
-    The call is what makes this a derivation rather than a second copy of the
-    function: `memplan.representable_granule` ports the `.v`'s definition, and this
-    module holds no threshold, no exponent and no arithmetic of its own.
-    """
+    """Return R-15-007c's representability granule for positive `size` via `memplan`."""
     if type(size) is not int or size < 1:
         raise memory.CaseError("a charged extent must be a positive integer")
     return memplan.representable_granule(size)
 
 
 def base_refusal(obj: memory.Object, base: int) -> str | None:
-    """The legal-base layer: a base is legal exactly where the object's granule divides it.
-
-    This is `memplan.base_is_quantized` decided from the base itself rather than from a
-    declared granule count, which is the only form available here: a research contract
-    states a base and no count. The two agree wherever the count is the base's own,
-    which the cross-check against the exported plan is what establishes.
-    """
+    """Return a refusal string if `base` is not a multiple of `obj`'s granule, else `None`."""
     granule = granule_of_size(obj.size)
     if base % granule:
         return (f"representable: {obj.id} base {base} is no whole number of its "
@@ -162,21 +109,12 @@ def base_refusal(obj: memory.Object, base: int) -> str | None:
 
 
 def probe(identifier: str, size: int) -> memory.Object:
-    """An object carrying only what the legal-base layer reads: an identity and an extent.
-
-    The lifetime fields are filled with the shortest legal trace because the layer never
-    looks at them, which is what lets a region of the exported plan be asked the same
-    question a research contract's object is asked, through the same function.
-    """
+    """Construct a minimal `memory.Object` with `id=identifier` and `size=size`."""
     return memory.Object(identifier, "probe", size, size, 1, 0, 0, 0, 0, 1, 0)
 
 
 def length_refusal(obj: memory.Object) -> Refusal | None:
-    """The object's exact-length refusal, or None where its extent is already quantized.
-
-    Nothing is rounded: the quantized extent is reported as what a plan meeting
-    R-15-007k would have to charge, and the object keeps the size its contract states.
-    """
+    """Return a `Refusal` if `obj.size` is not a multiple of its granule, else `None`."""
     granule = granule_of_size(obj.size)
     if obj.size % granule == 0:
         return None
@@ -186,14 +124,7 @@ def length_refusal(obj: memory.Object) -> Refusal | None:
 
 
 def quantized_size(size: int) -> int:
-    """The least charged extent at or above `size` that its own granule divides.
-
-    Rounding up can coarsen the granule, so the answer is a fixed point rather than one
-    division: the loop re-derives the granule of the extent it just produced and stops
-    where that extent is a whole number of it. At the ported granule the first step
-    always lands on one, which the document proves; the bound is what keeps a mutated
-    granule a refusal instead of a hang.
-    """
+    """Return the least extent `>= size` that is a multiple of its own granule."""
     extent = size
     for _ in range(MAX_QUANTIZE_STEPS):
         granule = granule_of_size(extent)
@@ -205,27 +136,14 @@ def quantized_size(size: int) -> int:
 
 
 def step_of(obj: memory.Object, *, representable: bool) -> int:
-    """The spacing every legal base of this object is a multiple of.
-
-    Alignment alone under the model the existing receipts were computed under, and the
-    least common multiple of that alignment and the object's granule under this layer,
-    a base having to be a multiple of both.
-    """
+    """Return the base alignment step for `obj` (`alignment` or `lcm(alignment, granule)`)."""
     if not representable:
         return obj.alignment
     return lcm(obj.alignment, granule_of_size(obj.size))
 
 
 def stacked_bound(objects: Sequence[memory.Object], *, representable: bool) -> int | None:
-    """The least end any disjoint stacking of one live set can reach, or None if too large.
-
-    Sound as a lower bound on the arena's span at that instant, and the document states
-    the argument: the objects live at one instant occupy disjoint extents, so ordering
-    them by base gives b1 < b2 < ... with b1 >= 0 and b(j+1) >= b(j) + size(j) rounded
-    up to the next multiple of object j+1's step. Each step of that recurrence is
-    monotone in the end below it, so the exchange argument holds and the minimum over
-    orders is computed by a subset walk rather than over the orders themselves.
-    """
+    """Compute the minimum span of any disjoint stacking of `objects` via subset DP."""
     items = tuple((obj.size, step_of(obj, representable=representable)) for obj in objects)
     if not items:
         return 0
@@ -248,13 +166,7 @@ def stacked_bound(objects: Sequence[memory.Object], *, representable: bool) -> i
 
 
 def arena_lower_bound(case: memory.Case, arena_id: str, *, representable: bool) -> int:
-    """A sound lower bound on that arena's span: the charged load, raised where a live
-    set cannot be stacked as tightly as its bytes.
-
-    Only start times are examined, every live set being contained in the live set at
-    the latest start among its members, and the charged load stands for any instant
-    whose live set is larger than the stacked bound will walk.
-    """
+    """Compute a lower bound on `arena_id`'s span from peak load and per-instant `stacked_bound`."""
     load = memory.peak_load(case, arena_id)
     objects = [obj for obj in case.objects if obj.arena == arena_id]
     bound = load
@@ -267,14 +179,7 @@ def arena_lower_bound(case: memory.Case, arena_id: str, *, representable: bool) 
 
 
 def quantized_contract(raw: dict[str, Any]) -> dict[str, Any]:
-    """The same contract with every charged extent grown to its own granule.
-
-    R-15-007k's plan lays each object at a granule-quantized length, so the span a
-    compliant plan must charge is the optimum of *this* contract and not of the one
-    supplied, whose inexact extents a base-quantized model still charges exactly. The
-    supplied mapping is left untouched: this returns a new contract, and the object
-    field set is the one `parse_case` fixes, so nothing is added or dropped here.
-    """
+    """Return a copy of contract `raw` with every object's `size` rounded to `quantized_size`."""
     objects = [dict(obj) | {"size": quantized_size(obj["size"])} for obj in raw["objects"]]
     return dict(raw) | {"name": f"{raw['name']}-quantized-lengths", "objects": objects}
 
@@ -292,11 +197,7 @@ def _side(case: memory.Case, arena: memory.Arena, side: dict[str, Any], *,
 
 
 def _cost(lower: SideRow, upper: SideRow) -> tuple[int | None, str]:
-    """The span one model charges above another, where both of them finished.
-
-    Two cutoffs cannot be subtracted, so a pair that did not both finish reports no
-    cost and says which it is rather than reporting a difference of bounds as one.
-    """
+    """Return `(upper_span - lower_span, status)` when both runs reached optimality."""
     spans = (lower["best_span"], upper["best_span"])
     if (lower["status"] == "optimal" and upper["status"] == "optimal"
             and spans[0] is not None and spans[1] is not None):
@@ -305,7 +206,7 @@ def _cost(lower: SideRow, upper: SideRow) -> tuple[int | None, str]:
 
 
 def compare_case(raw: dict[str, Any], work_budget: int = WORK_BUDGET) -> dict[str, Any]:
-    """Solve one contract under the three models and report what separates them."""
+    """Solve contract `raw` under the three models and compare arena spans."""
     case = memory.parse_case(raw)
     findings = memory.check_placement(case, memory.standing_placement(case))
     if findings:
@@ -359,14 +260,7 @@ def compare_case(raw: dict[str, Any], work_budget: int = WORK_BUDGET) -> dict[st
 
 
 def _arena_findings(name: str, row: ArenaRow) -> list[str]:
-    """The invariants a run of this experiment is allowed to fail on.
-
-    An unsound bound is the one that matters: a lower bound above a span an exhaustive
-    search reached is a defect in the bound and not a result about the layout. The
-    other direction needs no check here and is not made into one: the bound starts at
-    the charged load and only rises, so a comparison against that load would read one
-    value against itself and decide nothing.
-    """
+    """Check lower-bound soundness and monotonicity across the three models for `row`."""
     findings: list[str] = []
     for label, side in (("alignment-only", row["alignment_only"]),
                         ("representability", row["representable"]),
@@ -389,11 +283,7 @@ def _arena_findings(name: str, row: ArenaRow) -> list[str]:
 
 def _contract(name: str, note: str, arenas: tuple[tuple[str, str, int], ...],
               rows: tuple[tuple[str, str, int, int, int, int, int], ...]) -> dict[str, Any]:
-    """One declared fixture from (id, arena, size, alignment, base, start, reuse) rows.
-
-    Completion milestones are the reuse time throughout: these fixtures exist to move
-    bases, and they make no claim about a containment barrier or a sweep.
-    """
+    """Build and validate a synthetic representability fixture contract."""
     objects = [{"id": identifier, "arena": arena, "size": size, "payload": size,
                 "alignment": alignment, "base": base, "start": start,
                 "payload_end": reuse, "authority_end": reuse, "sweep_end": reuse,
@@ -414,15 +304,7 @@ def _contract(name: str, note: str, arenas: tuple[tuple[str, str, int], ...],
 
 
 def families() -> list[dict[str, Any]]:
-    """Small declared families that straddle the exactness threshold.
-
-    The corpus witnesses are all below it, where the granule is one byte and this layer
-    asks for nothing, so a fixture that reaches past it is what makes the cost of
-    representability visible at all. Each is small enough that every model finishes,
-    which is what lets the optima be compared rather than two cutoffs. The last fixture
-    is about the lower bound rather than about the format: it separates the bound from
-    the optimum, so the receipt carries a row where the two are not the same number.
-    """
+    """Return synthetic fixtures exercising extents across the 128-byte granule threshold."""
     return [
         _contract("repr-threshold-pin",
                   "one object just past the exactness threshold beside a coarsely "
@@ -468,15 +350,7 @@ def families() -> list[dict[str, Any]]:
 
 
 def q5_agreement(root: Path) -> dict[str, Any]:
-    """Decide every region of the exported plan twice and require the two to agree.
-
-    The memory plan multiplies a declared granule count back and this layer divides the
-    base by the granule, so the two are different questions about the same region and
-    agree exactly where the declared counts are the region's own. A disagreement is a
-    finding about the plan or about this layer and is reported as one; an export with no
-    region is a reader that has stopped reading, and is refused rather than reported as
-    agreement over nothing.
-    """
+    """Cross-check base and length quantization predicates against `memplan` on `STANDING`."""
     plan = memplan.plan_of(memplan.read(root), memplan.STANDING)
     regions = tuple(plan.regions())
     if not regions:
