@@ -4,7 +4,7 @@ Q19c/Q20b/Q20c references below describe the retained, canceled trial allocation
 
 This is Q2c's prerequisite inspection for parser destination initialization and
 copy-service private staging. It supplies the existing-route input to Q21b's
-[compiler comparison](../languages/vela/compiler-route-contract.md) and identifies what Q19c would
+[compiler comparison](https://github.com/symbiogenesis/VelaLang/blob/main/docs/compiler-route-contract.md) and identifies what Q19c would
 need to instantiate a generic bounded operation. The inspection baseline is
 repository revision `4aeaceedf4626ef64583a4680c19da29a469df4f`.
 
@@ -13,9 +13,9 @@ report a fresh prover run, a byte-memory implementation or an accepted target
 connection. Q2c takes its reasoned-rejection arm: commissioning the missing
 foundation for the bounded generic experiment is declined on the evidence below.
 The existing realization route and mandatory hardening obligations retain their
-owners. Q19c is canceled; the retained comparison can be proposed again only under the [workflow re-entry conditions](../languages/vela/workflow-contract.md#commissioning-disposition). This decision supplies no checked primitive law.
+owners. Q19c is canceled; the retained comparison can be proposed again only under the [workflow re-entry conditions](https://github.com/symbiogenesis/VelaLang/blob/main/docs/workflow-contract.md#commissioning-disposition). This decision supplies no checked primitive law.
 
-The [bounded Vela delivery investigation](../../PLAN.md#vela-first-release-delivery)
+The [bounded Vela delivery investigation](https://github.com/symbiogenesis/VelaLang/blob/main/PLAN.md#vela-first-release-delivery)
 is a new finite client-scoped decision, not recommissioning the general Q2c
 foundation or canceled Q19/Q20 trials. It uses this ledger's canonical carrier
 and ownership assignments, records any missing prerequisites explicitly and
@@ -38,7 +38,7 @@ named declaration through its complete statement and proof. Use
 `git ls-files -s upstream` for the pinned artifact inventory. A gitlink proves what
 is pinned, not that its theorem has been instantiated for this machine. The
 [third-party record](../../THIRD-PARTY.md) and the
-[strategy's capability-aware comparison](../languages/vela/verification-strategy.md#capability-aware-and-parametric-verification)
+[strategy's capability-aware comparison](https://github.com/symbiogenesis/VelaLang/blob/main/docs/verification-strategy.md#capability-aware-and-parametric-verification)
 keep upstream results and their semantic subjects separate from local connections.
 No upstream code is incorporated by this map.
 
@@ -129,7 +129,7 @@ copy-once policy relates to the delegated source and staging lifetime. SPSC
 publication, DMA, revocation, secure erasure and fault-model guarantees retain
 their existing owners and cannot be inferred from this bounded pilot.
 
-The [workflow contract](../languages/vela/workflow-contract.md) reserves parser destination
+The [workflow contract](https://github.com/symbiogenesis/VelaLang/blob/main/docs/workflow-contract.md) reserves parser destination
 initialization for development and service private staging for held-out reuse.
 Freeze the qualified generic interface before the staging adaptation. Designing
 that interface from the reserved client's implementation consumes its independence

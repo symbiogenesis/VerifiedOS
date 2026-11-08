@@ -55,25 +55,6 @@ ELFIO has no release after `Release_3.12`. The vendored headers and README are t
 
 SoftFloat is the `ucb-bar/berkeley-softfloat-3` repository at `master` commit `a0c6494cdc11865811dec815d5c0049fba9d82a8` (2025-03-07), which adds BF16 conversions and build and typo fixes to Release 3e; the repository has no tags. Every vendored file is that commit's blob except `build/Linux-x86_64-GCC/platform.h`, whose local changes define `INLINE` as `static inline` rather than `inline` and drop upstream's trailing blank line, and `source/include/internals.h`, which incorporates only the BF16 NaN predicate correction from [PR 44](https://github.com/ucb-bar/berkeley-softfloat-3/pull/44) at [the selected revision](https://github.com/ucb-bar/berkeley-softfloat-3/tree/73e3f397e84d6d2a34bded52b0a77af3f4062ac2). No other BF16 operations are imported. `COPYING.txt`, SHA-256 `145ea96b4a4a04a1a7738d2a2bf9e830f861971e69606187b018d9e8fc0b95c7`, is the Release 3e license, BSD-3-Clause. Both the base and selected correction revisions carry bytes identical to the retained notice. The source remains distributed with the curated model under those terms.
 
-## Browser editor assets
-
-The local [Vela playground](docs/languages/vela/playground.md) loads
-`monaco-editor` 0.55.1's browser distribution from the version-pinned jsDelivr
-package URL. The selected release's own
-[LICENSE.txt](https://github.com/microsoft/monaco-editor/blob/v0.55.1/LICENSE.txt)
-and [package manifest](https://github.com/microsoft/monaco-editor/blob/v0.55.1/package.json),
-with its [third-party notices](https://github.com/microsoft/monaco-editor/blob/v0.55.1/ThirdPartyNotices.txt),
-were read on 2026-11-03: Monaco is MIT, copyright Microsoft Corporation. The
-notices retain included TypeScript, Unicode, DOM, WebGL, HTML, beautifier and
-documentation material under their stated terms.
-The license permits use, modification and distribution with its copyright and
-permission notice. Browser assets and their upstream notices are served by the
-package CDN, rather than copied into this repository or shipped in a VerifiedOS
-image. This is a development-host editor dependency; no editor source is
-vendored, no npm installation is required and no broader VS Code extension
-compatibility is claimed. A future bundled/offline distribution must retain the
-selected package's complete license and third-party notices.
-
 ## Fetched at build time
 
 The repository retains each component's license and `CMakeLists.txt` under
@@ -440,20 +421,6 @@ The [selected-wheel licence readings](docs/implementation/evidence/markdown-tool
 
 Lychee 0.24.2, release commit `2bba271688c1abb1503097a064e6c3bc1d1b6a9b`, supplies offline local-file and fragment checking. Its [MIT licence](https://github.com/lycheeverse/lychee/blob/2bba271688c1abb1503097a064e6c3bc1d1b6a9b/LICENSE-MIT), SHA-256 `7175e5dd1db3111bbab4e5bafcab2544780452bb6ca8f347b0187446498630d1`, and [Apache licence](https://github.com/lycheeverse/lychee/blob/2bba271688c1abb1503097a064e6c3bc1d1b6a9b/LICENSE-APACHE), SHA-256 `992df51ac0d6b07c1d7cb310dbeb60ed72b03a6a937779b273f82bdb6a757f6f`, were read on 2026-10-29. The release offers `MIT OR Apache-2.0`; its notices credit the lychee maintainers. The adapter downloads verified release archives into the managed host environment and extracts only the hash-bound executable. Windows ARM64 uses the published x64 executable through Windows emulation. No Lychee source, archive or executable is redistributed here; this development check supplies no platform proof assumption.
 
-### Vela parser support library
-
-Vela's [Q25h support-library prerequisite](docs/languages/vela/vela-parser.md#rocq-support-prerequisite)
-builds `coq-menhirlib` from the same authenticated Menhir 20260209 archive the
-table below records. Its root `LICENSE` was re-read on 2026-10-31 at SHA-256
-`9c97527b92b577647880abd2a5eaf5bf0f3b3df1bd09d9f93fc4e103eb1d30d5`;
-`coq-menhirlib/LICENSE`, SHA-256
-`218c42550a9b4ff6e48bf38218908755fe156b2e5c586531c2eb8893248a102d`,
-states `LGPL-3.0-or-later`. The bounded proof-command adaptation, original and
-modified sources and compiled Rocq library remain in native build directories.
-Only JSON receipts are exported; this use conveys no upstream source, library,
-generator or runtime binary. Parser or bootstrap distribution retains Q25h's
-separate terms qualification.
-
 ### Development tools, contained by use
 <!-- generated:development-tools -->
 
@@ -611,7 +578,7 @@ Tools used to observe, execute, or accelerate a build do not automatically licen
 | OCaml compiler | `LGPL-2.1` with the OCaml static-linking exception | Builds every switch: 5.4.1 in the Sail, proof, QuickChick and lowering snapshots and 4.14.4 in the CertiRocq oracle switch and 4.14.4 in the contained compiler switch. `LICENSE`, blob `3666ebe155665210b1d8478e788aa3f3e327d39e`, SHA-256 `65f47d3bf5a921011ac7fa30f23d54f9dffbe7683921eeb116d5ce8dc26ff0c1`, byte-identical at the `5.4.1` and `4.14.4` tags; the latter archive is verified by opam under SHA-256 `71415c000ebfce604defafaa584ab5ed10ad81ff180897db4e6fea8dac6e4b0d`. The license installed by each switch puts the files marked "Copyright INRIA" under LGPL version 2.1, with an exception permitting a linked executable under terms of the linker's choice; source headers name version 2.1, and opam metadata declares `LGPL-2.1-or-later WITH OCaml-LGPL-linking-exception`. The [Q39 license receipt](docs/implementation/evidence/q39-20261010-license-readings.json) binds the selected archive instruments. No compiler, runtime or executable built with it is distributed here. |
 | dune | `MIT` | Builds the OCaml and Rocq packages the switches install, 3.24.2 in the Sail and proof snapshots and older releases in the other switches. `LICENSE.md`, blob `06829595d1f3dc0433b2d5562b264ffb780d2197`, copyright 2016 Jane Street Group, LLC, is byte-identical at the `3.24.2` and `3.23.1` tags. Nothing is redistributed here. |
 | Zarith | `LGPL-2.0-only WITH OCaml-LGPL-linking-exception` | Arbitrary-precision integers for Sail and Rocq, 1.14 in every switch. The `release-1.14` tag's `LICENSE`, blob `604c2ba6906ab51585fc13b6f633b529bc01fb92`, puts the library under the GNU Library General Public License version 2 with the same static-linking exception, as its opam metadata declares; it links [GMP](#gmp-linked-into-the-golden-emulator). Nothing is redistributed here. |
-| Menhir | Generator `GPL-2.0-only`; `MenhirLib`, `MenhirSdk`, `MenhirCST` and `MenhirGLR` `LGPL-2.0-only WITH OCaml-LGPL-linking-exception` | Parser generator installed in the Sail, QuickChick, CertiRocq and contained compiler snapshots at 20260209, each installing all five packages. The `LICENSE` that release installs, SHA-256 `9c97527b92b577647880abd2a5eaf5bf0f3b3df1bd09d9f93fc4e103eb1d30d5`, puts the generator under GPL version 2, its runtime libraries and SDK under the Library General Public License version 2 with the static-linking exception, and its separately packaged Rocq library `coq-menhirlib`, which the CertiRocq snapshot installs for CompCert, as the private Q35e `vst2` qualification switch does ([its record](tools/opam/c-refinement-qualification-switches.md)), under `LGPL-3.0-or-later`. Q39 builds the contained compiler's parser from that release and reads its vendored Rocq runtime terms in the [license receipt](docs/implementation/evidence/q39-20261010-license-readings.json); the source and compiled parser stay contained. The generator and generated parser sources remain outside the tracked tree. Vela Q25g uses its code backend only in native build directories, links no Menhir runtime, and retains JSON receipts rather than generated source or binaries. The 20260209 source archive was re-read for this use on 2026-10-31: its `LICENSE` has the SHA-256 above and its archive has the [opam-recorded SHA-512](https://opam.ocaml.org/packages/menhir/menhir.20260209/) `aafad186f328ae8dd4cc69af0f30c1a0b208cf5148a7a94c150099be03838503c5ec12918de26cd7f794b5a72f114bc1bae8d81058bd0ea10372a3b06818687e`. GPL section 0 conditions coverage of output on whether it constitutes a work based on the program; this reading grants no blanket licence to generated artifacts. Distribution of generated sources, binaries or a compiler bootstrap closure needs its own terms qualification under [Q25h](docs/languages/vela/vela-parser.md#promotion-and-retirement). |
+| Menhir | Generator `GPL-2.0-only`; `MenhirLib`, `MenhirSdk`, `MenhirCST` and `MenhirGLR` `LGPL-2.0-only WITH OCaml-LGPL-linking-exception` | Parser generator installed in the Sail, QuickChick, CertiRocq and contained compiler snapshots at 20260209, each installing all five packages. The `LICENSE` that release installs, SHA-256 `9c97527b92b577647880abd2a5eaf5bf0f3b3df1bd09d9f93fc4e103eb1d30d5`, puts the generator under GPL version 2, its runtime libraries and SDK under the Library General Public License version 2 with the static-linking exception, and its separately packaged Rocq library `coq-menhirlib`, which the CertiRocq snapshot installs for CompCert, as the private Q35e `vst2` qualification switch does ([its record](tools/opam/c-refinement-qualification-switches.md)), under `LGPL-3.0-or-later`. Q39 builds the contained compiler's parser from that release and reads its vendored Rocq runtime terms in the [license receipt](docs/implementation/evidence/q39-20261010-license-readings.json); the source and compiled parser stay contained. The generator and generated parser sources remain outside the tracked tree. [VelaLang](https://github.com/symbiogenesis/VelaLang) uses its code backend only in native build directories, links no Menhir runtime, and retains JSON receipts rather than generated source or binaries. The 20260209 source archive was re-read for this use on 2026-10-31: its `LICENSE` has the SHA-256 above and its archive has the [opam-recorded SHA-512](https://opam.ocaml.org/packages/menhir/menhir.20260209/) `aafad186f328ae8dd4cc69af0f30c1a0b208cf5148a7a94c150099be03838503c5ec12918de26cd7f794b5a72f114bc1bae8d81058bd0ea10372a3b06818687e`. GPL section 0 conditions coverage of output on whether it constitutes a work based on the program; this reading grants no blanket licence to generated artifacts. Distribution of generated sources, binaries or a compiler bootstrap closure needs its own terms qualification under [VelaLang](https://github.com/symbiogenesis/VelaLang/blob/main/docs/vela-parser.md#promotion-and-retirement). |
 | std++ | `BSD-3-Clause` | A root of [the proof snapshot](tools/opam/rocq.lock) at 1.13.0. Its `LICENSE` at the `stdpp-1.13.0` tag, SHA-256 `bc4fe79f9b7f78bc6e4e61e1f7c430b1e413b82de4aacb9355ade5e43bad2a69`, is the reading the Sail Rocq support library paragraph above records. No source or compiled object is distributed here. |
 | Sail compiler and its C runtime | `BSD-2-Clause`; `lib/cJSON.c` and `lib/cJSON.h` are `MIT` | The model's acceptance compiler, 0.20.3 in [the Sail snapshot](tools/opam/sail.lock), translates the curated model, and `model/sail_runtime/` compiles the release's `lib/` C runtime into `sail_riscv_sim` beside [GMP](#gmp-linked-into-the-golden-emulator). The tag's [LICENSE](https://github.com/rems-project/sail/blob/3df54034910b31a1e00d948ee965b2e9603d68e0/LICENSE), SHA-256 `cc5133e58dd523cb772ac7b2c3047845b54667fe856165aef651f059ca51b2fe` and installed by the switch, applies BSD-2-Clause outside the exceptions `THIRD_PARTY_FILES.md`, blob `1ea68db8d98a171ec3b126c1376524ba8692a006`, lists. The compiled runtime files carry Sail's BSD-2-Clause header except the two cJSON files, MIT, copyright 2009-2017 Dave Gamble and cJSON contributors, with `lib/CJSON_LICENSE`. Model snapshot artifacts convey the compiled runtime with its BSD-2-Clause and cJSON MIT notices beside the GMP and system-runtime notices. No Sail compiler binary or source tree is conveyed. |
 | Markdown validation libraries | MIT, BSD-3-Clause, MIT OR Apache-2.0 and PSF-2.0 | Locked host documentation dependencies: `application-file-scanner` `0.6.4`, `application-properties` `0.9.3`, `columnar` `1.4.1`, `markdown-it-py` `4.2.0`, `mdurl` `0.1.2`, `py-walk` `0.3.3`, `pyjson5` `2.0.1`, `pymarkdownlnt` `0.9.41`, `sly` `0.5`, `tomli` `2.5.0`, `toolz` `1.2.0`, `typing-extensions` `4.16.0`, `wcwidth` `0.9.4`. The [selected-wheel licence reading](docs/implementation/evidence/markdown-tool-license-readings-20261029.json) records the reviewed wheel and licence-text hashes. No source, wheel or compiled library is conveyed here. |
@@ -980,7 +947,7 @@ No source from these components is tracked here. The [implementation plan](PLAN.
 
 CompCert and Vélus have separate grants despite their agreements' similar form. Keeping a producer external addresses distribution; it does not remove restrictions on use.
 
-**The resident toolchain requires a separate distribution decision.** R-13-027 makes the certifying toolchain software the device runs and R-18-004e puts it in the first release's composed configuration, so a shipped generation carries a compiler and a prover, which is distribution in the sense these agreements govern. This repository distributes no source from either upstream; explicit contained evaluation experiments invoke separately provisioned producers. A product built on a CompCert-derived backend cannot meet R-18-004e on the non-commercial grant, the verified backend passes being outside the dual-licensed subset recorded below. The routes are the independently implemented direct backend [the verification strategy](docs/languages/vela/verification-strategy.md) prices as removing this dependency, a separate commercial agreement with the rightsholders, or a shipped component restricted to the enumerated dual-licensed files. M1.10 reads the terms of every component it would admit onto the device at that incorporation, which is where this rule puts the reading, and a component whose terms do not permit redistribution in a product image fails R-18-004e rather than shipping.
+**The resident toolchain requires a separate distribution decision.** R-13-027 makes the certifying toolchain software the device runs and R-18-004e puts it in the first release's composed configuration, so a shipped generation carries a compiler and a prover, which is distribution in the sense these agreements govern. This repository distributes no source from either upstream; explicit contained evaluation experiments invoke separately provisioned producers. A product built on a CompCert-derived backend cannot meet R-18-004e on the non-commercial grant, the verified backend passes being outside the dual-licensed subset recorded below. The routes are the independently implemented direct backend [the Vela verification strategy](https://github.com/symbiogenesis/VelaLang/blob/main/docs/verification-strategy.md) prices as removing this dependency, a separate commercial agreement with the rightsholders, or a shipped component restricted to the enumerated dual-licensed files. M1.10 reads the terms of every component it would admit onto the device at that incorporation, which is where this rule puts the reading, and a component whose terms do not permit redistribution in a product image fails R-18-004e rather than shipping.
 
 #### CompCert and SECOMP
 
@@ -1127,76 +1094,6 @@ An actual installation must pin and review the complete selected Yosys, solver a
 front-end closure and preserve applicable notices; this reading qualifies no core
 or generated netlist.
 
-### Vela development and proof-reuse candidates
-
-[Q25x](PLAN.md#q-assessment-actions) qualifies Hypothesis 6.170.14 and its sole
-runtime dependency `sortedcontainers` 2.4.0 as an isolated development test
-generator under the `2026-10-31T07:17:33Z` dependency cooldown and Python 3.14
-floor. The 2026-11-07 reading inspected Hypothesis 6.170.14's `LICENSE.txt`
-(SHA-256 `ac89037bac63550644dce8cf32c6765e5fab9dc1a1ce94b89f8a805f341a6750`,
-MPL-2.0) across its
-[release source archive](https://files.pythonhosted.org/packages/d6/0f/10b2076a1314c554eee58c26e1dbe630fd26a32773df2a63bd5dba5d9947/hypothesis-6.170.14.tar.gz)
-(`8272913eb34c4399a88cf8a9ecdb351c9ef8f621c061f2ac323362d4a66b755d`),
-[Windows ARM64 wheel](https://files.pythonhosted.org/packages/ab/72/482a68ae0e94b24acd964196cca830d1dd65efbf3d4821599d1c9527f8e2/hypothesis-6.170.14-cp311-abi3-win_arm64.whl)
-(`7dbaec9a62b7792b0b04b7ebc933aeafd3ff019b81d67d763c36ebcf4d56f864`,
-`hypothesis/_native.pyd`
-`b7722a385d97a5ce0e0a5800770516ce5557f4abed4503b12b7f8e6c6a202c3b`),
-[Windows x86_64 wheel](https://files.pythonhosted.org/packages/08/c6/9c47f183e5a8a4059d7c1c39e85f7b140f4416961b5ed0dac5d35dc6e1f7/hypothesis-6.170.14-cp314-cp314-win_amd64.whl)
-(`31c6a4015c02c45ba0285ff48538f4eb2c2de7e836f313bb8832fd8d86f71d62`,
-`hypothesis/_native.cp314-win_amd64.pyd`
-`d53f91b1afbf54b0acbfa42b893221e8248f93fb810271eb9973a098231b7cfd`),
-[Linux ARM64 wheel](https://files.pythonhosted.org/packages/1c/c3/252db9362dab21e3c3351abb89e715fa1ef598ebaf30abb9c9b1dd3b3aab/hypothesis-6.170.14-cp314-cp314-manylinux2014_aarch64.manylinux_2_17_aarch64.whl)
-(`67d17e8b91d3913e7aa2b1179957df4e0634caea3868b5ba4fe2bf1945334134`,
-`hypothesis/_native.cpython-314-aarch64-linux-gnu.so`
-`1a25e29e9b879fb3de4bdd805e11d416dc8a4fc62d2f81472095fbfa8630ea61`), and
-[Linux x86_64 wheel](https://files.pythonhosted.org/packages/f8/41/573468979e9579eb6df937e6a96c1a944dfe2765c73624156571e3cc4b34/hypothesis-6.170.14-cp314-cp314-manylinux2014_x86_64.manylinux_2_17_x86_64.whl)
-(`96f9f8a684c88ad2280129b28bc609adb6b31cd63b1b83b397b86d552391e947`,
-`hypothesis/_native.cpython-314-x86_64-linux-gnu.so`
-`e40780bfbfb364b2fcc2b65e7baba953e4e1eaacb19fdd39578130889f0ec427`).
-Within the source archive, `src/hypothesis/vendor/pretty.py`
-(`f22120dafc8868a2332b0a212ceea61b2f94ba02329b893eecd495ce35434523`) carries an
-MPL-2.0 header and a BSD notice copyright 2007 Armin Ronacher;
-`src/hypothesis/vendor/leap-seconds.txt`
-(`db5a895f16853b03bfc865e8d68f9fc8710ef1740e3400c701cd46a5bbbc3433`) is public
-domain, and `src/hypothesis/vendor/tlds-alpha-by-domain.txt`
-(`f9816a9e5f92191d4a3d73045a579f57eda381dd1ad7b4c535505c7ec610218c`) is the IANA
-root-zone table. The compiled `hypothesis/_native` extension builds from MPL-2.0
-Rust sources (`rust/Cargo.toml`
-`e91723305e334b174f6beab1136cccefa1f93af0d44b29effb7d9f00983e0c97` and
-`rust/Cargo.lock`
-`67625309eeadb4cc462e3e6dbda8f1c90d9321c73ba211babb79e85120def77c`) linking
-`pyo3` 0.30.1 and its Cargo closure (`libc` 0.2.186, `once_cell` 1.21.4,
-`portable-atomic` 1.13.1, `pyo3-build-config` 0.30.1, `pyo3-ffi` 0.30.1,
-`pyo3-macros` 0.30.1, `pyo3-macros-backend` 0.30.1, `proc-macro2` 1.0.106,
-`quote` 1.0.46, `syn` 3.0.9, `heck` 0.5.0, `target-lexicon` 0.13.5, and
-`unicode-ident` 1.0.24), for which the published wheels bundle no separate crate
-license files beyond `LICENSE.txt`. The transitive Python package
-`sortedcontainers` 2.4.0 carries `LICENSE`
-(`1db7cae7fce6452e2e608e401a0f953e0133e4c2d75db69fb8ae851d2086f5b6`,
-Apache-2.0, copyright 2014-2019 Grant Jenks) in both its
-[source archive](https://files.pythonhosted.org/packages/e8/c4/ba2f8066cceb6f23394729afe52f3bf7adec04bf9ed2c820b39e19299111/sortedcontainers-2.4.0.tar.gz)
-(`25caa5a06cc30b6b83d11423433f65d1f9d76c4c6a0c90e3379eaa43b9bfdb88`) and
-[universal wheel](https://files.pythonhosted.org/packages/32/46/9cb0e58b2deb7f82b84065f37f3bffeb12413f947f9388e4cac22c4621ce/sortedcontainers-2.4.0-py2.py3-none-any.whl)
-(`a163dcaede0f1c021485e957a39245190e74249897e2ae4b2aa38595db237ee0`).
-The candidate remains an isolated development instrument provisioned in a
-temporary virtual environment by `vela generated-tests`; no upstream source,
-wheel, native extension or reproduction blob is copied, distributed or added to
-`tools/pyproject.toml` or `tools/uv.lock`, while minimized counterexamples are
-retained as explicit Apache-2.0 regression data under the
-[test contract](docs/languages/vela/tooling-protocols.md#generated-development-tests).
-Q25y reuses the selected Menhir and its
-[generator and output reading](#development-tools-contained-by-use); it still reads the actual
-outputs its additional facilities would retain.
-
-[CoqEAL and Trocq](docs/languages/vela/verification-strategy.md#existing-tooling-and-implementation-owners)
-remain conditional proof-transfer references. A concrete consumer and separately
-priced qualification must select the revision and read its own complete licence
-and dependency closure; neither is installed or incorporated by this decision.
-QCheck is similarly conditional on an actual OCaml test consumer and has no
-selected package. The [Plinth/Plutus paper](docs/languages/vela/verification-strategy.md#compilation-and-executable-models)
-is a compiler-architecture reference only. No software source is taken from its
-artifact, and the paper's publication licence supplies no software grant.
-
 ### Proof assistance design references
 
 The [portable proof workflow](docs/assurance/proof-assistance.md) adopts local
@@ -1339,8 +1236,8 @@ An upstream's license is read at the milestone that would incorporate it, never 
 | Candidate | Consumer it decides | Terms, and the artifact that read them | What the consumer would open |
 | --- | --- | --- | --- |
 | SMTCoq | Q3b, whose SMT facts take R-05-017's in-kernel reconstruction route | `CeCILL-C` version 1.0, at [the discovery collections](docs/assurance/proof-reuse/foundations.md#discovery-collections-and-search-limits) | The plugin's own `LICENSE` at the selected version |
-| DeepSEA | Q19c's builder comparison, with Q2b's representation and lowering comparison | No license of its own, the tree's sole license text being CompCert's, at [the closest matches](docs/languages/vela/verification-strategy.md#closest-matches-to-the-complete-workflow) | That tree's single license text and its README, at the revision incorporated and for the files actually taken |
-| CertiSuSLik's HTT, VST, and Iris certification backends | Q19c's builder comparison | No license file, with `GPL-3.0` declared in package metadata alone, at [the certified-synthesis reading](docs/languages/vela/verification-strategy.md#embedded-verification-and-certified-synthesis) | Each backend's own package metadata and source headers, in its own `TyGuS/ssl-htt`, `TyGuS/ssl-vst`, or `TyGuS/ssl-iris` tree rather than in the synthesizer's |
+| DeepSEA | Q19c's builder comparison, with Q2b's representation and lowering comparison | No license of its own, the tree's sole license text being CompCert's, at [the closest matches](https://github.com/symbiogenesis/VelaLang/blob/main/docs/verification-strategy.md#closest-matches-to-the-complete-workflow) | That tree's single license text and its README, at the revision incorporated and for the files actually taken |
+| CertiSuSLik's HTT, VST, and Iris certification backends | Q19c's builder comparison | No license file, with `GPL-3.0` declared in package metadata alone, at [the certified-synthesis reading](https://github.com/symbiogenesis/VelaLang/blob/main/docs/verification-strategy.md#embedded-verification-and-certified-synthesis) | Each backend's own package metadata and source headers, in its own `TyGuS/ssl-htt`, `TyGuS/ssl-vst`, or `TyGuS/ssl-iris` tree rather than in the synthesizer's |
 | FznDrcpCheck | Q5b, through the arm Q27a records | `MIT`, at [F06](docs/assurance/proof-reuse/foundations.md#f06-fzndrcpcheck-and-the-drcp-proof-system-reference) | Its `LICENSE` and `dune-project` at the revision selected |
 | The CADE-26 line's Rocq LRAT checker | Q5b, through the arm Q27a records | Unread. Its distribution states no terms at all, at [F08](docs/assurance/proof-reuse/foundations.md#f08-lrat-and-its-two-certified-checkers-reference) | A license file inside the authors' `rat-checker.tar.gz`, or the authors themselves |
 

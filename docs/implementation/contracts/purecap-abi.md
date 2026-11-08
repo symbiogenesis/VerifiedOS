@@ -106,7 +106,7 @@ under after that.
 carries a capability and an integer alike, and the callee reads which from the
 signature rather than from a bank; the route contract's `call` rule fixes the
 required and provided ABI and authority at every call
-([compiler-route-contract.md](../../languages/vela/compiler-route-contract.md)). A
+([compiler-route-contract.md](https://github.com/symbiogenesis/VelaLang/blob/main/docs/compiler-route-contract.md)). A
 capability argument is a capability in `a0` to `a7` with its tag, and an integer
 argument is an untagged register; nothing in the file distinguishes the two but
 the tag, which is why a spill of either follows [section 3](#3-the-spill-discipline-and-the-validity-tag)
@@ -224,7 +224,7 @@ register's name.
   derivation, not the later dereference. The route contract
   refuses integer spill and reload of a capability outright and requires
   tag-preserving spills under the `frame` rule
-  ([compiler-route-contract.md](../../languages/vela/compiler-route-contract.md)).
+  ([compiler-route-contract.md](https://github.com/symbiogenesis/VelaLang/blob/main/docs/compiler-route-contract.md)).
 - **A local capability may be spilled only to the stack.** A local capability is
   storable only through a capability bearing store-local, which by construction
   only the stack carries (R-15-074), so a delegated buffer bounded to a call
