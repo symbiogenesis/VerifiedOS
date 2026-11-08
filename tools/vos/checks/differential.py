@@ -1,76 +1,22 @@
 # SPDX-License-Identifier: Apache-2.0
-"""differential: the corpus manifest, the document over it, and the programs.
+"""Check the differential corpus manifest, documentation, assembly programs, and RVFI schema (`K-50`, `K-51`, `K-71`, `K-72`, `K-85`).
 
-The differential corpus is two artifacts with one membership. [the
-manifest](../../../corpus/manifest.json) carries what has been measured about
-each member; [the document](../../../docs/assurance/differential-corpus.md) carries what
-each member exercises and how a member is written. Nothing appears in both, so
-the failure to catch is not a disagreement in a restated fact but a **member in
-one and not the other**: a program added to the corpus and never described, or
-described and never added, and either way something a milestone's figure quietly
-does not cover.
-
-The second rule is the one that keeps the corpus honest rather than merely
-listed. It assembles every member in this process, which is possible because the
-assembler is Python and needs no toolchain (M0.12), and it holds each member's
-recorded check count against the count its source actually carries. A program
-that has stopped assembling is then a finding on the host, in the run a person
-does before committing, rather than a surprise in WSL after a build.
-
-What is *not* here is the trace digest, and that is a boundary rather than an
-omission: reproducing it needs the emulator, so `run.py model corpus` decides it and
-this group only requires the field to be present. A rule that cannot recompute a
-figure should not pretend to check it.
-
-The third rule is the derived-fact discipline pointed at the one thing the two
-halves both commit to. `trace_schema` in the manifest and the version word in the
-document's §4 heading are two statements of one grammar: a record type added or a
-field widened advances both, and nothing owned the pair, so the manifest could
-declare a grammar the document does not describe with every other rule green.
-K-71 holds them equal and is fail-closed in the reading itself: a heading it
-cannot parse in the form written today is a finding, never a pass over nothing.
-
-The manifest's other number, the corpus **edition**, is deliberately not held
-here, and the reason is the split the two halves are built on. The document says
-what `version` *means* and never what it is; its only prose sites are completion
-evidence frozen on checked milestones, which record what an edition measured at
-its gate, so a rule holding the live manifest against them would be red the day
-the edition advances, which is the day the corpus is working as designed. The
-check the edition does want is that a refresh which moves a member advances it,
-and that is `run.py model corpus --refresh`'s to make, because it is the tool that
-writes both fields.
-
-The fourth rule holds the corpus's hand-written words. A `.word` reaches an
-encoding with none of the operand-kind, register-class, and immediate-range
-checking a mnemonic passes through, so the document closes the grounds for
-writing one at three and enumerates every word standing on them. Membership is
-the cheap half. The half worth the rule is that each ground is *decided* against
-the encoder rather than asserted: the document carries the assembler text the
-member's own comment says the word is, and on the two grounds claiming the
-encoder cannot or will not build it, assembling that text must not produce the
-word. That is the ground that expires when a row lands, and nothing else reads a
-`.word` to notice it has.
-
-The fifth rule holds the record grammar's own membership, which is written three
-times. §4 declares the record kinds; §9 divides them, the meeting table naming
-what an RVFI packet carries and the elision table naming what it cannot; and
-[rvfi.py](../rvfi.py) divides them a third time in code, its projection emitting
-one half and its packet view dropping the other. Nothing held the three
-together, so a kind added to the schema could be described by neither table
-while the version rule above stayed green, and a projection narrowed could go on
-being described as one for one. K-85 requires every declared kind in exactly one
-of the two tables, in both directions, and each table equal to the set the code
-answers with, which is decided by **running** the two functions rather than by
-reading them: a regex over that module would be one more transcription of the
-thing this rule exists to hold. Fail-closed at each of the three headings, on
-K-71's ground, and the rows are read inside their own section because the kinds
-are spelled identically in all three tables.
-
-Its residue is stated rather than closed. §9.3's three further rows are not
-record kinds and are outside the rule: `order` is a field both formats carry and
-neither compares, the effect ordering is a property of a comparison rather than
-of a record, and a **second** `R` or `W` under one instruction is a count the
-packet cannot hold rather than a kind it cannot name.
+- `K-50` checks bidirectional membership between
+  [corpus/manifest.json](../../../corpus/manifest.json) and
+  [docs/assurance/differential-corpus.md](../../../docs/assurance/differential-corpus.md).
+- `K-51` assembles every corpus program via [vos/asm.py](../asm.py), verifies its
+  recorded check count, and requires a non-empty commit-trace digest. (Actual digest
+  reproduction requires the emulator and runs under `run.py model corpus`.)
+- `K-71` checks that `trace_schema` in
+  [corpus/manifest.json](../../../corpus/manifest.json) matches the version stated in
+  §4's heading of [docs/assurance/differential-corpus.md](../../../docs/assurance/differential-corpus.md).
+- `K-72` checks that every `.word` directive in the corpus is enumerated in §3 of
+  [docs/assurance/differential-corpus.md](../../../docs/assurance/differential-corpus.md)
+  and that assembling the documented reading agrees with the stated ground (`cannot`,
+  `refuses`, or `reader`).
+- `K-85` checks that the commit-trace record kinds declared in §4 are partitioned by
+  §9's meeting and elision tables and match the kinds emitted by
+  [`records`](../rvfi.py#records) and dropped by [`packet_view`](../rvfi.py#packet_view).
 """
 
 import json
@@ -80,9 +26,6 @@ from typing import TYPE_CHECKING
 
 from vos import asm, differential, rvfi
 
-# [Context](__init__.py#Context) lives in this package, which imports this module in turn.
-# Guarded, so the annotation below costs no import at run time: under PEP 649 an
-# annotation is not evaluated unless something asks for it, and nothing here does.
 if TYPE_CHECKING:
     from . import Context
 
@@ -91,11 +34,7 @@ HEADING = "=== differential: the corpus manifest, its document, and its programs
 DOC = "docs/assurance/differential-corpus.md"
 CORPUS_LINK = posixpath.relpath(differential.CORPUS_DIR, posixpath.dirname(DOC))
 
-# The document's §4 heading, which is the one place it writes the record grammar's
-# version. The section number is a wildcard because renumbering the section is not
-# this rule's subject; the version is captured alone, so a disagreement names the two
-# figures and nothing else, and the spellings are compared rather than their values,
-# so a padded or reformatted number is a finding rather than a silent equality.
+# §4 heading declaring the commit-trace schema version.
 _SCHEMA_HEADING_RE = re.compile(
     r"(?m)^## (\d+)\. The commit-trace schema, version (\d+)\s*$")
 

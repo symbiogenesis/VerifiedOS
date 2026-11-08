@@ -1,39 +1,15 @@
 # SPDX-License-Identifier: Apache-2.0
-"""costated: every fact stated in more than one pair, at each site that states it.
+"""Check facts co-stated across multiple requirement/prose sites (`K-68`).
 
-K-61 holds one entry against the prose its trace cites. What it cannot see, by
-construction, is the fact stated in *two* pairs: each pair blesses on its own two
-sides, so an edit that moves the fact in one pair leaves the other pair's copy
-standing, internally consistent and silently wrong. The register's own discipline is
-to cite rather than restate, and where the prose obeys it there is nothing here to
-hold; these are the residue, the facts a survey of both documents found stated at
-sites no single pair covers, each confirmed to be held by no other rule.
-
-One row sits outside that survey and rides the same mechanism for a different reason.
-A fact about the *outside world*, restated wherever an obligation is priced, drifts
-with no act of this repository behind it, and no pair reaches it at all when the
-documents stating it are ones the register does not cite. Nothing else here changes:
-a site is still a literal some tracked artifact states, and the finding is still that
-one site moved while its siblings stood.
-
-The hold is the K-55 shape one size up: each fact names its sites, each site is a
-literal the artifact still states, and a site that stops stating it is the finding,
-which names the sibling sites so the fact is revisited jointly rather than repaired
-at the one site that moved. Nothing here is repaired: which side is right when they
-part is a judgment, exactly the judgment K-61 asks for inside one pair, so a K-68
-finding is settled by editing the sites back into agreement and re-reading the pairs
-the edits dirty.
-
-What this cannot decide is that the sites still *mean* the same thing when every
-literal matches, nor that the table below is complete: a new restatement joins it by
-being found, which is the same residue every enumeration in this tool declares.
+While `K-61` checks each requirement entry against the prose bookmark its `Trace:`
+cites, `K-68` checks facts stated across *multiple* entries or documents (`COSTATED`).
+Each entry in `COSTATED` lists `(site, expected_literal)` pairs; if any site stops
+carrying its literal, `K-68` reports the moved site alongside its sibling sites so they
+can be updated together. `K-68` is never auto-repaired.
 """
 
 from typing import TYPE_CHECKING
 
-# [Context](__init__.py#Context) lives in this package, which imports this module in turn.
-# Guarded, so the annotation below costs no import at run time: under PEP 649 an
-# annotation is not evaluated unless something asks for it, and nothing here does.
 if TYPE_CHECKING:
     from . import Context
 
@@ -44,11 +20,7 @@ REGISTER = "docs/requirements-register.md"
 CHECKLIST = "PLAN.md"
 INSPIRATIONS = "docs/background/inspirations.md"
 
-# One row per fact: what it is, and the sites that state it. A site names a register
-# entry (held against that entry's own lines: body, criteria, conferrals) or a
-# document (held against its text), and the literal is the site's own spelling, which
-# the sites deliberately do not share: pinning each spelling separately is what lets
-# one site move alone and be named for it.
+# `(fact_description, [(site_req_id_or_doc_path, expected_literal), ...])`.
 COSTATED: list[tuple[str, list[tuple[str, str]]]] = [
     ("the sub-compartmentalization population", [
         ("R-14-007", "parsing attacker-controlled input, and any third-party library "

@@ -1,77 +1,28 @@
 # SPDX-License-Identifier: Apache-2.0
-"""compounds: a statement synthesized over rows, against the rows it rests on.
+"""Check compounded performance figures and two-class memory placement (`K-30`..`K-33`, `K-56`, `K-111`, `K-112`).
 
-Two statements have that shape here, and the failure is the same in both: the parts
-are each an artifact somebody maintains, the whole is a synthesis over them restated
-by hand, and nothing renders wrong when they part. The first is the archetype band
-over the estimate rows. The second is the two-class placement, which is a list of
-region classes divided between the two latency classes and restated in three places,
-where the same drift puts one region class on both sides of a boundary that has to be
-a partition.
+In [docs/performance/performance-estimates.md](../../../docs/performance/performance-estimates.md):
+- `K-30` checks that every figure cell in the main estimate table matches `SHAPE_RE`.
+- `K-31`..`K-33` verify that the dominant terms in `TERMS` resolve to rows (`K-31`),
+  that the general-scalar compounded product matches those rows (`K-32`, repairable via
+  `--fix`), and that the stated credit equals the gap between the archetype band and
+  the product (`K-33`, never auto-repaired because choosing between adjusting the credit
+  and moving the band is an editorial judgment).
+- `K-111` and `K-112` check the Wasm coverage and scalar performance models against
+  their marked input blocks and the native scalar band, repairing stale derived cells
+  under `--fix`.
 
-The estimates carry two layers of figure and only one of them is anybody's artifact.
-A big-table row is scored against the baseline and moves when a lever lands in it;
-the archetype band beneath is a synthesis over those rows, restated by hand, and it
-moves when someone remembers. Nothing renders wrong when they part: the row reads
-correctly, the band reads correctly, and only the arithmetic between them is gone.
-That is the drift this group closes, and it has already happened once, a commit
-re-scoring the in-order row and leaving the static-prediction row it landed in the
-same paragraph as, so the two ends of one lever disagreed for a day.
-
-The product is the dominant terms only, and that is the whole of what makes it
-meaningful. Multiplying every applicable row runs past -90% and describes no workload
-that exists, because separate rows reach their worse ends on disjoint sub-workloads:
-the pointer-chase that empties the cache row is not the branchy dependent code that
-empties the in-order one. So the terms are declared here, four losses and two gains,
-each naming the row it reads and the range inside that row's figure, and each end's
-gains are taken at the end the same workload property drives them to.
-
-What the check cannot decide is the credit: the band's worse end stands a few points
-optimistic of the product for exactly the non-simultaneity above, and how many points
-that is worth is a judgment. So the document states it, the check recomputes the
-product from the rows, and the two are required to agree. A lever that tightens a row
-then has one of two consequences and no third: the credit absorbs it, or the band
-moves. Neither is silent.
-
-The document is regularized so that the two halves separate cleanly. The product is
-arithmetic over the rows and nobody's judgment, so a repair rewrites it. The credit is
-the author's, and it has no repair: a row that moves changes the product under a
-credit that no longer matches it, and whether that spends the credit or moves the band
-is exactly the decision this group exists to force. Running a repair therefore leaves
-the finding standing rather than absorbing it, which is the point.
-
-The placement half has no repair at all, and for a stronger reason. Which class a
-region belongs on is a design decision, so a term found on the wrong side is not a
-transcription this tool may quietly correct; and a term found on *both* sides or on
-neither is the set-stated-twice failure, where the answer is to decide which list owns
-it rather than to pick one. What is machine-held is the partition, the class each
-declared region carries, that the two by-name placements hold at the entries that
-state them rather than only in the summary that collects them, and that the prose
-restating the pair does not move a region across. The class boundary carries no trust
-gradient (R-15-247s), which is exactly what makes this a bookkeeping property and not
-a security one: nothing is weakened by a region sitting on the second class, so the
-only thing wrong with a misplaced one is that it is wrong.
-
-The placement is held total over the charge rather than over itself, which is the
-difference between a rule that decides something and a rule that agrees with the words
-it was written from. R-08-045 enumerates every physical byte a composition pays for; a
-check reading only the placement's own terms is total over a vocabulary the placement
-chose, so a charged term neither list mentions is invisible to it in exactly the case
-that matters. The charge is therefore the enumeration here, read from the entry that
-states it, and each of its terms is either placed on one class by name or answered by
-the criterion's own clause for what a latency boundary sorts rather than names: an
-application payload is an owner and not a latency, so its cycle-critical part is
-first-class and its bulk is second-class and neither list names it. Both readings are
-the register's; what is here is the totality over them.
+For two-class memory placement (`K-56`), each region class in `PLACEMENT` must appear in
+exactly one class list in `R-15-247s`, match its governing requirement (`GOVERNS`), not
+appear on the opposite side in [docs/spec.md](../../../docs/spec.md), and partition every
+physical byte class charged by `R-08-045` (either by name or via `R-15-247s`'s
+by-criterion clause).
 """
 
 import math
 import re
 from typing import TYPE_CHECKING
 
-# [Context](__init__.py#Context) lives in this package, which imports this module in turn.
-# Guarded, so the annotation below costs no import at run time: under PEP 649 an
-# annotation is not evaluated unless something asks for it, and nothing here does.
 if TYPE_CHECKING:
     from . import Context
 
@@ -79,18 +30,12 @@ HEADING = "=== compounds: the archetype band against the product of the rows it 
 
 PERF = "docs/performance/performance-estimates.md"
 
-# The column is one shape, stated in the document's own how-to-read: clauses joined by
-# '; ', each a range over the scope it names, or `n/a` where the row carries no figure
-# of its own. Checking it is what lets everything below read a figure by position rather
-# than by pattern, and it catches the row that states its cost in prose, which renders
-# as an estimate and is read by nothing.
+# Shape of the `Est. Δ perf` column: semicolon-separated range clauses or `n/a`.
 _POINT = r"≈?[−+]?\d+%"
 _CLAUSE = rf"{_POINT}( to {_POINT})?( \([^)]*\))?( [^;]+)?"
 SHAPE_RE = re.compile(rf"^(n/a|{_CLAUSE}(; {_CLAUSE})*)$")
 
-# each term names the big-table row it reads and, where that row's figure states more
-# than one clause, the scope of the clause that enters: the clock row's sustained half
-# is the only one, and it is selected the same way any other scoped clause would be
+# Dominant terms entering the general-scalar product: `(row_label, clause_scope)`.
 TERMS = [
     ("In-order issue, no speculation/OoO", ""),
     ("Static-only branch prediction", ""),
@@ -100,8 +45,7 @@ TERMS = [
     ("Macro-op fusion", ""),
 ]
 
-# one range reads every figure in the corpus, the column having one shape: a signed
-# pair, its sign carrying whether the term is a loss or a gain, so neither is declared
+# Signed percentage range (`−X% to −Y%` or `+X% to +Y%`).
 RANGE_RE = re.compile(r"([−+])(\d+)% to \1(\d+)%")
 
 BAND_RE = re.compile(r"(?m)^\| General scalar[^|]*\| \*\*−(\d+)% to −(\d+)%\*\*")
@@ -109,18 +53,11 @@ CREDIT_RE = re.compile(r"(?m)^\| (Better|Worse) \| −(\d+)% \| (\d+) points (op
 
 SPEC = "docs/spec.md"
 
-# The one sentence shape both the register's criterion and the spec's restatement take.
-# Reading it is what makes the two lists two objects rather than one paragraph, and a
-# sentence that has moved out of the shape is this rule's unrepairable finding. Neither
-# list carries a full stop, so one bounds them at both ends; the case is free because
-# the spec opens a sentence where the criterion opens a clause.
+# Two-class placement list sentence shared by R-15-247s and docs/spec.md.
 LISTS_RE = re.compile(
     r"(?i)the first class carries ([^.\r\n]*?); the second carries ([^.\r\n]*)")
 
-# Each region class the memory plan places, the pattern that finds it in a list, the
-# latency class it must land in, and the entry that governs the placement. The governing
-# entry is the point: a term whose class is stated only in the summary that collects
-# every term is a term one edit away from being stated nowhere.
+# `(region_label, regex_pattern, expected_class, governing_req_id)`.
 PLACEMENT: list[tuple[str, str, str, str]] = [
     ("the scalar working set", r"scalar working set", "first", "R-15-247"),
     ("cycle-critical arrays", r"cycle-critical array", "first", "R-15-247"),
@@ -145,23 +82,14 @@ PLACEMENT: list[tuple[str, str, str, str]] = [
     ("model weights", r"model weights", "second", "R-15-247s"),
 ]
 
-# The other vocabulary the boundary answers to, read from the entry that states it. A
-# term added to the charge is a physical byte somebody now pays for, and it has to be
-# placed before this rule goes green over it again, which is the whole of what taking
-# the charge as the enumeration buys.
+# Physical byte classes enumerated by R-08-045.
 CHARGE_RE = re.compile(r"every physical byte \(([^)]*)\)")
 
-# The criterion's own clause for the charged terms it answers without naming. Read
-# rather than assumed: a term dropped out of the clause stops being accounted for
-# anywhere, and that is a finding rather than a silence. Several terms join on ' and ',
-# so a charged term that itself carries an ' and ' cannot be answered here; it reads as
-# unplaced, which is the direction that fails loudly rather than the one that passes.
+# Terms placed by criterion rather than by name in R-15-247s.
 BY_CRITERION_RE = re.compile(
     r"the boundary places ([^,;:.]+?) by criterion and not by name")
 
-# What each governing entry must still say in its own words, so that a placement holds
-# where it is decided and not only where it is summarized. R-15-247s is the summary
-# itself and so is not in this table: it is the thing being held.
+# Literal phrases required in governing entries outside R-15-247s.
 GOVERNS: list[tuple[str, str]] = [
     ("R-15-247", "the scalar working set and every cycle-critical array"),
     ("R-15-247j", "all [§11](#11-updates) hard-task code and all hot code on the first class"),
@@ -174,12 +102,10 @@ GOVERNS: list[tuple[str, str]] = [
 
 
 def _lists(text: str) -> tuple[str, str] | None:
-    """The two class lists of one sentence, or None where the sentence has moved."""
+    """Return `(first_class_list, second_class_list)` from `text`, or `None` if unmatched."""
     m = LISTS_RE.search(text)
     if not m:
         return None
-    # Both groups are required by the pattern, so neither can be absent; a group reads
-    # as optional to the typechecker because in general one may be.
     return str(m.group(1)), str(m.group(2))
 
 

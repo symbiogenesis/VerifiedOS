@@ -1,27 +1,20 @@
 # SPDX-License-Identifier: Apache-2.0
-"""Pipe-led runs require a table separator even when Markdown reads them as prose.
+"""Check that every run of pipe-led lines in Markdown includes a header separator rule (`K-39`).
 
-The maintained host Markdown gate owns table width and pipe style. This small
-residue catches a missing separator, which prevents recognition as a table.
+The host Markdown linter checks table column widths and pipe formatting once a block is
+parsed as a table; `K-39` catches consecutive unfenced pipe-led lines that omit the
+`| --- |` separator row and would otherwise be parsed as plain paragraph text.
 """
 
 import re
 from typing import TYPE_CHECKING
 
-# [Context](__init__.py#Context) lives in this package, which imports this module in turn.
-# Guarded, so the annotation below costs no import at run time: under PEP 649 an
-# annotation is not evaluated unless something asks for it, and nothing here does.
 if TYPE_CHECKING:
     from . import Context
 
 HEADING = "=== tables: pipe-led runs retain their table separator ==="
 
-# only the rows are visited: a row is a pipe-led line, and a run is rows on consecutive
-# lines; a fenced row is display text, and the line it holds breaks the adjacency
-# exactly as any prose line does. The lines are walked rather than scanned for with
-# `(?m)^`, so a line carrying no pipe at all is rejected by a substring test before the
-# regex engine is entered, and each row's index comes from the walk instead of from a
-# binary search back through the offsets.
+# Consecutive unfenced pipe-led lines form a table run; each run must contain a `RULE_RE` line.
 ROW_RE = re.compile(r"[^\S\r\n]*\|")
 RULE_RE = re.compile(r"^\s*\|[\s:|-]+\|\s*$")
 

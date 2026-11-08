@@ -1,99 +1,19 @@
 # SPDX-License-Identifier: Apache-2.0
-"""interims: every citation of an interim anchor's lineage, against R-05-022's consumer lists.
+"""Check citations of interim non-Coq proof anchors against `R-05-022`'s consumer lists (`K-93`).
 
-R-05-022 books two interim non-Coq anchors, F\\*/Z3 for libcrux/HACL\\* and EasyCrypt's
-Why3/SMT, and holds one consumer list for each: every admitted artifact whose certificate,
-validation record or acceptance cites the interim's verdict as a premise, entered when it
-is admitted. R-05-022a makes a list that grows without its destination advancing a
-review-gate finding, and R-17-046 reads each interim's trust-base surface off its list.
-**The proof gate cannot see a consumer.** An acceptance that rides HACL\\*'s verdict adds
-no axiom to any Rocq term, so R-05-163 stays exactly as green as it was, and a list kept
-by hand grows silently the day a landing forgets to enter itself, which is the silent
-extension R-05-022a refuses.
+`R-05-022` books two interim non-Coq anchors—`F*/Z3` (for `libcrux`/`HACL*`) and
+`EasyCrypt`'s `Why3`/`SMT`—and maintains an explicit consumer list for each (`R-05-022a`,
+`R-17-046`). `K-93` checks those lists in both directions across all tracked files
+outside `EXCLUDED`:
+- Every occurrence of a lineage token in `TOKENS` on an admission surface must either
+  fall under an anchor listed as a consumer in `R-05-022` or match a line fragment
+  declared in `NON_PREMISE`.
+- Every consumer listed in `R-05-022`, every exclusion in `EXCLUDED`, and every
+  declaration and line fragment in `NON_PREMISE` must match at least one live site.
 
-**So the lists are closed in both directions over every file that can admit an
-artifact.** Each place such a file names a lineage of either interim is resolved to a
-consumer R-05-022 lists for that interim, by the anchor it sits under, or to a
-declaration in `NON_PREMISE` below that it cites no premise, by its line. A declaration
-names its anchor, the reason, and one literal fragment of each citing line it
-classifies, K-68's literal-per-site shape: a line under a declared anchor that carries
-none of the anchor's fragments is unresolved, so a premise written into an anchor
-already declared is a finding and not a citation the declaration swallows. A citation
-resolving to neither is the finding the rule exists for; a fragment naming no citing
-line or two, a declaration no citation answers, and a listed consumer whose anchor
-cites nothing of its interim are the other direction. The two sides are deliberately
-not the same size: a consumer is entered by the artifact R-05-022 names, a requirement,
-an item or a path, because the register lists artifacts and not sentences, while a
-declaration is the rule's own and so can afford to be exact. The distinction the
-declarations draw is R-05-061's own, as the completion log's M3.4a licence reading
-states it: a pinned comparator read for its answers rides nothing, and a post-quantum
-primitive imported so that its correctness rests on F\\* and Z3 is a consumer.
-
-**A lineage is found by its names, never by its solver.** `Z3` and `Why3` are not read:
-Z3 is a solver and Why3 a verification platform, each also serving tools R-05-022 books
-as no interim, Cranelift/Crocus's SMT among them, so neither name identifies an interim
-and reading one would turn every SMT mention into a classification. The names are the
-prover and its low-level fragment (`F*` and `Low*`, escaped or not or with the
-typographic star, and `fstar`, `f-star` and `lowstar` as a repository or binary spells
-them), the libraries, extractor and vendor that deliver its verdicts (HACL\\* with
-EverCrypt, libcrux, hax, KaRaMeL and its `krml`, Cryspen) and, for EasyCrypt, the prover
-with Jasmin, libjade and formosa-crypto. Every name but the starred ones, hax and
-formosa is read as the start of a word in any case, so `hacl-star`, a generated `Hacl_`
-identifier, `fstar.exe` and `mitls-fstar` are the same lineage as the prose's names,
-and Jasmin's tools, `jasminc` and `jasmin2ec`, are read while the word *jasmine* is not.
-Vale is not read: it is a common word and the name of more than one language, and no
-surface cites the F\\* lineage's Vale today, so reading it would classify prose rather
-than find a lineage. The unit tests hold every token to its canonical spelling and a
-fixed list of spellings to their tokens, which is the floor against the table
-narrowing.
-
-**The surfaces are the index less declared exclusions, and not a list of places to
-look.** The corpus is what git tracks, read as the working tree holds it, so a file is
-inside the rule the day it is tracked and escapes only by leaving the repository or by
-joining an exclusion row. Each row names a class that admits nothing, with the reason,
-as a directory when it ends in `/` and as one exact path otherwise; a row that no
-longer matches any tracked file is a finding, as a residue that suppresses nothing is
-under K-81. Retained evidence is read, being a validation record; the one exclusion
-narrower than a path is the pin entry of a machine-written environment snapshot there,
-which records what was checked out and repeats verbatim wherever the snapshot was
-taken, and it too is a finding the day it passes over nothing. Gzip files beneath
-the retained-evidence directory are decoded and their contents scanned, never their
-compressed bytes; a corrupt or plaintext `.gz` file is an undecided finding. A file that is not
-UTF-8 is read all the same, the line a citation quotes decoded with replacement, the
-glyphs group owning what every tracked file is made of; a tracked file absent from
-disk or refusing to read is a finding, whether it cites an interim being undecided,
-as K-83 treats a source it cannot read.
-
-**An anchor is where an admission is recorded.** A register line belongs to the
-requirement whose entry it is in, a plan line to the innermost checklist item whose span
-holds it, a completion-log line to the entry heading above it, and a line of the licence
-record to its heading or, in the pin table, to the submodule its row pins; every other
-file is one anchor, its path. Those are the three forms a consumer list names: a
-requirement ID, a checklist label (its head, `M3.4b`, reaching the item and the log entry
-its landing wrote), or a repository path in backticks.
-
-**The lists are read from R-05-022's criterion in the register's own words.** `Both
-consumer lists are empty.` is the empty form. A list with members is stated per interim,
-as in F\\*/Z3's consumers are M3.4x and `kernel/src/mlkem.c`; EasyCrypt's consumer list
-is empty. Each clause ends at a full stop or a semicolon. An absent entry, an
-entry with no criterion, an interim with no statement, an interim stated twice, the
-empty sentence beside a per-interim statement, and a consumer entered twice each fail
-closed rather than leaving citations held against no list.
-
-**Fail-closed, with the floors inside the rule.** An anchored document missing from the
-corpus, a scan that reaches no surface, and an interim cited nowhere at all are each
-findings here: R-05-022 names both lineages itself, so a scan finding either absent has
-stopped reading rather than found nothing. Reporting the empty reading itself is what
-lets the rule owe the floors group no count.
-
-**What this cannot decide is whether a declaration is right.** A declared citation is
-classified by its line, so a premise written into a line a fragment already names
-resolves with it, and a citation under a listed consumer's anchor resolves with the
-consumer; the declaration's reason is the reading a reviewer re-takes when a named
-line's text moves. Whether a destination has advanced, the other half of R-05-022a's
-test, is not read here at all.
-Nothing is repaired: entering a consumer or declaring a non-premise is a judgment about
-what an admission rests on, and a `--fix` that wrote either would record one nobody took.
+Lineages are matched by prover/library/tool names (`TOKENS`) rather than generic solver
+names (`Z3`, `Why3`). Gzip files under `docs/implementation/retained-evidence/` are
+decompressed before scanning. `K-93` is never auto-repaired.
 """
 
 import re
@@ -109,9 +29,6 @@ from vos.corpus import COMPRESSED_EVIDENCE, HEADING_RE, UNREAD_PREFIX, Document,
 from vos.corpus import gzip_contents as _gzip_contents
 from vos.register import REGISTER, REQ_ID_PATTERN, REQ_TOKEN_RE
 
-# [Context](__init__.py#Context) lives in this package, which imports this module in turn.
-# Guarded, so the annotation below costs no import at run time: under PEP 649 an
-# annotation is not evaluated unless something asks for it, and nothing here does.
 if TYPE_CHECKING:
     from . import Context
 
