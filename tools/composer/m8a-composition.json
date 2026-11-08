@@ -218,7 +218,7 @@
         },
         {
           "path": "proofs/Keccak.v",
-          "sha256": "373eda39348c459147f1784630eb234c4f20c589a969c722507a2871e986871b"
+          "sha256": "c471bec624d0597c7be5433c702688397e36508acaf1c07dc6915bf6508e0fa5"
         }
       ],
       "descriptor": {
@@ -326,15 +326,15 @@
       "sources": [
         {
           "path": "proofs/Keccak.v",
-          "sha256": "373eda39348c459147f1784630eb234c4f20c589a969c722507a2871e986871b"
+          "sha256": "c471bec624d0597c7be5433c702688397e36508acaf1c07dc6915bf6508e0fa5"
         },
         {
           "path": "proofs/Sha256.v",
-          "sha256": "fff8c92eb1249ccb0698a20ec6852b12bf6d403b7f951291b7e7fba569fa3a0c"
+          "sha256": "7729acceb6b82405877a82a361f06f9549d8eecf97c8511668af6724bbcb4b5f"
         },
         {
           "path": "proofs/AesGcm.v",
-          "sha256": "bbfd743745d3aa60b0ca8ecc94aa3c2e878bd4a8f85f6422f71d04b2206bd531"
+          "sha256": "c2fe391ed336f8e32df72d81fde0507b5fd105d53b62a0320989d35240d2b89b"
         },
         {
           "path": "proofs/MlDsa.v",
@@ -343,7 +343,7 @@
       ],
       "descriptor": {
         "path": "tools/composer/packages/crypto-core.json",
-        "sha256": "82e6da80d42870c987aa947cd6c7f4ee89c048914c3ac52a3a594b45823f21d8"
+        "sha256": "97d860caadfffa6b4ebe96effb9057b6a055fb8f499908c182962afc4c1b7f03"
       },
       "artifact_slot": "crypto-core-artifact",
       "entry": null,

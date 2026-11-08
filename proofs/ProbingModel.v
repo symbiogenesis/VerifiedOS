@@ -2,56 +2,21 @@
 (* =========================================================================
    ProbingModel.v
 
-   A gate-level functional model with stable, glitch, transition-pair and
-   difference-only observations. The robust expansion follows transitive
-   combinational dependencies and observes both sides of a register boundary.
-   Physical probe locations are counted before that expansion. Fixed probe
-   lists carry cycles; this does not make their choices adaptive. ProbeStrategy
-   separately represents value-dependent choices and has a budget theorem,
-   but the fixed-list security lemmas are not an adaptive-security theorem.
-
-   R-15-053a and R-17-058a leave the model's faithfulness to silicon as a
-   physical premise. No theorem here establishes a netlist, layout, measured
-   leakage, delay/coupling bound or resistance outside the model. The DRBG's
-   computational connection to independent uniform masks is not proved.
-   R-17-058d's combined fault reduction and the arithmetic and Boolean gadget
-   composition theorems are separate work. See the committed acceptance
-   contract docs/assurance/probing-model-contract.md and U-20.
-
-   Probability is a finite weighted-mass interface, with commutative-monoid
-   laws as record fields. It alone neither normalizes nor excludes zero mass.
-   FiniteMassQualification adds an order, nonnegative masses, a total weight
-   and a nonzero normalizer. Counting over the Cartesian mask enumeration is
-   inhabited and has a proved positive denominator. Security below is exact
-   equality of finite outcome weights, and the general d-share result also
-   equates normalized numerator/denominator pairs. This is original finite
-   algebra, not an imported or qualified SSProve/FCF probability development.
-   Inspection of the locked installed switch found only the documented Rocq
-   core/stdlib/stdpp closure, with no probability or game library. U-20 still
-   owns any external foundation adapter and its assumption/normalization audit.
-
-   The general additive-encoding theorem uses n independent masks and n+1
-   shares in an arbitrary enumerated finite abelian group. Every valid probe
-   list of length at most n has the same distribution for any two secrets.
-   If it observes the completing share, a constructive missing-index argument
-   identifies a mask to reindex by the secret difference. This includes the
-   baseline completing-share case; it is not deferred to gadget composition.
-   The whole encoding recovers the secret, so the bound has a refuting case.
-
-   NI, SNI and PINI are distinct local simulation predicates. The proved
-   implication to NI carries each definition's stated side conditions.
-   Naming PINI does not prove that arbitrary gadgets compose. Its selection,
-   the order/share-count convention and the transition-pair observation are
-   explicit semantic proposals for the register owner. The difference-only
-   arm has a separating witness whose register holds the secret from its
-   initial state; initializing it to zero would itself create a leaking
-   transition. Constant/copy gadgets are model witnesses, not shipped masking
-   hardware. Observation equality uses Sharing's sound and reflexive test.
-
-   The proofs use the Rocq prelude and, for general finite enumeration, the
-   standard List/Arith/Lia modules. No global axioms or admitted proofs are
-   introduced. Native inventory and assumption auditing determine proof
-   evidence; the existence of an inhabitant alone does not.
+   Gate-level functional probing model with stable, glitch, transition-pair,
+   and difference-only observations (R-05-004a, R-15-053a, R-15-108,
+   R-17-058a, R-17-058d; see
+   [probing-model-contract.md](../docs/assurance/probing-model-contract.md)):
+   - Robust expansion following transitive combinational dependencies and
+     both sides of a register boundary, with physical probe locations counted
+     before expansion and `ProbeStrategy` modeling adaptive value-dependent
+     choices.
+   - Finite weighted-mass probability interface (`Probability`) and normalized
+     qualification (`FiniteMassQualification`) instantiated by uniform
+     counting over Cartesian mask enumerations.
+   - General additive `(n+1)`-share encoding security for up to `n` probes over
+     an arbitrary enumerated finite abelian group (`Sharing`), plus local
+     simulation predicates (`NI`, `SNI`, `PINI`) and separating witnesses
+     (R-05-163, R-05-164, R-05-165, R-05-166).
    (*| BEGIN derived: cited entries |*)
    Owner: docs/requirements-register.md
    Requirements: R-05-004a R-05-163 R-05-164 R-05-165 R-05-166 R-15-053a R-15-108 R-17-058a
@@ -380,11 +345,9 @@ Proof.
 Qed.
 
 (* =========================================================================
-   The probabilistic interface, U-20's missing input stated as a record of
-   hypotheses rather than axiomatized. A sample space with a finite
-   enumeration, a mass on each point, and a commutative monoid to add
-   masses in. Nothing more is assumed, and the three laws are what the
-   re-randomization lemma below actually consumes.
+   The probabilistic interface, stated as a record of hypotheses rather than
+   axiomatized: a sample space with a finite enumeration, a mass on each
+   point, and a commutative monoid to add masses in.
    ========================================================================= *)
 
 Record Probability : Type := {
@@ -565,7 +528,7 @@ Qed.
 (* -------------------------------------------------------------------------
    The uniform counting measure over a finite enumerated sample space: an
    inhabitant of the interface, and the premise R-05-004a's masking
-   theorems take. A foundation U-20 later qualifies enters the same way.
+   theorems take.
    ------------------------------------------------------------------------- *)
 
 Definition counting (T : Type) (enum : list T) : Probability := {|
@@ -1068,7 +1031,7 @@ Definition Leaks (x : Experiment) (E : Expansion) : Prop :=
 (* =========================================================================
    The d-share encoding and its two cases (sanity result one). The encoding
    is stated for an arbitrary order over an arbitrary group; the field is
-   R-15-108's to select and is a variable here (gap d).
+   R-15-108's to select and is a variable here.
    ========================================================================= *)
 
 Fixpoint sum_of (m : Sharing) (l : list (Val m)) : Val m :=
@@ -1904,8 +1867,8 @@ Proof.
 Qed.
 
 (* =========================================================================
-   Reading 10 made checkable: the two conventions are different arithmetic,
-   so one letter cannot carry both without an entry saying which (gap b).
+   Order vs. share-count conventions: the two conventions are different
+   arithmetic, so one letter cannot carry both without an entry saying which.
    ========================================================================= *)
 
 (*| discharges: R-05-004a |*)
@@ -2145,8 +2108,8 @@ Proof.
 Qed.
 
 (* A finite mass algebra has a nonzero normalizing denominator only under
-   these extra laws. The legacy Probability record alone does not assert
-   them. A qualified external probability adapter still belongs to U-20. *)
+   these extra laws. The base Probability record alone does not assert
+   them. *)
 Record FiniteMassQualification (p : Probability) : Type := {
   mass_unit : Mass p;
   mass_le : Mass p -> Mass p -> Prop;

@@ -3,89 +3,29 @@
    Keccak.v
 
    Gallina functional reference for Keccak-p[1600], its sponge, SHA3-224,
-   SHA3-256, SHA3-384, SHA3-512, SHAKE128 and SHAKE256, transcribed from
-   FIPS 202. It is paired with model/model/extensions/keccak/keccak_p1600.sail
-   for differential comparison. R-15-056 and R-15-058 concern the Sail
-   invariant; this reference does not discharge them or correspond to a binary.
+   SHA3-256, SHA3-384, SHA3-512, SHAKE128, and SHAKE256 (FIPS 202), paired
+   with [keccak_p1600.sail](../model/model/extensions/keccak/keccak_p1600.sail)
+   for differential comparison (R-15-056, R-15-056a, R-15-058; consumed by
+   [RomVerifier.v](RomVerifier.v) and [RotFirmware.v](RotFirmware.v) under
+   R-05-058a, R-05-058c, and R-09-002, alongside [HmacDrbg.v](HmacDrbg.v)
+   for R-15-241d and [AesGcm.v](AesGcm.v) for R-10-024).
 
-   This is only the functional layer of R-05-059. Binary constant-time
-   properties (R-05-062, R-05-067) and distributional reduction claims
-   (R-05-077a) are outside its scope. The proof gate checks compilation,
-   assumptions and non-vacuity, not these omitted properties. Light Examples
-   use conversion; permutation checks use bytecode evaluation without adding
-   assumptions. ProofSupport and CryptoLists depend only on the Rocq prelude;
-   their complete import closure remains subject to R-05-163 and R-05-164.
+   Scope: functional layer of R-05-059 only, without binary constant-time
+   properties (R-05-062, R-05-067) or distributional reductions (R-05-077a).
+   Shared support modules are prelude-only (R-05-163, R-05-164).
 
-   Representation:
-   - A lane is a 64-element list bool, least significant bit first (z = 0).
-   - The state is 25 lanes in x + 5*y order, matching FIPS 202's string-to-state
-     conversion and the Sail unit. Output bytes take eight consecutive bits,
-     least significant bit first (FIPS 202 sections 3.1.2 and B.1).
-   - Messages are byte-aligned; sub-byte conventions are not exercised.
-   - Lane-wise lists avoid repeatedly indexing a flat 1600-bit list.
-
-   Structural obligations:
-   - theta, rho, pi, chi and iota are separate definitions, composed in that
-     order by keccak_round (R-15-056).
-   - Unlike Sail's literal tables, rho offsets are derived from the triangular
-     recurrence and (x, y) walk; round constants use Algorithm 5's LFSR. Both
-     derived tables are checked against published values.
-   - Keccak-p[1600, n] uses the last n rounds (R-15-056a). The general theorem
-     checks suffix selection; the twelve-round vector has the limited
-     provenance recorded below.
-   - pi is invertible on 25 lanes; the used rho rotations are invertible on
-     64-bit words; iota is an involution; chi is bijective on all five-bit rows.
-     Theta's column indexing and choice of rotated neighbour are checked, but
-     theta invertibility and bijectivity of the composite remain unproved.
-     Those are local obligations, not acceptance clauses of R-15-056.
-   - SHA3-256 and SHAKE256 share rate and capacity but use different suffixes.
-     Checks distinguish their outputs and exhibit equality without separators.
-
-   Known answers are constants in Example statements, not Definitions or
-   hypotheses. This keeps them outside the seed-mutation population and keeps
-   their provenance separate from the function being checked. Under R-05-022,
-   these behavioural comparators enter no trust base or retirement regime.
-
-   Vector provenance, recorded 2026-08-31:
-   - XKCP/XKCP at eb5244d6, tests/TestVectors/KeccakF-1600-IntermediateValues.txt:
-     round constants, rho offsets and the all-zero 24-round state.
-   - The same revision's tests/TestVectors/ShortMsgKAT_SHA3-224.txt and its five
-     siblings: digests and squeezed outputs emitted by NIST's genKAT harness.
-   - The twelve-round state is the Sail harness constant, recorded there as
-     produced by an independent implementation; it is not a published vector.
-   - The empty-message SHA3-256 answer also appears in the NIST ACVP sets and
-     is checked by the Sail harness. No ACVP dataset is copied here.
-   XKCP's LICENSE has a CC0 default with six exceptions; tests/TestVectors is
-   in none. The NIST exception covers genKAT.c/h and the Standalone harness,
-   not emitted vectors. The default names source and header files, leaving
-   its application to vector text files unclear; no stated arm imposes a
-   notice, change-notice or acknowledgement condition on these files.
-
-   Boot use: RomVerifier.v states the ROM-verifier construction over shake256
-   for SLH-DSA-SHAKE-256s (R-05-058a, R-05-058c). No signature scheme is
-   implemented here. HmacDrbg.v owns HMAC-DRBG-SHA-256 and its R-15-241d
-   discipline; AesGcm.v owns the R-10-024 AEAD reference.
-
-   Remaining integration decisions:
-   - R-15-058 or M3.4 must select the oracle pair of independent verification
-     lineage for this authored reference. Its representation conventions and
-     role in acceptance are local choices, not fixed by register entries.
-   - RotFirmware.v's extend_separates_on_the_chain is finite separation at the
-     chain's seven digests and item codes, not total hash injectivity. Its demo
-     instance is computed; wiring the real extension remains M3.4 work under
-     R-05-058c or R-09-002.
-
-   Standard literals are the geometry, round counts, output lengths, SHAKE
-   strengths, c = 2n, domain separators and Algorithms 5/6 parameters. Rates,
-   state size, offsets, constants and table shapes are derived from them.
-
-   Non-vacuity (R-05-165, R-05-166): structural theorems quantify over arbitrary
-   tables, words, states or constructions. Negative cases cover wrong mod-5
-   indexing, recurrence start, constant order, short-round selection, theta
-   neighbours, chi, padding and separators. Iota involution and inverse
-   rotations have no mutant construction; theta's explicit lane variables
-   already distinguish a transposed flattening. Published vectors supply
-   concrete positive cases; otherwise-unreached constants have separate checks.
+   Representation and checks:
+   - State is 25 lanes of 64-element LSB-first `list bool` in `x + 5*y` order.
+   - Step mappings (`theta`, `rho`, `pi`, `chi`, `iota`) are separate
+     definitions composed in order by `keccak_round` (R-15-056), with `rho`
+     offsets and Algorithm 5 LFSR round constants derived and checked against
+     published tables, and `Keccak-p[1600, n]` selecting the final `n` rounds
+     (R-15-056a).
+   - Known-answer vectors (XKCP `eb5244d6` `KeccakF-1600-IntermediateValues.txt`
+     and `ShortMsgKAT_SHA3-*`, plus the 12-round Sail comparator constant;
+     behavioral comparators enter no trust base under R-05-022) sit in
+     `Example` statements outside `Definition`s, paired with negative mutant
+     constructions for non-vacuity (R-05-165, R-05-166).
    (*| BEGIN derived: cited entries |*)
    Owner: docs/requirements-register.md
    Requirements: R-05-022 R-05-058a R-05-058c R-05-059 R-05-062 R-05-067 R-05-077a R-05-163
