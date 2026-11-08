@@ -1,21 +1,17 @@
 # Checker reproductions
 
-Standalone Rocq sources that reproduce a behaviour of the kernel checker, `rocqchk`,
-first met on an upstream library. Each is authored from scratch in the library's module
-shape and carries none of its content, so nothing of the upstream enters the checkout.
-Each directory holds one behaviour: the trigger, the controls that differ from it by
-one construct and check, a `run.sh` that compiles every file with a named switch's
-`rocq c` and checks it with that switch's `rocqchk -silent -o`, and a README stating
-the expected result per file and release, and its `run.sh` exits 1 when a result differs
-from that statement, which marks a new measurement. The record that reads the results
-lives under `docs/assurance/` and cites the files here.
+Standalone Rocq sources that reproduce `rocqchk` kernel-checker behaviors first
+encountered on upstream libraries. Each reproduction is authored from scratch in the
+upstream library's module shape and contains no upstream code. Each directory includes the
+trigger, single-construct negative controls, a `run.sh` script that compiles and checks
+every file in a named opam switch (`rocq c` and `rocqchk -silent -o`), and a README
+recording the expected outcome per file and release (`run.sh` exits `1` if any result
+differs). The corresponding analysis records live under `docs/assurance/`.
 
-These files are not proof artifacts. The proof gate compiles only `proofs/`; the
-citation, ledger and header rules (K-103, K-105, K-109) read the shipped proof set
-under `proofs/` alone; and K-117's instrument table names no directory here, so no
-rule holds a file in this tree to the proof set's conventions. Each file carries the
-licence mark K-52 requires of every Gallina source. Running one is a short guest probe
-in an existing switch, never an install.
+These files sit outside the shipped proof set: `run.py proofs` and the proof citation,
+ledger,header, and instrument rules (K-103, K-105, K-109, K-117) scan only `proofs/` and
+registered instruments. Each `.v` file carries the `Apache-2.0` license header required
+by K-52. Running a reproduction is a read-only probe in an existing switch.
 
 | Directory | Behaviour | Record |
 | --- | --- | --- |

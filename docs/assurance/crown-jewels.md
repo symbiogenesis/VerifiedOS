@@ -63,7 +63,7 @@ Row 26 remains separate from row 12 even though both use the same sequence table
 
 ## The theorem targets
 
-The remaining `CJ-` targets name **theorems, not specifications**, things proven rather than authored. They are not crown jewels in R-17-016's sense (a specification whose *correctness is unverifiable*, so that a proof matching it may still miss intent); a theorem's correctness is exactly what its proof establishes. They are listed here so that every target is accounted for, and because each one's premise includes a specification above or a judgment fixed outside this corpus, which is the seam structure R-18-031(a)'s machine-checked statement has to align with.
+The remaining `CJ-` targets name **theorems rather than specifications**. Under R-17-016, a crown jewel is a specification whose fidelity to intent cannot be verified by proof; a theorem's correctness is established by its proof. This table accounts for the remaining `CJ-` targets and links each theorem to the specification or external judgment it is proven against, matching R-18-031(a)'s seam structure.
 
 | `CJ-` target | Theorem | Proven against |
 | --- | --- | --- |
@@ -78,9 +78,14 @@ The remaining `CJ-` targets name **theorems, not specifications**, things proven
 | `CJ-REDUCTION` | The IND-CCA / EUF-CMA reductions | each primitive's functional specification (row 14) |
 | `CJ-WASM-SOUND` | Platform-interpreter soundness and robust guest confinement: the executable interpreter refines the pinned semantics, and an adversarial module influences its host and peers only through its declared imports and exports | the pinned Wasm guest semantics (row 25) |
 
-The split is one reason the inventory and the trace legend cannot be the same artifact (the other, granularity, is next). **A theorem with no specification to be proven against is not a deliverable**, so every row in this table depends on a row in the one above, or on a judgment fixed outside this corpus that the paragraph below accounts for.
+Every theorem target above depends on an inventory specification or on an external judgment accounted for below.
 
-Three premises above also name specifications the inventory does not carry: CompCert's C semantics, the kernel's abstract specification, and the judgment each admission checker is refined against. None is conferred, and their absence is the membership rule holding rather than an oversight. The first two are proof-interior interfaces of the R-05-019b shape, one Coq term two proof developments quantify over from opposite sides, and neither appears in the statement of T or of any property a requirement names, so a wrong one fails to link at R-18-031(b) instead of yielding a correct proof of a wrong property, which is the failure R-17-016 defines the status by; R-07-049 says it of the kernel directly, booking the residual as the capability-widened memory model and the refinement over it *"rather than the CHERI-C semantics itself"*. The third splits along its two halves and neither half reaches the status: MetaCoq's Gallina checker is that same proof-interior shape, and the pinned CHERI-TAL rule table is the one premise here whose correctness a theorem already covers, `CJ-TAL-SOUND` being the statement that those rules are sound, so a wrong rule fails the metatheorem rather than yielding a correct proof of a wrong property. The contrast with row 6 is what conferral is for: the Sail model sits between two proofs in exactly the same shape, but it also models the machine, and R-15-005 confers on precisely the fidelity no proof on either side of it checks.
+Three theorem premises above are not in the inventory because no requirement confers crown-jewel status on them:
+
+- **CompCert C semantics and the kernel's abstract specification.** Both are proof-interior interfaces (R-05-019b) quantified over from opposite sides by adjacent proof developments. Neither appears in the statement of `T` or of a requirement-named property, so a mismatch fails to link at R-18-031(b) rather than proving a wrong top-level property (R-17-016). R-07-049 likewise scopes the kernel residual to the capability-widened memory model and refinement *"rather than the CHERI-C semantics itself"*.
+- **Admission-checker reference judgments.** MetaCoq's Gallina checker is also a proof-interior interface, and the pinned CHERI-TAL rule table is covered by `CJ-TAL-SOUND`, so an unsound rule fails that metatheorem.
+
+By contrast, row 6 (the Sail model) sits between two proofs in the same shape, but also models the hardware; R-15-005 confers crown-jewel status on that hardware fidelity, which no proof on either side checks.
 
 ## What the `CJ-` table is, and is not
 

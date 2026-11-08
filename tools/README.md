@@ -28,27 +28,23 @@ local builds and focused checks, and the
 
 [Host CI](../.github/workflows/host-gates.yml) runs on Windows and Ubuntu for pushes
 and pull requests to `main`, or through manual dispatch from `main`, without
-initialized submodules. A dispatch's optional `revision` input names a full commit
-already on `main`; the workflow checks out that commit and refuses any other ref or
-revision before running checked-out code. A refused dispatch runs none afterwards
-either: each later step that runs commands after a failure, the reporting, workflow
-analysis and model-hook steps included, also requires that check not to have failed.
+initialized submodules. A manual dispatch's optional `revision` input must name a full
+commit SHA already on `main`; the workflow checks out that commit and refuses any other
+ref or revision before running checked-out code. When a dispatch is refused, all later
+steps—including reporting, workflow analysis and model hooks—are skipped.
 The [Guest CI contract](ci/README.md) owns guest triggers, setup, gate commands, proof
 reuse, cold runs and evidence limits.
 The [failure-prevention contract](ci/failure-prevention.md) owns the preparation
 tools and their focused acceptance controls.
 [boot-crypto-target.yml](../.github/workflows/boot-crypto-target.yml) runs M7.1f's
-boot signature target campaign, whose [contract](../firmware/crypto/README.md#hosted-target-campaign)
-the crypto README owns.
+boot signature target campaign, defined in [firmware/crypto/README.md](../firmware/crypto/README.md#hosted-target-campaign).
 [boot-chain-target.yml](../.github/workflows/boot-chain-target.yml) runs M3.5b's target
-chain campaign from its staged inputs, whose predicate is
-[the boot-handoff contract](../docs/implementation/contracts/boot-handoff.md)'s section 9.
+chain campaign from its staged inputs under [the boot-handoff contract](../docs/implementation/contracts/boot-handoff.md)'s section 9.
 [instrument-switches.yml](../.github/workflows/instrument-switches.yml) builds and
-checks QuickChick's switch on manual dispatch from `main` alone, the one place the
-user's rulings let it be built and checked;
-[the instrument switch route](ci/README.md#instrument-switch-route) in the Guest CI
-contract owns it, and `run.py instrument-ci` dispatches it and reads its runs back.
-`run.py provision --apply` must not import QuickChick in the local guest (F-616).
+checks the QuickChick switch on manual dispatch from `main` under
+[the instrument switch route](ci/README.md#instrument-switch-route); `run.py instrument-ci`
+dispatches it and reads its runs back. `run.py provision --apply` must not import
+QuickChick in the local guest (F-616).
 
 **Host CI reports each gate member's result.** `--summary` writes per-member
 verdicts as JSON outside the checkout. After success or failure, the workflow
@@ -100,66 +96,55 @@ a concurrency group only for the same event SHA, canceling redundant automatic
 work. Each manual dispatch has its own run group, and different revisions of
 `main` keep separate runs. The
 [workflow's matrix](../.github/workflows/host-gates.yml) fixes each platform's
-partition count and runner image. Mutation cases and sorted behavioral test modules are partitioned by
-position within each OS, with every item assigned once. A test module that declares
-`INDEPENDENT_CASES = True`, stating that its cases share no state and that its case
-list has the same order on every run, keeps its position, so no other module changes
-shard, but every shard runs it with the cases at its own stride through that list,
-so each of its cases still runs once and a shard's share may be empty.
-Every mutation runs the checker in a fresh process and private sandbox, through the
+partition count and runner image. Mutation cases and sorted behavioral test modules are
+partitioned by position within each OS, with every item assigned once. A test module
+that declares `INDEPENDENT_CASES = True` (meaning its cases share no state and have a
+deterministic order) keeps its position so no other module changes shard, while every
+shard runs its own stride of that module's cases.
+Every mutation runs the checker in a fresh process and private sandbox through the
 group that decides its rule (`check.py --through`); a survivor runs the whole checker.
 The template compiles checker modules once into checked-hash bytecode outside its
-index. Every child validates those hashes against its own source and disables cache
-writes, so a source mutant still loads its changed code. A compilation refusal leaves
-that module uncached for the child to diagnose. Each shard checks its immutable
-template baseline while its case sandboxes are built, then checks registry coverage.
-The repair-only run builds only its private repair sandbox. Beside the shards, one
-unpartitioned job per OS runs what no
-partition holds: the ordinary checker, typecheck and the complete repair path, beside a
-pristine baseline of its own; Ubuntu's also analyzes the workflows as
-[workflow analysis](#workflow-analysis) describes. A
-model-hooks job of its own runs [the model's hooks](#model-hooks) on the Ubuntu shards'
-image beside the shards. Members within a job run concurrently. The gate runs under each
-platform's native shell, PowerShell on Windows and bash on Ubuntu, as a developer
-there runs `run.py`, and reads its part of the gate, a shard or the unpartitioned
-members, and its verdict path from the step's environment
-rather than from expressions written into the command. Each platform runs on an explicit
-runner image label, and its aggregate check is named for the platform rather than the
-image, so that an image move renames nothing. `HOST_JOBS` in
+index; each child validates those hashes against its own source and disables cache
+writes so source mutants load their modified code. Each shard checks its immutable
+template baseline while building case sandboxes, then checks registry coverage.
+The repair-only run builds only its private repair sandbox. Alongside the shards, one
+unpartitioned job per OS runs the ordinary checker, typecheck, Markdown lint and the
+complete repair path; Ubuntu's unpartitioned job also runs
+[workflow analysis](#workflow-analysis), and a separate Ubuntu job runs
+[the model's hooks](#model-hooks). Members within a job run concurrently under the
+platform's native shell (PowerShell on Windows, bash on Ubuntu), reading their shard
+selection and verdict path from environment variables. Aggregate checks are named for
+each platform rather than its runner image; `HOST_JOBS` in
 [vos/fanout_ci.py](vos/fanout_ci.py) owns those names for historical Host CI evidence
-validation, and [test_fanout_ci.py](tests/test_fanout_ci.py) holds the workflow's
-aggregate jobs to them. The aggregate checks require every shard and unpartitioned job
-on both platforms and the model-hooks job to succeed, including refusal after a
-skipped or cancelled job.
-One shard, or one unpartitioned job, alone supplies only a partial verdict. The
-unsharded command retains the complete suite and is reserved for GitHub Actions.
+validation, and [test_fanout_ci.py](tests/test_fanout_ci.py) checks the workflow
+against them. The aggregate checks require every shard, unpartitioned job and
+model-hooks job to succeed, rejecting skipped or canceled jobs. The unsharded command
+runs the complete suite and is reserved for GitHub Actions.
 
-<a id="workflow-analysis"></a>**Ubuntu's unpartitioned job analyzes workflows and local actions**, in a
-step of its own that runs whatever the gate's verdict and fails the job on either
-analyzer's finding. zizmor, pinned in [pyproject.toml](pyproject.toml)'s `workflows`
-group and locked outside the gate's environment, runs its offline security audits,
-including the one requiring every action to be pinned by commit.
-[ci/actionlint.sh](ci/actionlint.sh) runs actionlint from a release archive verified
+<a id="workflow-analysis"></a>**Ubuntu's unpartitioned job analyzes workflows and local actions** in a
+dedicated step that runs regardless of the gate verdict and fails the job on any
+finding. `zizmor`, pinned in [pyproject.toml](pyproject.toml)'s `workflows`
+group and locked outside the gate's environment, runs offline security audits,
+including commit-SHA pinning for all actions.
+[ci/actionlint.sh](ci/actionlint.sh) runs `actionlint` from a release archive verified
 against its pinned SHA-256, reading [.github/actionlint.yml](../.github/actionlint.yml)
-for hosted runner labels newer than that release's own table. It checks workflow
-syntax, expressions and contexts but not shell bodies, because no pinned shellcheck
-or pyflakes is provisioned. Ubuntu's unpartitioned job caches only the archive,
-keyed by the owner's SHA-256; each reuse verifies those bytes before extraction.
-Only a successful main push saves it. Corrupt copies require a verified replacement,
-with bounded retries, and both analyzers remain mandatory.
+for hosted runner labels newer than that release's built-in table. It checks workflow
+syntax, expressions and contexts without invoking `shellcheck` or `pyflakes`.
+Ubuntu's unpartitioned job caches only the release archive keyed by its SHA-256,
+verifying its bytes before every extraction and saving the cache only on successful
+`main` pushes.
 To reproduce the step in WSL, set `UV_CACHE_DIR`,
 `UV_PROJECT_ENVIRONMENT` and `ACTIONLINT_ROOT` to directories under the `lane_root`
 that `run.py worktree list --json` reports for the checkout, then run
 `uv run --project tools --locked --exact --only-group workflows --no-python-downloads zizmor --offline .github`
 and `sh tools/ci/actionlint.sh -shellcheck= -pyflakes=` from the checkout.
 
-Host CI's jobs cache uv downloads keyed by the manifest and lockfile under Host CI's
-own key suffix, with only each OS's unpartitioned job saving caches on pushes to
-`main`; other jobs restore them. Environments
+Host CI jobs cache uv downloads keyed by the manifest and lockfile under Host CI's
+key suffix; only each OS's unpartitioned job saves caches on pushes to
+`main`, while other jobs restore them. Environments
 and gate results are rebuilt on every run. The Windows gate step sets `TMP` and `TEMP`
-to `runner.temp`, on the checkout's drive, because the image's default temporary
-directory is on a
-[slower system drive](https://github.com/actions/runner-images/issues/8755).
+to `runner.temp` on the checkout's drive, avoiding the image's
+[slower default system drive](https://github.com/actions/runner-images/issues/8755).
 Per-member timing notices are also available through the public check-run
 annotations API.
 
@@ -173,11 +158,11 @@ independent handler fixtures and help declarations against their usage output.
 
 | Command | Lane | What it does |
 | --- | --- | --- |
-| `gate` | host | Runs the host gates below in parallel. `--check` is read-only; `--fix` also repairs derived artifacts before a fresh validation wave; `--tests` adds behavioral tests. `--shard INDEX/TOTAL` runs one partition of the selftest's cases and, with `--tests`, of the behavioral tests, and nothing else, and `--unpartitioned` runs the rest: the ordinary checker, typecheck, Markdown lint and the selftest's repair path (`selftest --repair-only`); every shard and the unpartitioned run, each with the same `--tests`, must pass, and `--fix` takes neither. `--summary PATH` additionally writes the wave's verdict as JSON, one record per member carrying its exit code and whether that code is a verdict at all, for a caller that has only this run's exit code; a wave that never ran writes the reason instead, and a verdict that cannot be written there is one finding of its own. A bare `run.py` selects this workflow. |
-| `check` | host | Checks every derived fact against the artifact that owns it. `--fix` rewrites the figures that are arithmetic. It is also [check.py](check.py), the one command that is still a path, because the register, the coverage matrix, the crown jewels, the field bindings and the findings register all cite that path for what it decides. |
+| `gate` | host | Runs the host gates below in parallel. `--check` is read-only; `--fix` repairs derived artifacts before a fresh validation wave; `--tests` adds behavioral tests. `--shard INDEX/TOTAL` runs one partition of the selftest cases and (with `--tests`) behavioral tests; `--unpartitioned` runs the ordinary checker, typecheck, Markdown lint and `selftest --repair-only`. `--fix` is incompatible with `--shard` and `--unpartitioned`. `--summary PATH` writes per-member verdicts and exit codes as JSON, failing if the summary cannot be written. A bare `run.py` selects this command. |
+| `check` | host | Checks derived facts against their owning artifacts; `--fix` updates deterministic arithmetic and generated views. Also invokable directly as [check.py](check.py), the path cited by the register and derived views. |
 | `floor-div` | host | [Constant signed floor-division reference](../docs/implementation/contracts/constant-floor-division.md): plans a known divisor at width 8, 16, 32 or 64, evaluates checked inputs and emits experimental straight-line RV64 arithmetic. Host oracle checks supply no compiler admission or measured target saving. |
-| `selftest` | host | Seeds each of the checker's rules a defect it must report, and fails on a rule that says nothing. |
-| `typecheck` | host | Holds this directory's own Python to the discipline it holds the documents to. |
+| `selftest` | host | Runs mutation testing over the checker, seeding each registered rule with a defect it must report and failing on any surviving or unseeded case. |
+| `typecheck` | host | Runs the pinned `ty` (for both `linux` and `win32` targets) and `ruff` checks over all indexed Python sources under `tools/`. |
 | `markdown` | host | Checks indexed authored Markdown table syntax with the locked MD055 and MD056 implementation, outside semantic-rule mutation replay. |
 | `prepare` | host for `python`; guest for `model` | `python --path FILE` fixes import ordering with the locked Ruff edition; `--check` reports without rewriting. `model --path FILE` runs the pinned model hooks on selected authored files. Repeat `--path` for each file and review the diff. This prepares inputs without builds, shared hooks or acceptance claims. |
 | `test` | host | Runs the tools' own behavioral tests, one module per subject under [tests/](tests/). |
@@ -193,12 +178,12 @@ independent handler fixtures and help declarations against their usage output.
 | `sail-lsp` | guest | Explicit `install`, `status`, `serve` and `qualify` for an isolated Sail language server built from the locked compiler's release archive. Qualification includes live dependency refresh, unsaved diagnostics, restart and a strict-batch comparison. The acceptance compiler stays locked; see the [optional integrations](../docs/assurance/sail-assistance.md#optional-native-integrations). |
 | `sail-isla` | guest | Explicit `provision` and `qualify` for pinned Isla and isla-testgen execution of curated capability helpers, 32 generated permission cases, baseline replay and killed/survived/build-rejected controls. Scope is finite helper testing, not an RV64 instruction target or universal proof. |
 | `sail-modular` | guest | `qualify` derives static libraries from full generated C++ through libclang AST ranges, preserves method bodies and one shared-state owner, and compares clean baseline/partitioned builds on the same suite and corpus. Source, flags, binaries and header dependencies bind reuse; outputs remain in the native lane. See the [paper adaptation](../docs/assurance/sail-assistance.md#the-modular-sail-paper). |
-| `coread` | host | Prints a register entry against the prose it was extracted from, and records the reading K-61 asks for. |
-| `view` | host | Weaves the specification and the register into one generated reading view, each entry rendered beneath the bookmark that cites it, written outside the corpus and never a source. |
+| `coread` | host | Prints a register entry alongside its cited prose and records the co-read blessing required by K-61. |
+| `view` | host | Generates a combined reading view of `spec.md` and `requirements-register.md` outside the corpus, rendering each register entry beneath its prose bookmark. |
 | `compute-audit` | host | Compares the authored compute feature map with the core API command inventory derived from the hash-checked OpenCL registry snapshot. Missing, unknown or duplicate command coverage refuses the audit. The snapshot is supplied explicitly; this source-coverage check establishes no implementation or standards conformance. |
 | `math-evidence` | host | Validates the [research evidence manifest](../docs/background/math-evidence.json), emits/checks its generated decision view and reports finite reference-composer dictionary shapes. Metadata validation supplies no theorem, production workload or target performance verdict. |
 | `matrix-identity` | host | Replays [the pinned finite rank-48 identity](../docs/background/rank48-replay.md) from supplied external inputs or an explicit hash-checked temporary fetch. `check-report` checks receipt provenance without rerunning the inputs; no FP32, target or Rocq acceptance is implied. |
-| `blast` | host | Answers what an edit to the apex statement re-opens, before the work starts. |
+| `blast` | host | Reports which definitions, downstream seams and linking theorems are affected by changing a field of the apex statement. |
 | `revocation` | host | Qualifies bounded revocation completion and reuse cases against an explicit holder inventory and schedule. The assessment supplies no runtime implementation or universal temporal-safety theorem. |
 | `inference-admission` | host | [The decoded-shape host reference](inference-admission/README.md) joins finite expert residency, uniform declared work and exact symbolic grant arithmetic. Its input-bound report distinguishes session opening from checked routing and preserves declared resources. Physical supply, target timing and wire-parser correspondence remain open. |
 | `resident-reads` | host | [The finite resident-read reference](resident-reads/README.md) exercises two-holder immutable windows, current authority and authentication, bounded modeled retirement and abstract write classification. Its executed Python controls supply no compiled-control, target or proof qualification. |
@@ -230,20 +215,20 @@ independent handler fixtures and help declarations against their usage output.
 | `corpus-images` | host | `check` holds every reviewed member to its source and image identities; `extend` records new members only after every old member still matches. Changes to existing sources or encoding need an independently reviewed baseline update. See [the corpus contract](../docs/assurance/differential-corpus.md). |
 | `block-authority` | host | `emit` generates the block-device capability-refusal corpus from composition and profile owners; `check` rejects drift. `test --only block_authority` checks regeneration, while the guest slow case runs HTIF negative controls against the built model. |
 | `boot-handoff` | wsl; layout and chain-join on either lane | M3.5's measured release under the [boot-handoff contract](../docs/implementation/contracts/boot-handoff.md). `run` executes the host stage with both sanitizers and either the explicit fixture verifier or `--signature-scheme slh256s`, then boots released bytes on the golden emulator. `release-target` compares compiled RoT preparation and its captured placement with the host stage, then boots the accepted capture; its finite checkpoint leaves the remaining boot-chain joins open. `signature-target` isolates the bounded SLH callback trial. `layout` checks the contract's tables and assembled image against `vos_boot.h`, and its target-chain tables and case table against `firmware/chain/vos_chain.h`, the verdict owners and the model's boot-control door declarations. M3.5b's target chain campaign follows the boot-crypto staged pattern: `chain-stage --ccomp PATH` compiles the ROM, the runtime, its two watchdog mutants and the M-mode stage through the contained compiler, lays the payloads out through the RoT and M-mode composers, signs the images with disposable OpenSSL keys that stay in its output lane, and writes `firmware/chain/target/`; `chain-verify` holds that directory to its manifest, the sources each unit read, the composers' layouts and the contract's verifier identity freeze with M7.1f's manifest; `chain-target --staged` runs one `--case`, the `--group main-die` over `cold-boot`'s outputs (`--cold-boot DIR`) or the `--group watchdog` on the golden emulator against [the host oracle](vos/boot_chain.py) and writes a shard receipt; `boot-handoff chain-join` composes shard receipts into one campaign, refusing shards whose identities differ. [boot-chain-target.yml](../.github/workflows/boot-chain-target.yml) runs the campaign on hosted runners. |
-| `provision` | wsl | The lane this repository builds in, as a table of facts a machine can act on: one row per switch, pin, checker and prerequisite, each naming the loop that wants it, the artifact that owns it, and what a probe actually found. The default reports and changes nothing; `--apply` runs the command each absent row states and re-probes, installing the distribution packages `opam init` needs before the opam row, the reviewed opam client only where no client is on `PATH` and no root stands in a format older than that client writes, and an opam root only where none stands or where one stands in the shape the root-creation route leaves after its leading steps; `--only` narrows to the gate's rows or the toolchain's and says which rows it did not decide about. Its layout rows probe where a lane's outputs land, so a build root or a log root on the Windows mount or on tmpfs fails the lane. |
-| `model` | wsl | Every loop over the curated Sail model: `typecheck`, `bundle`, `emit`, `rocq`, `simulator`, `build`, `wait`, `lane`, `smt`, `oracle`, `sweep`, `corpus`, `asm`, `freeze-emit`, `trace-diff`, `devicetree`, `reference`, `config-keys`, `validate-config`, `keepalive`. `rocq` emits [the canonical machine term](../docs/assurance/canonical-machine-term.md) through the model's own `generated_rocq_rv64d` target: it deletes the term's outputs and receipt before anything else, because the target's dependencies do not name the Sail binary, library or plugin; refuses a missing frozen profile, a configured target whose `--config` is not that profile, and a run whose configuration, sources or toolchain moved while Sail read them; and writes the generation-identity receipt [vos/rocqterm.py](vos/rocqterm.py) states beside the term, deleting the term on any refusal after the build. `bundle` regenerates the machine-readable view of the model the host lane reads it through, and `bundle --check` holds the tracked one against what Sail writes now, which is the half of K-88 a host with no Sail cannot take. `smt` runs the capability-helper property suite ([model/model/unit_tests/cap_properties.sail](../model/model/unit_tests/cap_properties.sail), a transcription of the pinned `sail-cheri-riscv-verif` properties at the frozen widths) through Sail's SMT target with one verdict and one time per property, proved, counterexample or undecided, the last being its own verdict and never a pass; the suite sits behind the project file's `smt_properties` variable so that no build's ctest waits on a solver, and every verdict is evidence about the Sail functions rather than R-15-007a's proof. `lane` prints where this checkout builds and logs, each path beside the filesystem under it. |
+| `provision` | wsl | Probes the guest toolchain and lane layout against `provision.FACTS`: switches, pins, checkers, distribution packages, per-lane caches and native output directories. By default it reports without modifying the system; `--apply` runs declared installation commands and re-probes, installing `opam init` prerequisites, the reviewed `opam` client when none is on `PATH` and no older root would be upgraded, and an `opam` root when absent or resumable. `--only` filters to `gate` or `toolchain` rows. Build or log roots on `/mnt/` or `tmpfs` fail the layout check. |
+| `model` | wsl | Runs workflows over the curated Sail model: `typecheck`, `bundle`, `emit`, `rocq`, `simulator`, `build`, `wait`, `lane`, `smt`, `oracle`, `sweep`, `corpus`, `asm`, `freeze-emit`, `trace-diff`, `devicetree`, `reference`, `config-keys`, `validate-config` and `keepalive`. `rocq` cleans prior outputs, emits [the canonical machine term](../docs/assurance/canonical-machine-term.md) through `generated_rocq_rv64d` for the frozen profile, verifies that inputs and toolchain did not change during emission, and writes the generation receipt defined by [vos/rocqterm.py](vos/rocqterm.py). `bundle` regenerates the tracked JSON model bundle for host checks, and `bundle --check` verifies that the tracked bundle matches current Sail output. `smt` runs the capability-helper property suite ([model/model/unit_tests/cap_properties.sail](../model/model/unit_tests/cap_properties.sail)) through Sail's SMT target, reporting `proved`, `counterexample` or `undecided` (never treating `undecided` as a pass) as Sail-level evidence rather than R-15-007a's theorem. `lane` prints this checkout's build and log paths alongside their underlying filesystems. |
 | `evidence` | wsl | Builds the model, verifies its receipt, and runs the reference, profile sweep, differential corpus, devicetree and proof gate. Proofs overlap the model consumers in a separate process. Each run writes a JSON execution record with input identities, process results and measurements. `--no-build` requires a current successful build receipt; stale logs cannot supply its test evidence. `--no-proofs` leaves the proof gate to a separate run, as guest CI's proofs lane does; the record lists it as excluded and claims no proof measurement. |
-| `rtl` | wsl | The RTL lane: `provenance` parses the synthesis record and `filelist` composes the curated arm's elaboration file list, both on either lane; `lint`, `vectors`, `crosscheck`, `elaborate` and `wait` need the guest. `elaborate` elaborates the imported core at the curated configuration and at a baseline and names every structure the disabling parameters remove, and `wait` reports the verdict of a backgrounded one; `vectors` compiles the model's capability format with a generator that prints what its functions return, and `crosscheck` requires the authored SystemVerilog to reproduce every line. **A curation replaces imported sources as well as re-valuing parameters**, so `rtl.py`'s `SUBSTITUTIONS` declares which authored source stands where the imported manifest names imported ones, that declaration reaches the curated arm alone, and the diff is partitioned rather than signed: a kind the curated arm instantiates and the baseline does not is an introduction where an authored source in its file list declares that module and a finding where none does, and a kind the baseline instantiates and the curated arm does not is the parameters' own only where no replaced source declared it. |
-| `oracle` | wsl | The model-as-oracle vector generator, which is that Sail generator with the question taken out of it: a spec names the model sources and the domain, and this emits the harness, compiles it against them, and runs it. `list` and `emit` answer on either lane; `vectors` needs Sail. |
-| `seed` | wsl | The seeded-defect generator: mutation operators walked over a Sail or Gallina source, pointed at an oracle that must notice. `list` answers on either lane; `sail`, `coq` and `properties` each need their oracle's toolchain. |
-| `ring` | host | The ring contract's generated interface artifact, from its two owners: `emit` writes [proofs/RingContract.v](../proofs/RingContract.v) out of [the ring declaration](../interfaces/ring-reference.json) and the register entries it reads, and `check` re-emits and compares byte for byte, which is what K-89 holds the tracked file to. It runs on the host because both owners are already in this checkout, which is why its rule can re-run the generator where K-88's guest row cannot. |
+| `rtl` | wsl | Runs RTL checks: `provenance` parses the synthesis record and `filelist` composes the curated elaboration file list on either lane; `lint`, `vectors`, `crosscheck`, `elaborate` and `wait` run in the guest. `elaborate` elaborates the imported core at both the curated and baseline configurations to verify removed structures, and `wait` checks a backgrounded elaboration. `vectors` generates capability-format test vectors from the Sail model, and `crosscheck` verifies that authored SystemVerilog reproduces every output line. Because curation both substitutes authored files (`rtl.py`'s `SUBSTITUTIONS`) and sets parameters, `elaborate` partitions module differences between authored introductions and parameter-driven removals. |
+| `oracle` | wsl | Generates and runs model-as-oracle test vectors from a declarative spec in `oracle-specs/`: `list` and `emit` run on either lane; `vectors` compiles and runs the generated Sail harness in the guest. |
+| `seed` | wsl | Generates and evaluates source mutants across Sail or Gallina files against a target oracle. `list` runs on either lane; `sail`, `coq` and `properties` require the guest toolchain. |
+| `ring` | host | Generates (`emit`) or verifies (`check`) [proofs/RingContract.v](../proofs/RingContract.v) from [the ring declaration](../interfaces/ring-reference.json) and its governing register entries, backing K-89 on the host. |
 | `placement` | host / wsl | `export`, `check`, `admit` and `search` read the memory plan on either lane. `consistency` asks Z3 to select a jointly admissible candidate from the existing finite island grid, labels constraints with requirement IDs, and replays witnesses and contradiction cores through the exact predicates. A truncated grid can produce a witness but cannot establish unsatisfiability. The proof status remains with the Gallina artifact. |
-| `quickchick` | wsl | The Gallina front's input side, which the Wasm oracle has never had: `vectors` runs the enumerative half in the proof gate's switch, `properties` runs the randomized half in QuickChick's own switch, QuickChick drawing from the seed its harness fixes each property set whose domain outruns its 10,000 draws and a Stdlib-only walk deciding every other set at each point of its domain, and `check` says which commit that switch's QuickChick was built from; with `--recipe`, `check` and `properties` run in the switch QuickChick's commit-pinned recipe builds, which a refresh of its pins builds and checks ahead of its lock in a root that does not already hold the provisioned switch of that name. |
+| `quickchick` | wsl | Runs property and vector checks over the Gallina specifications: `vectors` runs enumerative checks in the proof switch, `properties` runs randomized QuickChick draws (or exhaustive walks on small domains) in the QuickChick switch, and `check` verifies the switch's QuickChick commit. `--recipe` runs `check` and `properties` in the commit-pinned recipe switch. |
 | `kernel` | wsl; `reader` on either lane | M4.4's host-side differential. `vectors` compiles [quickchick/KernelVectors.v](quickchick/KernelVectors.v) against its `Require` closure in the proof gate's switch; `check` holds the [kernel C](../kernel/README.md) and [trace reader](vos/kernelrun.py) against the generated lines and separately reports fixed release/consumer controls. `mutants` attributes executed kills to their deciding oracle. `restore` executes exact scalar restoration; `effects` executes merged-register trap save, scrub, retirement and fresh-entry defects. Both require `--simulator PATH --build-receipt FILE`. `protected` additionally consumes the accepted contained compiler/configuration and boundary runner to observe real nested frames and timer cuts. `target` supplies M4.4a's signed handoff and finite compiled composition. Use each subcommand's `--help` for its private output and compiler arguments. Broader service, restart and ownership joins remain open. |
-| `testrig` | wsl | The RVFI-DII rig: `protocol` reads the wire format off the codec on either lane; `handshake`, `run` and `bridge` drive the emulator over a socket in the guest. `run` generates a DII stream, adjudicates the emulator against itself under a seeded defect, and shrinks the counterexample; `bridge` holds one run's packets against the commit records the same run wrote. `adapt FRAME TRACE` answers on either lane: it decodes an RTL harness's retirement frame ([vos/rtltrace.py](vos/rtltrace.py)), refuses a malformed or partial one as a protocol failure, and adjudicates the rest against the golden commit trace through [trace.py](vos/trace.py), reporting agreement over a prefix as incomplete. `carry` runs the corpus on the golden emulator, re-encodes each trace as the frame an RTL would have to write, names the retirements no frame line holds, and requires every seeded field change to be reported; its producer is the golden model, so it measures the adapter and not a core. `framesim` builds the SystemVerilog frame writer under [rvfi-harness/](rvfi-harness/) behind its bench and requires its frames to decode as the stimulus stated, with `--controls` requiring that stimulus to report each seeded writer mutant and `--corpus` driving every member `carry` holds whole; the driver is a fixture. `bmc` prints the bounded model-checking smoke the harness owes, its instruction scope read out of the dialect table ([vos/bmc.py](vos/bmc.py)), and runs nothing. The [harness contract](../docs/assurance/rtl-cosimulation-harness.md) states the frame and what the co-simulation gate still owes. |
-| `proofs` | wsl / host | Stages sources in the native guest lane and compiles each proof under pinned strictness settings once every proof it Requires has compiled and been audited, within a bounded worker limit, logging each one's start and end and the wave schedule's makespan replayed over them. It enumerates compiled constants with Rocq, audits their assumptions and claimed theorem types, and rechecks the compiled modules with `rocqchk`, whose own context summary must name no unsafe assumption and no undeclared axiom that an admission does not cover. Missing or unsupported enumeration fails. Successful runs publish a portable receipt in the checkout. `proofs export` publishes the completed native run without Rocq; `export --check` compares that export. `proofs status` takes the guest hop and checks the evidence against current source and compiled-file hashes without invoking Rocq. `proofs headers` checks compact requirement references and fingerprints on either OS; `--write` refreshes them and `--show FILE` reads the selected register entries as Markdown. |
-| `cic-corpus` | wsl | Reads the objects `proofs` compiled in this lane and writes what the corpus asks a CIC checker to decide: per enumerated symbol, its transitive dependency closure from `Print All Dependencies`, its kind, opacity and universe status from `About`, and the term features a declared lexical predicate finds in the declaration `Print` wrote under `Set Printing All`. `report` writes the report to the ignored `out/` directory with its source, exporter and prover identities and a freshness verdict; `check` re-decides that verdict against the live checkout. The report is evidence for M6.2b-0's profile decision and holds no acceptance verdict; a stale report is a finding rather than a figure to quote. |
-| `proof-reading` | wsl | `record` reads a passing compile of the proof sources: by default the proof gate's staged compile in this lane, held to its native receipt's digests before and after the read, or with `--sources DIR` a compile of the sources in DIR that it makes itself as the gate does. It writes each inventory constant's `Check`, its `About` less locations, and `Print` of each transparent constant and inductive, under `Set Printing All` and `Set Printing Universes`, as JSON the tracked [schema](proof-reading.schema.json) describes. `compare BASE CANDIDATE` exits 0 only when the readings are equal and otherwise names every differing module, constant and field. Readings compare only when taken against one installed library set, and a reading accepts no proof. |
+| `testrig` | wsl | Runs the RVFI-DII differential harness: `protocol` inspects the wire codec on either lane; `handshake`, `run` and `bridge` drive the emulator over a guest socket. `run` generates DII instruction streams, compares the emulator against a defect-seeded build, and shrinks counterexamples; `bridge` compares RVFI packets with commit-trace records from the same run. `adapt FRAME TRACE` decodes an RTL retirement frame ([vos/rtltrace.py](vos/rtltrace.py)) and compares it with the golden commit trace through [trace.py](vos/trace.py). `carry` re-encodes golden corpus traces as retirement frames and verifies that seeded field mutations are detected. `framesim` simulates the SystemVerilog frame writer under [rvfi-harness/](rvfi-harness/) against stimulus (`--controls` and `--corpus`). `bmc` prints the bounded model-checking smoke configuration from [vos/bmc.py](vos/bmc.py). See [the harness contract](../docs/assurance/rtl-cosimulation-harness.md). |
+| `proofs` | wsl / host | Stages sources in the native guest lane and compiles each proof under pinned strictness settings once its `Require` dependencies have compiled and passed audit, within a bounded worker limit. It enumerates compiled constants with Rocq, audits their assumptions and claimed theorem types, and rechecks compiled modules with `rocqchk`. Successful runs publish a portable receipt in the checkout. `proofs export` publishes or (`--check`) verifies the portable receipt from a completed native run without invoking Rocq; `proofs status` checks source and compiled-file hashes in the guest without invoking Rocq; `proofs headers` checks, refreshes (`--write`) or displays (`--show FILE`) compact requirement manifests on either OS. |
+| `cic-corpus` | wsl | Inspects compiled proof objects in the native lane for M6.2b-0's CIC checker profile: for each enumerated symbol, it records the transitive dependency closure (`Print All Dependencies`), kind/opacity/universe status (`About`), and syntactic term features (`Print` under `Set Printing All`). `report` writes the report and freshness verdict to `out/`; `check` revalidates freshness against the checkout. |
+| `proof-reading` | wsl | `record` captures `Check`, location-stripped `About`, and transparent `Print` output (under `Set Printing All` and `Set Printing Universes`) for every inventory constant from the staged proof compile (or `--sources DIR`) as JSON matching [proof-reading.schema.json](proof-reading.schema.json). `compare BASE CANDIDATE` exits 0 only when both readings match and otherwise reports every differing module, constant and field. |
 
 `model simulator --out PATH` builds Q39's focused replay dependency in a fresh
 absolute directory beneath this checkout's native lane. It configures the current
@@ -306,46 +291,38 @@ external-client transport and physical WCET retain their separate acceptance.
 
 `rtl widthcheck` checks frozen transport widths and every store-rotation bit/lane.
 `rtl device-regs` emits the UART constants from their pinned owner and the block
-constants from the block contract and the model's bounds, and stamps the
-commit the populated `upstream/mocha` checkout stands at, read with the guest's Git; it
-refuses a Mocha directory that is not the top of its own repository.
-`rtl devicescheck` regenerates the package and fails on any byte difference, an owner
-checkout at another commit than the stamp among them, and on a Mocha directory that
-generation refuses; it then runs the standalone UART, block and route simulation.
-These guest checks require their declared upstreams; default host fixtures do not
-fetch them.
+constants from the block contract and the model's bounds, stamping the commit of the
+populated `upstream/mocha` checkout (read with the guest's Git) and refusing a Mocha
+directory that is not the root of its own repository. `rtl devicescheck` regenerates the
+package, fails on any byte difference or commit mismatch, and runs the standalone UART,
+block, and route simulation. These guest checks require their declared upstreams; default
+host fixtures do not fetch them.
 
-Each command is one module of [vos/cli/](vos/cli/), which is what those executables
-became: each keeps its docstring, its argparse and its `main(argv)`, less its own
-preamble and its own `__main__` block. [vos/commands.py](vos/commands.py)
-is the table `run.py` reads, and it is the only place a command's name, its module and
-its lane are written down.
+Each command is implemented as a module in [vos/cli/](vos/cli/) with its own docstring,
+`argparse` definition, and `main(argv)` entry point. [vos/commands.py](vos/commands.py)
+is the single table mapping command names to modules and execution lanes.
 
-`phase-service` models refresh as fixed per-phase bank reservations with occupancy
-including the starting cycle. A reservation requires an idle bank, blocks arrivals
-to that bank, and carries its residue across frame wrap. Other banks remain usable;
-refresh consumes no injection grant in this synthetic contract. A bank's `path` is
-the cycles a request spends in the fabric before that bank accepts it, zero unless
-stated; a request in flight arrives ahead of the phase's own batch, is refused as
-`path-blocked` where its bank is taken, and as `order-inverted` where an earlier
-request of the same hart is still in flight, the hart being a request's optional
-third element. A closed contract reports `drain`, the longest any reachable state
-keeps a request in flight ahead of acceptance, and a refuted one reports none. Shared
-refresh ports, target refresh timing and correspondence to an actual arbiter remain
-unqualified. An `arrival-blocked` trace, or an `order-inverted` one raised at issue,
-includes the rejected arrival batch; a `refresh-overlap`, `path-blocked` or
-arrival-side `order-inverted` trace contains only the accepted prefix, with `failure`
-naming the phase, the bank residue and the requests in flight at the cycle that
-cannot proceed. Quiet-window fixtures state arrival restrictions as inputs; they
-supply no emitted-code certificate. The receipt's `inputs` are read from the
-composition rather than stated, and its `schedule` is null because R-11-017's
-artifact does not exist; `--contract FILE` takes the shape of the `Contract`
-dataclass and exits 0 on zero wait, 1 on a refutation and 2 on a malformed or
-unreadable file. Unknown fields are refused, so unsupported mode transitions or
-misspelled refresh fields cannot disappear from an accepted contract. Receipts
-include the composition's source hash and the hash of the exact supplied contract
-bytes parsed. Acceptance order and the in-flight drain bound do not establish
-completion/visibility order or bank-completion drain.
+`phase-service` models DRAM refresh as fixed per-phase bank reservations (including the
+starting cycle). A reservation requires an idle bank, blocks arrivals to that bank, and
+carries its residue across frame wrap while leaving other banks usable; refresh consumes
+no injection grant in this synthetic contract. A bank's `path` (default `0`) is the number
+of cycles a request spends in the fabric before the bank accepts it. An in-flight request
+arrives ahead of the phase's own batch; it is refused as `path-blocked` if its bank is
+taken, or as `order-inverted` if an earlier request from the same hart (the request's
+optional third element) is still in flight. A closed contract reports `drain` (the maximum
+cycles any reachable state keeps a request in flight before acceptance); a refuted one
+reports none. Shared refresh ports, target refresh timing, and correspondence to an actual
+arbiter remain unqualified. An `arrival-blocked` or issue-time `order-inverted` trace
+includes the rejected arrival batch; a `refresh-overlap`, `path-blocked`, or arrival-side
+`order-inverted` trace contains only the accepted prefix, with `failure` naming the phase,
+bank residue, and in-flight requests at the blocked cycle. Quiet-window fixtures state
+arrival restrictions as inputs rather than emitted-code certificates. Receipt `inputs` are
+read from the composition, and `schedule` is `null` because R-11-017's artifact does not
+exist. `--contract FILE` parses a `Contract` JSON structure (refusing unknown fields) and
+exits `0` on zero wait, `1` on refutation, or `2` on a malformed/unreadable file. Receipts
+record hashes of the composition source and the exact contract bytes. Acceptance order and
+the in-flight drain bound do not establish completion/visibility order or bank-completion
+drain.
 
 Add `--completion` to a supplied contract run for the separate
 [completion analysis](../docs/implementation/phase-service/completion-model.md).
@@ -358,129 +335,162 @@ mode change, physical completion and architectural visibility require separate
 evidence. The [preparation contract](../docs/implementation/phase-service/prerequisite-contract.md)
 connects this analysis to schedule extraction and workload cost arithmetic.
 
-`compiler-diff` is M1.2f's driver. Its shared
-[library](vos/compiler_diff.py) owns compilation, assembly, generated programs and
-run comparisons; firmware, kernel and service instruments import that library.
-The [command adapter](vos/cli/compiler_diff.py) owns arguments, orchestration and
-report publication. Source inventories bind the implementation each caller uses.
+`compiler-diff` is M1.2f's differential driver. Its shared
+[library](vos/compiler_diff.py) owns compilation, assembly, generated programs, and
+run comparisons; firmware, kernel, and service instruments import that library, while the
+[command adapter](vos/cli/compiler_diff.py) owns CLI arguments, orchestration, and report
+publication. Source inventories bind the implementation each caller uses:
 
-What the driver does not decide is stated with what it does. At the program level
-it runs the `ccomp` its command line names, which
-stays outside every checkout under M1.1a's containment. It preprocesses C once with
-`-E` beside the original source, preserving relative transitive includes, then
-passes the exact retained `.i` bytes to `-S` in a fresh directory. Incoming `.i`
-files keep their bytes unchanged. The report records the preprocessing invocation,
-working directory and unit digest; `--interp` consumes that same frozen unit.
-Repeated `--ccomp-arg=ARG` options pass compiler flags unchanged, `-fverifiedos-typed`
-selecting the backend's typed purecap route, and retain them in each invocation's
-receipt. `--generate N` adds the campaign its seed names, generated inside the
-[selected scalar source profile](../docs/implementation/contracts/compiler-source-values.md)
-with every expected constant computed by the generator: pointers through stack memory,
-struct fields and whole-struct copies, calls in both directions, arguments past the
-argument registers, a pointer or null chosen on a branch, more live pointers across
-calls than registers, and a local array narrowed through the plan-bound `csetbounds`
-primitive against an independent plan and composition the driver writes for that
-program, whose source is handed over as `.i` so the plan binds the bytes the compiler
-reads. `--pattern NAME` selects a subset. `--perturb` is its negative control, each
-program moving one check's constant off by one and required to fail at exactly that
-check. `--interp` also
-runs each source through the same compiler's reference interpreter, and an image whose
-`main` returned something else is `source-disagrees`; a narrowing program has no such
-reading, its primitive having target semantics and no C interpreter meaning. The driver
-scans the emitted stream against [vos/dialect.py](vos/dialect.py)'s table and
-[vos/asm.py](vos/asm.py)'s directives before assembling it, and reports every refused
-mnemonic, directive and section by name and by line of the stream: stock `ccomp -S`
-writes lp64d RV64 carrying no capability mnemonic, which R-18-002 forbids as a target,
-and `--expect-refusal` makes that refusal the green verdict. A refused mnemonic is the
-backend's to close and a refused directive
-is the seam between CompCert's printer (`.short`, `.long`, `.quad`, `.comm`, `.local`,
-`.option`, `.section .rodata`, numeric local labels, and the `%pcrel_hi`/`%pcrel_lo`
-relocation operators its PIC output addresses through) and the assembler's vocabulary
-(`.byte`, `.half`, `.word`, `.dword`, `.text`, `.data`, named labels, absolute layout),
-which the driver reports and does not translate; a tab between a mnemonic and its
-operands is normalized to a space before the scan, because the assembler's line parse
-splits on a space alone. In `.text`, `.align`, `.p2align` and `.balign` fill
-alignment gaps with canonical 32-bit `nop` instructions and include them in
-the emitted-site inventory. Partial instruction fill and explicit fill
-arguments are refused; data alignment remains zero-filled. A stream that assembles is
-wrapped in a harness that preserves the store-side root in reserved `c4`, derives a
-bounded local stack with store-local permission and the `tohost` authority from that
-root (R-15-001c), installs a trap handler and folds `main`'s return into the
-HTIF exit code, and is run with the invocation `model corpus` makes; the HTIF verdict
-and the commit trace's digest are the two questions. A successful emulator exit must
-carry both the HTIF success line and a nonempty commit trace. `--against FILE` holds
-the results to a recorded run with the same unique program names, source digests
-and preprocessed-unit digests. Missing or changed input identities, including
-legacy records without the unit digest, fail before comparison. Missing members
-and comparison disagreements fail even under `--expect-refusal`.
-A reused `--keep` directory cannot supply stale compiler output, and the partial
-assembly and narrowing sidecars the typed route creates exclusively are removed before
-the compiler runs, so a rerun there is not refused for a file an earlier run left. A
-narrowing program's report binds its plan inputs and those sidecars by digest. The
-trace is also read for one tagged write read back tagged, which is
-M1.7's own test that a capability went through memory; a frame's saved return
-capability satisfies it as readily as a program's own pointer store. At the component
-level the declared output encoding is a side's exit verdict, the Wasm host's process
-status or the image's HTIF code, plus the SHA-256 and length of the bytes it emitted, the
-runner's standard output on one side and the emulator's terminal log on the other.
-`--c SOURCE` lowers the component's C through `--ccomp` and runs it under a component
-harness that reads `main`'s result as the one boolean
-[run_demo.mjs](wasm-oracle/run_demo.mjs) reads from the Wasm module, printing `true` or
-`false` on the HTIF console and exiting 0 or 1; `--interp` requires the compiler's
-reference interpreter to give the same answer. Either side is written as a record, the
-report binds the module, source, compiler, stream, image, emulator and profile by
-digest, and the comparator names the first field that disagrees, or the first byte
-where both sides' bytes are in hand. Records must name their actual side, and a missing
-exit verdict is a failed run even when both sides lack one. Capturing one completed
-side alone remains available while the other side waits. The harness supplies the
-[selected scalar ABI](../docs/implementation/contracts/purecap-abi.md) for a test
-composition, while the actual firmware handoff remains a separate input. A green run
-says this machine, this compiler and these programs agree, never that a lowering is
-correct, so every report carries `milestone_acceptance: open`.
+- **Program compilation and preprocessing:** Runs the external `--ccomp` binary (kept
+  outside every checkout under M1.1a's containment). It preprocesses C sources once with
+  `-E` beside the original source to preserve relative transitive includes, then passes
+  the exact retained `.i` bytes to `-S` in a fresh directory (incoming `.i` files are used
+  verbatim). The report records the preprocessing invocation, working directory, and unit
+  digest; `--interp` consumes the same frozen unit. Repeated `--ccomp-arg=ARG` options
+  pass flags unchanged (`-fverifiedos-typed` selects the typed purecap backend) and record
+  them in each receipt.
+- **Generated campaigns and negative controls:** `--generate N` generates seeded programs
+  within the [selected scalar source profile](../docs/implementation/contracts/compiler-source-values.md)
+  covering stack pointers, struct fields and copies, calls in both directions, stack-passed
+  arguments, branch-selected pointers/nulls, pointer spills across calls, and local arrays
+  narrowed via the plan-bound `csetbounds` primitive against an independent plan and
+  composition emitted as `.i`. `--pattern NAME` filters patterns. `--perturb` is the
+  negative control, shifting one expected constant per program off by one and requiring
+  failure at that exact check. `--interp` runs each source in CompCert's reference
+  interpreter and flags mismatches as `source-disagrees` (except narrowing programs, whose
+  `csetbounds` primitive has target-only semantics).
+- **Dialect scan and execution harness:** Before assembly, the driver scans emitted
+  assembly against [vos/dialect.py](vos/dialect.py) and [vos/asm.py](vos/asm.py) (after
+  normalizing mnemonic-to-operand tabs to spaces) and reports refused mnemonics,
+  directives, and sections by name and line. Stock `ccomp -S` emits RV64 `lp64d` without
+  capability mnemonics (forbidden by R-18-002), which `--expect-refusal` treats as the
+  expected outcome. Refused directives mark the seam between CompCert's printer (`.short`,
+  `.long`, `.quad`, `.comm`, `.local`, `.option`, `.section .rodata`, numeric local
+  labels, `%pcrel_hi`/`%pcrel_lo`) and the assembler's grammar (`.byte`, `.half`, `.word`,
+  `.dword`, `.text`, `.data`, named labels, absolute layout). In `.text`, `.align`,
+  `.p2align`, and `.balign` pad with canonical 32-bit `nop` instructions included in the
+  emitted-site inventory; partial instruction fill and explicit fill arguments are refused,
+  and data alignment remains zero-filled. Assembled streams are wrapped in a harness that
+  preserves the store-side root in reserved `c4`, derives a bounded local stack with
+  store-local permission and `tohost` authority from that root (R-15-001c), installs a
+  trap handler, folds `main`'s return into the HTIF exit code, and runs under the
+  `model corpus` simulator invocation. A green run requires both the HTIF success line and
+  a nonempty commit trace, plus at least one tagged capability store read back tagged
+  (M1.7's memory-roundtrip check).
+- **Replay and component comparison:** `--against FILE` compares results against a recorded
+  run with matching program names, source digests, and preprocessed-unit digests (failing
+  on missing/changed identities or comparison mismatches even under `--expect-refusal`).
+  Reused `--keep` directories clear stale outputs and typed-route sidecars before running.
+  At the component level (`--c SOURCE`), the harness lowers C through `--ccomp`, maps
+  `main`'s boolean return to `true`/`false` on the HTIF console and exit code `0`/`1` to
+  match [run_demo.mjs](wasm-oracle/run_demo.mjs), and compares exit verdicts and output
+  lengths/SHA-256 digests against the Wasm oracle record. The harness supplies the
+  [selected scalar ABI](../docs/implementation/contracts/purecap-abi.md) for test
+  compositions; every report carries `milestone_acceptance: open` because differential
+  agreement does not prove compiler correctness.
 
-The following directories are inputs rather than commands. [generated/](generated/) is the one this repository does not author: it holds the model's own machine-readable bundle of itself, emitted by Sail and tracked so that the host lane can read the model without one, its supplemental complete source identity generated from the Sail project's own listing, the encoder table [`run.py check --fix`](check.py) writes from that bundle and the shipped configurations, and the memory plan's placement problem the same repair writes from [the plan's proof file](../proofs/MemoryPlan.v). K-88 holds each against what its generator writes, and they are decided differently: the table's and the plan export's generators run at this gate, so their bytes are compared outright, where the bundle's needs Sail and is held against the git index and the owner record the artifact itself carries until `run.py model bundle --check` runs in the guest. It is under `tools/` rather than under `model/` because `model/` is `-text` in [.gitattributes](../.gitattributes) and vendored byte-identically from its upstream pin, and a generated artifact there would break both properties at once. The [Fiat inclusion headers and manifest](generated/fiat-crypto/) are additional guest-generated inputs. K-88 checks their indexed source pin, exact recipes, emitter owner and raw/wrapped hashes without running Fiat. Native reproduction and independent integer-vector commands are documented in the [emission record](../docs/implementation/fiat-crypto-emission.md); these commands consume an explicitly identified external generator and do not install it. [oracle-specs/](oracle-specs/) is
-one JSON file per oracle: the sources to compile, and per line kind the parameters,
-the domain that walks them, the Sail that calls the model, and what to print.
-[cheri-equiv/](cheri-equiv/README.md) holds the capability campaign's authored Sail
-schedule and its independent SystemVerilog consumer. Typed probe declarations use
-the shared oracle emitter for formatting, random generation and printing; the
-consumer computes each answer from the model's printed inputs. The campaign guide
-owns its source boundaries and migration evidence. [quickchick/](quickchick/) is the Gallina
-harnesses. [wasm-oracle/](wasm-oracle/) is the container the CertiCoq → Wasm oracle is
-built and run in, and [its own README](wasm-oracle/README.md) states what it pins.
-[bedrock2-lowering/](bedrock2-lowering/) is the Gallina-to-C lowering loop Q2a stood up
-in the Rupicola switch M1.6 created: the sources it derives, a hand-run driver, and the
-digest of what it emits, with [its own README](bedrock2-lowering/README.md) stating the
-recipe and the boundary audit. No `run.py` command reaches it, on the same ground as the
-Wasm oracle. [checker-reproductions/](checker-reproductions/README.md) holds standalone
-Rocq sources that reproduce a behaviour of `rocqchk` met on an upstream library, each
-with its controls and a runner that marks a result differing from its README's
-statement; they sit outside the proof set, and no `run.py` command reaches them.
+The remaining directories under `tools/` hold generated inputs, oracle specifications, and
+standalone harnesses:
 
-[quarantine/](quarantine/) is the exception to the one entry point, and deliberately:
-it holds the two instruments whose decisions are deferred, the two rules that hold
-them, and [its own gate](quarantine/gate.py), the one command over all of it. K-83 is
-what makes it a quarantine rather than a folder, and it forbids exactly the coupling a
-`run.py` command would be. What that rule holds out is the *landing loop* reaching in,
-so the reverse is open and is taken: that gate seeds at least one defect per rule and
-reports the result through [vos/seeded.py](vos/seeded.py) like every other loop that
-seeds one, which is what keeps a mutation whose seed no longer applies and a mutant the
-rule said nothing about from arriving as one undifferentiated failure. [Its README](quarantine/README.md) states what each
-instrument waits on and what un-quarantines it.
+- [generated/](generated/): Tracked machine-readable artifacts not authored by hand: the
+  Sail model bundle (`sail-bundle.json`) and its source identity (`sail-source-id.json`),
+  the encoder table (`encoder-table.json`) generated by [`run.py check --fix`](check.py)
+  from that bundle and shipped configurations, the memory-plan placement export
+  (`memory-plan.json`) generated from [proofs/MemoryPlan.v](../proofs/MemoryPlan.v), and
+  the guest-generated [Fiat inclusion headers and manifest](generated/fiat-crypto/)
+  (documented in the [emission record](../docs/implementation/fiat-crypto-emission.md)).
+  These live under `tools/generated/` rather than `model/` because `model/` is marked
+  `-text` in [.gitattributes](../.gitattributes) and tracks its upstream pin cleanly. K-88
+  validates each artifact against its generator or indexed source pin.
+- [oracle-specs/](oracle-specs/): JSON specifications for `run.py oracle`, declaring the
+  Sail sources to compile, parameters, input domains, harness calls, and output format.
+- [cheri-equiv/](cheri-equiv/README.md): Authored Sail schedule and independent
+  SystemVerilog consumer for the capability equivalence campaign.
+- [quickchick/](quickchick/): Gallina harnesses for `run.py quickchick`.
+- [wasm-oracle/](wasm-oracle/): Container build and runner for the CertiCoq-to-Wasm
+  oracle ([README](wasm-oracle/README.md)).
+- [bedrock2-lowering/](bedrock2-lowering/): Standalone Gallina-to-C lowering experiment
+  from Q2a/M1.6 ([README](bedrock2-lowering/README.md)), kept outside `run.py` on the same
+  basis as the Wasm oracle.
+- [checker-reproductions/](checker-reproductions/README.md): Standalone Rocq sources and
+  controls reproducing `rocqchk` behaviors on upstream libraries outside the proof set.
+- [quarantine/](quarantine/): Deferred instruments and rules gated by
+  [quarantine/gate.py](quarantine/gate.py) ([README](quarantine/README.md)). K-83 prevents
+  the main landing loop (`run.py` / `check.py`) from importing `quarantine/`, while the
+  quarantine gate reuses [vos/seeded.py](vos/seeded.py) to test its rules against seeded
+  mutants.
 
-The shared machinery is [vos/](vos/), and it holds parses, never decisions: [corpus.py](vos/corpus.py) reads the documents, [register.py](vos/register.py) the register and the tables other documents count, [apex.py](vos/apex.py) the statement's Vocabulary record, [figures.py](vos/figures.py) how a derived figure is spelled and repaired, [trace.py](vos/trace.py) the executors' trace dialects, [jsonc.py](vos/jsonc.py) the model's configuration dialect with [config.py](vos/config.py) the one decoder over it, [coread.py](vos/coread.py) the pairing between a register entry and the prose it cites, [proofcites.py](vos/proofcites.py) what each shipped proof artifact cites and what it defines, read lexically so that the host wave decides it with no prover in reach, and named for the citation half rather than for the evidence it is because `vos/<name>.py` beside `vos/cli/<name>.py` is this directory's word for *the machinery behind that command*, [provenance.py](vos/provenance.py) the synthesis record binding each claimed absence to a build, [pins.py](vos/pins.py) the licence record's table of upstream pins and the shape a restatement of one takes, [fieldbindings.py](vos/fieldbindings.py) the field-bindings table the bindings group and [run.py blast](vos/cli/blast.py) both read, [env.py](vos/env.py) the build environment, [report.py](vos/report.py) the one verdict line every check prints, and [seeded.py](vos/seeded.py) the verdicts a mutation run reports, the exit code they imply and the journal a run that does not finish leaves behind, shared by every loop that seeds a defect so that five accountings cannot drift into five measurements. One more is the *model's own* and is the newest: [sailbundle.py](vos/sailbundle.py) reads the bundle Sail emits about the model it typechecked, every definition indexed by the name the model gives it, and it is the owner the four parses below used to each write a regex for. Three sit on top of it and are read together: [sailexpr.py](vos/sailexpr.py) is the model's own expressions read as expressions rather than matched as text, [encdec.py](vos/encdec.py) joins each `encdec` clause to the `assembly` clause that names it and hands back every form the model spells with the bits it spells it at, and [freezeschema.py](vos/freezeschema.py) owns the freeze contract's [§4](../docs/implementation/contracts/freeze-measurement.md#4-the-emitter-provenance-schema) record shapes so that the producer writing a stream and the analyzer reading it cannot be two statements of one schema. Four read the *model*, which the document corpus excludes by name: [geometry.py](vos/geometry.py) the welded block size, [capformat.py](vos/capformat.py) the frozen capability format's widths and both packings of it, [coreclass.py](vos/coreclass.py) the core-class table and the extension registry, and [decode.py](vos/decode.py) the assembly clauses the model spells its mnemonics with. **What each of the four takes from the bundle is a *definition* and what it still takes from a file is everything else**, which is the line the emitter itself draws: a `type`, a `let`, a `mapping` or a `function` is indexed by name, so a rename is a lookup that misses instead of a pattern that quietly matches nothing, while a comment, a configuration key, an `assert` inside a test body and a SystemVerilog `localparam` are not definitions at all and keep the patterns that read the artifacts writing them. `--doc-format identity` drops unanchored comments, so a regex whose fact the bundle does not carry is kept rather than deleted. Two of the four read outside the model as well as inside it, and by path in both directions: geometry.py takes the block size the authored capability package writes, and capformat.py takes every site that restates a format width, in `rtl/` and in five documents the corpus does carry. The checks themselves live in [vos/checks/](vos/checks/), one module per rule group, each carrying its group's reasoning beside its code. The `counts` group is the one that outgrew that: [counts.py](vos/checks/counts.py) holds its claim table and the run, and its families sit in the `counts_*.py` modules beside it, one per artifact its rules read. The group is still one heading, one entry in `GROUPS`, and one column of [check-rules.md](check-rules.md), because a rule is registered by its id and its group and never by the file carrying it.
+The shared library lives in [vos/](vos/) and separates parsing and data structures from
+check verdicts:
 
-Those four and K-63's citation scan are where the checker reaches past its own corpus, and the reach is declared rather than habitual. It is a good deal narrower than it was: what is left under `model/` is the two comments capformat.py reads, the configurations, the harness assert, the requirement citations, the hook configuration whose entries K-118 censuses and whose revisions it holds the hook rows of [THIRD-PARTY.md](../THIRD-PARTY.md) against, and the three platform files K-94 pairs against each other, the definitions having moved to the bundle. That last reach is the one that is a *pairing* rather than a value: what it takes from each of the three is which call the file makes about a window, and no bundle entry carries that, a call inside a body being what the definition index deliberately does not hold. `model/` is excluded from the document corpus by name, and [run.py selftest](vos/cli/selftest.py) stands the whole tree up as empty files to save copying what no rule opens, so a model path a rule reads has to be admitted by one of two declarations in [corpus.py](vos/corpus.py) or it passes on the host and fails every sandbox's baseline.
-
-**The two declarations are narrow for opposite reasons and are deliberately not one list.** `MODEL_FACTS` explicitly names the files in the value window by path: it is the *value* window, and a rule reading a number out of the model should name the file it reads, so adding one is a decision somebody makes. `is_model_citation_path` admits by kind instead, because the rule behind it holds a construct that occurs wherever the model argues from the register, and a window sized for the other purpose left it reporting `ok` about a quarter of its subject. Merging them would make the audited list quietly mean two things.
-
-Five are the generators' and none of them holds a question: [run.py oracle](vos/oracle.py) parses a spec and emits the Sail harness a domain description implies, [sailrig.py](vos/sailrig.py) compiles a Sail source set with a harness and runs it, which is the rig M2.1 and R1a each built inside one item, [mutate.py](vos/mutate.py) walks a Sail or Gallina source and produces the mutant population, [proofs.py](vos/proofs.py) reads what a Rocq source Requires and orders a directory by it, and [gallina.py](vos/gallina.py) stages a scratch copy of the proofs, compiles it, and reads back what a harness printed. What decides is the spec, the operator table, and the oracle a run points them at.
-
-Three are compilers rather than generators, and the difference is which way the artifact is held: where the generators above produce evidence a run consumes and throws away, these produce tracked artifacts, so the rule is the point and the emitter is what gives it something to say. [run.py ring](vos/cli/ring.py) emits [proofs/RingContract.v](../proofs/RingContract.v) from two owners, [the ring declaration](../interfaces/ring-reference.json) and the register's own entry lines, and K-89 holds the tracked file against what it writes. It runs on the host because its inputs are a JSON file and the register parse the checker already makes, which is why its rule can re-run the generator where K-88's cannot. K-99 reads the same emission for the other claim about it: the emitter states the wire encoding as well, and what it takes that from is [the typed IDL profile](../docs/languages/idl-profile.md)'s [§4](../docs/languages/idl-profile.md#4-the-wire-format-mapping), which is not an owner it reads, so agreeing with the declaration says nothing about agreeing with the rows. [socmap.py](vos/socmap.py) emits [rtl/vos_soc_map_pkg.sv](../rtl/vos_soc_map_pkg.sv), the SoC address map in the language the RTL is written in, from the frozen profile's composition; that one is held by **K-88** rather than by a rule of its own, its row of the generated table being a host row whose generator the checker runs. It is worth reading beside the ring's for the one thing it does differently: its subject is an enumeration rather than a fixed set of fields, so it finds the windows it emits by shape rather than by name and a window a composition gains arrives in the package with no edit to the emitter. [memplan.py](vos/memplan.py) is the third, and its owner is a proof file rather than a configuration: it reads the memory plan's lists, literals and register placement out of [proofs/MemoryPlan.v](../proofs/MemoryPlan.v) and emits [tools/generated/memory-plan.json](generated/memory-plan.json), held by **K-88** the same way, and beside the emitter it carries the exact port of that file's checks [run.py placement](vos/cli/placement.py) searches with, which the tests hold to the file's own refutation variants.
-
-Five more modules are the differential corpus's, and they are named for what they are rather than for where they sit: [dialect.py](vos/dialect.py) is one row per mnemonic the curated model decodes, [asm.py](vos/asm.py) the parser and layout over it, [image.py](vos/image.py) the ELF the emulator loads, [compose.py](vos/compose.py) the packer that turns an assembled image into the link map and per-site table the freeze's [§4](../docs/implementation/contracts/freeze-measurement.md#4-the-emitter-provenance-schema) joins, and [differential.py](vos/differential.py) the corpus manifest. `dialect.py` is the one of them that holds no table of its own any more: [dialectgen.py](vos/dialectgen.py) writes it out of the bundle, which is the one decision in that pair and states it, and `dialect.py` loads what it wrote. The one name that has to be read carefully is `corpus`: [vos/corpus.py](vos/corpus.py) reads the *documents* this repository checks, and [vos/differential.py](vos/differential.py) reads the *programs* the model runs. They share a word and nothing else.
-
-Three more are the RVFI rig's and sit beside them for the same reason: [rvfi.py](vos/rvfi.py) is the wire format TestRIG defines and the projection from one of its packets onto the commit trace's records, [vengine.py](vos/vengine.py) is the stream generator, the socket, the seeded defects and the shrinker, and [rtltrace.py](vos/rtltrace.py) is the RTL harness's retirement frame, its protocol refusals and its projection through `rvfi.py`'s. None decides anything about behaviour: what a divergence *is* stays [trace.py](vos/trace.py)'s, so the rig, the RTL adapter and the corpus adjudicate through one function rather than three.
+- **Document, register, and proof readers:** [corpus.py](vos/corpus.py) loads indexed
+  repository documents; [register.py](vos/register.py) parses the requirements register
+  and counted tables; [apex.py](vos/apex.py) parses the apex Vocabulary record;
+  [figures.py](vos/figures.py) formats and repairs derived counts; [coread.py](vos/coread.py)
+  tracks register-to-prose co-read pairs; [proofcites.py](vos/proofcites.py) lexically
+  extracts proof citations and declarations on the host without invoking Rocq;
+  [provenance.py](vos/provenance.py) parses the RTL synthesis provenance record;
+  [pins.py](vos/pins.py) parses upstream pins in `THIRD-PARTY.md`; and
+  [fieldbindings.py](vos/fieldbindings.py) parses the field-bindings table for the
+  `bindings` check group and [run.py blast](vos/cli/blast.py).
+- **Environment, reporting, and configuration:** [env.py](vos/env.py) resolves host/WSL
+  lane paths and build environments; [report.py](vos/report.py) formats check verdicts;
+  [seeded.py](vos/seeded.py) standardizes mutation verdicts (`killed`, `survived`,
+  `stillborn`, `undecided`, `unseeded`), exit codes, and crash journals across all
+  mutation loops; [jsonc.py](vos/jsonc.py) and [config.py](vos/config.py) decode the Sail
+  model's JSON-with-comments configurations; and [trace.py](vos/trace.py) parses and
+  compares executor commit traces.
+- **Sail bundle and model readers:** [sailbundle.py](vos/sailbundle.py) indexes the
+  typechecked AST bundle emitted by Sail (`tools/generated/sail-bundle.json`);
+  [sailexpr.py](vos/sailexpr.py) evaluates AST expressions; [encdec.py](vos/encdec.py)
+  joins `encdec` and `assembly` clauses; and [freezeschema.py](vos/freezeschema.py) owns
+  the [freeze measurement §4](../docs/implementation/contracts/freeze-measurement.md#4-the-emitter-provenance-schema)
+  provenance schemas. Four modules combine bundle definitions with targeted file reads
+  across `model/`, `rtl/`, and the document corpus: [geometry.py](vos/geometry.py)
+  (welded block size), [capformat.py](vos/capformat.py) (capability format widths and
+  packings), [coreclass.py](vos/coreclass.py) (core-class table and extension registry),
+  and [decode.py](vos/decode.py) (decoded mnemonics). Named Sail definitions (`type`,
+  `let`, `mapping`, `function`) are read from the bundle so renames fail loudly, while
+  comments, configuration keys, test assertions, and SystemVerilog `localparam` bindings
+  are read from their source files.
+- **Model files outside the bundle:** Because `model/` is excluded from the general
+  document corpus and stubbed as empty files during [run.py selftest](vos/cli/selftest.py)
+  sandboxing, any `model/` file read directly by a check rule must be declared in
+  [corpus.py](vos/corpus.py). `MODEL_FACTS` explicitly lists individual files read for
+  model values, hooks (K-118), or platform window pairings (K-94), while
+  `is_model_citation_path` admits `.sail` sources scanned for requirement citations by
+  K-63. Keeping the two declarations separate prevents citation-scan paths from silently
+  expanding the value-fact allowlist.
+- **Generators and artifact emitters:** [oracle.py](vos/oracle.py) emits Sail harnesses
+  from `oracle-specs/`; [sailrig.py](vos/sailrig.py) compiles and runs Sail harnesses;
+  [mutate.py](vos/mutate.py) generates Sail and Gallina mutants; [proofs.py](vos/proofs.py)
+  orders Rocq modules by `Require` dependencies; and [gallina.py](vos/gallina.py) stages
+  and compiles scratch proof copies. Three emitters produce tracked artifacts checked by
+  K-88, K-89, and K-99: [run.py ring](vos/cli/ring.py) emits
+  [proofs/RingContract.v](../proofs/RingContract.v) from
+  [interfaces/ring-reference.json](../interfaces/ring-reference.json) and the register
+  (checked against the declaration by K-89 and against
+  [the typed IDL profile §4](../docs/languages/idl-profile.md#4-the-wire-format-mapping)
+  by K-99); [socmap.py](vos/socmap.py) emits [rtl/vos_soc_map_pkg.sv](../rtl/vos_soc_map_pkg.sv)
+  from the frozen composition; and [memplan.py](vos/memplan.py) emits
+  [tools/generated/memory-plan.json](generated/memory-plan.json) from
+  [proofs/MemoryPlan.v](../proofs/MemoryPlan.v) and ports its placement checks for
+  [run.py placement](vos/cli/placement.py).
+- **Differential corpus and RVFI modules:** [dialect.py](vos/dialect.py) loads the encoder
+  table generated from the Sail bundle by [dialectgen.py](vos/dialectgen.py);
+  [asm.py](vos/asm.py) parses and lays out assembly; [image.py](vos/image.py) builds ELF
+  images; [compose.py](vos/compose.py) packs assembled images into link maps and per-site
+  tables; and [differential.py](vos/differential.py) reads the differential program
+  manifest (distinct from [corpus.py](vos/corpus.py), which reads repository documents).
+  Alongside them, [rvfi.py](vos/rvfi.py) defines the TestRIG RVFI-DII wire format and its
+  projection onto commit-trace records, [vengine.py](vos/vengine.py) drives stream
+  generation, socket transport, seeded defects, and shrinking, and
+  [rtltrace.py](vos/rtltrace.py) adapts the RTL harness's retirement frames through
+  `rvfi.py` into [trace.py](vos/trace.py).
+- **Check modules:** Individual check rules live in [vos/checks/](vos/checks/), one module
+  per rule group (`counts` splits its per-artifact helpers across `counts_*.py` beside
+  [counts.py](vos/checks/counts.py) while remaining a single registered group in
+  `GROUPS` and [check-rules.md](check-rules.md)).
 
 [check-registry.json](check-registry.json) owns each rule's required metadata and reach class. [check-rules.md](check-rules.md) presents its generated registry and reach views. The driver binds the definitions to executable groups and requires a clean group to report every declared rule; K-00 checks the definitions, reported coverage and generated bytes. The meaning of a claim and the correctness of its reach classification remain review judgments.
 
@@ -738,7 +748,7 @@ The model command selects donors and records build evidence using that library.
 
 ## Where a file lives, and which lane touches it
 
-**A file sits on the side of the OS boundary whose tools read it most; explicit evidence exports and tracked generated artifacts may land in the checkout.** WSL mounts each Windows drive into the guest under `/mnt/<drive>` and shows the guest's own disk to Windows as `\\wsl.localhost\<distribution>`, and either direction works at a cost paid per file rather than per byte. [Microsoft's guidance](https://learn.microsoft.com/en-us/windows/wsl/filesystems#file-storage-and-performance-across-file-systems) is to keep a project on the filesystem of the command line that works on it, and this repository is worked on from both: the host edits and checks the documents, and the guest builds the model, elaborates the RTL and runs the provers. So the layout is a split, every loop here keeps it, and `run.py model lane` prints each of a lane's paths beside the filesystem under it.
+**A file sits on the side of the OS boundary whose tools read it most; explicit evidence exports and tracked generated artifacts may land in the checkout.** WSL mounts Windows drives under `/mnt/<drive>` and exposes the guest filesystem to Windows at `\\wsl.localhost\<distribution>`. Crossing that boundary pays a high per-file cost ([Microsoft's WSL filesystem guidance](https://learn.microsoft.com/en-us/windows/wsl/filesystems#file-storage-and-performance-across-file-systems)). Because the host edits and checks documents while the guest builds the model, elaborates RTL, and runs provers, the layout splits files across both filesystems; `run.py model lane` prints each lane path alongside its underlying filesystem.
 
 | What | Where it sits | Who touches it, and from which side |
 | --- | --- | --- |
@@ -760,20 +770,20 @@ in `finally`. Resolve output paths before launching and reject relative paths or
 unexpanded `%NAME%` tokens. A literal `%SystemDrive%` or `ProgramData/Microsoft/Windows/Caches`
 tree in a checkout is a launch error to correct, not an artifact to ignore.
 
-The crossing that stays is priced, and the price is what fixed the split. [vos/env.py](vos/env.py)'s docstring carries the figures with their dates: a cmake configure walks the whole model project and pays per stat, about 17 s from `/mnt/c` against 1 s from ext4; a `git status` over the checkout is 3.2 s from the guest against 0.14 s on the host; and a tool's bootstrap through the Linux environment in the checkout is 0.78 s against 0.37 s. The host pays the same tax in reverse and pays it oftener, `tools/check.py` costing about 1 s over the NTFS checkout against 11 to 18 s over the same tree on the `wsl.localhost` share, on the loop that runs after every document edit, which is why the plan's I1 measured moving the checkout onto ext4 and refused it. What would flip the whole table is a person working from inside the guest, the Remote-WSL posture `run.py provision` prints as not reached: then the checkout belongs on ext4 too, the host gates run there as they do on the Ubuntu CI runner, and nothing crosses.
+The per-file crossing costs recorded in [vos/env.py](vos/env.py) explain the split: CMake configure over `/mnt/c` takes ~17 s versus ~1 s on ext4; `git status` from the guest takes ~3.2 s versus ~0.14 s on the host; and `tools/check.py` on the host takes ~1 s over NTFS versus 11–18 s over `\\wsl.localhost` (which is why I1 declined moving the checkout to ext4). Only a developer working entirely inside the guest (`Remote-WSL`) would place the checkout on ext4 as well.
 
-The rules that follow from the table, each a thing a worker or a brief gets wrong before the table is open:
+Operational rules that follow from the placement table:
 
-- **Create a lane from the host.** `run.py worktree create` is Windows git writing the Windows filesystem; the same checkout made through `/mnt/c` from the guest pays the mount's per-file cost for every file it writes and lands in the same place. A checkout is never placed on `\\wsl.localhost`: host git refuses it until `safe.directory` is relaxed, and the checker pays the tax above on every run.
-- **Send guest work through the front door.** `python tools/run.py <command>` on the host hops with the checkout as the guest's working directory, so the guest reads the sources across the mount and writes every output under this lane's directory, which `run.py worktree create --json` names as `lane_root` and a brief for guest work carries. Inside the guest, `python3 tools/run.py <command>` is the same command.
-- **Keep guest build products native, and never park one on tmpfs.** `VOS_BUILD_ROOT`, `VOS_LOG_DIR` and build outputs pointed under `/mnt/` make every write cross the boundary, and `/tmp` is gone when the instance idle-terminates. `run.py provision` probes the build root and the log root and fails the lane for either. Explicit evidence exports and tracked generated artifacts use the checkout destinations named above.
-- **Ask the host about the checkout.** `git status`, a recursive search and a directory walk over `/mnt/c` each cost seconds from the guest, so the guest tools run `git` exactly where a build needs it, `git describe` at configure and `git ls-files` for a receipt, and a worker asks a host shell for the rest.
-- **The source-writing commands are named.** `seed properties` writes mutants into `model/` because cmake is pointed there and owns the checkout for the run; `model bundle` writes the tracked bundle. Proof compilation stages source bytes in its native lane, and `proofs status` takes the guest hop to hash the resulting artifacts. Successful proof runs and `proofs export` write the portable receipt in the checkout.
-- **The two sides disagree about case.** NTFS folds it and ext4 does not, which is why a lane name is lowercased on creation and why [.gitignore](../.gitignore) excludes the `.Codex` and `.codex` worktree roots separately.
+- **Create lanes from the host.** `run.py worktree create` uses Windows Git on the Windows filesystem. Never place a checkout on `\\wsl.localhost` (host Git rejects it without `safe.directory`, and `check.py` pays the 9P mount penalty on every run).
+- **Dispatch guest work through `run.py`.** `python tools/run.py <command>` on the host hops into WSL with the checkout as the working directory, reading sources across `/mnt/` and writing outputs under the lane's native `lane_root` (printed by `run.py worktree create --json`). Inside the guest, run `python3 tools/run.py <command>`.
+- **Keep guest build products on native ext4, never on `/mnt/` or `/tmp`.** Pointing `VOS_BUILD_ROOT` or `VOS_LOG_DIR` under `/mnt/` forces every write across the 9P mount, and `/tmp` is wiped when WSL idle-terminates. `run.py provision` probes both roots and fails if either sits on `/mnt/` or tmpfs.
+- **Run repository queries on the host.** `git status`, recursive searches, and directory walks over `/mnt/c` take seconds from WSL; guest tools invoke `git` only where a build requires it (`git describe` at configure and `git ls-files` for receipts).
+- **Only designated commands write into the checkout.** `seed properties` mutates `model/` in place under exclusive checkout ownership; `model bundle` writes the tracked bundle; and successful proof runs or `proofs export` publish the portable receipt.
+- **Respect case sensitivity across filesystems.** NTFS is case-insensitive while ext4 is case-sensitive, so lane names are lowercased on creation and [.gitignore](../.gitignore) excludes `.Codex` and `.codex` separately.
 
 ## The lane as a fact list, and what no provisioner reaches
 
-[run.py provision](vos/cli/provision.py) checks the toolchain and lane layout. Its `FACTS` table declares each dependency's consumer, source of truth, probe and optional installation command. It covers opam switches, the pinned solver and checkers, Python, distribution packages, per-lane memo caches and native guest output placement. **Versions and switch names come from their defining artifacts**; K-75 checks the interpreter against the manifest. Historical completion records retain their original measurements. The [opam snapshots](opam/README.md) record complete package resolutions, including the lowering experiment's separate switch and [installation recipe](bedrock2-lowering/README.md).
+[run.py provision](vos/cli/provision.py) checks the toolchain and lane layout. Its `FACTS` table declares each dependency's consumer, source of truth, probe and optional installation command. It covers opam switches, the pinned solver and checkers, Python, distribution packages, per-lane memo caches and native guest output placement. **Versions and switch names come from their defining artifacts**, and [pyproject.toml](pyproject.toml)'s `requires-python` owns the supported Python minor. Historical completion records retain their original measurements. The [opam snapshots](opam/README.md) record complete package resolutions, including the lowering experiment's separate switch and [installation recipe](bedrock2-lowering/README.md).
 
 The prover and model toolchains build natively in the guest. WSL Containers (`wslc`) are declined without a revisit condition: they retain the Windows-filesystem crossing described in the [placement table](#where-a-file-lives-and-which-lane-touches-it), and would introduce an environment absent from Guest CI. The [M1.5 completion record](../docs/implementation/completion-log.md#m15-run-the-certicoq-to-wasm-oracle) records that decision.
 
@@ -797,79 +807,22 @@ findings explain the blind spots each addresses.
 
 | Generator | The finding it answers | What it does |
 | --- | --- | --- |
-| [run.py oracle](vos/cli/oracle.py) | **M0.12**: its corpus found an encoding defect the `$[test]` harness structurally cannot, a `$[test]` calling `execute` on an already-decoded instruction and so never seeing a mis-encoded word | A spec names model sources and a domain; the harness is emitted, compiled against them, and run, and what it reaches is decided by the domain rather than by what a property happens to be about |
-| [run.py seed](vos/cli/seed.py) | **M0.8d**: the property that named a defect was written before the vectors and never ran, the harness running alphabetically so the symptom aborted the executable ahead of the cause | Mutation operators walked over a Sail or Gallina source, each mutant pointed at an oracle that must notice; a written property inherits the blind spots of the choice to write it and a generated mutant is not chosen at all |
-| [run.py quickchick](vos/cli/quickchick.py) | **M0.8d**, one language over: both defects its known-answer vectors found were transcriptions no structural property was written about | The Gallina front's inputs, which the Wasm oracle has never had any generator for: an enumerative half in the proof gate's switch, and a randomized half in a switch of its own: QuickChick's seeded draws, a refuting one printed as drawn, over the domains too large to walk, and a walk of every point of the rest |
+| [run.py oracle](vos/cli/oracle.py) | **M0.12**: its corpus found an encoding defect that `$[test]` harnesses cannot reach because `$[test]` calls `execute` on an already-decoded AST and never decodes raw instruction words | Reads a JSON spec naming model sources and an input domain, emits and compiles a Sail harness, and runs it over the domain |
+| [run.py seed](vos/cli/seed.py) | **M0.8d**: a hand-written property never ran because the test harness executed alphabetically and an earlier failure aborted the binary first | Applies systematic mutation operators across Sail or Gallina sources and checks that an oracle detects each live mutant |
+| [run.py quickchick](vos/cli/quickchick.py) | **M0.8d** (in Gallina): known-answer vectors caught two transcription defects that had no corresponding structural property | Exercises Gallina definitions via exhaustive enumeration in the proof switch and seeded QuickChick random testing in the QuickChick switch |
 
-Three verdicts decide a mutant, and never two, wherever one is run. **Stillborn** is a
-mutant that did not compile, and nothing was decided about the oracle because the oracle
-never ran. **Killed** is one that compiled and moved the oracle's answer. **Survived**
-is one that compiled and did not, and it is the finding: the oracle does not reach that
-site. Counting stillborn mutants as kills is the standard way a mutation score is
-inflated, so a run scores over the live population and reports the three apart. A
-Gallina run may also leave a mutant **undecided**: a compile that reaches gallina's
-per-file limit is stopped, its mutant journalled with the file and the limit beside
-each compile's wall seconds, and the run goes on to the next mutant. A compile a signal
-ends, a kill of the prover for want of memory among them, leaves its mutant undecided
-the same way, named by the file and the signal, where a nonzero exit is still a source
-the prover refused or a harness that did not build. Under `--quickchick` a drawn set
-whose program built and then ended on what decides nothing about the mutant, memory or
-stack running out, a signal, a program that could not run or a status the reader cannot
-classify, leaves its mutant undecided the same way, journalled with why. A set whose
-program ended on any other exception nothing caught kills the mutant, the baseline's
-program having finished every set, its reason naming the set, the status and the
-exception; a draw refuting a set ahead of it still decides first, and a drawn harness
-that does not build, its Rocq or its extracted OCaml, leaves the mutant stillborn. An
-undecided mutant is never a kill, a survivor or stillborn, and it is a finding, since a
-population with an unanswered member is one the run did not decide.
+Every mutant run classifies each mutant into one of four disjoint verdicts via [seeded.py](vos/seeded.py):
 
-**A killed population is a result about the statements and never about the
-definitions.** Every mutant killed says some theorem moved when a definition did, which
-is that the file's theorems constrain the file's own definitions; it says nothing about
-whether those definitions are what the register fixes, and an artifact can kill every
-mutant, close under the proof gate and still resolve an open register question by fiat
-or state a bar no entry carries. Measured on the proof-authoring fan-out, every artifact
-that carried such a decision had a fully killed population, so the reader that resolves
-each cited entry against the register and asks which sentence closes each literal and
-each definition shape is not a second opinion on the score but the only reader asking
-that question. Three tells: a numeric literal no entry closes; a definition whose shape
-encodes a choice the register leaves open, a queue where the register fixes only
-readiness or a total function where it admits a refusal; and a bound shipped as an
-equality, which the statements constrain identically under either reading and no grep
-finds.
+- **Stillborn:** Failed to compile; the oracle never ran, so nothing is decided about oracle sensitivity. Stillborn mutants are excluded from the live denominator so they cannot inflate mutation scores.
+- **Killed:** Compiled and changed the oracle's verdict (or raised an uncaught runtime exception in a QuickChick set that passed at baseline).
+- **Survived:** Compiled and left the oracle's verdict unchanged. This is a finding: the oracle does not cover the mutated site.
+- **Undecided:** A Gallina compile or QuickChick execution hit a per-file timeout, died on a signal (such as OOM), or terminated with an unclassifiable runner status. Undecided mutants are journaled with their cause and fail the run because the population was not fully decided.
 
-**Those verdicts are [seeded.py](vos/seeded.py)'s and the oracle is the loop's**, which
-is what makes the selftest below a fourth oracle over this vocabulary rather than a
-fourth generator. Its population is authored: the subject is a registry, where a rule
-and its mutant are two halves of one claim, and there is no source to walk. So its
-third verdict is **unseeded** rather than stillborn, and the two are counted apart for
-the reason the other pair are. A stillborn mutant is a fact about the subject, and it
-decides nothing; an unseeded one is a fact about the *case*, whose seed no longer
-applies to a document that moved under it, and it is a finding, because a case that has
-stopped applying reports its rule live for as long as nobody looks.
+**A killed population tests the theorem statements, not whether definitions match the register.** Killing every mutant shows that the file's theorems constrain its definitions, but an artifact can achieve a 100% mutation score and pass the proof gate while still resolving an open register question by fiat or encoding a stronger assumption than the register warrants. During proof review, check each cited entry against the register for three common defects: numeric literals not fixed by any requirement, definition shapes that over-constrain open choices (such as a queue where the register specifies only readiness, or a total function where the register admits refusal), and bounds stated as equalities.
 
-**That coverage is counted over rules, so a rule whose subject is a table wants a case
-per row and not only per reading.** The run's own coverage line, *every registered rule
-carries a case*, stays true the day a table-driven rule gains a row nothing seeds, and a
-row nothing seeds reports green
-whether or not it decides anything, which is the shape a check that decides nothing takes
-here. K-88 is the rule with that shape and its cases exercise the registered artifact readers: the
-model bundle at its guest reading, the encoder table at its host reading, the SoC
-address map at the second host row and the memory plan's export at the third, those last
-two repeating a reading and deciding only that their row is live.
+**[run.py selftest](vos/cli/selftest.py) reuses [seeded.py](vos/seeded.py)'s vocabulary for authored checker mutants.** Because checker mutants are authored per rule in `check-registry.json` rather than generated from source syntax, a mutation whose target text no longer exists in the corpus is reported as **unseeded** (a failing verdict) rather than stillborn. Table-driven rules such as K-88 should carry a mutant case for each distinct reader row so newly added rows cannot pass unexercised.
 
-`seed`'s oracles are separate subcommands because they are three prices, not three
-kinds: a Gallina mutant costs a prover run, a Sail mutant costs a compile of the spec's
-own handful of model files, and a `$[test]` mutant costs a re-emission and a recompile
-of the model's one large translation unit. **`run.py seed properties` temporarily replaces live model sources**,
-`model/` being where cmake is pointed; it refuses to
-start over an edit, the write is byte-for-byte reversible, the restore is verified
-before the next mutant is written, and the lane's build tree is rebuilt from the
-restored source before the run reports. **Nothing else may read the checkout while it
-runs.** For the length of one mutant the tree on disk is wrong, so `git add` stages a
-defect, `check.py` reports a capability format that disagrees with itself, and
-`run.py selftest` copies a mutated tree into the template every sandbox links
-against. The run says so on its first line.
+`seed`'s three subcommands reflect their compilation cost: `seed coq` runs the prover on a Gallina file, `seed sail` compiles a small subset of Sail files for an oracle spec, and `seed properties` re-emits and recompiles the full C simulator. **`run.py seed properties` temporarily mutates `model/` in place**, verifying byte-for-byte restoration after each mutant and rebuilding the lane's build tree before exiting. **Nothing else may read or write the checkout while `seed properties` runs**, or concurrent `git add`, `check.py`, or `selftest` invocations will observe a mutated `model/` tree.
 
 ## Model build inputs
 
@@ -1101,13 +1054,10 @@ Performance changes follow the [tool performance acceptance](performance.md):
 measure equivalent work, preserve failure behavior, and share parsed owner facts
 within an explicit input snapshot rather than caching decisions by path.
 
-The documents are checked against each other by [check.py](check.py), and the checker is
-checked against its own mutants by [run.py selftest](vos/cli/selftest.py). Neither of
-them reads a line of Python as Python, so without a gate of their own the tools are the
-one artifact here with no proof, no model, and no reader but their author.
-[run.py typecheck](vos/cli/typecheck.py) is that gate for the Python's discipline, and it runs two
-checkers because one cannot do the whole job; what a type cannot decide, the behavior, is
-[run.py test](vos/cli/test.py)'s to hold.
+[check.py](check.py) validates the repository documents, and [run.py selftest](vos/cli/selftest.py)
+tests the checker against seeded mutants. To validate the Python tooling itself,
+[run.py typecheck](vos/cli/typecheck.py) enforces static typing and lint rules across
+both platforms, and [run.py test](vos/cli/test.py) runs the behavioral test suite.
 
 A bare `run.py` first validates the shared instructions and restores a missing
 import, then runs `check`, `selftest`, `typecheck` and `markdown` in parallel. Their reports are collected in a fixed order
@@ -1148,27 +1098,26 @@ checks the affected controls; a missing seed remains a failure. See the
 
 | Checker | What it decides |
 | --- | --- |
-| [ty](https://github.com/astral-sh/ty) | Every expression reachable under `python-platform` linux, and every one reachable under win32, against the types it can infer, with every rule at error |
-| [ruff](https://github.com/astral-sh/ruff) | Every function, against whether it is annotated at all, and the correctness rules [ruff.toml](ruff.toml) admits |
+| [ty](https://github.com/astral-sh/ty) | Type-checks every expression reachable under `--python-platform linux` and `--python-platform win32` with all rules at error severity |
+| [ruff](https://github.com/astral-sh/ruff) | Enforces complete function type annotations (`ANN`) and the lint rules enabled in [ruff.toml](ruff.toml) |
 
-The split is not a preference. ty infers rather than demands, so a function with no
-annotations contradicts nothing and is invisible to it; ruff's `ANN` group is what makes
-coverage a rule. Both are pinned for the reason Rocq and z3 are pinned, and a version
-other than the pinned one is a finding rather than a warning.
+Both tools are required because `ty` infers types without requiring function signatures
+to be annotated, whereas Ruff's `ANN` rules enforce annotation coverage. Both are pinned
+to exact versions in [pyproject.toml](pyproject.toml)'s `dev` dependency group; version
+mismatches fail the gate.
 
-The exact checker pins live in [pyproject.toml](pyproject.toml)'s development
-group. JSON Schema validation, CommonMark parsing and cache-installation locks use
-runtime dependencies in the same project, and
-[uv.lock](uv.lock) fixes the complete resolution for both operating systems.
-Workflow and hook pin readers share [vos/yamlutil.py](vos/yamlutil.py), which uses
-the locked PyYAML release to compose source nodes without constructing objects.
-YAML owns collection structure, keys and source marks; duplicate keys, aliases,
-merge keys and nonstandard tags refuse. Pin and licence-review relationships stay
-with their consumers. Comments and scalar bodies supply no mapping entries.
-Structured action reviews in [development-tools.json](development-tools.json)
-generate each review sentence and licence URL from the same repository and commit.
-K-118 checks workflow membership and reviewed identities; K-115's separate parsers
-for generated Markdown and licence URLs are retired.
+Runtime dependencies (JSON Schema validation, CommonMark parsing, file locking) and
+development tools share a single cross-platform resolution in [uv.lock](uv.lock).
+Workflow and hook pin readers use [vos/yamlutil.py](vos/yamlutil.py) (backed by locked
+PyYAML) to parse YAML AST nodes with source locations while rejecting duplicate keys,
+aliases, merge keys, and nonstandard tags. Structured entries in
+[development-tools.json](development-tools.json) (validated by
+[development-tools.schema.json](development-tools.schema.json)) own development-tool
+license editions, owner references, and generated rows in
+[THIRD-PARTY.md](../THIRD-PARTY.md). K-118 verifies workflow and hook membership,
+source-literal tool versions (including Verilator's `assign` binding), and generated
+display bytes; if an upstream pin moves past its recorded license review, `--fix`
+refuses repair until the new license reading is recorded.
 
 The ring emitter uses a cached JSON Schema validator to check declaration shapes
 before exposing typed records; fields outside the emitter's scope remain intact.
@@ -1176,14 +1125,6 @@ before exposing typed records; fields outside the emitter's scope remain intact.
 the environment's executables, and explicitly gives ty that environment's Python.
 The launcher's `uv run --locked --exact` refuses stale resolution before dispatch.
 Global checker shims and an unrelated activated environment cannot select different tools.
-
-Development-tool licence editions, owner references and table rows are authored in
-[development-tools.json](development-tools.json), checked against its
-[JSON Schema](development-tools.schema.json). Each row names its reviewed identities
-or an explicit disposition. K-118 compares those editions with their dependency
-owners and checks the generated region of [THIRD-PARTY.md](../THIRD-PARTY.md).
-Repair regenerates display bytes only; an owner moving beyond its recorded licence
-reading refuses repair until that reading is performed and recorded.
 
 The [checker registry](check-registry.schema.json),
 [work-order data](../docs/implementation/work-order.schema.json) and calibration
@@ -1197,11 +1138,6 @@ then decide semantic relationships against live owners. VS Code's
 JSON keys remain errors. Calibration digest lengths require actual integers;
 integral floats and booleans cannot stand in for byte counts. Generated views
 remain products of their existing owners.
-
-Verilator's reviewed release uses the same structured `assign` binding as other
-source-literal tool versions. K-118 checks that binding and its generated
-documentation; K-97's separate row parser is retired. A missing review or owner,
-an ambiguous assignment and stale display bytes remain findings.
 
 Ordinary local links and fragments use the pinned offline
 [Lychee adapter](vos/lychee.py). It reads the indexed corpus explicitly, validates
@@ -1258,87 +1194,13 @@ The optional `workflows` group pins zizmor, which Host CI syncs alone into an
 environment of its own; [workflow analysis](#workflow-analysis) gives the command.
 PyPI publishes no Windows ARM64 wheel for it, so run it on Linux.
 
-<a id="model-hooks"></a>**Host CI holds the curated model to its hooks, all but the
-link check.** pre-commit changes directory to the Git top level before it reads a
-configuration, so [model/.pre-commit-config.yaml](../model/.pre-commit-config.yaml)
-states its paths from this repository's root: the top-level `files: "^model/"`
-confines every hook to paths under `model/`, the exclusion names
-`model/dependencies/`, and codespell and markdown-link-check are handed
-`model/.codespellrc` and `model/.markdown-link-check.config`. Each hook repository is
-pinned by the full commit of the tag its `# frozen:` comment names, and its
-[THIRD-PARTY.md](../THIRD-PARTY.md) development-tools row states both, which K-118
-holds against the configuration; whether the commit is the tag's is read at review
-with `git ls-remote`. A formatter upgrade includes the source layout changes its
-new release requires. The model-hooks job of
-[Host CI](../.github/workflows/host-gates.yml) runs the set with `--all-files`, which
-selects the tracked files under `model/` outside `model/dependencies/` and nothing
-else, and with `SKIP=markdown-link-check`, because that hook fetches every external
-link the model's Markdown names; a finding or a rewrite from any other hook fails the
-job, and `--show-diff-on-failure` prints the rewrite. check-added-large-files acts
-only on staged additions, as at commit time, so the CI run, which stages nothing,
-decides nothing for it. What the hooks install beside their own code is pinned as
-[their dependencies' paragraph](#model-hook-dependencies) says. To run the same set
-from the checkout root with the environment above, set `SKIP=markdown-link-check` and
-the step's pip and virtualenv variables, naming the constraint files by absolute path,
-and run
-`uv run --project tools --locked --group model pre-commit run --config model/.pre-commit-config.yaml --all-files`,
-or name paths with `--files <paths>`. The fixing hooks (trailing-whitespace,
-end-of-file-fixer, clang-format and prettier) rewrite the files they select, so read
-`git diff -- model` after a run and keep a rewrite only as part of the change that
-caused it. Without the skip, markdown-link-check fetches every external link it finds.
-The advice in [model/CONTRIBUTING.md](../model/CONTRIBUTING.md) to run
-`pre-commit install` is upstream's and does not apply here. Never run it: it writes the
-hook into the Git directory every worktree shares, so every session's commits would run it.
-The hook calls the installing environment's interpreter, which a commit from the
-other side of the WSL boundary cannot execute, so that side's commits are refused
-unless its own `pre-commit` is on `PATH`. On a commit touching `model/`, a fixing hook
-that rewrites a staged file fails the commit, and markdown-link-check fetches the
-links of every staged Markdown file.
+<a id="model-hooks"></a>**Host CI runs the curated model's pre-commit hooks, except the external link check.** Because `pre-commit` runs from the repository root, [model/.pre-commit-config.yaml](../model/.pre-commit-config.yaml) scopes all hooks to `files: "^model/"`, excludes `model/dependencies/`, and passes `model/.codespellrc` and `model/.markdown-link-check.config`. Each hook repository is pinned to a full commit SHA with a `# frozen:` tag comment and a matching development-tools entry in [THIRD-PARTY.md](../THIRD-PARTY.md) checked by K-118 (`git ls-remote` verifies tag-to-commit correspondence during review). The `model-hooks` job in [Host CI](../.github/workflows/host-gates.yml) runs `--all-files --show-diff-on-failure` with `SKIP=markdown-link-check` (avoiding network fetches for external URLs) and pins hook dependencies as described [below](#model-hook-dependencies). To run the hooks locally from the checkout root, set `SKIP=markdown-link-check` and the pip/virtualenv constraint variables (using absolute paths), then run `uv run --project tools --locked --group model pre-commit run --config model/.pre-commit-config.yaml --all-files` (or `--files <paths>`). Because fixing hooks (`trailing-whitespace`, `end-of-file-fixer`, `clang-format`, `prettier`) modify files in place, inspect `git diff -- model` afterward. Never run `pre-commit install` (despite upstream's [model/CONTRIBUTING.md](../model/CONTRIBUTING.md)): it installs a shared Git hook across all worktrees that binds one OS's interpreter, fails commits when fixing hooks rewrite staged files, and fetches external links on every staged Markdown file.
 
-<a id="model-hook-dependencies"></a>**The hooks' dependencies are pinned wherever pip
-can pin them.** pre-commit installs each Python hook with `pip install .` in its clone,
-inside a virtualenv of its own.
-[model-hooks-constraints.txt](ci/model-hooks-constraints.txt) fixes the release of
-every package pip installs there beside the hook: ruamel.yaml for pre-commit-hooks,
-rapidfuzz for Lucas-C's hooks and the clang-format wheel the mirror requires. Host CI
-names it as `PIP_CONSTRAINT`. It lists no hash, because a hash in a constraints file
-puts pip in hash-checking mode, which refuses the directory pre-commit installs from,
-and a dependency a hook gains installs unpinned, at the newest release the cooldown
-below admits, until the file names it. From pip 26.2 an isolated build ignores the
-regular constraints it inherits, so
-[model-hooks-build-constraints.txt](ci/model-hooks-build-constraints.txt) fixes the
-build backends, setuptools for every hook package and setuptools-scm with its
-vcs-versioning and packaging for codespell's, each with its wheel's SHA-256, and Host
-CI names it as `PIP_BUILD_CONSTRAINT`. Its hashes put each build in hash-checking mode,
-so a build requirement it does not list fails the step. pip runs in each hook's clone,
-so the step names both files by absolute path, and its `PIP_UPLOADED_PRIOR_TO=P3D`
-admits no file uploaded within the [release cooldown](#running-them). Each
-environment's pip is the one the locked virtualenv embeds: the step gives virtualenv an
-empty app-data directory, and virtualenv takes a wheel its periodic update fetched only
-once an hour has passed. prettier is the release the mirror's hook names to npm, which
-installs it on the runner's Node.js and npm and checks it against the registry's
-integrity hash; it declares no dependency, and nothing here fixes Node.js, npm or that
-hash. **The two files are reviewed whenever a hook's rev or the locked virtualenv
-moves**, and no rule holds them to the hooks' requirements or to PyPI's upload times,
-neither of which the checker reads. Run the step's command over a throwaway copy with
-an empty `PRE_COMMIT_HOME`, an empty `VIRTUALENV_OVERRIDE_APP_DATA`, so each
-environment's pip is the embedded one the step runs, `PIP_LOG` naming a file,
-`PIP_UPLOADED_PRIOR_TO=P3D` and neither constraint variable set, compare `pip list` in
-each `py_env-*` environment and the build installs the log records with the files,
-move each pin to the release that run installed, with the SHA-256 PyPI states for its
-wheel where the build file pins one, and run the step's command again with both files
-and an empty `PRE_COMMIT_HOME` and `VIRTUALENV_OVERRIDE_APP_DATA`.
-K-118 holds every pin in the two files to the release
-[THIRD-PARTY.md](../THIRD-PARTY.md)'s development-tools section read its licence at,
-the clang-format wheel's to its mirror's row and the rest to the model hooks' PyPI
-dependencies row, so a moved pin is a finding until its licence is read at the new
-release and the row states it, and a pin no row reads, such as one added for a package
-a hook gained, is a finding until a row reads its licence. It reads each file as pip
-does, split at every break `str.splitlines` takes, a line ending in `\` that is no
-comment joined with the next and comments stripped after the join, so every line left
-must be one `<name>==<release>` pin with at most its `--hash=sha256:` digests: an
-option such as `-c`, `-r` or `--index-url`, a marker, extras or a URL is a finding at
-its line, and a file declaring an encoding other than UTF-8 is unread.
+<a id="model-hook-dependencies"></a>**Model hook Python dependencies are pinned via pip constraint files.** `pre-commit` installs each Python hook with `pip install .` inside an isolated virtualenv:
+
+- **Runtime constraints ([model-hooks-constraints.txt](ci/model-hooks-constraints.txt), `PIP_CONSTRAINT`):** Pins runtime dependencies installed alongside hooks (`ruamel.yaml`, `rapidfuzz`, `clang-format`). Hashes are omitted here because pip's hash-checking mode rejects local directory installs (`pip install .`).
+- **Build constraints ([model-hooks-build-constraints.txt](ci/model-hooks-build-constraints.txt), `PIP_BUILD_CONSTRAINT`):** Pins isolated PEP 517 build backends (`setuptools`, `setuptools-scm`, `vcs-versioning`, `packaging`) with wheel `--hash=sha256:` digests, enforcing hash-checking mode for build dependencies.
+- **Cooldown and review:** Host CI passes both files by absolute path along with `PIP_UPLOADED_PRIOR_TO=P3D` (enforcing the [3-day release cooldown](#running-them)) and an empty `VIRTUALENV_OVERRIDE_APP_DATA` so virtualenv uses its embedded pip. `prettier` is fetched by npm using the version and registry integrity hash from its hook mirror. Review both constraint files whenever a hook revision or the locked `virtualenv` version changes. K-118 parses both files using pip's line-continuation and comment rules, requires every line to be a strict `<name>==<release>` pin (with optional `--hash=sha256:` digests and no pip flags, markers, extras, or URLs), and verifies that each pinned version matches its license entry in [THIRD-PARTY.md](../THIRD-PARTY.md).
 
 [ty.toml](ty.toml) enables every ty rule at error. Its admitted tables, exact
 values and keys are declared in [the configuration schema](ty-config.schema.json);
@@ -1353,38 +1215,13 @@ carry configuration paths and remain visible beside each tool's verdict.
 
 Both TOML files carry a local schema directive for editors supporting
 [Taplo's schema directives](https://taplo.tamasfe.dev/configuration/directives.html).
-Their schemas use the vocabulary those editors support, so the same policy can
-report mistakes while editing. The gate still supplies `--error all` and checks
-both platforms explicitly. A user-level ty configuration is a finding: ty merges
-`%APPDATA%\ty\ty.toml` on Windows, or `$XDG_CONFIG_HOME/ty/ty.toml` (by default
-`~/.config/ty/ty.toml`) on Linux and macOS, beneath ty.toml even when the gate names
-ty.toml with `--config-file`, so a setting ty.toml leaves out would come from it. The
-gate reports such a file rather than steering ty away from it, and reports a set
-`PYTHONPATH` rather than removing it: ty searches each directory it names just after
-`extra-paths` and ahead of the standard library, and an editor's ty server inherits
-the variable as the gate's run does. Excluded Ruff rules remain named and explained
-in [ruff.toml](ruff.toml). A single site that has to differ carries a `# noqa`
-naming its rule and explaining why; `PGH` refuses blanket `# noqa` and
-`# type: ignore` comments. The command also refuses source suppressions reaching
-past a line: a comment carrying Ruff's file-level `# ruff: noqa` or
-`# flake8: noqa`, unless it names N999 and no other rule, since ruff reports N999
-against the file's name rather than a line of it; and a comment carrying
-`# ruff: file-ignore[...]`, a `# ruff: disable[...]` or `# ruff: enable[...]` range,
-whose `disable` with no matching `enable` runs to the end of its block, or isort's
-`skip_file`, `off` or `on` action comment. `# ruff: ignore[...]` on a line of its own
-reaches the one logical line beneath it, a multi-line one whole, or, inside brackets,
-the one line of code beneath it, past blank and comment lines. That code line includes
-the lines a backslash or a multi-line string joins to it. A comment ending a line
-reaches that same code line alone; it is not refused. Explicit file targets preserve
-coverage but cannot restore disabled rules, so these suppression checks remain.
+To prevent ambient environment overrides, `run.py typecheck` fails if a user-level `ty.toml` (`%APPDATA%\ty\ty.toml` on Windows or `$XDG_CONFIG_HOME/ty/ty.toml` / `~/.config/ty/ty.toml` on Linux/macOS) or `PYTHONPATH` is present, and clears `TY_LOG` and `TY_LOG_PROFILE` before invoking `ty`. Excluded Ruff rules must be documented in [ruff.toml](ruff.toml). Line-specific suppressions must name a specific rule and rationale; blanket `# noqa` and `# type: ignore` comments are rejected by Ruff's `PGH` rules, and `typecheck` additionally rejects file-wide or multi-line suppressions (`# ruff: noqa` except for `N999`, `# flake8: noqa`, `# ruff: file-ignore[...]`, `# ruff: disable[...]` / `enable[...]`, and `isort` action comments). Single-line `# ruff: ignore[...]` and trailing `# noqa: <RULE>` comments remain allowed.
 
 The gate passes every indexed Python source under `tools/` directly to both ty
 platform runs and to Ruff. Bounded filename batches respect Windows command-line
 limits, and missing source files refuse before dispatch. Ruff receives
 `--no-force-exclude`; explicit targets bypass the tools' directory and ignore-file
-discovery. No diagnostic debug log supplies coverage evidence. The gate removes
-`TY_LOG` and `TY_LOG_PROFILE` so logging cannot obscure diagnostics or write a
-profile into the checkout.
+discovery. No diagnostic debug log supplies coverage evidence.
 
 [pyproject.toml](pyproject.toml)'s `requires-python` owns the supported minor.
 Workflow setup reads that file, provisioning and guest bootstrap use the shared
@@ -1403,53 +1240,7 @@ host-wave member runs once in each unpartitioned CI job, outside semantic-rule
 mutation replay. K-39 retains the separate check for pipe-led text with no table
 separator, which a standard Markdown table rule does not recognize.
 
-The settings live in [ty.toml](ty.toml) and [ruff.toml](ruff.toml). ruff finds its file
-from each checked path, but the ty CLI discovers configuration from its working directory
-upward and the repository root carries none, so open `tools/` as a workspace folder for an
-editor's ty server to read ty.toml and share the gate's severities. In VS Code, select
-the checkout's `out/venv-win32/Scripts/python.exe` on Windows or the Linux environment's
-`bin/python` from the placement table above so editor imports use the same
-dependencies as the gate. The editor's Linux typing target is intentional: the guest
-modules use POSIX APIs, even when the host checks them. It does not move execution into
-Linux. ty reports nothing in a branch the target makes unreachable, so the gate runs ty
-under `--python-platform linux` and again under `win32`, each run its own verdict. The
-second run types the branches taken only when `sys.platform` is `win32`, and holds every
-call typeshed declares absent on Windows behind a `sys.platform` check. typeshed stubs
-most modules one platform lacks, such as `fcntl` or `msvcrt`, for both platforms, so
-neither run sees an import of one fail on the other platform. ruff.toml's
-`banned-module-level-imports` lists each standard-library module the interpreter cannot
-import on Windows or on Linux that ty resolves under both platforms, a listed name
-covering its submodules; a module ty resolves under neither is ty's own
-`unresolved-import` finding, and a module whose import fails for want of one that did
-not load and that configure records as built, missing or disabled, any state but
-`n/a`, one a build leaves out for want of an optional library or whose shared library
-is absent at run time, is the build's and is not listed.
-[tests/test_typecheck.py](tests/test_typecheck.py) holds the list on each lane against
-every standard-library module and submodule the running interpreter cannot import,
-resolved by the gate's own ty runs, so Host CI's Windows and Ubuntu legs together hold
-both halves. The case decides the list only on an interpreter carrying
-its build's whole standard library, as the interpreters Host CI's setup-python installs
-do: on one short of tkinter, which python.org's Windows installer makes optional and
-Debian and Ubuntu ship apart, or of ensurepip, which Debian and Ubuntu ship apart too,
-it fails as short of that library rather than asking for a ban. ruff's TID253 refuses
-an import of a listed module only where it is unnested at module level, and with the
-module listed, PLC0415 no longer reports one in a class body. So the gate reads the
-same list and holds an import of a listed module in a tracked module anywhere else
-outside a function body, in a class body or a module-level block such as
-`if __name__ == "__main__":`, to the platforms, of linux and win32, that reach it. An
-enclosing `if` that compares `sys.platform` with string literals, by `==` or `!=` with
-one, by `in` or `not in` with a tuple, list or set of them, or through `startswith`,
-alone, under `not` or joined by `and` or `or`, sends its body the platforms on which its
-test holds and its `else` the rest; every other block, an `if` reading `sys.platform`
-any other way among them, passes on the platforms that reach it. An import both
-platforms reach is refused, naming the nearest enclosing test reading `sys.platform`.
-That holds that no listed module is imported on both platforms, not which one has it,
-so on each lane an import the running platform reaches is refused as well where the
-interpreter cannot find the top-level module it names, as Windows cannot find `fcntl`;
-a submodule of a package the interpreter finds, such as `asyncio.unix_events` on
-Windows, and a module it finds but cannot import, such as `pty` there, are not caught
-this way. Each listed module the tools use is imported inside the function that uses
-it, behind a `sys.platform` check.
+Because `ty` discovers configuration upward from its working directory and the repository root has no `ty.toml`, open `tools/` as a workspace folder in VS Code and select the checkout's managed interpreter (`out/venv-win32/Scripts/python.exe` on Windows or `<lane_root>/venv-linux/bin/python` in WSL) so editor diagnostics match the gate. `run.py typecheck` runs `ty` twice—once with `--python-platform linux` and once with `--python-platform win32`—so platform-guarded branches on both OSes are typechecked. Because typeshed stubs OS-specific standard-library modules (such as `fcntl` and `msvcrt`) on all platforms, `ruff.toml`'s `banned-module-level-imports` (`TID253`) and `typecheck`'s AST guard ban top-level and unguarded class/module-block imports of OS-specific standard-library modules unless guarded by a `sys.platform` check; [tests/test_typecheck.py](tests/test_typecheck.py) verifies that ban list against the running interpreter's importable standard library on both Windows and Linux. OS-specific modules must be imported inside the functions that use them, behind a `sys.platform` check.
 
 The local `redundant-cast` suppression in [vos/config.py](vos/config.py)
 addresses ty's recursive-JSON narrowing behavior, not
@@ -1571,60 +1362,12 @@ whatever control flags or attributes precede the command. The gate's own generat
 queries open every interactive proof with `Proof`, whose absence Rocq 9.3 reports by
 default as `missing-proof-command`.
 
-The kernel recheck runs `rocqchk -o` and parses the context summary it writes to stderr
-exactly. The summary covers the whole environment the checker loaded, admitted modules
-included, and must name no axiom outside the declared set and no type-in-type, unsafe
-(co)fixpoint or assumed-positivity entry. An axiom a library declares is therefore
-refused even when no proof uses it, wherever a worker checks that library; Stdlib's
-`Program` and `FunctionalExtensionality` closures declare such axioms.
-A worker answers for the libraries it checked. The checker records which axioms a
-sealed module's hidden proofs use only while it checks them, so an admitted installed
-library names each field of such a module as an axiom; Stdlib's `PeanoNat` and
-Corelib's `ssrunder` have such modules. When a worker that admitted roots names an
-undeclared installed-library axiom, the gate loads those admitted roots alone, all
-unchecked. A name that load also names is covered by the evidence that admitted the
-roots: a peer's recursive check in the same run or an earlier accepted run of the same
-gate, where a worker checked that library and named its axioms exactly. Only such a
-worker pays for the load-only pass, and workers admitting the same roots share one.
-A proof module's axiom is never covered, and the run prints the covered names.
-The checker names a module's fields by the module's type: it lists every constant
-without a body in the environment it loaded, and replaces one with the assumptions
-its implementation uses only where, checking under the sealing type, it met a
-constant with a body whose canonical name is that field (the pinned checker's
-`mod_checking.ml`: `check_structure_field` tests the delta-resolved name's canonical
-form against the seal's body-less fields, `check_constant_declaration` registers only
-a constant with a body, and `constants_of_opaques` prints the list). A structure body
-checked under its seal, `Module M : T. ... End M.`, supplies such constants, which is
-what the `PeanoNat` and `ssrunder` reading above rests on, and so does the
-strengthened type of a transparent functor application nested inside one. An
-algebraic module's own fields under its ascription, `Module M : T := N` or
-`Module M : T := F X`, and the fields of `F X` for a functor whose own result type
-seals it have no body, and an alias's constants keep the aliased module's canonical
-names, so none is registered and the checker names each such field as an axiom
-whether or not it checked the library, at top level or nested under a seal whose
-type declares the module. At top level a transparent alias or application, a field a
-`with` constraint defines and an `Include` of a sealed module add no name, their
-constants keeping their bodies. What the kernel checked there is the implementation:
-its bodies, an application's argument against the functor's parameter, and the
-sealed type against the implementation's. For such a name of a library the worker
-checked, which is every installed name the load-only pass does not repeat, the gate
-asks the compiler `Print Assumptions` about the name in the environment that
-Requires the worker's roots. The compiler resolves a sealed field through its module
-expression to the implementation and traverses that implementation's body and type,
-reporting an assumption the seal hides from the environment under the sealed path
-and an admitted implementation as the field itself. The name is covered when that
-reading is closed under the global context or lists only declared entries, so an
-admitted proof, an `Axiom` or a `Parameter` anywhere under the seal refuses, and so
-does a genuine axiom, which reports itself; a reading that fails or omits a name
-covers nothing, and the run prints these covered names apart from the admission's.
-For every name in the loaded environment this enumeration is independent of the
-compiler's Print Assumptions, so neither reading's omission hides a loaded axiom from
-the gate; for an assumption a seal hides from the environment, the compiler's reading
-is the only one the gate has. The summary does not report definitional UIP, which the
-Print Assumptions audit does.
-The summary ends with the inductives that rely on indices not mattering, Corelib's
-`eq` among them. The gate requires that section with qualified names and accepts
-them, because the checker profile fixes `indices_matter=false`.
+The kernel recheck runs `rocqchk -o` and parses its stderr context summary:
+
+- **Context summary audit:** The summary covers the entire loaded environment (including admitted modules) and must report no axiom outside the declared set and no `type-in-type`, unsafe `(co)fixpoint`, or assumed-positivity entries. Any axiom declared by a checked library (such as Stdlib's `Program` or `FunctionalExtensionality` closures) is refused even if unused. The summary ends with inductives that rely on `indices_matter=false` (including Corelib's `eq`), which the gate requires with qualified names and accepts under the checker profile.
+- **Sealed modules under `-admit`:** `rocqchk` records which axioms a sealed module's hidden proofs use only while checking that module (`mod_checking.ml`: `check_structure_field`, `check_constant_declaration`, and `constants_of_opaques`). When an installed library is loaded under `-admit`, the fields of structure bodies sealed by a module type (such as in Stdlib's `PeanoNat` or Corelib's `ssrunder`) appear as body-less axioms. When a worker with admitted roots reports an undeclared installed-library axiom, the gate runs a shared load-only pass over those admitted roots alone; any name also reported by the load-only pass is covered by the peer worker or prior accepted run that recursively checked those roots. Proof-module axioms are never covered.
+- **Algebraic and functor-sealed module fields:** Fields of algebraic module ascriptions (`Module M : T := N` or `Module M : T := F X`) and functor results sealed by their result signature have no body in `rocqchk` (and module aliases retain the aliased module's canonical names), so `rocqchk` lists them as axioms even when it checks the library. For any such installed-library name not explained by the load-only pass, the gate queries the compiler with `Print Assumptions` in the environment that `Require`s the worker's roots. The name is covered only when `Print Assumptions` reports `Closed under the global context` or lists only declared axioms; an admitted proof, `Axiom`, or `Parameter` under the seal—or a failed/missing query—fails the gate. Combining `rocqchk -o` with `Print Assumptions` also catches definitional UIP, which `rocqchk`'s summary omits.
+
 The default run reuses compiled objects, native assumption audits and kernel verdicts
 only from a successful native receipt with matching source bytes, compiled-object
 hashes, dependency resolution, gate inputs and toolchain context. A changed source
@@ -1806,55 +1549,45 @@ prose-only changes, so moving a document heading also checks source backlinks.
 
 ## The conventions
 
-All tools must follow these rules.
+All tools must follow these rules:
 
-- **Exit 0 is clean, 1 is a finding.** argparse answers a usage error with 2, and a crash is a traceback rather than a verdict; nothing else is returned deliberately, and nothing returns 0 while printing a problem.
-- **The root is found, not assumed.** `vos.corpus.find_root` walks up from the tool's own file. No tool reads the working directory, and no tool needs `cd` first.
-- **A run is one verdict per rule.** `ok <rule>: <what it decided>` or `FAIL <rule>: <n> <what went wrong>` with the findings indented under it. A check prints nothing else.
-- **Output is accumulated, not streamed.** A run is data the caller can read back, which is what lets the selftest call the checker and read its verdict instead of parsing stdout.
-- **Repairs preserve bytes.** Every write goes through `newline=""` and explicit UTF-8, so a one-token edit to a CRLF document does not silently rewrite the whole file to LF.
-- **Arithmetic is repaired, judgment is reported.** A figure that is a sum over an artifact is rewritten under `--fix`. A figure that is somebody's decision is left standing as a finding, because absorbing it would delete the decision.
-- **A parse is written once.** If two tools ask the same question of one file, the parse lives in [vos/](vos/) and neither carries a copy. Two copies of one fact is the defect this repository is built to catch.
+- **Exit 0 is clean, 1 is a finding.** `argparse` exits `2` on usage errors, and unhandled exceptions produce tracebacks; no command exits `0` after reporting a finding.
+- **Discover the repository root from `__file__`.** `vos.corpus.find_root` walks up from the tool's own file path; tools do not depend on the caller's working directory.
+- **Print one verdict line per rule.** Checks emit `ok <rule>: <summary>` or `FAIL <rule>: <n> <summary>` with findings indented beneath it.
+- **Accumulate verdicts in memory.** Check runners return structured verdict records so callers such as `selftest` can inspect results directly without parsing stdout.
+- **Preserve line endings on repair.** Write files with `newline=""` and explicit UTF-8 so token edits do not rewrite line endings across a file.
+- **Repair derived arithmetic; report judgment mismatches.** `--fix` updates computed sums and generated views, but leaves judgment-dependent mismatches as findings.
+- **Share parsers in [vos/](vos/).** When two tools read the same artifact, the parser lives in `vos/` rather than being duplicated.
   JSON object readers use [vos/jsonutil.py](vos/jsonutil.py)'s ordered duplicate-key
-  hook. A reader may supply its domain error factory; its numeric, encoding,
-  shape and nesting policies remain with that reader. The
-  [consolidation acceptance](../PLAN.md#shared-json-duplicate-key-rejection)
-  preserves those boundaries and the readers' diagnostics.
-  Memory-planner commands obtain their duplicate-field diagnostic from
-  [vos/memory_planner_json.py](vos/memory_planner_json.py); shared reader policy
-  belongs in the library rather than another command module.
-- **Publication shares a mechanism, with policy at its caller.**
-  [vos/atomic.py](vos/atomic.py) owns sibling temporary files, replacement after
-  successful writes and failure cleanup. Writers choose containment, parent
-  creation, serialization, synchronization and exception handling explicitly.
-  Whole-file SHA-256 readers reuse [vos/receipts.py](vos/receipts.py)'s `digest`;
-  hashes of parsed snapshots and structured values retain their own policies.
-- **Source-binding views have one declared owner.**
+  hook while keeping domain-specific numeric, encoding, and shape checks in each reader
+  ([consolidation acceptance](../PLAN.md#shared-json-duplicate-key-rejection)).
+  Memory-planner commands share duplicate-field diagnostics in
+  [vos/memory_planner_json.py](vos/memory_planner_json.py).
+- **Use atomic publication.**
+  [vos/atomic.py](vos/atomic.py) handles sibling temporary files, atomic replacement, and
+  cleanup on failure, while callers supply containment, serialization, and locking.
+  Whole-file SHA-256 digests use [vos/receipts.py](vos/receipts.py)'s `digest`.
+- **Declare source-binding owners in one place.**
   [vos/source_bindings.py](vos/source_bindings.py) declares the composer and
   admission entry points and non-Python inputs used by package inventories,
-  composition inputs and receipt manifests.
-  [The dependency reader](vos/python_dependencies.py) derives local transitive
-  Python imports, including package initializers and imports inside functions,
-  without executing inspected code. Closures are read from each selected checkout;
-  dynamic command targets and data dependencies remain explicit roots.
-  Regenerate owned fields with `composer bind-sources` before `composer project`;
-  K-88 checks those views and the existing generated artifacts. Keep authored
-  package and composition decisions outside those fields.
-- **Annotate every function and type every table.** Use a `Protocol` for dispatch families, a `TypedDict` for configuration rows, and type parameters for containers and `re.Match`. This catches callback-shape errors in tables such as `dialect.KINDS` and `asm.PSEUDOS` before execution.
-- **ID patterns must admit letter suffixes.** Inserted IDs use suffixes instead of renumbering. A pattern such as `A-\d+` can undercount entries and make `--fix` write an incorrect total. With a trailing `(?![\w-])`, it can also skip an unknown suffixed citation entirely. Audit both enumeration and citation readers; fixing one leaves the other unsound.
-- **An invariant is stated where it is relied on.** A reader entitled to a value because two branches above ruled out the alternatives says so, rather than leaving a `None` to be subscripted at the point the tool is reporting the finding it exists to report.
-- **Assertions that guard an artifact are raised, not asserted.** `python -O` deletes an `assert`, and a check standing between a mis-transcribed row and an image the emulator runs anyway has to outlive a flag. `zip` over two sequences that must correspond takes `strict=True` for the same reason: a silent truncation in a tool whose output is evidence is worse than a stopped run.
-- **A rule's cost is the shape of its scan, not the Python around it.** Three shapes each cost tens of milliseconds per pass over the corpus and each has a cheaper equal: `(?m)^` over a document's whole text, which the engine attempts at every line start however few lines match, where walking `doc.lines` with `.match()` behind a substring pre-test gives the line index free; a leading lookbehind such as `(?<![\w-])`, re-decided at every position, where dropping it and checking the boundary in Python on the hits is safe wherever every character inside the token is a word character; and a case-insensitive alternation with no literal prefix, where `str.find` over the lowered text proposes sites and the pattern decides them. The third is where the second's rule reverses, removing the lookbehind making it slower, so a candidate is timed against an equality assertion over the current result rather than applied blind.
+  composition inputs, and receipt manifests, while
+  [vos/python_dependencies.py](vos/python_dependencies.py) statically resolves local
+  transitive Python imports. Regenerate owned fields with `composer bind-sources` before
+  `composer project`; K-88 checks those views.
+- **Annotate all functions and type all dispatch tables.** Use `Protocol` for dispatch families, `TypedDict` for configuration rows, and explicit type parameters for containers and `re.Match`.
+- **Admit letter suffixes in ID regexes.** Inserted requirement and artifact IDs use letter suffixes (e.g., `R-15-073c`) rather than renumbering. Patterns such as `A-\d+` or `A-\d+(?![\w-])` silently miss or skip suffixed IDs; audit both enumeration and citation patterns.
+- **Raise explicit exceptions instead of `assert` for validation.** `python -O` strips `assert` statements, so checks guarding artifacts must raise exceptions explicitly and pass `strict=True` to `zip` over parallel sequences.
+- **Avoid expensive full-document regex scans.** Prefer line-by-line `.match()` with a substring precheck over `(?m)^` across full document text, check word boundaries in Python on matches instead of using leading lookbehinds (`(?<![\w-])`), and prefilter case-insensitive alternations with `str.find` on lowered text (benchmarking candidates against an equality check).
 
 ## Adding a rule to the checker
 
 The [document-count maintenance contract](../docs/implementation/contracts/document-counts.md) keeps narrative counts optional while retaining checks on their owners.
 
-The required edits are:
+Adding a check rule requires three edits:
 
-1. The check itself, in the [vos/checks/](vos/checks/) module for its group.
-2. Its required definition in [check-registry.json](check-registry.json), including one reach class. Bind a new executable group in [vos/checks/](vos/checks/__init__.py) when needed. The driver rejects duplicate IDs, missing implementations and undeclared verdicts, and requires every clean group to report its declared rules. K-00 checks these definitions and the generated views.
-3. Its mutant in [run.py selftest](vos/cli/selftest.py). The selftest fails on a registered rule with no case, and on a case whose mutation no longer applies.
+1. Implement the check in the [vos/checks/](vos/checks/) module for its group (binding a new group in [vos/checks/__init__.py](vos/checks/__init__.py) if needed).
+2. Register its metadata and reach class in [check-registry.json](check-registry.json). K-00 verifies that every registered rule is implemented, reported by a clean group run, and reflected in the generated views.
+3. Add a mutant case in [run.py selftest](vos/cli/selftest.py), which fails if any registered rule lacks a case or has an unseeded mutation.
 
 Regenerate [check-rules.md](check-rules.md)'s marked table and reach memberships
 through `python tools/run.py check --fix`; never hand-edit those regions. Retire an
@@ -1862,7 +1595,7 @@ ID into the owner's inactive records instead of deleting or reusing it.
 
 A rule that reads an enumeration supplies a member count to the floors group, unless it reports unreadable or missing sites itself. State that treatment in its authored metadata. A rule with several readers accounts for each separately; a fail-closed path lookup does not protect an unrelated symbol or command enumeration.
 
-A **quarantined** rule keeps all three edits and keeps them together, in [quarantine/](quarantine/): the check under [quarantine/checks/](quarantine/checks/), the row in [quarantine/check-rules.md](quarantine/check-rules.md), and the mutant in [quarantine/gate.py](quarantine/gate.py), which holds the three against each other exactly as the meta group and the selftest hold the landing loop's. What decides which of the two places a rule belongs in is not the rule but its subject: an instrument whose decision is deferred is not worth a second of every landing, and [that directory's README](quarantine/README.md) states the condition that brings each one back.
+A **quarantined** rule keeps the same three parts inside [quarantine/](quarantine/): the check under [quarantine/checks/](quarantine/checks/), the row in [quarantine/check-rules.md](quarantine/check-rules.md), and the mutant in [quarantine/gate.py](quarantine/gate.py). See [quarantine/README.md](quarantine/README.md) for the deferral criteria and un-quarantine conditions.
 
 Before the integrated batch lands, typecheck and the checker must both be green.
 Host CI supplies those verdicts; document-only lanes do not need separate typecheck

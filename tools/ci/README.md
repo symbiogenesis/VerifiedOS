@@ -615,141 +615,70 @@ declaration a non-empty tuple or list of steps, read from that revision's source
 without running it. A refused plan starts no later job. Inputs reach a step only
 through its environment, and later jobs read only the values the plan validated.
 
-**Jobs.** Every job runs the route's own files, the workflow,
-[bootstrap_instrument.py](bootstrap_instrument.py), instrument_route.py and
-[the opam client's owner](../vos/opam_client.py), from the dispatching commit's
-checkout, takes only the owner's declarations, the instruments, the harnesses and
-`proofs/` from its side's revision, and holds each checkout to `main` before any of its
-code runs. bootstrap_instrument.py installs its own distribution prerequisites,
-`PACKAGES`, the root's from the client's owner and the QuickChick build's, then the
-reviewed client and a fresh private root by the owner's route, and builds the side's
-switch: by `quickchick.RECIPE` into `gallina.QUICKCHICK_RECIPE_SWITCH` where `build` is
-`recipe`, by `quickchick.INSTALL` into `gallina.QUICKCHICK_SWITCH` where it is
-`install`, and on the base side always by its revision's `INSTALL`. It refuses a build
-after which the switch its recipe names does not stand, and the checks on a switch a
-`RECIPE` built run with `--recipe`.
+**Jobs.** Every job runs the route's own files ([instrument-switches.yml](../../.github/workflows/instrument-switches.yml),
+[bootstrap_instrument.py](bootstrap_instrument.py), `instrument_route.py`, and
+[vos/opam_client.py](../vos/opam_client.py)) from the dispatching commit's checkout,
+takes only the owner declarations, instruments, harnesses, and `proofs/` from its target
+revision, and verifies that each checkout is on `main` before executing code.
+`bootstrap_instrument.py` installs distribution prerequisites (`PACKAGES`), the reviewed
+opam client, and a fresh private opam root, then builds the switch (`quickchick.RECIPE`
+into `gallina.QUICKCHICK_RECIPE_SWITCH` when `build=recipe`, `quickchick.INSTALL` into
+`gallina.QUICKCHICK_SWITCH` when `build=install`, and `INSTALL` on the base side). Checks
+against a `RECIPE` switch pass `--recipe`:
 
-- The build job builds the candidate's switch, runs `quickchick check` and
-  `quickchick properties` and exports the switch, uploading the export only when every
-  check on its switch passed.
-- The import job, on another runner, takes that export only from the same run, at the
-  SHA-256 the build job recorded, imports it into a fresh root and the switch the
-  build's recipe names by [the lock guide's](../opam/README.md) create-and-import form,
-  runs `quickchick check` with the build's flag, and decides by its exit 0, the
-  installed closure and each pin's URL and commit. The byte difference of its re-export
-  is recorded as an observation.
-- Where `base_revision` is given, three seed jobs, the base run and two candidate runs,
-  each build their side's switch in a fresh root, list the sampled population with
-  `seed list`, the operator of each mutant the journal names, and run
-  `seed coq --quickchick --sample N` over seed's default subject. The route reads the
-  journal as [seed's `Journal`](../vos/seeded.py) writes it: the scope its head states,
-  one line per verdict, any reason running on over the lines after its verdict, and a
-  closing line counting the decided verdicts and, where there is one, the undecided
-  ones apart. A note, a line opening `-- `, is no verdict and no part of one's reason,
-  and the route reads nothing from it. `seed coq` journals a mutant whose compile
-  reaches gallina's per-file timeout as undecided and goes on to the next. A seed run is
-  complete when its journal's closing line counts every mutant its head picked, decided
-  and undecided together, at seed's exit 0 or 1; a journal that closes on fewer, as one
-  whose baseline did not stand closes on none, fails the step. `--jobs` stays at 1 until
-  the build job's recorded `quickchick properties` peak is the basis for more; after a
-  seed step reaches its limit, the next dispatch raises `--jobs` on that peak or records
-  the runner decision as owed to the user, and the sample stays 20.
-- The join job runs when the plan job passed and the run was not cancelled. It takes
-  one artifact per job, records a job its prerequisite's failure skipped as not run,
-  records as failed a job whose result is failure though none of its wrapped steps
-  failed or was undecided, a seed run only where a step of its own never ran, since a
-  seed run's result is its matrix's, passes over and records an artifact an earlier
-  attempt of the run left for a job this attempt did not run, refuses an artifact
-  missing from a job that ran, a duplicate, any other artifact from a job that did not
-  run, an artifact the route does not name or one not named for its side's revision, a
-  `plan.json` missing, unreadable or naming another run, and a receipt that cannot be
-  read, that names another job, seed run, run or dispatching commit, that records inputs
-  other than the plan's, or that records no tested revision once its provisioning ran or
-  another revision than its side's, and writes `report.json` and a job summary naming
-  each step's verdict, each sampled mutant's verdict in every seed run by its identity,
-  operator, site and rewrite, each mutant whose verdict differs between the two
-  candidate runs or between base and candidate, or whose journalled verdict is other
-  than killed, survived, stillborn or unseeded, an undecided one among them, with the
-  verdicts and reasons the journal records, and every pair of sides whose opam client
-  version or runner image differs.
+- **Build job:** Builds the candidate switch, runs `quickchick check` and
+  `quickchick properties`, and exports the switch (uploading the export only if all checks
+  pass).
+- **Import job:** On a separate runner, verifies the build job's export SHA-256, imports it
+  into a fresh root using [the lock guide's](../opam/README.md) create-and-import form,
+  runs `quickchick check`, and verifies the exit code, installed package closure, and
+  pin URLs/commits (recording any re-export byte difference as an observation).
+- **Seed jobs (when `base_revision` is supplied):** One base run and two candidate runs
+  each build their switch in a fresh root, list the sampled population with `seed list`,
+  and run `seed coq --quickchick --sample N` over `seed`'s default subject. The route
+  parses [seed's `Journal`](../vos/seeded.py) (ignoring `-- ` note lines) and requires the
+  closing line to account for every sampled mutant (`decided` plus `undecided`, where
+  per-file compile timeouts are journaled as `undecided`). `--jobs` defaults to `1` until
+  sized from the build job's `quickchick properties` peak memory.
+- **Join job:** Runs when the plan job passed and the workflow was not canceled. It
+  validates one artifact per executed job against `plan.json` and the job receipts, then
+  writes `report.json` and a job summary listing each step's verdict, every sampled
+  mutant's verdict across the seed runs, any mutant whose verdict differs between runs or
+  is neither `killed`, `survived`, `stillborn`, nor `unseeded` (including `undecided`),
+  and any opam-client or runner-image differences across sides.
 
-**Receipts and limits.** Each job's receipt records its effective inputs, side,
-revision, base revision, build, sample and subject, the subject being the one the plan
-read from the side's seed.py and provisioning refusing a side that names another,
-beside its `source_revision`, recorded before provisioning reads anything else, the
-dispatching commit and `GITHUB_RUN_ATTEMPT`; the recipe built, the switch and the flag
-its checks ran with, and that switch's installed closure with each pin's URL and
-commit; the runner image, `uname -m`, the opam client's version and the prerequisites
-installed; free disk before and after; and each step's limit, exit, GNU time figures
-and the sampler's peaks. Each step runs under coreutils `timeout --kill-after` at the
-limit instrument_route.py states with its basis: the build's from Q38f's 4,402 s
-import, `quickchick properties`' from Q38e's 378 s, and each seed step's its job's
-limit, GitHub's 360-minute hosted maximum less a 5-minute margin, the build step's
-limit, the population listing's and the staging margin, marked unmeasured. A sampler
-appends the largest resident set, its process tree's total, free disk and load average
-to the job's progress log every minute, so a step cut at its limit leaves its peak.
-`report.json`, the job summary and `instrument-ci read` give a step's peak as the
-larger of GNU time's `maxrss_kb` and the sampler's largest resident set, each the
-step's largest single process, name which gave it, and give both figures and the
-sampler's tree total beside it. A step for which neither recorded a figure, as one GNU
-time did not wrap that ended before the first sample, is said to have none, never a
-peak of 0. An exit of 124, or of 137 where the receipt holds no kernel OOM record for
-the step, once the step has run for its limit, is the limit reached; either exit
-sooner is recorded undecided, its cause unread. A step that reaches its limit; that
-exits for want of disk or memory, as the sampler's free-disk figure, a line of its
-output reporting `No space left on device` or the kernel's OOM record shows; or that
-exits with a line of its output naming `TimeoutExpired` decides nothing and is
-recorded undecided, never as a failure. That line is read as a compile that reached
-gallina's per-file timeout and raised out of the step, as one does from
-`quickchick properties`; `seed coq` instead journals such a compile's mutant
-undecided and goes on to the next. Each step's `timeout-minutes` is a backstop above
-its limit, and each job's is the sum of its step limits plus a 15-minute
-staging-and-upload margin.
+**Receipts and limits.** Each job receipt binds its effective inputs, side, revisions,
+dispatching commit, `GITHUB_RUN_ATTEMPT`, built recipe/switch, installed closure and pin
+URLs/commits, runner image, `uname -m`, opam client version, free disk before and after,
+and per-step timeouts, exit codes, GNU `time` figures, and memory-sampler peaks. Steps run
+under `timeout --kill-after` using the limits declared in `instrument_route.py` (derived
+from Q38f's 4,402 s import and Q38e's 378 s property run, with a 15-minute job margin). A
+background sampler logs peak single-process RSS, process-tree RSS, free disk, and load
+average every minute; `report.json`, the job summary, and `instrument-ci read` report the
+larger of GNU `time`'s `maxrss_kb` and the sampler's single-process peak alongside both
+raw figures and the tree total. Any step that hits its timeout, exhausts disk or memory
+(via free-disk readings, `No space left on device`, or kernel OOM records), or exits with
+`TimeoutExpired` is recorded as `undecided` rather than `failed`.
 
-**Staging.** Each job's staging and upload run under `always()`. As in Guest CI, a
-refused check runs no requested revision's code afterwards: each later step that runs a
-command after a failure also requires the plan, or its job's side guard, not to have
-failed, staging alone excepted, and a failed route guard skips the side checkout.
-Staging runs after a refused plan or side revision too, so a refused plan still uploads
-`plan.json` and a refused side its job's receipt, and it runs no requested revision's
-code: its one command runs the dispatching commit's instrument_route.py, which imports
-only the standard library and that checkout's `vos.receipts` and `vos.env`, reads the
-job's private root as data, and reads no file of the side's checkout, whose code no
-step before a refused guard has run.
-The upload runs its pinned action alone. Staging copies an allowlist of `.json`, `.log`,
-`.txt`, `.lock` and `.journal` files into an upload directory and leaves out any file
-that is not a regular file, holds more than 64 MiB, would take the artifact past 256 MiB
-or carries Wasm or ELF magic or a NUL byte, naming each in the receipt with its reason,
-so that no switch, build tree, `.vo`, executable, image or opam cache is uploaded. Each
-artifact is named for its job and revision with no attempt suffix, replaced on a rerun
-and retained 30 days.
+**Staging.** Each job's staging and upload steps run under `always()` using the
+dispatching commit's `instrument_route.py` (which imports only the standard library,
+`vos.receipts`, and `vos.env`, and never executes code from a refused target revision).
+Staging copies only allowlisted regular files (`.json`, `.log`, `.txt`, `.lock`,
+`.journal`) up to 64 MiB each and 256 MiB total, rejecting files with Wasm/ELF magic or
+NUL bytes so no switches, build trees, `.vo` objects, binaries, or caches are uploaded.
+Artifacts are named by job and revision and retained for 30 days.
 
-**Reading.** `run.py instrument-ci read --run ID` follows each artifact's redirect
-without credentials, saves it under `out/instrument-ci/<run id>/` and extracts it only
-there, refusing an archive with a member whose path is absolute or climbs out of its
-directory, two members that would land on one another, a member that cannot be read,
-or whose members total more than 256 MiB, and moving an extraction into place only
-whole. It holds each member to the allowlist and each recorded input to the run, reads
-the jobs' conclusions and the `plan.json` of a run the plan refused, re-joins the
-artifacts against the run's `report.json`, and prints the verdict with the run's URL,
-tested revisions, runner images and step durations and peaks. It prints whether
-`git diff --quiet R <closing parent> -- <route inputs>` holds for the candidate's
-`source_revision` R, and whether the same holds over the route's own files and their
-`vos` import closure for the dispatching commit; given the closing commit by
-`--closing` and the paths its owning item's closing landing names by `--closing-path`,
-it reads that commit's own diff over the route inputs at R and at the closing commit,
-so a module a named path newly imports is one, and prints those paths. It refuses as
-closing evidence a run whose verdict is not passed or where a comparison does not
-hold, a build artifact holding no export, a closing parent given beside the closing
-commit that is not that commit's first parent, a closing commit that touches a route
-input other than the tracked lock, its SHA-256 equal to the artifact's export, and the
-named paths, and a run with a `base_revision` whose sample is not 20 or whose subject
-is not seed's default. The route inputs are the workflow, bootstrap_instrument.py,
-instrument_route.py, opam_client.py, gallina.py, quickchick.py, seed.py, provision.py,
-env.py, proofs.py, seeded.py and mutate.py, the transitive `vos` import closure at R of
-every module the route runs, which the reader computes from R's sources, tools/run.py,
-tools/pyproject.toml, tools/uv.lock, `tools/quickchick/`, `tools/opam/quickchick.lock`
-and `proofs/`.
+**Reading.** `run.py instrument-ci read --run ID` downloads and safely extracts artifacts
+under `out/instrument-ci/<run id>/` (enforcing the allowlist and 256 MiB bound),
+re-verifies job receipts against `report.json`, and prints the run verdict, URL, tested
+revisions, runner images, and step durations/peaks. It also checks whether route inputs
+changed between the candidate's `source_revision`, the dispatching commit, and (when
+`--closing` and `--closing-path` are given) the closing commit, refusing runs that did not
+pass, lack a build export, or modified unexpected route inputs. Route inputs comprise the
+workflow, `bootstrap_instrument.py`, `instrument_route.py`, `opam_client.py`, `gallina.py`,
+`quickchick.py`, `seed.py`, `provision.py`, `env.py`, `proofs.py`, `seeded.py`,
+`mutate.py` (and their transitive `vos` imports), `tools/run.py`, `tools/pyproject.toml`,
+`tools/uv.lock`, `tools/quickchick/`, `tools/opam/quickchick.lock`, and `proofs/`.
 
 **Landing.** QuickChick's lock is tracked only in its owning item's closing landing,
 from a passing run's artifact, its SHA-256 equal to the artifact's. That landing copies

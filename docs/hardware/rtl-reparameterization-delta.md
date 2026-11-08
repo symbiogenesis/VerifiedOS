@@ -178,7 +178,7 @@ The imported tag path carries one tag per 128-bit region on the AXI user bits, w
 
 The tag controller also holds a **tag cache**, which A-11 excludes: CHERI tags ride the SRAM word here and no separate tag hierarchy exists. What transfers from the reference is the separate tag block and the user-bit carriage, not the caching in front of them.
 
-**The two `mocha` rows are sites in a file this plan does not take, and that is why they are literal rows rather than work.** Both sit in the bring-up SoC's own top-level glue, and taking that top whole is the arm the plan refuses: it would import an address map from a design that fields an MMU this profile deletes. The top this design carries is authored over [the frozen profile's composition](../../model/config/verifiedos.json) instead, and it is owed rather than written: R1c-ii has authored the map-facing half alone, so no authored top restates the frozen granule yet, [the format package](../../rtl/vos_cheri_pkg.sv) stating it as `CapSize` where these rows' destination would be a top, and what these two rows record is a reference literal with no destination on this side rather than one an authored top has already restated. What does transfer from this section is the fabric's own `CapSize`, which is a parameter on the tag controller rather than a rewrite, and the collapsed-width fact that one AXI beat carries exactly one tag.
+**The two `mocha` rows sit in upstream top-level glue that this design does not import.** Adopting Mocha's top would pull in an MMU-based address map incompatible with the frozen profile. Instead, this platform authors its SoC top from [the frozen profile's composition](../../model/config/verifiedos.json): R1c-ii has landed the address-map package, while [rtl/vos_cheri_pkg.sv](../../rtl/vos_cheri_pkg.sv) defines `CapSize` for the core. What transfers from this section is the tag controller's parameterized `CapSize` and the collapsed-width invariant that one 64-bit AXI beat carries one tag.
 
 ### 2.5 Behaviour the frozen format requires and the imported tree does not have
 
@@ -192,13 +192,13 @@ Five sites are additions rather than changes, and each is named because a delta 
 
 ## 3. What the delta prices
 
-The register above separates into three kinds of work, and only the first is what the word *re-parameterization* ordinarily suggests.
+The site register separates into three classes of work:
 
-- **Following a parameter.** Most of [§2.2](#22-the-width-identity-outside-the-package) and [§2.4](#24-the-tag-plane-and-the-bus-user-bits). A curator changes the declaration and reads the consumers to confirm they follow. Cheap per site and large in count.
-- **Replacing a constant a parameter does not reach.** The literal rows of [§2.1](#21-the-format-package). Each is a small edit and a large hazard, because a wrong one is silent: the design elaborates, the bounds decode, and a capability at one exponent is wrong.
-- **Authoring against the model.** `setCapBounds`, `decode_bounds`, `encode_bounds`, the meta-data comparison, the malformed predicate, the permission expansion and narrowing, and the five additions of [§2.5](#25-behaviour-the-frozen-format-requires-and-the-imported-tree-does-not-have). These are written from `cap_common.sail` and checked against it, not edited from the imported source.
+- **Following a parameter** (most of [§2.2](#22-the-width-identity-outside-the-package) and [§2.4](#24-the-tag-plane-and-the-bus-user-bits)): updating the parameter declaration and verifying that consumer widths follow.
+- **Replacing hard-coded constants** (the literal rows of [§2.1](#21-the-format-package)): small edits with high silent-bug risk if a width or exponent literal is missed.
+- **Authoring against the Sail model:** `setCapBounds`, `decode_bounds`, `encode_bounds`, representable-limit comparisons, the malformed-bounds predicate, permission expansion and narrowing, and the five additions of [§2.5](#25-behaviour-the-frozen-format-requires-and-the-imported-tree-does-not-have), all implemented directly from `cap_common.sail`.
 
-The third kind is where the estimate lives, and it is also where R-15-007a's representation-correctness proof and this work meet: the proof states encode and decode as a round trip over the 19-bit bounds encoding at these widths, and the RTL that implements them is the third implementation of the same definition, after the model and the emulator fork.
+The third class dominates the estimate and joins R-15-007a's representation-correctness proof, which states bounds encode/decode round-trip correctness over the 19-bit bounds encoding at these widths.
 
 **The format implementation is authored; datapath adaptation remains.** [`rtl/vos_cheri_pkg.sv`](../../rtl/vos_cheri_pkg.sv) implements bounds decoding and construction, representable-limit comparison, fast representability checks, address and offset setters, length, malformedness and permission expansion/narrowing against `cap_common.sail`.
 

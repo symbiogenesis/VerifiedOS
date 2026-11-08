@@ -9,7 +9,7 @@ stops at a WasmCert executable-definition adaptation. Its contract owns the next
 candidate and adoption checks. The environment below is the qualified production
 snapshot.
 
-* **Compiler**: CertiRocq **0.9.1 for Rocq 9.1**, the released `rocq-certirocq.0.9.1+9.1` from the `rocq-released` opam repository, MIT. It is a release rather than a source pin because the release now carries both things a pin used to buy: the merged CertiCoq-Wasm backend (`theories/CodegenWasm`, mechanized against WasmCert-Coq, CPP 2025) that the `coq-certicoq` 0.9 release predated, and `rocq-metarocq-erasure-plugin` and `rocq-metarocq-safechecker-plugin` at `>= 1.5.1`, which is *released* MetaRocq rather than the unreleased 9.1 branch main tracked. There is therefore no clone, no checkout and no compatibility patch; the erasure inlining toggle a patch used to move already sits in `unsafe_passes` here.
+* **Compiler**: CertiRocq **0.9.1 for Rocq 9.1** (`rocq-certirocq.0.9.1+9.1` from the `rocq-released` opam repository, MIT). The released package includes both the merged CertiCoq-Wasm backend (`theories/CodegenWasm`, mechanized against WasmCert-Coq, CPP 2025) and released `rocq-metarocq-erasure-plugin` / `rocq-metarocq-safechecker-plugin` (`>= 1.5.1`), with the erasure inlining toggle already placed in `unsafe_passes`, so no git pin or compatibility patch is needed.
 * **Prover**: Rocq 9.1.1. CertiRocq requires `rocq-core {>= "9.1" & < "9.2~"}`, and its `coq-wasm` dependency also requires Coq below 9.2. The [proof gate](../vos/cli/proofs.py) independently uses Rocq 9.3.0.
 * **OCaml**: 4.14.4 with ocamlfind 1.9.8. CertiRocq's unmodified native `certirocqc` bootstrap fails with OCaml 5.4.1 because its runtime's `Hd_val` macro collides with the inline function introduced in OCaml 5.2; OCaml 4.14.4 defines `Hd_val` as the same macro, token for token. The [package snapshot guide](../opam/README.md) records this boundary and the independent 5.4.1 switches. The container imports the same snapshot; its published Rocq 9.1 image's OCaml 4.14.2 only runs opam.
 * **Engine**: Node.js 26.13.0 through [node.sh](node.sh), which verifies the official archive checksum and installs into a versioned toolchain directory. It uses stock `WebAssembly.instantiate`; the emitted module is import-free. `wasmtime` works equally for modules that need no result pretty-printing.
@@ -22,7 +22,7 @@ the component comparison below.
 
 ## Build and run
 
-[tools/opam/certirocq.lock](../opam/certirocq.lock) is the export of a fresh aarch64 switch built with opam 2.6.1. The unpatched CertiRocq release, including its native `certirocqc` and `certirocqchk` bootstraps, built with OCaml 4.14.4; its compatible transitive updates are ExtLib 0.13.2 and mdx 2.7.0, and the other locked packages and compiler invariant remain unchanged. `demo.v` printed `true` through the compiled Wasm, and `ipc_oracle.v`'s 84 checks answered `true` in the kernel and through Wasm; the seeded twin answered `false`, with the Wasm runner exiting 1. Both recipes below import this snapshot. The Docker build is unexercised: the image is published for `linux/amd64` alone, and the aarch64 guest where these checks ran has not built it. The Gallina vector harnesses compile in the proof gate's switch and exercise nothing in this one.
+[tools/opam/certirocq.lock](../opam/certirocq.lock) is the export of a fresh aarch64 switch built with opam 2.6.1. The unpatched CertiRocq release, including its native `certirocqc` and `certirocqchk` bootstraps, built with OCaml 4.14.4 (with compatible transitive updates ExtLib 0.13.2 and mdx 2.7.0). `demo.v` printed `true` through the compiled Wasm, and `ipc_oracle.v`'s 84 checks answered `true` in the kernel and through Wasm, while the seeded negative control answered `false` and exited `1`. Both recipes below import this snapshot. The Docker build is unexercised on the aarch64 guest because the base image is published only for `linux/amd64`. The Gallina vector harnesses compile in the proof gate's switch and do not use this switch.
 
 The [fresh bootstrap and oracle qualification](../../docs/implementation/retained-evidence/dependencies-20261019/certirocq/manifest.json),
 SHA-256 `74be4b871584e7615304f7c50bfe7cf9e6a978152366c5b69574ca416721134c`,
@@ -33,9 +33,9 @@ wrapper's invalid optional executable lookup is preserved separately from its
 successful installation; corrected qualification reused that installation.
 The complete-vector M1.2f comparison below remains a separate acceptance check.
 
-`run.py provision --apply` plans nothing for this switch, whose only route is the recipe here, a person's rather than a tool's, and `provision`'s oracle row holds only over a root that carries the declared switch.
+`run.py provision --apply` does not install this switch automatically; use the manual recipe below (`provision` checks the oracle row only when the declared switch is present).
 
-Two environments install the same opam package. The container is the portable one and the opam switch is the one that runs on an arm64 host, because `rocq/rocq-prover` publishes `linux/amd64` alone at every 9.1 tag.
+Two environments install the same opam package: the Docker container (for `linux/amd64`) and the native opam switch (used on `arm64` hosts because `rocq/rocq-prover` publishes 9.1 images for `linux/amd64` only).
 
 ```console
 $ docker build -t wasm-oracle -f tools/wasm-oracle/Dockerfile tools

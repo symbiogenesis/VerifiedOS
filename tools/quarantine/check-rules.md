@@ -1,14 +1,12 @@
 # The Quarantined Rules
 
-*The enumerated reach of [gate.py](gate.py): one row per check this directory carries, stating what passing means and on what ground, in the shape [the checker's own registry](../check-rules.md) states its rules in. The two rules here decide about the two instruments here, and they run when this gate is run rather than before every landing.*
+*The enumerated reach of [gate.py](gate.py): one row per check in this directory, in the same format as [the main checker registry](../check-rules.md). These two rules check the two deferred instruments here and run under `gate.py` rather than on every landing.*
 
 ## Why there are two registries
 
-A rule struck ahead of the emitter that replaces it is a fact nothing holds, and both rules below hold a fact that is still true: the freeze analyzer still has to carry exactly the enumerations its contract states, and the bank grant still has to be one number in the contract and in the composition with no coefficient the qualification state does not allow. Striking them because their decisions are deferred would delete the hold and leave the two contracts free to drift against instruments nobody runs, which is the state both instruments were built to end.
+Both rules below check invariants that still hold: the profile-freeze analyzer must match the enumerations in its contract, and the second-class bank grant must match across the contract and composition without using unmeasured coefficients. Striking the rules while their milestones are deferred would leave the two instruments and their contracts free to drift.
 
-Keeping them in `check.py` was the other wrong answer and is what S16 acts on. A rule in the landing loop is a rule every unrelated change pays for, and these two pay for a freeze that falls behind the M8a gate and a search whose hard constraint has no operands until R5 measures a macro. So they keep running and they stop running *there*: the checks moved here with the instruments they read, this file is their registry, and `gate.py` holds this file against them in both directions and seeds each of them a mutant, which is the three-edit discipline [tools/README.md](../README.md) states, kept whole inside the quarantine instead of spread across the landing loop.
-
-What holds the split itself is K-83, which stays in the landing loop because its subject is the landing loop: no source under `tools/` that this directory does not carry may import one of its modules or name its directory as a path.
+Keeping them in `check.py`, however, would charge every unrelated change for checks whose decisions wait on M8a and R5. The checks therefore live here alongside their instruments, registered in this file and tested by `gate.py` with their floors and seeded mutants. K-83 in the main checker ensures that no landing-loop module under `tools/` imports or invokes `tools/quarantine/`.
 
 ## The rules
 
@@ -19,8 +17,7 @@ What holds the split itself is K-83, which stays in the landing loop because its
 
 ## What a passing run here does not decide
 
-The same residue [the checker's registry](../check-rules.md) declares, and one more that is this directory's own.
+The same review boundaries declared in [the main checker registry](../check-rules.md#what-a-passing-run-does-not-decide) apply here:
 
-K-58 is an ordinary pattern rule and K-77 is a both-directions membership run once per enumeration over one pair of artifacts, so K-58 belongs to the class that registry defines as found by pattern and K-77 to the one it defines as found by name, and each leaves what its class leaves: a pattern that narrows without emptying goes on deciding about a smaller set, and a membership held in both directions decides that two rosters agree and never that either roster is the right one. Neither is listed under those classes, whose lists K-119 holds to the active rules that registry carries. Whether the candidate set is the right candidate set, whether the pending coefficients are the right coefficients, and whether the contract asks the analyzer to measure the right things are each a person's, and each is a question the deferred decision will put rather than one this gate can.
-
-The one that is this directory's own is what a green run here says about *when*. It says the two instruments still agree with the two contracts as both stand today. It does not say the deferral is still right: that is the condition [README.md](README.md) states per instrument, and a milestone rather than a rule is what meets it.
+- K-58 is a pattern-class check and K-77 is a name-class bidirectional set and relation check. Passing means the instruments and contracts agree on their declared sets, not that the candidate bank counts, pending coefficients, or freeze measurements are the right ones.
+- A green run here shows that the two instruments still match their contracts today; whether either instrument is ready to leave quarantine is governed by the milestone conditions in [README.md](README.md#what-un-quarantines-them-and-when).
