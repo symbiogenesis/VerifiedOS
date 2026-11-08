@@ -1,21 +1,25 @@
 # SPDX-License-Identifier: Apache-2.0
-"""The maintained table rules cover widths, pipes and suppressed-looking input."""
+"""The maintained table rules cover widths, pipes, pragmas and binary installation."""
 
+import hashlib
 import json
-import multiprocessing
+import subprocess
+import sys
 import tempfile
-from collections.abc import Callable
+import zipfile
+from collections.abc import Generator
+from contextlib import ExitStack, contextmanager
 from pathlib import Path
 from types import SimpleNamespace
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
-from pymarkdown.api import PyMarkdownApiException
+from filelock import Timeout
 
 from tests.harness import TOOLS, Case, ensure, sandbox_tree
 from vos import corpus, markdownlint
 from vos.markdownlint import table_findings
 
-CONFIG = TOOLS.parent / ".pymarkdown.json"
+CONFIG = TOOLS.parent / ".rumdl.toml"
 
 
 def _table_rules() -> None:
@@ -31,10 +35,24 @@ def _table_rules() -> None:
 
 
 def _pragmas_cannot_disable_validation() -> None:
-    raw = ("<!-- pyml disable md056 -->\n\n"
-           "| a | b |\n| --- | --- |\n| 1 |\n")
-    ensure(any("MD056" in finding for finding in table_findings(raw, CONFIG)),
-           "document pragmas must not disable table validation")
+    table = "| a | b |\n| --- | --- |\n| 1 |\n"
+    directives = (
+        "<!-- pyml disable md056 -->",
+        "<!-- rumdl-disable MD056 -->",
+        "<!-- rumdl-disable -->",
+        "<!-- markdownlint-disable MD056 -->",
+        '<!-- markdownlint-configure-file { "MD056": false } -->',
+        '<!-- rumdl-configure-file { "MD056": false } -->',
+        "<!-- prettier-ignore -->",
+        "> <!-- rumdl-disable MD056 -->",
+        "<!--\nrumdl-disable MD056\n-->",
+    )
+    for directive in directives:
+        raw = f"{directive}\n\n{table}"
+        findings = table_findings(raw, CONFIG)
+        expected_line = raw.count("\n")
+        ensure(any(finding.startswith(f"{expected_line}: MD056 ") for finding in findings),
+               f"document directive suppressed or shifted table validation ({directive!r}): {findings}")
 
 
 def _pipe_style() -> None:
@@ -48,7 +66,7 @@ def _serial(documents: list[corpus.Document], config: Path) -> list[str]:
     for doc in documents:
         try:
             findings.extend(f"{doc.name}:{finding}" for finding in table_findings(doc.raw, config))
-        except (OSError, ValueError, PyMarkdownApiException) as exc:
+        except (OSError, ValueError, TypeError, subprocess.SubprocessError) as exc:
             findings.append(f"{doc.name}: Markdown validation failed: {exc}")
     return findings
 
@@ -56,7 +74,7 @@ def _serial(documents: list[corpus.Document], config: Path) -> list[str]:
 def _batch_preserves_complete_ordered_findings() -> None:
     header = "| 标题 | b |\n| --- | --- |\n"
     inputs = [header + "| 1 |\n", "```md\n" + header + "| 1 |\n```\n",
-              "<!-- pyml disable md056 -->\n\n" + header + "| 1 | 2 | 3 |\n",
+              "<!-- rumdl-disable MD056 -->\n\n" + header + "| 1 | 2 | 3 |\n",
               "a | b\n--- | ---\n1 | 2", "```md\n| unclosed fence",
               header + "| 合法 | `x` |\n", header + "| a\\|b | x |\n",
               "> " + header.replace("\n", "\n> ") + "| 1 |\n", "", "| ordinary text"]
@@ -77,7 +95,7 @@ def _batch_refusal_retains_each_string_error() -> None:
                  for name in ("a.md", "b.md")]
     expected = _serial(documents, CONFIG)
     for error in (OSError("placement denied"), ValueError("population mismatch"),
-                  PyMarkdownApiException("parser refused")):
+                  subprocess.TimeoutExpired(["rumdl"], 120)):
         with patch.object(markdownlint, "_batch", side_effect=error):
             ensure(markdownlint.document_findings(documents, CONFIG) == expected,
                    f"a refused batch must replay every original string: {error}")
@@ -90,230 +108,350 @@ def _batch_refusal_retains_each_string_error() -> None:
 
 def _batch_preserves_index_membership_and_edits() -> None:
     raw = "| a | b |\n| --- | --- |\n| 1 | 2 |\n"
-    with sandbox_tree({".pymarkdown.json": CONFIG.read_text(encoding="utf-8"),
+    with sandbox_tree({".rumdl.toml": CONFIG.read_text(encoding="utf-8"),
                        "a.md": raw, "b.md": raw}) as root:
         (root / "ignored.md").write_text(raw.replace("1 | 2", "1"), encoding="utf-8")
         ensure(not markdownlint.run(root).findings, "untracked Markdown entered the batch")
         (root / "a.md").write_text(raw.replace("1 | 2", "1"), encoding="utf-8", newline="")
         ensure(markdownlint.run(root).findings == 1, "a changed source reused a prior verdict")
-        config = root / ".pymarkdown.json"
-        settings = json.loads(config.read_text(encoding="utf-8"))
-        settings["system"] = {"exclude_path": "*.md"}
-        config.write_text(json.dumps(settings), encoding="utf-8")
-        ensure(markdownlint.run(root).findings == 1,
-               "batch discovery exclusions must not hide indexed string inputs")
-        config.write_text("{", encoding="utf-8")
+        config = root / ".rumdl.toml"
+        config.write_text(CONFIG.read_text(encoding="utf-8") + '\nexclude = ["*.md"]\n', encoding="utf-8")
         expected = _serial(corpus.load(root).docs, config)
         report = markdownlint.run(root)
         ensure(report.findings == len(expected) and report.out[2:] == [f"       {f}" for f in expected],
-               "malformed configuration must retain the original string decisions and diagnostics")
+               "unreviewed configuration keys must refuse rather than hiding indexed inputs")
+        config.write_text("[global\n", encoding="utf-8")
+        expected = _serial(corpus.load(root).docs, config)
+        report = markdownlint.run(root)
+        ensure(report.findings == len(expected) and report.out[2:] == [f"       {f}" for f in expected],
+               "malformed configuration must retain the per-document decisions and diagnostics")
 
 
-def _batch_rejects_omissions_and_unknown_results() -> None:
-    documents = [corpus.from_text("| a | b |\n| --- | --- |\n| 1 |\n", name)
-                 for name in ("a.md", "b.md")]
-    expected = _serial(documents, CONFIG)
-    original = markdownlint._api(CONFIG)
-    for mode in ("omitted", "unknown", "critical", "pragma"):
-        def discovered(directory: str, mode: str = mode) -> SimpleNamespace:
-            paths = sorted(str(path) for path in Path(directory).glob("*.md"))
-            return SimpleNamespace(matching_files=paths[:1] if mode == "omitted" else paths)
+def _structured_verdicts() -> None:
+    ensure(markdownlint.read_result(2, 0, "[]", "") == [[], []],
+           "a complete structured success must pass")
+    valid = json.dumps([{"file": "00000001.md", "line": 3, "rule": "MD056", "message": "width"}])
+    ensure(markdownlint.read_result(2, 1, valid, "") == [[], ["3: MD056 width"]],
+           "a valid diagnostic must map back to its ordinal document")
+    invalid = [
+        (0, "{}"),
+        (0, valid),
+        (1, "[]"),
+        (2, "[]"),
+        (1, '[{"file":"00000000.md","file":"00000000.md","line":1,"rule":"MD056","message":"x"}]'),
+        (1, json.dumps([{"file": "unknown.md", "line": 1, "rule": "MD056", "message": "x"}])),
+        (1, json.dumps([{"file": "00000000.md", "line": 0, "rule": "MD056", "message": "x"}])),
+        (1, json.dumps([{"file": "00000000.md", "line": True, "rule": "MD056", "message": "x"}])),
+        (1, json.dumps([{"file": "00000000.md", "line": 1, "rule": "MD013", "message": "x"}])),
+        (1, json.dumps([{"file": "00000000.md", "line": 1, "rule": "MD056", "message": ""}])),
+    ]
+    for code, output in invalid:
+        try:
+            markdownlint.read_result(1, code, output, "stopped")
+        except (ValueError, TypeError):
+            continue
+        raise AssertionError(f"an incomplete or failed tool verdict passed: {code}, {output}")
 
-        result = SimpleNamespace(critical_errors=["error"] if mode == "critical" else [],
-                                 pragma_errors=["error"] if mode == "pragma" else [],
-                                 scan_failures=[SimpleNamespace(scan_file="unknown.md")]
-                                 if mode == "unknown" else [])
-        fake = SimpleNamespace(list_path=discovered, scan_path=lambda _directory, result=result: result,
-                               scan_string=original.scan_string)
-        with patch.object(markdownlint, "_api", return_value=fake):
-            ensure(markdownlint.document_findings(documents, CONFIG) == expected,
-                   f"batch {mode} must replay the original complete string population")
 
-
-def _carriage_returns_keep_the_string_provider() -> None:
+def _carriage_returns_and_unencodable_sources() -> None:
     for ending in ("\r\n", "\r"):
         documents = [corpus.from_text(("| a | b |\n| --- | --- |\n| 1 |\n").replace("\n", ending),
                                       name) for name in ("a.md", "b.md")]
         expected = _serial(documents, CONFIG)
-        with patch.object(markdownlint, "_batch", side_effect=AssertionError("wrong provider")):
-            ensure(markdownlint.document_findings(documents, CONFIG) == expected,
-                   "carriage-return content must retain the original provider's decisions")
-
-
-def _partitions_are_complete_and_byte_balanced() -> None:
-    documents = [(0, "a" * 20), (1, "字" * 6), (2, "b" * 4), (3, "c" * 2)]
-    groups = markdownlint._partitions(documents, 2)
-    ensure(groups == [[documents[0], documents[3]], [documents[1], documents[2]]],
-           f"partitions must balance actual UTF-8 bytes deterministically: {groups}")
-    ensure(sorted(item for group in groups for item in group) == documents,
-           "parallel partitions changed the complete document population")
-
-
-def _parallel_selection_is_bounded() -> None:
-    documents = [corpus.from_text("| ordinary text\n", name) for name in ("a.md", "b.md")]
-    for cpus, threshold in ((1, 0), (None, 0), (8, 1 << 20)):
-        with (patch.object(markdownlint.os, "process_cpu_count", return_value=cpus),
-              patch.object(markdownlint, "PARALLEL_BYTES", threshold),
-              patch.object(markdownlint, "_parallel") as parallel):
-            ensure(not markdownlint.document_findings(documents, CONFIG), "fixture should pass")
-            ensure(not parallel.called, "small or single-CPU calls must retain serial parsing")
-    with (patch.object(markdownlint.os, "process_cpu_count", return_value=64),
-          patch.object(markdownlint, "PARALLEL_BYTES", 0),
-          patch.object(markdownlint, "_parallel", return_value=({0: [], 1: []}, 2)) as parallel):
-        metrics: dict[str, int] = {}
-        markdownlint.document_findings(documents, CONFIG, metrics=metrics)
-        ensure(parallel.call_args.args[2] == 2 and metrics["workers"] == 2,
-               "the host-wave parser budget must remain at most two workers")
-
-
-def _unencodable_sources_keep_the_string_provider() -> None:
-    for raw in ("| \ud800 | b |\n| --- | --- |\n| 1 |\n", "| ordinary \udfff text\n"):
-        documents = [corpus.from_text(raw, name) for name in ("a.md", "b.md")]
+        actual = markdownlint.document_findings(documents, CONFIG)
+        ensure(actual == expected and len(actual) == 2
+               and all(":3: MD056 " in line for line in actual),
+               f"carriage-return content must preserve line numbers and width diagnostics: {actual}")
+    for bad in ("| \ud800 | b |\n| --- | --- |\n| 1 |\n", "| a | \x00 |\n| --- | --- |\n| 1 |\n"):
+        documents = [corpus.from_text(bad, "bad.md"),
+                     corpus.from_text("| a | b |\n| --- | --- |\n| 1 |\n", "good.md")]
         expected = _serial(documents, CONFIG)
-        with (patch.object(markdownlint.os, "process_cpu_count", return_value=2),
-              patch.object(markdownlint, "PARALLEL_BYTES", 0),
-              patch.object(markdownlint, "_parallel", side_effect=AssertionError("wrong provider"))):
-            ensure(markdownlint.document_findings(documents, CONFIG) == expected,
-                   "unencodable source strings must preserve the original provider's diagnostics")
+        actual = markdownlint.document_findings(documents, CONFIG)
+        ensure(actual == expected and len(actual) == 2
+               and actual[0].startswith("bad.md: Markdown validation failed:")
+               and actual[1].startswith("good.md:3: MD056 "),
+               f"unencodable or NUL-containing input must fail closed without hiding peers: {actual}")
 
 
-def _spawned_workers_preserve_complete_diagnostics() -> None:
-    header = "| 标题 | b |\n| --- | --- |\n"
-    inputs = [header + "| 1 |\n", "```md\n" + header + "| 1 |\n```\n",
-              "<!-- pyml disable md056 -->\n\n" + header + "| 1 | 2 | 3 |\n",
-              "a | b\n--- | ---\n1 | 2", header + "| a\\|b | `value` |\n",
-              header.replace("\n", "\r\n") + "| 1 |\r\n", ""]
-    documents = [corpus.from_text(raw, f"{len(inputs) - index} ü.md")
-                 for index, raw in enumerate(inputs)]
-    with (patch.object(markdownlint.os, "process_cpu_count", return_value=2),
-          patch.object(markdownlint, "PARALLEL_BYTES", 0)):
-        metrics: dict[str, int] = {}
-        ensure(markdownlint.document_findings(documents, CONFIG, metrics=metrics)
-               == _serial(documents, CONFIG), "spawned parsers changed complete ordered diagnostics")
-        ensure(metrics["parallel_attempts"] == 1 and metrics["parallel_fallbacks"] == 0
-               and metrics["worker_limit"] == 2 and 1 <= metrics["workers"] <= 2,
-               f"the fixture must exercise real successful spawned workers: {metrics}")
+def _cached_executable_identity() -> None:
+    with tempfile.TemporaryDirectory(prefix="vos-rumdl-cache-") as directory:
+        root = Path(directory)
+        home = root / f"rumdl-{markdownlint.VERSION}"
+        home.mkdir()
+        target = home / "rumdl.exe"
+        target.write_bytes(b"reviewed executable")
+        asset = markdownlint.Asset("x86_64-pc-windows-msvc", "0" * 64,
+                                   hashlib.sha256(target.read_bytes()).hexdigest())
+        download = Mock()
+        factory = Mock(wraps=markdownlint.FileLock)
+        with (patch.object(markdownlint, "sys", SimpleNamespace(prefix=str(root),
+                                                                base_prefix="other", platform="win32")),
+              patch.object(markdownlint, "asset_for", return_value=asset),
+              patch.object(markdownlint, "FileLock", factory),
+              patch.object(markdownlint.receipts, "download", download)):
+            ensure(markdownlint.executable() == target, "verified cached bytes must be reused")
+            factory.assert_called_once_with(home / ".install.lock", timeout=180,
+                                            fallback_to_soft=False, preserve_lock_file=True)
+            target.write_bytes(b"substituted executable")
+            try:
+                markdownlint.executable()
+            except ValueError:
+                pass
+            else:
+                raise AssertionError("a changed cached executable must refuse")
+            download.assert_not_called()
 
 
-class _Pool:
-    def __init__(self, events: list[str], result: object = None,
-                 error: Exception | None = None,
-                 inspect: Callable[[list[tuple[markdownlint.Batch, Path, Path]]], None] | None = None
-                 ) -> None:
-        self.events = events
-        self.result = result
-        self.error = error
-        self.inspect = inspect
+_INSTALLER = """
+import json
+import os
+import sys
+import time
+from contextlib import contextmanager
+from pathlib import Path
+from types import SimpleNamespace
 
-    def starmap_async(self, _worker: object,
-                      arguments: list[tuple[markdownlint.Batch, Path, Path]]) -> SimpleNamespace:
-        if self.inspect is not None:
-            self.inspect(arguments)
+sys.path.insert(0, sys.argv[1])
+from vos import markdownlint
 
-        def get(timeout: int) -> object:
-            ensure(timeout == markdownlint.PARALLEL_TIMEOUT, "the pool needs its complete deadline")
-            if self.error is not None:
-                raise self.error
-            return self.result
+root, source = Path(sys.argv[2]), Path(sys.argv[3])
+asset = markdownlint.Asset('x86_64-pc-windows-msvc',
+                           markdownlint.receipts.digest(source), sys.argv[4])
+markdownlint.sys = SimpleNamespace(prefix=str(root / 'cache'),
+                                   base_prefix='other', platform='win32')
+markdownlint.ASSETS['windows'] = asset
+atomic_path = markdownlint.receipts.atomic_path
 
-        return SimpleNamespace(get=get)
+@contextmanager
+def counted_publication(path):
+    with atomic_path(path) as pending:
+        yield pending
+    if path.name == asset.executable:
+        (root / f'published-{os.getpid()}').write_text(str(path), encoding='utf-8')
 
-    def close(self) -> None:
-        self.events.append("close")
+def download(url, target, expected):
+    if target.exists():
+        if markdownlint.receipts.digest(target) != expected:
+            raise ValueError('cached fixture archive differs from its pin')
+        return
+    (root / f'download-{os.getpid()}').write_text(url, encoding='utf-8')
+    if markdownlint.receipts.digest(source) != expected:
+        raise AssertionError('fixture archive differs from its pin')
+    if sys.argv[5] == 'hold':
+        print('holding', flush=True)
+        if input() != 'release':
+            raise AssertionError('missing owner release')
+    time.sleep(0.25)
+    with atomic_path(target) as pending:
+        pending.write_bytes(source.read_bytes())
 
-    def terminate(self) -> None:
-        self.events.append("terminate")
-
-    def join(self) -> None:
-        self.events.append("join")
-
-
-def _pool_failures_stop_before_complete_serial_replay() -> None:
-    documents = [corpus.from_text("| a | b |\n| --- | --- |\n| 1 |\n", name)
-                 for name in ("a.md", "b.md")]
-    expected = _serial(documents, CONFIG)
-    for error in (OSError("worker failed"), multiprocessing.TimeoutError("deadline")):
-        events: list[str] = []
-        pool = _Pool(events, error=error)
-        original = markdownlint._batch
-
-        def serial(raw: list[str], config: Path, events: list[str] = events,
-                   original: Callable[[list[str], Path], list[list[str]]] = original
-                   ) -> list[list[str]]:
-            events.append("serial")
-            return original(raw, config)
-
-        with (patch.object(markdownlint.os, "process_cpu_count", return_value=2),
-              patch.object(markdownlint, "PARALLEL_BYTES", 0),
-              patch.object(markdownlint.multiprocessing, "get_context",
-                           return_value=SimpleNamespace(Pool=lambda pool=pool, **_kwargs: pool)),
-              patch.object(markdownlint, "_batch", side_effect=serial)):
-            ensure(markdownlint.document_findings(documents, CONFIG) == expected,
-                   "worker failure must retain every original string diagnostic")
-        ensure(events == ["terminate", "join", "serial"],
-               f"failed workers must be dead before serial replay starts: {events}")
-    with (patch.object(markdownlint.os, "process_cpu_count", return_value=2),
-          patch.object(markdownlint, "PARALLEL_BYTES", 0),
-          patch.object(markdownlint.multiprocessing, "get_context", side_effect=OSError("startup")),
-          patch.object(markdownlint, "_batch", wraps=markdownlint._batch) as replay):
-        ensure(markdownlint.document_findings(documents, CONFIG) == expected and replay.call_count == 1,
-               "pool startup failure must replay the complete original population")
-
-
-def _parallel_rejects_incomplete_or_invalid_results() -> None:
-    documents = [corpus.from_text("| ordinary text\n", name) for name in ("a.md", "b.md")]
-    malformed = [[], [(1, [(0, [])])], [(1, [(0, []), (0, [])])],
-                 [(1, [(0, []), (2, [])])], [(1, [(0, []), (1, [3])])],
-                 [(False, [(0, []), (1, [])])], [(1, [(0, []), (True, [])])],
-                 [(1, [(0, []), (1, None)])], [(1,)]]
-    malformed += [[(1, [(1, [])]), (2, [(0, [])])],
-                  [(1, [(0, [])]), (2, [(1, [])]), (3, [])]]
-    for result in malformed:
-        events: list[str] = []
-        with (patch.object(markdownlint.os, "process_cpu_count", return_value=2),
-              patch.object(markdownlint, "PARALLEL_BYTES", 0),
-              patch.object(markdownlint.multiprocessing, "get_context", return_value=SimpleNamespace(
-                  Pool=lambda events=events, result=result, **_kwargs: _Pool(events, result=result))),
-              patch.object(markdownlint, "_batch", wraps=markdownlint._batch) as serial):
-            ensure(not markdownlint.document_findings(documents, CONFIG), "serial fixture should pass")
-            ensure(serial.call_count == 1 and events == ["close", "join"],
-                   f"invalid worker output must supply no accepted findings: {result}")
+markdownlint.receipts.atomic_path = counted_publication
+if sys.argv[5] != 'cached':
+    markdownlint.receipts.download = download
+if sys.argv[5] == 'timeout':
+    original_lock = markdownlint.FileLock
+    def impatient_lock(*args, **kwargs):
+        return original_lock(*args, **(kwargs | {'timeout': 0.1}))
+    markdownlint.FileLock = impatient_lock
+print('ready', flush=True)
+if input() != 'start':
+    raise AssertionError('missing simultaneous start')
+try:
+    target = markdownlint.executable()
+except ValueError as exc:
+    if sys.argv[5] not in ('failure', 'cached'):
+        raise
+    print(json.dumps({'error': str(exc)}), flush=True)
+    input()
+else:
+    print(json.dumps({'path': str(target),
+                      'digest': markdownlint.receipts.digest(target)}), flush=True)
+"""
 
 
-def _workers_use_configuration_snapshot_and_refresh_between_calls() -> None:
-    raw = "| a | b |\n| --- | --- |\n| 1 |\n"
-    documents = [corpus.from_text(raw, name) for name in ("a.md", "b.md")]
-    original = CONFIG.read_bytes()
-    with tempfile.TemporaryDirectory(prefix="vos-markdown-settings-") as temporary:
-        config = Path(temporary) / "config.json"
-        config.write_bytes(original)
+def _installer_archive(root: Path, payload: bytes, name: str) -> Path:
+    archive = root / name
+    with zipfile.ZipFile(archive, "w") as bundle:
+        bundle.writestr("rumdl.exe", payload)
+    return archive
 
-        def inspect(arguments: list[tuple[markdownlint.Batch, Path, Path]]) -> None:
-            ensure(all(snapshot.read_bytes() == original for _, snapshot, _ in arguments),
-                   "workers must read an immutable copy of the selected configuration bytes")
-            config.write_text("{", encoding="utf-8")
-            ensure(all(snapshot.read_bytes() == original for _, snapshot, _ in arguments),
-                   "a changed owner must not alter an active worker snapshot")
 
-        with (patch.object(markdownlint.os, "process_cpu_count", return_value=2),
-              patch.object(markdownlint, "PARALLEL_BYTES", 0),
-              patch.object(markdownlint.multiprocessing, "get_context", return_value=SimpleNamespace(
-                  Pool=lambda **_kwargs: _Pool([], result=[(1, [(0, ["fixture"])]), (2, [(1, [])])],
-                                              inspect=inspect)))):
-            ensure(markdownlint.document_findings(documents, config) == ["a.md:fixture"],
-                   "the pool's complete result must retain document order")
-            expected = _serial(documents, config)
-            ensure(markdownlint.document_findings(documents, config) == expected,
-                   "a later invocation must read changed configuration and retain original paths")
-        settings = json.loads(original)
-        settings["plugins"]["unknown"] = {"enabled": False, "path": "relative/path"}
-        config.write_text(json.dumps(settings), encoding="utf-8")
-        expected = _serial(documents, config)
-        with (patch.object(markdownlint.os, "process_cpu_count", return_value=2),
-              patch.object(markdownlint, "PARALLEL_BYTES", 0),
-              patch.object(markdownlint.multiprocessing, "get_context") as context):
-            ensure(markdownlint.document_findings(documents, config) == expected and not context.called,
-                   "unfamiliar plugin settings must retain their original configuration location")
+@contextmanager
+def _installer(root: Path, source: Path, expected: str,
+               mode: str = "success") -> Generator[subprocess.Popen[str]]:
+    with subprocess.Popen(
+            [sys.executable, "-c", _INSTALLER, str(TOOLS), str(root), str(source), expected, mode],
+            cwd=TOOLS.parent, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE, text=True, encoding="utf-8") as child:
+        try:
+            if child.stdout is None or child.stdin is None:
+                raise AssertionError("installer fixture requires command and result pipes")
+            ensure(child.stdout.readline() == "ready\n", "installer fixture failed before start")
+            yield child
+        finally:
+            if child.poll() is None:
+                child.kill()
+
+
+def _start_installer(child: subprocess.Popen[str]) -> None:
+    if child.stdin is None:
+        raise AssertionError("installer fixture requires a command pipe")
+    child.stdin.write("start\n")
+    child.stdin.flush()
+
+
+def _installed(child: subprocess.Popen[str], expected: Path, digest: str) -> None:
+    output, error = child.communicate(timeout=20)
+    ensure(child.returncode == 0, f"installer process failed: {error}")
+    ensure(json.loads(output) == {"path": str(expected), "digest": digest},
+           f"every process must return the same verified executable: {output}")
+
+
+def _concurrent_cold_install() -> None:
+    with (tempfile.TemporaryDirectory(prefix="vos-rumdl-concurrent-") as directory,
+          ExitStack() as processes):
+        root = Path(directory)
+        payload = b"reviewed fixture executable"
+        digest = hashlib.sha256(payload).hexdigest()
+        source = _installer_archive(root, payload, "release.zip")
+        children = [processes.enter_context(_installer(root, source, digest)) for _ in range(3)]
+        for child in children:
+            _start_installer(child)
+        target = root / "cache" / f"rumdl-{markdownlint.VERSION}" / "rumdl.exe"
+        for child in children:
+            _installed(child, target, digest)
+        ensure(target.read_bytes() == payload, "the shared executable must retain pinned bytes")
+        ensure(len(list(root.glob("download-*"))) == 1,
+               "simultaneous cold callers must download the shared release only once")
+        ensure(len(list(root.glob("published-*"))) == 1,
+               "simultaneous cold callers must publish the shared executable only once")
+
+
+def _failed_install_releases_lock() -> None:
+    with tempfile.TemporaryDirectory(prefix="vos-rumdl-recovery-") as directory:
+        root = Path(directory)
+        payload = b"reviewed fixture executable"
+        digest = hashlib.sha256(payload).hexdigest()
+        bad = _installer_archive(root, b"substituted executable", "bad.zip")
+        good = _installer_archive(root, payload, "good.zip")
+        target = root / "cache" / f"rumdl-{markdownlint.VERSION}" / "rumdl.exe"
+        with _installer(root, bad, digest, "failure") as failed:
+            _start_installer(failed)
+            if failed.stdout is None:
+                raise AssertionError("installer fixture requires a result pipe")
+            refusal = json.loads(failed.stdout.readline())
+            ensure("extracted rumdl executable hash differs" in refusal.get("error", ""),
+                   f"substituted release bytes must refuse publication: {refusal}")
+            ensure(not target.exists() and not list(root.glob("published-*")),
+                   "a failed verification must publish no executable")
+            archives = list(target.parent.glob("*.zip"))
+            ensure(len(archives) == 1, "the refused release must leave its authenticated archive")
+            archives[0].unlink()
+            with _installer(root, good, digest) as recovered:
+                _start_installer(recovered)
+                _installed(recovered, target, digest)
+            ensure(failed.poll() is None,
+                   "recovery must acquire the cache while the failed caller is still alive")
+        ensure(target.read_bytes() == payload, "a subsequent verified install must recover")
+        ensure(len(list(root.glob("download-*"))) == 2
+               and len(list(root.glob("published-*"))) == 1,
+               "one refused release and one recovery must publish only the verified executable")
+
+
+def _bounded_installation_wait() -> None:
+    with tempfile.TemporaryDirectory(prefix="vos-rumdl-wait-") as directory:
+        root = Path(directory)
+        payload = b"reviewed fixture executable"
+        digest = hashlib.sha256(payload).hexdigest()
+        source = _installer_archive(root, payload, "release.zip")
+        target = root / "cache" / f"rumdl-{markdownlint.VERSION}" / "rumdl.exe"
+        with _installer(root, source, digest, "hold") as owner:
+            _start_installer(owner)
+            if owner.stdout is None or owner.stdin is None:
+                raise AssertionError("installer fixture requires command and result pipes")
+            ensure(owner.stdout.readline() == "holding\n", "the provider never acquired its lock")
+            with _installer(root, source, digest, "timeout") as waiter:
+                _start_installer(waiter)
+                _, error = waiter.communicate(timeout=20)
+                ensure(waiter.returncode != 0 and "Timeout:" in error and ".install.lock" in error,
+                       f"contention must refuse within its budget: {error}")
+            ensure(not target.exists(), "a timed-out waiter published an executable")
+            owner.stdin.write("release\n")
+            owner.stdin.flush()
+            _installed(owner, target, digest)
+
+
+def _terminated_installer_releases_lock() -> None:
+    with tempfile.TemporaryDirectory(prefix="vos-rumdl-termination-") as directory:
+        root = Path(directory)
+        payload = b"reviewed fixture executable"
+        digest = hashlib.sha256(payload).hexdigest()
+        source = _installer_archive(root, payload, "release.zip")
+        target = root / "cache" / f"rumdl-{markdownlint.VERSION}" / "rumdl.exe"
+        with _installer(root, source, digest, "hold") as owner:
+            _start_installer(owner)
+            if owner.stdout is None:
+                raise AssertionError("installer fixture requires a result pipe")
+            ensure(owner.stdout.readline() == "holding\n", "the provider never acquired its lock")
+            owner.kill()
+            owner.communicate(timeout=20)
+        ensure(not target.exists(), "a terminated provider published an executable")
+        with _installer(root, source, digest) as recovered:
+            _start_installer(recovered)
+            _installed(recovered, target, digest)
+        ensure(target.read_bytes() == payload, "the OS did not release terminated ownership")
+
+
+def _corrupt_cached_archive_refuses() -> None:
+    with tempfile.TemporaryDirectory(prefix="vos-rumdl-corrupt-") as directory:
+        root = Path(directory)
+        payload = b"reviewed fixture executable"
+        digest = hashlib.sha256(payload).hexdigest()
+        source = _installer_archive(root, payload, "release.zip")
+        home = root / "cache" / f"rumdl-{markdownlint.VERSION}"
+        home.mkdir(parents=True)
+        archive = home / f"rumdl-v{markdownlint.VERSION}-x86_64-pc-windows-msvc.zip"
+        archive.write_bytes(b"substituted archive")
+        with _installer(root, source, digest, "cached") as failed:
+            _start_installer(failed)
+            if failed.stdout is None:
+                raise AssertionError("installer fixture requires a result pipe")
+            refusal = json.loads(failed.stdout.readline())
+            ensure("cached download SHA256 does not match" in refusal.get("error", ""),
+                   f"corrupt cache bytes must refuse before download or publication: {refusal}")
+        ensure(archive.read_bytes() == b"substituted archive"
+               and not (home / "rumdl.exe").exists(),
+               "the refusal replaced cached bytes or published an executable")
+
+
+def _native_retirement_lock_compatibility() -> None:
+    if sys.platform != "linux":
+        return
+    import fcntl
+
+    with tempfile.TemporaryDirectory(prefix="vos-rumdl-native-lock-") as directory:
+        path = Path(directory) / ".install.lock"
+        with (markdownlint.FileLock(path, timeout=0.1, fallback_to_soft=False, preserve_lock_file=True),
+              path.open("a+b") as stream):
+            try:
+                fcntl.flock(stream.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+            except BlockingIOError:
+                pass
+            else:
+                raise AssertionError("native retirement ignored an active installer lock")
+        ensure(path.is_file(), "release removed the stable installation lock pathname")
+        with path.open("a+b") as stream:
+            fcntl.flock(stream.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+            blocked = False
+            try:
+                with markdownlint.FileLock(path, timeout=0.1, fallback_to_soft=False,
+                                           preserve_lock_file=True):
+                    pass
+            except Timeout:
+                blocked = True
+            finally:
+                fcntl.flock(stream.fileno(), fcntl.LOCK_UN)
+            ensure(blocked, "installation bypassed native retirement's lock")
 
 
 def cases() -> list[Case]:
@@ -323,12 +461,15 @@ def cases() -> list[Case]:
             Case("batch preserves complete ordered findings", _batch_preserves_complete_ordered_findings),
             Case("batch refusals retain string errors", _batch_refusal_retains_each_string_error),
             Case("batch preserves index membership and edits", _batch_preserves_index_membership_and_edits),
-            Case("batch rejects omissions and unknown results", _batch_rejects_omissions_and_unknown_results),
-            Case("carriage returns retain string provider", _carriage_returns_keep_the_string_provider),
-            Case("parallel partitions preserve and balance UTF-8 bytes", _partitions_are_complete_and_byte_balanced),
-            Case("parallel selection respects host budget", _parallel_selection_is_bounded),
-            Case("unencodable sources retain string provider", _unencodable_sources_keep_the_string_provider),
-            Case("spawned parsers preserve complete ordered findings", _spawned_workers_preserve_complete_diagnostics),
-            Case("failed pools stop before complete serial replay", _pool_failures_stop_before_complete_serial_replay),
-            Case("worker population errors retain serial validation", _parallel_rejects_incomplete_or_invalid_results),
-            Case("worker configuration snapshots refresh between calls", _workers_use_configuration_snapshot_and_refresh_between_calls)]
+            Case("tool crashes and malformed verdicts refuse", _structured_verdicts),
+            Case("carriage returns and unencodable sources retain exact diagnostics",
+                 _carriage_returns_and_unencodable_sources),
+            Case("cached executable bytes retain their reviewed identity", _cached_executable_identity),
+            Case("simultaneous cold processes install one verified executable", _concurrent_cold_install),
+            Case("failed installation releases the cache for another live process",
+                 _failed_install_releases_lock),
+            Case("installation contention has a bounded refusal", _bounded_installation_wait),
+            Case("terminated installation releases OS ownership", _terminated_installer_releases_lock),
+            Case("corrupt cached archives refuse without replacement", _corrupt_cached_archive_refuses),
+            Case("native retirement and installation contend on the same lock",
+                 _native_retirement_lock_compatibility)]

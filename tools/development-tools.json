@@ -2196,51 +2196,6 @@
       ]
     },
     {
-      "id": "markdown_application_file_scanner",
-      "tool": "application-file-scanner",
-      "subject": "the reviewed Markdown-tool dependency release",
-      "reviewed": [
-        "0.6.4"
-      ],
-      "owners": [
-        {
-          "kind": "uv",
-          "path": "tools/uv.lock",
-          "key": "application-file-scanner"
-        }
-      ]
-    },
-    {
-      "id": "markdown_application_properties",
-      "tool": "application-properties",
-      "subject": "the reviewed Markdown-tool dependency release",
-      "reviewed": [
-        "0.9.3"
-      ],
-      "owners": [
-        {
-          "kind": "uv",
-          "path": "tools/uv.lock",
-          "key": "application-properties"
-        }
-      ]
-    },
-    {
-      "id": "markdown_columnar",
-      "tool": "columnar",
-      "subject": "the reviewed Markdown-tool dependency release",
-      "reviewed": [
-        "1.4.1"
-      ],
-      "owners": [
-        {
-          "kind": "uv",
-          "path": "tools/uv.lock",
-          "key": "columnar"
-        }
-      ]
-    },
-    {
       "id": "markdown_markdown_it_py",
       "tool": "markdown-it-py",
       "subject": "the reviewed Markdown-tool dependency release",
@@ -2271,122 +2226,17 @@
       ]
     },
     {
-      "id": "markdown_py_walk",
-      "tool": "py-walk",
-      "subject": "the reviewed Markdown-tool dependency release",
+      "id": "rumdl",
+      "tool": "rumdl",
+      "subject": "the reviewed Markdown table-linter release",
       "reviewed": [
-        "0.3.3"
+        "0.3.2"
       ],
       "owners": [
         {
-          "kind": "uv",
-          "path": "tools/uv.lock",
-          "key": "py-walk"
-        }
-      ]
-    },
-    {
-      "id": "markdown_pyjson5",
-      "tool": "pyjson5",
-      "subject": "the reviewed Markdown-tool dependency release",
-      "reviewed": [
-        "2.0.1"
-      ],
-      "owners": [
-        {
-          "kind": "uv",
-          "path": "tools/uv.lock",
-          "key": "pyjson5"
-        }
-      ]
-    },
-    {
-      "id": "markdown_pymarkdownlnt",
-      "tool": "pymarkdownlnt",
-      "subject": "the reviewed Markdown-tool dependency release",
-      "reviewed": [
-        "0.9.41"
-      ],
-      "owners": [
-        {
-          "kind": "uv",
-          "path": "tools/uv.lock",
-          "key": "pymarkdownlnt"
-        }
-      ]
-    },
-    {
-      "id": "markdown_sly",
-      "tool": "sly",
-      "subject": "the reviewed Markdown-tool dependency release",
-      "reviewed": [
-        "0.5"
-      ],
-      "owners": [
-        {
-          "kind": "uv",
-          "path": "tools/uv.lock",
-          "key": "sly"
-        }
-      ]
-    },
-    {
-      "id": "markdown_tomli",
-      "tool": "tomli",
-      "subject": "the reviewed Markdown-tool dependency release",
-      "reviewed": [
-        "2.5.0"
-      ],
-      "owners": [
-        {
-          "kind": "uv",
-          "path": "tools/uv.lock",
-          "key": "tomli"
-        }
-      ]
-    },
-    {
-      "id": "markdown_toolz",
-      "tool": "toolz",
-      "subject": "the reviewed Markdown-tool dependency release",
-      "reviewed": [
-        "1.2.0"
-      ],
-      "owners": [
-        {
-          "kind": "uv",
-          "path": "tools/uv.lock",
-          "key": "toolz"
-        }
-      ]
-    },
-    {
-      "id": "markdown_typing_extensions",
-      "tool": "typing-extensions",
-      "subject": "the reviewed Markdown-tool dependency release",
-      "reviewed": [
-        "4.16.0"
-      ],
-      "owners": [
-        {
-          "kind": "uv",
-          "path": "tools/uv.lock",
-          "key": "typing-extensions"
-        }
-      ]
-    },
-    {
-      "id": "markdown_wcwidth",
-      "tool": "wcwidth",
-      "subject": "the reviewed Markdown-tool dependency release",
-      "reviewed": [
-        "0.9.4"
-      ],
-      "owners": [
-        {
-          "kind": "uv",
-          "path": "tools/uv.lock",
-          "key": "wcwidth"
+          "kind": "assign",
+          "path": "tools/vos/markdownlint.py",
+          "key": "VERSION"
         }
       ]
     },
@@ -2851,7 +2701,7 @@
       "id": "pre-commit's dependencies",
       "tool": "pre-commit's dependencies",
       "license": "`MIT`; nodeenv `BSD-3-Clause`; distlib `PSF-2.0`; packaging `Apache-2.0 OR BSD-2-Clause`",
-      "standing": "The optional `model` group's closure, which [tools/uv.lock](tools/uv.lock) fixes. The locked wheels and release tags carry these license instruments: cfgv `v${pre_commit_s_dependencies_71_0}` `LICENSE`, blob `b7af5ef213084fe100c5bb755659ef68c14dae5b`, copyright 2018 Anthony Sottile; identify `v${pre_commit_s_dependencies_72_0}` `LICENSE`, blob `0ecc5db911dadf39c600843c4646aa2b5c3a0ed7`, copyright 2017 Chris Kuehl and Anthony Sottile; nodeenv `${pre_commit_s_dependencies_73_0}` `LICENSE`, blob `a087c8d694a12d9f113ab83e2eeb7adbfa1353cd`, copyright 2011 Eugene Kalinin; PyYAML `${pre_commit_s_dependencies_74_0}` `LICENSE`, blob `2f1b8e15e5627d92f0521605c9870bc8e5505cb4`, copyright Ingy döt Net and Kirill Simonov; virtualenv `${pre_commit_s_dependencies_75_0}` `LICENSE`, blob `99598eb01766f838b130ff04c02103c1418215e1`, and `THIRD-PARTY-NOTICES.md`, blob `107e3e0418e26691f3c1b3385942f2dd5fb54601`, which leaves its embedded pip and setuptools wheels under their own licenses, including those of the packages each vendors; distlib `${pre_commit_s_dependencies_76_0}` `LICENSE.txt`, blob `c31ac56d772f7061c8b42f0ee96063b7a94a4859`, the PSF License Version 2 with Python's historical agreements; filelock `${pre_commit_s_dependencies_77_0}` `LICENSE`, blob `291919c0b6f41d014767f6c877af9f7595fcff99`, copyright 2025 Bernát Gábor and contributors; platformdirs `${pre_commit_s_dependencies_78_0}` `LICENSE`, blob `f35fed9191b1142ddaada8a96de4a9461c5d796c`, crediting the platformdirs developers; python-discovery `${pre_commit_s_dependencies_79_0}` `LICENSE`, blob `364982344fbd94d55705e1f27a9a87abaa255333`, the MIT grant with no copyright line; and packaging `${pre_commit_s_dependencies_80_0}` `LICENSE`, blob `6f62d44e4ef733c0e713afcd2371fed7f2b3de67`, offering `LICENSE.APACHE`, blob `f433b1a53f5b830a205fd2df78e2b34974656c7b`, or `LICENSE.BSD`, blob `42ce7b75c92fb01a3f6ed17eea363f756b7da582`. nodeenv installs Node.js for pre-commit's Node hooks under Node's own terms. Nothing is redistributed here. The same reviewed filelock release is a direct host dependency for serializing Lychee cache installation with operating-system locks. The selected wheel has the recorded LICENSE blob; no package is redistributed here. The same reviewed PyYAML release is a direct runtime dependency for composing workflow and hook YAML as source nodes without constructing objects. Its ${pre_commit_s_dependencies_74_0} LICENSE grants MIT under the recorded copyright notices; no package is redistributed here.",
+      "standing": "The optional `model` group's closure, which [tools/uv.lock](tools/uv.lock) fixes. The locked wheels and release tags carry these license instruments: cfgv `v${pre_commit_s_dependencies_71_0}` `LICENSE`, blob `b7af5ef213084fe100c5bb755659ef68c14dae5b`, copyright 2018 Anthony Sottile; identify `v${pre_commit_s_dependencies_72_0}` `LICENSE`, blob `0ecc5db911dadf39c600843c4646aa2b5c3a0ed7`, copyright 2017 Chris Kuehl and Anthony Sottile; nodeenv `${pre_commit_s_dependencies_73_0}` `LICENSE`, blob `a087c8d694a12d9f113ab83e2eeb7adbfa1353cd`, copyright 2011 Eugene Kalinin; PyYAML `${pre_commit_s_dependencies_74_0}` `LICENSE`, blob `2f1b8e15e5627d92f0521605c9870bc8e5505cb4`, copyright Ingy döt Net and Kirill Simonov; virtualenv `${pre_commit_s_dependencies_75_0}` `LICENSE`, blob `99598eb01766f838b130ff04c02103c1418215e1`, and `THIRD-PARTY-NOTICES.md`, blob `107e3e0418e26691f3c1b3385942f2dd5fb54601`, which leaves its embedded pip and setuptools wheels under their own licenses, including those of the packages each vendors; distlib `${pre_commit_s_dependencies_76_0}` `LICENSE.txt`, blob `c31ac56d772f7061c8b42f0ee96063b7a94a4859`, the PSF License Version 2 with Python's historical agreements; filelock `${pre_commit_s_dependencies_77_0}` `LICENSE`, blob `291919c0b6f41d014767f6c877af9f7595fcff99`, copyright 2025 Bernát Gábor and contributors; platformdirs `${pre_commit_s_dependencies_78_0}` `LICENSE`, blob `f35fed9191b1142ddaada8a96de4a9461c5d796c`, crediting the platformdirs developers; python-discovery `${pre_commit_s_dependencies_79_0}` `LICENSE`, blob `364982344fbd94d55705e1f27a9a87abaa255333`, the MIT grant with no copyright line; and packaging `${pre_commit_s_dependencies_80_0}` `LICENSE`, blob `6f62d44e4ef733c0e713afcd2371fed7f2b3de67`, offering `LICENSE.APACHE`, blob `f433b1a53f5b830a205fd2df78e2b34974656c7b`, or `LICENSE.BSD`, blob `42ce7b75c92fb01a3f6ed17eea363f756b7da582`. nodeenv installs Node.js for pre-commit's Node hooks under Node's own terms. Nothing is redistributed here. The same reviewed filelock release is a direct host dependency for serializing Lychee and rumdl cache installation with operating-system locks. The selected wheel has the recorded LICENSE blob; no package is redistributed here. The same reviewed PyYAML release is a direct runtime dependency for composing workflow and hook YAML as source nodes without constructing objects. Its ${pre_commit_s_dependencies_74_0} LICENSE grants MIT under the recorded copyright notices; no package is redistributed here.",
       "reviews": [
         "pre_commit_s_dependencies_71",
         "pre_commit_s_dependencies_72",
@@ -3016,22 +2866,20 @@
     {
       "id": "Markdown validation libraries",
       "tool": "Markdown validation libraries",
-      "license": "MIT, BSD-3-Clause, MIT OR Apache-2.0 and PSF-2.0",
-      "standing": "Locked host documentation dependencies: `application-file-scanner` `${markdown_application_file_scanner_0}`, `application-properties` `${markdown_application_properties_0}`, `columnar` `${markdown_columnar_0}`, `markdown-it-py` `${markdown_markdown_it_py_0}`, `mdurl` `${markdown_mdurl_0}`, `py-walk` `${markdown_py_walk_0}`, `pyjson5` `${markdown_pyjson5_0}`, `pymarkdownlnt` `${markdown_pymarkdownlnt_0}`, `sly` `${markdown_sly_0}`, `tomli` `${markdown_tomli_0}`, `toolz` `${markdown_toolz_0}`, `typing-extensions` `${markdown_typing_extensions_0}`, `wcwidth` `${markdown_wcwidth_0}`. The [selected-wheel licence reading](docs/implementation/evidence/markdown-tool-license-readings-20261029.json) records the reviewed wheel and licence-text hashes. No source, wheel or compiled library is conveyed here.",
+      "license": "`MIT`",
+      "standing": "Locked host documentation dependencies: `markdown-it-py` `${markdown_markdown_it_py_0}` and `mdurl` `${markdown_mdurl_0}`. The [selected-wheel licence reading](docs/implementation/evidence/markdown-tool-license-readings-20261029.json) records the reviewed wheel and licence-text hashes. No source, wheel or compiled library is conveyed here.",
       "reviews": [
-        "markdown_application_file_scanner",
-        "markdown_application_properties",
-        "markdown_columnar",
         "markdown_markdown_it_py",
-        "markdown_mdurl",
-        "markdown_py_walk",
-        "markdown_pyjson5",
-        "markdown_pymarkdownlnt",
-        "markdown_sly",
-        "markdown_tomli",
-        "markdown_toolz",
-        "markdown_typing_extensions",
-        "markdown_wcwidth"
+        "markdown_mdurl"
+      ]
+    },
+    {
+      "id": "rumdl",
+      "tool": "rumdl",
+      "license": "`MIT`",
+      "standing": "Pinned Markdown table syntax validation (`MD055` and `MD056`) at `${rumdl_0}`. The release commit `1e0f1d13c87418c31e0d59dacddd98f27a02efcc` carries [LICENSE](https://github.com/rvben/rumdl/blob/1e0f1d13c87418c31e0d59dacddd98f27a02efcc/LICENSE), blob `44201427072c79d3676ef3ab0063e7b56ca7376b`, SHA-256 `8b282c0b4d86c2e0d12f38998b0054b6f793afaffa2eba42628aa94a322779b8`, read on 2026-11-07 and crediting Ruben J. Jongejan and Titus Wormer. The adapter verifies archive and executable hashes in the managed tool environment. No source or executable is conveyed here.",
+      "reviews": [
+        "rumdl"
       ]
     },
     {

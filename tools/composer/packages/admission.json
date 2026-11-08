@@ -12,11 +12,11 @@
     },
     {
       "path": "tools/pyproject.toml",
-      "sha256": "3d1bbd38f558a98c46d87ba87ac62f360cca55dafd9ba42c323acb162e46b781"
+      "sha256": "db314a13c9a3d4a4e7616a938ce428f46c9961fd300aab5e1cc96772a66fd9cd"
     },
     {
       "path": "tools/uv.lock",
-      "sha256": "3ec7b8f3b137af6405df6ea1085da2c789611bcb05bb5297ff7292f0a1824c12"
+      "sha256": "55edc4312a572821133088601ca959d21d6042cfdc5e1c9caa67f24b5194b9f6"
     },
     {
       "path": "tools/vos/admission.py",

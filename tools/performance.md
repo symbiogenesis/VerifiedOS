@@ -193,10 +193,10 @@ alone supplies no completed comparison evidence. Q35q's
 complete native census, independent positive and corruption controls, assumptions
 and kernel acceptance remain open under their existing contracts.
 
-Markdown table validation batches an exact private snapshot of indexed documents
-through the pinned linter. Discovery must equal the selected file population;
-unsupported configuration, carriage returns and unfamiliar diagnostics retain the
-per-string route. Proof-header repair shares parsed facts only at unchanged cuts,
+Markdown table validation batches the indexed documents over NUL-framed
+`--stdin-batch` through the pinned `rumdl` executable, verified in the managed
+environment under its installation lock. Invalid configuration, tool-verdict
+disagreements and unencodable inputs fall back to the per-document route. Proof-header repair shares parsed facts only at unchanged cuts,
 with separate reports and actual-byte assertions. All five full repair checks
 remain. Proof-context snapshots hash each distinct loaded library path once and
 read it afresh at the next snapshot.

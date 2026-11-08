@@ -1157,7 +1157,7 @@ coverage a rule. Both are pinned for the reason Rocq and z3 are pinned, and a ve
 other than the pinned one is a finding rather than a warning.
 
 The exact checker pins live in [pyproject.toml](pyproject.toml)'s development
-group. JSON Schema validation, CommonMark parsing and Markdown table linting use
+group. JSON Schema validation, CommonMark parsing and cache-installation locks use
 runtime dependencies in the same project, and
 [uv.lock](uv.lock) fixes the complete resolution for both operating systems.
 Workflow and hook pin readers share [vos/yamlutil.py](vos/yamlutil.py), which uses
@@ -1392,9 +1392,13 @@ Workflow setup reads that file, provisioning and guest bootstrap use the shared
 commands receive targets derived from it. Editors infer their targets from the same
 manifest. A malformed or multi-minor constraint refuses instead of selecting a default.
 
-`python tools/run.py markdown` checks table syntax with the pinned PyMarkdown
-implementation of MD055 and MD056 using [.pymarkdown.json](../.pymarkdown.json).
-Only these rules run, and document pragmas cannot disable them. This mandatory
+`python tools/run.py markdown` checks table syntax with the pinned
+[rumdl adapter](vos/markdownlint.py) implementation of MD055 and MD056 using
+[.rumdl.toml](../.rumdl.toml). Its archive and executable hashes are verified in
+the managed Python environment under a serialized installation lock, and its
+NUL-framed `--stdin-batch` input lints the indexed Markdown population without
+temporary document trees. Only MD055 and MD056 run, and inline document comments
+cannot disable them. This mandatory
 host-wave member runs once in each unpartitioned CI job, outside semantic-rule
 mutation replay. K-39 retains the separate check for pipe-led text with no table
 separator, which a standard Markdown table rule does not recognize.

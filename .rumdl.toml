@@ -1,0 +1,9 @@
+# SPDX-License-Identifier: Apache-2.0
+[global]
+enable = ["MD055", "MD056"]
+cache = false
+editorconfig = false
+respect-gitignore = false
+
+[MD055]
+style = "leading_and_trailing"
