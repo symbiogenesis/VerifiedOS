@@ -1,88 +1,42 @@
 (* SPDX-License-Identifier: Apache-2.0 *)
 (* =========================================================================
-   ModuleFormats.v: Q24c's canonical manifest and proof-certificate formats.
+   ModuleFormats.v
 
-   The subject is ModuleAdmission.v's Manifest record and the certificate
-   container that carries it, stated over the entries that own them:
-   R-12-085g's one canonical manifest per admitted design, carried with the
-   certificate transport as a bounded non-recursive record format with
-   explicit total byte and field limits, which R-05-042's inventory and
-   R-05-046's derivation rule own as descriptors; R-05-051a's canonicity
-   theorem for a descriptor whose encoding is an input to a name or an
-   equality test, with R-05-051b's no-slack rule and R-05-051c's refusal to
-   give that role to a descriptor carrying no such theorem; R-12-085h's
-   design admission against host-selected propositions, permitted
-   assumptions and checker/profile versions inside R-06-015a's predeclared
-   bounds; R-04-010b's reading that manifest and proof bytes are data and
-   not an option ROM; and the scope R-12-085f, R-12-085l and R-15-228h keep
-   for every artifact this file does not author.
+   Canonical manifest and proof-certificate wire formats for
+   [ModuleAdmission.v](ModuleAdmission.v)'s `Manifest` record and certificate
+   container.
 
-   What this file is. One wire format written twice over, as a serializer
-   and as a parser. Both are total functions into `option`: every refusal is
-   an explicit `None`, no input reaches a default, and no fuel argument
-   escapes into a statement. Parsing a serialized value returns that value,
-   and serializing a parsed byte string returns that byte string. Those are
-   R-05-051a's two directions, and the second is the one that makes a
-   manifest an identity rather than one of several, because it gives each
-   value exactly one admissible encoding.
+   Governing obligations:
+   - Canonical manifest and certificate container (R-12-085g, R-12-085h):
+     one canonical manifest per admitted design carried in a bounded
+     non-recursive record format with explicit total-byte and field limits
+     (owned as wire descriptors by R-05-042 and R-05-046), round-trip and
+     unique-encoding canonicity (R-05-051a) with pinned minimal representations
+     and no trailing slack (R-05-051b, R-05-051c; compare
+     [InferenceAdmission.v](InferenceAdmission.v)'s fixed-width schema), design
+     admission against host-selected propositions, permitted assumptions, and
+     checker/profile versions within R-06-015a's predeclared bounds, and
+     manifest/proof bytes treated purely as data rather than option ROMs
+     (R-04-010b).
+   - Layer boundaries: cryptographic session binding (R-12-085i), physical
+     unit-key binding (R-17-058i), Narcissus parser derivation (R-05-042,
+     R-05-046), and broader module scope (R-12-085f, R-12-085l, R-15-228h)
+     remain with their respective owners.
 
-   The format. A byte is a natural below the declared radix. A numeral is a
-   digit-count byte followed by that many least-significant-first digits, in
-   the one minimal form: a digit list whose last digit is zero is refused
-   rather than normalized, which is R-05-051b's pinned subset, and zero is
-   the empty digit list. A manifest record is the manifest tag followed by
-   the twelve identity numerals in the record's own field order, and nothing
-   else; a certificate container is the container tag, that same field body
-   for its subject, the checker and profile numerals, the length-prefixed
-   evidence bytes and the length-prefixed assumption list. Neither
-   production refers to itself, so the grammar is non-recursive and its
-   nesting depth is one; the recursions below are over flat byte lists and
-   over a field count, never over the format.
-
-   Every magnitude is a field of FormatBounds: the byte radix, a numeral's
-   digit bound, the manifest's field count, the two record tags, the
-   evidence byte budget, the assumption entry budget and the two total-size
-   budgets. The only magnitude a definition reads outside a witness is the
-   radix floor of two in `format_wf`, which is positional notation's domain
-   condition and not a format maximum; the remaining numerals below are
-   positions in a check list, read by a proof script. The identities are
-   opaque: nothing here computes, compares or checks a digest, and an
-   identity is a bounded numeral that stands for one.
-
-   What the gate's green line means, and what it does not. These definitions
-   compile, are axiom-free, and are enumerated. No cryptography is
-   implemented: no hash, signature, key exchange or transport is computed,
-   and a certificate's bytes are opaque evidence that this file moves and
-   bounds without inspecting. No kernel receipt is synthesized from card
-   bytes; `admit_encoded` below parses a container and hands the parsed
-   evidence to ModuleAdmission's design gate together with a receipt the
-   host supplies, because a card-supplied success assertion is never a
-   receipt (R-12-085h).
-
-   What remains open for Q24c, and it is most of the item. The executable
-   proof checker and the checked design-admission path; the cryptographic
-   implementations R-12-085i's selected construction needs, and the session
-   binding over them; the physical binding from a unit key to actual
-   circuitry, which R-17-058i retains; and the Narcissus derivation and its
-   correspondence to this hand-authored reference codec, which R-05-046 and
-   R-05-042's inventory own and which no theorem below supplies. A format
-   theorem admits no card: it decides which byte strings name which values,
-   and it decides nothing about a design, a unit, a session or a part.
-   InferenceAdmission.v states the same two R-05-051a directions over a
-   fixed-width field schema; this file states them over a variable-length
-   minimal form, where R-05-051b's no-slack rule is carried by the pinned
-   digit form rather than by a constant length.
-
-   Non-vacuity, in R-05-165's and R-05-166's terms. Every obligation is
-   stated of an arbitrary FormatBounds, an arbitrary value and an arbitrary
-   byte string, and each carrier record has a closed witness. The witness
-   bounds record is the only place a magnitude is chosen, and beside every
-   accepting case is a refusing neighbour computed on the contract's Design
-   row: malformed bytes, an over-budget length, a trailing byte, a
-   non-canonical length form, a subject naming another design or model, and
-   an assumption the host did not permit. R-05-163's assumption gate is
-   answered by the native assumption audit, which reports each
-   shipped theorem closed under the global context.
+   Format and non-vacuity (R-05-163, R-05-165, R-05-166):
+   - Total `option`-returning serializer and parser over `FormatBounds`: a byte
+     is a natural below `radix`, a numeral is a length-prefixed minimal
+     least-significant-first digit list (rejecting leading zero digits at the
+     most-significant end, with `0` encoded as the empty digit list), a
+     manifest is its tag plus twelve identity numerals, and a certificate
+     container adds checker/profile numerals and length-prefixed evidence and
+     assumption lists.
+   - `admit_encoded` parses a container and passes the decoded evidence to
+     [ModuleAdmission.v](ModuleAdmission.v)'s design gate alongside a
+     host-supplied receipt (R-12-085h). Every carrier record has a closed
+     witness, and accepting cases are paired with refusing neighbors (malformed
+     bytes, over-budget lengths, trailing slack, non-minimal numerals,
+     mismatched subjects, and unpermitted assumptions).
    (*| BEGIN derived: cited entries |*)
    Owner: docs/requirements-register.md
    Requirements: R-04-010b R-05-042 R-05-046 R-05-051a R-05-051b R-05-051c R-05-163 R-05-165

@@ -1,13 +1,13 @@
 (* SPDX-License-Identifier: Apache-2.0 *)
 (* =========================================================================
-   Q34i's two-domain instantiation of the elastic-domain contract.
-   R-14-011c gives the general and isolated domains distinct labels and pools;
-   R-17-007b confines runtime observations to each label. R-07-037e's
-   envelope and R-08-047c's pool-capability confinement remain unchanged.
-   This is a contract-level composition witness, not a kernel refinement,
-   a pool-service refinement or a first-release resident-memory measurement.
-   The state projection reads the complete other pool as outside observation;
-   the two-domain relation separately preserves the other's complete DState.
+   IsolatedDesktop.v
+
+   Two-domain instantiation of the [ElasticDomain.v](ElasticDomain.v) contract.
+   R-14-011c gives the general and isolated desktop domains distinct labels and
+   pools; R-17-007b confines runtime observations to each domain's label while
+   preserving R-07-037e's envelope and R-08-047c's pool-capability confinement.
+   `domain_projection` projects the other domain's pool as external state, and
+   the two-domain step relation preserves the non-acting domain's `DState`.
    (*| BEGIN derived: cited entries |*)
    Owner: docs/requirements-register.md
    Requirements: R-07-037e R-08-047c R-14-011c R-17-007b

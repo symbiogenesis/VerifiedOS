@@ -2,228 +2,59 @@
 (* =========================================================================
    SupervisionTree.v
 
-   The init system's supervision tree, as the register fixes it: R-12-073's
-   static tree of declarative units with no ambient authority, whose
-   start-order, crash detection, restart-with-backoff and capability
-   re-grant are deterministic, bounded and hidden-state-free by
-   construction; R-12-074's re-grant that re-instantiates and never mints;
-   R-07-026's reading of the same sentence from the authority side;
-   R-07-027's capDL-class manifest and R-07-028's initialisation-refinement
-   obligation over it; R-10-026's signed, content-addressed configuration
-   generation as the only origin of the component graph; R-12-087's closed
-   detector and action enumerations and R-12-088's per-signal detection;
-   R-12-089's five criticality classes; R-16-027's declared thresholds,
-   dwell, window limit and backoff; R-16-007's boot count into a bounded
-   downtime; and R-16-001 with R-08-043a and R-10-037 on what a restart may
-   not carry across.
+   Statement and reference model for the init system's static supervision tree,
+   expressed in [ApexTheorem.v](ApexTheorem.v)'s parameterized record style over
+   [ProofSupport.v](ProofSupport.v).
 
-   What this file is. A statement artifact in ApexTheorem.v's idiom, not a
-   proof development and not an implementation. Every quantity the register
-   leaves to composition is a field of the Machine record rather than a
-   literal or a top-level Parameter, which is what keeps the R-05-163
-   assumption gate green while leaving the decision where its owner can make
-   it. Nothing is admitted and nothing is axiomatized: the native assumption
-   audit reports every shipped constant closed under the global
-   context.
+   Governing obligations:
+   - Static supervision tree and topological bring-up: declarative compartment
+     units (R-12-001) compiled from the signed, content-addressed configuration
+     generation (R-10-026) with no ambient authority, deterministic start order
+     respecting capDL-class manifest edges (R-07-027, R-07-027a, R-07-028,
+     R-12-073), and capability re-grant on restart that re-instantiates manifest
+     edges without minting new authority or resurrecting authority retired by the
+     current revocation epoch (R-07-026, R-08-043a, R-10-037, R-12-074,
+     R-16-001). Lustre/Velus control-plane lowering is covered by R-05-052 and
+     R-12-002; partition-switch timing (R-11-006, R-15-220) and mode-transition
+     dwell (R-15-247g) live in [CyclicExecutive.v](CyclicExecutive.v),
+     [PartitionContext.v](PartitionContext.v), and
+     [DischargeSequence.v](DischargeSequence.v).
+   - Closed fault detectors, actions, and criticality ladders: eight closed
+     detectors and ten closed recovery actions (R-12-087) with O(1) per-signal
+     detection and no runtime graph search or victim scoring (R-12-088), five
+     criticality classes with ordered action ladders (R-12-089, R-16-025),
+     manifest-declared subtree victims (R-16-024) and RoT reset authorization
+     (R-16-005), and hidden-state-free reactions determined solely by R-16-027's
+     declared thresholds, dwell, window intervention limit, backoff schedule,
+     and escalation action, bounding worst-case boot-count recovery to finite
+     downtime (R-09-028, R-16-007).
 
-   What the gate's green line means. Compiled, axiom-free, non-vacuous and
-   enumerated, and it does not mean verified. No constant here is compiled,
-   lowered, or run on either emulator, and nothing here executes anywhere.
-   The computed checks are decided inside the kernel by conversion and print
-   nothing.
+   Key readings and open register boundaries:
+   1. Units are finite indices below the signed generation's roster count
+      (R-10-026, R-12-001), and `manifest u v = true` directs a capability edge
+      from holder `u` to target `v`, requiring `v` to precede `u` in bring-up
+      order.
+   2. Re-grant upper and lower bounds are stated separately: R-12-074 bounds
+      re-granted authority above by the manifest, while R-10-037 filters out
+      edges retired in the current revocation epoch
+      (`the_regrant_extent_is_observable`).
+   3. Closed register enumerations fix counts for detectors (8), actions (10),
+      and criticality classes (5), while pool-member lifecycles (R-16-026) and
+      request status sets (R-12-093) belong to their respective layers.
+   4. Open register boundaries remain parameterized: unit lifecycle state
+      representation (R-12-073), private-state vs. grant-slot residue scope on
+      restart (R-16-001), minimal recovery roster under boot counting
+      (R-16-007), per-unit vs. per-subtree backoff indexing and degenerate
+      zero-width threshold hysteresis bands (R-16-027), and global vs.
+      per-class action-ladder ordering (R-12-089, R-16-025).
 
-   What is deferred, and to which item. R-05-052 and R-12-002 put this
-   control plane in Lustre compiled by Velus, and M6.1b is that lowering.
-   Nothing below is a Lustre node, states a WCET, or claims a compilation
-   property; what is here is the state machine the plan's section 8 keeps
-   host-side, and the lowering's structural determinism and causality
-   argument is M6.1b's to make. The authoring constraint this file does keep
-   is the restricted subset a Rupicola-class compiler admits: no general
-   recursion, every recursive function structural over a list or a finite
-   index, and records and finite indices wherever a datatype is not owed.
-   Three inductives are owed, because the register itself closes their
-   enumerations, and each costs a compilation lemma per constructor on any
-   such route. That is a price recorded rather than a claim made: the S12 reconnaissance item records that the purecap
-   Bedrock2 backend does not exist, so nothing here
-   is asserted to be Rupicola-compilable and the CompCert-C/VST route stays
-   the default.
-
-   Only the shared prelude-only support is required, so Classical
-   and FunctionalExtensionality are unavailable and every equality below is
-   stated pointwise or over a decidable boolean for that reason. Domain-specific sibling artifacts remain independent:
-   PartitionContext.v's switch cost is R-15-220's constant inside R-11-006's
-   interval arithmetic, CyclicExecutive.v's admission algebra is a frame's,
-   and DischargeSequence.v's dwell is R-15-247g's mode-transition constant.
-   None of the three meets this file's quantities, so a Require here would
-   be a citation rather than a dependency.
-
-   Readings of the register this statement takes, each a reviewable
-   judgment rather than a neutral transcription:
-
-   1. A unit is a finite index and not an abstract type. R-12-001 makes each
-      server its own compartment with its own manifest and R-10-026 fixes
-      the roster in the signed generation, so the roster is a count and a
-      unit is an index below it. That is the Rupicola-subset choice as well
-      as the modelling one: an abstract carrier with a decidable-equality
-      field would carry its own laws as record fields and would put a
-      datatype where a finite index does the work.
-   2. A manifest edge is directed from the holder to the designated unit.
-      `manifest u v = true` reads "unit u holds a capability designating
-      unit v", which is R-07-027's capDL-class edge with R-07-027a's three
-      object classes left where that entry closes them: nothing below names
-      an object class, and the edge set is the only structure taken.
-   3. The start order's obligation is the manifest's own edges read as a
-      precedence. Bring-up grants a unit its manifest edges when it starts,
-      so a unit that names another is started after it; that is what
-      "ordered capability-granting bring-up" fixes, and it makes the start
-      order a topological order of the edge relation rather than a schedule
-      this file invents.
-   4. The re-grant is stated as two independent obligations and not one.
-      R-12-074 says the re-grant re-instantiates exactly the edges the
-      manifest already fixed, which bounds it above. R-10-037's acceptance
-      clause says authority is re-derived at restart from the manifest and
-      the *current revocation epoch*, so no restore resurrects an authority
-      a revocation retired, which bounds it below. Read as one equality the
-      two contradict each other, and the file states them apart: gap b
-      records that no entry chooses, and
-      `the_regrant_extent_is_observable` machine-checks that the choice is
-      not free.
-   5. Detection reads one signal and the reaction reads the composition.
-      R-12-087's criterion has two halves, that no detector searches the
-      component graph and that no action computes a victim score at run
-      time, and R-12-088 adds that collection performs no scan proportional
-      to the number of compartments. So a detection is stated over an
-      arbitrary signal map and required to depend on its own detector's
-      signal alone, and a policy is stated over an arbitrary observation and
-      required not to vary with it. Both halves are refuted by construction
-      rather than asserted.
-   6. Hidden state is state outside R-16-027's own enumeration. That entry
-      closes what a detector/action pair declares: assertion and clear
-      thresholds, a minimum dwell, a maximum number of interventions per
-      window, a backoff, and the escalation past the limit. A reaction keyed
-      on anything else is what R-12-073's "hidden-state-free by
-      construction" excludes, so State below carries the declared record and
-      one further accumulation standing for whatever an implementation
-      keeps, and the obligation quantifies over states agreeing on the
-      declared half.
-   7. The backoff is a declared schedule and a ceiling, not a formula. R-16-
-      027 has each pair declare its backoff and R-16-007 bounds the worst
-      case to downtime rather than permanent denial, and neither states a
-      growth law, so the schedule is a list field, the delay past its end is
-      the ceiling, and the ceiling obligation is stated of an arbitrary
-      schedule.
-   8. Boolean rather than propositional wherever the witnesses must compute:
-      the bring-up check, the edge predicates and the admission tests are
-      decidable, so the generated weakening families below are checked by
-      conversion in the silent Example form rather than by a proof per
-      member.
-   9. The order is stated over positions rather than over a rank function
-      built into the list's shape, so a start order out of order is
-      expressible and the theorems have something to exclude. `precedes` is
-      false where either unit is absent, which is what makes a deletion a
-      refusal rather than a silence.
-
-   The literals taken from the design, and there are four. R-12-087's
-   detector enumeration is eight and its action enumeration is ten, so
-   `all_detectors` and `all_actions` are those two lists written out and
-   `there_are_eight_detectors` and `there_are_ten_actions` are the counts
-   checked by conversion. R-12-089's criticality enumeration is five, so
-   `all_classes` is that list and `there_are_five_criticality_classes` is
-   its count. And a unit is started exactly once on a bring-up pass, so
-   `each_unit_once` compares an occurrence count against 1. Every other
-   magnitude is a field: the roster size, the start order, the manifest and
-   the retired set, every threshold, the dwell, the window limit, the
-   declared escalation past that limit, the backoff schedule and its
-   ceiling, the boot bound, the detector-to-action map, the criticality
-   assignment, the per-class ladder and the declared victim. In particular
-   R-16-027 has each pair declare its own escalation action and R-16-024
-   makes the victim manifest-declared, so neither is written out here as a
-   constructor: the demo machine names RoT reset and unit 1 respectively,
-   and R-16-005 is what authorizes the first.
-
-   How the refutations are generated. A refutation is a seeded weakening the
-   theorem must reject, so four generators produce families of them
-   mechanically rather than a person authoring each, which is
-   DischargeSequence.v's method taken to a different order. Over the
-   specification's own start order: `swap_at` transposes an adjacent pair
-   and yields one weakening per adjacent position; `drop_at` deletes a unit
-   and yields one per position; `suffix_at` re-enters the order at a proper
-   suffix, which is what a partial bring-up after a subtree restart would
-   be, and yields one per position; and `insert_at` starts one unit a second
-   time and yields one per position. The four families are 20 weakenings,
-   every one refused, checked as one conversion. Beside them the generic
-   theorems quantify over the index rather than enumerating. The
-   hand-authored refutations below are the ones no index generates, being
-   alternative constructions rather than mutations of a list.
-
-   What this file deliberately does not author, with the entry that owes
-   each decision. A register gap is reported, not closed:
-
-   a. What a supervised unit's own lifecycle states are. R-16-026 gives a
-      pool member a monotone lifecycle its pool declares and R-12-093 gives
-      a request a closed status set, and neither is the supervised unit's.
-      Nothing below carries a unit state at all: a unit is started or not
-      started by its position in the bring-up order, and no `Running`,
-      `Crashed` or `Quarantined` constructor is invented. Owed at R-12-073.
-   b. Whether the restart re-grant is the manifest or the manifest filtered
-      by the current revocation epoch. R-12-074 says "exactly the edges the
-      capDL-class manifest already fixed"; R-10-037's acceptance clause says
-      authority is re-derived from the manifest *and the current revocation
-      epoch* so that no restore resurrects an authority a revocation
-      retired; R-08-043a makes user retraction a fourth revocation trigger
-      beside restart itself. The two readings differ observably on any
-      machine with a retired manifest edge, which
-      `the_regrant_extent_is_observable` checks. Owed at R-12-074 or
-      R-10-037.
-   c. What "no residue crosses the restart" quantifies over. R-16-001 makes
-      eager-zeroize the mechanism and states the consequence, and no entry
-      says whether the residue in question is the unit's private state, its
-      grant slots, or both. This file states the authority half alone,
-      because that is the half the manifest and the retired set decide;
-      nothing below models memory. Owed at R-16-001.
-   d. The minimal recovery state R-16-007 counts boots into. That entry
-      bounds the worst case to downtime and R-09-028 makes boot counting an
-      RoT duty, and no entry enumerates what the recovery state contains or
-      which units its roster holds. `spec_boot_admit` therefore answers
-      whether the ordinary generation is admitted and says nothing about
-      what runs when it is not. Owed at R-16-007.
-   e. Whether a restart's backoff index is per unit, per subtree, or per
-      window. R-16-027 declares a backoff per detector/action pair, R-12-073
-      states restart-with-backoff of the tree, and R-16-024 makes a complete
-      supervised subtree one victim. The declared record below carries one
-      attempt count and the file states the obligation over it; which unit
-      it belongs to is the register's to say. Owed at R-16-027 or R-12-073.
-   f. Whether R-12-087's ten actions are ordered as a ladder in themselves
-      or only within a criticality class. R-16-025 states a default order
-      over nine of the ten and R-12-089 gives each class its own permitted
-      ordered ladder, and the two are not the same list. The ladder is a
-      field, the demo instantiates it, and no order over the ten is
-      asserted. Owed at R-12-089 or R-16-025.
-   g. Whether a detector/action pair may declare a clear threshold equal to
-      its assertion threshold. R-16-027 requires both to be declared and
-      says nothing about the width between them, and a zero-width band is a
-      pair that re-asserts the moment it clears, which is the oscillation
-      the same entry's criterion is about. `the_degenerate_band_is_admitted`
-      takes the weaker reading, which is the one the entry's words carry.
-      Owed at R-16-027.
-   h. Every composition magnitude. The roster, the start order, the
-      manifest, the retired set, the thresholds, the dwell, the window
-      limit, the escalation, the backoff schedule, the ceiling, the boot
-      bound, the detector-to-action map, the criticality assignment, the
-      ladder and the victim are fields; the demo machine at the end
-      instantiates them with arbitrary witness values that carry no
-      composition claim.
-
-   Non-vacuity (R-05-165, R-05-166). Every obligation below is stated as a
-   property of an arbitrary supervisor, bring-up order, loader, detection,
-   policy, re-grant map, backoff schedule or admission test, proved of the
-   specification, and refuted of an alternative construction the register's
-   own sentence excludes. Inhabitation is concrete: a demo machine whose
-   roster, manifest and retired set are inhabited, signals on which the
-   specification's detector fires and signals on which it does not, and a
-   bring-up order that passes beside twenty that do not, so no theorem is
-   proved from a premise nothing satisfies and none from one everything
-   satisfies.
+   Non-vacuity (R-05-163, R-05-165, R-05-166):
+   - Every obligation is proved for the specification and refuted on generated
+     start-order mutation families following
+     [DischargeSequence.v](DischargeSequence.v) (`swap_at`, `drop_at`,
+     `suffix_at`, `insert_at` — 20 weakenings checked by conversion and by
+     index-quantified theorems) alongside single-defect supervisors, loaders,
+     detectors, policies, and re-grant maps.
    (*| BEGIN derived: cited entries |*)
    Owner: docs/requirements-register.md
    Requirements: R-05-052 R-05-163 R-05-164 R-05-165 R-05-166 R-07-026 R-07-027 R-07-027a

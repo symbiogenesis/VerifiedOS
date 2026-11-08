@@ -32,7 +32,7 @@
         },
         {
           "path": "proofs/HandlerGraph.v",
-          "sha256": "98cdb2609c15cf18b52c10412424ae491c052e5620e56e926c3ec168d093edba"
+          "sha256": "0f779ec5f3fb93552ea47302f2e71bc0d2d4fd5fbed82c879b3370bf56a2972e"
         },
         {
           "path": "tools/vos/__init__.py",
@@ -298,7 +298,7 @@
       "sources": [
         {
           "path": "proofs/SupervisionTree.v",
-          "sha256": "e95647b680db45ac0d2e2a426312411de266881304968e380b4171bc59876fa4"
+          "sha256": "889f2b472e935778501e5076a222d0cbfa61b9e77b2c632031dfd7ac8c79a704"
         },
         {
           "path": "supervisor/src/manifest.c",
@@ -442,7 +442,7 @@
         },
         {
           "path": "proofs/HandlerGraph.v",
-          "sha256": "98cdb2609c15cf18b52c10412424ae491c052e5620e56e926c3ec168d093edba"
+          "sha256": "0f779ec5f3fb93552ea47302f2e71bc0d2d4fd5fbed82c879b3370bf56a2972e"
         },
         {
           "path": "tools/vos/composition.py",
@@ -647,7 +647,7 @@
       ],
       "descriptor": {
         "path": "tools/composer/packages/composer.json",
-        "sha256": "40d3d967640e6a9f2092ab44a854e834253d013a4869876dc5a37e9fccc09950"
+        "sha256": "19d9d7a7b52af05a46cd2439e67507d5184779963fcdfe9fa0180f5ff8744f37"
       },
       "artifact_slot": "composer-artifact",
       "entry": null,
@@ -694,7 +694,7 @@
         },
         {
           "path": "proofs/HandlerGraph.v",
-          "sha256": "98cdb2609c15cf18b52c10412424ae491c052e5620e56e926c3ec168d093edba"
+          "sha256": "0f779ec5f3fb93552ea47302f2e71bc0d2d4fd5fbed82c879b3370bf56a2972e"
         },
         {
           "path": "tools/vos/composition.py",
@@ -835,7 +835,7 @@
       ],
       "descriptor": {
         "path": "tools/composer/packages/admission.json",
-        "sha256": "0d949fda5067f6360d213e712e1626b532c9036129c6530a476de1b1e73e43c8"
+        "sha256": "47f1e2b07529cccdb3f59c891e3169419945227f54fe0153fe36f40335964785"
       },
       "artifact_slot": "admission-artifact",
       "entry": null,

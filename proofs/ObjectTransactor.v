@@ -2,336 +2,63 @@
 (* =========================================================================
    ObjectTransactor.v
 
-   The content-addressed object store and the A/B update transactor, as the
-   register fixes them. R-06-001 puts "the system-integrity reader and A/B
-   update transactor" in the seven-item trust base and R-06-005 states its
-   whole duty in one sentence: the reader runtime-verifies every read of the
-   content-addressed base image against the signed, boot-attested root, and
-   the transactor commits an update as an atomic two-slot root flip past the
-   anti-rollback floor. Beside that: R-10-001's immutable content-addressed
-   Merkle-DAG image with a signed root and no read bypassing the
-   verification; R-10-001a's several root copies at fixed locations, each
-   verified on its own bytes, the highest verifying security version taken
-   and no stored pointer read; R-10-009's whole four-layer stack outside the
-   trust base, the transactor committing "by flipping the signed root past
-   the anti-rollback floor, not by trusting the filesystem's journal";
-   R-11-001's image-based atomic A/B update with health-gated auto-rollback
-   and a running base that is never mutated; R-11-002's rollback as pinning a
-   prior signed root subject to the floor, both paths committing through the
-   one transactor; R-11-005's proof-checked admission; R-09-028's A/B images,
-   boot counting and monotone anti-rollback floor; R-09-030's bootable set
-   bounded by that floor; R-09-031's selection enacted as the same atomic
-   two-slot flip; R-09-036a's enrolled root set as what admits a generation;
-   R-10-032's policy naming that set over the generation register and the
-   floor, with "the A/B transactor re-seals nothing at commit"; R-13-001's
-   package as content plus closure, manifest and proof object; R-13-008's
-   transfer as a set difference with every object hash-verified on arrival;
-   R-13-009's independently hash-verified pack objects; R-13-023a, R-13-023b
-   and R-13-023c on witnessed public commitment and what it does not
-   establish; and R-10-036a on what a successor reads of its predecessor's
-   store.
+   Statement and reference model for the content-addressed object store, the
+   system-integrity reader, and the A/B update transactor, expressed in
+   [ApexTheorem.v](ApexTheorem.v)'s parameterized record style over
+   [JournalIndex.v](JournalIndex.v) (see
+   [object-transactor.md](../docs/implementation/contracts/object-transactor.md)).
 
-   What this file is. A symbolic specification and proof artifact in
-   ApexTheorem.v's idiom, not an executable storage implementation. Every quantity the register
-   leaves to composition is a field of the Transactor record, of the
-   SignedRoot record, or of the Ab record, rather than a literal or a
-   top-level Parameter, which is what keeps the R-05-163 assumption gate
-   green while leaving the decision where its owner can make it. Nothing is
-   admitted and nothing is axiomatized.
+   Governing obligations:
+   - System-integrity reader and Merkle-DAG object store (R-06-001, R-06-003,
+     R-06-005, R-10-001, R-10-001a, R-10-036a): immutable content-addressed
+     objects named by hash with no schema version (canonical descriptor encoding
+     under R-05-051a and R-05-051c), runtime verification of every read against
+     both the requested content hash and reachability from the signed,
+     boot-attested root, and root selection across at least two fixed-location
+     copies per slot by taking the highest-version self-verifying candidate
+     without reading any stored slot pointer.
+   - Atomic A/B root flip, anti-rollback floor, and non-TCB storage staging
+     (R-09-004, R-09-005, R-09-028, R-09-029, R-09-030, R-09-031, R-09-036a,
+     R-10-002, R-10-002a, R-10-009, R-10-013, R-10-032, R-10-036, R-11-001,
+     R-11-002, R-11-005, R-16-007): staging into the non-TCB four-layer storage
+     stack ([JournalIndex.v](JournalIndex.v),
+     [KeyspaceDomains.v](KeyspaceDomains.v)) cannot authorize an unverified or
+     incomplete image; the transactor commits updates and rollbacks only when
+     `verdict_backed` holds under an enrolled root (R-09-036a) and proof-checked
+     admission (R-11-005), never mutates the running generation, never writes or
+     re-seals the RoT anti-rollback counter (owned by
+     [RotFirmware.v](RotFirmware.v)), and falls back to the retained predecessor
+     on health failure when permitted by the anti-rollback floor.
+   - Transfer and witnessed public commitment (R-13-001, R-13-008, R-13-009,
+     R-13-023a, R-13-023b, R-13-023c): set-difference object transfer with
+     per-object hash verification, checkpoint inclusion and consistency pinning
+     at admission (R-13-023b), and an explicit counterexample (`R-13-023a`)
+     showing that log inclusion of two signed variants does not establish
+     uniform release selection.
 
-   What the gate's green line means. Compiled, axiom-free, non-vacuous and
-   enumerated, and it does not mean verified. No constant here is compiled,
-   lowered, or run on either emulator, and nothing here executes anywhere.
-   The computed checks are decided inside the kernel by conversion and print
-   nothing. No byte below reaches a device: R-09-004's fixed-address boot
-   region, R-09-005's flat measured payload and the ONFI path beneath them
-   are not modelled, and the transactor's write of that region is the
-   `toggle` below and not a device transaction. Retained-root provenance is
-   protected symbolic state; fallback independently rechecks its bytes, image
-   and admission rather than treating provenance alone as authentication.
+   Key readings and open register boundaries:
+   1. Merkle read-verify is split into two independent obligations—content-hash
+      match and root reachability within `walk_depth`—each refuted while
+      preserving the other.
+   2. Root selection takes a candidate pointer argument that a compliant
+      selector must ignore (R-10-001a), making pointer-reading selectors
+      directly refutable.
+   3. Journal staging is parameterized over [JournalIndex.v](JournalIndex.v)'s
+      raw `Discipline` arms (`StopsAtTheFirstTear` vs. `SkipsTheTornRecord`) to
+      demonstrate why journal commit membership alone cannot authorize an
+      incomplete staged image (R-10-009).
+   4. Open register boundaries remain parameterized: L0 commit representation
+      (R-10-036), closed transactor operation enumeration and health-gate probe
+      criteria (R-06-005, R-11-001), candidate floors exceeding a candidate's
+      own security version (R-09-028, R-09-030), escalation into minimal
+      recovery when the retained predecessor lies below the floor (R-09-029,
+      R-11-002, R-16-007), and witness quorum-safety (R-13-023c, proved in
+      [WitnessContinuity.v](WitnessContinuity.v)).
 
-   The one Require, and why it is a dependency rather than a citation.
-   `Require Import JournalIndex.` names the sibling artifact M5.1 landed, and
-   it is load-bearing at the one place R-10-009 puts it. That entry makes the
-   four-layer stack non-TCB and has the transactor commit "not by trusting
-   the filesystem's journal", which is a claim about *this* file's relation
-   to *that* one and cannot be stated without it. So the staging half below
-   is written over that file's own `Rec`, `Discipline`, `scan`, `sieve`,
-   `commits`, `writes_committed`, `recover_under`, `Store` and `tear_at`, and
-   the incompleteness a crashed stage can leave is exhibited on a journal its
-   own generator tears. Its list and boolean helpers come with it and are not
-   restated. Every name declared here is its own: nothing the imported file
-   exports is shadowed, so the assumption audit reads the imported constants
-   and not local twins of them.
-
-   Two siblings are named and not Required, and the reasons are different.
-   KeyspaceDomains.v is M5.2's L2/L3 artifact and its subject is the mutable
-   user-data keyspace, its typed keys, its per-domain sealing and its
-   freshness epochs; R-10-009 puts the system image and the user subvolumes
-   on the same non-TCB stack, and what this file holds of that stack is a
-   block address and a committed transaction, so not one of its keys, deltas,
-   observers or epochs is reachable from here. RotFirmware.v is M3.2's and
-   carries the RoT side of the seam: R-09-028's floor advance, R-10-013's
-   four monotonic counters with the events that advance them, and R-09-030's
-   bootable predicate. That advance is *its* statement and is not restated
-   here; what this file states instead is the transactor's own half, that the
-   transactor writes no floor at all (R-10-032), and the construction that
-   performs the RoT's raise inside the transactor is exhibited below as
-   refuted rather than as a second specification of it. Requiring it as well
-   would also shadow six of JournalIndex's helpers with its own, which is the
-   hazard a second `Require` carries and no gate reads, and would put a
-   232-kilobyte artifact inside every seeded mutant's recompile.
-
-   No further Require. Nothing beyond the Rocq prelude and that one sibling
-   is reachable, so Classical and FunctionalExtensionality are unavailable
-   and every equality below is stated pointwise or over a decidable boolean
-   for that reason: an object store and a floor stream are functions, and two
-   of them are compared name by name rather than as functions. No inductive
-   is declared, on JournalIndex.v's own ground: the register closes no
-   enumeration this layer needs, and a transition kind, a slot label or a
-   verdict set written here would be this file inventing one it left open
-   (gap c).
-
-   Readings of the register this statement takes, each a reviewable judgment
-   rather than a neutral transcription:
-
-   1. An object is bytes and links, and its name is the hash of its
-      encoding. R-10-001 makes the base "an immutable content-addressed
-      Merkle-DAG image with a signed root", and R-10-036a says an object "is
-      bytes named by their hash, carries no schema version, and is read by
-      every generation alike". So `Obj` is a payload and a list of child
-      *names*, `address` is the hash of the encoding, and no type, version or
-      schema field appears. The encoding and the hash are fields: R-13-009
-      and R-05-051c put the identity-bearing descriptor's canonicity theorem
-      on the format rather than here, and R-06-003 puts the primitive in the
-      crypto core.
-   2. Read-verify is two obligations and not one. R-10-001 verifies every
-      read "against the boot-attested root", and R-06-005 spells the
-      mechanism as Merkle read-verify. A reader that checks only that the
-      bytes hash to the name asked for has verified nothing about the root,
-      and one that checks only reachability has verified nothing about the
-      bytes. The two are stated apart, each proved of the specification, and
-      each refuted by a construction that keeps the other.
-   3. The reachable set is a list computed to a declared depth; unfinished
-      child frontiers refuse the image at that bound. `walk_depth`
-      is a field, which is what keeps the walk structural; no separate
-      reachability relation exists, and `reach_list` is the one list both the
-      reader's admission test and the whole-image intactness test read.
-   4. Root selection is an enumeration and never a pointer. R-10-001a decides
-      which generation is current "by verifying the candidates and never by
-      reading a stored pointer naming the winning slot". A selector is
-      therefore given the pointer as an argument it must ignore, which is
-      what makes the pointer-reading arm expressible and refutable rather
-      than merely absent.
-   5. Two slots, and at least two copies per slot. R-06-005's "atomic
-      two-slot root flip" fixes the slot count at two, so `Ab` carries two
-      slot fields and one bit saying which is live rather than a count; and
-      R-10-001a's "at least two per slot ... and the count a composition
-      constant" fixes a floor of two and leaves the count open, so
-      `root_copies` is a field and `2` is the entry's own word.
-   6. The transactor writes no counter. R-10-032 says "the A/B transactor
-      re-seals nothing at commit" and R-09-028 makes the floor an RoT duty,
-      so `ab_floor` is read and never written, and the two obligations that
-      separate are stated apart: the floor never descends, and the
-      transactor does not write it at all. A construction performing
-      R-09-028's own raise inside the transactor satisfies the first and
-      breaks the second, which is what shows they are two.
-   7. A verdict is backed or it is a boolean somebody set. `ab_admitted` is a
-      field of a record an adversary may hand the machine, so the flip's
-      safety is stated over machines whose verdict the verify step actually
-      backs, `verdict_backed` is that predicate, and the specification's
-      verify is proved to produce one. This is the shape R-10-009's "not by
-      trusting the filesystem's journal" takes when the journal is replaced
-      by any other unchecked source of a verdict.
-   8. Anti-rollback is a property of a monotone floor over time, not of one
-      comparison. R-09-030 bounds the bootable set by the floor and R-09-028
-      makes the floor monotone, and what those two together buy is that a
-      generation once refused is refused for good. That is stated over an
-      arbitrary floor stream and refuted of a stream that dips.
-   9. The source comparison retains the raw recovery discipline parameter.
-      R-10-002a selects complete authenticated prefix redo; the selected byte,
-      transaction and durable publication implementation remains M5.3's.
-      A crashed stage is uncommitted under the raw stopping arm and
-      committed-but-incomplete under the raw skipping arm. Both are exhibited
-      to expose why journal commit membership cannot authorize an incomplete
-      image. Neither raw arm is the implementation of the selected protocol.
-  10. Public commitment is bound to identities and claims nothing about
-      selection. R-13-023b makes admission require an inclusion proof for the
-      base image's root and every package the roster names against a
-      checkpoint the witness policy accepts, with the device pinning the last
-      checkpoint it verified. R-13-023a states in its own words that this
-      "establishes neither uniform release selection nor the absence of
-      targeted software" and retains the two-logged-variants construction as
-      a counterexample. So the admission conjunct and the pin are stated
-      here, and the two-variants construction is exhibited as a pair the
-      specification *accepts*, which is the honest form: a claim this file
-      does not make, written as a computed check rather than as a sentence.
-      The witness policy's own safety argument is R-13-023c's and M5.5's, and
-      the local reader that checks the proofs is M6.2c's; neither is here.
-  11. Boolean rather than propositional wherever the witnesses must compute:
-      naming, intactness, verification, bootability, backing and every
-      admission conjunct are decidable, so the families below are checked by
-      conversion in the silent Example form rather than by a proof per
-      member.
-  12. A generation is compared by its fields and not by record identity. The
-      prelude carries no decidable equality, and a refutation has to compute,
-      so `sr_eqb` is the comparison every obligation about "the live
-      generation did not move" is stated over.
-
-   The literals taken from the design, and there are two. `2` in
-   `two_copies_at_least` is R-10-001a's own "at least two per slot", read as
-   a floor because that entry's word is *at least*; and the two slot fields
-   of `Ab` are R-06-005's "two-slot", which is a shape rather than a count
-   and so is a record with two fields rather than a numeral. The only other
-   numerals in a definition on the specification side are the `0` a sum of no
-   children has and the `0` an empty walk reaches, each a boundary rather
-   than a magnitude. Every other numeral below is a demo or probe witness
-   value carrying no composition claim (gap i).
-
-   How the refutations are generated. The journal families are
-   JournalIndex.v's own: `tear_at` cuts one staged record at a granule below
-   its declared length, and `cuts` takes the crash point at every index, so
-   the crashed-stage population is generated rather than authored. The
-   alternative transactors are hand-authored, being alternative constructions
-   rather than mutations of a list.
-
-   What this file deliberately does not author, with the entry that owes each
-   decision. A register gap is reported, not closed:
-
-   a. What ends a staging transaction. R-10-036 commits a checkpoint as a
-      single L0 transaction and names no mechanism for the commit itself;
-      JournalIndex.v books that as its gap d and makes `rec_closes` a boolean
-      field asserting no representation. The staging journal below inherits
-      that field and asserts none either. Owed at R-10-036.
-   b. R-10-002a supplies the recovery choice. Its complete authenticated
-      prefix-redo implementation, including durable acknowledgement and reuse,
-      remains open. The raw comparisons below expose an admission difference
-      and cannot stand in for the selected bytes-to-transaction protocol.
-   c. The transactor's transition set. R-11-001, R-11-002, R-11-005 and
-      R-06-005 each name an act the transactor performs and no entry
-      enumerates them, so nothing below declares a transition kind: `Op` is
-      an arbitrary operation on the machine, every obligation is stated over
-      one, and the four the plan's section 6 names are instances rather than
-      a closed set. Owed at R-11-001 or R-06-005.
-   d. What health is. R-11-001 has health-gated auto-rollback and R-11-002
-      has an automatic health-gated path, and no entry says what the gate
-      reads, how long it waits, or how many boots it allows. `healthy` is a
-      field of the composition. Owed at R-11-001.
-   e. Whether a candidate may declare a security-version floor above its own
-      security version. No entry says. A candidate that does is bootable
-      nowhere the moment it commits, so the verify step below refuses one and
-      a construction that does not is exhibited; that refusal is this file's
-      reading of R-09-030 applied to the generation the transactor makes
-      live, and is not a sentence any entry carries. Owed at R-09-028 or
-      R-09-030.
-   f. What the health-gated path does when the retained predecessor is below
-      the floor. R-09-030 forbids booting it and R-11-001 requires the
-      automatic rollback, and no entry states the escalation. The
-      specification below keeps the live generation and takes no third path;
-      R-16-007's boot counting into a minimal recovery state and R-09-029's
-      signed recovery generation are where that answer lives and neither is
-      modelled here, so the case is exhibited and left standing rather than
-      resolved. Owed at R-11-002.
-   g. The root-copy count, which R-10-001a makes a composition constant with
-      a floor of two, so `root_copies` is a field and the floor is stated
-      (reading 5).
-   h. The encoding, the hash, the checksum, the signature scheme, the
-      enrolled-root membership, the proof-checked admission verdict, the
-      inclusion and consistency checks and the health verdict. All are
-      fields. R-13-009 and R-05-051a put the canonicity theorem on the
-      descriptor, R-06-003 puts the primitives in the crypto core, R-11-005
-      puts the admission verdict in the on-device checker, and the plan's
-      section 6 stubs that verdict to a signature and hash check in the
-      golden model, which is exactly a field here.
-   i. Every composition magnitude. The walk depth, the root-copy count, the
-      granule length, the transaction number and every demo object, root,
-      journal and checkpoint value.
-
-   The acceptance predicate this item owed, in two halves, and only the first
-   is writable today.
-
-   The source acceptance predicate was committed before implementation in
-   docs/implementation/contracts/object-transactor.md. It requires a native
-   source audit, inhabited positive executions, generated crash families,
-   and substantive guard mutants classified as killed, stillborn or
-   investigated survivors. The integrator's final full-tree command is
-   `python tools/run.py proofs` over a tree carrying
-   proofs/ObjectTransactor.v reports this file's constants enumerated by
-   Rocq, every one closed under the global context, every record its
-   statements quantify over carrying a named witness, and the compiled
-   modules re-checked by rocqchk. Mutation survival does not count as a kill
-   and requires investigation. Over that artifact
-   five obligations are decided and each carries a construction the
-   specification rejects. R-06-005's read returns no object whose content
-   address differs from the name asked for and none the boot-attested root
-   does not reach, against a store returning bytes whose hash is not the name
-   and against a reader that skips the root walk. R-10-001a's selection takes
-   the highest verifying candidate, verifies each on its own bytes and reads
-   no stored pointer, against a pointer-reading selector and a
-   first-verifying one. R-11-001's flip changes the live generation only for
-   a stage whose verdict the verify step backs, and never mutates the running
-   one, against an eager flip and an in-place stage. R-09-028 and R-10-032's
-   floor is neither lowered nor written by the transactor, against a flip
-   that re-seals it from the candidate and one that performs the RoT's own
-   raise; and over an arbitrary monotone floor stream a refused generation
-   stays refused, against a stream that dips. R-11-001's health gate returns
-   the live slot to the retained predecessor on a health failure and only
-   then, against a gate that never falls back and one that falls back through
-   the floor. Beside those, R-10-002's recovery discipline is a parameter of
-   every obligation above, both of JournalIndex.v's arms are exhibited, and
-   the one place they disagree about an admission verdict is exhibited as a
-   computed pair rather than resolved; and R-13-023b's public commitment is
-   bound to the admitted base and package identities, with R-13-023a's
-   two-logged-variants construction exhibited as a pair this specification
-   accepts, so no non-targeting claim is made.
-
-   **The half that waits names its producers and cannot be met by a host
-   artifact.** It is one run of `python tools/run.py model corpus` over a
-   composed image in which the transactor stages a generation into M5.3's
-   modelled block device, the system-integrity reader refuses an object whose
-   stored bytes were altered and the refusal reaches the HTIF verdict rather
-   than the returned bytes, the flip is taken, and the root the next boot
-   attests is the staged one; and a second run in which the health gate fails
-   on that generation, the fall-back is taken, the root the next boot attests
-   is the predecessor's, and M3.5's RoT counter reads the same floor across
-   both. That predicate names a produced record on the emulator, so it waits
-   on M5.3's executable storage and settled recovery policy and on M3.5's
-   boot and counter path, exactly as this item's cell says.
-
-   What this artifact does not deliver, with the owner of each. The
-   on-device proof checker R-11-005's admission calls is M6.2b's, and
-   `admits` is a field here rather than a checker; the local
-   witness-evidence validator that checks the inclusion and consistency
-   proofs is M6.2c's, and `included` and `consistent` are fields; the witness
-   policy's own quorum-safety theorem is R-13-023c's and M5.5's; the
-   executable storage, the modelled device and the end-to-end update test are
-   M5.3's and M3.5's. One further statement is not made and is named rather
-   than left absent: a run of arbitrary operations preserves bootability
-   where each preserves it, and a run of the transactor's own four preserves
-   it on a backed machine, but no fold is stated over a mixture with an
-   operation that is neither, because backing is not preserved by an
-   arbitrary operation and the premise that would make it so is a further
-   obligation nothing here discharges.
-
-   Non-vacuity (R-05-165, R-05-166). Every obligation below is stated as a
-   property of an arbitrary reader, selector, operation, gate, pinner,
-   recovery discipline or floor stream, proved of the specification, and
-   refuted of an alternative construction the register's own sentence
-   excludes. One exception is stated rather than papered over.
-   `TakesTheHighestVerifyingVersion` and `SelectsOnlyAVerifyingCopy` are both
-   broken by no single construction here: the first-verifying selector breaks
-   the first and keeps both others, and the pointer-reading selector breaks
-   the pointer obligation and keeps the verification one, but a selector
-   returning a candidate that does not verify is refuted by the two together
-   rather than by a third arm, because a selector that returns an unverified
-   candidate also fails to dominate the verified ones it passed over.
-
-   Inhabitation is concrete: a store of four objects over two generation
-   roots sharing two leaves, a staged generation of three new objects, a
-   journal of three records over one transaction with its middle record torn,
-   two root copies of which one is torn, six candidate roots that fail the
-   five admission conjuncts one apiece, and a machine whose spare slot sits
-   below the floor.
+   Non-vacuity (R-05-163, R-05-165, R-05-166):
+   - Every obligation is proved for the specification and refuted on generated
+     journal crash/tear families (`cuts`, `tear_at`) and single-defect readers,
+     selectors, flip operations, health gates, and non-monotone floor streams.
    (*| BEGIN derived: cited entries |*)
    Owner: docs/requirements-register.md
    Requirements: R-05-051a R-05-051c R-05-163 R-05-165 R-05-166 R-06-001 R-06-003 R-06-005
@@ -475,7 +202,7 @@ Record Transactor : Type := {
 
   (* --- R-11-005's proof-checked admission, which the plan's section 6
          stubs to a signature and hash check in the golden model; the
-         on-device checker is M6.2b's ------------------------------------- *)
+         on-device checker is verified separately ------------------------------------- *)
 
   admits : nat -> bool;
 
@@ -485,13 +212,12 @@ Record Transactor : Type := {
 
   (* --- R-13-023b's inclusion proof against a checkpoint, and the
          consistency proof against the pinned one; the reader that checks
-         them is M6.2c's and the policy behind them R-13-023c's ------------ *)
+         them is a composition field and the policy behind them is R-13-023c's ------------ *)
 
   included : nat -> nat -> bool;
   consistent : nat -> nat -> bool;
   (* Validated persisted-policy/epoch/transition evidence, including the
-     witnessed certificate. Its bytes and quorum proof are owned by M6.2c
-     and M5.5; inclusion and log consistency cannot establish this verdict. *)
+     witnessed certificate. Its bytes and quorum proof are verified in WitnessContinuity.v; inclusion and log consistency cannot establish this verdict. *)
   checkpoint_accepted : nat -> nat -> bool
 }.
 
@@ -1569,8 +1295,8 @@ Qed.
    The device-side half only: an inclusion proof for the base image's root
    and for every package identity the roster names, against a checkpoint
    consistent with the last one the device pinned. The policy that decides
-   which checkpoints are acceptable is R-13-023c's and M5.5's, and the reader
-   that checks the proofs is M6.2c's; both are fields here.
+   which checkpoints are acceptable is R-13-023c's (see [WitnessContinuity.v](WitnessContinuity.v)), and the reader
+   that checks the proofs; both are fields here.
    ========================================================================= *)
 
 Definition commitment_ok (t : Transactor) (pinned offered : nat)
