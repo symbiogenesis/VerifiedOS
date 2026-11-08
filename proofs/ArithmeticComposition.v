@@ -2,146 +2,32 @@
 (* =========================================================================
    ArithmeticComposition.v
 
-   The arithmetic half of the post-M10 composition work, authored over
-   ProbingModel.v's finite interfaces. Prime-field additive sharing over
-   Z/pZ, a k-stage refresh pipeline with fresh masks between stages, the
-   preimage-cardinality statement for a single observed wire, the finite
-   probability reading of that cardinality with its normalizer stated, and
-   the completing-share refutation that makes the bound tight.
+   Prime-field (`Z/pZ`) additive sharing and `k`-stage mask-refresh pipeline
+   over [ProbingModel.v](ProbingModel.v)'s finite probing interfaces (R-05-004a,
+   R-15-053a, R-17-058a, R-17-058d).
 
-   No Lean code is ported and no foreign tactic script is replayed. The
-   MIT-licensed prime-field/k-stage artifact recorded in the crypto source
-   inventory was read for citation only; every theorem below is authored
-   here and checked by this repository's own prover.
+   What this file proves:
+   1. `Z/pZ` as a finite carrier with decidable equality, duplicate-free
+     enumeration, and abelian-group laws inhabiting
+     [ProbingModel.v](ProbingModel.v)'s `Sharing` record, plus multiplicative
+     invertibility for prime moduli (`p = 5`) contrasted with composite moduli
+     (`m = 4`).
+   2. A `k`-stage refresh pipeline over a flat tape of `(k + 1) * n` field
+     elements, where stage `0` is an additive encoding and each subsequent stage
+     refreshes the previous tuple while preserving the shared secret sum.
+   3. Exact preimage cardinality for any single-wire observation (`p` times the
+     observation preimage count equals `p^((k + 1) * n)`), secret-independent
+     outcome weights across all stages, and a completing-share refutation showing
+     tightness.
 
-   THE STATEMENT COMPARISON THE CHECK BULLET ASKS FOR.
-
-   The source statement, as the inventory entry records it, bounds the
-   preimage cardinality of a single-wire observation over a prime field
-   with fresh masks between the stages of a k-stage composition. Read
-   against R-15-053a's required statement, three hypotheses differ and one
-   step is missing.
-
-   a. Observation. The source observes one algebraic wire: one share of one
-      stage, at its settled value. R-15-053a fixes the robust expansion,
-      which observes every stable source of a probed wire at the probed
-      cycle and at the cycle before it, so one physical probe yields a set
-      of observations rather than one value. The single-wire statement is
-      the ex_stable reading of one probe and reaches neither extension.
-   b. Circuit. The source's circuit is the algebraic stage structure: share
-      tuples and a refresh relation between them. R-15-053a's circuit is a
-      gate list with registers, whose netlist half is discharged by
-      execution-aware verification of the masked implementation. Nothing
-      below evaluates a gate; the pipeline here is an algebraic model and
-      `the_algebraic_pipeline_is_not_a_netlist_claim` says so as a
-      statement rather than as prose.
-   c. Order. The source bounds one observation. R-15-053a requires
-      arbitrary order d, and the checklist's parent cell prices that
-      generalization separately. What is proved below at arbitrary order is
-      the share-observation case reached through ProbingModel.v's general
-      additive-encoding theorem, instantiated at a prime field; the
-      single-wire pipeline statements are first order in the probe count.
-   d. The missing step. The source distinguishes its checked cardinality
-      statement from an informal translation to a conditional-probability
-      bound. That translation is supplied here, in the finite weighted-mass
-      interface ProbingModel.v already carries: equality of outcome weights
-      for any two secrets, a normalizer proved positive, and the exact
-      identity p * numerator = denominator, which is the conditional
-      probability 1/p written without a rational field.
-
-   WHAT THIS FILE PROVES.
-
-   1. Z/pZ as a finite carrier with a decidable equality whose soundness law
-      holds, a complete duplicate-free enumeration, and the abelian-group
-      laws; the result inhabits ProbingModel.v's `Sharing` record, so the
-      arithmetic half and the Boolean half stand on one algebra.
-   2. The k-stage pipeline: stage 0 is an additive encoding, each later
-      stage is the previous tuple refreshed by that stage's fresh masks,
-      and every stage's share list sums to the same secret.
-   3. The preimage-cardinality statement in this prover's own terms. For a
-      fixed secret, a fixed stage, a fixed wire and a fixed observed value,
-      the number of mask tuples producing that observation, multiplied by
-      p, is the whole tape count p^((k+1)n); equivalently the count is
-      p^((k+1)n - 1). The mask wires and the completing share are both
-      covered.
-   4. The cardinality-to-probability connection: the weight of each
-      single-wire observation is equal for any two secrets at every stage,
-      in ProbingModel.v's exact-equality-of-outcome-weights notion, and the
-      conditional reading is stated as a numerator/denominator pair whose
-      denominator is positive and whose normalizer identity is proved.
-   5. The refutation. A completing set of shares at one stage recovers the
-      secret, and at p = 5 with one mask and one refresh the completing
-      view separates two secrets by outcome weight 5 against 0, both weights
-      computed by conversion and pinned as a statement rather than asserted
-      here alone. The bound therefore has a refuting instance and is not
-      vacuous.
-   6. What primality buys and what it does not. The hiding argument
-      consumes the abelian-group laws and a translation-invariant
-      enumeration and nothing else, which is exhibited by instantiating the
-      same theorem at the composite modulus 4. What primality does buy is
-      invertibility, decided by conversion at 5 and refuted by conversion
-      at 4. A concrete small prime witness discharges every field of the
-      concrete-field record by conversion.
-
-   WHAT REMAINS OWED, WITH ITS OWNER.
-
-   Gadget composition is not among what is proved. Nothing is computed
-   between the stages below: the pipeline is k successive refreshes of one
-   sharing, and no gadget is applied to it, so "k-stage" here names the
-   refresh depth and not a chain of composed operations. The composition
-   notion R-15-053a requires, and the PINI ladder that carries it, stay with
-   the Boolean half. Arbitrary order d over the glitch/transition model is
-   the parent probing cell's and the Boolean half's, not this file's:
-   nothing below observes a glitch walk or a transition pair. Fresh-mask
-   renewal and the pipeline claims at that order are owed with it, since the
-   refresh here is algebraic and its masks are independent by construction
-   rather than by a proved property of a generator; R-05-004a's DRBG
-   connection to uniform independent masks is a named assumption elsewhere
-   and is not proved here. The algebraic-to-hardware arithmetic relation
-   belongs at its consumer, the dedicated masked datapath of R-05-004a, and
-   no theorem below relates a share tuple to a wire of that datapath.
-   R-17-058d's combined fault and probing reduction is separate work over
-   both axioms. R-17-058a keeps the physical residual: delay imbalance,
-   coupling, layout and collection beyond the modeled order are outside
-   every statement here. U-20 still owns any external probability
-   foundation; the mass algebra used below is ProbingModel.v's own finite
-   counting measure.
-
-   READINGS THIS FILE TAKES, EACH A REVIEWABLE JUDGMENT.
-
-   i.   A stage is an index and a wire is a share index, so a single-wire
-        observation is `wire_value` at one stage and one index. The
-        completing share is index n and the mask wires are the indices
-        below it.
-   ii.  The randomness is one flat tape of (k+1)n field elements, read at
-        coordinate stage*n + wire. The pipeline's stage tuple is the
-        prefix sum of those coordinates, which makes the refresh relation
-        hold by computation rather than by an extra hypothesis.
-   iii. A refresh adds this stage's fresh mask to each mask wire and
-        subtracts their total from the completing share. That is the
-        standard additive refresh and it is what `encode` over a prefix-sum
-        tuple already is; `each_stage_refreshes_the_previous_tuple` records
-        the identity.
-   iv.  Independence of the fresh masks is the Cartesian tape enumeration,
-        not a hypothesis about a generator.
-   v.   Uniformity is the counting measure over that enumeration, and the
-        probability reading is a pair of naturals with a proved normalizer
-        rather than a rational.
-   vi.  The adversary interface every theorem below covers is the fixed one,
-        in the probing-model contract's own words, and no theorem here
-        covers an adaptive one. Each statement quantifies its observation,
-        a share index list or a stage-and-wire pair, ahead of the tape, and
-        nothing below lets a later choice read an earlier observed value. A
-        fixed observation list is not an adaptive strategy and is not
-        described as one.
-
-   The proofs use the Rocq prelude, the standard List, Arith, Bool, Lia and
-   Eqdep_dec modules, and ProbingModel.v. Decidable-equality uniqueness of
-   identity proofs is the constructive Eqdep_dec result and introduces no
-   axiom. No global axioms and no admitted proofs are introduced. R-05-163's
-   native assumption gate, run by `run.py proofs`, inventories every shipped
-   constant and compares its assumption set against the declared set
-   R-05-164 makes empty, including the inhabitation witnesses of section 10.
+   Scope and open boundaries (R-05-163, R-05-164, R-05-165, R-05-166):
+   - The pipeline models algebraic stage refreshes under fixed (non-adaptive)
+     single-wire observations and arbitrary-order share observations; glitch
+     and transition extensions (`ex_stable` vs. full robust probing), netlist
+     gate evaluation (`the_algebraic_pipeline_is_not_a_netlist_claim`),
+     masked-datapath refinement (R-05-004a), combined fault-and-probing
+     reductions (R-17-058d), and physical layout residuals (R-17-058a) remain
+     with their respective owners.
    (*| BEGIN derived: cited entries |*)
    Owner: docs/requirements-register.md
    Requirements: R-05-004a R-05-163 R-05-164 R-05-165 R-05-166 R-15-053a R-17-058a R-17-058d

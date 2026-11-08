@@ -270,7 +270,7 @@
         },
         {
           "path": "proofs/PartitionContext.v",
-          "sha256": "ecc62c25e94516f0971967c5693ff23bea03115da2e903f6bb9311c75eaf1da2"
+          "sha256": "5e2571845144d99e6a2d8bbde4b1eb4747206b02908e39c4e809b2812d8fe427"
         },
         {
           "path": "proofs/CyclicExecutive.v",

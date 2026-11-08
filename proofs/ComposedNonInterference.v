@@ -2,143 +2,39 @@
 (* =========================================================================
    ComposedNonInterference.v
 
-   The machine-checked statement of the ensemble's composed non-interference
-   obligation: R-17-014a's fourth dimension, the one T at a single member
-   does not reach. A statement artifact beside ApexTheorem.v, not a proof
-   development and not an extension of it.
+   Machine-checked statement of the ensemble's composed non-interference target
+   (R-17-014a, R-18-031) over [ApexTheorem.v](ApexTheorem.v), without altering
+   `Vocabulary`, R-05-160's closed seam list, or the single-member theorem `T`
+   (R-05-157).
 
-   What this file is. It imports ApexTheorem.v and adds nothing to it: no
-   field on the Vocabulary record, no tenth conjunct to R-05-160's closed
-   seam list, no obligation inside T, and no axiom. T's statement is
-   unmoved, so crown-jewel row 1 and the field bindings it publishes are
-   unchanged by this file's existence. What it adds is one record beside
-   T, `Ensemble`, and one Prop over that record, `composed_noninterference`,
-   which is a theorem *target*: nothing here proves it, and nothing here
-   claims to discharge R-17-014a, whose record stays open until a proof
-   lands (R-18-031).
+   Key readings and open register boundaries:
+   1. Each ensemble member is a complete machine under the register alone
+      (R-02-003a, R-15-228b; `member : Member -> Vocabulary`), and per-member
+      assumptions do not multiply across attested copies (`ensemble_Ax`,
+      R-05-162, R-17-061b).
+   2. Whole-system input is met twice at each member (R-05-156a): `exogenous`
+      is the member's external share (over which `ensemble_indist` is stated),
+      while `delivered` is what the member executes on (`ensemble_trace`).
+      Keeping `exogenous` and `delivered` unrelated in the record is what makes
+      `composition_is_carried_by_no_per_member_theorem` refute the implication
+      from `N` member instances of `T` to composed non-interference.
+   3. A `Link` joins `near` and `far` endpoint compartments across the untrusted
+      wire boundary (R-17-003d). Wire adversaries are admissible at every member
+      (R-01-002) and cover each link's endpoints (`wire_boundary`), reflecting
+      R-12-007a and R-12-008's index-only Byzantine peer bound.
+   4. `link_contribution` carries only R-17-014a's two permitted link conjuncts
+      — `link_schedule` (R-15-228d's slot table) and `link_session` (R-12-015d's
+      attested session, which R-17-061b identifies with the two-machine
+      attestation relation) — as opaque `Prop` fields (R-17-049d). Because no
+      register entry yet relates `delivered` to the sending member's trace in a
+      link slot (`link_premise_carries_vacuity_and_not_contribution`) or fixes
+      cross-wire endpoint label equality (`endpoints_share_a_label`, R-08-028,
+      R-15-211), both gaps are exhibited explicitly rather than closed by fiat.
 
-   Why a target and not a theorem. R-17-014a says the composition is
-   "carried by no per-member theorem", and that sentence is machine-checked
-   below rather than asserted: `composition_is_carried_by_no_per_member_theorem`
-   refutes the uniform implication from N member instances of T to the
-   composed conclusion. The gap it exhibits is the whole content of the
-   target, so a future edit that closes the gap by definition breaks that
-   lemma here rather than at the capstone.
-
-   Decisions this statement takes, each a reviewable reading of the register
-   rather than a neutral transcription:
-
-   1. A member is a whole machine under the register alone (R-02-003a,
-      R-15-228b), so a member *is* a Vocabulary and the ensemble carries
-      `member : Member -> Vocabulary`. N is the cardinality of `Member`,
-      left open: the statement is over an ensemble of any size, and the
-      two instances below are two-member ones.
-   2. The ensemble's whole-system input is its own (R-05-156a read across
-      the ensemble), and each member meets it twice: `exogenous` is the
-      member's own share of that input, `delivered` is what the member
-      actually runs on, and the two are separate fields related by nothing.
-      That gap is where the wire lives and is the single most reviewable
-      decision in this file: relating them would make the target follow
-      from the member theorems in one line, which is R-05-165's second
-      vacuity mode wearing a composition, and the instance at the end is
-      what proves the gap is really there.
-   3. The composed execution is not a field. It is
-      `ensemble_trace e i m := (member m).(exec) (delivered i m)`, a
-      definition over fields the record already carries, because the
-      composed image's behaviour is the members' own executions reached
-      through the wire and a second owner for that fact could drift from
-      the first.
-   4. A link's two endpoints are one boundary and not two. `Link` carries
-      `near`/`far` members and one endpoint compartment at each end, and
-      `wire_boundary` is the single predicate over that single link which
-      names the untrusted-wire class R-17-003d adds to the isolation
-      model's boundary classes.
-   5. The wire is an adversarial channel the policy permits, and "permits"
-      is ApexTheorem's own `admissible` rather than a second notion: the
-      composed target quantifies only over adversary sets that are
-      admissible at every member (graph-permitted and outside the TCB,
-      R-01-002) *and* contain each link's endpoint compartment. The
-      entitlement is R-12-007a's, and it is an upper bound and not an
-      equality: a peer compromised inside an accepted session reaches no
-      more than a compromised local ring peer behind the same table
-      reaches, because a frame names indices into the receiving member's
-      own table, validated there before eligibility, and encodes no
-      capability, address or authority. The ring proof's Byzantine peer
-      (R-12-008) is the wire's peer, so the wire enters as an adversary at
-      the receiving member and never as a channel with authority of its
-      own. The converse containment is stated by neither entry and is not
-      claimed here.
-   6. The link carries two conjuncts and no third, which is R-17-014a's
-      upper bound and not more: `link_schedule` stands for R-15-228d's
-      slot table and `link_session` for R-12-015d's session, the two the
-      entry names, and "and nothing more" forbids a third. The two-machine
-      attestation relation R-17-061b names is that session and not a third
-      field: R-17-061b states outright that the relation "is stated at
-      R-12-015d", so a separate field for it would be a second owner of
-      one fact. Both are opaque Props here, which is the standing
-      R-17-049d gives an unauthored model: the reference model Q23c owns
-      will instantiate them, and nothing is credited until it does.
-   6a. Those two conjuncts are inert as stated, and this file reports that
-      rather than trading on the appearance of a contribution. Each is an
-      opaque `Link -> Prop` occurring in the record declaration, in
-      `link_contribution` and in the instance literals, and in no
-      definition the target's conclusion mentions, so nothing carries
-      either into that conclusion.
-      `link_premise_carries_vacuity_and_not_contribution` below is that
-      claim machine-checked: an ensemble whose `link_session` is False
-      satisfies the target outright while its wire still carries the near
-      member's own quantity into the far member's observable slot. The
-      statement therefore meets R-17-014a's upper bound by making the
-      named contribution empty, which is R-05-165's second mode standing
-      in the target's own premise. That is a reported gap and not a
-      decision taken here: no register entry relates what a link delivers
-      to a member to what the sending member's execution placed on the
-      wire in that slot. R-15-228b fixes what a frame is, R-15-228d the
-      slot it occupies, R-12-007a the indices it names and R-12-015d the
-      session that authenticates it, and none of the four states that
-      transfer, so the schedule and the session have nothing here to bear
-      on. The act owed is a register act rather than a Gallina one: an
-      Accept clause at R-17-003d, or an entry beside R-12-007a, stating
-      the relation between a member's delivered input and the sending
-      member's trace at the link's slots. A field asserting that relation
-      here would decide by fiat what the register has not, exactly as
-      decision 8 declines to for the label question, so the target is
-      stated with the link premise the register supports and this file
-      names what that premise is worth.
-   7. Ensemble indistinguishability is stated over the members' *exogenous*
-      inputs at the members' own policies, deliberately not over the
-      delivered ones. Stating it over the delivered inputs is the accident
-      that would make this target provable from decision 2's projection
-      alone.
-   8. Label, the compose-time confidentiality label, is an opaque
-      interface exactly as `Policy` and `indist` are in ApexTheorem.v,
-      owed by row 2's policy model (R-08-028), which is unauthored
-      (R-15-211). `endpoints_share_a_label` is defined here and is not
-      a premise of the target, because no register entry decides what
-      relation a link's two endpoint labels must stand in: R-15-228b,
-      R-15-228d, R-12-007a, R-12-015d and R-17-003d state the frame
-      grammar, the slot table, the index-only payload and the session, and
-      none of them states a label relation across the wire. The
-      predicate is stated so that the question has a name and an instance,
-      and it is left out of the target so that this file does not decide by
-      fiat what the register has not decided.
-   9. No new axiom class. `ensemble_Ax` is per-member Ax and nothing else:
-      an ensemble is N attested copies of one mask set, so the residuals
-      R-17-061b enumerates do not multiply and none is added here
-      (R-05-162). The native assumption audit reports every
-      constant closed under the global context, R-05-163's gate over the
-      declared set R-05-164 currently makes empty.
-   10. This is not a second reading of *hyper-secure*. T is that reading
-      (R-05-157); what this file states is what the same reading costs
-      across a wire, and it makes no informal claim beyond the target
-      below.
-
-   The lemmas at the end are the statement's own non-vacuity witnesses
-   (R-05-165, R-05-166): every quantifier domain inhabited, the premises
-   jointly satisfiable, the target provable in one model, and, in another,
-   an instance the target rejects whose two endpoints sit at different
-   labels. One lemma there is not a witness and claims no entry: the third
-   instance reports decision 6a's gap.
+   Non-vacuity (R-05-163, R-05-164, R-05-165, R-05-166):
+   - Lemmas inhabit every quantifier domain, satisfy the premises jointly, prove
+     the target on a one-point ensemble, and refute it on a two-member ensemble
+     whose wire leaks a secret across distinct labels.
    (*| BEGIN derived: cited entries |*)
    Owner: docs/requirements-register.md
    Requirements: R-01-002 R-02-003a R-05-156a R-05-157 R-05-160 R-05-162 R-05-163 R-05-164

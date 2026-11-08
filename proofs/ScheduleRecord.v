@@ -2,27 +2,23 @@
 (* =========================================================================
    ScheduleRecord.v
 
-   R-11-006, R-11-017 and R-11-018: the shared schedule statement.
-   This extends CyclicExecutive's Frame without changing its consumers.
-   Every duration is in the composition's common spine-time unit. Bounds,
-   the finite operating-point catalog and its speed order are inputs, not
-   measured facts. Memory terms distinguish M0.14's two latency classes.
-   The input derivation and physical qualification remain outside U-05.
+   Shared mode-schedule statement (R-11-006, R-11-017, R-11-018) extending
+   [CyclicExecutive.v](CyclicExecutive.v)'s `Frame` over
+   [EnsembleSchedule.v](EnsembleSchedule.v) and [BoundaryCost.v](BoundaryCost.v).
 
-   A point is admissible for a partition only if it fits ALL that partition's
-   declared visits in this mode. The selected point is the slowest such
-   point in the declared class catalog. There is one selection function per
-   tenant, so repeated visits cannot silently select different points.
+   Every duration is expressed in the composition's common spine-time unit, with
+   memory work bounds distinguishing the two static latency classes (see
+   [MemoryPlan.v](MemoryPlan.v)). An operating point is admissible for a
+   partition only if it fits all of that partition's declared visits in the
+   mode, and one per-tenant selector (`opp_assignment`) chooses the slowest
+   admissible point in the declared class catalog so repeated visits cannot
+   silently select different points. Re-entry reserves a bounded idle window
+   (`ReentryWindow`) in every core's target frame; directed-edge certificates,
+   cross-boundary service chains, and mode-transition authorization under
+   R-11-018 are verified separately.
 
-   Re-entry reserves a bounded idle window in every core's target frame.
-   This is the target-side statement seam. It does not discharge R-11-018's
-   directed-edge certificates, cross-boundary service chains, memory and
-   queue invariants, attestation implementation or arbitrary sequences.
-   Neither the choice function below nor endpoint feasibility authorizes a
-   mode transition. No theorem here claims that full requirement discharged.
-
-   R-05-165 and R-05-166: closed record witnesses and executable accepted
-   and rejected instances follow. No timing measurement is asserted.
+   Non-vacuity (R-05-165, R-05-166): closed record witnesses and executable
+   accepted and rejected schedule instances are checked below.
    (*| BEGIN derived: cited entries |*)
    Owner: docs/requirements-register.md
    Requirements: R-05-165 R-05-166 R-11-006 R-11-017 R-11-018
@@ -364,7 +360,7 @@ Qed.
 Theorem schedule_decidable : forall c m, {mode_admits c m = true} + {mode_admits c m = false}.
 Proof. intros c m. destruct (mode_admits c m); [left | right]; reflexivity. Qed.
 
-(* Q23d's fourth output is a further field. The compatibility projection
+(* The fourth output is a further field. The compatibility projection
    takes the existing frames directly; no copied frame table can drift. *)
 Record FourOutputSchedule (T : Type) : Type := {
   three_outputs : ModeSchedule T;

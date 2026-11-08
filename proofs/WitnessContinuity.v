@@ -2,139 +2,46 @@
 (* =========================================================================
    WitnessContinuity.v
 
-   The witness-policy reference model and its continuity argument, as the
-   register fixes them: R-13-023c's machine-checked safety argument that
-   within each policy epoch every pair of acceptable quorums shares an
-   honest witness whose authenticated history prevents inconsistent
-   accepted checkpoints, over the witness identities and keys, the
-   persistent state, the recovery discipline and the policy transitions
-   that entry puts inside the policy rather than beside it; R-13-023b's
-   pinned checkpoint and its refusal of an inconsistent one; R-13-023a's
-   statement that witnessed public commitment establishes neither uniform
-   release selection nor the absence of targeted software; and R-17-030v's
-   fail-closed seam, where a checkpoint failing the policy stops the
-   install and leaves the running generation untouched.
+   Reference model and continuity proof for witness-policy quorum and history
+   safety:
+   - Intra-epoch and cross-epoch quorum intersection (R-13-023c): within each
+     policy epoch, every pair of acceptable quorums shares an honest witness
+     whose authenticated history prevents inconsistent accepted checkpoints
+     across the policy's enrolled identities/keys, persistent state, recovery
+     discipline, and epoch transitions.
+   - Checkpoint pinning and fail-closed admission (R-13-023b, R-17-030v): a
+     checkpoint failing the witness policy or consistency check against the
+     pinned checkpoint stops installation and leaves the running generation
+     untouched (see [ObjectTransactor.v](ObjectTransactor.v)).
+   - Residual boundary (R-13-023a): witnessed public commitment establishes
+     neither uniform release selection nor the absence of targeted software
+     (`one_checkpoint_carries_two_valid_variants`).
 
-   What this file is. A reference model with proofs of quorum and history
-   safety under explicit external assumptions, not an implementation.
-   Every quantity a policy or
-   a deployment fixes is a field of a record rather than a literal or a
-   top-level Parameter, which is what keeps the R-05-163 assumption gate
-   green while leaving the decision where its owner can make it. Nothing is
-   admitted and nothing is axiomatized: the native assumption audit reports
-   every shipped constant closed under the global context.
+   Key readings and explicit hypotheses:
+   1. Enrolled witness identities are positions in `pol_keys`, with distinct
+      keys enforced by `wellformedb` (`enrolled_keys_identify_witnesses`). An
+      acceptable quorum is any set of at least `K` distinct enrolled signers,
+      and the safety condition `population + f < 2 * K` is proved equivalent to
+      `f < 2 * K - population` (`safe_matches_the_register_spelling`).
+   2. Availability (`availableb`, `withholding_bound_is_sufficient`) is
+      separated from safety, and
+      `lowering_the_threshold_to_restore_progress_can_break_safety` refutes
+      threshold reduction.
+   3. Honest witness durability (`Inv`, `honest_run_never_forks`) separates the
+      volatile proposal, the durable record, and the authenticated anti-rollback
+      anchor under adversarial storage loss (`Damage`,
+      `rollback_is_refused_and_tolerating_it_forks`), while terminal epoch
+      sealing (`old_epoch_cannot_pass_the_anchor`,
+      `new_epoch_extends_the_anchor`) establishes cross-epoch comparability.
+   4. Cryptographic signature unforgeability (`Unforgeable`) and external
+      witness honesty are explicit theorem hypotheses rather than axioms,
+      keeping R-05-163's assumption audit green.
 
-   What the gate's green line means. The stated model theorems are compiled,
-   axiom-free, non-vacuous and enumerated. No signature is checked, no
-   hash is computed, no Merkle path is walked, no byte is parsed and no
-   external witness is contacted. Authentication enters as a hypothesis on
-   a deployment and never as a proved property of a primitive.
-
-   What this file does not author, with the owner of each decision.
-
-   a. Every cryptographic foundation. Unforgeability is the hypothesis
-      `Unforgeable` below, quantified over in every theorem that uses it
-      and discharged nowhere here; the unassigned-proof map's row 27 prices
-      one qualified symbolic-authentication foundation at U-20, and this
-      file deliberately does not axiomatize what that slice owes. The same
-      goes for inclusion and consistency proofs: a checkpoint is a list of
-      logged names, prefix stands for a checked consistency proof and
-      membership for a checked inclusion proof, exactly as Q22b's bounded
-      model stands them, and M6.2c owns the reader that decides them over
-      fixed-layout bytes.
-   b. The local evidence validator and the update transaction. M6.2c owns
-      the bounded reader and its refinement against this model, and M5.4
-      consumes its decision. Nothing below parses, bounds an input, or
-      writes a durable pin.
-   c. Production witness operation. External witness behaviour is an
-      assumption of this local proof, which R-13-023c's third acceptance
-      clause says outright, and no theorem here claims a deployment
-      satisfies it.
-
-   Readings of the register this statement takes, each a reviewable
-   judgment rather than a neutral transcription:
-
-   1. An identity is a position in the policy's key roster, and the roster
-      is the population. R-13-023c puts the witness identities and keys
-      inside the policy, so the roster is one field and the population is
-      its length rather than a second field a policy could contradict.
-      Distinct identities are distinct by construction; what remains a
-      checked obligation is that distinct identities hold distinct keys,
-      which `wellformedb` carries and `enrolled_keys_identify_witnesses`
-      states. `duplicated_keys_let_one_holder_fill_two_slots` is the
-      construction that obligation excludes.
-   2. An acceptable quorum is any set of at least K enrolled identities.
-      R-13-023c's acceptance clause fixes a flat policy admitting every
-      size-K subset, and a larger accepted set contains a size-K one, so
-      the counted form is the same acceptance set and needs no separate
-      minimal-quorum step. The count is over distinct accepted signer
-      positions rather than over signatures, so a repeated signature
-      contributes once.
-   3. The safety condition is stated without natural subtraction and
-      proved equal to the register's own spelling.
-      `safe_matches_the_register_spelling` holds `population + f < 2K`
-      against `f < 2K - population`, which are the same predicate because
-      truncation makes the register's right-hand side zero exactly where
-      the left-hand comparison already fails.
-   4. Availability is not a term in any safety statement. It is a separate
-      predicate over a responsive set, `availableb`, and the two are shown
-      independent in both directions. `withholding_bound_is_sufficient` is
-      the qualification's `N - f - o >= K` as a theorem, and
-      `lowering_the_threshold_to_restore_progress_can_break_safety` is why
-      a threshold is never reduced to buy progress.
-   5. The durable discipline is a state machine and its no-fork property
-      is derived rather than assumed. An honest witness separates the
-      volatile proposal from the durable record and from the authenticated
-      antirollback anchor; `Inv` is the inductive invariant, and the chain
-      property every deployment theorem needs is `honest_run_never_forks`,
-      proved of the machine rather than postulated of a witness.
-   6. Storage loss and rollback are adversarial actions inside the model,
-      not assumptions outside it. `Damage` sets the failing store to any
-      value at any point, and the anchor is what the specification
-      consults. The `anchored` flag carries both readings so the tolerant
-      one can be refuted rather than merely omitted, which is what
-      `rollback_is_refused_and_tolerating_it_forks` does.
-   7. A terminal transition is a statement a witness signs and a closure it
-      persists, so the old epoch closes inside the same machine. Sealing
-      freezes the trusted record, which is `sealed_run_keeps_its_trusted`,
-      and every statement a sealed identity ever released is a prefix of
-      the anchor, which is what carries `old_epoch_cannot_pass_the_anchor`.
-   8. The cross-epoch conclusion the client can check is comparability,
-      and the stronger conclusion needs a deployment hypothesis. A client
-      checks two certificates; that gives every accepted old checkpoint a
-      prefix of the anchor and every accepted new checkpoint comparable
-      with it. `new_epoch_extends_the_anchor` is the sharper reading and
-      takes `AnchoredChain`, the hypothesis that the destination population
-      starts at the anchor, which is a deployment fact rather than a
-      certificate's content.
-
-   The certificate decision follows Q22b's qualified model: policies are
-   well formed, every signature binds the complete policy and statement,
-   and repeated or non-qualifying signatures refuse the whole certificate.
-   `counted_certificateb` isolates the weaker cardinality predicate used
-   by the intersection calculation; it is never a client admission rule.
-   `certified_implies_counted` connects them. Authentication hypotheses
-   range over the supplied certificates, not every constructible value
-   with its symbolic authentication flag set. The complete safety premises
-   have constructed deployment witnesses below, beyond record inhabitation.
-
-   Residual retained rather than closed. Selective delivery of
-   independently valid variants stays exactly where R-13-023a puts it: one
-   accepted checkpoint can carry two admissible package identities, a
-   recipient can be given either, and no predicate in this file selects
-   between them. `one_checkpoint_carries_two_valid_variants` exhibits the
-   pair; nothing below is a monitor, a release-selection policy, or a
-   source-availability claim, and no theorem here narrows that residual.
-
-   Non-vacuity (R-05-165, R-05-166). Every record this file's theorems
-   quantify over carries a closed inhabitant named for it. Every policy
-   and history claim is stated over an arbitrary deployment, proved of the
-   specification, and refuted of an alternative construction: a policy the
-   intersection condition rejects, a witness that reads its failing store
-   instead of its anchor, a transition carried by shared-prefix signatures
-   alone, and a roster whose keys are not distinct. Whether a refuted
-   construction is a telling one is a reading, discharged at R-05-150's
-   review gate and booked under R-17-016 rather than claimed here.
+   Non-vacuity (R-05-150, R-05-163, R-05-165, R-05-166, R-17-016):
+   - Every carrier record has a closed inhabitant, and every policy and history
+     theorem is paired with a refuting construction (violated quorum
+     intersection, unanchored store recovery, shared-prefix-only transition, and
+     duplicate witness keys).
    (*| BEGIN derived: cited entries |*)
    Owner: docs/requirements-register.md
    Requirements: R-05-150 R-05-163 R-05-164 R-05-165 R-05-166 R-13-023a R-13-023b R-13-023c
@@ -244,10 +151,9 @@ Qed.
 (* =========================================================================
    Part 2. Checkpoints, and what consistency means over them.
 
-   A checkpoint is the complete list of logged names a log history holds,
-   which is Q22b's own representation: prefix stands for a verified
-   consistency proof and membership for a verified inclusion proof. Nothing
-   here computes a Merkle path; M6.2c owns the reader that does.
+   A checkpoint is the complete list of logged names a log history holds:
+   prefix stands for a verified consistency proof and membership for a
+   verified inclusion proof. Nothing here computes a Merkle path.
    ========================================================================= *)
 
 Definition Checkpoint : Type := list nat.
@@ -479,9 +385,9 @@ Definition counted_certificateb (p : Policy) (s : Statement)
   (gs : list Signature) : bool :=
   safeb p && (pol_threshold p <=? card (population p) (accepted p s gs)).
 
-(* Q22b rejects duplicate signers and every non-qualifying signature.
-   Its Python constructor checks policy validity before certificates can
-   be formed; the total Gallina decision checks that same boundary here. *)
+(* Certificate verification rejects duplicate signers and every non-qualifying
+   signature. Its Python constructor checks policy validity before certificates
+   can be formed; the total Gallina decision checks that same boundary here. *)
 Definition certifiedb (p : Policy) (s : Statement)
   (gs : list Signature) : bool :=
   wellformedb p && bindsb p s
@@ -688,8 +594,8 @@ Definition step (anchored : bool) (p : Policy) (i : nat) (w : WState) (a : Actio
       else None
   end.
 
-(* A refused action is a no-op, which is Q22b's own schedule discipline:
-   each rejected operation leaves the remaining actions decidable. *)
+(* A refused action is a no-op, so each rejected operation leaves the
+   remaining actions decidable. *)
 Fixpoint run_state (anchored : bool) (p : Policy) (i : nat) (w : WState)
   (acts : list Action) : WState :=
   match acts with
@@ -1131,8 +1037,7 @@ Proof.
 Qed.
 
 (* T4 (R-13-023c's transition clause). Once a terminal quorum has sealed an
-   anchor, no old-epoch certificate reaches past it. This is the argument
-   Q22b names and does not complete. *)
+   anchor, no old-epoch certificate reaches past it. *)
 (*| discharges: R-13-023c |*)
 Theorem old_epoch_cannot_pass_the_anchor :
   forall (old : Policy) (bad : nat -> bool) (rel : Releases) (tr : Transition)
@@ -1276,8 +1181,8 @@ Qed.
 Definition availableb (p : Policy) (responsive : nat -> bool) : bool :=
   pol_threshold p <=? card (population p) responsive.
 
-(* Q22b's `N - f - o >= K`: if every faulty identity withholds and o
-   further honest ones are unavailable, the rest still reach the
+(* The withholding bound `N - f - o >= K`: if every faulty identity withholds
+   and o further honest ones are unavailable, the rest still reach the
    threshold. *)
 (*| discharges: R-13-023c |*)
 Theorem withholding_bound_is_sufficient : forall (p : Policy) (o : nat),
@@ -1303,7 +1208,7 @@ Definition transition_okb (p : Policy) (pinned : Checkpoint) (tr : Transition)
   && certifiedb p (sealed_statement p tr) seals
   && certifiedb (tr_new tr) (plain (tr_new tr) (tr_anchor tr)) fresh_sigs.
 
-(* The reading Q22b refutes: ordinary old-epoch signatures on the shared
+(* The weaker reading refuted below: ordinary old-epoch signatures on the shared
    prefix, with no terminal closure of the old epoch. *)
 Definition prefix_only_transition_okb (p : Policy) (pinned : Checkpoint)
   (tr : Transition) (old_sigs fresh_sigs : list Signature) : bool :=
