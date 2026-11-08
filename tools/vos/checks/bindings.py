@@ -1,31 +1,18 @@
 # SPDX-License-Identifier: Apache-2.0
-"""bindings: the apex statement's interface fields against the view that binds them.
+"""Check [docs/assurance/field-bindings.md](../../../docs/assurance/field-bindings.md) against [proofs/ApexTheorem.v](../../../proofs/ApexTheorem.v) (`K-42`..`K-44`).
 
-proofs/ApexTheorem.v is R-18-031(a)'s coverage checklist: every side-property some
-seam consumes or concludes is a Prop field of the Vocabulary record, a proof
-workstream lands by instantiating its field, and a field nothing instantiates is an
-uncovered obligation with exactly one name. docs/assurance/field-bindings.md is the view that
-makes the checklist readable and queryable: one row per Prop field, carrying what the
-statement does with the field (mechanical, recomputed here from the .v), which
-artifact authors its meaning (semantic, hand-authored, the register wins), and which
-proof development instantiates it (the burn-down, 'none yet' today).
+[proofs/ApexTheorem.v](../../../proofs/ApexTheorem.v) is `R-18-031(a)`'s coverage
+checklist: every side-property a seam consumes or concludes is a `Prop` field of the
+`Vocabulary` record, and [docs/assurance/field-bindings.md](../../../docs/assurance/field-bindings.md)
+carries one row per `Prop` field with its mechanical consumers, its semantic authoring
+artifact, and its instantiating proof development.
 
-The mechanical half is derived in the one direction this repository allows: the .v is
-the source, the view restates it, and this group fails the restatement that drifts.
-The semantic half is deliberately not derivable and is only shape-checked here;
-whether a row cites the right authoring artifact is the review gate's question.
-
-**Held in both directions, and the parse's own residue is held with them.** A row
-naming no Prop field and a Prop field carrying no row are each a finding here, which
-is what makes a field list that has narrowed loud rather than merely shorter, and the
-consumer cells are pinned the same way against the same parse. What a pairing cannot
-see either way is what the parse never read: a field it did not name has no row to
-disagree with it, and a consumer it did not see leaves a cell that was already written
-without it. Both sides narrow in silence and neither the floor nor a cell notices,
-because the floor counts members and the count is merely one short. So vos/apex.py
-reads the record whole and each definition body twice, hands back whatever it could
-not read, and this rule reports that residue before it reports anything about the
-rows: a parse with a residue has not decided what these three verdicts claim.
+- `K-42` checks that the parser in [vos/apex.py](../apex.py) left no unread declaration
+  residue and that the table rows in [docs/assurance/field-bindings.md](../../../docs/assurance/field-bindings.md)
+  match the record's `Prop` fields in declaration order.
+- `K-43` checks that every row's consumer cell matches the consumers parsed from the
+  statement in [proofs/ApexTheorem.v](../../../proofs/ApexTheorem.v).
+- `K-44` checks that every instantiation cell is either `none yet` or a Markdown link.
 """
 
 import re
@@ -34,9 +21,6 @@ from typing import TYPE_CHECKING
 from vos import apex, fieldbindings
 from vos.fieldbindings import BINDINGS
 
-# [Context](__init__.py#Context) lives in this package, which imports this module in turn.
-# Guarded, so the annotation below costs no import at run time: under PEP 649 an
-# annotation is not evaluated unless something asks for it, and nothing here does.
 if TYPE_CHECKING:
     from . import Context
 
@@ -61,26 +45,17 @@ def run(ctx: Context) -> None:
         rep.line()
         return
 
-    # the record's Prop fields, in declaration order, and what consumes each: one
-    # parse, held in vos/apex.py, which blast-radius.py reads too, so the answer this
-    # group checks the view against and the answer that tool prints are the same fact
-    # rather than two readings of one file
+    # Shared parse used by both this check and [vos/cli/blast.py](../cli/blast.py).
     record = apex.read(apex_path)
 
-    # the table through the one parse blast-radius.py shares (vos/fieldbindings.py),
-    # so a truncated row is that parse's finding here rather than a crash in either
+    # Shared table parse from [vos/fieldbindings.py](../fieldbindings.py).
     raw = corpus.by_name[BINDINGS].raw
     table = fieldbindings.rows(raw)
     by_field = {row.field: row for row in table}
     row_order = [row.field for row in table]
 
-    # What the statement says and the parse could not read comes first, because a
-    # declaration nobody can name is a row nobody can write and a body nobody can read
-    # is a consumer cell held against a guess: reported here rather than left to narrow
-    # the field list or the consumers, neither of which any floor can see, a count one
-    # short being exactly the shape of a pass over nothing. The rule fails on it rather
-    # than reporting it elsewhere, because what it decides is that the view carries
-    # exactly the record's Prop fields, and a parse with a residue has not decided that.
+    # Report any unparsed declarations from `ApexTheorem.v` before checking row
+    # correspondence so a narrowed parse cannot pass silently.
     problems = list(record.unread)
     problems += [f"the row '{line}' is too narrow to carry the view's cells"
                  for line in fieldbindings.malformed(raw)]

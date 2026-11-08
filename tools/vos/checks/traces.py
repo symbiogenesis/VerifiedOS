@@ -1,29 +1,21 @@
 # SPDX-License-Identifier: Apache-2.0
-"""traces: the register's references against the prose bookmarks they cite.
+"""traces: check requirement traces, acceptance criteria, and prose bookmarks (K-01..K-09).
 
-Bookmarks cannot go stale the way line numbers do, but they can be absent,
-misspelled, duplicated or buried, and a dangling Markdown anchor fails silently. The
-properties are not hypothetical: they found R-05-022 (no trace) and R-15-159 (a
-target inside a mermaid diagram) when the reference first became symbolic. The
-mermaid case is why a bookmark inside a fenced block is now a finding on its own:
-the fence displays the anchor rather than declaring it, so the trace that cites it
-points at nothing while the prose looks like it carries the target. That defect was
-repaired by hand once and nothing held it.
-
-The citation itself is now derived rather than written: a trace naming only its
-crown jewels cites #r-<id>, the bookmark its own requirement number gives. That
-closes the last place the register carried a derived fact by hand, and it is the
-counts group's rule applied to a reference instead of a figure, so the third
-property below is the one that keeps it closed: a trace written out where the
-derived form would do is a restatement, and is reported exactly as an unheld figure.
-
-A written-out target that resolves to nothing at all is a dead link, which the links
-group holds over the whole corpus and reports there; reporting it here as well would
-book one edit as two findings. What is this group's alone is the target the links
-group cannot see as wrong: the derived citation with no bookmark behind it, which is
-no link and so reaches no link check, and the written-out citation that lands on a
-*heading* rather than a bookmark, which resolves and renders and then moves the next
-time the heading is retitled, exactly the drift bookmarks were adopted to end.
+Checks that:
+- **K-01**: Every requirement trace target resolves to an `<a id="...">` bookmark in
+  [docs/spec.md](../../../docs/spec.md) rather than a missing anchor or a section heading.
+- **K-02**: Traces that match the default `#r-<id>` bookmark without extra citations or
+  notes use the derived form rather than spelling `#r-<id>` out by hand.
+- **K-03**: Every `<a id="...">` bookmark in a document is unique.
+- **K-04**: No `<a id="...">` bookmark appears inside a fenced code or diagram block.
+- **K-05**: Every requirement has a `· Trace:` line.
+- **K-06**: Every requirement has at least one `· Accept:` line.
+- **K-07**: Every `· Accept:` line precedes any conferral (`· Fail-closed:`,
+  `· RoT-fresh:`) or `· Trace:` line in its entry.
+- **K-08**: Every `r-*` bookmark in [docs/spec.md](../../../docs/spec.md) names a live
+  requirement in [docs/requirements-register.md](../../../docs/requirements-register.md).
+- **K-09**: Every written-out `[§n.m](spec.md#...)` trace link displays the top-level
+  section where its target bookmark is located.
 """
 
 import re
@@ -32,9 +24,6 @@ from typing import TYPE_CHECKING
 from vos.corpus import PROSE
 from vos.register import REQ_ID_PATTERN
 
-# [Context](__init__.py#Context) lives in this package, which imports this module in turn.
-# Guarded, so the annotation below costs no import at run time: under PEP 649 an
-# annotation is not evaluated unless something asks for it, and nothing here does.
 if TYPE_CHECKING:
     from . import Context
 

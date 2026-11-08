@@ -1,12 +1,13 @@
 # SPDX-License-Identifier: Apache-2.0
-"""Ordinary Markdown pointers use pinned offline Lychee validation.
+"""links: validate Markdown links, source-comment references, and license paths (K-12, K-80).
 
-Source comments/docstrings use the same link syntax with source declarations as
-fragment targets where supported. Their targets must belong to the Git index.
-
-The licence-text check separately requires that redistributed terms belong to the
-Git index. A file existing on disk does not establish that this repository ships
-it.
+- **K-12**: Validates Markdown document links via offline Lychee ([vos/lychee.py](../lychee.py))
+  and source-comment/docstring references via [vos/source_refs.py](../source_refs.py),
+  requiring targets to belong to the Git index and fragments to resolve to headings,
+  anchors, or supported source declarations.
+- **K-80**: Checks that every license file path listed in the redistributed and
+  fetched-at-build-time tables of [THIRD-PARTY.md](../../../THIRD-PARTY.md) is tracked
+  in the Git index.
 """
 
 import re
@@ -18,9 +19,6 @@ from typing import TYPE_CHECKING
 from vos import lychee, source_refs
 from vos.corpus import Document
 
-# [Context](__init__.py#Context) imports this module in turn.
-# Guarded, so the annotation below costs no import at run time: under PEP 649 an
-# annotation is not evaluated unless something asks for it, and nothing here does.
 if TYPE_CHECKING:
     from . import Context
 

@@ -1,86 +1,17 @@
 # SPDX-License-Identifier: Apache-2.0
-"""ring: the generated interface artifact against the two owners it is a function of.
+"""ring: check the generated ring-contract Gallina artifact against its owners and profile (K-89, K-99).
 
-The typed IDL profile's rule is that the declaration is the one authored owner of
-everything a composition fixes and the artifact is a function of that declaration and
-of the register alone, so no hand edit of the artifact survives. That rule needs a
-holder or it is a sentence: a generated Gallina file renders correctly, compiles, and
-passes the proof gate whatever a person typed into it, and the two closed enumerations
-it carries from the register are exactly the kind of transcription this repository
-catches elsewhere by re-deriving rather than by comparing two copies.
-
-**This rule re-runs the generator.** It does not compare the artifact against a
-recorded digest, because a digest is a third copy of the same fact and goes stale in
-the same edit; it emits the artifact again from `interfaces/ring-reference.json` and
-from the register's own entry lines, and holds the working tree's bytes against what
-came back. So a status added at R-12-093, a state reordered at R-12-094, a constant
-moved in the declaration, and a token typed into the artifact by hand are one finding
-each, at the gate the edit lands at.
-
-**Why the generator rather than a second parse.** The emitter lives in
-[vos/ring.py](../ring.py) and this rule imports it. Writing a checker-side
-re-derivation would be the two-copies-of-one-parse defect these tools exist to catch,
-in the tools, and it would decide agreement between two things this repository wrote
-rather than between the artifact and its owners.
-
-**Fail-closed, on the ground the generated group already states.** An artifact the git
-index does not carry is outside the checker's corpus and every claim about it is
-vacuous; an artifact absent from the working tree has no bytes to read; and a generator
-that raises is an owner that no longer carries what the emitter reads out of it, which
-is this rule's finding rather than this rule's crash. The third is caught on the
-emitter's own refusal *and* on every other exception, because those are one fact
-arriving twice: the emitter names in [vos/ring.py](../ring.py) every key it
-reads and refuses on each, and an owner shaped in a way none of those guards reaches
-would otherwise leave the whole run dead rather than one rule red.
-
-**`--fix` does not repair it**, deliberately, and the ground is the one the co-read
-ledger already states for blessing. The repair is `run.py ring emit`, which rewrites
-the artifact from the owners; running it from inside the checker would let an edit to
-the artifact be absorbed silently by the same wave that was supposed to report it, and
-the interesting case is not the drift but which owner moved.
-
-**K-99 is the other side of the same artifact and it is a different claim.** K-89 decides
-that the artifact agrees with its *owners*, the declaration and the four register
-entries the emitter reads, and that is the whole of what it decides: the emitter also
-states the wire encoding, and where it takes that from is [the typed IDL
-profile](../../../docs/languages/idl-profile.md)'s §4, which is not an owner the emitter reads at
-all. So a row edited in §4.2 moves neither side of K-89, and the drift is silent in both
-directions. That gap is what that document's own *what nothing holds* section reported,
-and this rule is the binding it said was owed.
-
-**Three readings, and each is a different way for the two to part.** The **ladder** is
-IDL-023's, a length form being one form, and the emitter writes it as a Gallina literal;
-it is *recomputed* here from the rungs that entry states in its own words rather than
-compared against a second copy, so a rung added to the profile and not to the emitter is
-a finding at the edit that adds it. The **descriptor's members** are IDL-053's, which
-names each member and the §4.2 row encoding it, and the emitter sums one term per member;
-that pairing is held in both directions, so a member the profile gains and a row the
-profile drops are each a finding. The **buffer reference's members** are `WF-11`'s own
-row, which the emitter spends one declared encoding width on apiece.
-
-**What the emitter is, and therefore which side is defective.** §4.3.6 makes the
-artifact a function of the declaration and the register; §4.2 makes the *encoding* the
-profile's. The emitter implements those rows and owns none of them, so where the two
-disagree the repair is to the emitter, on the same terms as any derived view that
-disagrees with the entry it derives from. Nothing here is rewritten under `--fix`
-accordingly: which side moved is the fact worth having, exactly as it is one rule up.
-
-**Fail-closed at every reading**, on K-75's ground, which is why this rule
-owes the floors group no member of its own: an absent profile, an IDL-023 whose rungs
-this rule cannot read, a §4.2 carrying no row table, an IDL-053 it cannot find, and a
-definition absent from the emitted text are each a finding rather than a comparison made
-against nothing. An emitter that did not run is reported here as well as at K-89, and
-that is one act priced at two lines on purpose: the two rules decide different things,
-and a green line here over an artifact that was never emitted would be the false green
-the second reading exists to prevent.
-
-**What it does not read is declared rather than left to be met.** The completion's
-members are R-12-093's, which the register owns and §4.2 does not place, so IDL-055
-names no row for this rule to hold and the completion's encoded size is outside it.
-And the direction a prose row cannot answer is stated too: a member *added* to `WF-11`'s
-row is not caught, that row being one sentence rather than an enumeration with a shape,
-where IDL-053's list of rows is read in both directions because each of its members
-names a row id this rule can resolve.
+- **K-89**: Re-runs [vos/ring.py](../ring.py#emit) over
+  [interfaces/ring-reference.json](../../../interfaces/ring-reference.json) and the
+  governing register entries (`R-12-093`, `R-12-094`, etc.) and compares the result
+  against the tracked [proofs/RingContract.v](../../../proofs/RingContract.v). Report-only
+  (`run.py ring emit` regenerates the artifact).
+- **K-99**: Checks the wire-encoding definitions emitted by [vos/ring.py](../ring.py)
+  against [docs/languages/idl-profile.md](../../../docs/languages/idl-profile.md):
+  - `disc_width` against the byte-width ladder in `IDL-023`,
+  - `descriptor_bytes` terms against the member list and §4.2 `WF-*` rows in `IDL-053`
+    (in both directions), and
+  - `buffer_ref_bytes` terms against the members listed in §4.2's `WF-11` row.
 """
 
 import re
@@ -89,7 +20,6 @@ from typing import TYPE_CHECKING
 from vos import figures
 from vos import ring as emitter
 
-# [Context](__init__.py#Context) lives in this package, which imports this module in turn.
 if TYPE_CHECKING:
     from . import Context
 

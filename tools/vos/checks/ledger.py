@@ -1,108 +1,21 @@
 # SPDX-License-Identifier: Apache-2.0
-"""ledger: what each proof constant claims to answer, and the ledger that joins it.
+"""Check proof discharge annotations (`K-105`) and the generated proof ledger (`K-106`).
 
-[The citations group](citations.py) holds every requirement id a shipped proof *names*
-against the register that declares it. That is a bibliography: it says the entry
-informed the artifact and nothing about which sentence in the artifact answers it. The
-whole of a proof file's evidence therefore arrived at the register as one undivided
-lump, and the question a reviewer actually asks, *which constant claims this entry*, was
-answered by reading the file.
+While [citations.py](citations.py) checks every requirement ID cited in a proof file,
+discharge annotations (`(*| discharges: R-... |*)`) record which specific proof
+statement claims to answer which requirement (see [vos/proofcites.py](../proofcites.py)).
+Whether a theorem's statement actually discharges the requirement remains a review-gate
+judgment (`R-05-150`, `R-17-016`).
 
-A discharge annotation answers it. `(*| discharges: R-07-015, R-15-007i |*)` on the line
-above a statement says that this constant claims those entries, and the two words are
-kept apart everywhere here for the reason [proofcites](../proofcites.py) states at
-length: a **citation** is a bibliography and a **claim** is a debt.
-
-**A claim is a claim and never a proof that the theorem states the obligation.** A
-constant can be annotated with an entry it has nothing to do with, and both this group
-and the ledger it holds will report it as claimed, because deciding otherwise means
-reading the entry's sentence against the theorem's and judging whether one is the other.
-That reading is the review gate R-05-150 fixes, the residue R-17-016 declares, and a
-person's. Nothing here narrows it, and the ledger's own preamble says so in its first
-paragraph, so that a reader who meets the table before this file is not misled by it.
-
-## K-105, and why it is reported rather than repaired
-
-The rule holds four things about every annotation the tree carries and each is a
-different edit. It parses in the form the contract fixes. Its ids are ids, comma
-separated, distinct, and nothing else. It sits above a *statement* rather than above a
-`Definition`, a `Fixpoint` or a `Record`, which is the failure that renders perfectly
-and reads as correct. And every id it names is a **live** requirement of the register,
-which is `Register.id_set` exactly as K-103 and K-45 read it: there is no second answer
-to that question in this tool and this rule does not invent one.
-
-**Reported and never repaired**, on the ground K-89, K-91 and K-103 each state. A
-discharge is a claim about which entry an artifact answers. Either side may be the one
-that moved, the entry retired or the annotation mistyped, and rewriting the annotation
-to match the register would repair a disagreement into agreement with itself and delete
-the only fact worth having, which is which of the two the edit landed in.
-
-**A dead id inside an annotation is reported here and by K-103, and that is intended.**
-An annotation is text in the artifact, so the ids in it are citations as well as claims
-and the citation rule sees them one group earlier. What this rule adds is the half the
-repair needs and the coarser reading structurally cannot reach, *which constant made the
-claim*; a rule that fell silent because a neighbour had already spoken would have its
-reach depend on the order of `GROUPS` rather than on its own subject. What is **not**
-restated is the artifact this tool could not open at all: the per-file reason for that is
-K-103's finding and is not written twice, and what stands here in its place is one line
-saying how many of the index's proof artifacts this rule's subject is missing, so a
-narrowed reading is never a silent one.
-
-**Fail-closed on the marker rather than on the population.** Every `(*|` a proof artifact
-carries is taken as an attempt at an annotation, so one that will not parse is a finding
-instead of a comment the scan walks past, and an annotation above no statement is a
-finding rather than a claim dropped out of the comparison. A register that yields no live
-requirement at all is a finding too, that being a comparison made against an empty set.
-
-What this rule deliberately does **not** carry is a floor over the annotation
-population, and that is a decision rather than an omission. The annotations are an
-authoring act in progress: a tree that carries none would fail such a floor for the
-reason that nobody has annotated a theorem yet, which is the decision K-103 already
-takes in the other direction when it puts an untracked `.v` outside its rule rather than
-inside it. What is floored instead is the *ledger*, at K-106, whose rows are the join of
-both halves and are not empty; so the group cannot pass over an empty subject, and the
-half left unfloored is the claimed half alone. The day a population floor here would
-floor something is the day the annotations are no longer being authored, and it belongs
-to that landing.
-
-## K-106, and why the ledger is not a row of the generated table
-
-[tools/generated/proof-ledger.md](../../generated/proof-ledger.md) is that join written
-down: one row per requirement, artifact and constant, saying whether the pair is cited
-only or claimed. It is arithmetic over an enumeration this group already reads, so unlike
-K-105 it **is** repaired: `--fix` writes what the generator writes, because there is no
-disagreement between two artifacts to preserve, only a file that is or is not the
-function of its owners.
-
-[The generated group](generated.py) already holds three artifacts that way, and its
-table was the obvious home for a fourth. It is refused, and the first reason is the one
-that decides it. `generated.paths()` is read by the pins group, where it **exempts** a
-generated artifact from the transcription rule K-81 holds over every other tracked file:
-a machine-written file restates nothing, so an object-id-shaped token inside one is not a
-transcription and there is no edit a finding could ask for. That exemption is right for
-four megabytes of emitted Sail bit literals and wrong here. This artifact is a burn-down
-a person reads row by row, its cells are requirement ids and Gallina names rather than
-emitted literals, and taking a carve-out out of a hygiene rule for a table under human
-review is buying nothing and giving up a window. The second reason is the `Emitter`
-protocol's shape, `(root, bundle) -> str`: this artifact's owners are the **register**
-and the shipped proofs, and neither reaches an emitter of that signature. Widening the
-protocol to carry the `Context` would put a whole-corpus dependency inside the group that
-runs **first**, and it runs first for the opposite reason to this one, its artifact being
-an *input* four rules downstream read. This artifact is an output nothing downstream
-reads, and its subject is the same proof artifacts [the citations group](citations.py)
-opens one group earlier.
-
-So the row was not taken and the rule is written here. What is kept from that table is
-half its reading and deliberately not the other half. Kept: a generated artifact this
-checkout does not carry as a tracked document is one every claim about is vacuous, so
-that is asked before its bytes are read. Not kept: `corpus.staged_bytes`, which is how
-the generated group asks it. That helper shells out to `git cat-file`, and one call
-measured 98 to 192 ms on the host this landed on, where the whole of the reading below
-is 8 ms and `check.py` is about 2 s. The generated group pays it because it compares the
-working tree against the *index* and needs those bytes; this rule compares the working
-tree against its **generator** and needs no blob at all, so the question it does have is
-put to the corpus, which answered it once for the whole run out of the `ls-files` the
-load already made.
+- `K-105` validates every `(*|` annotation in tracked `.v` files: it must be well-formed,
+  contain distinct comma-separated requirement IDs, precede a theorem/lemma statement
+  (not a `Definition`, `Fixpoint`, or `Record`), and name only live requirements in the
+  register. `K-105` is never auto-repaired.
+- `K-106` checks that [tools/generated/proof-ledger.md](../../generated/proof-ledger.md)
+  matches the join of the register with all proof citations and discharge claims, and
+  rewrites it under `--fix`. It is checked here rather than in
+  [generated.py](generated.py) so that `proof-ledger.md` is not exempted from `K-81` and
+  can consume the parsed register and proof corpus directly.
 """
 
 from dataclasses import dataclass
@@ -110,7 +23,6 @@ from typing import TYPE_CHECKING
 
 from vos import proofcites
 
-# Import Context only for type checking to avoid a runtime import cycle.
 if TYPE_CHECKING:
     from . import Context
 
@@ -285,17 +197,7 @@ def run(ctx: Context) -> None:
 
 def _ledger(ctx: Context, place: dict[str, int], cites: dict[str, set[str]],
             claimed: dict[str, list[proofcites.Claim]]) -> None:
-    """K-106: the generated ledger is the join, and `--fix` writes it.
-
-    Fail-closed in two places, on K-75's ground and on the generated group's.
-    An artifact this checkout does not carry as a tracked document is one nothing decided
-    about it means anything, so it is a finding before its bytes are read; the corpus is
-    what answers that, and it answers the same way for a file the index never carried, one
-    a peer session deleted out from under the run, and one whose path this corpus does not
-    read, because the repair is the same act in all three. And a join yielding no row at
-    all is a comparison made against an empty set, which is the floor the claimed half of
-    K-105 does not carry.
-    """
+    """Check that [tools/generated/proof-ledger.md](../../generated/proof-ledger.md) matches `emit()` (`K-106`), and rewrite it under `--fix`."""
     rep = ctx.rep
     findings: list[str] = []
     joined = rows(place, cites, claimed)
@@ -331,12 +233,7 @@ def _ledger(ctx: Context, place: dict[str, int], cites: dict[str, set[str]],
 
 
 def _diverges(expected: str, held: str) -> int:
-    """The 1-based line the two texts first disagree on, for a person to go and look at.
-
-    A line rather than a byte offset, because the repair is to run the generator and the
-    figure's whole job is to say *where* it moved: a table row is a line here, so the
-    number names the pair whose row changed, arrived or left.
-    """
+    """Return the 1-based line number where `expected` and `held` first differ."""
     mine, theirs = expected.splitlines(), held.splitlines()
     for i, (a, b) in enumerate(zip(mine, theirs, strict=False), start=1):
         if a != b:

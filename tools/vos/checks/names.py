@@ -1,15 +1,13 @@
 # SPDX-License-Identifier: Apache-2.0
-"""names: every id a document uses, against the artifact that declares it.
+"""names: check identifier uniqueness and resolution across the document corpus (K-10, K-11).
 
-Five vocabularies run across these documents: the register's R- requirements and its
-CJ- crown-jewel targets, the absence contract's A- absences, and the coverage
-matrix's B- boundaries and P- properties. Each is declared by exactly one artifact
-and cited from everywhere, which makes a citation a derived fact of the coarsest
-granularity, a whole id. Retire or renumber one and every sentence arguing from it
-still reads, and argues from nothing. IDs are permanent here (a retired requirement
-is struck, never reused), and that is what makes the check total rather than
-advisory: a name either resolves to something live or is an error, with no third
-case to adjudicate.
+- **K-10**: Every requirement ID in [docs/requirements-register.md](../../../docs/requirements-register.md)
+  is declared at most once.
+- **K-11**: Every unfenced citation of a requirement (`R-*`), crown-jewel target (`CJ-*`),
+  hardware absence (`A-*` in [docs/hardware/absence-contract.md](../../../docs/hardware/absence-contract.md)),
+  or coverage-matrix boundary (`B-*`) or property (`P-*` in
+  [docs/assurance/coverage-matrix.md](../../../docs/assurance/coverage-matrix.md))
+  resolves to a live declaration in its owning artifact.
 """
 
 import re
@@ -17,17 +15,11 @@ from typing import TYPE_CHECKING
 
 from vos.register import REQ_ID_PATTERN
 
-# [Context](__init__.py#Context) lives in this package, which imports this module in turn.
-# Guarded, so the annotation below costs no import at run time: under PEP 649 an
-# annotation is not evaluated unless something asks for it, and nothing here does.
 if TYPE_CHECKING:
     from . import Context
 
 HEADING = "=== names: every id used, against the artifact that declares it ==="
 
-# The character an id may not be preceded by, which is the left half of the boundary the
-# citation must stand on. It is the same class the pattern below states on its right,
-# spelled once here so the two halves cannot come to mean different things.
 WORDISH = re.compile(r"[\w-]")
 
 
