@@ -2,7 +2,7 @@
 (* =========================================================================
    StorageBridge.v
 
-   The bytes-to-record bridge M5.3 owes between the modeled block device
+   The bytes-to-record bridge between the modeled block device
    ([block-device-contract.md](../interfaces/block-device-contract.md)) and the
    journal records [JournalIndex.v](JournalIndex.v#Rec) and
    [StorageRecovery.v](StorageRecovery.v) consume, under the policy R-10-002a
@@ -13,7 +13,7 @@
    reads frames back into [JournalIndex's Rec](JournalIndex.v#Rec), with every
    payload and commit authenticated through an opener the composition binds to a domain key. The
    decoder is written against that opener and never holds a key (R-10-022);
-   `gcm_opener` instantiates it with AesGcm.v's functional AES-GCM reference,
+   `gcm_opener` instantiates it with [AesGcm.v](AesGcm.v)'s functional AES-GCM reference,
    the one cipher R-10-024 freezes. It implements no cipher and no binary
    corresponds to it: executable crypto and the executable storage path are
    separate joins, and the device contract requires this bridge's separate
@@ -877,15 +877,8 @@ Proof. vm_reflexivity. Qed.
 
 Example the_layout_fits_the_encoding : layout_fits bridge_layout = true := eq_refl.
 
-(* The written journal decoded under its own key and generation, which two
-   examples below read at different checkpoints, walked once into a literal
-   and equated to its source. The walk is the part of a decode that opens the
-   frames and reads no checkpoint. The kernel's recheck keeps no value from
-   one example to the next, so each example rewritten through this lemma
-   reads the literal where it would otherwise open every frame again. The
-   lemma unfolds its literal before the cast: the recheck compares the walk
-   with an unfolded literal several times faster than with the constant that
-   names it. *)
+(* Pre-evaluated frame walk for `bridge_medium`, shared across decode examples
+   to avoid redundant AES-GCM evaluations during Qed rechecking. *)
 Definition bridge_medium_walk_literal : Walked :=
   Eval vm_compute in
     walk bridge_layout bridge_open bridge_generation bridge_medium

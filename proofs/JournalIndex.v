@@ -2,277 +2,56 @@
 (* =========================================================================
    JournalIndex.v
 
-   The two lowest storage layers as the register fixes them. R-10-002 names
-   the roster and the prover: L0 is the Perennial/GoJournal-lineage
-   crash-safe write-ahead log and L1 is the VeriBetrFS B^epsilon-tree
-   design, both re-proved on one prover, and its acceptance clause is about
-   each layer's proof being a Coq artifact. That entry states no property of
-   a commit at all, so the multi-block atomicity obligation below is owed at
-   R-10-036, whose checkpoint is committed as a single L0 transaction and
-   whose acceptance clause is that no partially updated region is ever
-   committed. Beside those two: R-10-003's one parametric index generic over
-   key type, verified once and instantiated per object class; R-10-004's
-   B^epsilon buffered-update refinement with the plain copy-on-write B+ tree
-   named as its fallback; R-10-001a's torn or misdirected write costing a
-   copy and not the generation, and its candidates verified on their own
-   bytes; R-10-010's retained snapshot roots and refcounted copy-on-write
-   extent sharing, which is the section-10 entry the copy-on-write
-   allocation discipline below is read from; R-10-021's below-the-line block
-   services free to move a block; R-10-022a's nonce and tag held by the
-   index node that references the extent and never beside the ciphertext;
-   R-10-009's whole stack outside the trust base; R-16-003's machine-checked
-   crash consistency and R-16-005's "nothing is lost but uncommitted work";
-   and R-12-026 and R-12-030 on a device code that composes with this layer
-   rather than replacing it.
+   Statement and reference model for the two lowest storage layers (R-10-002):
+   L0 crash-safe write-ahead logging (Perennial/GoJournal lineage) and L1
+   copy-on-write indexing (VeriBetrFS B^epsilon-tree / B+ tree lineage),
+   expressed in [ApexTheorem.v](ApexTheorem.v)'s parameterized record style over
+   [LastEvent.v](LastEvent.v) and [ProofSupport.v](ProofSupport.v).
 
-   What this file is. A statement artifact in ApexTheorem.v's idiom, not a
-   proof development and not an implementation. Every quantity the register
-   leaves to composition is a field of the Machine record, of the Commit
-   record, or of the KeyAlgebra record, rather than a literal or a top-level
-   Parameter, which is what keeps the R-05-163 assumption gate green while
-   leaving the decision where its owner can make it. Nothing is admitted and
-   nothing is axiomatized: the native assumption audit reports
-   every shipped constant closed under the global context.
+   Governing obligations:
+   - L0 crash consistency and multi-block checkpoint atomicity: R-10-002,
+     R-10-002a, R-10-036, R-16-003, and R-16-005.
+   - L1 parametric index over `KeyAlgebra`, B^epsilon buffered-update refinement
+     with plain copy-on-write B+ tree fallback (see
+     [ExecutableIndex.v](ExecutableIndex.v)), self-verifying root candidates,
+     copy-on-write extent sharing and retained snapshot roots, below-the-line
+     block services, and parent-held AEAD nonces/tags: R-10-001a, R-10-003,
+     R-10-004, R-10-009, R-10-010, R-10-021, and R-10-022a.
+   - Layer boundaries: L2 keyspace semantics (R-10-005, R-10-005a, R-10-005b,
+     R-10-005c) and L3 domain separation and AEAD (R-10-016, R-10-022) live in
+     [KeyspaceDomains.v](KeyspaceDomains.v); CompCert-C/VST/Iris refinement is
+     R-10-008; raw NAND, per-page ECC, and patrol scrub (R-12-025, R-12-026,
+     R-12-029) compose below this layer (R-12-030).
 
-   L1's Index is an ordered association list used as a logical map, not a
-   B-tree implementation. block_admissible checks the four block-publication
-   conditions only. The structural admission predicate additionally checks
-   complete, address-bounded nodes, occupancy and termination within the
-   declared height. Its general walk bound excludes cycles. Separator/key
-   routing, balance, buffered insertion/split/flush and their correspondence
-   to this logical map remain M5.3's executable index work.
+   Key readings and open register boundaries:
+   1. A block is a finite address and a medium is a total map from addresses
+      (R-10-021). Persisted units declare their length in granules and are
+      verified on their own bytes (R-10-001a; compare main-memory granule
+      atomicity in R-15-181 and R-15-247b, and detector closure in R-12-087).
+   2. Recovery is parameterized over a `Discipline` (`StopsAtTheFirstTear` vs.
+      `SkipsTheTornRecord`) to compare raw filters alongside R-10-002a's
+      complete authenticated prefix redo. Transaction closure is carried by
+      `rec_closes` (R-10-036).
+   3. Copy-on-write commits allocate blank blocks and preserve both the current
+      root and retained snapshot roots (R-10-010; shared subvolume pool in
+      R-10-027; capability-revocation non-reuse in R-08-007a is distinct and
+      applies to memory granules).
+   4. Structural tree admission (`bounded_tree`, `admissible`) checks complete
+      address-bounded nodes, `fanout` occupancy and child-tag alignment
+      (`node_fits`, R-10-003, R-10-022a), and termination within `height`,
+      excluding cycles.
+   5. Mutable user-data volume roots surrender RoT counter freshness while
+      retaining tamper detection (R-10-011, R-10-012, R-10-013b, R-10-013i).
+      Manifest-declared `Fresh` durable component regions (R-10-013c,
+      R-10-013e, R-10-035) and `FreshnessEpochRoot` (R-10-013) are modelled in
+      [KeyspaceDomains.v](KeyspaceDomains.v) and
+      [RotFirmware.v](RotFirmware.v).
 
-   What the gate's green line means. Compiled, axiom-free, non-vacuous and
-   enumerated, and it does not mean verified. No constant here is compiled,
-   lowered, or run on either emulator, and nothing here executes anywhere.
-   The computed checks are decided inside the kernel by conversion and print
-   nothing. In particular no byte below reaches a device: R-12-025's raw
-   NAND, R-12-026's per-page code and R-12-029's patrol scrub are not
-   modelled, and R-12-030 is the reason that is admissible rather than a
-   hole, the device code composing with this layer rather than replacing it.
-
-   What is deferred, and to which item. R-10-005, R-10-005a, R-10-005b and
-   R-10-005c are L2 and are M5.2's, so no inode, dirent, xattr, live query,
-   namespace identifier or secondary index appears below; R-10-016's
-   cross-domain incomparability and R-10-022's AEAD are L3 and the crypto
-   core's, so the `mac` field here is an opaque function the filesystem
-   never opens and no cipher, key, nonce or domain is named. R-10-008 puts
-   this layer through CompCert-C with VST/Iris and M5.3 runs it on the
-   emulator; nothing below states a refinement, a WCET or a compilation
-   property. The authoring constraint this file does keep is the restricted
-   subset that lowering admits: no general recursion, every recursive
-   function structural over a list or a finite index, and records and finite
-   indices wherever a datatype is not owed. No inductive is declared at all,
-   because the register closes no enumeration this layer needs: §10 carries
-   nothing of the shape R-12-087's detector list has, so a journal record
-   kind, a node class or a status set written here would be this file
-   inventing an enumeration the register left open.
-
-   LastEvent and ProofSupport supply shared prelude-only trace and collection
-   laws. Classical and FunctionalExtensionality remain outside the closure: a medium
-   and a store are functions, and equalities are stated block by block or
-   over decidable booleans rather than as equalities between functions.
-
-   Readings of the register this statement takes, each a reviewable
-   judgment rather than a neutral transcription:
-
-   1. A block is a finite index and a medium is a total map from it.
-      R-10-021 puts replication, tiering, the bucket allocator and the FTL
-      below the integrity line as services free to move a block, so what
-      this layer holds of a device is an address and nothing else: no
-      geometry, no erase unit, no wear state and no failure model appears.
-   2. A persisted unit is verified on its own bytes. R-10-001a says that of
-      the root copies, and this file reads the same discipline onto a
-      journal record and onto an index node: each declares its own length
-      and one whose landed length differs from its declared length is not
-      replayed and is not complete. That the register states it of the root
-      and not of the log is gap c.
-   3. The comparison keeps its recovery discipline as a parameter. R-10-002a
-      selects bounded complete authenticated prefix redo, with checkpoint-before-
-      acknowledgement/reuse and ordinary-reset preservation. Neither raw filter
-      below implements its authentication or complete transaction protocol.
-      Both filters satisfy the stated shared obligations, while
-      `the_two_recovery_readings_disagree` shows their observable difference.
-      `StopsAtTheFirstTear` and `SkipsTheTornRecord` separate these raw readings;
-      this is not evidence that independent suffix salvage is admitted.
-   4. A transaction is closed by a record and its effects are visible only
-      then. R-10-036 commits a checkpoint as a single L0 transaction and
-      does not say whether the commit is a record, a barrier or a superblock
-      field, so `rec_closes` is a boolean field on the record and no
-      representation is asserted (gap d).
-   5. A copy-on-write commit writes only blank blocks. The section-10 entry
-      this is read from is R-10-010, whose refcounted copy-on-write extent
-      sharing and retained snapshot roots are what decide whether a block is
-      still live, with R-10-004 and R-10-009 naming the structure
-      copy-on-write in the first place and R-10-021 leaving the bucket
-      allocator below the integrity line, trusted for availability and not
-      for this. No entry of section 10 states the non-reuse rule itself, and
-      gap f books that where R-10-010 owns it. R-08-007a does state such a
-      rule and is deliberately not cited for it: its sentence is wholly
-      about capability revocation, a 64-bit monotone epoch, a revocation bit
-      and the granule under it, and it reaches no disk block.
-   6. The reachable set is a list computed to a declared height, so
-      `covered` and `reaches` are two readings of one list and no separate
-      reachability relation exists. The height is a field, which is what
-      keeps the walk structural.
-   7. Sharing is the second disjunct of a child's resolution. R-10-010's
-      reflinks make an unmodified subtree reflinked rather than rewritten,
-      so a child of a newly written node is either a block this commit
-      writes or a block the medium already holds whole.
-   8. A retained root is a separate obligation from the current one.
-      R-10-010 makes snapshots retained roots, and a commit that spares
-      every block the *current* root reaches can still reuse a block only a
-      *retained* root reaches. The two are stated apart, and
-      `the_retained_reuse_is_crash_consistent_all_the_same` exhibits a
-      construction satisfying one and breaking the other, so the file proves
-      they are not one obligation stated twice.
-   9. Freshness is surrendered for one asset class of three, and this file
-      models that one. R-10-013b makes the split under the RoT monotonic
-      counter three-way and not two: beside the low-rate platform state the
-      counter keeps fresh and the bulk user data whose freshness is
-      surrendered stands durable component state, "declared `Fresh` and
-      carried by a freshness epoch rather than by the mutable volume's
-      root". R-10-011's MUST NOT is scoped to "The mutable user-data volume"
-      alone and gives its reason, that sealing its root would advance the
-      counter at CoW-commit frequency; R-10-012 keeps tamper-*detection*
-      there and says "only *freshness* is surrendered", its acceptance
-      clause scoping the reading to that class rather than to every stored
-      byte. So what this file states no freshness property of is the L1 root
-      of the mutable volume, which is exactly the class R-10-011 holds out,
-      and that is a scope with a ground rather than a silence R-10-013i
-      would find against.
-
-      The third class is not this file's and is not unowned. R-10-013c's
-      epoch root over every `Fresh` region's version, its acknowledgement at
-      the seal, and R-10-013e's refusal of a region that does not verify are
-      stated in KeyspaceDomains.v, where R-10-035's manifest-declared
-      durable regions land; the counter itself is M3.2's and is shipped,
-      RotFirmware.v carrying `FreshnessEpochRoot` as the fourth member of
-      R-10-013's closed set with the seal as its only advancing event and
-      the data commit refused. Nothing below is that region, that root or
-      that counter, and R-10-013c's sealed epoch is therefore not modelled
-      *here* rather than not modelled at all.
-  10. Boolean rather than propositional wherever the witnesses must compute:
-      intactness, completeness, coverage, sortedness and the fanout ceiling
-      are decidable, so the generated families below are checked by
-      conversion in the silent Example form rather than by a proof per
-      member.
-  11. R-10-003's "generic over key type, verified once" is a
-      parameterization and not a polymorphic function, so the key type, its
-      order, its equality and the five laws the index needs are fields of a
-      KeyAlgebra record. The prelude carries no order class, and a law
-      hidden in a tactic would put the obligation where the review gate
-      cannot read it.
-  12. A node's occupancy is a property of the node and not of the helper
-      that builds one. R-10-003 fixes no node capacity, so `fanout` is a
-      field and the ceiling is stated over `Node`, of an arbitrary builder,
-      and computed over the nodes the demo medium and the landed commit
-      actually hold; the chunking lemma beneath it is named for what it is.
-      R-10-022a's tag per referenced child is the second half of what makes
-      a node well formed, so `node_fits` reads both.
-
-   The literals taken from the design, and there are none. §10 closes no
-   count of the shape R-12-087's detector enumeration has, so every
-   magnitude below is a field: the record and node granule counts, the block
-   count, the node fanout, the tree height, the allocator, the roots, the
-   retained set, the plan, the key type and the message authenticator. The
-   only numerals in a definition on the specification side are three: the
-   `0` a blank block has landed, the `0` a node with no tag for a child is
-   given, and the `0` a recovery that zeroes an untouched block writes. Each
-   is commented at its site and pinned by a computed check. Every other
-   numeral below is either a demo or probe witness value carrying no
-   composition claim (gap h) or a family size the file computes rather than
-   claims.
-
-   How the refutations are generated. A refutation is a seeded weakening the
-   theorem must reject, so five generators produce families of them
-   mechanically rather than a person authoring each. Over the journal's own
-   record sequence: `cuts` takes the crash point at every index, and
-   `tear_at` cuts one record at every granule below its declared length.
-   Over the journal read as a replay: `swap_at`, `replay_prefix` and
-   `replay_suffix` transpose, re-enter and repeat. Over an arbitrary key
-   list: `swap_at`, `drop_at`, `suffix_at` and `insert_at` give the
-   permutations, deletions, proper suffixes and duplications a key order
-   admits. Beside every family the generic theorem quantifies over the index
-   rather than enumerating. The hand-authored refutations are the ones no
-   index generates, being alternative constructions rather than mutations of
-   a list.
-
-   What this file deliberately does not author, with the entry that owes
-   each decision. A register gap is reported, not closed:
-
-   a. The atomic write unit of the persistent medium. R-15-181 fixes one for
-      the main-memory array ("no sub-granule write exists at the array") and
-      R-15-247b has data, tag and both ECC planes commit atomically at the
-      granule, "never a granule left half-written"; R-12-026 fixes a
-      per-page code for NAND. No entry fixes an atomic write unit for the
-      persistent medium, and R-10-001a speaks of a torn write costing a copy
-      without saying at what unit a write is atomic. So a record's and a
-      node's declared length in granules is a field and the torn-write
-      family runs over every granule below it. Owed at R-10-001a or
-      R-10-002.
-   b. The node fanout. The word occurs in no entry of this register.
-      R-10-003 makes L1 one parametric index and fixes no node capacity, and
-      R-10-004 keeps the B^epsilon refinement without fixing its epsilon. So
-      `fanout` is a field, and the only occupancy obligation stated below is
-      the *maximum*, because no entry fixes a minimum. Owed at R-10-003.
-   c. Whether a journal record is self-verifying, and by what. R-10-001a has
-      boot verify each root candidate "on its own bytes"; no entry says the
-      same of an L0 record, and a log that cannot tell a torn record from a
-      whole one has no recovery point at all. This file takes the weakest
-      reading that leaves the layer statable (reading 2), and
-      `the_whole_journal_admits_a_torn_record` is the discipline that does
-      not take it. Owed at R-10-002.
-   d. What ends a transaction. R-10-036 commits a checkpoint as a single L0
-      transaction and names no mechanism for the commit itself, and no other
-      entry of section 10 names one either; R-10-002 is a layer roster and a
-      prover-provenance criterion and does not reach the question.
-      `rec_closes` is a boolean field and no representation is asserted
-      (reading 4). Owed at R-10-036.
-   e. The policy choice is R-10-002a's complete authenticated prefix redo.
-      Its concrete byte authentication, complete commit evidence and durable
-      acknowledgement/reuse implementation remain M5.3 obligations. The raw
-      discipline parameter here is comparison evidence, not that implementation.
-   f. Whether any entry of section 10 states a block-reuse rule at all.
-      R-10-010 makes snapshots retained roots and dedup refcounted extent
-      sharing, which is the nearest thing: a refcount is what decides
-      whether a block is dead. It states no obligation over the allocator,
-      R-10-021 leaves the allocator below the integrity line trusted for
-      availability, and R-10-027 gives the subvolumes one shared free-space
-      pool without saying who may take from it. So nothing in section 10
-      says a commit may not reuse a block a retained root still reaches, and
-      that is why the two obligations are separated here rather than merged.
-      R-08-007a states the rule for capability revocation and reaches no
-      disk block, so it is named here and cited nowhere. Owed at R-10-010.
-   g. The minimum occupancy of a node, and whether an empty index is a legal
-      tree. No entry fixes either, so both the empty and the singleton case
-      are admitted below, which is the weaker reading, and `node_fits`
-      states a ceiling and no floor. Owed at R-10-003, beside gap b.
-   h. Every composition magnitude. The granule counts, the block count, the
-      fanout, the height, the allocator, the current root, the retained
-      roots, the plan, the key algebra and the authenticator are fields; the
-      demo machine, journal, medium, commit and key list at the end
-      instantiate them with arbitrary witness values that carry no
-      composition claim.
-
-   Non-vacuity (R-05-165, R-05-166). Every obligation below is stated as a
-   property of an arbitrary recovery discipline, recovery, allocator, plan,
-   sequencer, key algebra, node builder or tag placement, proved of the
-   specification, and refuted of an alternative construction the register's
-   own sentence excludes. Two exceptions are stated rather than papered
-   over. `ReplayIsIdempotent` has no construction that breaks it alone,
-   because `an_honest_recovery_replays_idempotently` derives it from the two
-   obligations beneath it, and that derivation is what says why. And
-   `ReadsOnlyWhatTheDisciplineAdmits` has no construction that breaks it
-   alone either: a recovery reading past its own discipline's cut also
-   touches blocks the cut never named, so `unscanned_recover` is exhibited
-   breaking both and keeping the other two.
-
-   Inhabitation is concrete: a journal of six records over three
-   transactions, one of which never commits; a medium with a current root, a
-   retained snapshot root and a blank free pool; a commit whose plan is
-   admissible beside four that are not; and a key list whose permutations
-   agree and whose deletions do not.
+   Non-vacuity (R-05-163, R-05-164, R-05-165, R-05-166):
+   - Every obligation is proved for the specification and refuted on mutated
+     constructions generated over crash cuts (`cuts`), torn records (`tear_at`),
+     replay permutations (`swap_at`, `replay_prefix`, `replay_suffix`), key
+     orderings (`drop_at`, `suffix_at`, `insert_at`), and invalid commit plans.
    (*| BEGIN derived: cited entries |*)
    Owner: docs/requirements-register.md
    Requirements: R-05-163 R-05-164 R-05-165 R-05-166 R-08-007a R-10-001a R-10-002 R-10-002a
@@ -3559,17 +3338,8 @@ Example the_flushed_index_is_still_sorted :
 
 
 (* =========================================================================
-   What the seeded population found, and the statements its survivors named.
-
-   A survivor of `run.py seed coq` is a site no statement above reaches, and
-   the answer is a statement rather than a narrower population. What the
-   first run named was of three kinds, and each is closed here by content
-   rather than by a pin: the journal, the medium and every plan were
-   *described* in prose and never *stated*, so their fields carried figures
-   nothing read back; the four admission conjuncts were never exhibited
-   failing one apiece, so three of them could have been disjunctions; and
-   R-10-022a's tags were held by nodes no read ever presented, so the tag a
-   node carries for a child decided nothing.
+   Field-by-field witness checks for the demo journal, medium, node tags, and
+   commit admission conjuncts.
    ========================================================================= *)
 
 (* --- The journal, stated field by field rather than described. R-10-002's
@@ -3819,12 +3589,8 @@ Example the_duplicate_value_the_family_inserts :
     (cons (Some 99) (cons (Some 99) nil))))) := eq_refl.
 
 (* -------------------------------------------------------------------------
-   R-05-166's inhabitation witnesses: one closed definition per record this
-   file's statements quantify over, named for that record and ascribed at it.
-   The prover decides inhabitation by type-checking the ascription, so
-   `run.py proofs` reads a name rather than approximating a type judgement.
-   A record this file reaches through a Require is witnessed in the file that
-   declares it.
+   Bounded tree walk and structural admission (excluding cycles), plus
+   record inhabitation witnesses (R-05-166).
    ------------------------------------------------------------------------- *)
 
 (* Structural admission is distinct from the block-completeness theorem.

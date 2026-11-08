@@ -1,26 +1,24 @@
 (* SPDX-License-Identifier: Apache-2.0 *)
 (* =========================================================================
-   Policy-independent storage recovery, under the contract committed in
-   docs/implementation/storage-recovery-policy.md before implementation.
+   Policy-independent storage recovery under
+   [storage-recovery-policy.md](../docs/implementation/storage-recovery-policy.md).
 
-   JournalIndex owns Rec, Store, scan, sieve and replay. KeyspaceDomains owns
-   the L2 object/metadata/index writer. R-10-002a selects complete authenticated
+   [JournalIndex.v](JournalIndex.v) owns `Rec`, `Store`, `scan`, `sieve`, and
+   `replay`; [KeyspaceDomains.v](KeyspaceDomains.v) owns the L2
+   object/metadata/index writer. R-10-002a selects complete authenticated
    prefix redo. This comparison retains both raw filters and implements neither
    that complete protocol nor independent suffix salvage. It proves
-   intact-input agreement, a finite selected-record bound and exact manifest
+   intact-input agreement, a finite selected-record bound, and exact manifest
    completeness before publication, independently of the discipline.
 
    R-10-002 and R-10-036 require the L0 transaction boundary; R-10-005c requires
    matching object/index visibility. A closing flag alone is insufficient.
-   The expected manifest below is an AUTHENTICATED INPUT of the future byte
-   decoder, not an assertion that rec_landed authenticates arbitrary torn
-   bytes. Its identity, ordered records and bound must be checked against the
-   durable checkpoint by that adapter. The decoder, complete-block hashes,
-   disk persistence and the selected checkpoint/ack/reuse implementation remain
-   M5.3 obligations. This source neither derives authentication from equality
-   nor implements the decoder. Its refusal applies to a presented complete
-   transaction; the byte adapter must enforce R-10-002a's distinction between
-   ordinary-reset preservation and corruption refusal.
+   The expected `TransactionManifest` below is an authenticated input supplied
+   by the byte decoder ([StorageBridge.v](StorageBridge.v)), not an assertion
+   that `rec_landed` authenticates arbitrary torn bytes. Its identity, ordered
+   records, and bound are checked against the durable checkpoint by that
+   adapter, which enforces R-10-002a's distinction between ordinary-reset
+   preservation and corruption refusal.
 
    The acceptance predicate is native compilation, empty global assumption
    closure, rocqchk, named record inhabitation, quantified completeness and
