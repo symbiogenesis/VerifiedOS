@@ -1,52 +1,30 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: Apache-2.0
-"""Hold the checker against the one property its own meta group cannot decide: that
-each rule it carries actually fires.
+"""Verify that each registered checker rule fires on a seeded defect.
 
-The checker closes a great deal on itself. The meta group holds the rule registry and
-the code in agreement in both directions, and the floors group (K-46 through K-48)
-catches the reading that has emptied. What none of them reaches is the rule that still
-reads a populated set and has stopped deciding anything about it: a pattern that
-narrowed without emptying, an anchor that now matches a neighbouring construct, a
-branch made unreachable by an edit elsewhere. tools/check-rules.md names that residue
-in "What a passing run does not decide" and leaves it to a person. This closes the
-part of it a machine can have: for each rule, one document mutated so that the rule
-must report, and a run that says whether it did.
+The meta group checks registry-to-code agreement, and the floors group (`K-46` through
+`K-48`) rejects empty readings. This harness tests that each rule detects a targeted
+mutation in an isolated working-tree sandbox:
 
-The method is mutation testing and its guarantee is exactly the usual one. A rule that
-survives its mutant is dead surface, reported here. A rule that kills its mutant is
-live, which is not the same as correct: whether it decides the *right* property is
-still the registry's claim and a person's to audit. Nothing here re-states what a rule
-means. It states only that the rule bites.
+- A rule that reports its mutant is `killed` (live).
+- A rule that misses its mutant is `survived` (dead surface).
+- A case whose mutation no longer modifies the target file is `unseeded` (stale case).
 
-What a verdict is, and the report and the exit code they imply, is
-[vos/seeded.py](../seeded.py)'s and is shared with the generated loops; what is here
-is the oracle, and it is the one part of a mutation run that cannot be shared. This
-oracle's population is **authored** rather than walked out of a source, because its
-subject is a registry where a rule and its mutant are two halves of one claim, and its
-third verdict is `unseeded` rather than `stillborn`: an authored case can stop
-applying to a document that moved under it, which is a finding, where a generated one
-regenerates itself and can only fail to compile, which is not. The `CASES` table stays
-here for two reasons that are not style. A rule is added by three edits and one of
-them is a row of that list, so it belongs beside the run that reads it; and K-83 holds
-that nothing in the landing loop names the quarantine, exempting this file by name so
-that the two cases seeding that rule can spell the coupling they seed.
+Verdict types, reporting, and exit codes come from [`vos/seeded.py`](../seeded.py).
+`CASES` lives here beside the runner and is exempted from `K-83` so its two quarantine
+cases can spell the coupling they test.
 
-Every case runs against a sandbox built from the working tree, so the checker under
-test is the one on disk rather than the one at HEAD, and no case can touch the real
-repository. The sandbox is a git repository because the checker reads its corpus from
-the index. Cases run in parallel across one sandbox per worker, and a sandbox is
-hardlinks into one pristine template rather than a copy of it. Checker modules are
-compiled once into bytecode whose source hashes each fresh interpreter validates;
-imports write no bytecode. A case only sees its own sandbox, and a write breaks its
-link before it lands, so neither the parallelism nor the sharing changes a verdict.
+Each case runs in a parallel worker sandbox hardlinked against a shared template built
+from the working tree (with a `.git` pointer to the template's index and pre-warmed
+hash-checked bytecode). Writes unlink before writing so mutations never leak into the
+shared template.
 
     tools/run.py selftest                 # every case
-    tools/run.py selftest --rule K-23     # one rule, while iterating on it
-    tools/run.py selftest --keep          # leave the sandboxes for inspection
+    tools/run.py selftest --rule K-23     # one rule
+    tools/run.py selftest --keep          # keep sandboxes for inspection
 
-Exit 0 when every case kills its mutant and every registered rule is accounted for,
-1 otherwise.
+Exit 0 when every case kills its mutant, the repair path holds, and every registered
+rule is covered; 1 otherwise.
 """
 
 import argparse
@@ -91,30 +69,21 @@ RULES = "tools/check-rules.md"
 CHECK_TIMEOUT = 300
 OVERRAN = f"FAIL: the checker run overran {CHECK_TIMEOUT} s and was killed"
 
-# the two characters the documents' own shapes are written in, named so that a case
-# composing a pattern around one never has to spell it inside a regex
-MID = "·"      # the bullet the register opens each property line with
-SEC = "§"      # the section sign a trace and a cross-reference display
+MID = "·"
+SEC = "§"
 
 
 # =====================================================================================
-# the sandbox, and the helpers a case edits it through
+# Sandbox and mutation helpers
 # =====================================================================================
 
 
 class Sandbox:
-    """One disposable view of the working tree, and the checker that runs against it.
+    """Isolated view of the working tree for running `tools/check.py`.
 
-    Its files are hardlinks into the pristine template beside it rather than copies,
-    which buys two things at once: standing one up is a metadata pass over the tree,
-    and the on-access virus scan a fresh copy of the corpus pays on its first read,
-    several seconds of it per sandbox, is paid once for the template and shared,
-    because a link is the same file object and carries the same verdict. The price is
-    one invariant: nothing writes through a link in place. Every write here unlinks
-    first, so the edit lands in a new file and the template keeps the original bytes.
-    The checker's own --fix is the one writer these methods cannot reach, so `check`
-    refuses fix=True unless the sandbox was stood up fix-safe, holding real copies of
-    every file --fix could rewrite.
+    Files are hardlinked to `pristine` unless `fix_ok` is set (which copies non-`model/`
+    files so `--fix` can rewrite them in place without mutating the shared template).
+    `write` and `delete` unlink targets before modifying them.
     """
 
     def __init__(self, path: Path, pristine: Path, fix_ok: bool = False) -> None:
@@ -128,32 +97,20 @@ class Sandbox:
             return f.read()
 
     def write(self, rel: str, text: str | None) -> bool:
-        """Write, and say whether anything was written.
-
-        A mutation that produced no change is a case that has stopped testing its rule,
-        and it must be told apart from a rule that read a defect and said nothing: a
-        null edit is refused rather than written, so a pattern that stopped matching
-        cannot blank the document it was aimed at.
-        """
+        """Unlink `rel` and write `text`, returning False if `text` is None or unchanged."""
         if text is None:
             return False
         if text == self.read(rel):
             return False
         self.touched.add(rel)
         target = self.path / rel
-        # unlinked before written: the file is a hardlink, and a write through it in
-        # place would edit the template under every other sandbox
+        # Unlink before writing so hardlinks into the template are never modified in place.
         target.unlink()
         target.write_text(text, encoding="utf-8", newline="")
         return True
 
     def delete(self, rel: str) -> bool:
-        """Delete, and say whether anything was deleted.
-
-        A file already absent is the same drift a null edit is: the case has stopped
-        seeding its rule, and that is reported as unseeded rather than raised as a
-        worker's crash.
-        """
+        """Delete `rel`, returning False if it did not exist."""
         target = self.path / rel
         if not target.exists():
             return False
@@ -162,14 +119,7 @@ class Sandbox:
         return True
 
     def reset(self) -> None:
-        """A case is undone rather than compensated for, and only where it wrote.
-
-        Every edit is recorded as it is made, so undoing one is re-linking the
-        pristine file over it: an unlink and a hardlink, whatever the size of the
-        document the case rewrote. `git checkout -- .` would restore the same bytes,
-        but it stats the whole tree on every case, which over sixty cases is most of
-        a run spent re-checking a thousand files to undo an edit to one.
-        """
+        """Restore all touched paths from `pristine`."""
         for rel in self.touched:
             source, target = self.pristine / rel, self.path / rel
             target.unlink(missing_ok=True)
@@ -179,33 +129,18 @@ class Sandbox:
 
     def check(self, fix: bool = False,
               through: str | None = None) -> tuple[int, list[str], list[str]]:
-        """The checker's own verdict, as the rule ids it reported, so a case asserts
-        against what the run decided rather than against its prose.
-
-        A subprocess and not an in-process call: two cases mutate the checker's own
-        source, and only a fresh interpreter reads the mutant rather than the module
-        this process already imported. Import the checker in the settled interpreter:
-        a mutated lockfile is input to audit, never an environment to install.
-        `through` stops the run after the group that decides that rule.
-        """
+        """Run `tools/check.py` in a subprocess and return `(returncode, lines, failed_rule_ids)`."""
         if fix and not self.fix_ok:
             raise SystemExit("--fix rewrites documents in place, which writes through "
                              "this sandbox's hardlinks into the template; it may only "
                              "run on the repair sandbox, which holds real copies")
-        # Each import validates a cached module against its current source bytes,
-        # even after a same-size, same-mtime mutation. -B leaves the shared caches
-        # immutable: mutated sources compile in that fresh process without publishing
-        # new bytecode through a sandbox's links.
+        # Validate hash-based pycs on every import and pass -B so mutated sources do
+        # not write new bytecode through shared links.
         argv = [sys.executable, "--check-hash-based-pycs", "always", "-B", "-c",
             "import sys; sys.path.insert(0, sys.argv.pop(1)); "
             "import check; raise SystemExit(check.main())",
             str((self.path / CHECKER).parent)] + (["--fix"] if fix else []) + (
             ["--through", through] if bool(through) else [])
-        # a run is seconds, so an overrun of CHECK_TIMEOUT is a hang (a mutant that
-        # sends a pattern into catastrophic backtracking), and it must land as its
-        # case's failure rather than as a run that never ends; errors='replace' for the
-        # same containment, a mutant being allowed to make the checker's output
-        # undecodable
         try:
             proc = subprocess.run(argv, cwd=self.path, capture_output=True,
                                   text=True, encoding="utf-8", errors="replace",
@@ -220,12 +155,7 @@ class Sandbox:
 
 
 def remove_tree(path: Path) -> None:
-    """Delete a sandbox, read-only files included.
-
-    git marks its pack files read-only, and on Windows that is enough to make an
-    ordinary recursive delete fail halfway through, leaving a sandbox nobody asked to
-    keep and a run that cannot start next time.
-    """
+    """Recursively delete `path`, clearing read-only bits on pack files if needed."""
     def force(func: Callable[[str], object], target: str, _exc: BaseException) -> None:
         Path(target).chmod(stat.S_IWRITE)
         func(target)
@@ -235,9 +165,7 @@ def remove_tree(path: Path) -> None:
 
 
 def _link_or_copy(src: str | Path, dst: str | Path) -> None:
-    """A hardlink where the filesystem grants one, a copy where it does not, and the
-    same contract either way: the destination is a fresh directory entry, so an
-    unlink-first write never reaches the source."""
+    """Hardlink `src` to `dst`, falling back to `shutil.copy2` across filesystems."""
     try:
         os.link(src, dst)
     except OSError:
@@ -245,13 +173,7 @@ def _link_or_copy(src: str | Path, dst: str | Path) -> None:
 
 
 def _warm_bytecode(template: Path, jobs: int) -> int:
-    """Compile checker tools once; fresh processes still validate every source hash.
-
-    These non-indexed caches are hardlinked into the workers with their sources.
-    Compilation is only preparation: a rejected source or unavailable cache leaves
-    imports to produce their ordinary verdict and diagnostics. In particular, an
-    invalid tool the checker never imports must not become a new selftest finding.
-    """
+    """Pre-compile checker modules into `CHECKED_HASH` bytecode caches in `template`."""
     sources = [template / CHECKER, *(template / "tools/vos").rglob("*.py")]
 
     def compile_one(source: Path) -> bool:
@@ -267,27 +189,12 @@ def _warm_bytecode(template: Path, jobs: int) -> int:
 
 
 def stand_up(template: Path, path: Path, fix_ok: bool = False, *, jobs: int = 1) -> Sandbox:
-    """One sandbox, as hardlinks into the template.
+    """Create a worker sandbox at `path` linked against `template`.
 
-    Its .git is one pointer file naming the template's rather than a linked tree.
-    Everything the checker asks git is `ls-files`, a read of the shared index, and a
-    third of the template's files are the object store `git add` wrote beside it, so
-    the pointer spares every sandbox linking, and later unlinking, a store nothing
-    reads. git resolves the pointer's worktree to the directory holding it, which is
-    what keeps each sandbox's checker reading its own mutated tree against the one
-    shared index.
-
-    A fix-safe sandbox is the exception the repair path needs: the checker's --fix
-    rewrites documents in place through whatever name it opens, which a hardlink
-    would relay straight into the template under every running case. What --fix can
-    name is the document corpus, so everything outside model/ is a real copy there,
-    a boundary that contains that corpus with room to spare while keeping the
-    copying, and the scan a fresh copy costs on first read, to the hundred-odd files
-    outside that tree.
-
-    Directory workers may overlap independent file placements while constructing
-    the first sandbox. Callers already constructing several sandboxes concurrently
-    retain one worker per sandbox, so the two levels do not multiply their pools.
+    Writes a `.git` gitdir file pointing to `template/.git` so `git ls-files` uses the
+    shared index against the sandbox's working tree. When `fix_ok` is True, files
+    outside `model/` are copied rather than hardlinked so `--fix` can rewrite them in
+    place safely.
     """
     remove_tree(path)
     entries: list[tuple[Path, Path, list[str], bool]] = []
@@ -315,37 +222,14 @@ def stand_up(template: Path, path: Path, fix_ok: bool = False, *, jobs: int = 1)
     return Sandbox(path, template, fix_ok=fix_ok)
 
 
-# The file a submodule's directory is stood up around, so that the empty directory
-# survives into every sandbox and a link at it resolves against the filesystem.
+# Placeholder file inside each submodule directory so links into `upstream/<name>` resolve.
 SUBMODULE_STAND_IN = ".selftest-submodule"
 
 
 def stamp_gitlinks(into: Path, gitlinks: dict[str, str]) -> None:
-    """Put the repository's gitlinks back into the sandbox's own index.
-
-    A sandbox's index is `git add -A` over a tree in which every submodule is a
-    directory holding one stand-in file, so what it records at `upstream/<name>` is
-    that stand-in and no gitlink at all. That cost nothing while no rule read one.
-    K-81 reads the commit each gitlink records, out of the index because that is
-    where it is written whether or not the submodule was ever fetched, so a sandbox
-    that dropped them would report every pin as owned by nothing and fail its
-    baseline, which reports as a red tree rather than as a bad mutant.
-
-    Run on every template, carried index or fresh one, because the two fail the same
-    way and a carried index is the older of the two. git rewrites an index through a
-    lock and a rename, so this never writes through the hardlink a carried one is.
-
-    What the repository pins is asked of `vos.corpus`, which already splits the
-    index's gitlinks out of one listing: a second parse of `ls-files --stage` here
-    would be the two-copies-of-one-question defect the tools' own conventions refuse.
-    """
+    """Replace submodule stand-in blobs in `into`'s Git index with mode-`160000` gitlinks."""
     if not gitlinks:
         return
-    # The stand-in leaves the index first, because a blob under `upstream/<name>` and
-    # a gitlink at it cannot both be entries; and `--cacheinfo` is what states the
-    # entry, taking the mode, the object and the path outright rather than asking
-    # git to work them out from a working tree where the submodule is an empty
-    # directory and not a repository.
     stand_ins = [f"{path}/{SUBMODULE_STAND_IN}" for path in sorted(gitlinks)]
     cacheinfo = [arg for path, oid in sorted(gitlinks.items())
                  for arg in ("--cacheinfo", f"{GITLINK_MODE},{oid},{path}")]
@@ -359,12 +243,7 @@ def stamp_gitlinks(into: Path, gitlinks: dict[str, str]) -> None:
 
 
 def _across[T, R](work: Callable[[T], R], items: Iterable[T], jobs: int) -> list[R]:
-    """One call per item, run at once, answered in the order the items were given.
-
-    Everything handed to this is a subprocess or a tree of a thousand small files, so a
-    worker spends nearly all of its time inside a syscall with the interpreter lock
-    released: the run is I/O the machine can overlap rather than Python it cannot.
-    """
+    """Map `work` across `items` using up to `jobs` threads, preserving input order."""
     work_list = list(items)
     if jobs == 1 or len(work_list) < 2:
         return [work(item) for item in work_list]
@@ -373,9 +252,7 @@ def _across[T, R](work: Callable[[T], R], items: Iterable[T], jobs: int) -> list
 
 
 def edit_entry(text: str, ident: str, edit: Callable[[str], str | None]) -> str | None:
-    """A register entry is its normative line plus the property lines under it, ending
-    where the next entry begins. Several cases need surgery inside exactly one entry
-    and must not reach the next, so the span is computed once here."""
+    """Apply `edit` to the register entry block for `ident`."""
     start = text.find(f"**{ident}** ")
     if start < 0:
         return None
@@ -387,9 +264,7 @@ def edit_entry(text: str, ident: str, edit: Callable[[str], str | None]) -> str 
 
 
 def replace_once(text: str, find: str, repl: str, start: int = 0) -> str | None:
-    """Replace one literal, at or after an offset. The offset is how a case skips the
-    register's entry template, which is fenced prose carrying every property line's
-    shape and is not an entry at all."""
+    """Replace the first occurrence of `find` at or after `start`, or return None."""
     i = text.find(find, start)
     return None if i < 0 else text[:i] + repl + text[i + len(find):]
 
@@ -399,51 +274,28 @@ def replace_span(text: str, m: re.Match[str], new: str) -> str:
 
 
 # =====================================================================================
-# the template cache: the previous run's template, reused file by file
+# Template cache
 # =====================================================================================
 #
-# Building the template is copying nine hundred files under the on-access scanner,
-# which costs more than every case that then runs against it. Almost none of those
-# files changed since the last run, so the newest published template is kept between
-# runs and each unchanged file is hardlinked forward instead of copied. What decides
-# "unchanged" is deliberately conservative, because a stale-but-believed-current
-# template would run every mutant against the wrong tree and nothing above the
-# selftest exists to catch that: a file is carried only when its path, size, mtime and
-# treatment all match the manifest the previous build wrote, and a file whose mtime
-# falls within the grace of that manifest's own write is re-copied however it
-# compares, which is the racily-clean rule git's index keeps and it closes the race
-# of a file rewritten between being measured and being copied. Every other doubt
-# answers "copy from the repository": a manifest that does not parse, a snapshot
-# whose file cannot be linked, a treatment the current declarations changed.
-#
-# Snapshots are immutable and numbered, and a run publishes by renaming its own
-# template into the cache after every case is done, so a run that dies publishes
-# nothing and concurrent runs race only over the next number. A run touches the
-# snapshot it links out of as it picks it, so a concurrent publisher's sweep spares
-# any tree a build could still be reading, and an index carry the sweep interrupts
-# anyway answers the way every other doubt does, by rebuilding from scratch. The
-# manifest lives inside the snapshot it describes and is written after `git add`,
-# so no sandbox index ever carries it.
+# Reuses unchanged files and Git objects from the most recent completed template build.
+# A file is hardlinked from the snapshot only when its path, size, mtime, and placement
+# kind match the manifest and its mtime precedes `built_ns` by at least `_GRACE_NS`.
 
 _MANIFEST = ".selftest-manifest.json"
 _GRACE_NS = 2_000_000_000
 
-# how each listed path was placed: a byte copy of the repository's file, or an empty
-# stand-in whose content owes nothing to the source
 type Placement = tuple[int, int, str]     # size, mtime_ns, "copy" | "empty"
 
 
 def _cache_root(repo: Path) -> Path:
-    """Where this checkout's templates survive between runs, keyed by the checkout's
-    own path so that worktrees of one repository never share a cache."""
+    """Return the per-checkout template cache directory in the system temp dir."""
     digest = hashlib.sha256(str(repo).casefold().encode()).hexdigest()[:12]
     return Path(tempfile.gettempdir()) / f"verifiedos-selftest-cache-{digest}"
 
 
 def _newest_snapshot(cache: Path) -> tuple[Path, int, dict[str, list[int | str]],
                                          dict[str, str]] | None:
-    """The highest-numbered snapshot carrying a readable manifest, as its path, the
-    manifest's own write time, and what it says each file was placed from."""
+    """Return `(path, built_ns, files, gitlinks)` for the newest valid snapshot in `cache`."""
     if not cache.is_dir():
         return None
     for path in sorted((p for p in cache.iterdir() if re.fullmatch(r"t\d+", p.name)),
@@ -465,7 +317,7 @@ def _newest_snapshot(cache: Path) -> tuple[Path, int, dict[str, list[int | str]]
 
 
 def _link_tree(src: Path, dst: Path, jobs: int = 1) -> None:
-    """Place directories first, then overlap independent file links within them."""
+    """Hardlink or copy the directory tree `src` into `dst`."""
     def failed(error: OSError) -> None:
         raise error
 
@@ -484,12 +336,7 @@ def _link_tree(src: Path, dst: Path, jobs: int = 1) -> None:
 
 
 def _complete_index(root: Path, files: Iterable[str]) -> bool:
-    """A carried index must resolve every expected blob in its own object store.
-
-    Git reads object headers in one batch, without rehashing their contents. An
-    interrupted cache copy cannot authorize an index shortcut: `add` alone may
-    skip an unchanged entry even when the object that entry names is missing.
-    """
+    """Return True if every path in `files` resolves to a blob in `root`'s index and object store."""
     names = list(files)
     if not names:
         return True
@@ -504,18 +351,7 @@ def _complete_index(root: Path, files: Iterable[str]) -> bool:
 
 
 def _publish(template: Path, cache: Path) -> None:
-    """The run's template becomes the next run's source, atomically and last.
-
-    A rename rather than a copy, after every case is done: a sandbox's hardlinks do
-    not care what the shared file's directory entry is called, and a run that died
-    before reaching here has published nothing, leaving the previous snapshot
-    standing. Losing the race for a number is retried at the next one, and any other
-    refusal is abandoned rather than fought: the cache is a saving, never a claim.
-    Snapshots below the newest are removed once their last pick is comfortably old:
-    the age test reads the mtime `build_template` bumps as it picks, a snapshot is
-    read only during the build that picked it, and ten minutes bounds that build by
-    two orders of magnitude.
-    """
+    """Publish `template` as the newest numbered snapshot in `cache` and prune old snapshots."""
     if not template.is_dir():
         return
     cache.mkdir(parents=True, exist_ok=True)
@@ -540,48 +376,19 @@ def _publish(template: Path, cache: Path) -> None:
             if time.time() - p.stat().st_mtime > 600:
                 remove_tree(p)
         except OSError:
-            pass                        # a concurrent run is sweeping the same snapshot
+            pass
 
 
 def build_template(repo: Path, into: Path, jobs: int) -> tuple[int, int]:
-    """The working tree, not HEAD and not the index: the checker under test is the one
-    being edited, and so is every document it reads. Untracked files are copied for the
-    same reason. A document or a tool written but not yet staged is exactly the thing
-    most likely to be wrong, and a sandbox that omitted it would fail on the links
-    pointing at it rather than test it. Ignored files stay out, `.gitignore` deciding
-    that the same way it does everywhere else.
+    """Populate `into` from `repo`'s working tree and non-ignored untracked files.
 
-    One directory is stood up rather than copied. `model/` is most of the repository's
-    tracked files and the checker reads almost none of them: it excludes the whole
-    directory from its *document* corpus by name, as vendored upstream prose answering
-    to another repository's house style. What it does read of the rest is whether those
-    paths *exist*, because a link into the curated tree must resolve. So each is created
-    empty, and the saving is most of the cost of the template every sandbox then links
-    against, which is otherwise 95% files no rule opens.
+    Files under `model/` that the checker only checks for path existence (outside
+    [`MODEL_FACTS`](../corpus.py#MODEL_FACTS) and
+    [`is_model_citation_path`](../corpus.py#is_model_citation_path)) are created empty.
+    Submodule directories receive `SUBMODULE_STAND_IN` and have their mode-`160000`
+    gitlinks restored in the template index via [`stamp_gitlinks`](#stamp_gitlinks).
 
-    There are two exceptions and they are named rather than guessed at, in
-    `vos.corpus` beside the exclusion they carve out of. `MODEL_FACTS` is a handful of
-    model files carrying a fact a document restates, the welded block size being the
-    one that forced it, and a rule holding the two together has to read both.
-    `is_model_citation_path` is the wider one: the requirement citations the model
-    makes occur in most of its Sail, so the rule holding them against the register
-    reaches by kind rather than by name and this copies that kind instead of touching
-    it. Either way a rule reading a model path neither admits would pass on the host
-    and fail every sandbox's baseline, which reports as a red tree rather than as a bad
-    mutant, so the declarations are the one place that can go wrong and they go wrong
-    loudly.
-
-    A submodule's contents are not copied, because the checker excludes upstream prose
-    from its corpus, but the directory itself is stood up and its gitlink is put back
-    into the index afterwards. The two serve different readers and both are needed. A
-    link at a submodule resolves against the filesystem, and the stand-in file is what
-    makes the directory survive, git having no way to track an empty one; the pin rule
-    reads the commit each submodule is at out of the index, where `git add -A` over
-    that stand-in leaves a blob and no gitlink at all, so `stamp_gitlinks` restores
-    what the sandbox's own tree cannot say.
-
-    What comes back is how many files the template holds and how many of those were
-    carried from the previous run's snapshot under the cache's rules, stated above it.
+    Returns `(copied_count, carried_from_cache_count)`.
     """
     remove_tree(into)
     into.mkdir(parents=True)
@@ -596,20 +403,16 @@ def build_template(repo: Path, into: Path, jobs: int) -> tuple[int, int]:
         raise SystemExit("git ls-files failed in the repository")
     listed = [*index.files, *index.gitlinks, *proc.stdout.splitlines()]
 
-    # the directories first and once each, so that the writes below share nothing and go
-    # in together: a thousand small files is the case `_across` is for
     for parent in {(into / rel).parent for rel in listed}:
         parent.mkdir(parents=True, exist_ok=True)
 
     held = _newest_snapshot(_cache_root(repo))
     snapshot, built_ns, old_files, old_gitlinks = held or (None, 0, {}, {})
     if snapshot is not None:
-        # the pick is marked on the snapshot itself, which is what `_publish`'s sweep
-        # ages: a tree some build is still linking out of always reads as just used
         try:
             os.utime(snapshot)
         except OSError:
-            snapshot, old_files = None, {}    # gone under the pick: the repository decides
+            snapshot, old_files = None, {}
     placed: dict[str, Placement] = {}
 
     def place(rel: str) -> tuple[int, int]:
@@ -623,14 +426,12 @@ def build_template(repo: Path, into: Path, jobs: int) -> tuple[int, int]:
         try:
             measured = src.stat()
         except OSError:
-            return 0, 0        # listed but gone: a deletion not yet staged, dropped here
+            return 0, 0
         empty = (rel.startswith(UNREAD_PREFIX) and rel not in MODEL_FACTS
                  and not is_model_citation_path(rel))
         kind = "empty" if empty else "copy"
         placed[rel] = (measured.st_size, measured.st_mtime_ns, kind)
         if empty:
-            # a stand-in owes nothing to the source's bytes, so writing it fresh is
-            # the same act carrying it forward would be
             dst.touch()
             return 1, 0
         if (snapshot is not None
@@ -639,7 +440,7 @@ def build_template(repo: Path, into: Path, jobs: int) -> tuple[int, int]:
             try:
                 os.link(snapshot / rel, dst)
             except OSError:
-                pass                    # the snapshot moved: the repository decides
+                pass
             else:
                 return 1, 1
         shutil.copy2(src, dst)
@@ -649,19 +450,12 @@ def build_template(repo: Path, into: Path, jobs: int) -> tuple[int, int]:
     copied = sum(one for one, _ in counts)
     carried = sum(one for _, one in counts)
 
-    # Keep the snapshot's immutable Git objects even when a source changed. An
-    # unchanged index can travel with them; otherwise detach it before `add`, so
-    # normalization and ignore rules are applied as they are on the cold path.
-    # A prior index can otherwise retain CRLF blobs under new text=auto attributes
-    # or preserve files excluded by new ignore rules. Rebuilding the object store
-    # would also compress every unchanged blob again. A missing or partial store
-    # still takes the cold path.
+    # Reuse the snapshot's Git objects when available; if any file or gitlink changed,
+    # unlink the carried index before running `git add -A`.
     manifest = {rel: [size, mtime, kind] for rel, (size, mtime, kind) in placed.items()}
     gitlinks = index.gitlinks
     carried_index = False
     if snapshot is not None:
-        # a snapshot swept mid-carry surfaces as a link that fails or a walk that
-        # yields nothing, and either answers like every other doubt: rebuild
         try:
             _link_tree(snapshot / ".git", into / ".git", jobs)
             carried_index = ((into / ".git" / "index").is_file()
@@ -676,14 +470,12 @@ def build_template(repo: Path, into: Path, jobs: int) -> tuple[int, int]:
             raise SystemExit("could not build the sandbox index: git init")
     if (not carried_index or manifest != old_files or gitlinks != old_gitlinks
             or carried != sum(1 for _, _, kind in placed.values() if kind == "copy")):
-        # Unlink rather than truncate: the old index is still a snapshot's hardlink.
         (into / ".git" / "index").unlink(missing_ok=True)
         proc = subprocess.run(["git", "add", "-A"], cwd=into, capture_output=True, check=False)
         if proc.returncode != 0:
             raise SystemExit("could not build the sandbox index: git add")
     stamp_gitlinks(into, gitlinks)
 
-    # written after the index is built, so no `git add` ever sees it
     (into / _MANIFEST).write_text(
         json.dumps({"built_ns": time.time_ns(), "files": manifest, "gitlinks": gitlinks}),
         encoding="utf-8")
@@ -691,14 +483,8 @@ def build_template(repo: Path, into: Path, jobs: int) -> tuple[int, int]:
 
 
 # =====================================================================================
-# the cases: at least one mutant per rule, each stating the defect it seeds
+# Mutation cases
 # =====================================================================================
-#
-# A case is either a literal substitution or, where the defect is structural, a
-# function over the sandbox. Several mutants trip more than one rule, which is expected
-# and not a weakness: an id renamed in one artifact is genuinely wrong in every
-# artifact that cites it. A case passes when its own rule is among those that reported,
-# so collateral findings neither hide a miss nor manufacture a hit.
 
 REGISTER = "docs/requirements-register.md"
 SPEC = "docs/spec.md"
@@ -708,8 +494,6 @@ MATRIX = "docs/assurance/coverage-matrix.md"
 PROFILE = "docs/hardware/isa-profile.md"
 PERF = "docs/performance/performance-estimates.md"
 PLAN = "PLAN.md"
-# every landed item's note, and so every findings block, holder citation and landing
-# declaration a landed item wrote, lives here from S10b
 LOG = "docs/implementation/completion-log.md"
 BINDINGS = "docs/assurance/field-bindings.md"
 ABSENCE = "docs/hardware/absence-contract.md"
@@ -727,27 +511,13 @@ AESGCM_GALLINA = "proofs/AesGcm.v"
 SHA256_GALLINA = "proofs/Sha256.v"
 SEAM_WITNESSES = "proofs/SeamWitnesses.v"
 
-
-# One seeded defect, applied to a sandbox, answering whether it changed anything. A
-# mutation that writes nothing is a case that has stopped testing its rule, which is
-# why the answer is a bool rather than nothing at all.
 type Mutation = Callable[[Sandbox], bool]
-
-# One row of `CASES`: the rule the mutant must provoke, what the mutation is in words,
-# and the mutation itself.
 type Case = tuple[str, str, Mutation]
 
 
 @dataclass(frozen=True)
 class Seeding:
-    """One authored case, named the way a verdict names a generated mutant.
-
-    `vos.seeded.Verdict` is about anything with a `.what`, which for a walked mutant is
-    its site and its rewrite. An authored case has no site: it was written rather than
-    found, and what identifies it is the rule it is aimed at and the defect it seeds in
-    words, both of which its row already carries. Nothing else is added, so the row
-    stays the whole of a case and this is a reading of it rather than a second copy.
-    """
+    """Identifier and description of an authored selftest case for [`vos.seeded.Verdict`](../seeded.py#Verdict)."""
 
     rule: str
     description: str
@@ -764,7 +534,7 @@ def _literal(rel: str, find: str, repl: str) -> Mutation:
 
 
 def _k103(box: Sandbox) -> bool:
-    """Transpose an authored requirement citation without depending on its prose."""
+    """Transpose an authored requirement citation outside the derived header region."""
     text = box.read(SEAM_WITNESSES)
     region = proofcites.derived(text)
     if region.faults:
@@ -777,7 +547,7 @@ def _k103(box: Sandbox) -> bool:
 
 
 def _k114_compressed_premise(box: Sandbox) -> bool:
-    """An unlisted premise inside retained gzip evidence must remain visible."""
+    """Append an unlisted premise inside retained gzip evidence."""
     rel = ("docs/implementation/retained-evidence/q39/pending-audits-20261012/"
            "raw/standard-source/progress.json.gz")
     target = box.path / rel
@@ -796,7 +566,7 @@ def _entry(ident: str, edit: Callable[[str], str | None]) -> Mutation:
 
 def _first_match(rel: str, pattern: str, rewrite: Callable[[re.Match[str]], str],
                  flags: int = re.MULTILINE) -> Mutation:
-    """Rewrite the first match of a pattern, or refuse if it no longer matches."""
+    """Rewrite the first match of `pattern` in `rel`."""
     def apply(box: Sandbox) -> bool:
         text = box.read(rel)
         m = re.search(pattern, text, flags)
@@ -807,7 +577,7 @@ def _first_match(rel: str, pattern: str, rewrite: Callable[[re.Match[str]], str]
 
 
 def _renumber(rel: str, pattern: str, group: int, value: str) -> Mutation:
-    """Overwrite one numbered group of the first match, leaving the rest of the line."""
+    """Overwrite group `group` of the first match of `pattern` in `rel`."""
     def apply(box: Sandbox) -> bool:
         text = box.read(rel)
         m = re.search(pattern, text, re.MULTILINE)
@@ -818,8 +588,7 @@ def _renumber(rel: str, pattern: str, group: int, value: str) -> Mutation:
 
 
 def _seed_paragraph(sentence: str) -> Mutation:
-    """Drop a sentence into the gap before a heading, where the checker reads it as
-    ordinary prose."""
+    """Insert `sentence` as an unfenced paragraph before the first `## ` heading in `CRITIQUE`."""
     return _literal(CRITIQUE, "\n## ", f"\n{sentence}\n\n## ")
 
 
@@ -830,8 +599,6 @@ def _strip_requirements(rel: str, pattern: str,
 
 
 def _k14(box: Sandbox) -> bool:
-    # the id is read out of the register rather than named here, so the case keeps
-    # working when the subsection is re-populated
     register = box.read(REGISTER)
     sub = re.search(r"(?ms)^### 15\.14 .*?(?=^### )", register)
     if not sub:
@@ -839,17 +606,14 @@ def _k14(box: Sandbox) -> bool:
     view = box.read(ABSENCE)
     for ident in re.findall(rf"(?m)^\*\*({REQ_ID_PATTERN})\*\* ", sub.group()):
         if ident in view:
-            # swapped for another live id, so only the membership is wrong
             return box.write(ABSENCE, view.replace(ident, "R-01-001"))
     return False
 
 
 def _k26(box: Sandbox) -> bool:
-    # An arbitrary stale value must be caught independently of the current inventory.
     return box.write(CRITIQUE, replace_once(
         box.read(CRITIQUE), "\n## ",
         "\nThere are 9999 crown-jewel specifications in view.\n\n## "))
-
 
 
 def _k29(box: Sandbox) -> bool:
@@ -866,13 +630,7 @@ def _k29(box: Sandbox) -> bool:
 
 
 def _k100(box: Sandbox) -> bool:
-    """A module renaming the function a row of the lane's fact table points at.
-
-    Every occurrence moves rather than the definition alone, which is what makes this a
-    refactor and not a broken file: the module is internally consistent, imports, and
-    stops spelling the name a table two directories away names as its consumer. One
-    occurrence would leave the call site spelling it and the rule rightly quiet.
-    """
+    """Rename `_ccache_args` across `tools/vos/env.py` so the lane fact table points at a missing consumer."""
     rel = "tools/vos/env.py"
     text = box.read(rel)
     if "_ccache_args" not in text:
@@ -881,11 +639,7 @@ def _k100(box: Sandbox) -> bool:
 
 
 def _k84_unregistered_holder(box: Sandbox) -> bool:
-    """Change an unfenced bold holder citation to the permanently unallocated K-64.
-
-    Bold is the documented citation shape. Selection is independent of the checker
-    and of which item or narrative currently names the holder.
-    """
+    """Change an unfenced bold holder citation in `LOG` to unallocated `K-64`."""
     text = box.read(LOG)
     doc = corpus_mod.from_text(text, LOG)
     for holder in re.finditer(rf"\*\*({checkregistry.ID_PATTERN})\*\*", text):
@@ -895,11 +649,7 @@ def _k84_unregistered_holder(box: Sandbox) -> bool:
 
 
 def _k84_retired_holder(box: Sandbox) -> bool:
-    """Change a current unfenced holder to the permanently retired K-102.
-
-    The plan is outside the completion log's historical-evidence exception. Select
-    an actual holder by its documented bold form, independent of the item's prose.
-    """
+    """Change a current unfenced holder citation in `PLAN` to retired `K-102`."""
     text = box.read(PLAN)
     doc = corpus_mod.from_text(text, PLAN)
     for holder in re.finditer(rf"\*\*({checkregistry.ID_PATTERN})\*\*", text):
@@ -909,12 +659,7 @@ def _k84_retired_holder(box: Sandbox) -> bool:
 
 
 def _k84(box: Sandbox) -> bool:
-    """Remove the holders from an unfenced Tier-B landing declaration.
-
-    The declaration is the documented target, so moving or shortening completion
-    narrative does not remove the mutant's subject. A missing valid declaration
-    refuses seeding instead of manufacturing a replacement subject.
-    """
+    """Remove the holders from an unfenced Tier-B landing declaration in `LOG`."""
     text = box.read(LOG)
     doc = corpus_mod.from_text(text, LOG)
     declarations = re.finditer(
@@ -927,15 +672,7 @@ def _k84(box: Sandbox) -> bool:
 
 
 def _k82_entry(box: Sandbox) -> bool:
-    """A landed item whose completion-log entry is gone, and whose cell no longer links.
-
-    The heading is deleted whole, so the note beneath it is read as the previous
-    entry's, and the plan's cell drops the link it carried, so that the link check does
-    not report the dead fragment first and the case decides on K-82's own reading: a
-    landed item the log carries no entry for. The item is one whose note carries no
-    findings block, so the merge into its neighbour moves no count and the case is
-    the totality alone.
-    """
+    """Delete a landed item's completion-log heading and its link in `PLAN.md`."""
     heading = "### M0.5 · Reconcile the baselines\n\n"
     log = box.read(LOG)
     if heading not in log:
@@ -949,14 +686,7 @@ def _k82_entry(box: Sandbox) -> bool:
 
 
 def _k82_figure(box: Sandbox) -> bool:
-    """The register's own size, moved off the figure the entries give.
-
-    Computed from what it finds rather than pinned as a literal, because the figure it
-    seeds is one `--fix` rewrites: a literal here would be a derived fact hand-maintained
-    in the selftest, and it would go stale on the next item that lands a finding rather
-    than on any change to the rule. What the case asks is unchanged, that the repair path
-    recognizes the register's size as its own to rewrite.
-    """
+    """Decrement the findings count in `FINDINGS` so `--fix` repairs it."""
     text = box.read(FINDINGS)
     m = re.search(r"The plan records (?P<n>\d+) of them", text)
     if not m:
@@ -965,11 +695,8 @@ def _k82_figure(box: Sandbox) -> bool:
         text, m, f"The plan records {int(m.group('n')) - 1} of them"))
 
 
-# A DECTED width no code reaches, with every figure built on it moved to agree: the
-# normative code at about 7 check bits over 4 tag bits, the fallback's implied 6 over 2,
-# and the totals, shares, bands and the specification's and bank-count contract's
-# copies all consistent with them. The arithmetic holds throughout, so K-69 agrees and
-# within K-54 only the distance-6 floor sees that no code of that distance is so short.
+# Lower the DECTED check-bit width below the distance-6 floor while keeping all derived
+# percentages and SRAM bands internally consistent so K-54's coding-theory floor fires.
 _K54_BELOW_FLOOR: list[tuple[str, str, str]] = [
     (REGISTER,
      "under a DECTED code of 8 check bits, the fewest any code of minimum distance 6 over 4 "
@@ -999,7 +726,6 @@ def _k54_below_floor(box: Sandbox) -> bool:
         texts[rel] = None if text is None else replace_once(text, find, repl)
     if any(text is None for text in texts.values()):
         return False
-    # every file is written before the verdict is read, so no write is short-circuited
     written = [box.write(rel, text) for rel, text in texts.items()]
     return all(written)
 
@@ -1024,11 +750,10 @@ def _k43(box: Sandbox) -> bool:
 
 
 def _k46(box: Sandbox) -> bool:
-    """Remove one source guard, leaving its computed quantity unprotected."""
+    """Remove one source guard in `tools/vos/checks/counts.py`."""
     rel = "tools/vos/checks/counts.py"
     return _first_match(rel, r"(?m)^    \"sections\": \"the register's normative sections\",\r?\n",
                         lambda _m: "")(box)
-
 
 
 def _k49(box: Sandbox) -> bool:
@@ -1036,14 +761,7 @@ def _k49(box: Sandbox) -> bool:
 
 
 def _k61(box: Sandbox) -> bool:
-    """Move one recorded prose digest, so a pair the ledger calls read no longer is.
-
-    The ledger's own bytes are moved rather than a document's. A digest is a function
-    of the prose, so a case naming one as a literal would rot the next time that
-    paragraph was edited; anchoring on the row's shape instead keeps the case true
-    whatever the documents hold, and exercises the comparison rather than only the
-    membership half a renamed row would reach.
-    """
+    """Corrupt one recorded prose digest in `LEDGER`."""
     text = box.read(LEDGER)
     m = re.search(r'^(  "R-01-001": \[")([0-9a-f]{12})', text, re.MULTILINE)
     if not m:
@@ -1052,7 +770,7 @@ def _k61(box: Sandbox) -> bool:
 
 
 def _k109(box: Sandbox) -> bool:
-    """Change the generated fingerprint without changing authored citations."""
+    """Flip one hex digit of the generated header fingerprint in `SEAM_WITNESSES`."""
     text = box.read(SEAM_WITNESSES)
     start = text.find(DERIVED_BEGIN)
     if start < 0:
@@ -1066,12 +784,7 @@ def _k109(box: Sandbox) -> bool:
 
 
 def _k117_switch(box: Sandbox) -> bool:
-    """The Rupicola lowering's switch constant renamed wherever it is spelled.
-
-    The driver and its one importer move together, so the lowering still runs and only
-    the instrument table's reading of the driver's own literal finds nothing, which is
-    to be a finding rather than a row falling out of the set unremarked.
-    """
+    """Rename `SWITCH` across `regenerate.py` and `hello.py` so the instrument reader misses it."""
     driver = "tools/bedrock2-lowering/regenerate.py"
     importer = "tools/bedrock2-lowering/hello.py"
     text = box.read(driver)
@@ -1083,12 +796,7 @@ def _k117_switch(box: Sandbox) -> bool:
 
 
 def _k117_release(box: Sandbox) -> bool:
-    """compare_component.py's release constant renamed wherever it is spelled.
-
-    The comparison still holds its prover to the rig's release under the new name, so
-    only the instrument table's reading of the file's own name finds nothing, which is to
-    be a finding rather than the row falling back to no stated release unremarked.
-    """
+    """Rename `ROCQ_VERSION` in `compare_component.py` so the instrument reader misses it."""
     path = "tools/wasm-oracle/compare_component.py"
     text = box.read(path)
     renamed = re.sub(r"\bROCQ_VERSION\b", "PROVER_RELEASE", text)
@@ -1098,10 +806,6 @@ def _k117_release(box: Sandbox) -> bool:
 def _keep_own_id(entry_line: str) -> str:
     head = re.match(rf"^\*\*{REQ_ID_PATTERN}\*\* ", entry_line)
     if head is None:
-        # The caller picked this line out of the register as an entry, so a line that
-        # does not open with an id means the mutation no longer applies. Said here
-        # rather than as an AttributeError on `None`, which reads as a defect in this
-        # tool rather than as the drift it actually is.
         raise SystemExit(f"the entry to mutate does not open with a requirement id: "
                          f"{entry_line[:60]!r}")
     return head.group() + REQ_TOKEN_RE.sub("R-01-001", entry_line[len(head.group()):])
@@ -1207,8 +911,7 @@ CASES: list[Case] = [
          f"{MID} Fail-closed: the seeded refusal stops the unit, and the stop costs a "
          f"restart\n{MID} Trace:"))),
 
-    # the entry's own id is left alone and every id it cites is swapped, so the seam
-    # composes refusals no requirement confers while still being the entry it was
+    # Keep the entry's own ID and replace its cited IDs so the seam composes un-conferred refusals.
     ("K-21", "a seam composing a refusal no requirement confers",
      _first_match(REGISTER,
                   rf"(?m)^\*\*{REQ_ID_PATTERN}\*\* [^\r\n]*Fail-closed seam \*\*[^\r\n]*",
@@ -1292,9 +995,7 @@ CASES: list[Case] = [
                   r"(?m)^\s*\* \[x\] \*\*[^*]+\*\* · [\d.,]+ h retained estimate, actual n/a",
                   lambda m: m.group().replace("[x]", "[ ]", 1))),
 
-    # the range is narrowed about its own stated midpoint rather than at one end, so the
-    # mean still holds and K-35 stays quiet: the seeded defect is the span alone, which is
-    # what makes this case evidence that K-86 reads the width and not the arithmetic.
+    # Narrow the range symmetrically around the midpoint so K-35 stays quiet and K-86 fires.
     ("K-86", "an open class-X range narrowed to under a factor of two",
      _first_match(PLAN,
                   rf"(?m)^\* \[ \] \*\*[^*]+\*\* {MID} ([\d.,]+) h, range [\d.,]+–[\d.,]+ "
@@ -1324,7 +1025,6 @@ CASES: list[Case] = [
     ("K-37", "a committed total its explicit dispositions do not give",
      _renumber(PLAN, r"(?m)^\| Committed remaining h \| ([\d.,]+) \|", 1, "999")),
 
-    # Move the range alone: the midpoint still agrees with its source cells.
     ("K-37", "a committed gate range its explicit leaves do not give",
      _renumber(PLAN, r"(?m)^\| Committed M8a open range h \| ([\d.,]+)–",
                1, "999")),
@@ -1339,11 +1039,6 @@ CASES: list[Case] = [
     ("K-37", "a malformed estimate summary value",
      _renumber(PLAN, r"(?m)^\| Total estimate midpoint h \| ([\d.,]+) \|", 1, "unknown")),
 
-    # one recorded estimate is moved in the pool the calibrated total rests on, so the
-    # ratio every open class-X cell is priced against moves with it while every actual
-    # stays in its cell; K-37 reports the calibrated total beside this, and what the case
-    # asks is that the ratio itself is a quotient over the record rather than a figure
-    # read out of the sentence stating it
     ("K-96", "a leaf assigned to two work dispositions",
      _literal("docs/implementation/work-order.json", '"Q3b"', '"M7.1a"')),
 
@@ -1356,7 +1051,6 @@ CASES: list[Case] = [
     ("K-96", "a calibration ratio the record's estimates and the actuals do not give",
      _renumber(PLAN, r"(?m)^\| M0\.8d \| X-authored \| ([\d.,]+) \|", 1, "999")),
 
-    # The generated result site must remain uniquely shaped and numerically derived.
     ("K-96", "a missing calibration result marker",
      _literal(PLAN, "<!-- calibration-results:start -->", "<!-- calibration-results:missing -->")),
 
@@ -1370,11 +1064,9 @@ CASES: list[Case] = [
     ("K-96", "a stale calibration result count",
      _renumber(PLAN, r"(?m)^\| attended \| I \| (\d+) \|", 1, "9999")),
 
-    # Removing a source row must fail totality, not silently shrink the fit.
     ("K-96", "a completed attended item the calibration record no longer carries",
      _first_match(PLAN, r"(?m)^\| S1 \| I \| [\d.,]+ \|[^\r\n]*\r?\n", lambda _m: "")),
 
-    # Moving the parallel record changes only its own fit; every actual stays put.
     ("K-96", "an agent-parallel ratio the second record's estimates do not give",
      _renumber(PLAN, r"(?m)^\| M6\.0b \| X-authored \| ([\d.,]+) \|", 1, "999")),
 
@@ -1414,10 +1106,6 @@ CASES: list[Case] = [
     ("K-51", "a corpus member whose program no longer assembles",
      _literal("corpus/cap-trap.s", "cmove   c8, c1", "cmove   c8, c1, c2")),
 
-    # The mark is stripped rather than mangled, because an absent mark is the failure
-    # this rule exists for: a new file lands unmarked and reads exactly like a marked
-    # one. The target is the checker's own module, so the case cannot be satisfied by
-    # a file the repository might stop carrying.
     ("K-52", "a markable file whose license mark has gone",
      _literal("tools/vos/checks/marks.py", "# SPDX-License-Identifier: Apache-2.0\n", "")),
     ("K-52", "an authored OCaml template whose license mark has gone",
@@ -1433,10 +1121,6 @@ CASES: list[Case] = [
     ("K-52", "an authored Lustre node whose license mark has gone",
      _literal("supervisor/route/start_restart.lus", "-- SPDX-License-Identifier: Apache-2.0\n", "")),
 
-    # A new file of an unknown kind cannot be seeded, because the corpus is the git
-    # index and an untracked file is not in it. Withdrawing a kind's ruling puts an
-    # existing file into exactly the state a new kind would arrive in, which is the
-    # state the rule exists to report.
     ("K-53", "a tracked file whose kind the tool no longer rules on",
      _literal("tools/vos/checks/marks.py",
               '    ".json": "JSON admits no comment, so a mark would make the file '
@@ -1453,52 +1137,27 @@ CASES: list[Case] = [
      _literal("tools/vos/checks/marks.py",
               '    ".patch": "a unified diff must preserve upstream context and hunk bytes",\n', "")),
 
-    # The owner is moved rather than one of the eleven figures, because a figure edited
-    # alone is the easy half: what the rule is for is the granule changing under all of
-    # them at once, which is the edit nobody would think to propagate by hand. The
-    # repair lane seeds K-54 a defect of its own instead of this one; REPAIRABLE says
-    # why a moved owner cannot ride it.
     ("K-54", "the tag granule moved out from under every figure derived from it",
      _renumber(REGISTER, r"one validity tag per \*\*(\d+)-bit\*\* granule", 1, "128")),
 
-    # The granule case moves every figure at once and so cannot tell a rule holding the
-    # figures against each other from one holding them against coding theory. This one
-    # can: the width falls below the floor with everything built on it moved to agree,
-    # so a rule narrowed to consistency passes it.
     ("K-54", "a DECTED width below the distance-6 floor under consistent figures",
      _k54_below_floor),
 
-    # One end of one band, moved alone: the fallback codeword's arithmetic is what fixes
-    # it, and the low-end holds beside it cannot see it move.
     ("K-54", "an upper band end the fallback codeword does not give",
      _literal(REGISTER, "about 47–70 MB of SRAM per GB", "about 47–71 MB of SRAM per GB")),
 
-    # A rung of the ladder the width is chosen from, moved alone: every codeword figure
-    # still agrees, and only pricing the ladder at its floor sees the rung is wrong.
     ("K-54", "a ladder rung extended Hamming, the tags and the linear floor do not give",
      _literal(REGISTER, "full ladder is 21.9 / 14.1 / 8.6 / 5.5%",
               "full ladder is 21.9 / 14.1 / 8.6 / 5.3%")),
 
-    # The booking half rather than the capacity half: an owner that stops stating its
-    # figure is the ordinary floor, where an artifact that stops booking the bank count
-    # as open is the reading whose moving changes what the rule should be doing.
     ("K-55", "an artifact that no longer books the per-class bank count as open",
      _literal(REGISTER, "the per-class bank count is in R-15-014a's frozen parameter set",
               "the per-class bank count is frozen")),
 
-    # Dropped from one list and not added to the other, which is what a region class
-    # being reworded actually looks like: it is on neither side and every remaining
-    # term still checks out.
     ("K-56", "a region class the two latency-class lists no longer place",
      _first_match(REGISTER, r"(?m)^· Accept: the first class carries[^\r\n]*",
                   lambda m: m.group().replace("recovery workspaces, ", ""))),
 
-    # The charge gains a term and the placement is left alone, which is the direction
-    # this arm exists for and the one the other case cannot reach: every term already
-    # in the lists still checks out, the two lists still partition, and what is wrong
-    # is that a byte somebody now pays for is on neither class. A ring is chosen
-    # because the nearest existing term is a substring of it, so a rule matching
-    # loosely would place the new term by accident and pass.
     ("K-56", "a physical byte the composition is charged and neither class carries",
      _literal(REGISTER, "quarantine entries, interpreter object arenas",
               "quarantine entries, telemetry rings, interpreter object arenas")),
@@ -1520,207 +1179,86 @@ CASES: list[Case] = [
               "Bulk arena backing uses the **second class** by default",
               "Bulk arena backing uses an unspecified class")),
 
-    # One of the transcriptions is moved and the rest are left, which is the shape a
-    # real drift takes: an exponent edited in the composition that the model's own
-    # assertion would catch only once something executed.
     ("K-57", "a composition that writes a welded block size the model does not",
      _literal("model/config/verifiedos.json",
               '"cache_block_size_exp": 6', '"cache_block_size_exp": 5')),
 
-    # The entry's ceiling rather than one of the transcriptions, because it is the one
-    # normative statement of the bound and the one site whose moving leaves every other
-    # still agreeing with every other. A halved ceiling also leaves the declared block
-    # inside the set it admits, so what has to catch it is the arithmetic against the
-    # granule and the destination width and not the membership test beside it.
     ("K-57", "a stated block ceiling the destination register's width does not give",
      _literal(REGISTER, "the block at most **512 bytes**",
               "the block at most **256 bytes**")),
 
-    # The composition is moved and the three prose tables are left, which is the
-    # direction a real edit takes for the reason K-58's does: a vector length is
-    # something somebody changes where the model reads it, and the documents saying
-    # what a class is are the copies that go stale. The V row is the one mutated
-    # because its exponent is the only one written once in the file, the C class's
-    # being the geometry `extensions.V` is built at and so written twice on purpose.
     ("K-60", "a class whose vector geometry the composition and the documents no "
              "longer agree on",
      _literal("model/config/verifiedos.json", '"vlen_exp": 12', '"vlen_exp": 13')),
 
     ("K-61", "a pair the ledger records as read at contents it no longer holds", _k61),
 
-    # The register's own heading is renumbered rather than a section added to the prose.
-    # A new prose heading would also cut short the span above it and so report K-61,
-    # where a case is for one rule biting; and the rename is the defect in its purest
-    # form, because renumbering moves no count at all: `len(reg.per_section)` is
-    # eighteen before and after, so the figure the counts group holds stays right while
-    # the extraction it is supposed to stand for has gone.
     ("K-62", "a normative section of the prose that the register no longer extracts",
      _literal(REGISTER, "## §18", "## §20")),
 
-    # A digit is changed inside a citation the model argues from, which is the defect
-    # in the form it actually arrives in: nobody invents a requirement id, they
-    # mistype one or carry one across from an upstream that numbered things its own
-    # way. The site is the timing table's own governing citation, so the mutation is
-    # a sentence that still reads as a citation and names nothing.
     ("K-63", "a model file citing a requirement the register does not declare",
      _literal("model/model/core/timing.sail", "R-15-095", "R-15-995")),
 
-    # The composed hart of the V-class configuration is moved back to the C-class one,
-    # which is the *quiet* half of the rule rather than the loud half. A key that
-    # drifted makes the second file a different machine and shows up as a diff nobody
-    # can miss; a declared divergence that stopped diverging leaves two files that
-    # validate, run, and agree, with the second one no longer a second core at all. The
-    # platform key is the first `"hartid": 6` in the file, ahead of the roster entry
-    # naming the same identity, which is why the literal is unambiguous.
     ("K-65", "a second shipped configuration that composes the same core as the first",
      _literal("model/config/verifiedos-v.json", '"hartid": 6', '"hartid": 0')),
 
-    # The *model* is edited rather than a configuration, which is the half of this rule
-    # nothing else can see. A geometry moved in a shipped file is K-65's finding too and
-    # would seed a case that passes on somebody else's report; a rung re-based in the
-    # extension registry moves which vector extensions a vector length names, and no
-    # other rule reads that ladder at all. `Zvl32b` is the lowest rung and so the one
-    # that decides every rung above it, and the substitution puts its threshold under
-    # the floor of `vlen_exp`'s own constraint, which makes it true at every geometry
-    # this model can be built at and therefore true of the vectorless composition.
-    #
-    # The seed is in the *generated bundle* rather than in `extensions.sail`, because
-    # that is where this rule reads the ladder since S15: editing the Sail alone leaves
-    # the rung this rule sees untouched and reports as K-88's stale artifact instead,
-    # which is the correct verdict about that tree and no test of this rule. The anchor
-    # carries the clause's own pattern id as well as its body, because a body of
-    # `sizeof(vlen_exp) >= 5` is written at more than one rung and `replace_once` would
-    # take whichever came first.
+    # Mutate `Ext_Zvl32b` in the generated Sail bundle so `K-78` fires without `K-88`.
     ("K-78", "a minimum-vector-length rung a vectorless composition now reaches",
      _literal(BUNDLE,
               '"id":"Ext_Zvl32b"},"body":{"contents":"sizeof(vlen_exp) >= 5"',
               '"id":"Ext_Zvl32b"},"body":{"contents":"sizeof(vlen_exp) >= 3"')),
 
-    # The *configuration* is edited rather than the profile or the model, because that
-    # is the direction this defect arrives from and the reason the rule exists: the
-    # exclusion is a setting, so switching it back on is one key in one file that no
-    # review gate reads, where an edit to either of the other two artifacts is an act
-    # somebody takes deliberately.
     ("K-87", "an excluded-by-name extension a shipped configuration switches back on",
      _literal("model/config/verifiedos.json",
               '"Zbc": { "supported": false }',
               '"Zbc": { "supported": true }')),
 
-    # The *profile* is edited rather than the model, which is the direction this defect
-    # actually arrives from: an amendment excludes a form and the model goes on
-    # implementing it, which is exactly what R-15-039b did. Mutating the model instead
-    # would seed the mirror defect and would have to pick a file two other lanes are
-    # curating; the exclusion row is permanent, so the anchor cannot rot.
-    #
-    # The *marker* is what the substitution moves, because that is the half of the rule
-    # a break would leave silent. The fragment path was seeded here as
-    # "`vle<eew>ff.v`" -> "`cincoffset`", a name spelled by an assembly clause and
-    # carried by the encoder table at once; it is written down rather than kept because
-    # one rule gets one case, and the membership path is the one whose reading is new.
-    # `AMO` is the substituted constructor because the model decodes it in the clause
-    # next to the deleted one, so the case fires on a name that is certainly there and
-    # will not rot into an unseeded pass.
     ("K-66", "a form the profile excludes and the model still decodes",
      _literal(PROFILE, "Sail: `AMOCAS`", "Sail: `AMO`")),
 
-    # One site of a fact two pairs state is reworded while its siblings stand, which
-    # is the drift K-61 cannot see: the edited pair blesses on its own two sides and
-    # the other pair's copy stays green. K-61 fires on the edited entry too, which is
-    # expected collateral; the case passes only on K-68's own report.
     ("K-68", "a co-stated fact one of its sites no longer states",
      _entry("R-14-007", lambda entry: entry.replace(
          "capabilities beyond pure compute", "capabilities beyond pure computation"))),
 
-    # An owned enumeration's lead-in moves with the list untouched: the reader
-    # returns zero, and the guard must report the moved owner even without prose claims.
     ("K-46", "an owned enumeration whose lead-in moved out of the reader's reach",
      _literal(REGISTER, "obligations are exactly:", "obligations are precisely:")),
 
-    # A restated figure drifts from the entry that fixes it: the kernel budget's spec
-    # restatement moves while R-07-001 stands, the drift K-69's --fix rewrites back
-    # from the owner.
     ("K-69", "a restated owned figure drifted from the entry that fixes it",
      _literal(SPEC, "target ≤10k lines", "target ≤12k lines")),
 
-    # The marker is stripped from one §1 row and the row is otherwise left alone, which
-    # is the state the real defect leaves behind: a delta item the register enumerates
-    # and the instrument accounts for nowhere. The row keeps its width, its governing
-    # citation and its decision, so no table, view or citation rule reads the edit and
-    # K-70 is the one rule that can. It seeds no `FD-`, `FM-` or `G-` count, those being
-    # restated in a document this case may not repair.
     ("K-70", "a delta item of the closed freeze delta that its instrument does not "
              "account for",
      _literal(CONTRACT, "| (v) the capability indexed",
               "| the capability indexed")),
 
-    # The second reach of K-60: a free-prose VLEN token names a geometry no composed
-    # class carries. The first spec token the seed happens to hit may sit in the
-    # class table itself, in which case the table half fires instead; either half's
-    # report is K-60's own.
     ("K-60", "a VLEN token naming a geometry no composed class carries",
      _literal(SPEC, "VLEN=4096", "VLEN=2048")),
 
-    # The manifest is bumped and the document's §4 heading is left, which is the shape
-    # the defect takes: the record grammar advances where an executor is checked
-    # against it, and the prose describing the grammar stands still. The seed is an
-    # increment of whatever the manifest declares rather than a literal, so the day
-    # the schema legitimately advances is not the day this case stops applying.
     ("K-71", "a manifest declaring a commit-trace schema the document does not state",
      _first_match("corpus/manifest.json", r'"trace_schema": (\d+)',
                   lambda m: f'"trace_schema": {int(m.group(1)) + 1}')),
 
-    # The ground rather than the membership, because the ground is the half that
-    # expires in silence: the seed moves one word onto *cannot express it*, which
-    # the encoder contradicts by building it from the reading beside it. That is
-    # the shape the real defect takes, a row standing on a ground that stopped
-    # being true the day a table row landed, and the member goes on writing the
-    # word because nothing else reads a `.word` to notice.
     ("K-72", "a hand-written corpus word standing on a ground the encoder contradicts",
      _literal(CORPUS_DOC, "| the word is what the reader must see | `csrrw",
               "| the encoder cannot express it | `csrrw")),
 
-    # The state and not the citation, which is K-22's half and stays intact: the seeded
-    # line goes on naming the entry that collects it and stops naming a state that entry
-    # carries, which is the member admitted without the budget sentence being reopened.
-    # Read from the register rather than spelled here, so the case survives a reworded
-    # state, and both directions fire on it at once, the conferral standing outside the
-    # enumeration and the state it left standing under no conferral.
     ("K-73", "a freshness conferral naming a state the enumeration does not carry",
      _first_match(REGISTER, f"(?m)^{MID} RoT-fresh: (.+?) \\(R-10-013\\)",
                   lambda m: m.group().replace(m.group(1), "a state of its own"))),
-    # The §17 citation is dropped from a residual cell and the mode is left standing,
-    # which is the state the real defect leaves behind: a cell reporting that §17 books
-    # its remainder, over requirements that discharge the pair instead. The cell keeps
-    # two citations, so it still rests on a requirement and K-16 reads it as sound; the
-    # ids it keeps resolve, so the names group reads it as sound; and its pair is
-    # untouched, so K-15 never looks. K-74 is the one rule that can.
+
     ("K-74", "a residual cell whose citation of the section booking it has gone",
      _literal(MATRIX, "R-08-006, R-15-208, R-17-037", "R-08-006, R-15-208")),
-    # The standing column is the one column of the matrix no hand writes: the
-    # inventory's status lifted over the rows a cell's requirements constrain. A cell
-    # assigned another standing by hand is the defect. Other rules read it as sound:
-    # the mode still places,
-    # the citations still resolve, the row is still its header's width. The cell is
-    # found by its standing rather than named, and changes any valid standing so the
-    # case survives the last not-authored or partial cell being implemented.
+
     ("K-95", "a coverage cell whose standing differs from the inventory",
      _first_match(MATRIX,
                   r"(?m)^\| `B-\d\d` \| `P-\d` \|[^\r\n]*\| (authored|partial|not authored) \|$",
                   lambda m: m.group().replace(f"| {m[1]} |",
                       "| not authored |" if m[1] == "authored" else "| authored |"))),
 
-    # The configuration is moved rather than the record, because that is the direction
-    # no reader of one file can see: the record goes on naming the parameter that takes
-    # the predictor and the build it names has stopped taking it, which is a claim that
-    # a structure is absent standing over an elaboration that instantiates it. Moving
-    # the record instead would be the easy half and would read as an ordinary edit.
     ("K-76", "a synthesis parameter the provenance record binds set to another value",
      _literal("rtl/vos_c_class_config_pkg.sv", "BHTEntries: unsigned'(0),",
               "BHTEntries: unsigned'(1),")),
 
-    # A workflow's action moves to a commit its row never reviewed, which is what a
-    # bump without a licence read leaves. The first pinned line is found by its shape
-    # and its last digit changed, so the case survives every reviewed bump.
     ("K-118", "a workflow action at a commit its reviewed row does not state",
      _first_match(".github/workflows/host-gates.yml",
                   r"(?m)^(\s*- uses: [^@\s]+@[0-9a-f]{39})([0-9a-f])",
@@ -1737,8 +1275,6 @@ CASES: list[Case] = [
      _literal(".github/workflows/boot-crypto-target.yml",
               "          path: .target-ci\n",
               "          repository: example/unreviewed\n          path: .target-ci\n")),
-    # The same line returned to a movable tag: the row still states a reviewed commit,
-    # and nothing fixes the code the tag names on the next run.
     ("K-118", "a workflow action referenced by a tag that can move",
      _first_match(".github/workflows/host-gates.yml",
                   r"(?m)^(\s*- uses: [^@\s]+)@[0-9a-f]{40} # (v\d+)\.\d+\.\d+$",
@@ -1747,13 +1283,10 @@ CASES: list[Case] = [
      _first_match(".github/workflows/host-gates.yml",
                   r"(?m)^([ \t]*)- uses: [^@\s]+@[0-9a-f]{40} # v\d+\.\d+\.\d+\n",
                   lambda m: f"{m[0]}{m[1]}    continuation\n")),
-    # Composed YAML keys retain the admitted source-line shape, even when another
-    # workflow also runs the same action.
     ("K-118", "a workflow action stated in a shape the reading does not parse",
      _first_match(".github/workflows/host-gates.yml",
                   r"(?m)^(\s*- )uses:( [^@\s]+@[0-9a-f]{40} # v\d+\.\d+\.\d+)$",
                   lambda m: f'{m[1]}"uses":{m[2]}')),
-    # Explicit and flow keys are real keys that violate the source-line policy.
     ("K-118", "a workflow action stated as an explicit key with a trailing comment",
      _first_match(".github/workflows/host-gates.yml",
                   r"(?m)^([ \t]*)- uses:( [^@\s]+@[0-9a-f]{40} # v\d+\.\d+\.\d+)$",
@@ -1767,26 +1300,16 @@ CASES: list[Case] = [
                   r"(?m)^([ \t]*)- uses: ([^@\s]+@[0-9a-f]{40})( # v\d+\.\d+\.\d+)$",
                   lambda m: f'{m[1]}- {{name: "the action\n{m[1]}  # pinned", '
                             f"uses: {m[2]}}}{m[3]}\n{m[0]}")),
-    # The record's side: a row renamed away from the action it reviews leaves both a
-    # workflow running code with no row and a row reviewing code nothing runs.
     ("K-118", "an action row that names no action a workflow runs",
      _literal(THIRD_PARTY, "| actions/download-artifact |", "| actions/download-artifacts |")),
-    # Generated licence links are compared as bytes, never reparsed as Markdown.
     ("K-118", "an action row linking its licence at a commit other than the one it reviewed",
      _first_match(THIRD_PARTY, r"(github\.com/actions/checkout/blob/[0-9a-f]{39})([0-9a-f])",
                   lambda m: m[1] + ("1" if m[2] == "0" else "0"))),
-    # A gitlink moved with an artifact derived through it left behind, seeded as the
-    # recorded commit's first digit changed so the index, the licence record and every
-    # restating sentence still agree. The registry's line names no upstream, so K-81
-    # cannot see it and only this rule holds it. The case anchors on the line's own
-    # words rather than on the pinned id, so a pin advance does not unseed it.
     ("K-116", "a width-transform registry naming a commit the imported core's gitlink "
               "does not carry",
      _first_match("tools/rtl-width-transforms.json", r'^(  "pin": ")([0-9a-f])',
                   lambda m: m[1] + ("1" if m[2] != "1" else "2"))),
 
-    # The view is compared as generated bytes; source review identities and owner
-    # inputs have independent controls, and hook/pip inventories remain fail-closed.
     ("K-118", "an elaborator source release its licence review does not state",
      _first_match("tools/vos/cli/rtl.py", r'^(VERILATOR_PIN = ")([^"\r\n]*)"',
                   lambda m: f'{m[1]}{m[2]}.1"')),
@@ -1877,59 +1400,25 @@ CASES: list[Case] = [
      _first_match("tools/ci/model-hooks-constraints.txt", r"^([A-Za-z0-9._-]+==[^\s\\]+)\n",
                   lambda m: f"{m[1]} \\\n    ; sys_platform == \"never\"\n")),
 
-    # A one-letter respelling of a licence file's name, inside the backticks that make
-    # the cell a path rather than a link. That is the whole point of the case: the row
-    # still renders, the table is still the width its header declares, no id and no
-    # count moves, and K-12 cannot see it because there is no link here to follow. The
-    # component goes on being listed as redistributed here while the terms it is
-    # redistributed under are named at a file the index does not carry.
     ("K-80", "a component's licence text named at a path the repository does not carry",
      _literal(THIRD_PARTY, "`model/dependencies/elfio/LICENSE.txt`",
               "`model/dependencies/elfio/LICENCE.txt`")),
-    # A landing-loop tool is given an import of the quarantine, which is the whole of
-    # what the move would otherwise not have prevented: the directory is an ordinary
-    # package on `tools/`, so the statement resolves and the coupling is back with every
-    # other gate still green. The seeded file is one no other tool imports, so the
-    # sandbox's own checker run is unaffected and the case decides about K-83 alone; the
-    # statement is written here inside a string on one line, which is why the rule is
-    # anchored at a line start and this file is not a site of its own. The anchor is the
-    # one import that tool cannot lose rather than the first line of its import block,
-    # because a tool gaining a module rewrites that line and the case would then seed
-    # nothing, which is a finding about the case and not about the rule.
+
     ("K-83", "a landing-loop tool that imports the quarantined instruments",
      _literal("tools/vos/cli/blast.py", "from vos.corpus import find_root",
               "from quarantine import freeze\nfrom vos.corpus import find_root")),
 
-    # One rule gets one case, and this rule gets two, because it holds two ways in and
-    # the case above reaches only one: with the path half deleted the mutant above is
-    # still killed, so a rule narrowed to imports would pass its own selftest while a
-    # landing-loop tool went on launching a quarantined entry point by path. The seed is
-    # a tool putting the quarantine on its own import path, which is how the coupling
-    # arrives for a program whose hyphenated name no import statement can spell.
     ("K-83", "a landing-loop tool that puts the quarantine on its own path",
      _literal("tools/run.py",
               'sys.path.insert(0, str(Path(__file__).resolve().parent))',
               'sys.path.insert(0, str(Path(__file__).resolve().parent / "quarantine"))')),
 
-    # The transcription is moved and the definition is left, which is the direction the
-    # defect arrives from: the model is the definition and nothing edits it to follow a
-    # SystemVerilog package. The address width is the one to move because it is the
-    # parameter with the most restatements, so a real drift in it would leave four other
-    # sites still agreeing with each other and only this rule reading the fifth against
-    # the model. K-57 opens that file too, for the welded block size, and this moves a
-    # different localparam, so the case passes on K-79's own report.
     ("K-79", "a capability-format width the authored package and the model no longer "
              "agree on",
      _literal("rtl/vos_cheri_pkg.sv",
               "localparam int unsigned CapAddrWidth = 36;",
               "localparam int unsigned CapAddrWidth = 32;")),
-    # A restating site rather than the record's row, which is the direction the rule
-    # is built around: the licence record and the gitlink go on agreeing, so the
-    # first hop stays green and only the second can see it. Moving the row instead
-    # would fire the first hop and prove nothing about the second. The digit changed
-    # is the last of the delta's provenance cell, so the mutant is a transcription
-    # slip and not a pin that has moved, and no other rule opens that cell: the case
-    # passes on K-81's own report with no collateral.
+
     ("K-81", "an upstream pin restated as a commit the record does not record",
      _literal(DELTA, "| `0c7b3adf` | 2026-09-24 |", "| `0c7b3ade` | 2026-09-24 |")),
     ("K-81", "a historical modular receipt gitlink changed outside its exact scoped edition",
@@ -1953,57 +1442,24 @@ CASES: list[Case] = [
      _literal("docs/implementation/fiat-crypto-emission.md",
               "1e721c6f18c43b90922e7bc57fd64848e5cff2be", "33583780870")),
 
-    # One holder citation moved onto the id the numbering is missing, which is the
-    # defect in the shape it actually arrives in rather than an invented one: the plan
-    # already reports a gap at that id, so a hand reaching for the next free number
-    # writes exactly this. The first structural holder is selected independently of
-    # its completion narrative, so prose edits cannot remove the control's subject.
     ("K-84", "a landing naming a holder the rule registry does not carry",
      _k84_unregistered_holder),
 
-    # The other half, and the case above does not reach it: with the declaration loop
-    # deleted that mutant is still killed, so a rule narrowed to its citations would
-    # pass its own selftest. A Tier-B landing naming nothing is what the fourth of the
-    # four conditions exists to refuse, and it is the state the rule was written for.
     ("K-84", "a Tier-B landing naming no rule holding what it created", _k84),
 
     ("K-84", "a current claim relying on a retired rule",
      _k84_retired_holder),
 
-    # Seeded on the plan's side, which is the direction the defect arrives from: a
-    # completion note is edited far more often than the index over it. The word alone
-    # moves and its bullets stay, which is exactly what a finding added to a note
-    # without the count following it looks like, and it is why the block's size is
-    # counted from the bullets rather than read off the word. Nothing else opens this
-    # bullet: it carries no figure, no id, no citation and no table cell, so the case
-    # passes on K-82's own report with no collateral.
     ("K-82", "a completion note whose declared count is not the number of findings "
              "beneath it",
      _literal(LOG, "  * Six findings.\n    * **The discharge needed no mechanism",
               "  * Seven findings.\n    * **The discharge needed no mechanism")),
 
-    # The third side of the relation, which neither case above reaches: the notes live
-    # in the completion log from S10b and K-82 holds that log's entries total against
-    # the plan's landed items. A landed item whose entry is gone is what a landing that
-    # forgot its note, or a move that lost one, looks like, and no other rule sees it
-    # once the cell's link goes with the heading.
     ("K-82", "a landed item the completion log carries no entry for", _k82_entry),
 
-    # One rule gets one case, and this rule gets two, because the pairing fails from
-    # two sides and neither case reaches the other: with the resolution half deleted
-    # the mutant above is still killed, so a rule narrowed to the count word would
-    # pass its own selftest. The raising item is respelled to one the plan does not
-    # carry, which is what a split or a strike leaves behind, and it fires both
-    # readings at once, the item resolving against nothing and its note's one counted
-    # finding losing the entry that indexed it.
     ("K-82", "a register entry raised at an item the plan does not carry",
      _literal(FINDINGS, "· Raised: I11", "· Raised: I12")),
 
-    # The plan's side of the move K-82 holds from the log's: a landed item keeps one
-    # summary line and its link, so a line of the note left standing under it is the
-    # defect. Two cases, because the shape and the link fail apart: the first nests a
-    # note line under the summary, and the second points a summary at another item's
-    # entry, which K-12 still resolves and only this rule reads.
     ("K-113", "a landed item keeping a note line under its summary",
      _literal(PLAN, "is M0.8c's to close. ([note](docs/implementation/completion-log.md#s1-discharge-the-owed-"
                     "register-acts))\n",
@@ -2015,41 +1471,16 @@ CASES: list[Case] = [
                     "hold-it-by-rule))",
               "([note](docs/implementation/completion-log.md#s1-discharge-the-owed-register-acts))")),
 
-    # The elision table is made to claim a kind the packet meets, which fires three of
-    # the rule's readings at once: the moved kind is now in both §9 tables, the kind it
-    # displaced is in neither, and the elision table no longer names the set the packet
-    # view actually drops. The anchor carries the whole row rather than its first cell,
-    # and that is the case rather than a style: §4's schema table writes the same first
-    # cell, it comes first in the document, and `replace_once` takes the first
-    # occurrence, so a short anchor would seed the schema instead of the elision table.
     ("K-85", "an elision table naming a record kind the meeting table also carries",
      _literal(CORPUS_DOC,
               "| `T` | `rvfi_trap` is a boolean where the record carries the cause |",
               "| `X` | `rvfi_trap` is a boolean where the record carries the cause |")),
 
-    # One rule gets one case, and this rule gets two, because the split is written on
-    # both sides and the case above reaches only the document's: with the code half
-    # deleted that mutant is still killed, so a rule narrowed to holding the two tables
-    # against each other would pass its own selftest while the projection an executor is
-    # compared through stopped emitting a record §9.2 goes on describing one for one.
-    # The seed is a copy-paste slip in the projection's own pair of effect kinds, which
-    # leaves the module importable and every other rule silent, so the case passes on
-    # K-85's own report.
     ("K-85", "a projection that has stopped emitting a record the meeting table claims",
      _literal("tools/vos/rvfi.py",
               '("W", packet.mem_wmask, packet.mem_wdata)',
               '("R", packet.mem_wmask, packet.mem_wdata)')),
 
-    # The whole of the defect and nothing else: one token of a generated artifact
-    # edited by hand. The anchor is the bundle's own `embedding` field rather than
-    # anything it describes, and that is the case rather than tidiness. Every other
-    # token in the file is a fact some rule downstream reads, so seeding one would fire
-    # that rule as well and leave this case passing on a mutant about the capability
-    # format; this field is read by the bundle's own reader and by nothing else, so what
-    # is being asked is exactly *does anything notice a generated file that was
-    # edited*. It is also the seed the repair lane takes: the working tree moves off the
-    # staged blob while the staged blob is still the model's, which is the one state in
-    # which --fix may write the bytes back.
     ("K-88", "a generated artifact edited by hand, one token off the bytes its "
              "generator wrote",
      _literal(BUNDLE, '"embedding":"plain"', '"embedding":"plane"')),
@@ -2059,47 +1490,14 @@ CASES: list[Case] = [
               "function clause currentlyEnabled(Ext_Zbc) = hartSupports(Ext_Zbc)",
               "function clause currentlyEnabled(Ext_Zbc) = hartSupports(Ext_Zbkc)")),
 
-    # A second case for K-88, because the rule's two lanes are two readings and a case
-    # seeded at one proves nothing about the other. The case above moves a *guest* row's
-    # artifact off the blob the index holds, which is the whole of what a lane with no
-    # emitter can decide. This one moves a *host* row's artifact off what its generator
-    # would write now, which is the stronger claim and the one the host lane exists to
-    # make: the generator runs at the gate, so the comparison is against the bytes
-    # rather than against the last commit of them.
-    #
-    # The constructor name is the anchor for the reason `embedding` is the other one:
-    # `dialect.py` reads a row's word, its mask and its slots and never its constructor,
-    # so seeding it changes what this rule decides and what no other rule reads.
     ("K-88", "a host-lane generated artifact one token off what its generator writes",
      _literal(DIALECT_TABLE, '"ctor": "RTYPE"', '"ctor": "RTYPEX"')),
 
-    # A third case for K-88, and what it adds is not a reading: it is that the *second*
-    # host row is live. The reading is the one above, so by the rule this file otherwise
-    # keeps, one case per reading, this case would not be written. It is written because
-    # what makes a row decide anything is the table rather than the code over it, and a
-    # row nothing ever seeds is a row that can be misconfigured and still report green
-    # at every run, which is the shape this repository names a check that decides
-    # nothing. Registry coverage cannot see it either, being by rule.
-    #
-    # The seed is the ROM region's `executable` bit, hand-written into the generated map
-    # against the composition that owns it: a map granting a permission its composition
-    # withholds is the defect a generated artifact held against its last commit rather
-    # than against its generator would carry, and this row's whole point is that it is
-    # held against the generator. The anchor is the whole PMA quadruple because
-    # `executable: 1'b0` is written at two regions and the leading one is the ROM's only
-    # by the composition's order.
     ("K-88", "a second host row's generated artifact granting a permission its "
              "composition withholds",
      _literal(SOC_MAP,
               "io: 1'b1, executable: 1'b0, readable: 1'b1, writable: 1'b0",
               "io: 1'b1, executable: 1'b1, readable: 1'b1, writable: 1'b0")),
-    # A fourth case for K-88, for the third host row and for the reason the third case
-    # states: a row nothing seeds is a row that can be misconfigured and report green.
-    # The seed is the second class's fetch constant in the memory plan's export, moved
-    # one unit off what the proof file declares, which is the plan's own over-margin
-    # variant written into the generated artifact by hand: a placement search reading
-    # it would price every second-class region one unit dearer than the proof gate
-    # admits, and every other rule reads nothing out of this file.
     ("K-88", "a third host row's generated artifact declaring a fetch constant its "
              "proof file does not",
      _literal(MEMORY_PLAN, '"second_fetch": 15', '"second_fetch": 16')),
@@ -2151,8 +1549,6 @@ CASES: list[Case] = [
     ("K-88", "a generated pool trace grants wider authority than its producer",
      _literal("proofs/ElasticPoolCampaign.v",
               "Grant 1 0 64 (chunk_cap 64 16)", "Grant 1 0 64 (chunk_cap 64 32)")),
-    # The staged signature streams' own bytes are untouched here: the source they were
-    # compiled from changes, which only the manifest's recorded source digests can see.
     ("K-88", "a signature adapter inverted after its staged streams were compiled",
      _literal("firmware/crypto/signature_target.c",
               "  return accepted ? 0 : 1;", "  return accepted ? 1 : 0;")),
@@ -2175,78 +1571,27 @@ CASES: list[Case] = [
     ("K-88", "the Fiat wrapper changed without regenerating its emission",
      _literal("tools/fiat_crypto_emit.py", "Inclusion wrapper added by VerifiedOS",
               "Inclusion wrapper revised by VerifiedOS")),
-    # The device-register package's guest row, seeded at its recorded owner commit with
-    # the first digit changed, so the index, the licence record and every restating
-    # sentence still agree. The row keeps the header out of K-81's window, so no other
-    # rule reads the stamp. Sandboxes share one index, so the seed also moves the working
-    # tree off the staged blob; the row's unit case isolates the gitlink comparison. The
-    # anchor is the line's own words, so a pin advance does not unseed it.
     ("K-88", "a device-register package recording an owner commit the Mocha gitlink "
              "does not carry",
      _first_match("rtl/vos_device_regs_pkg.sv",
                   r"^(// UART owner revision: upstream/mocha at )([0-9a-f])",
                   lambda m: m[1] + ("1" if m[2] != "1" else "2"))),
-    # The same row's block half, seeded at its owner rather than at the package: the
-    # contract's ACK offset moves and the package still agrees with its index and its
-    # gitlink, so only the host's rendering of the package from its block owners can
-    # see it.
     ("K-88", "a block-contract register offset moved without regenerating the "
              "device-register package",
      _literal("interfaces/block-device-contract.md", "| `0x38` | `ACK` |",
               "| `0x40` | `ACK` |")),
-    # The same row's bytes outside every constant, seeded at the generator: its header
-    # comment changes while the package still agrees with its index, its gitlink and its
-    # block owners, so only the host's rendering of the whole package can see it.
     ("K-88", "the device-register generator's header changed without regenerating "
              "the package",
      _literal("tools/vos/device_regs.py",
               "from the owners below; rtl devicescheck checks it.",
               "from the owners below.")),
-    # The *emitter* is edited rather than a configuration, because that is the direction
-    # this defect arrives from: a window is declared once and a node for it is written
-    # once, and what goes wrong afterwards is the node, either never written or written
-    # about the wrong window. Both of the live findings this rule opened on were of the
-    # first kind, an aperture with a validator clause and no node at all; the seed is
-    # the second kind because it is the one a reader cannot see, the tree still carrying
-    # a node per device and one of them naming a neighbour's address.
-    #
-    # Seeding a *configuration* instead would put the defect in the file K-65 already
-    # reads, so the case would pass on somebody else's report; seeding the validator
-    # would seed the half the composition-time run already refuses out loud.
     ("K-94", "a devicetree node stating a neighbouring window instead of its own",
      _literal("model/model/postlude/device_tree.sail",
               "generate_dts_reg(plat_uart_base, plat_uart_size)",
               "generate_dts_reg(plat_blkdev_base, plat_uart_size)")),
-    # The other generated artifact, and the seed is in its *boilerplate* rather than in
-    # a declared constant or a register token. Every constant the file carries is a
-    # value the declaration fixes and every enumeration member is the register's, so an
-    # anchor on either would rot the day a composition is re-priced or an entry gains a
-    # member, which is work that never touched this rule. The width rule is the one
-    # block the emitter writes identically whatever its owners say, it is what IDL-023
-    # fixes, and narrowing it is the silent defect: a generated file whose one
-    # admissible length form has quietly become two still compiles, still passes the
-    # proof gate, and is no longer what its generator writes.
-    # The *Gallina* side is seeded rather than the Sail one, because that is the side
-    # this repository authored second and the side whose gate says least about the pair:
-    # a byte moved here still compiles, still proves its own `Example` against itself,
-    # and still passes every proof gate, where the Sail literal at least sits beside a
-    # harness a model build runs. One byte of one lane, so what the case exercises is the
-    # lane-by-lane comparison rather than a length or a parse.
     ("K-91", "a known answer one byte off in the Gallina transcription of FIPS 202",
      _literal(KECCAK_GALLINA, "0x17 :: 0x86 :: 0xA7 :: 0xB9", "0x17 :: 0x86 :: 0xA7 :: 0xBA")),
 
-    # Two cases rather than one, because the rule reads two shapes on each side and
-    # neither defect reaches the other's. The S-box seed moves a byte of a Gallina
-    # `Example` against a Sail vector literal, which is the shape K-91 already has one
-    # object over; the sigma seed moves a member of a Gallina `Definition`'s list against
-    # four model functions read in that list's own grouping, taking only the amounts the
-    # model spells as rotations rather than as shifts.
-    # Both seeds are on the *Gallina* side, and neither is a defect nothing else could
-    # see: each breaks the `Example` that states it and the Coq gate would refuse it. What
-    # makes them cases for this rule is that no gate which would refuse them runs on the
-    # host lane, which is the lane this rule is for and the only one CI has. Seeding the
-    # model's side instead would put the write under the `-text` tree, where the whole
-    # point of a one-token mutation is lost to a line-ending sweep.
     ("K-107", "a published S-box byte off by one in the Gallina derivation of FIPS 197",
      _literal(AESGCM_GALLINA, "0x63 :: 0x7C :: 0x77 :: 0x7B", "0x63 :: 0x7C :: 0x77 :: 0x7A")),
 
@@ -2258,90 +1603,33 @@ CASES: list[Case] = [
               "if Nat.leb cases 256 then 1 else if Nat.leb cases 65536 then 2 else 4.",
               "if Nat.leb cases 255 then 1 else if Nat.leb cases 65536 then 2 else 4.")),
 
-    # The same file from the other side, and the seed is in the *profile* rather than in
-    # the artifact, because that is the whole of what separates this rule from the one
-    # above: K-89 re-emits and compares bytes, so it is satisfied by an artifact that
-    # agrees with the declaration and the register whatever §4.2 has come to say. One
-    # member leaves the row that places it, the encoder goes on spending a declared width
-    # on it, and the row still renders, keeps its width, cites the same requirement and
-    # moves no count, so no table, link, citation or count rule reads the edit.
     ("K-99", "a wire-format row that stopped carrying a member the emitter encodes",
      _literal(IDL_PROFILE,
               "plus offset, length, direction, and declared content type",
               "plus offset, length, and declared content type")),
 
-    # One rule gets one case and this one gets two, because the reading above is a
-    # membership and the reading here is the recomputation: with the ladder half deleted
-    # the case above is still killed, so a rule narrowed to the pairings would pass its
-    # own selftest while the width rule the emitter writes as a literal drifted from the
-    # entry that fixes it. The seed moves the *criterion's* restatement of the ceiling and
-    # leaves the two statements of the rungs standing, which is the drift that reads as
-    # an editorial change: the entry goes on stating one ladder, and it now names a top
-    # rung its own rungs do not reach.
     ("K-99", "a width ladder whose stated ceiling is not the top rung it states",
      _literal(IDL_PROFILE, "its four-byte ceiling", "its two-byte ceiling")),
 
-    # The lane's fact table names a function of `env.py` as what wants ccache, and the
-    # seed renames that function where it is defined. That is the direction the drift
-    # arrives from and the reason it is silent: nobody edits a table of facts to follow a
-    # refactor of the module it points at, the rename is local, every caller moves with
-    # it, both type checkers stay clean, and the row goes on naming a consumer this tree
-    # no longer has. The provisioner is not seeded, being imported here rather than read
-    # off the sandbox, which is what makes the artifact side the one a case can move.
     ("K-100", "a lane fact naming a consumer the module it points at has renamed",
      _k100),
 
-    # The *template* is seeded rather than a shipped composition, and it is the only seed
-    # that isolates this reading. `memory.regions` is in neither non-primary file's
-    # declared divergence set and a list is compared whole, so an `executable` flipped in
-    # any of the three is K-65's finding as well; flipped in the primary it is K-88's too,
-    # the SoC map package being generated from that file's regions. The template is read
-    # by this rule and, for another key entirely, by K-57, so a device region made
-    # executable there is a defect exactly one rule reads.
-    #
-    # It is also the direction the defect arrives from, which is why the rule takes the
-    # template in at all: it is what every generated test-matrix configuration is
-    # configured from and the copy no `*.json` reading and no dialect loader reaches, so
-    # an attribute changed here reaches a built emulator through a file nothing else
-    # opens. The first `"executable": false` in it is the ROM region's, which is typed
-    # IOMemory, so the literal is unambiguous and the substitution declares a device
-    # endpoint fetchable.
     ("K-101", "a device region the configuration template declares executable",
      _literal("model/config/config.json.in",
               '"executable": false', '"executable": true')),
 
-    # A transposition rather than an invented id, because that is the shape the defect
-    # actually takes: a header sentence is written from memory about an entry that turns
-    # out to be numbered something else, and the result renders as a citation, compiles,
-    # and passes the assumption gate. `proofs/` carries no Markdown, so no other rule
-    # reads the edit at all: K-11 resolves ids in documents and K-63 reads `model/` by
-    # kind, which is what makes this one rule's finding and nobody else's. The seed is in
-    # a header comment because that is where the artifacts argue from the register, and
-    # it moves no count, no link and no anchor.
     ("K-103", "a proof artifact citing a requirement id with two digits transposed",
      _k103),
 
-    # The adapter's generated exception code is edited without moving its Sail owner.
-    # This reaches generation rather than the capability-format rule's width surface.
     ("K-104", "a generated capability exception code changed in the RTL adapter",
      _literal("rtl/vos_cva6_cheri_pkg.sv", "CAP_EXCEPTION = 28;", "CAP_EXCEPTION = 29;")),
 
-    # An extra BEGIN inside the header makes the exclusion unbalanced. Read the marker
-    # from its owner so a respelling cannot turn the case into an unrelated parse fault.
     ("K-108", "a derived region opened in a proof artifact and never closed",
      _literal(SEAM_WITNESSES, "   SeamWitnesses.v\n",
               f"   SeamWitnesses.v\n\n   {DERIVED_BEGIN}\n")),
     ("K-109", "a generated proof header changing its owner's fingerprint", _k109),
     ("K-110", "the shared agent instructions deleted from the tracked source",
      lambda box: box.delete("AGENTS.md")),
-    # A validation record resting a result on an interim's verdict, which is the consumer
-    # R-05-022 enters when it is admitted and a hand-kept list forgets. The campaign is
-    # an anchor the rule already declares no premise, for its two lines saying no libcrux
-    # or HACL* body is copied and the comparison runs against OpenSSL, and the sentence
-    # lands on a line no declared fragment names: a rule that classified by anchor
-    # rather than by line would pass it. The
-    # names are escaped as the prose writes them, so no Markdown or link rule reads the
-    # edit and the verdict is K-114's alone.
     ("K-114", "a declared proof campaign resting a result on libcrux's F* proof",
      _literal("proofs/campaigns/mldsa-reference.md",
               "carries no authorization for deterministic production signing.",
@@ -2353,10 +1641,6 @@ CASES: list[Case] = [
                   lambda m: f"{m[0]}\nThe implementation's acceptance relies on HACL*'s proof.")),
     ("K-114", "a retained compressed record resting a result on an unlisted interim",
      _k114_compressed_premise),
-    # The rewrite a modernizing lane makes: a two-branch match in a proof source turned
-    # into Rocq 9.3's `if … is`, which the gate accepts and the Wasm oracle's Rocq 9.1.1
-    # cannot parse. EndpointIPC.v is the source that stays compiled at an older release
-    # whichever other instruments move, so the case outlives them.
     ("K-117", "a proof source the Wasm oracle compiles rewritten into Rocq 9.3's "
               "`if … is`",
      _literal("proofs/EndpointIPC.v", "  match l with nil => d | cons x _ => x end.",
@@ -2365,64 +1649,35 @@ CASES: list[Case] = [
               "instrument table", _k117_switch),
     ("K-117", "compare_component.py's release constant renamed out from under the "
               "instrument table", _k117_release),
-    # An instrument moved to an older switch while its row still states the gate's: the
-    # kernel's vectors asked of the CertiRocq switch at Rocq 9.1.1. Nothing its harness
-    # compiles writes a 9.3 form today, so only the reading of what kernel.py asks for
-    # can see that the set no longer follows the instrument.
     ("K-117", "the kernel's vector harness moved to the CertiRocq switch under a row "
               "stating the gate's",
      _literal("tools/vos/cli/kernel.py", "found = gallina.prover(gallina.VECTOR_SWITCH)",
               "found = gallina.prover(gallina.ORACLE_SWITCH)")),
-    # A discharge annotation above a `Definition`, which is the one of this rule's four
-    # refusals that renders perfectly and reads as correct: the annotation parses, its id
-    # is live, and what it claims is that a *term* answers an obligation. The other three
-    # read as typos to anyone who looks at the line, and this one does not, so it is the
-    # case worth having.
-    #
-    # The id it claims is one the file already cites, and that is what isolates the rule.
-    # An annotation is ordinary text in the artifact, so its ids reach K-103's citation
-    # scan and the ledger's cited set alike: an id the file does not already carry would
-    # add a ledger row and fire K-106 as well, and a dead one would fire K-103. Reusing a
-    # live id the header already argues from moves exactly one rule's verdict.
     ("K-105", "a discharge annotation claiming an entry above a term rather than a "
               "statement",
      _literal(SEAM_WITNESSES, "Definition refutes_seam_ni_timing",
               "(*| discharges: R-05-160 |*)\nDefinition refutes_seam_ni_timing")),
 
-    # The generated ledger promoted by hand: one row's claim column moved from `cited` to
-    # `claimed` with no annotation anywhere to back it. That is the direction this defect
-    # arrives from, a burn-down being a table somebody wants to tick off, and the claim
-    # column is the only cell whose edit still renders as a true-looking row, the other
-    # three being join keys. Nothing else in the tool reads this file, so the verdict is
-    # one rule's. It is also the repair lane's seed for the same rule.
     ("K-106", "a generated ledger row hand-promoted from cited to claimed",
      _literal(PROOF_LEDGER, "| n/a | cited |", "| n/a | claimed |")),
 ]
 
-# A rule with no case is not a defect, but it must be a decision.
+# Rules explicitly exempted from having a case in `CASES`.
 UNSEEDABLE: dict[str, str] = {}
 
 
 def _case_mutation(rule: str) -> Mutation:
-    """A rule's own case mutant, reused as its repair seed."""
+    """Return the first `CASES` mutation for `rule`."""
     for ident, _, apply in CASES:
         if ident == rule:
             return apply
     raise SystemExit(f"no case to reuse as {rule}'s repair seed")
 
 
-# Every rule with a --fix branch: the substring its rewrite's `fixed:` line must carry,
-# and the defect the repair lane seeds. The repair path is never exercised by a
-# green tree, so a branch missing here ships untested unless something breaks it on
-# purpose. Seven seeds are the rules' own case mutants, each an arithmetic figure whose
-# repair writes the pristine bytes back. Two rules cannot ride their own case. K-54's
-# moves the granule owner, and repairing from a moved owner rewrites every derived
-# figure to the new granule and dirties co-read pairs no --fix may bless, so the
-# after-check could never pass. K-57's two both seed a site that is *not* repaired, one
-# under a `-text` tree and one the register's own normative statement, so neither would
-# reach a `fixed:` line. Each takes a seed here instead, moving one derived figure in
-# the exact document bytes a case would anchor on, and the repair restores the tree it
-# found.
+# Every rule with a `--fix` branch, mapped to `(expected_fixed_line_substring, seed_mutation)`.
+# Rules whose primary `CASES` entry mutates an upstream owner (such as K-54's granule
+# owner or K-57's register bound) use a derived-artifact seed here so `--fix` restores
+# the pristine tree in one pass without dirtying co-read pairs.
 REPAIRABLE: dict[str, tuple[str, Mutation]] = {
     "K-24": ("fc-conferrals", _case_mutation("K-24")),
     "K-28": (f"Coverage {SEC}", _case_mutation("K-28")),
@@ -2438,27 +1693,9 @@ REPAIRABLE: dict[str, tuple[str, Mutation]] = {
         GEOMETRY, "**the block is 32, 64, 128, 256, or 512 bytes**",
         "**the block is 32, 64, 128, or 256 bytes**")),
     "K-69": ("kernel-line-budget", _case_mutation("K-69")),
-    # A standing rather than a figure, and it rides its own case: the repair writes the
-    # inventory's class back over the cell a hand promoted.
     "K-95": ("standing", _case_mutation("K-95")),
-    # A third that cannot ride its own case, and for the plainest reason: neither of
-    # K-82's cases is an arithmetic figure. One moves a count word in the plan and the
-    # other an item id in the register, and repairing either would mean writing a
-    # finding or a note, so neither reaches a `fixed:` line. The seed instead moves the
-    # one figure the rule does rewrite, the register's own size, in the sentence that
-    # states it beside the item count, and it computes that figure rather than pinning
-    # it: the number moves whenever an item lands a finding, so a literal would go stale
-    # on work that never touched the rule.
     "K-82": ("findings the plan records", _k82_figure),
-    # The one repair here that is not a figure at all. K-88's own case is already the
-    # state its repair is for, a working tree one token off a staged blob that is still
-    # the model's, so it rides it: what is proved is that --fix writes a whole generated
-    # file back from the index rather than that it recomputes an arithmetic.
     "K-88": ("restored from the index", _case_mutation("K-88")),
-    # The second that is not a figure, and it rides its own case for the reason K-88's
-    # does: a hand-promoted ledger row is already the state its repair is for, and what
-    # the lane proves is that --fix writes the whole artifact from its generator rather
-    # than that it recomputes an arithmetic in place.
     "K-106": ("ledger row", _case_mutation("K-106")),
     "K-109": ("generated requirement header", _case_mutation("K-109")),
     "K-104": ("generated capability exceptions", _case_mutation("K-104")),
@@ -2466,7 +1703,7 @@ REPAIRABLE: dict[str, tuple[str, Mutation]] = {
 
 
 # =====================================================================================
-# run
+# Execution
 # =====================================================================================
 
 
@@ -2488,9 +1725,6 @@ def _select_cases(rule: str | None, shard: Shard | None,
 
 def _needs_repair(selected: list[Case], shard: Shard | None,
                   repair_only: bool = False) -> bool:
-    # The repair exercises all repairable rules together, so no partition of the cases
-    # runs it, whichever of them it holds: --repair-only runs it instead, and the
-    # shards of one count and that run together are the unsharded run.
     if repair_only:
         return True
     if shard is not None:
@@ -2508,11 +1742,6 @@ def main(argv: list[str] | None = None) -> int:
                                 "which --repair-only runs")
     selection.add_argument("--repair-only", action="store_true",
                            help="run the repair path beside the unmutated baseline, and no case")
-    # Eight, measured rather than assumed: a worker is a whole checker subprocess with
-    # a git child under it, so extra workers past eight pay more in contention than
-    # their extra sandboxes save even below the core count. Over full passes on a
-    # twelve-core machine, eight workers ran 24.9 s where twelve ran 26.7 s and
-    # sixteen 29.7 s.
     parser.add_argument("--jobs", type=int, default=min(8, os.process_cpu_count() or 2),
                         help="how many sandboxes run cases at once")
     parser.add_argument("--sandbox", type=Path, default=None,
@@ -2530,33 +1759,16 @@ def main(argv: list[str] | None = None) -> int:
               "every shard and --repair-only must pass")
     if args.repair_only:
         print(f"repair path only: 0 of {len(CASES)} cases")
-    # Phase and case seconds for the gate's summary, each with its start from here, never
-    # printed; claimed before any child starts, so no checker run inherits the file.
     record = timings.claim()
     clock = timings.Clock(snapshot=record)
 
-    # A private directory per run rather than one path every run reuses. What survives
-    # between runs is the template cache, carried file by file under its own rules, so
-    # a shared estate would buy nothing that the cache does not already keep and would
-    # cost correctness: two runs at once rebuild each other's tree underneath the cases
-    # reading it, and neither verdict is about its mutant afterwards. The failure is also
-    # not self-clearing on Windows, where the losing run's checker subprocesses outlive
-    # their parent holding `template/.git` open, so every later run fails standing up
-    # rather than in a case. Passing --sandbox names a directory instead, which is how a
-    # kept run gets a path chosen in advance.
     sandbox = args.sandbox or Path(tempfile.mkdtemp(prefix="verifiedos-selftest-"))
 
     repo = corpus_mod.find_root()
     case_jobs = min(max(1, args.jobs), len(selected))
     jobs = max(1, case_jobs)
-    # Placement overlaps file writes rather than checker runs, so a run selecting no
-    # case, the repair path's alone, still places its template and repair sandbox
-    # across --jobs workers.
     width = jobs if selected else max(1, args.jobs)
 
-    # One sandbox per case worker and, only where it runs, a private repair sandbox.
-    # The completed template is the unmutated baseline, so no case sandbox must finish
-    # standing up before that checker starts. A repair-only run needs no case sandbox.
     repairable = _needs_repair(selected, args.shard, args.repair_only)
     made: list[Sandbox] = []
     print(f"building {case_jobs + int(repairable)} sandbox(es) at {sandbox}")
@@ -2570,9 +1782,6 @@ def main(argv: list[str] | None = None) -> int:
     try:
         with clock.timing("phase", "checked bytecode"):
             _warm_bytecode(template, width)
-        # The baseline only reads the template. Workers unlink before every mutation,
-        # and the repair worker holds private copies, so setup can overlap that read
-        # without changing its inputs. Only those worker sandboxes enter the queue.
         baseline = Sandbox(template, template)
         boxes: Queue[Sandbox | BaseException] = Queue()
         with ThreadPoolExecutor(max_workers=jobs) as setup:
@@ -2583,8 +1792,6 @@ def main(argv: list[str] | None = None) -> int:
                                        jobs=width if not selected else 1)
                 except BaseException as err:
                     if not fix_ok:
-                        # No initial worker is guaranteed to exist now that setup
-                        # overlaps the baseline. Wake waiting cases on setup failure.
                         boxes.put(err)
                     raise
                 made.append(box)
@@ -2600,15 +1807,13 @@ def main(argv: list[str] | None = None) -> int:
             code = _run(selected, baseline, boxes, repair_ready, jobs, repairable, clock,
                         sharded=args.shard is not None, repair_only=args.repair_only)
             for future in standing:
-                future.result()   # a sandbox that failed to stand up is loud, not lost
+                future.result()
         return code
     finally:
         started = time.perf_counter()
         if args.keep:
             print(f"sandboxes kept at {sandbox}")
         else:
-            # the template leaves for the cache before the estate is deleted, and the
-            # estate is deleted the way it was built, the parent last
             _publish(template, _cache_root(repo))
             _across(remove_tree, [box.path for box in made], jobs + 1)
             remove_tree(sandbox)
@@ -2617,18 +1822,7 @@ def main(argv: list[str] | None = None) -> int:
 
 
 def _verdict(case: Case, box: Sandbox) -> Verdict:
-    """One case, run against a sandbox of its own: the whole of this oracle.
-
-    A case passes when its own rule is among those the checker reported, so the kill
-    states which rules fired rather than only that one did: a mutant that trips its
-    neighbours as well is expected, and a reader who cannot see which ones cannot tell
-    that from a mutant that tripped only a neighbour.
-
-    The run stops after the group that decides the case's rule. A group reads only
-    what earlier groups computed, so that verdict is the whole run's, and a kill names
-    the rules that fired up to it. A survivor is run again whole, so its report names
-    every rule that fired and every exit a full run gives; a hang is not run twice.
-    """
+    """Apply `case` to `box`, run `box.check`, and return its `Verdict`."""
     rule, what, apply = case
     seeded = Seeding(rule, what)
     if not apply(box):
@@ -2639,8 +1833,6 @@ def _verdict(case: Case, box: Sandbox) -> Verdict:
         code, _, failed = box.check()
     if rule in failed:
         return Verdict(seeded, KILLED, f"the checker reported {', '.join(failed)}")
-    # a run that reported nothing and a run that died before reporting look the same
-    # from the rule's side and are repaired differently, so the exit code is stated
     how = (f"other rules fired: {', '.join(failed)}" if failed
            else "the run was green" if code == 0
            else f"the run exited {code} with no finding, so the checker did not "
@@ -2659,7 +1851,7 @@ def _run(selected: list[Case], baseline: Sandbox, boxes: Queue[Sandbox | BaseExc
     def one(case: Case) -> Verdict:
         box = boxes.get()
         if isinstance(box, BaseException):
-            boxes.put(box)   # every other waiting case must wake and fail too
+            boxes.put(box)
             raise box
         with measured.timing("case", f"{case[0]}: {case[1]}"):
             try:
@@ -2674,22 +1866,11 @@ def _run(selected: list[Case], baseline: Sandbox, boxes: Queue[Sandbox | BaseExc
         with measured.timing("phase", "repair path"):
             return _repair_path(repair_ready)
 
-    # The repair path is five more whole runs of the checker in sequence, the longest
-    # chain a run holds, and depends on nothing the baseline or a case does, so it
-    # starts first, beside both, on the sandbox held back for it, and reports where it
-    # has always reported: after the cases. Under --rule it runs only when a selected
-    # rule carries a --fix branch, because for any other rule it is most of the
-    # iteration path's cost and proves nothing about the rule being iterated on. No
-    # shard runs it; --repair-only runs it beside the baseline alone.
     if repairable is None:
         repairable = repair_only or any(rule in REPAIRABLE for rule, _, _ in selected)
     with ThreadPoolExecutor(max_workers=jobs + 1) as pool:
         repairing = pool.submit(timed_repair) if repairable else None
 
-        # Nothing below means anything against a sandbox that was already failing: a
-        # mutant would be reported killed by whatever was broken before it was
-        # introduced. That verdict discards the repair path's report, and leaving the
-        # pool still waits for it, so no checker is running when the estate is removed.
         with measured.timing("phase", "baseline"):
             code, out, _ = baseline.check()
         if code != 0:
@@ -2713,13 +1894,6 @@ def _run(selected: list[Case], baseline: Sandbox, boxes: Queue[Sandbox | BaseExc
         if repairing is not None:
             repair, repair_out = repairing.result()
 
-    # The cases' whole report and their own exit code, on the shape every mutation loop
-    # here shares. Two things stay this tool's, because neither is about a mutant: the
-    # repair path, which decides about --fix, and the registry coverage, which decides
-    # about the rule registry and reads `CASES` rather than the run. Their findings are
-    # OR'd in below, which is what the hand-rolled tally did. --repair-only selects no
-    # case, so it has no population to report; any other run summarizes its cases, and
-    # summarize refuses an empty population as a vacuous pass.
     report: list[str] = []
     cases_code = 0 if repair_only else summarize(report, verdicts, RULES, "checker")
     print(f"--- the mutation cases ---\n  skipped: --repair-only selects none of "
@@ -2746,31 +1920,18 @@ def _run(selected: list[Case], baseline: Sandbox, boxes: Queue[Sandbox | BaseExc
     print(f"every one of {len(verdicts)} rule(s) killed its mutant, {held}, "
           "and the registry is covered.")
     if len(verdicts) < len(CASES):
-        # A narrowed run says what it did not decide, and it has to say it here. The
-        # coverage check above reads `CASES` rather than the run, so it reports the
-        # registry covered however few cases ran, and a green exit under --rule is a
-        # green exit about those cases alone.
         print(f"{len(CASES) - len(verdicts)} case(s) were not selected and decided "
               "nothing, so this run is about the selected case(s) alone.")
     return 0
 
 
 def _copied_bytes(box: Sandbox) -> dict[str, bytes]:
-    """Every real-copied file in the fix-safe sandbox, as its bytes.
-
-    The walk skips `model/`, the one tree `stand_up` links there rather than copies,
-    and any `.git/` directory; the sandbox's own `.git` is a pointer file, so its
-    bytes ride along, written once at standup and never by --fix. The rest is the
-    whole surface --fix can reach, so holding its bytes before and after a run turns
-    "rewrote nothing" from a report into a measurement.
-    """
+    """Return `{rel: bytes}` for every non-`model/`, non-`.git/` file in `box`."""
     held: dict[str, bytes] = {}
     for dirpath, dirnames, filenames in box.path.walk():
         if dirpath == box.path:
             dirnames[:] = [d for d in dirnames if d not in (".git", "model")]
         if "__pycache__" in dirnames:
-            # the interpreter's leavings from the checker runs themselves: ignored by
-            # git, written on import, and no part of the surface --fix can reach
             dirnames.remove("__pycache__")
         for name in filenames:
             held[str((dirpath / name).relative_to(box.path))] = (dirpath / name).read_bytes()
@@ -2778,19 +1939,19 @@ def _copied_bytes(box: Sandbox) -> dict[str, bytes]:
 
 
 def _bytes_moved(before: dict[str, bytes], after: dict[str, bytes]) -> list[str]:
-    """The files two snapshots disagree on, appearances and losses included."""
+    """Return sorted relative paths whose bytes differ between `before` and `after`."""
     differing = {rel for rel in before.keys() & after.keys() if before[rel] != after[rel]}
     return sorted((before.keys() ^ after.keys()) | differing)
 
 
 def _header_require(condition: bool, message: str) -> None:
-    """A failed corpus assertion is a selftest finding, including under python -O."""
+    """Raise `ValueError(message)` when `condition` is False."""
     if not condition:
         raise ValueError(message)
 
 
 def _header_context(root: Path, *, fix: bool = False, snapshot: Context | None = None) -> Context:
-    """Separate decisions over explicit unchanged owner bytes, never a path cache."""
+    """Construct a fresh `Context` for `root`, optionally sharing `snapshot`'s loaded corpus."""
     if snapshot is None:
         corpus = corpus_mod.load(root)
         reg, art = read_register(corpus), read_artifacts(corpus)
@@ -2814,8 +1975,6 @@ def _stale_header_manifest(text: str, rel: str) -> str:
 
 
 def _proof_header_repair(box: Sandbox) -> int:
-    # The index decides membership; fixture size and proof names follow the corpus.
-    # Private copies include the generated ring, which repair must leave untouched.
     root = box.path
     baseline = _header_context(root)
     source_corpus = baseline.corpus
@@ -2824,9 +1983,7 @@ def _proof_header_repair(box: Sandbox) -> int:
     _header_require(bool(authored), "an empty proof corpus cannot witness header preservation")
     original = {rel: (root / rel).read_bytes()
                 for rel in [REGISTER, *rels, memplan.ARTIFACT]}
-    # reset() can relink even a fix-safe lane into its template. Detach the whole
-    # subject before calling the repair planner, so an early-write defect cannot
-    # change the pristine corpus or another worker's inputs.
+    # Detach all subject files from template hardlinks before calling the repair planner.
     for rel, data in original.items():
         box.touched.add(rel)
         target = root / rel
@@ -2881,8 +2038,6 @@ def _proof_header_repair(box: Sandbox) -> int:
                             usedforsecurity=False).hexdigest()
     _header_require(exported["header"]["source_md5"] == source_md5,
                     "the dependent export does not bind the repaired source bytes")
-    # Neither check below publishes a write. Share the explicitly repaired snapshot
-    # while keeping their reports, shared analysis and pending repairs independent.
     repaired_snapshot = _header_context(root)
     for fix in (False, True):
         after = _header_context(root, fix=fix, snapshot=repaired_snapshot)
@@ -2914,25 +2069,12 @@ def _proof_header_repair_path(box: Sandbox) -> tuple[list[str], list[str]]:
 
 
 def _repair_path(ready: Future[Sandbox]) -> tuple[list[str], list[str]]:
-    """--fix rewrites the asserted counts, the Coverage rows, the compounded products,
-    the checklist's cells and totals, and the tag-plane figures from their artifacts,
-    and on a repository that already agrees it rewrites nothing, so those branches ship
-    untested unless something breaks them on purpose. One seed per rule in REPAIRABLE,
-    all of them at once, each repair asserted by its own `fixed:` line, and the lane is
-    bracketed by two fixpoint proofs: --fix on the pristine tree exits clean, rewrites
-    nothing, and moves no byte; and once the seeded defects are repaired and the
-    checker passes, a second --fix again rewrites nothing and moves no byte.
-
-    Its problems and its report are handed back rather than printed, because this runs
-    beside the cases and the report reads after them; its sandbox is the fix-safe one,
-    waited for here because it is the last to stand up.
-    """
+    """Verify `--fix` idempotence on the pristine tree, repair of all `REPAIRABLE` seeds,
+    and post-repair idempotence."""
     box = ready.result()
     box.reset()
     problems: list[str] = []
 
-    # the tracked tree is itself required to stand at the --fix fixpoint, so this run
-    # comes first, before any seed lands
     pristine = _copied_bytes(box)
     idle_code, idle_out, _ = box.check(fix=True)
     if idle_code != 0:
@@ -2968,8 +2110,6 @@ def _repair_path(ready: Future[Sandbox]) -> tuple[list[str], list[str]]:
         problems += [f"    {line}" for line in after_out
                      if line.lstrip().startswith("FAIL")]
 
-    # fix-after-fix is a no-op: the repaired tree stands at the same fixpoint the
-    # pristine one did
     repaired = _copied_bytes(box)
     again_code, again_out, _ = box.check(fix=True)
     if again_code != 0:
@@ -2996,9 +2136,7 @@ def _repair_path(ready: Future[Sandbox]) -> tuple[list[str], list[str]]:
 
 
 def _registry_coverage(box: Sandbox) -> list[str]:
-    """The registry is the enumeration of the tool's reach; this is the enumeration of
-    what is held about that reach, and the two are checked against each other for the
-    same reason the meta group checks the registry against the code."""
+    """Verify bidirectional coverage between the rule registry and `CASES` / `UNSEEDABLE`."""
     print("--- coverage of the registry ---")
     registered = sorted(checkregistry.read(box.path).identifiers)
     covered = {rule for rule, _, _ in CASES}

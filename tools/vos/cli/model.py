@@ -2,41 +2,30 @@
 # SPDX-License-Identifier: Apache-2.0
 """The curated Sail model's build loops, from the fastest to the slowest.
 
-Five loops, and each is the exit criterion for the one above it:
-
-    typecheck   ~30 s    Sail reports every dangling reference a cut leaves behind
-    bundle      ~25 s    the model's own machine-readable view of itself, regenerated
-    emit        ~2 min   the full C++ emission, then the config against its schema
-    build       ~15 min  emission, compile, and the bundled ctest suite
-    sweep       ~1 min   the profile configuration against the downloaded riscv-tests
-
-`typecheck` is the inner loop of a deletion batch; `build` stays the exit criterion for
-every batch, and `sweep` is the number each batch reports. `bundle` sits between the
-first two because it is a typecheck with a serializer on the end of it: it costs what a
-typecheck costs and it writes the one artifact the host lane reads the model through. `trace-diff` is the M0.6e
-differential rig, adjudicating the curated model against the M0.4 oracle, and `oracle`
-builds that reference. `devicetree` generates the attested tree, compiles it, and holds
-the blob against the region it is written into, which is three things the Sail emitter
-cannot decide about its own output. `reference` prints what the frozen golden model is,
-which is what a downstream artifact records when it says which model it was stated
-against. `rocq` emits the canonical machine term through the model's own Rocq target
-and writes its generation identity beside it. Two more commands answer questions about
-the configuration alone and need no build: `config-keys` and `validate-config`.
-
-These run inside WSL, where the Sail toolchain lives:
-
-    python tools/run.py model build --background
-    python tools/run.py model wait
-    python tools/run.py model sweep --xlen 64
-
-Everything about the machine and the build trees comes from vos/env.py, which also
-raises the OCaml stack the emission needs and puts the opam switch on PATH.
-
-One toolchain serves as many checkouts as there are git worktrees, and each gets a
-**lane**: its own build tree, its own log, and its own SMT cache, derived from the
-checkout rather than declared. `lane` says which one this is. A build holds its lane
-for as long as it runs, so a second one over a live one is refused rather than merged
-into it, and `wait` blocks on that lock rather than on a marker or on a sleep.
+Core build and validation commands (executed in the WSL guest toolchain via
+`[vos/env.py](../env.py)`, except host-safe commands listed in
+`[vos/commands.py](../commands.py)`):
+- `typecheck`: typecheck the Sail model without emitting code.
+- `bundle`: emit and canonicalize the machine-readable Sail bundle (`K-88`).
+- `emit`: emit C++ and validate the frozen profile against the generated schema.
+- `rocq`: emit the canonical Rocq machine term and its generation-identity receipt
+  (`[vos/rocqterm.py](../rocqterm.py)`).
+- `dependencies`: materialize verified dependency inputs before CMake configure.
+- `build`: configure, build, and run the bundled `ctest` suite (`--fast` omits `-g`;
+  `--background` detaches while retaining the lane lock).
+- `wait`: wait for the current lane's build lock and validate its receipt.
+- `lane`: print the checkout's isolated build lane paths and active lock holder.
+- `smt`: emit and discharge `$[property]` obligations in `cap_properties.sail`.
+- `oracle`: build the pinned M0.4 `sail-cheri-riscv` oracle and verify its RV64 suite.
+- `sweep`: classify `riscv-tests` ELFs (`PASS`, `REFUSE`, `HANG`) against the frozen profile.
+- `trace-diff`: adjudicate traces between the curated model and the M0.4 oracle.
+- `corpus`: assemble and run the differential corpus (`[docs/assurance/differential-corpus.md](../../../docs/assurance/differential-corpus.md)`).
+- `freeze-emit`: emit the link map and per-site table for the corpus (host-safe).
+- `asm`: assemble one dialect program into an ELF image (host-safe).
+- `devicetree`: generate, compile with `dtc`, and size-check the attested devicetree.
+- `reference`: report the frozen golden model's revision, compiler, property count, and corpus stats.
+- `config-keys`, `validate-config`: compare key sets or validate a config against a schema (host-safe).
+- `keepalive`: hold the WSL guest distribution up for a bounded duration.
 """
 
 import argparse
@@ -114,11 +103,9 @@ BUILD_ARTIFACTS = ("c_emulator/sail_riscv_sim", "test/unit_tests/unit_tests",
 
 
 def build_inputs(root: Path, *extra: str) -> dict[str, str]:
-    """The model's source manifest, with `extra` pathspecs bound beside it.
+    """Return the model's source manifest with `extra` pathspecs bound beside it.
 
-    Fail-closed on the gitlinks: each of `BUILD_GITLINKS` must be recorded as a pinned
-    commit, so a submodule removed, renamed or replaced by ordinary files is refused
-    rather than dropped from the identity.
+    Fails closed if any entry in `BUILD_GITLINKS` is missing or not a pinned gitlink.
     """
     implementation = python_dependencies.sources(root, BUILD_ENTRYPOINTS)
     manifest = receipts.inputs(root, *BUILD_INPUTS, *implementation, *extra)
@@ -151,7 +138,7 @@ def _observed_revision(e: env.Environment) -> str:
 
 
 def build_identity(e: env.Environment) -> dict[str, object]:
-    """The source closure, selected tools and build options of a model run."""
+    """Return the source closure, selected tools, and build options of a model run."""
     if e.model.resolve() != (e.root / "model").resolve():
         raise ValueError("recorded builds require this checkout's model; unset VOS_MODEL")
     compilers = [arg.split("=", 1)[1] for arg in e.compilers if "=" in arg]
@@ -165,14 +152,7 @@ def build_identity(e: env.Environment) -> dict[str, object]:
 
 
 def build_artifacts(directory: Path, model_root: Path) -> dict[str, str]:
-    """Build products and the exact downloaded ELF inputs the profile sweep consumes.
-
-    Each input is recorded, under the name `receipts.snapshot` gives the products, with
-    the SHA-256 its suite's verification read through a descriptor that is a regular
-    file, and is not read again: an input replaced or added once the suite verified
-    changes nothing recorded here, and the next verification, `verified_build`'s among
-    them, refuses the suite.
-    """
+    """Return digests of `BUILD_ARTIFACTS` and the verified downloaded ELF suite inputs."""
     inputs = model_corpus.sweep_corpus(directory, model_root)
     recorded = receipts.snapshot(directory, [directory / rel for rel in BUILD_ARTIFACTS])
     base = directory.resolve()
@@ -207,53 +187,34 @@ def verified_build(e: env.Environment, *, fast: bool = False) -> dict[str, objec
 
 ORACLE_TARGET = "c_emulator/cheri_riscv_sim_RV64"
 
-# The oracle's embedded `sail-riscv`, a submodule of the pinned tree rather than of this
-# repository, and the one command that checks out both at their recorded commits.
+# The oracle's embedded `sail-riscv` submodule and initialization command.
 ORACLE_NESTED = "sail-riscv"
 ORACLE_INIT = f"git submodule update --init --recursive {ORACLE_SRC}"
 
-# The source stamp records both pinned commits and a claim of byte-for-byte blob
-# verification. Reuse requires matching commits and the `bytes` claim.
+# Source stamp recording both pinned commits and byte-for-byte blob verification.
 ORACLE_STAMP = ".verifiedos-oracle-source"
 ORACLE_STAMP_CLAIM = "bytes"
 
-# A passing oracle run records its source stamp, simulator SHA-256 and suite tally
-# beside the tree. `trace-diff` checks this receipt before using the simulator.
-# `oracle` removes it when acquiring the lock so a failed rerun leaves no success receipt.
+# Receipt written beside the oracle tree after its bundled RV64 suite passes.
 ORACLE_RECEIPT_SUFFIX = ".receipt.json"
 
 
 def oracle_receipt(tree: Path) -> Path:
-    """Where the receipt of `tree`'s latest passing suite lives: beside the tree, as its
-    lock is."""
+    """Return the receipt path beside `tree` for its latest passing suite run."""
     return tree.with_name(tree.name + ORACLE_RECEIPT_SUFFIX)
 
 
 # The oracle's old-style C declarations require pre-C23 empty-parameter semantics.
-# Pass this through C_WARNINGS: the recipe hardcodes gcc, ignores CC, and appends its
-# own C_FLAGS separately. The curated model emits C++ and needs no such override.
+# Passed via `C_WARNINGS` because the upstream Makefile hardcodes `gcc` and `C_FLAGS`.
 ORACLE_CSTD = "-std=gnu17"
 
 
 def configure_command(e: env.Environment, build_dir: Path,
                       extra: list[str] | None = None) -> list[str]:
-    """The one cmake configure line. It was written out in two loops, which is one fact
-    in two places and a pair that can silently stop agreeing.
+    """Build the CMake configure argv for `build_dir`.
 
-    The git environment rides along for a lane whose `.git` names its administrative
-    directory in the host's spelling, because the `git describe` cmake runs at configure
-    is what stamps the emulator with the model revision every downstream artifact
-    records itself against. Both halves of it ride, the directory and the work tree, and
-    the second is what makes the `-dirty` suffix a reading of the lane rather than a
-    constant: see `env.git_env`. It is scoped to this one child and no further.
-    Passing the declared test release replaces an older CMake cache entry; direct
-    CMake callers can still override the default in the model's declaration.
-
-    The Sail binary is passed the same way, as this environment's `sail`. The model's
-    `find_program` caches the absolute path it first found, and a Sail switch carries
-    its version in its name, so without it a tree configured before a lock change goes
-    on emitting with the earlier compiler while the build log and `build_identity`
-    read the one on `PATH`.
+    Explicitly passes `TEST_DOWNLOAD_VERSION` and `SAIL_BIN` so CMake does not retain
+    cached paths from an earlier release or opam switch.
     """
     test_version = model_corpus.test_corpus_version(e.model)
     sail = shutil.which("sail")
@@ -315,16 +276,13 @@ def cmd_simulator(e: env.Environment, args: argparse.Namespace) -> int:
 
 
 def _require(binary: str, how: str) -> None:
-    """Refuse in one line naming the absent binary rather than letting the first
-    subprocess that asks for it raise a FileNotFoundError traceback."""
+    """Exit with an installation hint if `binary` is not on `PATH`."""
     if shutil.which(binary) is None:
         raise SystemExit(f"no `{binary}` on PATH; {how}")
 
 
 def _missing_simulator(e: env.Environment) -> str | None:
-    """The refusal every loop downstream of a build shares: each reads the simulator
-    back out of this lane's build tree, and an absent one means nothing has built
-    here yet."""
+    """Return an error message if the lane's simulator binary has not been built."""
     if e.simulator.exists():
         return None
     return f"no simulator at {e.simulator}; run `run.py model build` first"
@@ -333,15 +291,8 @@ def _missing_simulator(e: env.Environment) -> str | None:
 def cmd_typecheck(e: env.Environment, args: argparse.Namespace) -> int:
     """Typecheck the curated model without emitting code."""
     _require("sail", SAIL_HOW)
-    # Sail rewrites the memo cache whole at exit (see `_seed_smt_cache`), so a second
-    # typecheck over a live one is refused rather than left to interleave two
-    # whole-file rewrites of the one cache.
+    # Lock the lane's typecheck memo cache because Sail rewrites it whole on exit.
     with env.hold_lock(e.typecheck_cache, "a typecheck"):
-        # Under the lock, and after it, because the lock creates the lane directory the
-        # copy writes into. This cache is per lane for the reason the build trees' are,
-        # and I7 made it so after finding one file live across four lanes; what that
-        # left owed is this copy, I2 declining to *share* a cache rather than to warm
-        # one. Cold, the run below re-discharges every obligation it already knows.
         _seed_cache_file([e.primary_typecheck_cache], e.typecheck_cache)
         return subprocess.run(
             ["sail", "--strict-var", "--strict-bitvector", "--strict-exponentials",
@@ -359,39 +310,16 @@ def _bundle_source_identity(e: env.Environment, listed: list[str], inputs: bytes
     final_inputs["bundle_sha256"] = hashlib.sha256(b"").hexdigest()
     if refreshed != listed or final_inputs != json.loads(inputs):
         raise sailbundle.BundleError("the model project or sources changed during bundle emission")
-    # Check emitted MD5 owners against the complete SHA-256 manifest before publishing
-    # a regeneration that will replace stale evidence.
     sailbundle.read_source_identity(e.root, bundle_bytes, identity_bytes=fresh)
     return fresh
 
 
 def cmd_bundle(e: env.Environment, args: argparse.Namespace) -> int:
-    """Regenerate the model's own machine-readable bundle into the tracked path.
+    """Emit or check (`--check`) the model's machine-readable bundle (`K-88`).
 
-    This is the generator half of K-88, and it is the half a Windows host cannot run.
-    The bundle is Sail's own view of the model it just typechecked, so it is emitted by
-    Sail. Only the selected switch's absolute library hash keys are relocated to
-    the canonical prefix defined by sailbundle; source text and hashes are preserved.
-    The same transformation precedes publication and byte comparison, so a private
-    CI opam root and the local installation produce the same tracked artifact.
-
-    **Sail is invoked directly rather than through cmake's `generated_sail_riscv_docs`
-    target.** That target chains `generated_html_tgz` (model/model/CMakeLists.txt), so
-    asking cmake for the JSON buys a second full Sail run and a tar of an HTML tree
-    nothing here reads. The flags below are the ones that target passes, less the two
-    that decide nothing about the output: `--require-version`, which asserts a floor the
-    lane already meets, and the html target's own.
-
-    The lane's build lock is held for the run, because the memo cache this reads and
-    rewrites is the build tree's and Sail rewrites it whole at exit; a bundle over a live
-    build in the same lane would be two writers of one cache, which is the failure
-    `_seed_smt_cache` states in full. The tree is seeded first for the same reason a
-    build seeds it: cold, the emission is minutes rather than seconds.
-
-    `--check` emits to a scratch path and compares, writing nothing. That is the guest
-    lane's half of K-88's claim and it is what makes the host lane's half honest: the
-    host holds both tracked artifacts against the index and every source selected by
-    the project, and this holds them against the emitter and its complete source list.
+    Invokes `sail --doc` directly under the lane's build lock (using the build tree's
+    SMT memo cache), canonicalizes library paths via `[vos/sailbundle.py](../sailbundle.py)`,
+    and verifies source provenance before updating or comparing the tracked bundle.
     """
     _require("sail", SAIL_HOW)
     build_dir = e.build_dir
@@ -401,8 +329,6 @@ def cmd_bundle(e: env.Environment, args: argparse.Namespace) -> int:
         _seed_tree(e, build_dir)
         tracked = e.root / sailbundle.BUNDLE
         scratch.mkdir(parents=True, exist_ok=True)
-        # Always emit in the lane. Failed emission or provenance validation must
-        # preserve the tracked artifact, including during regeneration.
         before = tracked.read_bytes() if tracked.is_file() else None
         identity = e.root / sailbundle.SOURCE_IDENTITY
         before_identity = identity.read_bytes() if identity.is_file() else None
@@ -456,15 +382,7 @@ def cmd_bundle(e: env.Environment, args: argparse.Namespace) -> int:
 
 def _bundle_verdict(written: Path, held: bytes | None, *, check: bool,
                     path: str = sailbundle.BUNDLE) -> int:
-    """Say what the emission decided, in bytes rather than in adjectives.
-
-    Under `--check` the emitted bytes are held against the tracked ones and a
-    difference is the finding; otherwise the emitted bytes *are* the tracked ones and
-    what is reported is whether they moved, because a regeneration that changes nothing
-    is the ordinary case and a caller wants to know which one this was. `held` is the
-    tracked bytes as they stood *before* the run, which is the only reading that means
-    anything on the path that overwrites them.
-    """
+    """Compare emitted `written` bytes against prior `held` bytes and print the verdict."""
     fresh = written.read_bytes()
     if not check:
         moved = "unchanged" if held == fresh else "rewritten"
@@ -487,26 +405,14 @@ def _bundle_verdict(written: Path, held: bytes | None, *, check: bool,
 
 
 def cmd_emit(e: env.Environment, args: argparse.Namespace) -> int:
-    """Run the full C++ emission, which regenerates the config schema, then hand the
-    fresh schema and the frozen profile to the validator. No C++ is compiled.
-
-    The tree is seeded first, and this is the loop that most wants it: the line below
-    configures the tree, and the emission it then runs is exactly the stage a cold memo
-    cache turns from ~36 s into ~3.6 min (I3). A lane whose first command was `emit`
-    rather than `build` paid that until this call was here. An existing tree is
-    configured again, as `build` configures it, because the configure is what binds the
-    tree to this environment's Sail and the model's declared version floor.
-    """
+    """Run C++ emission to regenerate the config schema, then validate the frozen profile."""
     _require("sail", SAIL_HOW)
     build_dir = e.build_dir
-    # The same tree `build` locks, held the same way: an emit over a live build, or a
-    # second emit, would drive one cmake state in one tree from two runs.
     lock = env.build_lock(build_dir)
     try:
         _seed_tree(e, build_dir)
         if _configure(e, build_dir):
             return 1
-        # a single-threaded stage; -j is passed for uniformity, not for speed
         if env.stage("emit", ["cmake", "--build", str(build_dir), "-j", str(e.jobs),
                               "--target", EMIT_TARGET]):
             return 1
@@ -519,7 +425,7 @@ def cmd_emit(e: env.Environment, args: argparse.Namespace) -> int:
 
 
 def _ninja_commands(build_dir: Path) -> str:
-    """Every command the Rocq target's closure runs, as the configured tree states it."""
+    """Return the `ninja -t commands` output for `rocqterm.TARGET`."""
     done = subprocess.run(["ninja", "-C", str(build_dir), "-t", "commands",
                            rocqterm.TARGET], capture_output=True, encoding="utf-8",
                           errors="replace", check=False, timeout=120)
@@ -535,8 +441,7 @@ def _utc() -> str:
 
 def _settled(e: env.Environment, code: int, listed: list[str], before: rocqterm.Inputs,
              sail: str, z3: str, tools: rocqterm.Toolchain) -> None:
-    """Refuse an emission whose build failed, wrote nothing, or ran while its inputs or
-    its toolchain moved."""
+    """Verify that Rocq emission exited zero, wrote all outputs, and had stable inputs/tools."""
     out = rocqterm.output_dir(e.build_dir)
     if code:
         raise rocqterm.TermError(f"{rocqterm.TARGET} exited {code}")
@@ -552,19 +457,7 @@ def _settled(e: env.Environment, code: int, listed: list[str], before: rocqterm.
 
 
 def cmd_rocq(e: env.Environment, args: argparse.Namespace) -> int:
-    """Emit the canonical machine term through the model's own Rocq target and write its
-    generation-identity receipt beside it. [vos/rocqterm.py](../rocqterm.py) states what
-    the receipt binds and why.
-
-    The term's outputs and receipt are deleted first, before the tree is touched: the
-    run-specific receipt requires a fresh emission even when the generation graph
-    could reuse an earlier output. The tree is then seeded and
-    configured as `emit` configures it, and the configured Sail command is read back
-    out of the tree and refused unless it emits at this checkout's frozen profile. The
-    configuration and the sources are hashed before and after the build, and a run in
-    which either moved is refused. Every refusal after the build deletes what it
-    emitted, so no output stands without its receipt.
-    """
+    """Emit the canonical Rocq machine term and write its generation-identity receipt (`[vos/rocqterm.py](../rocqterm.py)`)."""
     del args
     _require("sail", SAIL_HOW)
     if e.model.resolve() != (e.root / "model").resolve():
@@ -573,7 +466,6 @@ def cmd_rocq(e: env.Environment, args: argparse.Namespace) -> int:
         return 1
     build_dir = e.build_dir
     out = rocqterm.output_dir(build_dir)
-    # The tree `build` and `emit` lock: this drives the same cmake state.
     lock = env.build_lock(build_dir)
     try:
         removed = rocqterm.clear(build_dir)
@@ -599,7 +491,6 @@ def cmd_rocq(e: env.Environment, args: argparse.Namespace) -> int:
             print(str(err), file=sys.stderr)
             return 1
         started, clock = _utc(), time.perf_counter()
-        # One job: the emission is one Sail process, and nothing else is out of date.
         code = env.stage("rocq", ["cmake", "--build", str(build_dir), "-j", "1",
                                   "--target", rocqterm.TARGET])
         elapsed, finished = time.perf_counter() - clock, _utc()
@@ -631,21 +522,10 @@ def cmd_rocq(e: env.Environment, args: argparse.Namespace) -> int:
 
 
 def cmd_build(e: env.Environment, args: argparse.Namespace) -> int:
-    """Build the curated model out of tree and run its bundled suite.
+    """Configure, build, and run the bundled `ctest` suite for the curated model.
 
-    --fast selects the iterate profile: a separate build dir whose only divergence from
-    the canonical build is dropping `-g` from RelWithDebInfo. Debug info on the
-    machine-generated translation unit is the single largest compile cost, 314 s against
-    239 s measured in-build and so under N-way contention, and is never used;
-    optimization level, assertions, and the test suite are identical. What that unit
-    costs compiled alone is `vos/env.py`'s to state, because it is the same fact and it
-    moves with the curation. The canonical build remains the exit criterion for every
-    batch.
-
-    --background detaches the run and returns, because a fifteen-minute build is started
-    and left and the caller has other work. What it does not do is let go of the lane:
-    the lock is taken here, before anything is written, and the detached child inherits
-    it, so a second build over a live one is refused rather than merged into it.
+    `--fast` selects a separate iterate build tree that omits `-g` from `RelWithDebInfo`.
+    `--background` detaches the build into a child process that inherits the lane lock.
     """
     _require("sail", SAIL_HOW)
     if args.fast:
@@ -656,8 +536,6 @@ def cmd_build(e: env.Environment, args: argparse.Namespace) -> int:
     else:
         build_dir, log, extra = e.build_dir, e.log("model-build"), []
 
-    # Before the log is opened, so that a refused build cannot truncate the log of the
-    # run it was refused in favour of.
     lock = env.build_lock(build_dir)
     try:
         _seed_tree(e, build_dir)
@@ -669,38 +547,23 @@ def cmd_build(e: env.Environment, args: argparse.Namespace) -> int:
             lock.close()
 
 
-# The Sail property test the model's ctest registers (model/model/CMakeLists.txt). Its
-# command is Sail over the model's sources and the configuration configure writes, with
-# a memo cache of its own, `PROPERTY_MEMO`, that no command the build runs writes:
-# nothing the build makes, so it can start as soon as configure has passed rather than
-# after the last link.
+# Sail property test registered in `[model/model/CMakeLists.txt](../../../model/model/CMakeLists.txt)`.
+# Uses its own memo cache (`PROPERTY_MEMO`) and depends only on configured inputs,
+# so it can run alongside the C++ build when memory permits.
 EARLY_TEST = "smt_properties_rv64d"
 EARLY_STAGE = "ctest-early"
-# That test's memo cache in a build tree, beside the build's own `sail_smt_cache` and
-# seeded as that one is (`_seed_smt_cache`).
 PROPERTY_MEMO = "sail_smt_cache_properties"
-# What a Sail process beside the build is budgeted on top of the build's own budget:
-# the ctest stage, whose largest process is this test's, peaked at 0.77 GB in Guest CI
-# run 37017722599. Started at configure, the test also runs beside the emission, whose
-# Sail process the build's budget already holds in its generated-unit reserve, the unit
-# compiling only once the emission is complete: the build stage's largest process
-# peaked at 1.71 GB in Guest CI run 37066715700, under that 2 GB reserve.
+# Additional memory budget (MB) required above `e.build_budget_mb` to run `EARLY_TEST`
+# concurrently with the build.
 EARLY_TEST_MB = 1024
-# Ninja prints a status line as each edge finishes; this one carries the seconds since
-# the build began, so the log alone times the emission, the generated unit's compile
-# and the links.
 NINJA_STATUS = "[%f/%t %e] "
 
-
-# A thread's states, as `/proc` spells them, in which it can start no process: stopped,
-# stopped by a tracer, a zombie and dead.
+# `/proc` thread states in which a thread cannot spawn new processes.
 _AT_REST = frozenset({"T", "t", "Z", "X"})
 
 
 def _stat_fields(path: Path) -> list[str]:
-    """The fields of a `/proc` stat record after the command name, the state first and
-    the parent's pid next, or none where the record is gone. The command name is
-    parenthesized and may hold anything, so the fields are read after its last ")"."""
+    """Return `/proc/<pid>/stat` fields after the parenthesized command name."""
     try:
         record = path.read_text(encoding="utf-8", errors="replace")
     except OSError:
@@ -709,7 +572,7 @@ def _stat_fields(path: Path) -> list[str]:
 
 
 def _children() -> dict[int, list[int]]:
-    """Each process's children, which `/proc` names by parent."""
+    """Map parent PIDs to child PIDs from `/proc`."""
     children: dict[int, list[int]] = {}
     for entry in Path("/proc").iterdir():
         if entry.name.isdigit():
@@ -720,8 +583,7 @@ def _children() -> dict[int, list[int]]:
 
 
 def _at_rest(pid: int) -> bool:
-    """Whether every thread of `pid` has stopped or exited, so that none of them can
-    start a process; a process gone from `/proc` has exited."""
+    """Return True if all threads of `pid` have stopped or exited."""
     try:
         threads = list(Path(f"/proc/{pid}/task").iterdir())
     except OSError:
@@ -730,12 +592,7 @@ def _at_rest(pid: int) -> bool:
 
 
 def _kill_tree(root: int) -> None:
-    """SIGKILL `root` and every process under it.
-
-    Each process found is stopped before `/proc` is read again, and the readings repeat
-    until one finds nothing new with every thread found stopped or exited. A stopped
-    process starts nothing, so the processes killed are the whole tree, those started
-    while it was being read among them."""
+    """Stop and `SIGKILL` `root` and all descendant processes."""
     if sys.platform == "win32":
         raise RuntimeError("process trees are ended in the guest")
     tree: set[int] = set()
@@ -758,19 +615,9 @@ def _kill_tree(root: int) -> None:
 
 
 class _EarlyRun:
-    """`EARLY_TEST` in a ctest run of its own, started beside the build, its output held
-    aside until the ctest stage places it in the log.
-
-    A thread reaps the run as it exits, so its `STAGE` line times the run itself rather
-    than the wait for the ctest stage to collect it, and the line says when the run
-    started in the build stage's seconds, `since` being when that stage is counted
-    from. It stays in the build's process group, so whatever ends that group ends it
-    too, the evidence sweep's timeout among them; `kill` ends it, and the Sail process
-    under it, when the build is leaving by an exception."""
+    """Background `EARLY_TEST` `ctest` run started alongside the C++ build."""
 
     def __init__(self, argv: list[str], since: float) -> None:
-        # The file outlives this call, which a context manager would close: the ctest
-        # stage reads it once the run is reaped, and `kill` closes it.
         self._output = tempfile.TemporaryFile(  # noqa: SIM115
             "w+", encoding="utf-8", errors="replace")
         self._since = since
@@ -788,9 +635,7 @@ class _EarlyRun:
         self._reaper.start()
 
     def _reap(self) -> None:
-        """Wait for the run to exit, then reap it and keep what it cost as its `STAGE`
-        line. The exit is waited for without being collected, so the pid stays this
-        run's until the lock is held and `kill` can never signal a pid handed on."""
+        """Wait for exit via `WNOWAIT`, then collect resource usage under `self._lock`."""
         if sys.platform == "win32":
             raise RuntimeError("build stages run in the guest")
         os.waitid(os.P_PID, self._proc.pid, os.WEXITED | os.WNOWAIT)
@@ -818,8 +663,7 @@ class _EarlyRun:
         return f"{printed}{self._cost}\n"
 
     def kill(self) -> None:
-        """End the run and everything under it unless it was reaped, wait for its
-        reaping, then drop its output."""
+        """Kill the process tree if still running, wait for the reaper, and close output."""
         try:
             with self._lock:
                 if self._code is None:
@@ -833,14 +677,7 @@ class _EarlyRun:
 
 
 def _early_decision(e: env.Environment) -> tuple[bool, str]:
-    """Whether `EARLY_TEST` may start beside the build, and the words the log's host
-    line gives the answer.
-
-    `_jobs` sizes the build to the memory available and budgets nothing beside it, so
-    the test may start early only where that memory covers the build's budget and the
-    test's too; with no reading the guard cannot bind, and the test runs after the
-    build. Whether a test allowed to start early did, and when, is its `STAGE` line's
-    to say: a run that cannot start leaves the test to the ctest stage."""
+    """Decide whether available memory covers running `EARLY_TEST` beside the build."""
     wanted = e.build_budget_mb + EARLY_TEST_MB
     if e.mem_available_mb <= 0:
         return False, f"{EARLY_TEST} after the build, no memory reading"
@@ -851,9 +688,7 @@ def _early_decision(e: env.Environment) -> tuple[bool, str]:
 
 def _ctest_stage(e: env.Environment, build_dir: Path, handle: IO[str],
                  early: _EarlyRun | None) -> int:
-    """The bundled suite, or, when `EARLY_TEST` started beside the build, the rest of
-    it and then the early run's output once that has finished. Either run failing
-    fails the stage, and each prints its own summary, which `evidence` sums."""
+    """Run the bundled `ctest` suite, merging `early` output when `EARLY_TEST` ran beside the build."""
     argv = ["ctest", "--test-dir", str(build_dir), "-j", str(e.test_jobs),
             "--output-on-failure"]
     if early is None:
@@ -889,18 +724,7 @@ def _native_finish(e: env.Environment, directory: Path,
 
 def _build_locked(e: env.Environment, build_dir: Path, log: Path,
                   extra: list[str]) -> int:
-    """Run the stages while cmd_build holds the lane, then publish their identity.
-
-    Configure, build and ctest run in that order, each gating the next. Where memory
-    allows, `EARLY_TEST` starts as soon as configure has passed, beside the whole build,
-    so what follows configure costs the longer of two paths, the build and the rest of
-    the suite or the Sail test, rather than both end to end; `_ctest_stage` then runs
-    the rest of the suite and places the early run's output in the same ctest section.
-    The test's memo is its own, seeded with the tree (`_seed_smt_cache`), so the
-    emission and the test never write one file. A build that fails waits for the early
-    run and discards it, leaving the log as a failed build leaves it, and a run leaving
-    by an exception ends it.
-    """
+    """Run configure, build, and `ctest` stages under the lane lock and write the build receipt."""
     record_path = log.with_suffix(".json")
     record_path.unlink(missing_ok=True)
     identity = build_identity(e)
@@ -915,10 +739,6 @@ def _build_locked(e: env.Environment, build_dir: Path, log: Path,
     e.log_dir.mkdir(parents=True, exist_ok=True)
     version = subprocess.run(["sail", "--version"], capture_output=True, text=True, check=False)
 
-    # The whole run goes to one log and the console says only where it is. A build is
-    # long enough to be started and left, so the caller needs a file to come back to
-    # and, at the end of it, one line saying the run is over: waiting on that marker is
-    # how a caller learns the build finished, rather than by guessing at a sleep.
     print(f"== log: {log}", flush=True)
     with log.open("w", encoding="utf-8") as handle:
         handle.write(f"== sail: {version.stdout.strip()}\n")
@@ -927,8 +747,6 @@ def _build_locked(e: env.Environment, build_dir: Path, log: Path,
                      f"build -j{e.jobs}, ctest -j{e.test_jobs}; {decision}\n")
         handle.flush()
 
-        # Each stage gates the next: a configure that failed makes the build's error a
-        # second symptom of the first, and reporting both hides which one to fix.
         code = stages["configure"] = _configure(e, build_dir, extra, handle)
         if not code:
             try:
@@ -943,9 +761,6 @@ def _build_locked(e: env.Environment, build_dir: Path, log: Path,
         try:
             if not code:
                 if beside:
-                    # The build stage starts as the run does, so the run's start is
-                    # counted from here. A run that cannot start leaves the test to the
-                    # ctest stage, where the same command fails as it would have.
                     with contextlib.suppress(OSError):
                         early = _EarlyRun(["ctest", "--test-dir", str(build_dir),
                                            "-R", f"^{EARLY_TEST}$", "--output-on-failure"],
@@ -966,18 +781,10 @@ def _build_locked(e: env.Environment, build_dir: Path, log: Path,
             if early is not None:
                 early.kill()
 
-    # A build whose stages passed can still be refused its evidence. The reason is kept
-    # in the receipt as well as printed, because a background build's stderr goes
-    # nowhere, and `verified_build`, which `model wait` reports through, names it.
     if code == 0 and build_identity(e) != identity:
         refusal = "the inputs changed during the build; its evidence is stale"
     artifacts: dict[str, str] = {}
     if code == 0 and not refusal:
-        # The sweep's inputs come from a pinned, verified corpus snapshot, which holds the suite to
-        # the manifest configure wrote, so an unverified corpus fails the build here,
-        # and so does a product that cannot be read: its `OSError` is the refusal the
-        # receipt records rather than an exception that ends the run before one is
-        # written.
         try:
             native_inputs = _native_finish(e, build_dir, native_before)
             receipts.write(build_dir / native_build.STAMP, native_inputs)
@@ -1001,17 +808,7 @@ def _build_locked(e: env.Environment, build_dir: Path, log: Path,
 
 
 def _detach(args: argparse.Namespace, log: Path, lock: IO[str] | None) -> int:
-    """Re-run this build as a detached child and hand it the lane's lock.
-
-    The lock travels by inheritance rather than by being taken twice. `flock` belongs to
-    the open file description, and `pass_fds` keeps the parent's descriptor open across
-    the exec, so the child holds the same lock without knowing it does and the kernel
-    gives it back when the child exits. `BUILD_LOCK_HELD` is what tells the child not to
-    take a second one on a descriptor of its own, which would fail against the first.
-
-    Move the old log aside before launching. The parent never removes the new log:
-    the child can open it before Popen returns. A failed launch restores the old log.
-    """
+    """Spawn a detached build subprocess that inherits `lock` via `pass_fds` and `BUILD_LOCK_HELD`."""
     argv = cli.entry("model", "build", *(["--fast"] if args.fast else []),
                      *(["--offline"] if getattr(args, "offline", False) else []))
     log.parent.mkdir(parents=True, exist_ok=True)
@@ -1039,75 +836,17 @@ def _detach(args: argparse.Namespace, log: Path, lock: IO[str] | None) -> int:
 
 
 def _seed_tree(e: env.Environment, target: Path) -> None:
-    """Give a build tree that does not exist yet the warm state of one that does, so
-    that standing a lane up costs neither of the two things a cold tree pays for twice.
-
-    The pre-downloaded test ELFs would otherwise re-download the tarball. The Sail SMT
-    memo cache matters more: a cold cache re-discharges every Z3 obligation and turns
-    the ~36 s emission into ~3.6 min under the pinned solver, ~4.7 min under the
-    distribution's (I3, two repeats per arm, 2026-08-22; the ~25 min once measured
-    here described the model before the curation deleted most of its surface).
-    Standing a lane up is 202.3 s seeded under the clang `env._compiler_args` selects,
-    configure 50.6 s, build 106.9 s at 329% CPU and ctest 44.8 s over 375 edges (one
-    run, quiet box, 2026-08-22), which is what makes a lane cheap enough to be worth
-    having.
-    """
-    # This lane's canonical tree first and the primary worktree's second: the fast tree
-    # wants the lane it belongs to, and a lane's own first build has only the primary to
-    # ask. On the primary worktree the two are the same path, which `!=` removes.
+    """Seed `target` with warm SMT memo caches and verified test suites from donor trees."""
     donors = [d for d in (e.build_dir, e.primary_build_dir) if d != target and d.is_dir()]
     _seed_smt_cache(donors, target)
     _seed_test_data(donors, target, e.model)
 
 
 def _seed_smt_cache(donors: list[Path], target: Path) -> None:
-    """Copy a warm memo cache into a tree that has none, and never share one. This is
-    the whole of the I2 finding, and it is a property of the pinned compiler rather
-    than a preference.
+    """Seed `target`'s build and property SMT memo caches by copying from `donors`.
 
-    Sail's cache is one flat file of fixed records, a 16-byte digest of the SMT query
-    and one byte of verdict, read whole into a map at startup by `load_digests` and
-    rewritten whole from that map at exit by `save_digests` (libsail's `constraint.ml`,
-    alike at 0.20.2 and 0.20.3, whose parallel checking runs in domains of the one
-    process). There is no lock, no atomic rename, and `open_out_bin` truncates in
-    place. A tree's cache here measures 1,418,412 bytes, which is 83,436 records
-    with no remainder.
-
-    Three things follow, and each alone is enough to refuse a shared path. Concurrent
-    runs do not *merge*: each writes back what it loaded plus what it learned, so the
-    later writer's file is missing everything the earlier one learned during the
-    overlap, and that is worst exactly when the cache is cold and the learning is
-    largest. A reader arriving mid-rewrite sees a prefix, or sees one byte out of the
-    verdict range and takes the invalid path, which empties both maps and then replaces
-    the shared file with only this run's own entries: measured, one such byte destroyed
-    77,260 of 83,436 records and Sail still exited 0. And two writers interleave at
-    whatever offset each buffer flushed; records are 17 bytes and OCaml flushes at
-    65,536, which is 1 modulo 17, so the sixteenth boundary falls exactly on a verdict
-    byte and leaves one run's genuine digest carrying another run's answer to a
-    different obligation.
-
-    Content-keying then makes a stale *copy* cost misses and nothing worse, but only
-    within one distribution and one solver: the key is the obligation, not the prover
-    that discharged it, so a cache carried across either boundary hands the pinned
-    solver another solver's answers to read back as its own. That is the silent
-    difference `env._prepend_z3_path` exists to announce. Both donors are this
-    machine's, so neither boundary is crossed, and the copy has one writer. The donor
-    may have another: this read takes neither donor's build lock, so a seed arriving
-    while a donor's own build is at `save_digests` copies whatever that rewrite has
-    reached. What that costs stays on the copy, a lane starting from a prefix or a torn
-    record paying the cold cache this seed exists to avoid and no donor paying anything.
-
-    A tree keeps two of these caches, the build's and `EARLY_TEST`'s, `PROPERTY_MEMO`,
-    which is the test's alone so that the test can run beside the build's emission. The
-    test's comes from a donor's test cache, and failing one from the tree's own build
-    cache, a warm start whose misses cost time and nothing worse, the solver being the
-    same. That copy has no writer to race: every caller holds the tree's build lock, as
-    does every command here that runs Sail over the tree's caches. A test cache the tree
-    holds is kept rather than refreshed from the build's, because it is the test's own
-    learning, which the build's does not receive.
-
-    The copy itself is `_seed_cache_file`'s, because a lane's other memo caches sit
-    outside any build tree.
+    Sail's `sail_smt_cache` is rewritten whole without locking on exit, so caches are
+    copied into each lane and between the build and `PROPERTY_MEMO` rather than shared.
     """
     build_memo = target / "model" / "sail_smt_cache"
     _seed_cache_file([d / "model" / "sail_smt_cache" for d in donors], build_memo)
@@ -1116,25 +855,7 @@ def _seed_smt_cache(donors: list[Path], target: Path) -> None:
 
 
 def _seed_cache_file(donors: list[Path], target: Path) -> None:
-    """Copy the first donor memo cache that exists, and never over one already there.
-
-    The file-level half of `_seed_smt_cache`, which states the ground this obeys. It is
-    stated once because a lane keeps several memo caches and none may be shared: the
-    build tree's two, the build's at `<tree>/model/sail_smt_cache` and its property
-    test's at `<tree>/model/sail_smt_cache_properties`, and those of the typecheck and
-    `smt` loops, which sit beside the build trees rather than inside one and so are
-    reached by no `_seed_tree`.
-
-    Two properties are what make this safe to call unconditionally, which is the point
-    of it: a target that exists is kept, because a warm cache is this lane's own
-    learning and a donor's is older; and a donor that *is* the target copies nothing,
-    since it either exists and is kept or does not exist and is passed over. So the
-    primary worktree, where every donor is its own target, seeds nothing and needs no
-    caller to know that it is the primary.
-
-    A donor that is absent is a machine with no warm state to give, which is the first
-    build on a fresh toolchain and is not a failure.
-    """
+    """Copy the first existing donor memo cache to `target` if `target` does not yet exist."""
     if target.exists():
         return
     for source in donors:
@@ -1145,29 +866,11 @@ def _seed_cache_file(donors: list[Path], target: Path) -> None:
 
 
 def _seed_test_data(donors: list[Path], target: Path, model_root: Path) -> None:
-    """Copy the declared release's downloaded suites, each with its manifest, and only
-    a copy that verifies.
-
-    A suite is a directory `test/<release>/<tarball>` whose tarball the model records a
-    digest for at the declared release, which is what configure downloads into and what
-    `sweep` and `trace-diff` read, rather than any directory under `test/`: the rest of
-    what is there is cmake's and ninja's, and a fresh tree that finds a previous tree's
-    `CMakeFiles` under it is being configured against a state it did not produce.
-    Another release's suites stay behind, since nothing reads them.
-
-    The donor's suite is held to its manifest before it is copied, only what verified is
-    copied, and the copy, made beside its destination, is held to the manifest written
-    with it before it is moved into place, so a donor whose suite has no manifest or one
-    that is not a regular file, disagrees with its manifest, holds an entry that is not
-    a regular file, or has a verified file replaced or resized during the copy seeds
-    nothing, and configure downloads that suite instead. A suite the target already
-    holds is left to configure, which keeps it only if it matches its manifest.
-    """
+    """Copy manifest-verified downloaded test suites for the declared release into `target`."""
     try:
         version = model_corpus.test_corpus_version(model_root)
         digests = model_corpus.test_corpus_digests(model_root, version)
     except ValueError as err:
-        # configure refuses the same declaration, and says so where the build is read
         print(f"== no test corpus seeded: {err}", file=sys.stderr)
         return
     for name, digest in sorted(digests.items()):
@@ -1187,18 +890,7 @@ def _seed_test_data(donors: list[Path], target: Path, model_root: Path) -> None:
 
 
 def cmd_wait(e: env.Environment, args: argparse.Namespace) -> int:
-    """Wait for this lane's build to finish, then report what it decided.
-
-    The wait is on the lane's lock rather than on the log, because the lock is released
-    by the kernel when the builder exits however it exits, where a marker is only
-    written by a build that got as far as writing one. The log carries the stages'
-    verdict and the receipt the evidence's: a log whose stages passed is then held to
-    `verified_build`, which fails the wait on a receipt that is missing, malformed or
-    records no successful complete build, naming the refusal it records when it records
-    one, or on one gone stale since. Both are read while the lock is still held: read after
-    releasing, a build started in that window truncates the log first and the report is
-    about the wrong run.
-    """
+    """Wait on the lane's build lock, report the build log, and verify the build receipt."""
     log = e.log("model-build-fast" if args.fast else "model-build")
     lock = env.wait_for_build(e.fast_build_dir if args.fast else e.build_dir)
     try:
@@ -1217,13 +909,7 @@ def cmd_wait(e: env.Environment, args: argparse.Namespace) -> int:
 
 
 def _report_build(log: Path) -> int:
-    """Read a finished build's log back as a verdict.
-
-    The exit code is the last stage's, because `cmd_build` stops at the first stage that
-    fails: a run with no `ALL_DONE` is one that was killed or is still starting, and it
-    is a finding rather than a silence, because the caller asked what the build decided
-    and there is no answer to give.
-    """
+    """Print summary lines from `log` and return the final stage exit code (or `1` if incomplete)."""
     if not log.is_file():
         print(f"no build log at {log}: nothing has built in this lane", file=sys.stderr)
         return 1
@@ -1240,10 +926,7 @@ def _report_build(log: Path) -> int:
 
 
 def _placed(path: Path) -> str:
-    """A path beside the filesystem under it, so the line says which side of the OS
-    boundary the path sits on. That is the placement rule tools/README.md states,
-    read here through `env.filesystem`: the checkout is the one path a build reads
-    across the boundary, and everything it writes is on the guest's own."""
+    """Format `path` with its underlying filesystem type and OS-boundary side."""
     kind = env.filesystem(path)
     if not kind:
         return str(path)
@@ -1253,14 +936,7 @@ def _placed(path: Path) -> str:
 
 
 def cmd_lane(e: env.Environment, args: argparse.Namespace) -> int:
-    """Say where this checkout builds, and whether anything is building there.
-
-    One command, because the failure this exists to end is a checkout reading a
-    simulator some other checkout generated, and the way that is caught is by being able
-    to ask which tree this one is talking about. Each path is printed beside the
-    filesystem under it, so the same command says which side of the OS boundary a
-    lane's reads and writes fall on.
-    """
+    """Print this checkout's build lane paths, filesystems, and active lock holder."""
     holder = env.build_holder(e.build_dir)
     print(f"lane             {e.lane or 'primary (this checkout is not a linked worktree)'}")
     print(f"checkout         {_placed(e.root)}")
@@ -1274,52 +950,36 @@ def cmd_lane(e: env.Environment, args: argparse.Namespace) -> int:
 
 
 # =====================================================================================
-# smt: the capability-helper property suite, one solver verdict per property
+# smt: capability-helper property suite, one solver verdict per property
 # =====================================================================================
 
-# The module the project file keeps behind its variable, the assignment that turns it
-# on, and the source the census is read from. Each is spelled once here: the project
-# file names the first two and the test that pins the census reader names the third.
 SMT_MODULE = "cap_properties"
 SMT_VARIABLE = "smt_properties=true"
 SMT_SOURCE = Path("model") / "unit_tests" / "cap_properties.sail"
-# The prefix `-o` hands Sail, which names every emitted file `<prefix>_<function>.smt2`.
 SMT_PREFIX = "model"
 
-# What a property looks like in the source: the attribute on a line of its own and the
-# head of the function under it. The census is read off the source rather than off the
-# emitted files, because a property the emitter silently dropped is exactly what a
-# count of files would fail to notice.
 PROPERTY_MARK = re.compile(r"^\$\[property\]\s*$")
 FUNCTION_HEAD = re.compile(r"^(?:private\s+)?function\s+([A-Za-z_][A-Za-z0-9_']*)\s*\(")
 
-# The three verdicts, and the first line of solver output each is read from. Anything
-# else is unrecognized and fails closed: a solver that changed its wording must not read
-# as a proof.
 PROVED, COUNTEREXAMPLE, UNDECIDED = "proved", "counterexample", "undecided"
 SOLVER_VERDICTS: dict[str, str] = {
     "unsat": PROVED, "sat": COUNTEREXAMPLE, "unknown": UNDECIDED, "timeout": UNDECIDED,
 }
 
-# What Sail's own auto mode prints per property, which `--auto` reads. The three
-# shapes are the locked Sail's (`Smt_exp.Counterexample.check`, alike at 0.20.2 and
-# 0.20.3), pinned by the test.
+# Sail `--smt-auto` output markers (`Smt_exp.Counterexample.check`).
 AUTO_CHECKING = re.compile(r"^Checking counterexample: (.+)$")
 AUTO_FOUND = "Solver found counterexample:"
 AUTO_NOT_FOUND = "Solver could not find counterexample"
 AUTO_UNEXPECTED = "Unexpected solver output:"
 UNRECOGNIZED = "unrecognized"
 
-# How much of a counterexample's model to print before pointing at the file holding it.
 MODEL_HEAD_LINES = 12
 
 
 def property_names(text: str) -> list[str]:
-    """Every `$[property]` head in a Sail source, in source order.
+    """Return every `$[property]` function name in `text` in source order.
 
-    A mark followed by anything but a function head is refused rather than skipped:
-    the census is the figure a completion note quotes, and a mark that names nothing
-    is a defect in the source, not a property the count may leave out.
+    Raises `ValueError` if a `$[property]` attribute is not followed by a function head.
     """
     names: list[str] = []
     pending: int | None = None
@@ -1340,9 +1000,7 @@ def property_names(text: str) -> list[str]:
 
 
 def solver_verdict(output: str) -> tuple[str | None, list[str]]:
-    """Read one solver run: the verdict its first line carries, and the lines after it,
-    which under `-model` are the counterexample when there is one. `None` is a first
-    line this loop does not know, and the caller fails closed on it."""
+    """Parse solver output into `(verdict, model_lines)`, returning `(None, [])` if unrecognized."""
     lines = [line for line in output.splitlines() if line.strip()]
     if not lines:
         return None, []
@@ -1354,13 +1012,7 @@ def solver_verdict(output: str) -> tuple[str | None, list[str]]:
 
 
 def auto_verdicts(text: str) -> dict[str, str]:
-    """Read Sail's auto-mode transcript into one verdict per property.
-
-    Each property opens with the file being checked and closes with one of three
-    lines; a property whose closing line is none of them is `unrecognized`, and a
-    property the transcript never opens is absent from the result, which the caller
-    treats as a failure rather than as a pass over nothing.
-    """
+    """Parse Sail `--smt-auto` output into `{property_name: verdict}`."""
     verdicts: dict[str, str] = {}
     current: str | None = None
     for line in text.splitlines():
@@ -1385,33 +1037,10 @@ def _solver_version(binary: str) -> str:
 
 
 def cmd_smt(e: env.Environment, args: argparse.Namespace) -> int:
-    """Run the capability-helper property suite through Sail's SMT target and give
-    every property its own verdict and its own time.
+    """Emit and solve `$[property]` obligations in `unit_tests/cap_properties.sail`.
 
-    The suite is `unit_tests/cap_properties.sail`, kept behind the project file's
-    `smt_properties` variable so that `--all-modules`, which every build, its ctest,
-    the bundle and the typecheck pass, never waits on a solver; this loop turns the
-    variable on and selects the module by name, which loads it with the `prelude` and
-    `core` it requires and nothing else.
-
-    Three verdicts and never two. **Proved** is the solver's `unsat` over the
-    negation, a verdict over the whole input space. **Counterexample** is `sat`, with
-    the model printed under it. **Undecided** is `unknown` or the `--timeout`, and it
-    is its own verdict rather than a pass: a property the solver did not close is not
-    one it proved. The ctest's `--smt-auto` gives one verdict for the whole set and
-    no per-property timeout, so the default here emits once and puts each file to
-    the solver itself; `--auto` runs Sail's own mode instead, which renders a
-    counterexample back into Sail values and replays it, and is the form to read a
-    failure in. Both are evidence about the Sail functions and neither is R-15-007a's
-    proof.
-
-    The memo cache is the lane's own, seeded from the typecheck cache, and the run
-    holds it for the reason `cmd_typecheck` does: Sail rewrites it whole at exit.
-
-    The emission's `STAGE` line goes to the log rather than the console, which is
-    `env.stage`'s own rule that a stage reports beside its own output: what the
-    emission cost is the figure a completion note quotes, and a console line no file
-    keeps cannot be re-taken by the reader who checks the note.
+    Reports per-property verdicts (`proved`, `counterexample`, `undecided`) and
+    timings under `--timeout`, or delegates to Sail's `--smt-auto` when `--auto` is set.
     """
     _require("sail", SAIL_HOW)
     if not args.auto:
@@ -1472,7 +1101,7 @@ def cmd_smt(e: env.Environment, args: argparse.Namespace) -> int:
 
 
 def _report_auto(log: Path, picked: list[str], code: int) -> int:
-    """Read Sail's own verdicts back out of the log, one line per property."""
+    """Read Sail `--smt-auto` verdicts from `log` and report one line per property."""
     verdicts = auto_verdicts(log.read_text(encoding="utf-8", errors="replace"))
     failed = 0
     for name in picked:
@@ -1485,7 +1114,7 @@ def _report_auto(log: Path, picked: list[str], code: int) -> int:
 
 
 def _solve_each(out: Path, picked: list[str], timeout: int, e: env.Environment) -> int:
-    """Put each emitted file to the solver on its own, under one timeout each."""
+    """Run `z3` on each emitted `.smt2` file under `timeout` seconds."""
     counts = dict.fromkeys((PROVED, COUNTEREXAMPLE, UNDECIDED, UNRECOGNIZED), 0)
     for name in picked:
         smt2 = out / f"{SMT_PREFIX}_{name}.smt2"
@@ -1506,8 +1135,6 @@ def _solve_each(out: Path, picked: list[str], timeout: int, e: env.Environment) 
             else:
                 verdict, model = solver_verdict(done.stdout)
         except subprocess.TimeoutExpired:
-            # the solver's own -T is the timeout; this is the guard on a solver that
-            # ignored it, and it is the same verdict
             verdict, model = UNDECIDED, []
         except OSError as err:
             verdict, model = None, []
@@ -1517,10 +1144,6 @@ def _solve_each(out: Path, picked: list[str], timeout: int, e: env.Environment) 
         counts[label] += 1
         print(f"{label:<15} {name:<34} {wall:8.1f} s  ({smt2.stat().st_size} bytes)")
         if verdict == COUNTEREXAMPLE:
-            # The solver's model is SMT-LIB over the emitter's own names and runs to
-            # thousands of lines, so it is written beside the file it came from and
-            # only its head is printed. `--auto` is the form that renders one back
-            # into Sail values.
             witness = smt2.with_suffix(".model")
             witness.write_text("\n".join(model) + "\n", encoding="utf-8")
             for line in model[:MODEL_HEAD_LINES]:
@@ -1540,43 +1163,7 @@ def _solve_each(out: Path, picked: list[str], timeout: int, e: env.Environment) 
 
 
 def cmd_oracle(e: env.Environment, args: argparse.Namespace) -> int:
-    """Build the M0.4 capability oracle, then run the RV64 suite bundled with it.
-
-    The oracle is stock `sail-cheri-riscv` at the pinned `cf36cfd4`, built against the
-    older `sail-riscv` embedded in it. `trace-diff` refuses to run without it, so the
-    recipe belongs here rather than in a shell script on one machine: the tree is
-    disposable and the machine is replaceable, and what has to survive both is how to
-    build it again.
-
-    It builds from a copy on ext4 rather than in place. The build writes generated C
-    into its own source tree, and a pinned submodule working tree is not somewhere a
-    build may write; the copy is also where a Windows checkout's line endings are put
-    back to the pinned blobs'.
-
-    The suite it then runs is the oracle's own acceptance and not the transplant's: it
-    says the reference is a working machine before `trace-diff` is allowed to treat it
-    as evidence. It runs the simulator the build just linked in the tree, whatever
-    `VOS_ORACLE` names, and only once it passes is `oracle_receipt` written beside the
-    tree, naming the tree's stamp, that simulator's SHA-256 and the tally, which
-    `trace-diff` requires. The receipt is removed as soon as the run holds the tree's
-    lock, so a run that holds it and then stops short of a passing suite, refused,
-    failed or killed, leaves none; a run refused before it holds the lock leaves the
-    tree and its receipt as they were.
-
-    The compiler is this environment's `sail`, bound twice. The tree sits under the
-    edition that builds it (`env.Environment.oracle_root`), because the Makefile's
-    generated C depends on the sources and not on the compiler; and `make` is handed
-    `SAIL` on its command line, which overrides the Makefile's own reading of opam's
-    current switch and with it the runtime library it compiles against, so the build
-    uses the compiler the log names.
-
-    The source is bound as well. The tree's name asserts the pin, so the checkout it
-    is copied from has to be that pin: both submodules at their recorded commits
-    (`_oracle_pins`), and the copy holding those commits' files and no others
-    (`_verify_oracle_copy`). A tree that passes carries a stamp naming both commits
-    and vouching for their bytes, and a standing tree is reused only while its stamp
-    says exactly that of the current pins.
-    """
+    """Build the pinned M0.4 `sail-cheri-riscv` oracle on native guest storage and run its RV64 suite."""
     _require("sail", SAIL_HOW)
     sail = shutil.which("sail") or "sail"
     src = e.root / ORACLE_SRC
@@ -1595,12 +1182,8 @@ def cmd_oracle(e: env.Environment, args: argparse.Namespace) -> int:
     log = e.log("oracle-build")
     version = subprocess.run([sail, "--version"], capture_output=True, text=True, check=False)
 
-    # The one tree every lane shares, so the lock sits beside it rather than in any
-    # lane, and a second run, from this checkout or another, is refused rather than
-    # left to rmtree the tree out from under the first's make. A `trace-diff` holds the
-    # same lock shared while it runs the simulator, so this run is refused, naming it,
-    # rather than deleting the executor under a live comparison. Taken before the log
-    # is opened, so a refused run cannot truncate the log of the one it lost to.
+    # Lock the shared oracle tree exclusively so concurrent builds or `trace-diff` runs
+    # cannot overlap with syncing or linking.
     with env.hold_lock(tree, "an oracle build"):
         oracle_receipt(tree).unlink(missing_ok=True)
         print(f"== log: {log}", flush=True)
@@ -1632,14 +1215,7 @@ def cmd_oracle(e: env.Environment, args: argparse.Namespace) -> int:
 
 def _stand_oracle_tree(src: Path, tree: Path, pins: tuple[str, str], handle: IO[str], *,
                        resync: bool) -> str:
-    """Leave `tree` holding the pinned source, or say why it cannot; "" is success.
-
-    A tree already standing is reused only when its stamp names these pins and vouches
-    for their bytes, so one synced from another checkout, before the stamp existed, or
-    under a stamp that claims less is refused rather than built as though it were this
-    pin. A fresh copy is verified before it is stamped, and a copy that fails is
-    removed, so no unverified tree is left to be reused.
-    """
+    """Sync and verify `tree` against `pins`, returning `""` on success or a refusal string."""
     stamp = tree / ORACLE_STAMP
     claim = [*pins, ORACLE_STAMP_CLAIM]
     if not resync and (tree / "Makefile").is_file():
@@ -1667,12 +1243,7 @@ def _stand_oracle_tree(src: Path, tree: Path, pins: tuple[str, str], handle: IO[
 
 def _plain_git(argv: list[str], cwd: Path, overlay: dict[str, str] | None = None,
                stdin: bytes | None = None) -> bytes:
-    """One `git` read, answered from the repository `cwd` stands in, or refused.
-
-    Every inherited variable that would point git at another repository is dropped,
-    because the submodules are repositories of their own; `overlay` is how the
-    superproject's reading still gets a lane's administrative directory.
-    """
+    """Run `git` in `cwd` after scrubbing inherited `GIT_*` environment variables."""
     scrubbed = {name: value for name, value in os.environ.items()
                 if name not in ("GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE")}
     done = subprocess.run(["git", *argv], cwd=cwd, input=stdin, capture_output=True,
@@ -1684,7 +1255,7 @@ def _plain_git(argv: list[str], cwd: Path, overlay: dict[str, str] | None = None
 
 
 def _gitlink(listing: bytes, path: str, where: str) -> str:
-    """The commit a `ls-files --stage` or `ls-tree` line records for `path`."""
+    """Extract the commit SHA recorded for mode `160000` gitlink `path` in `listing`."""
     for line in listing.decode("utf-8", errors="replace").splitlines():
         meta, _, named = line.partition("\t")
         fields = meta.split()
@@ -1696,21 +1267,13 @@ def _gitlink(listing: bytes, path: str, where: str) -> str:
 
 
 def _indexed_oracle_pin(root: Path) -> str:
-    """The commit this checkout's index pins `ORACLE_SRC` at, which is readable whether
-    or not the submodule is checked out."""
+    """Return the commit SHA pinned for `ORACLE_SRC` in `root`'s Git index."""
     return _gitlink(_plain_git(["ls-files", "--stage", "--", ORACLE_SRC], root,
                                env.git_env(root) or None), ORACLE_SRC, "this checkout's index")
 
 
 def _oracle_pins(root: Path, src: Path) -> tuple[str, str]:
-    """The oracle's two pins, with both checkouts shown to be at them.
-
-    The outer pin is this repository's gitlink; the inner one is what that commit
-    records for its nested `sail-riscv`, read from the commit rather than from an index
-    a local edit could have moved. Each checkout's HEAD must be its pin: a gitlink bump
-    leaves a populated submodule at the old commit, and the tree's name would then
-    claim a pin its bytes are not.
-    """
+    """Return `(outer_pin, inner_pin)` for `ORACLE_SRC` and its nested `sail-riscv` submodule."""
     outer = _indexed_oracle_pin(root)
     head = _plain_git(["rev-parse", "HEAD"], src).decode().strip()
     if head != outer:
@@ -1718,8 +1281,6 @@ def _oracle_pins(root: Path, src: Path) -> tuple[str, str]:
                          f"run `{ORACLE_INIT}`")
     inner = _gitlink(_plain_git(["ls-tree", outer, "--", ORACLE_NESTED], src),
                      ORACLE_NESTED, f"{ORACLE_SRC} at {outer}")
-    # An uninitialized nested directory answers for the repository around it, so the
-    # top level is asked for as well as the commit.
     nested = src / ORACLE_NESTED
     answer = _plain_git(["rev-parse", "--show-toplevel", "HEAD"], nested).decode().splitlines()
     try:
@@ -1733,7 +1294,7 @@ def _oracle_pins(root: Path, src: Path) -> tuple[str, str]:
 
 
 def _read_blobs(repo: Path, oids: list[str]) -> dict[str, bytes]:
-    """The contents of `oids`, read in one `git cat-file --batch`."""
+    """Read `oids` from `repo` in a single `git cat-file --batch` call."""
     out = _plain_git(["cat-file", "--batch"], repo, stdin="".join(f"{o}\n" for o in oids).encode())
     blobs: dict[str, bytes] = {}
     at = 0
@@ -1749,18 +1310,7 @@ def _read_blobs(repo: Path, oids: list[str]) -> dict[str, bytes]:
 
 
 def _verify_oracle_copy(src: Path, tree: Path, pins: tuple[str, str]) -> None:
-    """Leave the synced tree byte for byte the pinned commits' files, or refuse.
-
-    Decided on the copy rather than by `git status` over the checkout, for two reasons.
-    It is the copy the build reads, so this is the question that matters; and the
-    guest's git over a checkout the host's git wrote re-reads every file across the
-    mount and reads the host's CRLF conversion as an edit to each one. A file that
-    differs from its pinned blob in line endings alone is that conversion, whatever
-    kind of file it is, and is rewritten to the blob's bytes, so the tree the stamp
-    names as these commits is exactly them. Anything else, an edited file, a missing
-    one, or an untracked or ignored one the copy carried in, refuses, and nothing is
-    rewritten until the whole copy has been compared.
-    """
+    """Verify that `tree` matches the pinned commits' blobs (normalizing CRLF to LF)."""
     expected: dict[str, tuple[str, str]] = {}
     owners: dict[str, Path] = {}
     for repo, prefix, commit in ((src, "", pins[0]),
@@ -1809,26 +1359,14 @@ def _verify_oracle_copy(src: Path, tree: Path, pins: tuple[str, str]) -> None:
 
 
 def _sync_oracle_tree(src: Path, tree: Path) -> None:
-    """Copy the checkout onto ext4 byte for byte, for `_verify_oracle_copy` to hold to
-    the pinned commits and to restore their line endings in.
-
-    `.git` is dropped rather than copied: inside a submodule it is a file pointing back
-    into the superproject, and a copy of it describes a repository that is not where it
-    says it is. The nested `sail-riscv` checkout is copied like any other directory,
-    because the build reads it and `git archive` would not carry it.
-    """
+    """Copy `src` (including nested `sail-riscv`, excluding `.git`) into `tree`."""
     if tree.exists():
         shutil.rmtree(tree)
     shutil.copytree(src, tree, ignore=shutil.ignore_patterns(".git"), symlinks=True)
 
 
 def _vouch_for_oracle(e: env.Environment, tree: Path, handle: IO[str], timeout: int) -> int:
-    """Run the bundled suite on the simulator just built in `tree` and, once it passes,
-    write the receipt `trace-diff` requires; 0 is a passing suite with its receipt.
-
-    The simulator is hashed before the suite runs, so the receipt names the bytes the
-    suite ran rather than whatever stands there after it.
-    """
+    """Run the bundled RV64 suite on the built oracle simulator and write `oracle_receipt`."""
     simulator = tree / ORACLE_TARGET
     try:
         simulator_sha256 = receipts.digest(simulator)
@@ -1849,9 +1387,7 @@ def _vouch_for_oracle(e: env.Environment, tree: Path, handle: IO[str], timeout: 
 
 def _oracle_suite(e: env.Environment, simulator: Path, tree: Path, handle: IO[str],
                   timeout: int) -> tuple[int, int]:
-    """The RV64 programs bundled with the oracle's own embedded sail-riscv, run against
-    `simulator`, as (passed, failed). Each is one short single-threaded process sharing
-    nothing, so the width is the core count for the same reason `sweep`'s is."""
+    """Run the RV64 ELFs bundled under `sail-riscv/test/riscv-tests` and return `(passed, failed)`."""
     elves = sorted((tree / "sail-riscv" / "test" / "riscv-tests").glob("rv64*.elf"))
     if not elves:
         handle.write("no bundled rv64 ELFs found under sail-riscv/test/riscv-tests\n")
@@ -1876,21 +1412,7 @@ def _oracle_suite(e: env.Environment, simulator: Path, tree: Path, handle: IO[st
 
 
 def cmd_sweep(e: env.Environment, args: argparse.Namespace) -> int:
-    """Run the downloaded riscv-tests physical-variant ELFs against the *profile*
-    configuration rather than the max configuration the bundled ctest suite uses, and
-    classify each one.
-
-    The two runs answer different questions. ctest asks whether the curated model is
-    still a correct RISC-V implementation of everything it still implements; this sweep
-    asks what the frozen profile refuses, which is the number each curation batch
-    reports and every refusal is owed an explanation.
-
-        PASS    the test runs to completion and signals success
-        REFUSE  the sim exits non-zero: the test executes surface the profile deletes
-        HANG    the test neither passes nor exits within the timeout, which is a refusal
-                that blocks rather than fails (c3's `si-p-dirty` finding), so it is
-                classified rather than left to a ctest timeout
-    """
+    """Run downloaded `riscv-tests` physical-variant ELFs against the frozen profile and classify each (`PASS`, `REFUSE`, `HANG`)."""
     if (missing := _missing_simulator(e)) is not None:
         print(missing, file=sys.stderr)
         return 1
@@ -1911,16 +1433,8 @@ def cmd_sweep(e: env.Environment, args: argparse.Namespace) -> int:
             return "HANG", ""
         return ("PASS", "") if done.returncode == 0 else ("REFUSE", f" rc={done.returncode}")
 
-    # Each program is one single-threaded process reading its own ELF and sharing
-    # nothing, which is what the bundled ctest suite already parallelises across; the
-    # sweep is as wide as ctest is, and for the same reason. The width is the core count
-    # rather than more, because a hang is classified by wall clock: sized to the cores
-    # the runs do not slow each other down, and a program classified HANG is one that
-    # would hang alone.
     tally = {"PASS": 0, "REFUSE": 0, "HANG": 0}
     with ThreadPoolExecutor(max_workers=e.test_jobs) as pool:
-        # `map` answers in the order the programs were listed, so the report reads as it
-        # always has while the runs behind it overlap
         for elf, (verdict, detail) in zip(elves, pool.map(classify, elves), strict=True):
             tally[verdict] += 1
             print(f"{verdict} {elf.name}{detail}")
@@ -1931,29 +1445,10 @@ def cmd_sweep(e: env.Environment, args: argparse.Namespace) -> int:
 
 
 def cmd_trace_diff(e: env.Environment, args: argparse.Namespace) -> int:
-    """Run the curated model and the M0.4 oracle over the same programs and adjudicate
-    their traces against each other.
+    """Run the curated model and the M0.4 oracle over `elves` (or `--corpus`) and adjudicate their traces.
 
-    The oracle is not a reference for the frozen profile: it implements ISAv9's 128-bit
-    encoding with a hybrid mode and a default data capability, where the curated model
-    carries the 64+1-bit purecap dialect (M0.6f), so the two executors are different
-    machines and the prefix is read as a fact about how far they happen to agree. The
-    module docstring of vos/trace.py holds the rig's standing: its second executor for
-    the frozen profile is the RTL under Verilator co-simulation (R2), M2's fork having
-    been struck, and its corpus is M0.12's purecap programs.
-
-    Over `riscv-tests` the two part company inside the test prologue, at the first load
-    through an integer base register, which a purecap machine reads as an untagged
-    capability and faults on; the prefix is therefore bounded by the corpus rather than
-    by either model. The regression is that the prefix must not *shorten*, which
-    --floor enforces.
-
-    The oracle's tree is every lane's, and `oracle` deletes it on a first sync or a
-    `--resync` and can relink its simulator on any build, so the comparison holds the
-    tree shared for as long as it runs the oracle: such a run from any lane is refused
-    rather than removing the executor under a live comparison, and a comparison is
-    refused while such a run holds the tree. Under that lock it runs the oracle only
-    where the latest `oracle` run vouches for it (`_unvouched_oracle`).
+    Holds a shared lock on `e.oracle_root` and verifies that the oracle simulator
+    matches its passing receipt before running.
     """
     if (missing := _missing_simulator(e)) is not None:
         print(missing, file=sys.stderr)
@@ -1975,9 +1470,6 @@ def cmd_trace_diff(e: env.Environment, args: argparse.Namespace) -> int:
         return 1
 
     with env.hold_lock(e.oracle_root, "a trace-diff", shared=True):
-        # Asked again under the lock: a sync that ran after the first asking and failed
-        # its verification or its build left no simulator behind, and one that passed
-        # replaced the receipt.
         if (missing := _missing_oracle(e) or _unvouched_oracle(e)) is not None:
             print(missing, file=sys.stderr)
             return 1
@@ -1985,25 +1477,14 @@ def cmd_trace_diff(e: env.Environment, args: argparse.Namespace) -> int:
 
 
 def _missing_oracle(e: env.Environment) -> str | None:
-    """`trace-diff`'s refusal when there is no oracle simulator to compare against."""
+    """Return an error string if the M0.4 oracle simulator does not exist."""
     if e.oracle.exists():
         return None
     return f"no M0.4 oracle at {e.oracle}; run `run.py model oracle` first"
 
 
 def _unvouched_oracle(e: env.Environment) -> str | None:
-    """`trace-diff`'s refusal of a simulator no passing `oracle` run vouches for.
-
-    Three things must hold, each read while the tree is held. The tree's stamp vouches
-    for the pinned sources' bytes and names the commit this checkout's index pins
-    `ORACLE_SRC` at, which fixes the nested pin too, since `oracle` reads that out of
-    the same commit. The receipt beside the tree names that stamp and a passing tally.
-    And the simulator is the bytes the receipt records the suite passing on.
-
-    `VOS_ORACLE` may name a simulator outside the tree, and it is held to the tree's
-    receipt all the same: it runs only as a copy of the bytes that passed there, and is
-    refused otherwise.
-    """
+    """Verify that `e.oracle_root`'s source stamp, suite receipt, and simulator SHA-256 all match."""
     tree = e.oracle_root
     resync = "run `run.py model oracle --resync`"
     try:
@@ -2043,19 +1524,11 @@ def _unvouched_oracle(e: env.Environment) -> str | None:
 
 
 def _adjudicate(e: env.Environment, args: argparse.Namespace, elves: list[Path]) -> int:
-    """Run both executors over `elves` and report each verdict, while `cmd_trace_diff`
-    holds the oracle's tree."""
+    """Run both executors over `elves` and adjudicate their normalized traces."""
     profile = e.profile
     tally = {"AGREE": 0, "PREFIX": 0, "SHORT": 0, "SKIP": 0}
     shortest = None
 
-    # Deliberately one program at a time, where `sweep` runs the machine wide. The two
-    # executors here run one after the other and each is milliseconds, so a corpus pass
-    # is seconds already and nearly all of it is this process reading traces rather than
-    # either executor producing them: that work holds the interpreter lock, so threads
-    # would divide the waiting and not the work. If the M0.12 purecap corpus makes a
-    # program's run long enough to dominate its adjudication, this becomes the same
-    # `ThreadPoolExecutor` the sweep uses, measured first.
     for elf in elves:
         curated_lines = _run_trace(
             [str(e.simulator), "--config", str(profile), "--trace-instr", "--trace-gpr",
@@ -2066,8 +1539,6 @@ def _adjudicate(e: env.Environment, args: argparse.Namespace, elves: list[Path])
             continue
         curated = trace.normalize(curated_lines, "curated")
         if not curated:
-            # the profile refuses the program outright, which `run.py model sweep` already
-            # classifies; there is no trace to adjudicate
             print(f"SKIP    {elf.name} (curated model retired nothing)")
             tally["SKIP"] += 1
             continue
@@ -2090,10 +1561,6 @@ def _adjudicate(e: env.Environment, args: argparse.Namespace, elves: list[Path])
             tally["SHORT"] += 1
             continue
 
-        # Neither clean nor errored, so `Verdict.ok` leaves only a divergence. That
-        # is read off the two branches above rather than stated anywhere, so it is
-        # named here: the alternative is a `None` subscript at the point the tool
-        # is reporting the finding it exists to report.
         divergence = verdict.divergence
         if divergence is None:
             raise AssertionError(f"{elf.name}: a verdict that is neither clean, "
@@ -2121,11 +1588,7 @@ def _adjudicate(e: env.Environment, args: argparse.Namespace, elves: list[Path])
 
 
 def _run_trace(argv: list[str], timeout: int) -> list[str] | None:
-    """Both executors print their trace to stdout and their diagnostics to stderr, and
-    the normalizer reads either, so the two are merged as the shell rig merged them.
-    `None` is an executor that never exited: a partial trace would adjudicate as a
-    divergence and blame the wrong machine, so a hang is the caller's finding to word.
-    """
+    """Run `argv` and return merged stdout/stderr lines, or `None` on timeout."""
     try:
         done = subprocess.run(argv, capture_output=True, text=True, errors="replace",
                               timeout=timeout, check=False)
@@ -2135,13 +1598,7 @@ def _run_trace(argv: list[str], timeout: int) -> list[str] | None:
 
 
 def _corpus_persistence(e: env.Environment, out: Path, timeout: int) -> int:
-    """Include architectural reopen evidence in the corpus command's verdict.
-
-    The campaign holds its own lock, the one a lane retirement takes, so this takes
-    none: held here as well, it would refuse the campaign's own hold, a second open
-    of the same file, because `flock` belongs to the open file description rather
-    than to the process.
-    """
+    """Run the architectural persistent-device reopen campaign (`[vos/block_persistence.py](../block_persistence.py)`)."""
     output = out / f"persistence-{uuid.uuid4().hex}"
     try:
         report = block_persistence.run(e.root, e.simulator, e.profile, output, timeout)
@@ -2156,20 +1613,7 @@ def _corpus_persistence(e: env.Environment, out: Path, timeout: int) -> int:
 
 
 def cmd_corpus(e: env.Environment, args: argparse.Namespace) -> int:
-    """Assemble the differential corpus and run it on the curated emulator.
-
-    Each member is asked two questions in one run. The first is its own: a
-    program reports through HTIF, so the verdict is the exit code it wrote, and
-    a failure names the check that failed because `gp` carries it. The second is
-    the rig's: the run emits the capability-widened commit trace, and its digest
-    is held against the manifest's, so a model change that alters what a program
-    does is a finding here rather than a surprise later
-    (docs/assurance/differential-corpus.md).
-
-    Members use the frozen purecap dialect. Generated clients retain their
-    reproduction recipes; the in-tree assembler reads both authored and
-    compiler-emitted members.
-    """
+    """Assemble and run the differential corpus (`[docs/assurance/differential-corpus.md](../../../docs/assurance/differential-corpus.md)`)."""
     if getattr(args, "persistence_only", False):
         if args.member or args.assemble_only or args.refresh:
             print("--persistence-only cannot combine with members, --assemble-only or --refresh",
@@ -2181,9 +1625,6 @@ def cmd_corpus(e: env.Environment, args: argparse.Namespace) -> int:
     if not corpus.members:
         print("the differential corpus contains no member to execute", file=sys.stderr)
         return 1
-    # Lane-scoped like the build trees, so two lanes' runs cannot write one ELF path;
-    # the manifest's digests are over the traces, not the paths, so nothing downstream
-    # cares where the images landed.
     out_dir = Path(args.out) if args.out else e.lane_root / "corpus"
     wanted = set(args.member)
     members = [m for m in corpus.members if not wanted or m.name in wanted]
@@ -2194,15 +1635,11 @@ def cmd_corpus(e: env.Environment, args: argparse.Namespace) -> int:
 
     profile = e.profile
     tally = {"PASS": 0, "FAIL": 0}
-    # checks, records, digest: the three fields the manifest holds per member, and
-    # the three `differential.rewrite` writes back. The annotation carried two of
-    # them until the commit trace widened, which nothing noticed because nothing
-    # read it.
     measured: dict[str, tuple[int, int, str]] = {}
     for member in members:
         try:
             elf = differential.assemble(corpus, member, out_dir)
-        except Exception as exc:                       # an assembler diagnostic
+        except Exception as exc:
             print(f"FAIL    {member.name} ({exc})")
             tally["FAIL"] += 1
             continue
@@ -2232,18 +1669,7 @@ def cmd_corpus(e: env.Environment, args: argparse.Namespace) -> int:
 
 
 def cmd_freeze_emit(e: env.Environment, args: argparse.Namespace) -> int:
-    """Emit the two of §4's three inputs M1.4-prime's composer produces.
-
-    Host-runnable, and that is a property of what it does rather than a convenience: the
-    assembler and the composer are pure host Python and no emulator is involved, so this
-    answers on either lane exactly as `model asm` does.
-
-    **Two things this run states about itself rather than leaving to be inferred.** The
-    geometry is a declared parameter and not a freeze verdict, FD-2 having no default
-    arm at all; and the dictionary is empty, so every site is a verbatim escape and the
-    hit rate is zero, which is a true statement about a machine no dictionary has been
-    selected for rather than a measurement of one.
-    """
+    """Emit the link map and per-site table for the differential corpus (`[vos/compose.py](../compose.py)`)."""
     try:
         geometry = compose.Geometry(header=args.header, slots=args.slots, width=args.width)
     except ValueError as exc:
@@ -2262,14 +1688,11 @@ def cmd_freeze_emit(e: env.Environment, args: argparse.Namespace) -> int:
     blob = bytearray()
     with tempfile.TemporaryDirectory() as scratch:
         for member in members:
-            # The ELF is a container this run does not keep: what §4 joins is the
-            # encoded image's *bytes*, which the analyzer reads for their count alone,
-            # and the sections are what those bytes are.
             elf = Path(scratch) / f"{member.name}.elf"
             here: list[asm.Site] = []
             try:
                 asm.assemble_file(corpus.source(member), elf, here)
-            except Exception as exc:                   # an assembler diagnostic
+            except Exception as exc:
                 print(f"FAIL    {member.name} ({exc})", file=sys.stderr)
                 return 1
             sites += here
@@ -2293,7 +1716,7 @@ def cmd_freeze_emit(e: env.Environment, args: argparse.Namespace) -> int:
 
 
 def _check_trace(member: differential.Member, measured: tuple[int, int, str]) -> tuple[str, str]:
-    """Hold a member's commit trace against the manifest's record of it."""
+    """Compare a member's measured check count, record count, and trace digest against the manifest."""
     checks, records, digest = measured
     if not member.digest:
         return "FAIL", f" (no trace digest in the manifest; {records} records, {digest})"
@@ -2325,8 +1748,6 @@ def _run_member(e: env.Environment, profile: Path, elf: Path,
         return "PASS", "", records
     failure = re.search(r"FAILURE: (\d+)", output)
     if failure:
-        # The corpus's own convention: the exit code is the number the program
-        # left in `gp`, which names the check that failed.
         return "FAIL", f" (check {failure.group(1)} failed)", records
     return "FAIL", f" (rc={done.returncode}, no HTIF verdict)", records
 
@@ -2343,21 +1764,7 @@ def cmd_asm(e: env.Environment, args: argparse.Namespace) -> int:
 
 
 def cmd_devicetree(e: env.Environment, args: argparse.Namespace) -> int:
-    """Generate the attested devicetree, compile it, and hold the blob against the
-    region it is written into.
-
-    Three things can go wrong here and only the third is visible from inside the model.
-    A devicetree *source* is a grammar rather than a rendering, so a property written
-    after a subnode and juxtaposed cell arrays are both errors `dtc` reports and the
-    Sail emitter, which is string concatenation, cannot: it typechecks either way.
-    And the blob has a size, which the region declared for `memory.dtb_address` bounds.
-
-    The emulator does carry that bound, but only on the `--device-tree-blob` path, so a
-    *generated* tree that outgrew its region was silent on every ordinary run. This is
-    that check moved to where it is taken: the tree is generated, compiled, measured,
-    and then handed back through the emulator's own bound rather than through a second
-    implementation of it here.
-    """
+    """Generate the attested devicetree, compile it with `dtc` (zero warnings), and verify it fits its memory region."""
     if (missing := _missing_simulator(e)) is not None:
         print(missing, file=sys.stderr)
         return 1
@@ -2380,18 +1787,12 @@ def cmd_devicetree(e: env.Environment, args: argparse.Namespace) -> int:
         if built.returncode:
             print(f"dtc refused the generated tree:\n{built.stderr}", file=sys.stderr)
             return 1
-        # A warning is a finding here rather than a note, because the class of defect
-        # this catches is a tree that renders, compiles, and describes the machine
-        # wrongly. `dtc` has no global warnings-as-errors flag, its `-W` naming one
-        # check at a time, so the test is that it said nothing at all.
         if built.stderr.strip():
             print(f"dtc compiled the generated tree with warnings:\n{built.stderr}",
                   file=sys.stderr)
             return 1
         size = blob.stat().st_size
 
-        # Exercise the emulator's blob-size check with a corpus ELF. `--validate-config`
-        # exits before that check, which runs when the blob is loaded before the ELF.
         corpus = differential.load(e.root)
         if not corpus.members:
             print("the differential corpus contains no member for the devicetree check",
@@ -2424,23 +1825,7 @@ def cmd_devicetree(e: env.Environment, args: argparse.Namespace) -> int:
 
 
 def cmd_reference(e: env.Environment, args: argparse.Namespace) -> int:
-    """What the frozen golden model *is*, in the form a downstream artifact records.
-
-    The Sail-generated emulator is the executable ISA reference, and everything below
-    it is stated against a particular one: a freeze report carries the model revision
-    its cycle columns came from, a WCET table is a projection of one timing
-    annotation, and a commit-trace digest is a fingerprint of one model's behaviour.
-    None of that means anything unless the reference can say which model it is, and
-    until M0.10 it could not: the out-of-tree build ran `git describe` in the build
-    directory, which is not a repository, so every emulator this tree has ever built
-    stamped itself `unknown commit`.
-
-    So this prints the identity rather than computing anything: the revision the
-    emulator carries, the compiler that generated it, and the two corpora that say
-    what it does. A `-dirty` suffix is printed and not refused, because a working tree
-    under edit is the normal case and a gate that failed on it would be turned off; an
-    *unknown* revision is refused, because that is the state this exists to end.
-    """
+    """Print the frozen golden model's revision, compiler, property count, and differential corpus summary."""
     if (missing := _missing_simulator(e)) is not None:
         print(missing, file=sys.stderr)
         return 1
@@ -2459,11 +1844,6 @@ def cmd_reference(e: env.Environment, args: argparse.Namespace) -> int:
     records = sum(m.records for m in corpus.members)
     checks = sum(m.checks for m in corpus.members)
 
-    # The model's own property harness, which is the other half of what "ISA tests
-    # green" means here: the bundled riscv-tests went with the default data capability
-    # at M0.6f, every one of its programs addressing memory through an integer base
-    # register that a purecap machine faults on, so the corpus below and this harness
-    # are what remains and both are this repository's own.
     harness = e.build_dir / "test" / "unit_tests" / "unit_tests"
     properties = 0
     if not harness.is_file():
