@@ -10,6 +10,7 @@ import re
 from collections.abc import Callable
 from dataclasses import dataclass
 
+from vos import prooflex
 from vos.proofs import DECLARATIONS, VOID, decorations, strip_comments
 
 SAIL = "sail"
@@ -134,9 +135,8 @@ OPERATORS: tuple[Operator, ...] = (
 )
 
 
-_OPENERS = {COQ: re.compile(r'\(\*|"'), SAIL: re.compile(r'/[/*]|"')}
+_SAIL_OPENER = re.compile(r'/[/*]|"')
 _BLOCK_OR_STRING = re.compile(r'/\*|"')
-_COQ_COMMENT = re.compile(r"\(\*|\*\)")
 _STRING_TOKEN = re.compile(r'\\[\s\S]?|"')
 
 
@@ -144,7 +144,11 @@ def mask(text: str, lane: str) -> list[bool]:
     """Return a per-character boolean mask that is True outside comments and string literals."""
     size = len(text)
     ok = [True] * size
-    opener = _OPENERS.get(lane, _BLOCK_OR_STRING)
+    if lane == COQ:
+        for region in prooflex.regions(text, strings_in_comments=True):
+            ok[region.start:region.end] = [False] * (region.end - region.start)
+        return ok
+    opener = _SAIL_OPENER if lane == SAIL else _BLOCK_OR_STRING
     cursor = 0
     while found := opener.search(text, cursor):
         start = found.start()
@@ -159,13 +163,6 @@ def mask(text: str, lane: str) -> list[bool]:
             end = text.find("\n", found.end())
             if end >= 0:
                 cursor = end + 1
-        elif lane == COQ:
-            depth = 1
-            for boundary in _COQ_COMMENT.finditer(text, found.end()):
-                depth += 1 if boundary.group() == "(*" else -1
-                if depth == 0:
-                    cursor = boundary.end()
-                    break
         else:
             end = text.find("*/", found.end())
             if end >= 0:

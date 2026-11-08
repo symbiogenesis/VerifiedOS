@@ -43,10 +43,10 @@ def _sail_block_comments_are_cut_out() -> None:
 
 
 def _coq_comments_nest() -> None:
-    """Rocq comments nest, so a scan that stopped at the first `*)` would leave the
-    tail of an outer comment mutable and produce mutants that are pure noise."""
+    """Rocq comments nest and respect strings inside comments, so neither an inner `*)`
+    nor a quoted `"*)"` leaves the tail of an outer comment mutable."""
     text = ("Definition f (n : nat) : nat :=\n"
-            "  (* outer (* inner 7 *) still comment 8 *)\n"
+            '  (* outer (* inner 7 *) "*)" still comment 8 *)\n'
             "  n + 1.\n")
     found = _sites(text, mutate.COQ, "const-inc")
     ensure([m.before for m in found] == ["1"],
@@ -58,6 +58,9 @@ def _string_literals_are_cut_out() -> None:
     found = _sites(text, mutate.SAIL, "true-to-false")
     ensure(len(found) == 1, f"{len(found)} sites where only the code carries one")
     ensure(found[0].line == 3, f"the site landed on line {found[0].line}, not 3")
+    coq = 'Definition f : bool := let _ := "a ""true 5"" b" in true.\n'
+    ensure(len(_sites(coq, mutate.COQ, "true-to-false")) == 1,
+           "a doubled-quote Rocq string left an interior token mutable")
 
 
 def _coq_proofs_are_outside_the_default_region() -> None:
@@ -376,6 +379,8 @@ def _lexical_boundaries_and_unterminated_spans() -> None:
         (mutate.SAIL, "// comment\r\n", ""),
         (mutate.SAIL, '"/* text */ \\" still string"', ""),
         (mutate.COQ, '\"(* text *)\"', ""),
+        (mutate.COQ, '\"a \"\"quoted\"\" b\"', ""),
+        (mutate.COQ, '(* "*) still comment" *)', ""),
         (mutate.COQ, "(* unterminated (* nested *)", None),
         (mutate.SAIL, "/* unterminated *", None),
         (mutate.SAIL, "// no newline", None),

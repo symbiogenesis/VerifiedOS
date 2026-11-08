@@ -25,7 +25,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from vos import env, gallina, proofs
+from vos import env, gallina, prooflex, proofs
 
 if TYPE_CHECKING:
     from . import Context
@@ -146,10 +146,6 @@ INSTRUMENTS: tuple[Instrument, ...] = (
 
 _RELEASE_RE = re.compile(r"(\d+)\.(\d+)\.(\d+)")
 
-# A string literal as Rocq's lexer reads one: a doubled quote inside it is a quote, and
-# one left open runs to the end of the text.
-_STRING_RE = re.compile(r'"(?:[^"]|"")*"?')
-
 # The tokens the forms are located by, in one pass and without a leading lookbehind,
 # which the engine would re-decide at every position of every source: a prime beside a
 # word is checked on the hits, and a run of more than one ampersand is `&&` or longer.
@@ -195,14 +191,14 @@ FORM_OF = "an `of` binder"
 def code(text: str) -> str:
     """A source with its comments and string literals blanked, line breaks kept, so a
     form a comment or a string spells is not read and every offset stays a line's."""
-    stripped = proofs.strip_comments(text)
     pieces: list[str] = []
     at = 0
-    for quoted in _STRING_RE.finditer(stripped):
-        pieces.append(stripped[at:quoted.start()])
-        pieces.append("".join("\n" if c == "\n" else " " for c in quoted.group()))
-        at = quoted.end()
-    pieces.append(stripped[at:])
+    for region in prooflex.regions(text, strings_in_comments=True):
+        pieces.append(text[at:region.start])
+        pieces.append(
+            "\n".join(" " * len(line) for line in text[region.start:region.end].split("\n")))
+        at = region.end
+    pieces.append(text[at:])
     return "".join(pieces)
 
 

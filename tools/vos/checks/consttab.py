@@ -25,7 +25,8 @@ from collections.abc import Callable
 from math import isqrt
 from typing import TYPE_CHECKING, TypedDict
 
-from vos.proofs import VOID, decorations
+from vos import prooflex
+from vos.proofs import SENTENCE_END, VOID, decorations
 
 if TYPE_CHECKING:
     from . import Context
@@ -108,12 +109,6 @@ _DEFINE_RE = re.compile(r":=")
 # Characters that continue a Coq identifier.
 _CONTINUES_RE = re.compile(r"[\w']")
 
-# Comment delimiters, string quotes, and sentence-ending periods in Gallina.
-_STATEMENT_TOKEN_RE = re.compile(r'\(\*|\*\)|"|\.(?=\s|$)')
-
-# Comment and string delimiters used when blanking Gallina text.
-_LEXEME_RE = re.compile(r'\(\*|\*\)|"')
-
 # Literal-valued and nested-match arms in a Sail `match` expression.
 _ARM_RE = re.compile(r"(0[xX][0-9A-Fa-f]+|\d+|_)\s*=>\s*(0[xX][0-9A-Fa-f]+|\d+)\b")
 _NESTED_RE = re.compile(r"(0[xX][0-9A-Fa-f]+|\d+|_)\s*=>\s*match\s+\w+\s*\{")
@@ -165,32 +160,19 @@ def _spaces(span: str) -> str:
 def _blanked(raw: str) -> str:
     """Replace comments (including nested comments) and string contents with spaces while preserving offsets and newlines."""
     pieces: list[str] = []
-    at = depth = 0
-    quoted = False
-    for token in _LEXEME_RE.finditer(raw):
-        mark = token.group()
-        if quoted:
-            if mark == '"':
-                quoted = False
-                if not depth:
-                    pieces.append(_spaces(raw[at:token.start()]))
-                    at = token.start()
-        elif mark == '"':
-            quoted = True
-            if not depth:
-                pieces.append(raw[at:token.end()])
-                at = token.end()
-        elif mark == "(*":
-            if not depth:
-                pieces.append(raw[at:token.start()])
-                at = token.start()
-            depth += 1
-        elif depth:
-            depth -= 1
-            if not depth:
-                pieces.append(_spaces(raw[at:token.end()]))
-                at = token.end()
-    pieces.append(_spaces(raw[at:]) if depth or quoted else raw[at:])
+    at = 0
+    for region in prooflex.regions(raw, strings_in_comments=True):
+        if region.kind == "comment":
+            pieces.append(raw[at:region.start])
+            pieces.append(_spaces(raw[region.start:region.end]))
+            at = region.end
+        elif region.kind == "string":
+            closed = region.end - region.start >= 2 and raw[region.end - 1] == '"'
+            inner_end = region.end - 1 if closed else region.end
+            pieces.append(raw[at:region.start + 1])
+            pieces.append(_spaces(raw[region.start + 1:inner_end]))
+            at = inner_end
+    pieces.append(raw[at:])
     return "".join(pieces)
 
 
@@ -209,38 +191,12 @@ def _lead(blank: str, opened: int) -> list[str] | None:
     flags = _decorations(blank[start:opened])
     if flags is None:
         return None
-    stop = blank.rfind(".", 0, start)
-    while stop >= 0 and not blank[stop + 1:stop + 2].isspace():
-        stop = blank.rfind(".", 0, stop)
+    stop = start
+    while (stop := blank.rfind(".", 0, stop)) >= 0:
+        if SENTENCE_END.match(blank, stop):
+            break
     run = _decorations(blank[stop + 1:opened], spaced=True)
     return flags if run is None else run
-
-
-def _statement(raw: str, opened: int) -> str:
-    """Extract the Gallina sentence starting at `opened` through its terminating period, stripping comments."""
-    kept: list[str] = []
-    at = opened
-    depth = 0
-    quoted = False
-    for token in _STATEMENT_TOKEN_RE.finditer(raw, opened):
-        mark = token.group()
-        if quoted:
-            quoted = mark != '"'
-        elif depth:
-            depth += {"(*": 1, "*)": -1}.get(mark, 0)
-            if not depth:
-                at = token.end()
-        elif mark == '"':
-            quoted = True
-        elif mark == "(*":
-            kept.append(raw[at:token.start()])
-            depth = 1
-        elif mark == ".":
-            kept.append(raw[at:token.end()])
-            return "".join(kept)
-    if not depth:
-        kept.append(raw[at:])
-    return "".join(kept)
 
 
 def _gallina_body(raw: str, pair: Pair, keyword: str) -> tuple[str | None, str]:
@@ -262,7 +218,8 @@ def _gallina_body(raw: str, pair: Pair, keyword: str) -> tuple[str | None, str]:
                     return None, (f"{pair['gallina']} states {keyword} {pair['name']} "
                                   f"under `{void}`, which keeps nothing it states, so "
                                   "no table is read out of it")
-                return _statement(raw, opened), ""
+                end = SENTENCE_END.search(blank, opened)
+                return blank[opened:end.end() if end else len(blank)], ""
         opened = blank.find(head, opened + 1)
     return None, f"{pair['gallina']} states no {keyword} named {pair['name']}"
 

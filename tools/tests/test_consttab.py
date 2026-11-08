@@ -91,11 +91,15 @@ def _a_flag_before_a_brace_is_the_braces() -> None:
 
 def _a_statement_inside_a_comment_is_none() -> None:
     # a statement a comment quotes at column zero is prose, and the table is the one
-    # the file states
-    got, why = _values("(* the table once read:\n"
-                       "Definition table : list nat := 9 :: 9 :: 9 :: nil.\n"
-                       "*)\n" + _TABLE)
-    ensure(got == [3, 5, 7], f"the table a comment quotes was read: {got} ({why})")
+    # the file states, even when a string inside the comment spells `*)`
+    for comment in ("(* the table once read:\n"
+                    "Definition table : list nat := 9 :: 9 :: 9 :: nil.\n"
+                    "*)\n",
+                    '(* a quoted "*)" keeps the comment open:\n'
+                    "Definition table : list nat := 9 :: 9 :: 9 :: nil.\n"
+                    "*)\n"):
+        got, why = _values(comment + _TABLE)
+        ensure(got == [3, 5, 7], f"the table a comment quotes was read: {got} ({why})")
 
 
 def _a_statement_stops_at_its_own_full_stop() -> None:
@@ -112,7 +116,7 @@ def _a_statement_stops_at_its_own_full_stop() -> None:
                            "example")
         ensure(got == [3, 5, 7], f"after {follower!r} the Example read {got} ({why})")
     # a comment inside the statement is no value and its full stop ends nothing, nested
-    # comments included, and a string's full stop ends nothing either
+    # comments included, and a string's full stop, doubled quotes, or digits add nothing
     got, why = _values("Definition table : list nat :=\n"
                        "  3 :: (* the second. It was 4 once. *) 5 :: 7 :: nil.\n")
     ensure(got == [3, 5, 7], f"a comment inside the table read {got} ({why})")
@@ -120,11 +124,14 @@ def _a_statement_stops_at_its_own_full_stop() -> None:
                        "  3 :: (* outer (* inner. *) 4. *) 5 :: 7 :: nil.\n")
     ensure(got == [3, 5, 7], f"a nested comment inside the table read {got} ({why})")
     got, why = _values("Definition table : list nat :=\n"
-                       '  let _ := "a. b" in 3 :: 5 :: 7 :: nil.\n')
-    ensure(got == [3, 5, 7], f"a string's full stop ended the table: {got} ({why})")
-    # and a qualified name's period is no full stop
+                       '  let _ := "a. ""b. := 9"" 8" in 3 :: 5 :: 7 :: nil.\n')
+    ensure(got == [3, 5, 7], f"a string's full stop or digits leaked: {got} ({why})")
+    # a qualified name's period or a `..` token is no full stop
     got, why = _values("Definition table : list N := N.of_nat 3 :: 5 :: 7 :: nil.\n")
     ensure(got == [3, 5, 7], f"a qualified name ended the statement: {got} ({why})")
+    got, why = _values('Notation "t[ x ; .. ; y ]" := (cons x .. (cons y nil) ..).\n'
+                       + _TABLE)
+    ensure(got == [3, 5, 7], f"a recursive notation disturbed the table: {got} ({why})")
 
 
 def cases() -> list[Case]:
