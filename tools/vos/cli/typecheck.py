@@ -9,7 +9,6 @@ execution, diagnostic summaries, suppression and platform-import checks.
 
 import argparse
 import ast
-import importlib.util
 import io
 import os
 import re
@@ -400,112 +399,25 @@ def _banned_names(node: ast.Import | ast.ImportFrom, banned: frozenset[str]) -> 
             if alias.name != "*" and listed(member := f"{node.module}.{alias.name}")]
 
 
-def _is_platform(node: ast.AST) -> bool:
-    """Return whether `node` is the attribute expression `sys.platform`."""
-    return (isinstance(node, ast.Attribute) and node.attr == "platform"
-            and isinstance(node.value, ast.Name) and node.value.id == "sys")
-
-
-def _reads_platform(test: ast.expr) -> bool:
-    """Return whether `test` contains `sys.platform`."""
-    return any(_is_platform(node) for node in ast.walk(test))
-
-
-def _literal(node: ast.expr) -> str | None:
-    """Return `node`'s value if it is a string literal, else `None`."""
-    return node.value if isinstance(node, ast.Constant) and isinstance(node.value, str) \
-        else None
-
-
-def _literals(node: ast.expr, kinds: tuple[type[ast.Tuple | ast.List | ast.Set], ...]
-              ) -> list[str] | None:
-    """Return the string literals in a container literal of `kinds`, or `None`."""
-    if not isinstance(node, kinds):
-        return None
-    values = [element.value for element in node.elts
-              if isinstance(element, ast.Constant) and isinstance(element.value, str)]
-    return values if len(values) == len(node.elts) else None
-
-
-def _platform_value(test: ast.expr, platform: str) -> bool | None:
-    """Evaluate `test` when `sys.platform == platform`, or return `None` if not statically decidable."""
-    match test:
-        case ast.UnaryOp(op=ast.Not(), operand=operand):
-            value = _platform_value(operand, platform)
-            return None if value is None else not value
-        case ast.BoolOp(op=op, values=operands):
-            values = [_platform_value(operand, platform) for operand in operands]
-            if None in values:
-                return None
-            return all(values) if isinstance(op, ast.And) else any(values)
-        case ast.Compare(left=left, ops=[ast.Eq() | ast.NotEq() as op],
-                         comparators=[right]) if _is_platform(left):
-            literal = _literal(right)
-            return None if literal is None else (platform == literal) == isinstance(op, ast.Eq)
-        case ast.Compare(left=left, ops=[ast.In() | ast.NotIn() as op],
-                         comparators=[right]) if _is_platform(left):
-            listed = _literals(right, (ast.Tuple, ast.List, ast.Set))
-            return None if listed is None else (platform in listed) == isinstance(op, ast.In)
-        case ast.Call(func=ast.Attribute(value=value, attr="startswith"), args=[prefix],
-                      keywords=[]) if _is_platform(value):
-            literal = _literal(prefix)
-            prefixes = [literal] if literal is not None else _literals(prefix, (ast.Tuple,))
-            return None if prefixes is None else platform.startswith(tuple(prefixes))
-    return None
-
-
-class Site(NamedTuple):
-    """A non-function-scoped import of a banned module and its platform reachability."""
-    line: int
-    names: list[str]
-    reach: frozenset[str]
-    test: ast.expr | None
-
-
-def _platform_imports(tree: ast.Module, banned: frozenset[str]) -> list[Site]:
-    """Find imports of `banned` modules outside function bodies, tracking reachable `TY_PLATFORMS`."""
-    found: list[Site] = []
-    stack: list[tuple[ast.AST, frozenset[str], ast.expr | None]] = [
-        (tree, frozenset(TY_PLATFORMS), None)]
+def _platform_imports(tree: ast.Module, banned: frozenset[str]) -> list[tuple[int, list[str]]]:
+    """Find imports of `banned` modules outside function bodies."""
+    found: list[tuple[int, list[str]]] = []
+    stack: list[ast.AST] = [tree]
     while stack:
-        node, reach, nearest = stack.pop()
+        node = stack.pop()
         for child in ast.iter_child_nodes(node):
-            if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef, ast.Lambda)):
+            if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef)):
                 continue
-            if isinstance(child, ast.If) and _reads_platform(child.test):
-                values = {platform: _platform_value(child.test, platform)
-                          for platform in reach}
-                if None in values.values():
-                    stack.append((child, reach, child.test))
-                    continue
-                taken = frozenset(platform for platform, value in values.items() if bool(value))
-                for branch, platforms in ((child.body, taken), (child.orelse, reach - taken)):
-                    if platforms:
-                        stack.append((ast.Module(body=branch, type_ignores=[]), platforms,
-                                      child.test))
-            elif isinstance(child, (ast.Import, ast.ImportFrom)):
+            if isinstance(child, (ast.Import, ast.ImportFrom)):
                 if names := _banned_names(child, banned):
-                    found.append(Site(child.lineno, names, reach, nearest))
+                    found.append((child.lineno, names))
             else:
-                stack.append((child, reach, nearest))
-    return sorted(found, key=lambda site: (site.line, site.names))
-
-
-def _unfound(names: list[str]) -> list[str]:
-    """Return entries in `names` whose top-level module cannot be found by `find_spec`."""
-    unfound: list[str] = []
-    for name in names:
-        try:
-            found = importlib.util.find_spec(name.partition(".")[0]) is not None
-        except ImportError, ValueError:
-            found = False
-        if not found:
-            unfound.append(name)
-    return unfound
+                stack.append(child)
+    return sorted(found)
 
 
 def _run_imports(rep: Reporter, root: Path, tracked: frozenset[str]) -> None:
-    """Check `tracked` modules for banned imports outside function bodies not guarded by `sys.platform`."""
+    """Check `tracked` modules for banned imports outside function bodies."""
     tools = root / "tools"
     banned, unread = _banned(tools / "ruff.toml")
     if unread:
@@ -513,7 +425,6 @@ def _run_imports(rep: Reporter, root: Path, tracked: frozenset[str]) -> None:
         return
     spelled = re.compile(r"\b(?:" + "|".join(sorted(re.escape(ban.rpartition(".")[2])
                                                     for ban in banned)) + r")\b")
-    every, running = frozenset(TY_PLATFORMS), sys.platform
     findings: list[str] = []
     for module in sorted(tracked):
         try:
@@ -528,24 +439,11 @@ def _run_imports(rep: Reporter, root: Path, tracked: frozenset[str]) -> None:
         except (SyntaxError, ValueError) as err:
             findings.append(f"{module} cannot be parsed: {err}")
             continue
-        for site in _platform_imports(tree, banned):
-            behind = "no sys.platform check" if site.test is None else \
-                f"`{ast.unparse(site.test)}`"
-            if site.reach == every:
-                findings.append(
-                    f"{module}:{site.line} imports {', '.join(site.names)} outside a function "
-                    f"body, behind {behind}"
-                    + ("" if site.test is None else ", a sys.platform test the scan does not "
-                       "admit as separating platforms"))
-            elif running in site.reach and (unfound := _unfound(site.names)):
-                findings.append(
-                    f"{module}:{site.line} imports {', '.join(unfound)} outside a function "
-                    f"body, behind {behind}, on a branch {running} takes, where this "
-                    "interpreter cannot find it")
+        for line, names in _platform_imports(tree, banned):
+            findings.append(f"{module}:{line} imports {', '.join(names)} outside a function body")
     rep.report("imports", "import(s) of a module ruff.toml bans at module level outside a "
                "function body:", findings,
-               "every import of a module ruff.toml bans at module level sits in a function "
-               "body or where a sys.platform check keeps a platform from it")
+               "every import of a module ruff.toml bans at module level sits in a function body")
 
 
 def run(root: Path) -> Reporter:

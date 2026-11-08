@@ -1044,7 +1044,7 @@ def _ty_log_variables_removed() -> None:
 _BANNING = ('[lint.flake8-tidy-imports]\n'
             'banned-module-level-imports = ["fcntl", "asyncio.unix_events"]\n')
 _SCAN_OK = ("ok imports: every import of a module ruff.toml bans at module level sits in a "
-            "function body or where a sys.platform check keeps a platform from it")
+            "function body")
 _SCAN_FAIL = ("import(s) of a module ruff.toml bans at module level outside a function "
               "body:")
 
@@ -1072,58 +1072,24 @@ def _scan(modules: dict[str, str], config: str | None = _BANNING) -> Reporter:
 
 
 def _refused(site: str, names: str = "fcntl") -> str:
-    return (f"       {site} imports {names} outside a function body, behind no sys.platform "
-            "check")
-
-
-def _unadmitted(site: str, test: str, names: str = "fcntl") -> str:
-    return (f"       {site} imports {names} outside a function body, behind `{test}`, a "
-            "sys.platform test the scan does not admit as separating platforms")
+    return f"       {site} imports {names} outside a function body"
 
 
 def _imports_refused_outside_functions() -> None:
     # An import of a banned module, or of a banned submodule by its parent, that runs
     # outside a function body is refused wherever it sits: unnested at module level, in
-    # a class body at any depth, and in a module-level block such as the main guard. A
-    # name spelled with a fullwidth letter is the banned module, since Python
-    # NFKC-normalizes identifiers, though the text never spells it in ASCII. An `if`
-    # reading a `platform` other than `sys.platform`, another object's or one imported
-    # from sys and read bare, is not the check the scan admits, and neither is one
-    # reading `sys.platform` other than by comparing it with string literals: by truth
-    # value, beside a constant or another operand, beside a comparison of something
-    # other than `sys.platform` with literals by `==`, `in` or startswith, through a call
-    # other than startswith, against a name or with `in` against a string. Both branches
-    # of such an `if` are refused, each import naming the nearest such test above it.
-    #
-    # A comparison the scan reads is refused where both platforms take the branch: a
-    # tautology built from the admitted forms, a test only another platform fails, a
-    # display or a prefix both platforms match, and an empty `not in`. So is a test of a
-    # form the scan does not read beneath one that keeps both platforms, nested in its
-    # body, in its `else` or as its `elif`; each names the nearest test above it.
+    # a class body at any depth, and in a module-level block such as a sys.platform
+    # branch, the main guard, a try block or a with block. A name spelled with a
+    # fullwidth letter is the banned module, since Python NFKC-normalizes identifiers,
+    # though the text never spells it in ASCII.
     refused = {
-        "receiver.py": "if args.platform == 'linux':\n    import fcntl\n",
-        "fromsys.py": "from sys import platform\n\nif platform == 'linux':\n    import fcntl\n",
-        "truthy.py": "import sys\n\nif sys.platform:\n    import fcntl\n",
-        "always.py": "import sys\n\nif sys.platform or True:\n    import fcntl\n",
-        "length.py": "import sys\n\nif len(sys.platform):\n    import fcntl\n",
-        "operand.py": ("import sys\n\nif sys.platform == 'linux' or args.force:\n"
-                       "    import fcntl\n"),
-        "otherequal.py": ("import os, sys\n\nif sys.platform == 'linux' or os.name == 'nt':\n"
-                          "    import fcntl\n"),
-        "otherin.py": ("import os, sys\n\nif sys.platform == 'linux' or os.name in ('nt',):\n"
-                       "    import fcntl\n"),
-        "otherprefix.py": ("import os, sys\n\n"
-                           "if sys.platform == 'linux' or os.name.startswith('nt'):\n"
-                           "    import fcntl\n"),
-        "named.py": "import sys\n\nPOSIX = 'linux'\nif sys.platform == POSIX:\n    import fcntl\n",
-        "substring.py": "import sys\n\nif sys.platform in 'linux':\n    import fcntl\n",
-        "elsebranch.py": "import sys\n\nif not sys.platform:\n    pass\nelse:\n    import fcntl\n",
-        "innermost.py": ("import sys\n\nif sys.platform:\n    if len(sys.platform):\n"
-                         "        import fcntl\n"),
         "toplevel.py": "import os, fcntl\n",
         "classbody.py": "class Locks:\n    import fcntl\n",
         "nested.py": "class Outer:\n    class Inner:\n        import fcntl\n",
         "nfkc.py": "class Locks:\n    import \uff46cntl\n",
+        "platformif.py": "import sys\n\nif sys.platform == 'linux':\n    import fcntl\n",
+        "platformclass.py": ("import sys\n\nclass Locks:\n    if sys.platform != 'win32':\n"
+                             "        import fcntl\n"),
         "moduleif.py": "import os\n\nif os.name == 'posix':\n    import fcntl\n",
         "mainblock.py": "if __name__ == '__main__':\n    import fcntl\n",
         "tryblock.py": "try:\n    from fcntl import flock\nexcept ImportError:\n    pass\n",
@@ -1133,60 +1099,12 @@ def _imports_refused_outside_functions() -> None:
     rep = _scan(refused)
     ensure(rep.findings == len(refused) and rep.out == [
         f"FAIL imports: {len(refused)} {_SCAN_FAIL}",
-        _unadmitted("always.py:4", "sys.platform or True"),
         _refused("classbody.py:2"), _refused("dotted.py:2", "asyncio.unix_events"),
-        _unadmitted("elsebranch.py:6", "not sys.platform"),
-        _refused("fromsys.py:4"), _unadmitted("innermost.py:5", "len(sys.platform)"),
-        _unadmitted("length.py:4", "len(sys.platform)"), _refused("mainblock.py:2"),
-        _refused("member.py:2", "asyncio.unix_events"), _refused("moduleif.py:4"),
-        _unadmitted("named.py:5", "sys.platform == POSIX"),
-        _refused("nested.py:3"), _refused("nfkc.py:2"),
-        _unadmitted("operand.py:4", "sys.platform == 'linux' or args.force"),
-        _unadmitted("otherequal.py:4", "sys.platform == 'linux' or os.name == 'nt'"),
-        _unadmitted("otherin.py:4", "sys.platform == 'linux' or os.name in ('nt',)"),
-        _unadmitted("otherprefix.py:4", "sys.platform == 'linux' or os.name.startswith('nt')"),
-        _refused("receiver.py:2"), _unadmitted("substring.py:4", "sys.platform in 'linux'"),
-        _refused("toplevel.py:1"), _unadmitted("truthy.py:4", "sys.platform"),
-        _refused("tryblock.py:2")],
+        _refused("mainblock.py:2"), _refused("member.py:2", "asyncio.unix_events"),
+        _refused("moduleif.py:4"), _refused("nested.py:3"), _refused("nfkc.py:2"),
+        _refused("platformclass.py:5"), _refused("platformif.py:4"),
+        _refused("toplevel.py:1"), _refused("tryblock.py:2")],
         f"each import outside a function body must be refused: {rep.out!r}")
-    both = {
-        "tautology.py": ("import sys\n\nif sys.platform == 'linux' or sys.platform != 'linux':\n"
-                         "    import fcntl\n"),
-        "otherplatform.py": "import sys\n\nif sys.platform != 'darwin':\n    import fcntl\n",
-        "bothlisted.py": ("import sys\n\nif sys.platform in ('linux', 'win32'):\n"
-                          "    import fcntl\nelse:\n    pass\n"),
-        "bothprefix.py": ("import sys\n\nif sys.platform.startswith(('lin', 'win')):\n"
-                          "    import fcntl\n"),
-        "neither.py": ("import sys\n\n"
-                       "if not (sys.platform == 'linux' and sys.platform == 'win32'):\n"
-                       "    import fcntl\n"),
-        "emptynotin.py": "import sys\n\nif sys.platform not in ():\n    import fcntl\n",
-        "nestedtruthy.py": ("import sys\n\nif sys.platform != 'darwin':\n    if sys.platform:\n"
-                            "        import fcntl\n"),
-        "elselength.py": ("import sys\n\nif sys.platform == 'darwin':\n    pass\nelse:\n"
-                          "    if len(sys.platform):\n        import fcntl\n"),
-        "eliftruthy.py": ("import sys\n\nif sys.platform == 'darwin':\n    pass\n"
-                          "elif sys.platform:\n    import fcntl\n"),
-        "elifadmitted.py": ("import sys\n\nif sys.platform == 'darwin':\n    pass\n"
-                            "elif sys.platform != 'cygwin':\n    import fcntl\n"),
-        "elseclass.py": ("import sys\n\nif sys.platform == 'darwin':\n    pass\nelse:\n"
-                         "    class Locks:\n        import fcntl\n"),
-    }
-    rep = _scan(both)
-    ensure(rep.findings == len(both) and rep.out == [
-        f"FAIL imports: {len(both)} {_SCAN_FAIL}",
-        _unadmitted("bothlisted.py:4", "sys.platform in ('linux', 'win32')"),
-        _unadmitted("bothprefix.py:4", "sys.platform.startswith(('lin', 'win'))"),
-        _unadmitted("elifadmitted.py:6", "sys.platform != 'cygwin'"),
-        _unadmitted("eliftruthy.py:6", "sys.platform"),
-        _unadmitted("elseclass.py:7", "sys.platform == 'darwin'"),
-        _unadmitted("elselength.py:7", "len(sys.platform)"),
-        _unadmitted("emptynotin.py:4", "sys.platform not in ()"),
-        _unadmitted("neither.py:4", "not (sys.platform == 'linux' and sys.platform == 'win32')"),
-        _unadmitted("nestedtruthy.py:5", "sys.platform"),
-        _unadmitted("otherplatform.py:4", "sys.platform != 'darwin'"),
-        _unadmitted("tautology.py:4", "sys.platform == 'linux' or sys.platform != 'linux'")],
-        f"each import both platforms reach must be refused: {rep.out!r}")
 
 
 def _run_wires_in_the_scan() -> None:
@@ -1203,113 +1121,21 @@ def _run_wires_in_the_scan() -> None:
            f"the run must carry the scan's refusal: {rep.out!r}")
 
 
-def _imports_admitted_in_functions_and_platform_blocks() -> None:
-    # A function body runs only when called, and an if comparing sys.platform with string
-    # literals keeps each of its branches to the platforms that take it, at module level
-    # or in a class body: by == or != with one, by in or not in with a tuple, list or set
-    # of them, or through startswith with one or a tuple of them, alone, under not, or
-    # joined by and or or. Each import below is kept to linux, where fcntl is found, and
-    # stays so beneath a test of any form nested in the branch, in its body or its elif;
-    # one no platform reaches, behind another platform or an empty display, is admitted
-    # too. A name that only begins like a banned one, a banned module's parent, a relative
-    # import and a string are none of them an import of a banned module.
+def _imports_admitted_in_functions() -> None:
+    # A function body runs only when called. A name that only begins like a banned one,
+    # a banned module's parent, a relative import and a string are none of them an
+    # import of a banned module.
     admitted = {
-        "platformin.py": ("import sys\n\nif sys.platform in ('linux', 'darwin'):\n"
-                          "    import fcntl\n"),
-        "platformnotin.py": "import sys\n\nif sys.platform not in ['win32']:\n    import fcntl\n",
-        "platformset.py": "import sys\n\nif sys.platform in {'linux'}:\n    import fcntl\n",
-        "platformprefix.py": ("import sys\n\nif sys.platform.startswith('linux'):\n"
-                              "    import fcntl\n"),
-        "platformprefixes.py": ("import sys\n\nif sys.platform.startswith(('linux', 'darwin')):\n"
-                                "    import fcntl\n"),
-        "platformnot.py": "import sys\n\nif not sys.platform == 'win32':\n    import fcntl\n",
-        "platformjoined.py": ("import sys\n\nif sys.platform != 'win32' and not (\n"
-                              "        sys.platform == 'cygwin' or sys.platform.startswith('msys')):\n"
-                              "    import fcntl\n"),
         "function.py": "def lock() -> None:\n    import fcntl\n",
         "coroutine.py": "async def lock() -> None:\n    from fcntl import flock\n",
         "method.py": "class Locks:\n    def lock(self) -> None:\n        import fcntl\n",
         "classinfunction.py": "def make() -> None:\n    class Locks:\n        import fcntl\n",
-        "platformif.py": "import sys\n\nif sys.platform != 'win32':\n    import fcntl\n",
-        "platformelse.py": ("import sys\n\nif sys.platform == 'win32':\n    pass\n"
-                            "elif __name__ == '__main__':\n    import fcntl\n"),
-        "platformclass.py": ("import sys\n\nclass Locks:\n    if sys.platform != 'win32':\n"
-                             "        import fcntl\n"),
-        "narrowed.py": ("import sys\n\nif sys.platform != 'darwin':\n"
-                        "    if sys.platform == 'linux':\n        import fcntl\n"),
-        "narrowedtruthy.py": ("import sys\n\nif sys.platform == 'linux':\n    if sys.platform:\n"
-                              "        import fcntl\n"),
-        "elifnarrowed.py": ("import sys\n\nif sys.platform == 'win32':\n    pass\n"
-                            "elif len(sys.platform):\n    import fcntl\n"),
-        "nowhere.py": "import sys\n\nif sys.platform == 'darwin':\n    import fcntl\n",
-        "emptyin.py": "import sys\n\nif sys.platform in ():\n    import fcntl\n",
         "unrelated.py": ("import asyncio\nimport fcntlx\nfrom asyncio import events\n"
                          "from . import fcntl\nTEXT = 'import fcntl'\n"),
     }
     rep = _scan(admitted)
     ensure(rep.findings == 0 and rep.out == [_SCAN_OK],
-           f"an import in a function body or behind sys.platform must be admitted: {rep.out!r}")
-
-
-def _missing(site: str, test: str, names: str, platform: str) -> str:
-    return (f"       {site} imports {names} outside a function body, behind `{test}`, on a "
-            f"branch {platform} takes, where this interpreter cannot find it")
-
-
-def _imports_refused_where_the_running_platform_lacks_them() -> None:
-    # Keeping an import from one platform does not say which platform has the module, so
-    # on each lane an import the running platform reaches is refused where this
-    # interpreter cannot find its top-level module, naming the nearest test reading
-    # `sys.platform`, whose body or `else` the running platform takes, in a class body as
-    # at module level. The same import kept to the other platform is admitted, and so are
-    # one of a module the interpreter finds and one of a submodule whose package it
-    # finds, which this reading does not catch. With modules no interpreter finds, the
-    # refusal follows the running platform: each of the two refuses the import it
-    # reaches, and a platform outside them refuses neither. A name the finder refuses,
-    # raising rather than answering, is refused as one it cannot find, fail-closed, even
-    # where the interpreter has the module.
-    config = ('[lint.flake8-tidy-imports]\nbanned-module-level-imports = ["fcntl", "msvcrt", '
-              '"asyncio.unix_events", "asyncio.windows_events", "vosnolinux", "vosnowin32"]\n')
-    running = sys.platform
-    lacking, having = ("fcntl", "msvcrt") if running == "win32" else ("msvcrt", "fcntl")
-    submodule = "asyncio.unix_events" if running == "win32" else "asyncio.windows_events"
-    modules = {
-        "wrongside.py": f"import sys\n\nif sys.platform == {running!r}:\n    import {lacking}\n",
-        "elseside.py": (f"import sys\n\nif sys.platform != {running!r}:\n    pass\nelse:\n"
-                        f"    import {lacking}\n"),
-        "classside.py": (f"import sys\n\nclass Locks:\n    if sys.platform.startswith("
-                         f"{running[:3]!r}):\n        from {lacking} import flags\n"),
-        "rightside.py": f"import sys\n\nif sys.platform != {running!r}:\n    import {lacking}\n",
-        "having.py": f"import sys\n\nif sys.platform == {running!r}:\n    import {having}\n",
-        "submodule.py": f"import sys\n\nif sys.platform == {running!r}:\n    import {submodule}\n",
-    }
-    rep = _scan(modules, config)
-    ensure(rep.findings == 3 and rep.out == [
-        f"FAIL imports: 3 {_SCAN_FAIL}",
-        _missing("classside.py:5", f"sys.platform.startswith({running[:3]!r})", lacking,
-                 running),
-        _missing("elseside.py:6", f"sys.platform != {running!r}", lacking, running),
-        _missing("wrongside.py:4", f"sys.platform == {running!r}", lacking, running)],
-        f"an import this platform reaches of a module it lacks must be refused: {rep.out!r}")
-    lanes = {"lanes.py": ("import sys\n\nif sys.platform == 'linux':\n    import vosnolinux\n"
-                          "if sys.platform == 'win32':\n    import vosnowin32\n")}
-    for platform, expected in (
-            ("linux", [_missing("lanes.py:4", "sys.platform == 'linux'", "vosnolinux", "linux")]),
-            ("win32", [_missing("lanes.py:6", "sys.platform == 'win32'", "vosnowin32", "win32")]),
-            ("darwin", [])):
-        with patch.object(typecheck, "sys", SimpleNamespace(platform=platform)):
-            rep = _scan(lanes, config)
-        ensure(rep.out == ([f"FAIL imports: 1 {_SCAN_FAIL}", *expected] if expected
-                           else [_SCAN_OK]),
-               f"under {platform}, only the import it reaches may be refused: {rep.out!r}")
-    for error in (ValueError, ImportError):
-        with patch.object(typecheck.importlib.util, "find_spec", side_effect=error("refused")):
-            rep = _scan({"having.py": modules["having.py"]}, config)
-        ensure(rep.findings == 1 and rep.out == [
-            f"FAIL imports: 1 {_SCAN_FAIL}",
-            _missing("having.py:4", f"sys.platform == {running!r}", having, running)],
-            f"a name the finder refuses with {error.__name__} must be refused as one it "
-            f"cannot find: {rep.out!r}")
+           f"an import in a function body must be admitted: {rep.out!r}")
 
 
 def _imports_fail_closed() -> None:
@@ -1653,10 +1479,7 @@ def cases() -> list[Case]:
         Case("ty-log-variables-removed", _ty_log_variables_removed),
         Case("imports-refused-outside-functions", _imports_refused_outside_functions),
         Case("run-wires-in-the-scan", _run_wires_in_the_scan),
-        Case("imports-admitted-in-functions-and-platform-blocks",
-             _imports_admitted_in_functions_and_platform_blocks),
-        Case("imports-refused-where-the-running-platform-lacks-them",
-             _imports_refused_where_the_running_platform_lacks_them),
+        Case("imports-admitted-in-functions", _imports_admitted_in_functions),
         Case("imports-fail-closed", _imports_fail_closed),
         Case("imports-close-what-ruff-leaves-open", _imports_close_what_ruff_leaves_open),
         Case("import-probe-names-modules-that-did-not-load",
