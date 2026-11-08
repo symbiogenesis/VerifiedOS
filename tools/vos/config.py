@@ -1,19 +1,11 @@
 # SPDX-License-Identifier: Apache-2.0
-"""The model's configuration, held against the schema and against the max build.
+"""Read, flatten, compare, and schema-validate Sail model configuration files (`model/config/*.json`).
 
-Two questions are asked of `model/config/verifiedos.json`, and they catch different
-things. The first is whether it still declares the same *keys* as the generated max
-configuration, which is what a deletion batch must leave true even where the two
-disagree on values: a key present in only one of them is either dead configuration
-surface the cut missed, or a profile row the generated file no longer offers. The
-second is whether it validates against the schema a fresh emission regenerates, which
-catches the class the Sail typechecker cannot see: a stray `config extensions.<Name>`
-read left behind by a cut, which surfaces as a schema/config collision only at emission
-(the c1 "sixth touch" finding).
-
-Both are approximations of the simulator's own `--validate-config`, which also runs the
-model's semantic `config_is_valid`, so the full build stays the exit criterion for each
-batch.
+Provides:
+- Memoized JSONC loading and key-path lookup ([`value`](#value), [`integer`](#integer),
+  [`flat_of`](#flat_of)).
+- Key-set comparison ([`compare_keys`](#compare_keys)) and bidirectional JSON Schema
+  validation ([`validate`](#validate)) against the Sail-generated schema.
 """
 
 import json
@@ -27,34 +19,19 @@ from .jsonc import Json
 
 @lru_cache(maxsize=128)
 def _parse(path: Path, identity: tuple[int, int, int, int]) -> Json:
-    """Keep recent parses in memory, bounded across edits and temporary trees.
-
-    Metadata participates in the cache key: size changes and file replacements
-    remain visible when a writer restores the mtime. Failed parses are not cached.
-    """
+    """Parse `path` via [`jsonc.load`](jsonc.py#load), keyed by file stat metadata."""
     return jsonc.load(path)
 
 
 def _load(path: Path) -> Json:
-    """`jsonc.load`, memoized. A parse error is not memoized, so a broken file is
-    re-read on every query and stays the caller's finding each time."""
+    """Load `path` with stat-keyed memoization (parse errors are not cached)."""
     path = path.absolute()
     stat = path.stat()
     return _parse(path, (stat.st_mtime_ns, stat.st_ctime_ns, stat.st_size, stat.st_ino))
 
 
 def value(path: Path, *keys: str) -> Json:
-    """One value out of the model's configuration, by the key path that names it.
-
-    The dialect is decoded here and nowhere else. A tool wanting a figure out of a
-    configuration asks this rather than growing a second decoder of the same file,
-    which is the two-copies-of-one-fact defect the checker exists to catch running
-    loose inside it.
-
-    A file that is not there, a file that does not parse, and a key path that runs out
-    all answer `None`. An absent figure is a finding the caller words in its own terms,
-    never an exception it has to catch to say so.
-    """
+    """Return the value at `*keys` in `path`, or `None` if missing or unparseable."""
     if not path.is_file():
         return None
     try:
@@ -64,50 +41,25 @@ def value(path: Path, *keys: str) -> Json:
     for key in keys:
         if not isinstance(node, dict) or key not in node:
             return None
-        # `Json` is recursive, and a walk that re-binds through it leaves the checker
-        # holding the alias expanded one level rather than the alias, which is the same
-        # type spelled longer. Narrowed back to what it is at every step, as `jsonc.load`
-        # narrows the untyped boundary it stands on.
-        #
-        # The suppression is on ty's own disagreement rather than on this line's
-        # soundness: without the cast it calls the assignment and the return unsound
-        # against the expansion, and with it calls the cast redundant because the value
-        # is already `Json`. Both cannot hold. The cast stays, because it is a no-op at
-        # runtime and it is the half that would still be needed if the unsoundness
-        # reading were the right one; only the redundancy reading is silenced.
         node = cast("Json", node[key])  # ty: ignore[redundant-cast]
     return node
 
 
 def integer(path: Path, *keys: str) -> int | None:
-    """The same, narrowed to a whole number. `True` is an `int` in Python and a
-    boolean in the configuration, so the narrowing has to exclude it by name."""
+    """Return the integer value at `*keys` in `path` (excluding `bool`), or `None`."""
     found = value(path, *keys)
     return found if isinstance(found, int) and not isinstance(found, bool) else None
 
 
 def _is_value(node: Json) -> bool:
-    """True where a dict is one configuration *value* rather than more surface.
-
-    Two shapes reach here. An option is spelled `{"Some": ...}` or `{"None": ...}`, and
-    a bitvector literal is spelled `{"len": n, "value": "0x..."}`. Descending into
-    either compares payloads instead of keys: `dtb_address` is the row a cut can delete,
-    and `dtb_address.value` is just the address it holds.
-
-    Recognized by shape and not by name, deliberately. A leaf-name match (`value$`,
-    `len$`) drops any key so called at any depth, including one a cut really did leave
-    on a single side, and the run then still prints "key sets agree". An exclusion that
-    widens on its own is worse than none in a tool whose whole job is to notice what
-    widened.
-    """
+    """Return True if `node` is a Sail option (`Some`/`None`) or bitvector literal (`len`/`value`) dict."""
     if not isinstance(node, dict) or not node:
         return False
     return set(node) == {"len", "value"} or set(node) <= {"Some", "None"}
 
 
 def keys(node: Json, prefix: str = "") -> set[str]:
-    # `memory.regions` needs no exclusion: it is a list, whose entries differ between
-    # the two files by design and are never keys, and the walk does not enter lists.
+    """Return all dotted key paths in `node` without descending into lists or value dicts."""
     found: set[str] = set()
     if isinstance(node, dict) and not _is_value(node):
         for key, value in node.items():
@@ -117,17 +69,7 @@ def keys(node: Json, prefix: str = "") -> set[str]:
 
 
 def flat(node: Json, prefix: str = "") -> dict[str, Json]:
-    """Every leaf of a configuration, by the key path that names it.
-
-    `keys` above answers what a configuration *declares*; this answers what it
-    *says*. The two questions separated when a second configuration of the same model
-    started shipping (M0.8b): two configurations of one composition may differ only
-    where the core they compose differs, and a key set alone cannot see a value that
-    drifted (R-15-005).
-
-    A list is a leaf here, as it is in `keys`, and for the same reason: the walk does
-    not enter one, so `memory.regions` is compared whole or not at all.
-    """
+    """Flatten `node` into `{dotted_key_path: leaf_value}` (lists and `_is_value` dicts are leaves)."""
     found: dict[str, Json] = {}
     if isinstance(node, dict) and node and not _is_value(node):
         for key, value in node.items():
@@ -138,9 +80,7 @@ def flat(node: Json, prefix: str = "") -> dict[str, Json]:
 
 
 def flat_of(path: Path) -> dict[str, Json]:
-    """The same, read from a file. A file that is not there and a file that does not
-    parse both answer empty, which is `value`'s contract: an absent configuration is a
-    finding the caller words rather than an exception it has to catch."""
+    """Return [`flat`](#flat) for `path`, or `{}` if `path` is missing or unparseable."""
     if not path.is_file():
         return {}
     try:
@@ -163,17 +103,10 @@ def compare_keys(left_path: Path, right_path: Path) -> tuple[int, list[str]]:
 
 
 def _undeclared(config: Json, schema: Json, path: str = "") -> list[str]:
-    # Recurse where the subschema plainly declares "properties", and into every allOf
-    # member, since each of them applies; anyOf/oneOf nodes are left alone, because
-    # either branch may be the one that owns a key. Sail wraps a config struct read at
-    # two sites in an allOf. Sail 0.20.2 left its option values open (no
-    # `additionalProperties`), so `{"Sme": ...}` in place of `{"Some": ...}` passed
-    # plain validation, upstream sail-riscv #1850; 0.20.3 closes them, and the walk
-    # still names such a key once.
+    """Return config key paths not declared in `schema`'s `properties` / `allOf` subschemas."""
     found: list[str] = []
 
     def add(paths: list[str]) -> None:
-        # the allOf members restate one struct, so each stray key is named once
         found.extend(p for p in paths if p not in found)
 
     if not (isinstance(config, dict) and isinstance(schema, dict)):
@@ -182,8 +115,6 @@ def _undeclared(config: Json, schema: Json, path: str = "") -> list[str]:
     if isinstance(members, list):
         for member in members:
             add(_undeclared(config, member, path))
-    # bound before the test rather than re-read after it, so that what was checked to
-    # be a mapping is what gets indexed below
     props = schema.get("properties")
     if not isinstance(props, dict):
         return found
@@ -195,11 +126,7 @@ def _undeclared(config: Json, schema: Json, path: str = "") -> list[str]:
 
 
 def validate(schema_path: Path, config_path: Path) -> tuple[int, list[str]]:
-    """Two directions are checked, because the generated schema closes only its
-    bitvector-literal leaves and option values (`additionalProperties: false`) and
-    plain validation therefore misses a config key whose schema entry a cut deleted.
-    c1's verified state is required-key set == config-key set, so an undeclared key is
-    always drift."""
+    """Validate `config_path` against `schema_path` and reject any config keys absent from `schema_path`."""
     try:
         import jsonschema  # noqa: PLC0415
     except ModuleNotFoundError:

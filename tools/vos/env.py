@@ -1,73 +1,18 @@
 # SPDX-License-Identifier: Apache-2.0
-"""The build environment every model loop needs, read rather than assumed.
+"""Guest build environment, toolchain paths, lane build locks, stage timing, and WSL keepalive for Sail model loops.
 
-This module tunes the *build*, never the VM. Nothing here writes `%USERPROFILE%\\.wslconfig`,
-which is the only place WSL2's CPU and RAM allocation can be set and which applies to
-every distribution at once. The measurements below say that file would not help anyway.
-The single thing here that outlives a build is the keepalive, and it is a bounded
-background process rather than a line in that global file for exactly the same reason:
-it buys the effect this repository needs, scoped to the work, and expires on its own.
+Configures:
+1. A 128 MiB native stack limit (`STACK_BYTES`) for Sail C++ emission.
+2. The dedicated Sail opam switch (`SAIL_SWITCH`) and pinned Z3 solver (`Z3_PREFIX`)
+   ahead of system `PATH`.
+3. Per-worktree lane build and log paths on the native Linux filesystem (`BUILD_ROOT`,
+   `LOG_ROOT`) and `flock`-based lane concurrency locks ([`build_lock`](#build_lock),
+   [`hold_lock`](#hold_lock)).
+4. Compiler (`clang`/`clang++`), `ccache`, and parallel job sizing ([`_jobs`](#_jobs)).
 
-Five invariants shared by every loop:
-
-  1. Sail's C++ emission overflows the default 8 MB stack on the full model (the M0.3
-     finding). The limit is raised here, in the parent, and every
-     child inherits it.
-  2. The Sail toolchain lives in a dedicated opam switch, which a bare
-     `wsl -e python3 tools/run.py model` does not put on PATH.
-  3. The Z3 that discharges Sail's typechecking obligations is the pinned one, not the
-     distribution's. This is the one invariant whose absence is silent rather than
-     loud, which is why it is announced: see `_prepend_z3_path`.
-  4. Where the repository and the build trees are. Both are derived from this file's
-     own location, which is the one thing a module always knows, so a checkout
-     anywhere else, or by anyone else, builds the tree it is actually in.
-  5. Which *lane* those trees belong to. One toolchain serves as many checkouts as
-     there are worktrees, and everything downstream of a build reads the simulator
-     back out of the build tree, so a tree two checkouts share is a checkout reading
-     the other one's answers. `lane_of` derives the lane from the checkout, and
-     `build_lock` holds it for one build at a time.
-
-Build measurements (2026-08-22, 12-core Snapdragon X Elite, 31.6 GB host,
-WSL2 default allocation of 12 CPUs and 15.7 GB). Cores are already fully exposed; the
-guest sees all 12. Raising the CPU count is therefore not available, and would not help
-if it were, because the build's critical path is two strictly single-threaded stages
-back to back: the Sail C++ emission followed by the one generated translation unit it
-produces. On a quiet toolchain, emission takes 34.4 s (I6's stock arm), and the
-10,835,851-byte, 344,963-line translation unit compiles
-alone at -O2 -g in 81.8 s wall and 71 s CPU with a 1.20 GB peak under gcc 15.2.0, and
-in 38.7 s under clang 21.1.8 accepting the same command verbatim (I5's sweep).
-These serial stages limit the benefit of build parallelism. Memory is not binding:
-the heaviest single compile is that unit. The figures describe this source and
-toolchain snapshot; curation and compiler changes require new measurements.
-
-The source tree's residence on /mnt/c chiefly affects configuration. Reading the
-1.19 MB of Sail sources across 125 files costs only ~0.4 s over 9p; `configure` walks the whole
-824-file cmake project and pays per stat rather than per byte. Measured 2026-08-22 on a
-quiet toolchain with the arms alternated, a re-configure costs 17.0/17.4/20.4 s at
-10-12% of a core from /mnt/c against 0.9/1.0/1.1 s at 47-48% from a byte-identical ext4
-copy, and a fresh one, downloads already in the tree, 26.7/29.5/34.9 s against
-11.3/7.3/7.6 s. CPU is 1.7-2.4 s against 0.4-0.5 s, so most of the gap is wait and the
-rest is 9p syscall overhead, and the arms do not overlap at any repeat. That is about
-17 s of every build, and it is still not a reason to move: the host lane pays the same
-tax in reverse, `tools/check.py` costing 1.0/1.1/1.6 s over the NTFS checkout against
-11.4/13.5/18.5 s over the same tree on the wsl.localhost share, on the loop that runs
-after every document edit rather than once per build.
-
-So the layout is a split, and it is the one tools/README.md states under *where a file
-lives*: the checkout, and every lane under `.worktrees/`, sits on the Windows filesystem
-where the editor and the host gates read it; every build tree, cache, work directory and
-log a guest loop writes sits on the guest's own filesystem under `BUILD_ROOT` and
-`LOG_ROOT`; and the guest reads the sources across /mnt/c as the one crossing the layout
-keeps. Two more figures for that crossing, measured 2026-09-12 on the same box under
-WSL 2.7.13 with kernel 6.18: `git status --porcelain --ignore-submodules=all` over the
-checkout is 3.2 s from the guest against 0.14 s on the host, and a tool's bootstrap
-through `out/venv-linux`, which lives in the checkout and is read over 9p too, puts
-`run.py rtl provenance` at 0.78 s in the guest against 0.37 s on the host. Neither is on a
-build's path, and both say what the configure says: the guest reads the checkout as
-seldom as a build allows, the host is asked about its state, and nothing a guest loop
-writes goes back across. `filesystem`, which [proofenv.py](proofenv.py) holds with the
-rest of what the proof gate reads of this layout, is how a loop says which side a path
-is on, and `run.py provision` and `run.py model lane` are its readers.
+Proof-gate environment helpers live in [proofenv.py](proofenv.py) (and are re-exported
+here) so editing model-build helpers does not perturb the proof gate's implementation
+identity.
 """
 
 import contextlib
@@ -83,34 +28,19 @@ from typing import IO, Protocol, cast, runtime_checkable
 
 from vos import proofenv
 
-# The OCaml native stack Sail's emission needs, in bytes (the shell loops spelled it
-# `ulimit -s 131072`, which is the same number in kilobytes).
+# 128 MiB stack limit (`ulimit -s 131072`) required by Sail C++ emission on the full model.
 STACK_BYTES = 131072 * 1024
 
-# The canonical build tree's name, written here because two things need it: the lane's
-# own tree is named for it, and a new lane is seeded from the primary worktree's, which
-# is that name under the build root rather than under a lane.
 MODEL_TREE = "verifiedos-model"
 
-# The proof gate's share of this environment: where a lane's guest outputs land and on
-# which filesystem, the prover and its kernel re-checker, the git overlay a lane needs
-# and the worker limits sized from cores and memory. [proofenv.py](proofenv.py) holds
-# it and imports nothing from here, so an edit to this module leaves the gate's
-# implementation identity, and every proof object and kernel verdict cached under it,
-# alone. Each of its public names is bound here as well, so a reader of this module
-# finds it here.
+# Re-export proof-environment symbols from `proofenv.py` (`proofenv.py` has no reverse
+# dependency on `env.py`, preserving the proof gate's implementation hash).
 BUILD_ROOT = proofenv.BUILD_ROOT
 CROSS_OS_FILESYSTEMS = proofenv.CROSS_OS_FILESYSTEMS
 VOLATILE_FILESYSTEMS = proofenv.VOLATILE_FILESYSTEMS
 MOUNTINFO = proofenv.MOUNTINFO
 OCAML_VERSION = proofenv.OCAML_VERSION
 OPAM_LOCKS = proofenv.OPAM_LOCKS
-# The proof gate uses the newest prover its own libraries admit, independently of oracle
-# libraries; tools/opam/README.md records what holds it there. The CertiRocq oracle and
-# QuickChick each keep a switch of their own, under the constraints gallina.py and
-# quickchick.py state, so neither limits proofs compiled in this switch. The prover and
-# Sail keep separate dependency resolutions, so a release of either moves without
-# re-solving the other.
 ROCQ_VERSION = proofenv.ROCQ_VERSION
 ROCQ_SWITCH = proofenv.ROCQ_SWITCH
 ROCQ_INSTALL = proofenv.ROCQ_INSTALL
@@ -138,36 +68,16 @@ _env_path = proofenv._env_path
 _cpus = proofenv._cpus
 _read_mem_available_mb = proofenv._read_mem_available_mb
 
-# The name of the Sail SMT memo cache inside a lane's build tree, a constant rather than
-# a literal at its use because `run.py provision` wants it without standing an
-# `Environment` up: the name is what makes I2's copy-never-share rule checkable, every
-# lane's cache having to be a file of its own.
+# Sail SMT memo cache filename within each lane's build root.
 TYPECHECK_CACHE = "verifiedos-typecheck-smt-cache"
 
-# Where every lane's logs live: under /root and never /tmp, which is the reverse of the
-# keepalive pidfile below and for the reason that decides both. WSL idle-terminates once
-# the last process exits, and /tmp is tmpfs and gone on the restart. A lease that dies
-# with the distribution holding it is correct; the log of a fifteen-minute build,
-# started and left, has to be there when its caller comes back to read it.
+# Persistent log directory on the guest ext4 root (survives WSL idle restarts unlike `/tmp`).
 LOG_ROOT = Path("/root/logs")
 
-# The frozen profile configuration, relative to the model tree. Every loop below a
-# build hands it to the simulator, so `Environment.profile` composes the path once.
 PROFILE_CONFIG = "config/verifiedos.json"
-
-# Set by `run.py model build --background` on the child it detaches, which inherits the
-# lock the parent already took rather than taking a second one. Internal, and named
-# rather than spelled at both ends.
 BUILD_LOCK_HELD = "VOS_BUILD_LOCK_HELD"
-
-# The M0.4 oracle's build tree, carrying the upstream pin in its name. Both the tree and
-# the simulator inside it derive from this, so the pin is written once.
 ORACLE_TREE = "sail-cheri-riscv-cf36cfd4"
 
-# OCaml 5.5.1 requires ocamlfind 1.9.9~preview; the latest stable findlib release
-# constrains OCaml below 5.5.0~. `OCAML_VERSION` keeps a released toolchain until
-# findlib supports the newer compiler. Project-specific switches leave other projects'
-# environments alone, including opam's default switch.
 OCAMLFIND_VERSION = "1.9.8"
 SAIL_VERSION = "0.20.3"
 SAIL_SWITCH = f"verifiedos-sail-{SAIL_VERSION}-ocaml-{OCAML_VERSION}"
@@ -177,31 +87,14 @@ SAIL_INSTALL: tuple[tuple[str, ...], ...] = (
      f"--switch={SAIL_SWITCH}", "-y"),
 )
 
-# The pinned solver: its version, where it is unpacked, and the version of the
-# distribution's own that it has to precede. The number is separate from the path so a
-# probe can report what a prefix answered rather than only whether the directory is
-# there; `_prepend_z3_path` below states what a missing prefix costs, and it is the one
-# invariant here whose absence is silent rather than loud.
 Z3_VERSION = "5.3.3"
 Z3_PREFIX = Path(f"/root/z3-{Z3_VERSION}")
 Z3_DISTRIBUTION = "4.13.3"
-
-# The solver's wheels as uv installs them. uv reads hashes only from a requirements
-# file, so the release's wheel pin and the reviewed SHA-256 of each architecture's
-# wheel live in that file, held against `Z3_VERSION` by the environment's tests.
 Z3_REQUIREMENTS = Path(__file__).resolve().parents[1] / "z3-requirements.txt"
 
 
 def z3_install(target: Path, python: str = sys.executable) -> tuple[tuple[str, ...], ...]:
-    """The one recipe for the pinned solver, into `target`, for the bootstrap's private
-    prefix and the provisioner's alike.
-
-    `--require-hashes` installs only a wheel whose bytes the requirements file names,
-    and `--no-build` refuses the source archive a host older than a wheel's glibc tag
-    would otherwise compile in its place: Sail's memo records the solver's answers and
-    not which solver gave them, and Guest CI keys that memo by the solver's version
-    alone, so a solver built some other way would write into it unseen.
-    """
+    """Return the hash-verified `--no-build` `uv pip install` command for the pinned Z3 wheel."""
     return (("uv", "pip", "install", "--no-build", "--require-hashes", "--python", python,
              "--target", str(target), "-r", str(Z3_REQUIREMENTS)),)
 
@@ -211,7 +104,7 @@ Z3_INSTALL = z3_install(Z3_PREFIX)
 
 @dataclass
 class Environment:
-    """Where everything is, how much of the machine there is, and how much to use."""
+    """Paths, hardware resources, and build concurrency settings for a Sail model lane."""
 
     root: Path
     model: Path
@@ -228,27 +121,17 @@ class Environment:
 
     @property
     def lane_root(self) -> Path:
-        """Where this checkout's build trees live.
-
-        The primary worktree keeps the paths it has always had and a linked one gets a
-        directory of its own, so everything a lane knows sits under one path and a lane
-        is retired by deleting it. The primary is deliberately not moved into a lane
-        directory of its own: it is the tree that already exists, and renaming it would
-        spend a cold rebuild on the day this landed to buy nothing but symmetry.
-        """
+        """Build directory root for this checkout's lane (`build_root` on primary, `build_root/lanes/<lane>` on linked worktrees)."""
         return lane_dir(self.build_root, self.lane)
 
     @property
     def primary_build_dir(self) -> Path:
-        """The primary worktree's canonical tree, which is where a lane standing up for
-        the first time copies its warm state from. Equal to `build_dir` on the primary
-        worktree, which is what makes a donor list that names both safe to write."""
+        """Primary worktree's canonical model build directory (`build_root / MODEL_TREE`)."""
         return self.build_root / MODEL_TREE
 
     @property
     def build_dir(self) -> Path:
-        """The canonical build tree. Three loops named it and each spelled the path out,
-        which is one fact in three places; it is spelled here."""
+        """This lane's canonical model build directory (`VOS_BUILD_DIR` or `lane_root / MODEL_TREE`)."""
         return _env_path("VOS_BUILD_DIR", self.lane_root / MODEL_TREE)
 
     @property
@@ -257,24 +140,17 @@ class Environment:
 
     @property
     def typecheck_cache(self) -> Path:
-        """Per lane, and not per machine, because Sail's memo cache is one file that
-        every run rewrites whole: see `model.py`'s `_seed_smt_cache` for what two
-        writers of it do to each other."""
+        """Per-lane Sail SMT memo cache path (`lane_root / TYPECHECK_CACHE`)."""
         return self.lane_root / TYPECHECK_CACHE
 
     @property
     def primary_typecheck_cache(self) -> Path:
-        """The primary worktree's typecheck cache, which is where a lane standing up
-        copies its own from. Equal to `typecheck_cache` on the primary worktree, which
-        is what makes a donor list that names it safe to write: a donor that is the
-        target copies nothing, on the same reading that makes `primary_build_dir` safe
-        for the build trees."""
+        """Primary worktree's Sail SMT memo cache path (`build_root / TYPECHECK_CACHE`)."""
         return self.build_root / TYPECHECK_CACHE
 
     @property
     def build_budget_mb(self) -> int:
-        """The memory a model build of `jobs` jobs is budgeted, on `_jobs`'s figures.
-        A process run beside the build is budgeted on top of it."""
+        """Memory budget in MiB for a model build running `self.jobs` parallel jobs."""
         return GENERATED_UNIT_MB + JOB_MB * self.jobs
 
     @property
@@ -283,46 +159,25 @@ class Environment:
 
     @property
     def profile(self) -> Path:
-        """The frozen profile configuration every loop hands to the simulator."""
+        """Frozen profile configuration (`model/config/verifiedos.json`)."""
         return self.model / PROFILE_CONFIG
 
     @property
     def log_dir(self) -> Path:
-        """One directory for every lane's logs, because a human reading them wants them
-        in one place; it is the file name that carries the lane. See `log`."""
         return self.log_root
 
     def log(self, name: str) -> Path:
-        """Where a named loop's log goes in this lane.
-
-        A build opens its log with `w`, so two lanes sharing one path means the second
-        truncates the first's while the first is still writing into it, and a caller
-        waiting on `ALL_DONE` reads the other lane's marker. The lane is in the file
-        name rather than in a directory of its own so that the primary worktree's log
-        keeps the path every earlier run wrote to.
-        """
+        """Return the lane-scoped log file path (`<name>.log` on primary, `<name>-<lane>.log` in a worktree)."""
         return self.log_root / (f"{name}.log" if not self.lane else f"{name}-{self.lane}.log")
 
     @property
     def oracle_root(self) -> Path:
-        """The tree the M0.4 oracle is built in. Named separately from the binary
-        because `VOS_ORACLE` may point at a simulator built anywhere, and the tree it
-        came from is then no longer derivable from it.
-
-        Shared by every lane rather than one per lane, and it is the only build tree
-        that is: the oracle is stock `sail-cheri-riscv` at a pinned commit, so every
-        checkout of this repository would build the same bytes from it, and none of
-        this repository's own curation reaches it.
-
-        Keyed by the Sail edition as well as the pin: see `oracle_tree`.
-        """
+        """Shared build directory for the pinned `sail-cheri-riscv` differential oracle (`VOS_ORACLE_ROOT` or `oracle_tree(build_root)`)."""
         return _env_path("VOS_ORACLE_ROOT", oracle_tree(self.build_root))
 
     @property
     def oracle(self) -> Path:
-        """The M0.4 differential reference: upstream sail-cheri-riscv at the pinned
-        commit, which implements the same ISAv9 capability format the transplant
-        carries. It is evidence, never authority."""
+        """Path to the built `cheri_riscv_sim_RV64` differential oracle binary."""
         return _env_path("VOS_ORACLE",
                          self.oracle_root / "c_emulator" / "cheri_riscv_sim_RV64")
 
@@ -331,37 +186,19 @@ def _mem_available_mb() -> int:
     available = _read_mem_available_mb()
     if available is not None:
         return available
-    # Announced rather than passed over: with no figure the memory guard in `_jobs`
-    # cannot bind, and a silent zero would look like a policy instead of a blindness.
     print("WARNING no MemAvailable figure from /proc/meminfo: the memory guard is "
           "blind and jobs are sized from cores alone", file=sys.stderr)
     return 0
 
 
-# The model build's memory figures, which `_jobs` sizes a build from and
-# `Environment.build_budget_mb` reads back: the reserve for the generated model unit
-# and the budget for each other concurrent job.
 GENERATED_UNIT_MB = 2048
 JOB_MB = 512
 
 
 def _jobs(cpus: int, mem_mb: int) -> int:
-    """CPUs+2 is Ninja's own default and the right shape for this tree: 366 of the 367
-    translation units are small and oversubscribing by two keeps cores busy across
-    process startup.
-
-    The memory guard does not bind on a default-sized VM and exists so that it would
-    bind on a shrunken one. Sized from measurement rather than a rule of thumb: the
-    generated model unit is the only large one and its peak is a bit over 1 GB, which
-    the module docstring measures and this reserve deliberately sits above, so reserve
-    2 GB for it outright and budget a slim 512 MB for each other concurrent job. At
-    15.7 GB available this yields 24 and the guard is inert; under a 4 GB cap it yields
-    4 and prevents the thrash.
-    """
+    """Compute Ninja job count (`VOS_JOBS` override, or `cpus + 2` bounded by `mem_mb`)."""
     raw = os.environ.get("VOS_JOBS")
     if bool(raw):
-        # Garbage and non-positive counts alike are refused by name, because either
-        # would otherwise go straight onto ninja's command line as `-j`.
         try:
             jobs = int(raw)
         except ValueError:
@@ -376,39 +213,7 @@ def _jobs(cpus: int, mem_mb: int) -> int:
 
 
 def _ccache_args() -> list[str]:
-    """Opt-in and absent by default: this stays empty unless ccache is installed, so
-    loading this module changes nothing until `apt install ccache` is run.
-
-    **What the shared cache buys, measured rather than assumed (I4).** ccache hashes the
-    command line along with the source, so the six cases separate like this, each run
-    against a private cache directory:
-
-        the very same command again          HIT
-        -g dropped (the --fast profile)      miss
-        same flags, other -I directory       miss
-        byte-identical source, other path    miss
-        mtime touched, bytes unchanged       HIT
-
-    Two of those decide the shape of the win. The last one is the one this cache is
-    worth having for: an emission that reproduces the C++ it produced last time is a
-    direct hit, so a regeneration costs a cache lookup instead of the compile. The two
-    in the middle say what the cache does *not* reach: `CCACHE_DIR` is shared by every
-    build tree, but the fast tree differs from the canonical one by `-g` and a second
-    worktree differs by every `-I`, so neither shares a single entry with the other. At
-    scale, a lane's first 367-unit build against a cache holding another lane's 939
-    entries took 367 misses and no hits at all. The cache pays back within one tree and
-    one build type, which is a narrower claim than the one this docstring used to make.
-
-    `CCACHE_BASEDIR` is the lever that would make lanes share, and it is deliberately
-    not pulled: it rewrites absolute paths before hashing, so the object a second lane
-    gets back carries the first lane's directory in its debug info. That is not a wrong
-    program but it is a wrong artifact, and the standard below applies to it.
-
-    Deliberately no CCACHE_SLOPPINESS. The loose settings trade a correctness margin for
-    hit rate, and a false hit in a build whose output is a verification oracle is not a
-    trade this project should take. ccache hashes the preprocessed source, so the
-    default configuration is sound.
-    """
+    """Return CMake compiler-launcher flags when `ccache` is installed on `PATH`."""
     if not bool(shutil.which("ccache")):
         return []
     os.environ.setdefault("CCACHE_DIR", "/root/.ccache")
@@ -417,29 +222,13 @@ def _ccache_args() -> list[str]:
 
 
 def _compiler_args() -> list[str]:
-    """Prefer clang for the model's C and C++ when the distribution carries one.
-
-    Measured rather than assumed (I5, 2026-08-22): clang 21.1.8 compiles the generated
-    unit in 38.7 s where gcc 15.2.0 takes 81.8 s from the same command verbatim, and
-    that unit is the largest term of a real-edit build, so the preference buys about
-    43 s per real regeneration. Found-or-absent like ccache above: a machine without
-    clang builds under cmake's default compiler and nothing here pretends otherwise.
-
-    cmake does not migrate a configured tree across a compiler change, so this flag
-    decides only a tree configured fresh: an existing tree keeps the compiler it was
-    born with until it is retired, which is a deletion, the lane idiom. The canonical
-    and fast trees were retired and rebuilt at the flip (I10), with the canonical's
-    memo cache saved aside and restored exactly as a lane seed would be.
-    """
+    """Return CMake flags selecting `clang`/`clang++` when available on `PATH`."""
     if bool(shutil.which("clang")) and bool(shutil.which("clang++")):
         return ["-DCMAKE_C_COMPILER=clang", "-DCMAKE_CXX_COMPILER=clang++"]
     return []
 
 
 def _raise_stack_limit() -> None:
-    # POSIX-only, and this module is read on the host as well as run in the guest.
-    # Deferring the import is what keeps `import vos.env` from failing on Windows,
-    # and refusing win32 first states the platform in a form ty reads.
     if sys.platform == "win32":
         raise RuntimeError("the stack limit is raised in the guest")
     import resource
@@ -451,25 +240,10 @@ def _raise_stack_limit() -> None:
 
 
 def _prepend_z3_path() -> None:
-    """Put the pinned solver ahead of the distribution's.
-
-    The Z3 the Sail typechecker calls is unpacked beside the build trees and named for
-    its version. Ubuntu 26.04 packages the version `Z3_DISTRIBUTION` names and Sail
-    invokes `z3` by name from PATH, so the pinned directory has to precede /usr/bin or
-    the distribution's answers are the ones cached. `VOS_Z3_BIN` is read here, at call
-    time like every other override, so a test that sets it after importing this module
-    is still honoured.
-
-    Absence is announced rather than passed over, which is what separates this from the
-    opam guard below. A missing opam switch makes a Sail loop fail at `sail --version`;
-    a missing Z3 prefix makes nothing fail at all. It makes the loop typecheck against
-    Ubuntu's 4.13.3 and write that solver's answers into a content-keyed cache the
-    pinned solver then reads back as its own, which is a difference no later run can see.
-    """
+    """Prepend `VOS_Z3_BIN` (default `Z3_PREFIX / "bin"`) to `PATH`, warning if absent."""
     z3_bin = _env_path("VOS_Z3_BIN", Z3_PREFIX / "bin")
     if z3_bin.is_dir():
         prefix = str(z3_bin)
-        # Nested model commands must retain their caller's native input identity.
         entries = [entry for entry in os.environ.get("PATH", "").split(os.pathsep)
                    if entry != prefix]
         os.environ["PATH"] = os.pathsep.join([prefix, *entries])
@@ -479,59 +253,26 @@ def _prepend_z3_path() -> None:
 
 
 def log_root() -> Path:
-    """Where every lane's logs live, public for the reason `build_root` is: the
-    provisioner asks where a log would land without standing an `Environment` up."""
+    """Return the log directory (`VOS_LOG_DIR` or `LOG_ROOT`)."""
     return _env_path("VOS_LOG_DIR", LOG_ROOT)
 
 
 def oracle_tree(root: Path) -> Path:
-    """The M0.4 oracle's shared tree under a build root, keyed by the Sail edition.
-
-    The pin names the tree and `SAIL_VERSION` names the directory above it. The
-    upstream Makefile's generated C depends on the Sail sources and not on the
-    compiler, so a tree built by an earlier edition would otherwise answer as current
-    after a lock change. A parent directory, and not a suffix, because the pin's
-    spelling has to end the tree's name for the pin checks to read it; and one tree per
-    edition, because a checkout on an earlier lock still builds its own oracle beside
-    this one's. `Environment.oracle_root` reads it here; the lane retirement holds the
-    lock of every tree named for `ORACLE_TREE`'s family, whichever edition or pin.
-    """
+    """Return the shared `sail-cheri-riscv` oracle build path under `root`, scoped by `SAIL_VERSION`."""
     return root / f"sail-{SAIL_VERSION}" / ORACLE_TREE
 
 
-# The variables through which an opam client takes the answer to a question it asks from
-# the environment, OPAMYES answering yes and OPAMCONFIRMLEVEL any answer.
 OPAM_ANSWERS: tuple[str, ...] = ("OPAMYES", "OPAMCONFIRMLEVEL")
 
 
 def declining_environment() -> dict[str, str]:
-    """This process's environment less `OPAM_ANSWERS`, named in any case, for an opam
-    command that reads and must not answer a question.
-
-    opam asks before it writes a root-format upgrade, yes by default, and a read writes
-    one where the upgrade cannot be made in memory, as the reviewed client's from a 2.2
-    root keeping a repository's archive under a directory named for it. Run with no
-    standard input and this environment, opam answers its own question no and exits, so
-    a read neither rewrites the root one way nor waits on a question the caller cannot
-    see. `_apply_opam_env`, `run.py provision`'s probes, the Gallina, Sail LSP and Isla
-    rigs, `run.py quickchick`'s read of the QuickChick a switch holds, guest bootstrap's
-    reads of its root, the Rupicola lowering and the component comparison take their opam
-    reads' environment from it, so they keep one rule.
-    """
+    """Return `os.environ` without `OPAMYES`/`OPAMCONFIRMLEVEL` so read-only `opam` calls never auto-confirm root upgrades."""
     return {key: value for key, value in os.environ.items()
             if key.upper() not in OPAM_ANSWERS}
 
 
 def _apply_opam_env() -> None:
-    """Guarded, because the container lanes load this module too and have no opam.
-    Nothing is masked by the guard: a Sail loop without the switch fails loudly at
-    `sail --version`.
-
-    `opam env` runs with no standard input and in `declining_environment`, because its
-    output is captured: over a root whose upgrade cannot be made in memory it would
-    otherwise wait on a prompt the caller cannot see, and an empty line or the caller's
-    OPAMYES would rewrite the root one way. It declines instead, exits nonzero, and the
-    loop runs without the switch's environment."""
+    """Export `opam env --switch=SAIL_SWITCH` into `os.environ` when `opam` is installed."""
     if not bool(shutil.which("opam")):
         return
     proc = subprocess.run(["opam", "env", f"--switch={SAIL_SWITCH}", "--shell=sh"],
@@ -552,27 +293,7 @@ def model_offline() -> bool:
 
 
 def load(*, toolchain: bool = True) -> Environment:
-    """Prepare this process, and describe the machine it is preparing it on.
-
-    `toolchain=False` is the host lane's reading and answers on either machine: it
-    describes the checkout and skips every preparation that only means anything where
-    the toolchain is, the stack limit, the opam environment and the solver's path. It is
-    what a `host_ok` subcommand asks for, and without it the whole `host_ok` mechanism
-    was decoration: `run.py` declined to hop for one, and this refused it a paragraph
-    later anyway, so `run.py model asm` on the host answered *the model loops run inside
-    WSL* about a command that drives no toolchain at all.
-
-    The build paths it reports on that lane are the guest's, and that is deliberate
-    rather than an oversight: they are where a build *would* be, and a host-lane command
-    that needs no build has no use for them, while one that reported a Windows path
-    would be inventing a tree nothing ever writes.
-
-    On the guest that reading skips the same three preparations rather than only the
-    refusal, which is what makes *answers on either machine* true of the machine that
-    could take them: a `host_ok` subcommand asked for inside WSL drives no toolchain
-    either, so raising the stack, shelling out for the opam switch and announcing an
-    absent solver prefix are two costs and one spurious warning bought for nothing.
-    """
+    """Load the model [`Environment`](#Environment), preparing the guest toolchain (`stack`, `opam`, `z3`) when `toolchain=True`."""
     if sys.platform == "win32" and toolchain:
         raise SystemExit("the model loops run inside WSL: "
                          "python tools/run.py model <command>")
@@ -624,24 +345,12 @@ def load(*, toolchain: bool = True) -> Environment:
 
 
 def _lock_path(build_dir: Path) -> Path:
-    """Beside the tree rather than inside it, because the lock has to exist before the
-    first build creates the tree and has to survive the `rm -rf` that retires it."""
+    """Return the sibling lockfile path (`<build_dir>.lock`) outside `build_dir`."""
     return build_dir.parent / f"{build_dir.name}.lock"
 
 
 def _flock(handle: IO[str], *, blocking: bool, shared: bool = False) -> bool:
-    """Take a lock on an open file, or say that it is held.
-
-    Exclusive unless `shared`: a shared lock stands beside any number of other shared
-    ones and against an exclusive one, which is how a reader keeps out a run that
-    would replace what it reads without keeping out a second reader (see `hold_lock`).
-
-    POSIX-only, and this module is read on the host as well as run in the guest, so
-    win32 is refused and the import deferred for the reasons `_raise_stack_limit`'s
-    are. `flock` belongs to the open file description rather than to the process,
-    which is what lets a detached build hold a lock its launcher took: see
-    `build_lock`.
-    """
+    """Acquire an `flock` on `handle` (shared or exclusive), returning False if non-blocking and already held."""
     if sys.platform == "win32":
         raise RuntimeError("build locks are taken in the guest")
     import fcntl
@@ -668,14 +377,7 @@ def _open_lock(build_dir: Path) -> IO[str]:
 
 
 def _try_lock(target: Path, *, reader: str = "") -> tuple[IO[str] | None, str]:
-    """Take the lock beside `target`, or name who holds it.
-
-    Exactly one half of the pair is meaningful: the open locked handle with this
-    process recorded as holder, or, when the handle is `None`, what the holding run
-    recorded in the lock file. A `reader` takes the lock shared and records itself as
-    `<pid> <reader>`, so a refusal can tell a reader from a writer; a writer records
-    its pid alone.
-    """
+    """Try to acquire the lock beside `target`, returning `(handle, "")` on success or `(None, holder)` on contention."""
     handle = _open_lock(target)
     if _flock(handle, blocking=False, shared=bool(reader)):
         record_lock_holder(handle, os.getpid(), reader)
@@ -687,22 +389,7 @@ def _try_lock(target: Path, *, reader: str = "") -> tuple[IO[str] | None, str]:
 
 
 def build_lock(build_dir: Path) -> IO[str] | None:
-    """Hold one lane's build tree for the life of this process, or refuse.
-
-    Two builds in one tree is not slow, it is wrong: ninja writes one set of objects
-    and cmake one cache, so the loser's emission lands in the winner's tree and the
-    simulator that comes out belongs to neither run. The lock is what makes the plan's
-    `Parallel` mark mean a lane rather than merely a second terminal.
-
-    `flock` is used rather than a pidfile because it is released by the kernel when the
-    holder's last descriptor closes: a build killed mid-run leaves no lock to break,
-    and there is no liveness test to get wrong. The pid is written into the file all the
-    same, so that the refusal can name who holds it rather than only that somebody does.
-
-    The caller must keep the returned handle bound for as long as it means to hold the
-    tree; dropping it closes the descriptor and releases the lock. `None` means the lock
-    is already held on a descriptor this process inherited, which is the detached case.
-    """
+    """Acquire an exclusive `flock` on `build_dir` for this process, or exit naming the current holder (`None` if `BUILD_LOCK_HELD` is set)."""
     if bool(os.environ.get(BUILD_LOCK_HELD)):
         return None
     handle, holder = _try_lock(build_dir)
@@ -713,21 +400,7 @@ def build_lock(build_dir: Path) -> IO[str] | None:
 
 
 def hold_lock(target: Path, what: str, *, shared: bool = False) -> IO[str]:
-    """Hold `target` for the life of this process, or refuse naming the holder.
-
-    `build_lock`'s machinery for the mutable state a build lock does not cover: the
-    lane's typecheck SMT cache, which Sail rewrites whole at exit, and the oracle tree
-    every lane shares. The lock file sits beside `target` rather than inside it, so it
-    pre-exists whatever the run creates and survives whatever the run deletes. The
-    caller must keep the returned handle bound for as long as it means to hold
-    `target`; dropping it closes the descriptor and releases the lock.
-
-    `shared` is for a run that only reads `target`, such as `trace-diff` over the
-    oracle tree: readers hold it together, a writer is refused while any reader holds
-    it, and a reader is refused while a writer does. Neither side waits. The file
-    names its latest holder, so a writer refused by several readers names the last to
-    arrive, which may since have finished while an earlier one still reads.
-    """
+    """Acquire an exclusive or shared `flock` on `target`, or exit naming the current holder."""
     handle, holder = _try_lock(target, reader=(what or "a reader") if shared else "")
     if handle is not None:
         return handle
@@ -743,8 +416,7 @@ def hold_lock(target: Path, what: str, *, shared: bool = False) -> IO[str]:
 
 
 def record_lock_holder(handle: IO[str], pid: int, reader: str = "") -> None:
-    """Name the process the lock is being held for, which in the detached case is not
-    the process that took it, and, for a shared holder, what it reads for."""
+    """Write `pid` (and optional `reader` label) into the open lockfile `handle`."""
     handle.seek(0)
     handle.truncate()
     handle.write(f"{pid} {reader}\n" if reader else f"{pid}\n")
@@ -752,11 +424,7 @@ def record_lock_holder(handle: IO[str], pid: int, reader: str = "") -> None:
 
 
 def build_holder(build_dir: Path) -> str | None:
-    """Who is building in this tree, or `None` if nobody is.
-
-    Asked without blocking and answered without disturbing anything: the probe takes
-    the lock only to learn that it could, and gives it back in the same breath.
-    """
+    """Return the holder string of `build_dir`'s lock if currently held, or `None`."""
     if not _lock_path(build_dir).exists():
         return None
     with _open_lock(build_dir) as handle:
@@ -768,20 +436,7 @@ def build_holder(build_dir: Path) -> str | None:
 
 
 def wait_for_build(build_dir: Path) -> IO[str] | None:
-    """Block until this lane's build tree is free, and keep it held for the caller.
-
-    A build holds its lane's lock for exactly as long as it runs, so waiting for the
-    lock is waiting for the build: `flock` blocks in the kernel and returns the moment
-    the holder's last descriptor closes, which happens whether the build finished or
-    was killed. There is no interval to guess, no marker to poll, and a build that died
-    without writing `ALL_DONE` ends the wait rather than hanging it.
-
-    The handle comes back still locked rather than released, so that the log the
-    caller reads next still carries the run this wait ended on: released first, a new
-    build's truncation lands between the wait and the read and the verdict reported is
-    the wrong run's opening lines. The caller closes the handle to give the lane back.
-    `None` means nothing has ever built here and there is nothing to hold.
-    """
+    """Block until `build_dir`'s lock is free and return the locked handle (or `None` if no lockfile exists)."""
     if not _lock_path(build_dir).exists():
         return None
     handle = _open_lock(build_dir)
@@ -791,41 +446,16 @@ def wait_for_build(build_dir: Path) -> IO[str] | None:
 
 @runtime_checkable
 class Writable(Protocol):
-    """Anything a stage can report onto. `hasattr(x, "write")` was the test before,
-    and this is that test with a name: `isinstance` against a runtime-checkable
-    protocol checks for the method exactly as the attribute lookup did, and the
-    result is a value the caller can then actually write to."""
+    """Stream protocol supporting `write` and `flush` for stage timing output."""
 
-    # `-> object` rather than `-> int`, because the only thing done with a stream
-    # here is hand it to `print(file=...)`, which asks for exactly this and never
-    # looks at what `write` returned.
     def write(self, s: str, /) -> object: ...
-
-    # required because the report is printed with `flush=True`: a stage line that sat
-    # in a buffer would reach a killed build's log after the build, or not at all
     def flush(self) -> object: ...
 
 
 def stage(name: str, argv: list[str], report_to: Writable | None = None, *,
           cwd: Path | None = None, stdout: IO[str] | None = None,
           stderr: IO[str] | None = None, add_env: dict[str, str] | None = None) -> int:
-    """Run a build stage and record what it cost.
-
-    `add_env` is laid over this process's environment for the child alone, which is how
-    `GIT_DIR` reaches cmake's `git describe` without reaching anything else: exported
-    globally it would follow every later `git` into trees it does not describe, the
-    oracle's among them, and answer for this repository there.
-
-    The breakdown of a full build was known only for its two serial stages; every
-    future tuning decision wants the rest, and the cheapest way to get it is to have
-    each green build write it down. `os.wait4` reports the rusage of *this* child rather
-    than the running maximum over every child so far, so a light stage after a heavy one
-    reports its own peak and not the heavy one's.
-
-        STAGE emit wall=107.4s cpu=99% maxrss=2411360kB
-
-    `os.wait4` is POSIX-only, so win32 is refused before the stage starts.
-    """
+    """Run `argv` as a build stage, print its wall/CPU/maxrss usage line via `os.wait4`, and return its exit code."""
     if sys.platform == "win32":
         raise RuntimeError("build stages run in the guest")
     started = time.perf_counter()
@@ -842,43 +472,27 @@ def stage(name: str, argv: list[str], report_to: Writable | None = None, *,
 
 def stage_line(name: str, wall: float, cpu_seconds: float, maxrss_kb: int, *,
                start: float | None = None) -> str:
-    """The one spelling of what a stage cost, for `stage` and for a caller that starts
-    a stage of its own and reaps it later. `start` places such a stage in the seconds
-    of the stage it ran beside."""
+    """Format a `STAGE <name> ...` resource usage line."""
     cpu = cpu_seconds / wall * 100 if wall > 0 else 0
     began = "" if start is None else f" start=+{start:.1f}s"
     return f"STAGE {name}{began} wall={wall:.1f}s cpu={cpu:.0f}% maxrss={maxrss_kb}kB"
 
 
 def _report_stream(report_to: Writable | None, child_stderr: object) -> Writable:
-    """A stage reports beside its own output: where the child writes to a log, so does
-    the line saying what the child cost.
-
-    `child_stderr` is whatever was passed through to `Popen`, which may be a file, a
-    pipe constant, or nothing at all, so it is `object` until the protocol test says
-    otherwise."""
+    """Return the first `Writable` stream among `report_to`, `child_stderr`, or `sys.stderr`."""
     for candidate in (report_to, child_stderr):
         if isinstance(candidate, Writable):
             return candidate
-    # cast rather than returned directly: `sys.stderr` is rebindable, so its inferred
-    # type carries an `Any` arm, and the one place that is pinned down is here
     return cast("Writable", sys.stderr)
 
 
 def _keepalive_pidfile() -> Path:
-    """`/tmp` and not a private directory, deliberately: the lease is one per
-    distribution rather than one per user, and a second tool has to find the first
-    one's pidfile to know a lease is already held. Read at call time like every other
-    override, so a test's `VOS_KEEPALIVE_PIDFILE` names the file the test must not
-    touch no matter when this module was first imported."""
+    """Return the WSL keepalive pidfile path (`VOS_KEEPALIVE_PIDFILE` or `/tmp/vos-keepalive.pid`)."""
     return _env_path("VOS_KEEPALIVE_PIDFILE", Path("/tmp/vos-keepalive.pid"))  # noqa: S108
 
 
 def keepalive_hours() -> int:
-    """The lease's duration: `VOS_KEEPALIVE_HOURS`, or eight hours unset. Zero and
-    below turn the lease off. Read at call time like every other override, and
-    garbage is refused by name rather than left to a traceback in whichever tool
-    imported this module first."""
+    """Return the WSL keepalive duration in hours (`VOS_KEEPALIVE_HOURS`, default `8`; `<= 0` disables)."""
     raw = os.environ.get("VOS_KEEPALIVE_HOURS", "8")
     try:
         return int(raw)
@@ -888,55 +502,27 @@ def keepalive_hours() -> int:
 
 
 def keepalive(hours: int | None = None) -> None:
-    """Hold the distribution up for a bounded time, so a loop does not lose the VM.
-
-    WSL2 starts its vmIdleTimeout only once every instance has stopped, and the default
-    60 s is short enough that work left running between two `wsl -e` invocations loses
-    the VM underneath it, taking the docker daemon and any container with it (the M1.5
-    finding). The switch that disables the timer lives in exactly one place,
-    `%USERPROFILE%\\.wslconfig`: global to every distribution, permanent until a human
-    deletes it, and outside anything this repository should own. A detached bounded
-    sleep buys the same effect from inside: while it lives the distribution has a
-    running process, so no instance ever stops, so the timer never starts; when it
-    expires the machine is back to stock with nothing left behind.
-
-    Idempotent via the pidfile, so loading this in every loop starts at most one.
-    """
+    """Ensure a detached `sleep` process is running so WSL2 does not idle-terminate between commands."""
     hours = keepalive_hours() if hours is None else hours
     if hours <= 0:
         return
     if _lease_sleep() is not None:
         return
-    # Between the probe above and the replace below, two racers can both find no lease
-    # and both spawn: the later write wins the name and the loser's sleep is orphaned
-    # but expires on its own, so the lease's one job, that at least one lives, holds.
-    # A distribution lease must outlive lane retirement without holding that lane's
-    # inherited checkout open. Its shared native pidfile directory owns the process.
     pidfile = _keepalive_pidfile()
     proc = subprocess.Popen(["sleep", str(hours * 3600)], cwd=pidfile.parent, start_new_session=True,
                             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     scratch = pidfile.with_name(f"{pidfile.name}.{os.getpid()}")
     scratch.write_text(f"{proc.pid}\n")
-    # The rename is atomic, so a reader mid-write never parses half a pid as a whole one.
     scratch.replace(pidfile)
     print(f"KEEPALIVE pid={proc.pid} hours={hours} pidfile={pidfile}",
           file=sys.stderr)
 
 
 def _lease_sleep() -> int | None:
-    """The lease's pid, or `None` where no lease is alive. The pidfile is the lease's
-    one record, so this is the one place it is read.
-
-    Liveness alone is not the test, because a pid outlives its process only as a
-    number: once the sleep exits, the kernel hands the number to whatever process
-    comes next, and a dead lease would read as alive for hours. The recorded process
-    is the lease only while it is still this module's detached `sleep`, which its own
-    argv says.
-    """
+    """Return the PID recorded in `_keepalive_pidfile()` if it is still a live `sleep` process, else `None`."""
     try:
         pid = int(_keepalive_pidfile().read_text().strip())
     except OSError, ValueError:
-        # no pidfile, an unreadable one, or garbage in it: there is no lease
         return None
     try:
         argv = Path(f"/proc/{pid}/cmdline").read_bytes().split(b"\0")
@@ -946,9 +532,7 @@ def _lease_sleep() -> int | None:
 
 
 def keepalive_stop() -> None:
-    # Only the lease's own sleep is signalled: a recorded pid that is anything else by
-    # now belongs to a stranger. The pidfile is removed either way, so a stale lease
-    # is cleared rather than left to read as one.
+    """Terminate the active keepalive `sleep` process (if any) and remove its pidfile."""
     pid = _lease_sleep()
     if pid is not None:
         with contextlib.suppress(OSError):

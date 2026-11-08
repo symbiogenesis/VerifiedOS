@@ -56,7 +56,7 @@
     },
     {
       "path": "tools/vos/__init__.py",
-      "sha256": "f4212439e361dd2a6d2b25d97c82b6ba6ab8aa4cf3814a69023d8a745b11d49c"
+      "sha256": "f4bf65b676335680ed2e74c496374a83a2d37380cb6bc32a0af94d192c788e36"
     },
     {
       "path": "tools/vos/acvp.py",
@@ -124,11 +124,11 @@
     },
     {
       "path": "tools/vos/config.py",
-      "sha256": "da0b4c7caae9104cd462c370eed3bb3bf4dd2ff6504328fa30f2aced8f278e53"
+      "sha256": "5170e6144e97114abb19a7ac7cdb0a8cd393d836adb6fe3d3f97a56fe67785a6"
     },
     {
       "path": "tools/vos/corpus.py",
-      "sha256": "0a5ae1dd52c7fbf0e6f2fd26903ce261c478928a94d07023c64fa9fd3be089b2"
+      "sha256": "a7d012ee4da10d5fff06b0d8b8b7011e53115baa8be9c3bc633b579c1df79ffb"
     },
     {
       "path": "tools/vos/dialect.py",
@@ -144,7 +144,7 @@
     },
     {
       "path": "tools/vos/env.py",
-      "sha256": "53d87fcd904db53c0c81359f2999be4290fbdb518fa987cc9d035e4271742dcc"
+      "sha256": "c42ed53ffe87480e46decda34c8b80b78f513cf66bbd0d7623055201d0b07be4"
     },
     {
       "path": "tools/vos/extracted_proofs.py",
@@ -160,7 +160,7 @@
     },
     {
       "path": "tools/vos/jsonc.py",
-      "sha256": "df9c6cfddd90e0d1ec7aecd7bbe12f6facc25bb8512ce0d5d705b0f4956cd916"
+      "sha256": "b2eec47f4fe73284e7cd69799c8b0405053e79a4bed146faa2fabd4d320f0d7a"
     },
     {
       "path": "tools/vos/jsonutil.py",
