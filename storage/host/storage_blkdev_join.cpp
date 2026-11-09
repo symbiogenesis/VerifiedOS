@@ -35,19 +35,13 @@ bool load_from_blkdev(
     };
     const std::vector<uint8_t> empty_fixture;
     blkdev::image img(path, blkdev::image::mode::open, geom, empty_fixture, receipt);
-    std::vector<uint64_t> reg(VOS_STORAGE_BLKDEV_MEDIUM_BYTES, 0);
-    img.load(reg.data(), reg.size());
-    if (!img.persist(
+    if (!img.persist_bytes(
             static_cast<uint64_t>(blkdev::event::read),
-            0, VOS_STORAGE_BLKDEV_MEDIUM_BYTES, reg.data(), reg.size()) ||
+            0, 0, nullptr, 0) ||
         !img.close()) {
         return false;
     }
-    uint8_t raw_medium[VOS_STORAGE_BLKDEV_MEDIUM_BYTES];
-    for (size_t i = 0; i < VOS_STORAGE_BLKDEV_MEDIUM_BYTES; ++i) {
-        raw_medium[i] = static_cast<uint8_t>(reg[i]);
-    }
-    if (!vos_storage_decode_blkdev_medium(raw_medium, medium)) {
+    if (!vos_storage_decode_blkdev_medium(img.opened_bytes().data(), medium)) {
         return false;
     }
     return vos_storage_reopen(
@@ -63,16 +57,41 @@ bool persist_medium_to_blkdev(
     if (!vos_storage_encode_blkdev_medium(medium, raw_medium)) {
         return false;
     }
-    std::vector<uint64_t> reg(VOS_STORAGE_BLKDEV_MEDIUM_BYTES, 0);
-    for (size_t i = 0; i < VOS_STORAGE_BLKDEV_MEDIUM_BYTES; ++i) {
-        reg[i] = raw_medium[i];
+    if (std::memcmp(raw_medium, img.current_bytes().data(), sizeof(raw_medium)) == 0)
+        return img.persist_bytes(static_cast<uint64_t>(blkdev::event::flush),
+                                  0, 0, nullptr, 0);
+    auto write_changed = [&](uint32_t block, const uint8_t *bytes) {
+        const size_t offset = block * VOS_STORAGE_BLKDEV_BLOCK_BYTES;
+        return std::memcmp(bytes + offset, img.current_bytes().data() + offset,
+                           VOS_STORAGE_BLKDEV_BLOCK_BYTES) == 0 ||
+               img.persist_bytes(static_cast<uint64_t>(ev), offset,
+                                  VOS_STORAGE_BLKDEV_BLOCK_BYTES, bytes,
+                                  block == 0 ? VOS_STORAGE_BLKDEV_BLOCK_BYTES : sizeof(raw_medium));
+    };
+    uint8_t header[VOS_STORAGE_BLKDEV_BLOCK_BYTES];
+    std::memcpy(header, img.current_bytes().data(), sizeof(header));
+    std::memcpy(header + 64, raw_medium + 64, 64);
+    if (!write_changed(0, header)) return false;
+    // [Publication ordering](../../docs/implementation/storage-recovery-policy.md#storage-critique-repair-acceptance):
+    // nonce, redo, primary checkpoint, arena application, fallback checkpoint.
+    // A changed block gets its own durability answer; unchanged blocks do no IO.
+    for (uint32_t block = 17; block <= 31; ++block)
+        if (!write_changed(block, raw_medium)) return false;
+    std::memcpy(header, raw_medium, sizeof(header));
+    std::memset(header + 44, 0, 4);
+    if (!write_changed(0, header)) return false;
+    static constexpr uint32_t order[] = {
+        32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47,
+        1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16,
+        48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63
+    };
+    for (const uint32_t block : order) {
+        if (!write_changed(block, raw_medium)) return false;
     }
-    return img.persist(
-               static_cast<uint64_t>(ev),
-               0, VOS_STORAGE_BLKDEV_MEDIUM_BYTES, reg.data(), reg.size()) &&
-           img.persist(
+    if (!write_changed(0, raw_medium)) return false;
+    return img.persist_bytes(
                static_cast<uint64_t>(blkdev::event::flush),
-               0, 0, reg.data(), reg.size());
+               0, 0, nullptr, 0);
 }
 
 std::string read_file_text(const std::string &path)
@@ -102,6 +121,37 @@ std::string extract_event_sha256(const std::string &receipt_text, const std::str
     return receipt_text.substr(sha_pos, 64);
 }
 
+bool check_packed_adapter(const std::string &dir)
+{
+    const std::string path = dir + "/packed.blk";
+    const blkdev::geometry geom{128, 2};
+    const std::vector<uint8_t> fixture(256, 0x5a);
+    std::vector<uint8_t> next = fixture;
+    next[137] = 0xc3;
+    {
+        blkdev::image img(path, blkdev::image::mode::create, geom, fixture);
+        if (!img.persist_bytes(static_cast<uint64_t>(blkdev::event::read),
+                               128, 128, next.data(), next.size()) ||
+            img.current_bytes() != fixture || !img.close()) return false;
+    }
+    {
+        blkdev::image img(path, blkdev::image::mode::open, geom, {});
+        if (img.opened_bytes() != fixture ||
+            !img.persist_bytes(static_cast<uint64_t>(blkdev::event::write),
+                               128, 128, next.data(), next.size()) ||
+            img.current_bytes() != next || img.opened_bytes() != fixture ||
+            !img.close()) return false;
+    }
+    {
+        blkdev::image img(path, blkdev::image::mode::open, geom, {});
+        if (img.opened_bytes() != next ||
+            img.persist_bytes(static_cast<uint64_t>(blkdev::event::write),
+                              255, 2, next.data(), next.size()) ||
+            img.healthy() || !img.close()) return false;
+    }
+    return true;
+}
+
 } // namespace
 
 int main(int argc, char **argv)
@@ -111,6 +161,10 @@ int main(int argc, char **argv)
         return 1;
     }
     const std::string dir = argv[1];
+    if (!check_packed_adapter(dir)) {
+        std::fprintf(stderr, "storage_blkdev_join: packed adapter failed\n");
+        return 1;
+    }
     const std::string sys_img_path = dir + "/system.blk";
     const std::string usr_img_path = dir + "/user.blk";
 
@@ -374,17 +428,20 @@ int main(int argc, char **argv)
     }
 
     struct vos_resident_owner owner;
+    struct vos_storage_resident_receipt resident_receipt = {};
     struct vos_resident_handle handle = {};
     uint64_t seq = 0;
     uint8_t out[16] = {};
     size_t out_len = 0;
-    if (!vos_resident_init(&owner, 1u, sys_id.generation, 64u, nullptr, nullptr) ||
+    if (!vos_storage_admit_resident(&sys_re_store, &sys_id, obj_bytes,
+                                     sizeof(obj_bytes), &resident_receipt) ||
+        !vos_resident_init(&owner, 1u, sys_id.generation, 64u, nullptr, nullptr) ||
         !vos_resident_publish(&owner, &sys_id, obj_bytes, sizeof(obj_bytes)) ||
         !vos_resident_admit(&owner, 0u, sys_dom, &sys_id, 0u, 16u, 1u, 10u, &handle) ||
         !vos_resident_begin(&owner, &handle, sys_dom, 0u, 16u, 2u, &seq) ||
         !vos_resident_complete(
             &owner, &handle, sys_dom, seq, 2u,
-            vos_storage_verify_resident, &sys_re_store,
+            vos_storage_verify_admitted_resident, &resident_receipt,
             out, sizeof(out), &out_len) ||
         out_len != 16u ||
         std::memcmp(out, obj_bytes, 16u) != 0) {

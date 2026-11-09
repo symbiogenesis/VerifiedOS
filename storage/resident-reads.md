@@ -131,6 +131,26 @@ uncommitted object or rolled-back store state refuses before `vos_resident_compl
 copies a byte to the caller, while repeated reads across independent holders
 record zero writes to `VOS_RESIDENT_COMMON`.
 
+`vos_storage_admit_resident` authenticates the identity, bytes and tree membership
+once into a receipt held privately by the serialized owner.
+`vos_storage_verify_admitted_resident` reuses that membership while the exact
+checkpoint, domain, key epoch and resident identity remain unchanged. It checks
+key availability and the current Fresh seal and hashes the actual mutable host
+backing on each completion. A checkpoint change requires new admission; a locked
+key, advanced Fresh seal, changed backing, identity or length refuses. Neither
+receipt nor common resident state is written during repeated reads. Corruption of
+external arena blocks after admission does not invalidate already authenticated
+resident bytes; a new storage lookup still detects that corruption. The
+[persistent-image join](host/storage_blkdev_join.cpp) uses the receipt callback.
+
+The [receipt campaign](host/resident_receipt.c), registered by
+`python tools/run.py test --only storage_resident_receipt`, exercises both root
+kinds, independent reader windows, unchanged owner/receipt state, admission
+refusal, backing/checkpoint/identity substitution, lock and Fresh-epoch
+invalidation. This host adapter retains byte authentication. Eliminating that
+hash requires the protected immutable backing and lifetime evidence in the
+[resident contract](../docs/implementation/contracts/resident-object-reads.md).
+
 `python tools/run.py test --only storage_publish` exercises
 `vos_storage_verify_resident` across both storage instances and kills a compiled
 mutant that skips the authenticated B+ tree lookup. Gallina/Python

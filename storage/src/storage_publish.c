@@ -1329,23 +1329,6 @@ int vos_storage_verify_resident(void *verification,
         identity->domain != store->domain_id) {
         return 0;
     }
-    const struct vos_storage_checkpoint *cp = &store->medium->checkpoint;
-    if (!verify_checkpoint_mac(store->crypto, store->crypto_slot,
-                               store->domain_id, store->key_epoch,
-                               store->medium->geometry.arena_nodes, cp)) {
-        return 0;
-    }
-    if ((((store->crypto->epoch_sealed_mask & (1u << store->crypto_slot)) != 0u) ||
-         cp->commit_mode == VOS_STORAGE_COMMIT_FRESH ||
-         cp->sealed_epoch != 0u) &&
-        !vos_crypto_core_verify_epoch(store->crypto, store->crypto_slot,
-                                      cp->sealed_epoch,
-                                      cp->fresh_region_id,
-                                      cp->fresh_region_version,
-                                      cp->root_digest,
-                                      cp->epoch_root)) {
-        return 0;
-    }
     if (identity->kind == VOS_RESIDENT_SYSTEM) {
         if (store->crypto_slot != VOS_CRYPTO_DOMAIN_SYSTEM ||
             identity->generation != store->committed_generation) {
@@ -1372,6 +1355,69 @@ int vos_storage_verify_resident(void *verification,
         return 0;
     }
     return committed_value == resident_tree_value(identity->root, identity->version);
+}
+
+int vos_storage_admit_resident(const struct vos_storage_store *store,
+                               const struct vos_resident_identity *identity,
+                               const uint8_t *bytes, size_t length,
+                               struct vos_storage_resident_receipt *receipt)
+{
+    if (receipt == NULL ||
+        !vos_storage_verify_resident((void *)store, identity, bytes, length)) {
+        return 0;
+    }
+    const struct vos_storage_resident_receipt admitted = {
+        .store = store,
+        .checkpoint = store->medium->checkpoint,
+        .identity = *identity,
+        .length = length,
+        .valid = 1u
+    };
+    *receipt = admitted;
+    return 1;
+}
+
+int vos_storage_verify_admitted_resident(void *verification,
+                                         const struct vos_resident_identity *identity,
+                                         const uint8_t *bytes, size_t length)
+{
+    const struct vos_storage_resident_receipt *receipt = verification;
+    if (receipt == NULL || receipt->valid != 1u || identity == NULL ||
+        length != receipt->length || length > VOS_RESIDENT_BYTES ||
+        (length != 0u && bytes == NULL)) return 0;
+    const struct vos_storage_store *store = receipt->store;
+    if (store == NULL || !store->open || store->medium == NULL ||
+        store->crypto == NULL || store->crypto_slot >= VOS_CRYPTO_MAX_DOMAINS ||
+        identity->owner != receipt->identity.owner ||
+        identity->domain != receipt->identity.domain ||
+        identity->object != receipt->identity.object ||
+        identity->version != receipt->identity.version ||
+        identity->generation != receipt->identity.generation ||
+        identity->kind != receipt->identity.kind ||
+        !equal_bytes_ct(identity->root, receipt->identity.root, VOS_CRYPTO_DIGEST_BYTES) ||
+        store->committed_generation != receipt->checkpoint.generation ||
+        store->committed_root != receipt->checkpoint.root ||
+        store->domain_id != receipt->checkpoint.domain_id ||
+        store->key_epoch != receipt->checkpoint.key_epoch ||
+        !equal_bytes_ct((const uint8_t *)&store->medium->checkpoint,
+                         (const uint8_t *)&receipt->checkpoint,
+                         sizeof(receipt->checkpoint))) return 0;
+    const struct vos_crypto_domain_slot *slot = &store->crypto->domains[store->crypto_slot];
+    if (!slot->provisioned || slot->domain_id != store->domain_id ||
+        slot->key_epoch != store->key_epoch) return 0;
+    const struct vos_storage_checkpoint *cp = &receipt->checkpoint;
+    if ((((store->crypto->epoch_sealed_mask & (1u << store->crypto_slot)) != 0u) ||
+         cp->commit_mode == VOS_STORAGE_COMMIT_FRESH || cp->sealed_epoch != 0u) &&
+        !vos_crypto_core_verify_epoch(store->crypto, store->crypto_slot,
+                                      cp->sealed_epoch, cp->fresh_region_id,
+                                      cp->fresh_region_version, cp->root_digest,
+                                      cp->epoch_root)) return 0;
+    uint8_t expected[VOS_CRYPTO_DIGEST_BYTES];
+    return compute_resident_digest(store, identity->owner, identity->domain,
+                                    identity->object, identity->version,
+                                    identity->kind, identity->generation,
+                                    bytes, length, expected) &&
+           equal_bytes_ct(expected, identity->root, VOS_CRYPTO_DIGEST_BYTES);
 }
 
 static uint32_t get_le32(const uint8_t *src)
