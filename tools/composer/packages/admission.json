@@ -80,7 +80,7 @@
     },
     {
       "path": "tools/vos/boot.py",
-      "sha256": "619c3666544f49e03f46e14d826622d979c46262364bed49d2afb1aeb9556248"
+      "sha256": "08774e6c948c9a4ba9fb29f40f8fa578787a70ee5713f8bc73204280125c6246"
     },
     {
       "path": "tools/vos/cli/__init__.py",
@@ -124,7 +124,7 @@
     },
     {
       "path": "tools/vos/package_artifacts.py",
-      "sha256": "d8f2cc801f1f90f5fd1b01e6f9901edce59d6c47074bb09e8abf4039dd20d7ca"
+      "sha256": "9dd85e90cbcd667bd84ca93272d12af2b621f39f6b71ee279ef6ec86e0e41290"
     },
     {
       "path": "tools/vos/proof_staging.py",
@@ -183,7 +183,7 @@
       "id": "composition-projections",
       "source": {
         "path": "docs/implementation/contracts/boot-roster.md",
-        "sha256": "241acdd17aa6f457dfc0de4debce54c7a3e34e4dad9c2c2aa1a1c1880ead946e"
+        "sha256": "f9c1b45f3b3dbac947881dc82d257a22ef305d63cdad6b83ff9245bfe899465f"
       }
     }
   ],

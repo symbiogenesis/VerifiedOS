@@ -101,7 +101,7 @@ COMMANDS: tuple[Command, ...] = (
             "compose fixed native artifacts and typed graphs", lane="guest",
             host_ok=frozenset({"compose", "fixture", "compare", "project", "check-project", "promote",
                                "build-record", "check-build-record", "bind-staged-boot-chain", "bind-sources",
-                               "package-store", "compose-fixed"})),
+                               "package-store", "compose-fixed", "check-fixed"})),
     Command("admission", "vos.cli.admission",
             "bind admission inputs and reference decisions to image and graph bytes", lane="guest",
             host_ok=frozenset({"record", "emit-reference", "production-record",
