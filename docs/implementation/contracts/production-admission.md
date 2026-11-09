@@ -120,6 +120,74 @@ and GC-free C refinement retain the checklist's admission-checker route and
 [C-refinement foundation qualification](../../assurance/c-refinement-foundation-qualification.md).
 Finite comparisons are useful implementation evidence and discharge neither proof.
 
+## Complete retained M-mode export checkpoint
+
+The first byte-export candidate is the complete normal `mmode-firmware` stage
+from [the retained chain](../../../firmware/chain/target/manifest.json), owned by
+M3.5 and selected through M7.1d's
+[retained-product adapter](../../../tools/composer/README.md#retained-boot-producer-adapter).
+This selection makes no smallest-member claim. The signed `kernel` population is
+[the kernel-entry fixture](../../../firmware/chain/kernel_stage.s), so it cannot
+replace a real member. The supervisor/copy component reports likewise do not
+establish standalone installed objects for those members.
+
+M7.1a/d's bounded export uses the existing historical staged-input validator and
+[complete M-mode construction](../../../tools/vos/chain_mmode.py#mmode_image).
+It includes the hand-lowered entry, the entire compiled stream and embedded
+kernel-verification root, with no reachable-function pruning. The exporter
+records the exact text and data extents, entry, zero-filled inter-extent gap,
+slot-A tag and the stack span outside the signed payload. Reconstructing those
+extents, gap and tag must equal the retained normal `mmode-a` signed payload
+byte for byte, using its declared header boundary. The signed envelope remains
+transport/authentication data rather than executable code. All emitted text,
+including alignment bytes, remains in the executable population for the future
+installed-artifact decoder; assembler sites are producer observations only.
+
+This is an offline byte export, not R-13-003's admitted capability image.
+[The existing main-die composer](../../../tools/vos/chain_mmode.py#compose_main)
+loads the entire M-mode window as writable and executable. The export preserves
+that actual harness permission observation and reports the installed-object
+mapping as unresolved; it must not silently claim the split text/data permissions
+are those of the loaded window. M7.1a/d must supply a real immutable-image and
+initializer mapping, entry/wiring distribution and final-image connection before
+this candidate becomes the first installed-member admission case. M3.5 retains
+the actual firmware integration, and Q39 retains compiler qualification.
+
+`composer export-staged-mmode SOURCE --products CATALOG --output REPORT` replays
+the existing historical candidate and product catalog, selecting only the
+`mmode-firmware-artifact` slot's normal `mmode` unit. It publishes one canonical
+JSON byte-bearing report under `out/` and changes no retained input. Its closed
+root has `schema_version: 1`, `kind: historical-mmode-byte-export`, `member`,
+`source`, `catalog`, `bindings`, `compiler_provenance_status`, `entry`, `regions`,
+`payload`, `stack`, `harness_window`, `installed_mapping`,
+`production_admission: false` and `final_target_acceptance: false`. References
+use the existing `path`/`sha256` shape; bindings include construction helpers'
+local Python import closure and their non-Python inputs. Region records carry
+`kind`, `address`, `length`, `sha256` and `hex`, in text, zero-gap, initializer,
+slot-tag order. Payload records its address, length and digest. Stack records
+its address, length and external zeroing owner; harness window records actual
+address, length and writable/executable booleans. The installed mapping is
+`unresolved-rwx-window`. Addresses and lengths are nonnegative JSON integers;
+hex strings encode exactly the recorded bytes, including the zero gap.
+The exporter binds inputs before and after reconstruction and rechecks all
+bindings and output containment/aliases at atomic publication.
+It supplies no assigned tier, typing certificate, correspondence theorem,
+checked-state root or successful admission flag. Missing profile/rules and
+metatheory return to R-18-018(b); the concrete certificate returns to the member
+producer; artifact-local correspondence returns to M1.4/Q2c; the actual CIC
+consumer and authenticated current-state adapter remain M7.1c's named decisions.
+No one of those absences becomes an empty accepted object.
+
+Acceptance for this export is the unchanged complete normal stage and exact
+payload equality. Refusal controls cover a missing or substituted staged unit,
+source or helper drift during reconstruction/publication, altered root, text,
+initializer, zero gap or slot tag, a truncated or mismatched payload, a wrong
+entry or extent, and an output aliasing any consumed input, including a hardlink.
+Every refusal preserves the previous output and historical bytes. A repeat export
+of unchanged inputs is byte-identical. These finite host checks establish the
+export only; decoded instruction coverage, concrete TAL/CIC checking, production
+mapping and qualified target acceptance retain the preceding owners.
+
 ## First executable case and acceptance
 
 1. Freeze one actual roster member's complete emitted instruction population,
