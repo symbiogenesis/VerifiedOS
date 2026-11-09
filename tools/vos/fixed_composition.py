@@ -97,7 +97,7 @@ def compose(root: Path, source: str, store: str, output: str) -> dict[str, objec
         interchange = Path(temporary) / "image.elf"
         image.write_elf(interchange, sections, {}, entry)
         blob = interchange.read_bytes()
-    package_artifacts.verify_image(blob, placements)
+    package_artifacts.verify_image(blob, placements, expected_entry=entry)
     for item in placements:
         if package_artifacts.load(directory, item.artifact.identity) != item.artifact:
             raise package_artifacts.PackageError("fixed composition stored artifact changed during construction")

@@ -227,8 +227,29 @@ def _image_and_memory_substitutions() -> None:
                     [packages.MemoryRegion(0x80000000, 4096, 0, False, True)]), "permissions")
 
 
+def _selected_image_entry() -> None:
+    with tempfile.TemporaryDirectory(prefix="vos-package-entry-") as directory:
+        root = Path(directory)
+        first = packages.place(fixture_artifact(root, "first"), 0x80000000)
+        second = packages.place(fixture_artifact(root, "second"), 0x80001000)
+        placements = [first, second]
+        elf = root / "image.elf"
+        for selected, other in ((first, second), (second, first)):
+            image.write_elf(elf, [section for item in placements for section in item.sections], {}, selected.entry)
+            blob = elf.read_bytes()
+            packages.verify_image(blob, placements)
+            packages.verify_image(blob, placements, expected_entry=selected.entry)
+            _refused(lambda: packages.verify_image(blob, placements, expected_entry=other.entry),
+                     "selected package entry")
+        malformed_entries: tuple[Any, ...] = (True, float(second.entry), second.entry + 4)
+        for malformed in malformed_entries:
+            _refused(lambda malformed=malformed: packages.verify_image(blob, placements, expected_entry=malformed),
+                     "selected package entry")
+
+
 def cases() -> list[Case]:
     return [Case("one stored native artifact composes at two layouts without its producer", _stored_bytes_at_two_layouts),
             Case("source contract context and actual proof outputs determine identity", _identity_binds_actual_outputs),
             Case("malformed geometry and corrupt retained objects refuse reuse", _malformed_and_corrupt_objects),
-            Case("physical image and memory classes match immutable package bytes", _image_and_memory_substitutions)]
+            Case("physical image and memory classes match immutable package bytes", _image_and_memory_substitutions),
+            Case("an explicitly selected entry cannot be replaced by another package entry", _selected_image_entry)]
