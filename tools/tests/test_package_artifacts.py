@@ -239,7 +239,8 @@ def _selected_image_entry() -> None:
             blob = elf.read_bytes()
             packages.verify_image(blob, placements)
             packages.verify_image(blob, placements, expected_entry=selected.entry)
-            _refused(lambda: packages.verify_image(blob, placements, expected_entry=other.entry),
+            _refused(lambda blob=blob, expected=other.entry:
+                     packages.verify_image(blob, placements, expected_entry=expected),
                      "selected package entry")
         malformed_entries: tuple[Any, ...] = (True, float(second.entry), second.entry + 4)
         for malformed in malformed_entries:

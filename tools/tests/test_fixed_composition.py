@@ -158,10 +158,11 @@ def _selected_entry_substitution_preserves_output() -> None:
             previous = destination.read_bytes()
             alternate = next(item["base"] for item in raw["packages"] if item["artifact"] != selected)
 
-            def substituted(path: Path, *args: Any, **kwargs: Any) -> None:
-                original(path, *args, **kwargs)
+            def substituted(path: Path, sections: list[image.Section], symbols: dict[str, tuple[str, int]],
+                            entry: int, *, alternate_entry: int = alternate) -> None:
+                original(path, sections, symbols, entry)
                 blob = bytearray(path.read_bytes())
-                struct.pack_into("<Q", blob, 24, alternate)
+                struct.pack_into("<Q", blob, 24, alternate_entry)
                 path.write_bytes(blob)
 
             with patch.object(image, "write_elf", side_effect=substituted):
