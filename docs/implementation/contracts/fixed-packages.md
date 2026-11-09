@@ -17,6 +17,18 @@ containing the digests of the actual output objects. A hash of producer inputs
 alone is a build lookup key, never the content identity of a nondeterministic
 output. Transport paths do not establish either identity or admission.
 
+An explicit producer-image import may bind an existing one-package ELF to the
+request at a supplied base before publishing its objects. Both image and base
+are required together. The import checks every physical load byte and permission,
+the selected entry, and each declared export's defined symbol and loaded region;
+it does not infer missing objects, run a producer or accept a proof. Its report
+binds the exact producer image bytes and base without adding transport paths to
+the artifact identity. Request, transported object and producer-image drift
+before publication refuse, as do a missing or substituted export, extra loadable
+bytes and output paths overlapping the producer image. Refusal publishes no new
+artifact root and preserves useful existing store contents. The import makes no
+atomic filesystem snapshot or qualified-compiler claim.
+
 Construction performs dead elimination against the package's declared exports,
 interrupt and scheduled roots, and package-local optimization. A changed source,
 contract, context, initializer or proof is a different artifact. A cross-package
@@ -134,6 +146,11 @@ Independent controls must demonstrate:
 - A declared `tohost` export yields exactly its initializer window's ELF symbol;
   duplicate exports, invalid windows and substituted symbols refuse. Images
   without the export report it absent and gain no emulator-execution evidence.
+- Producer-image import accepts independently emitted native bytes and declared
+  exports at the supplied base, then reuses the same artifact at two translated
+  layouts without rerunning the producer. Changed load bytes, permissions, entry,
+  exports, request or object inputs and producer-image drift refuse before a new
+  artifact root is published; existing store and image bytes stay unchanged.
 
 Focused host tests and Python checks supply local feedback. Host CI on Windows
 and Ubuntu and all Guest lanes are user-managed under the
