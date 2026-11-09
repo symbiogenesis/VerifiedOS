@@ -29,7 +29,7 @@ import threading
 import time
 import traceback
 from concurrent.futures import ProcessPoolExecutor, as_completed
-from contextlib import redirect_stderr, redirect_stdout
+from contextlib import redirect_stderr, redirect_stdout, suppress
 from functools import partial
 from io import StringIO
 from pathlib import Path
@@ -45,6 +45,7 @@ from vos.sharding import Shard
 if TYPE_CHECKING:
     from multiprocessing.context import BaseContext
     from multiprocessing.queues import Queue
+    from typing import ClassVar
 
 LANE: Lane = "host" if sys.platform == "win32" else "guest"
 
@@ -54,13 +55,15 @@ TESTS = Path(__file__).resolve().parents[2] / "tests"
 INDEPENDENT = "INDEPENDENT_CASES"
 _DECLARED = re.compile(rf"(?m)^{INDEPENDENT} = True$")
 
-_PROGRESS: Queue[tuple[str, float, float]] | None = None
+class _WorkerProgress:
+    """The diagnostic channel installed once in each spawned worker process."""
+
+    queue: ClassVar[Queue[tuple[str, float, float]] | None] = None
 
 
 def _progress_init(queue: Queue[tuple[str, float, float]] | None) -> None:
     """Give each spawned worker its parent's diagnostic-only start channel."""
-    global _PROGRESS
-    _PROGRESS = queue
+    _WorkerProgress.queue = queue
 
 
 class Progress:
@@ -231,11 +234,9 @@ def _run_module(name: str, slow: bool, lanes: frozenset[Lane], shard: Shard | No
     """Load and run one test module, retaining captured stdout/stderr on failure."""
     split = name in splits
     started = time.perf_counter()
-    if _PROGRESS is not None:
-        try:
-            _PROGRESS.put((name, started, time.time()))
-        except (OSError, ValueError):
-            pass
+    if (queue := _WorkerProgress.queue) is not None:
+        with suppress(OSError, ValueError):
+            queue.put((name, started, time.time()))
     output = StringIO()
     with redirect_stdout(output), redirect_stderr(output):
         report = _run_cases(name, _load(name, None if shard is None else split), slow, lanes,

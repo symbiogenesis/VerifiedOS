@@ -409,7 +409,7 @@ def _progress_survives_an_earlier_stall() -> None:
                        f"a later completion must be visible while the first module runs: {snapshot}")
                 output = snapshot[1].get("output")
                 if not isinstance(output, list):
-                    raise AssertionError(f"completed failure has no retained output: {snapshot}")
+                    raise TypeError(f"completed failure has no retained output: {snapshot}")
                 ensure(snapshot[1].get("findings") == 1
                        and "later module diagnostic" in output
                        and any("ValueError: later module failed" in str(line)
