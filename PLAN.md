@@ -2924,6 +2924,24 @@ cold Guest evidence. The existing Q39 qualification dependency still blocks fres
 boot staging. The `ci-repair-20261103` fanout journal records the settled revision,
 local checks, recommended validation and deferred acceptance.
 
+## Tooling review reliability fixes
+
+**Start:** the behavioral runner, explicit-path fanout preparation and the
+[local completion contract](tools/fanout.md). **Owns:** failure tracebacks for
+test cases and module loading; visible counts and reasons for skipped cases;
+reviewable new binary deliverables through `fanout finish --path`.
+
+**Check:** focused runner controls retain exception type, failing source location,
+chained exceptions, continuation after failures, captured output and deterministic
+report order. Slow/lane filtering and empty shard shares keep their existing
+selection and verdicts while reports distinguish no selected cases from executed
+passing cases. A temporary-repository fanout control commits a new non-UTF-8
+binary byte-for-byte, prints its size and SHA-256 for review and leaves unrelated
+files unstaged. Existing text previews, path containment and explicit staging
+controls remain required. Run focused `test_runner` and `test_fanout` controls,
+static analysis and the local fanout handoff; the user owns hosted acceptance.
+Implementation starts after this predicate is committed.
+
 ## C modernization
 
 Modernize active authored C declarations, initialization and compile-time checks within selected compiler/proof interfaces and the admitted scalar profile. Host acceptance alone does not establish CompCert/Clight target support for VST.
