@@ -332,7 +332,7 @@ reviewed helpers; compiler sources, proof statements and historical build trees
 remain outside this increment. Record the new private commit and reviewed helper
 manifest separately from each original compilation's immutable helper seal.
 
-The public `compiler-build status` interface may accept one explicit relocation
+The public `compiler-build status --relocation CONNECTION.json` interface accepts one explicit relocation
 connection containing the catalog path and independently supplied SHA-256,
 candidate name, exact raw compilation-seal path and mapping path. All fields are
 required together, and `--reuse-from` must explicitly select that candidate's
@@ -352,6 +352,22 @@ be the selected native root's `compiler/build-result.json`, and its original
 catalog identity must match. The requested lock must be the explicitly mapped
 sealed lock. Unsupported seal schemas and recursive reused origins refuse this
 first connection rather than broadening its authority.
+
+The connection file has exactly `schema`, `catalog`, `catalog_sha256`,
+`candidate`, `seal` and `mapping`, with schema
+`verifiedos-contained-relocation-request/1`. Paths are explicit absolute paths in
+the guest namespace; the independently supplied digest binds the catalog.
+
+The reviewed driver may be deployed into the assigned native lane's `driver/`
+directory by materializing exactly `build.py`, `qualify.py`, `audit.py` and
+`reuse.py` from the committed private helper revision. Bind each deployed byte
+sequence and the private commit in a separate reviewed manifest; verify the four
+source/deployment digests before and after execution. This native helper
+deployment copies no compiler source, archive, proof object, executable,
+installed library or checkout snapshot. It does not alter or relocate any
+historical sealed helper. The controller's existing prohibition on native driver
+roots within its invoking checkout remains unchanged; a retained Windows
+checkout below the primary checkout cannot itself serve as that native root.
 
 The connection substitutes only helper/lock file reads. All existing source Git
 archive, compilation receipt, configuration/profile, native population, installed
@@ -392,3 +408,8 @@ record the exact failure and stop for integrator replanning. Missing toolchain o
 input identities do not authorize installation, a new audit, profiling, proof
 repair, source export, snapshot copying or relaxed validation. Hosted acceptance
 remains user-managed; this connection closes neither Q39 nor Q43.
+
+The integrator's finishing allowance adds ten active minutes solely for the reviewed
+native helper deployment, one final source-bound read-only status, current-state
+evidence and commits. It commissions no further implementation candidate or audit;
+finish a final run already in progress at the limit, then stop without restart.
