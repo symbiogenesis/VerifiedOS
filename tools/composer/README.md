@@ -117,9 +117,11 @@ Each projection binds the same input bytes, roster, configuration and projection
 producer sources. The C manifest binds that identity in its generated comment;
 the JSON manifest carries its full source bindings. Numeric policy fields have
 the existing C manifest's meanings and capacity bounds. The bounded supervisor
-host implementation revalidates and compiles this generated manifest. Its scalar
-target retains the handwritten comparison manifest; generated-manifest target
-integration remains open.
+host implementation revalidates and compiles this generated manifest. The
+[generated-manifest target and joined scalar consumer](../../supervisor/README.md#generated-manifest-target)
+also prepare and validate these projections. Ordinary scalar comparison mode
+retains its handwritten manifest. Qualified-compiler target execution,
+authenticated handoff and full-roster admission remain open.
 
 `composer project` preflights every projection destination before creating or
 writing outputs. Resolved leaves must remain inside the selected output directory,

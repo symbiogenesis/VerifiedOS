@@ -280,8 +280,11 @@ validation and target execution, M7.1a owns placement and image construction, an
 M7.1c owns the actual derivation checks and final admission record. Generated
 derivation references supply no proof evidence. These projections extend the
 existing composer and harness. The bounded host supervisor consumes the checked
-production manifest; the scalar target's handwritten manifest and the fixture
-graph/admission schemas retain their separate comparison scope.
+production manifest. The [generated-manifest target adapters](../../../supervisor/README.md#generated-manifest-target)
+prepare and validate the same projections, with qualified-compiler execution and
+authenticated full-roster handoff still pending. Ordinary scalar mode retains
+its handwritten manifest, and the fixture graph/admission schemas retain their
+separate comparison scope.
 
 Construction proceeds from descriptors and choices to the checked graph and
 manifest, then to built member bytes and the final image, and finally to the
