@@ -845,6 +845,7 @@ being a finding of the rules that read them rather than a row of this table.
 | R-09-037 | proofs/RotFirmware.v | the_specification_chain_is_a_measured_chain | claimed |
 | R-09-037 | proofs/RotFirmware.v | the_specification_quote_covers_the_vector_exactly | claimed |
 | R-10-001 | proofs/MemoryPlan.v | n/a | cited |
+| R-10-001 | proofs/ObjectTransactor.v | path_reader_authenticates_every_link | claimed |
 | R-10-001 | proofs/ObjectTransactor.v | the_specification_authenticates_the_image_before_returning_bytes | claimed |
 | R-10-001 | proofs/ObjectTransactor.v | the_specification_read_returns_only_the_named_object | claimed |
 | R-10-001 | proofs/ObjectTransactor.v | the_specification_read_reads_nothing_the_root_does_not_reach | claimed |
