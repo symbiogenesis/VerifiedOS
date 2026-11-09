@@ -62,6 +62,21 @@ verification. Persistent adapters must compare and write changed logical blocks
 without treating a partial checkpoint write as atomic. CoW publication and
 reclamation must account for every retained checkpoint and snapshot before reuse.
 
+The bounded numeric instance admits one Fresh region per store. Its authenticated
+checkpoint records every key admitted to that region; rollbackable insert, batch
+replacement or deletion of such a key refuses. Fresh versions advance and region
+identity cannot change through an ordinary transaction. Compaction preserves the
+logical map. A general manifest-driven multi-region implementation remains a
+separate producer obligation.
+
+A persistent host join must install complete redo and an authenticated pending
+Fresh checkpoint before advancing the trusted seal. Recovery may finalize that
+pending checkpoint only when the trusted seal independently authenticates its
+exact region, version and state digest; otherwise it selects the prior valid
+checkpoint. Every physical persistence prefix and the seal/final-checkpoint gap
+must preserve the applicable acknowledged state, with no unauthenticated bytes
+returned. A final-image-only adapter supplies no such ordering evidence.
+
 The specification review must decide path-local object authentication, typed key
 and extent codecs, bounded backup streaming and the logical-device/physical-NAND
 refinement boundary at their existing owners before dependent implementation.
