@@ -87,9 +87,11 @@ checks and deadlist partitioning (`vos_tree_can_reclaim_node`,
 [its candidate-update contract](tree-update.md), mirroring
 [ExecutableIndex.v](../proofs/ExecutableIndex.v)'s proved `insert_gate`,
 `delete_gate`, `insert_batch_gate` and history-independent `compact_gate`. It
-fully admits the retained tree before appending, checks the candidate tree
-before returning its root, and preserves every byte and expected generation in
-the prior allocated prefix. Arena exhaustion, depth or visit limits and invalid
+fully admits the retained tree in its strict append-only APIs and preserves the
+prior allocated prefix. The authenticated storage owner uses path-local reuse
+APIs and a separate source/destination `vos_tree_compact_into` for full-arena
+compaction. Reusable nodes are reclaimed; snapshot-owned nodes remain pinned.
+Arena exhaustion, depth or visit limits and invalid
 input refuse without publishing a root. Failed appends may occupy the unused
 suffix until its next attempt. The caller still owns authentication, stable
 inputs and actual publication. Relational C-to-Gallina lowering, durable nonce
@@ -142,20 +144,21 @@ instruction-lowering verdict.
   before any node block or journal frame is sealed with that generation's
   coordinate-derived AES-GCM nonce (R-10-022a, F-458), refusing exhaustion
   without wrapping or rolling back consumed reservations.
-- `vos_storage_stage` authenticates the retained arena prefix, executes the
+- `vos_storage_stage` starts from the authenticated private arena, executes the
   bounded CoW B+ tree candidate update (`insert`, `insert_batch`, `delete` or
   `compact`) alongside snapshot-aware deadlist classification, and seals each
-  allocated node block and redo journal frame with coordinate-derived AES-GCM
+  allocated or reused node block and redo journal frame with coordinate-derived AES-GCM
   and domain-separated keyed digests without mutating the committed root.
 - `vos_storage_publish` binds the ordered redo payload manifest, per-block AEAD
-  metadata, root digest and optional `Fresh` epoch seal into the HMAC-signed
+  metadata, root digest and optional `Fresh` state into the HMAC-signed
   checkpoint before acknowledgment or journal reuse (R-10-002a, R-10-013c),
   supporting deterministic crash-cut injection (`VOS_STORAGE_CUT_AFTER_RESERVE`,
   `VOS_STORAGE_CUT_MID_PAYLOAD`, `VOS_STORAGE_CUT_BEFORE_CHECKPOINT`,
   `VOS_STORAGE_CUT_BEFORE_EPOCH_SEAL`, `VOS_STORAGE_CUT_BEFORE_ACK`).
 - `vos_storage_reopen` discards volatile store state, verifies the durable nonce
-  floor, checkpoint MAC and `Fresh` epoch root (R-10-013e), rolls back unsealed
-  `Fresh` checkpoints (R-10-013c), replays complete committed redo prefixes
+  floor, independent checkpoint slots and `Fresh` epoch root (R-10-013e), finalizes
+  a pending `Fresh` checkpoint only when the RoT independently seals its exact
+  state and otherwise selects the prior valid checkpoint (R-10-013c), replays complete committed redo prefixes
   idempotently while discarding uncommitted suffixes and refusing torn/corrupted
   committed frames (F-460), and reconstructs the authenticated arena.
 - `vos_storage_verify_resident` supplies Q44's real `vos_resident_verifier`
@@ -177,6 +180,17 @@ instruction-lowering verdict.
   linking `storage_publish.c` and `crypto_core.c` directly to
   [model/c_emulator/blkdev_image.cpp](../model/c_emulator/blkdev_image.cpp).
 
+`vos_storage_attach_persistence` connects those operation boundaries to actual
+host-image writes: nonce reservation, complete redo, pending checkpoint, seal,
+arena application and mirrored acknowledged checkpoint. The host adapter uses
+packed bytes and writes changed logical blocks, with no whole-image rewrite on
+each step. The undeployed `VOSCHK03` checkpoint keeps derived epoch evidence as
+canonical zero on disk; recovery reconstructs it from the independent RoT seal,
+so sealing does not tear a rewrite of the pending checkpoint. Older checkpoint
+formats refuse. The bounded numeric instance records one region's permanent
+Fresh-key membership, rejects rollbackable replacement/deletion of those keys,
+and enforces increasing Fresh versions before reserving a nonce.
+
 `python tools/run.py test --only storage_publish` checks the Python SHA-256,
 HMAC-SHA-256 and domain-KDF oracle on both platforms; Linux additionally builds
 and runs [the native C harness](host/storage_publish.c) and
@@ -189,3 +203,13 @@ execution over the shared L1 index body (R-10-003), and Q44 resident-read
 completion with zero common per-read writes, and kills compiled behavioral
 mutants across `crypto_core.c` and `storage_publish.c`. Target purecap/Sail
 execution and Gallina refinement of the extended tree operations remain open.
+
+The physical-image campaign additionally reopens after every changed block in
+bounded rollbackable and Fresh update/compaction sequences, injects non-prefix
+tears into changed checkpoint blocks, and interrupts immediately after the
+trusted seal before further persistence. It independently checks the bytes on
+disk and verifies that unchanged persistence emits no block writes. Complete redo
+remains necessary for compaction that reuses live coordinates; AEAD, content
+digests, frame MACs, payload manifests and checkpoint MACs bind different objects.
+Fixed-capacity copies and metadata scans remain charged; path-local node
+validation is no claim that the complete transaction has logarithmic cost.
