@@ -50,6 +50,7 @@ from vos import (
     boot_crypto_target,
     composer,
     composition_staged,
+    fixed_composition,
     kernelrun,
     memory_planner,
     rtltrace,
@@ -174,6 +175,12 @@ def _composition_fixture(scratch: Path) -> list[str]:
     composition = composer.reference_fixture(_ROOT)
     (scratch / "descriptors.json").write_bytes(composer.canonical_bytes(composer.document(composition)))
     return ["descriptors.json", "--output", "out/graph.json"]
+
+
+def _fixed_check_fixture(scratch: Path) -> list[str]:
+    source = _fixed_recipe(scratch)
+    fixed_composition.compose(scratch, source, "out/native-packages", "out/fixed-existing.elf")
+    return [source, "--image", "out/fixed-existing.elf"]
 
 
 def _source_binding_fixture(scratch: Path) -> list[str]:
@@ -369,6 +376,7 @@ _RUNS: dict[tuple[str, str], Argv] = {
     ("composer", "compose"): _composition_fixture,
     ("composer", "package-store"): lambda scratch: [_fixed_store(scratch)],
     ("composer", "compose-fixed"): lambda scratch: [_fixed_recipe(scratch), "--output", "out/fixed-image.elf"],
+    ("composer", "check-fixed"): _fixed_check_fixture,
     ("composer", "fixture"): lambda _: ["--output", "out/descriptor-fixture.json"],
     ("composer", "bind-sources"): _source_binding_fixture,
     ("composer", "compare"): lambda _: [],
