@@ -102,6 +102,23 @@ Compiling Gallina directly supplies neither GC-free execution, bounded allocatio
 The direction that reduces the split is less hand-maintained semantic duplication: single-source mechanized synthesis (`Rupicola`/`Bedrock2 → Clight`, `Narcissus → copy-once Clight`, `Vélus Lustre → Clight`, and `S31b`/`U-10` declarative register generation) and the shared `CHERI-CompCert` native purecap backend (`R-18-014`, `R-18-015`) as the primary operational lowering routes where their verified Clight bridges hold, manual CompCert-C refinement kept where low-level capability manipulation or abstraction earns its cost rather than as the default consequence of maintaining parallel Gallina and hand-written C sources everywhere, and no second native compiler project when the certifying safe-Rust MIR front end and Gallina synthesis routes can share the one CHERI-CompCert backend.
 Q2 is that single-source lowering spine on the wire-parser consumer M1.6 measured the route fits.
 
+**Storage source improvements still need their production joins.** R-10-001's
+runtime witness authenticates the requested Merkle path; the stronger complete-DAG
+audit remains a cold-image check. The numeric L1 fixture does not represent L2's
+complete key or inline extent authentication metadata. The
+[bounded typed codec](../../storage/typed-entry.md) supplies those bytes and fitted
+geometry; M5.3d/M5.4 still owe typed-node routing, retained-root selection and the
+C/Gallina/target correspondence. Q44 owns protected immutable resident backing
+and its lifecycle evidence; mutable host buffers retain byte authentication even
+when membership is cached. Q42a's BA-STREAM must demonstrate a backup larger than
+volatile scratch using the authenticated manifest/chunk protocol, with no partial
+publication. The logical PIO block witness supplies no physical NAND packing,
+queue, DMA, endurance or latency bound; the
+[device refinement boundary](../../interfaces/block-device-contract.md) keeps
+those availability-layer and target obligations explicit. Source-level crypto
+changes likewise leave binary constant-time, masking and target WCET qualification
+open under the crypto owner.
+
 Substantial combinations already exist in the [strategy's closest-prior-art comparison](https://github.com/symbiogenesis/VelaLang/blob/main/docs/verification-strategy.md#closest-matches-to-the-complete-workflow): DeepSEA generates representation/refinement machinery for a restricted systems language, Sepref refines abstract algorithms into imperative implementations, and the verified Dafny subset and Bedrock2/Kami example connect different source workflows to stronger execution endpoints.
 Q2b compares those mechanisms against its actual client and selected anchors before new machinery is authored; the [capability-law results](https://github.com/symbiogenesis/VelaLang/blob/main/docs/verification-strategy.md#capability-aware-and-parametric-verification) make the source-level question concrete. The missing lowering, assembly, linking, image construction, RTL refinement and proof connections remain owned work. Finding an upstream theorem supplies no automatic saving.
 

@@ -37,6 +37,14 @@ final variable-width object-key representation, and purecap Sail target executio
 and full Gallina index-refinement closure remain open under
 [the recovery contract](../docs/implementation/storage-recovery-policy.md).
 
+[The typed-entry codec](typed-entry.md) separately encodes the complete six-word
+L2 key in order-preserving bytes and an inline extent descriptor with full AEAD
+tag, nonce coordinates and keyed digest. Its geometry calculation refuses the
+numeric instance's undersized blocks. `python tools/run.py test --only
+storage_typed_entry` compares generated full-width tuples and extents with an
+independent byte oracle. Typed-node routing and the production refinement remain
+M5.3d/M5.4 work; the codec does not squeeze this representation into numeric leaves.
+
 `python tools/run.py test --only storage_node_image` discovers the focused
 behavioral module. Its native C cases run on Linux, including Host CI's Ubuntu
 runner; Windows still checks the pure byte oracle. The
@@ -114,6 +122,17 @@ sealing and verification (`vos_crypto_core_seal_epoch`,
 key zeroization (`vos_crypto_core_lock_domain`, `vos_crypto_core_crypto_erase`,
 R-10-014, R-10-032).
 
+The bounded crypto core uses table-free AES substitution and caches expanded
+round keys and the GHASH subkey in each unlocked slot. Lock and erase wipe that
+material. Fresh seals bind the full state digest and key epoch, with per-slot
+seal histories and a shared monotonic epoch allocator. Sealed identities survive
+lock/erase; rebinding a sealed slot or aliasing its identity requires a separately
+authorized retirement/rotation protocol and is refused by this bounded API.
+`python tools/run.py test --only storage_crypto` checks independent generated
+AES/GCM vectors, interleaved seals, digest substitutions and key/cache lifecycle
+controls. These source changes establish no target constant-time, masking or
+instruction-lowering verdict.
+
 [The early publication and reopen producer](src/storage_publish.c) and
 [its public header](include/vos_storage_publish.h) join `node_image.c`,
 `tree_image.c`, `tree_update.c`, `resident_reads.c` and `crypto_core.c` under
@@ -144,6 +163,10 @@ R-10-014, R-10-032).
   checking the domain-separated object digest and verifying `(object_id, root, version)`
   membership in the store's authenticated B+ tree without mutating common
   owner state.
+- `vos_storage_admit_resident` retains authenticated membership in an owner-held
+  receipt, and `vos_storage_verify_admitted_resident` checks its continued validity
+  and actual host bytes without repeating the tree walk. See the
+  [resident receipt boundary](resident-reads.md#authenticated-storage-and-crypto-verifier-join).
 - `vos_storage_encode_blkdev_medium`, `vos_storage_decode_blkdev_medium`,
   `vos_storage_encode_blkdev_image`, `vos_storage_decode_blkdev_image`,
   `vos_storage_reopen_blkdev_image` and `vos_storage_apply_block_tear` map
@@ -163,6 +186,6 @@ validation, `verifiedos-blkdev-receipt-2` SHA-256 chaining across writer close
 and reader open, non-prefix reset bit tears (`(old & ~m) | (new & m)`),
 swap/rollback refusals, two-instance (`system-integrity` and `user-data`)
 execution over the shared L1 index body (R-10-003), and Q44 resident-read
-completion with zero common per-read writes, and kills eight compiled behavioral
+completion with zero common per-read writes, and kills compiled behavioral
 mutants across `crypto_core.c` and `storage_publish.c`. Target purecap/Sail
 execution and Gallina refinement of the extended tree operations remain open.
