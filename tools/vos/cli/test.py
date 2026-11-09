@@ -267,6 +267,7 @@ def run(only: str | None = None, slow: bool = False, jobs: int | None = None,
             selected = shard.select(names)
         except ValueError as err:
             rep.report("tests", "invalid partition:", [str(err)])
+            timings.write(record, [])
             return rep
         splits = frozenset(name for name in names if _declares(name))
         whole = [name for name in selected if name not in splits]
@@ -284,6 +285,7 @@ def run(only: str | None = None, slow: bool = False, jobs: int | None = None,
         if native_controls and "toolchain" not in lanes:
             rep.report("tests", "native controls unavailable:",
                        ["--native-controls requires the provisioned Sail toolchain in the guest"])
+            timings.write(record, [])
             return rep
         workers = min(jobs or min(8, os.process_cpu_count() or 1), len(names))
         context = multiprocessing.get_context("spawn")

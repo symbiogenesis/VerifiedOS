@@ -485,6 +485,19 @@ def _native_controls_fail_closed() -> None:
             raise AssertionError("native controls must not silently narrow another selection")
 
 
+def _refused_selection_clears_stale_progress() -> None:
+    with tempfile.TemporaryDirectory(prefix="vos-runner-refusal-progress-") as temporary:
+        record = Path(temporary) / "units.json"
+        for native in (False, True):
+            timings.write(record, [{"kind": "module", "name": "previous-run", "cases": 1}])
+            with (patch.object(runner, "_module_names", return_value=["fixture"]),
+                  patch.object(runner, "_lanes", return_value=frozenset({"any", "guest"}))):
+                report = runner.run(record=record, native_controls=native,
+                                    shard=None if native else Shard(1, 2))
+            ensure(report.findings == 1 and timings.read(record) == [],
+                   f"a refused selection must not retain another run's timing snapshot: {report.out}")
+
+
 def cases() -> list[Case]:
     return [
         Case("selection-and-failures", _selection_and_failures),
@@ -507,4 +520,5 @@ def cases() -> list[Case]:
         Case("native-controls-select-only-slow-toolchain-cases",
              _native_controls_select_only_slow_toolchain_cases),
         Case("native-controls-fail-closed", _native_controls_fail_closed),
+        Case("refused-selection-clears-stale-progress", _refused_selection_clears_stale_progress),
     ]
