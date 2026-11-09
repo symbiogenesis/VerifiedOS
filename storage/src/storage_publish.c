@@ -228,11 +228,102 @@ static int compute_payload_manifest(const struct vos_crypto_core *crypto,
     return vos_crypto_core_commit_mac(crypto, slot, buf, at, out);
 }
 
+static int valid_fresh_keys(const struct vos_storage_checkpoint *cp)
+{
+    if (cp->fresh_key_count > VOS_STORAGE_MAX_FRESH_KEYS) {
+        return 0;
+    }
+    for (uint32_t i = 1u; i < cp->fresh_key_count; ++i) {
+        if (cp->fresh_keys[i - 1u] >= cp->fresh_keys[i]) {
+            return 0;
+        }
+    }
+    return 1;
+}
+
+static int fresh_key_member(const struct vos_storage_checkpoint *cp, uint64_t key)
+{
+    for (uint32_t i = 0u; i < cp->fresh_key_count; ++i) {
+        if (cp->fresh_keys[i] == key) {
+            return 1;
+        }
+        if (cp->fresh_keys[i] > key) {
+            break;
+        }
+    }
+    return 0;
+}
+
+static int fresh_transaction_allowed(const struct vos_storage_checkpoint *cp,
+                                      const struct vos_storage_tx_spec *spec)
+{
+    if (!valid_fresh_keys(cp)) {
+        return 0;
+    }
+    if (spec->commit_mode == VOS_STORAGE_COMMIT_FRESH &&
+        cp->fresh_region_version != 0u &&
+        (spec->fresh_region_id != cp->fresh_region_id ||
+         spec->fresh_region_version <= cp->fresh_region_version)) {
+        return 0;
+    }
+    const size_t count = spec->op_kind == VOS_STORAGE_OP_COMPACT ? 0u :
+        spec->op_kind == VOS_STORAGE_OP_INSERT_BATCH ? spec->entry_count : 1u;
+    uint32_t new_keys = 0u;
+    for (size_t i = 0u; i < count; ++i) {
+        const uint64_t key = spec->op_kind == VOS_STORAGE_OP_INSERT_BATCH
+            ? spec->entries[i].key : spec->key;
+        const int protected = fresh_key_member(cp, key);
+        if (spec->commit_mode == VOS_STORAGE_COMMIT_ROLLBACKABLE && protected) {
+            return 0;
+        }
+        if (!protected) {
+            ++new_keys;
+        }
+    }
+    return spec->commit_mode != VOS_STORAGE_COMMIT_FRESH ||
+           new_keys <= VOS_STORAGE_MAX_FRESH_KEYS - cp->fresh_key_count;
+}
+
+static int inherit_fresh_keys(struct vos_storage_checkpoint *next,
+                               const struct vos_storage_checkpoint *prior,
+                               const struct vos_storage_tx_spec *spec)
+{
+    if (!fresh_transaction_allowed(prior, spec)) {
+        return 0;
+    }
+    next->fresh_key_count = prior->fresh_key_count;
+    for (uint32_t i = 0u; i < prior->fresh_key_count; ++i) {
+        next->fresh_keys[i] = prior->fresh_keys[i];
+    }
+    if (spec->commit_mode != VOS_STORAGE_COMMIT_FRESH ||
+        spec->op_kind == VOS_STORAGE_OP_COMPACT) {
+        return 1;
+    }
+    const size_t count = spec->op_kind == VOS_STORAGE_OP_INSERT_BATCH
+        ? spec->entry_count : 1u;
+    for (size_t i = 0u; i < count; ++i) {
+        const uint64_t key = spec->op_kind == VOS_STORAGE_OP_INSERT_BATCH
+            ? spec->entries[i].key : spec->key;
+        if (fresh_key_member(next, key)) {
+            continue;
+        }
+        uint32_t at = next->fresh_key_count;
+        while (at > 0u && next->fresh_keys[at - 1u] > key) {
+            next->fresh_keys[at] = next->fresh_keys[at - 1u];
+            --at;
+        }
+        next->fresh_keys[at] = key;
+        ++next->fresh_key_count;
+    }
+    return 1;
+}
+
 enum {
     CHECKPOINT_HEADER_BYTES = 8u + 4u + 4u + 8u + 8u + 8u + 8u + 4u + 4u + 8u +
-                              8u + 8u + 8u + 4u * VOS_CRYPTO_DIGEST_BYTES + 4u + 4u,
+                              8u + 8u + 8u + 4u * VOS_CRYPTO_DIGEST_BYTES + 4u + 4u + 4u,
     CHECKPOINT_AUTH_BYTES = 4u + 4u + 8u + VOS_CRYPTO_TAG_BYTES,
     CHECKPOINT_SERIAL_BYTES = CHECKPOINT_HEADER_BYTES +
+                              VOS_STORAGE_MAX_FRESH_KEYS * 8u +
                               VOS_STORAGE_MAX_SNAPSHOTS * 8u +
                               VOS_STORAGE_MAX_DEADLIST * 16u +
                               VOS_STORAGE_MAX_ARENA_NODES * CHECKPOINT_AUTH_BYTES
@@ -272,7 +363,12 @@ static size_t serialize_checkpoint(const struct vos_storage_checkpoint *cp,
     at += VOS_CRYPTO_DIGEST_BYTES;
     put_le32(buf + at, cp->snapshot_count);
     put_le32(buf + at + 4u, cp->dead_count);
-    at += 8u;
+    put_le32(buf + at + 8u, cp->fresh_key_count);
+    at += 12u;
+    for (uint32_t i = 0u; i < cp->fresh_key_count; ++i) {
+        put_le64(buf + at, cp->fresh_keys[i]);
+        at += 8u;
+    }
     for (uint32_t i = 0u; i < cp->snapshot_count && i < VOS_STORAGE_MAX_SNAPSHOTS; ++i) {
         put_le64(buf + at, cp->snapshots[i]);
         at += 8u;
@@ -298,6 +394,7 @@ static int sign_checkpoint(const struct vos_crypto_core *crypto,
 {
     uint8_t buf[CHECKPOINT_SERIAL_BYTES];
     if (cp->used == 0u || cp->used > VOS_STORAGE_MAX_ARENA_NODES ||
+        !valid_fresh_keys(cp) ||
         cp->snapshot_count > VOS_STORAGE_MAX_SNAPSHOTS ||
         cp->dead_count > VOS_STORAGE_MAX_DEADLIST ||
         cp->frame_count > VOS_STORAGE_MAX_JOURNAL_FRAMES) {
@@ -323,6 +420,7 @@ static int verify_checkpoint_mac(const struct vos_crypto_core *crypto,
         cp->used > VOS_STORAGE_MAX_ARENA_NODES ||
         cp->root >= cp->used ||
         cp->frame_count > VOS_STORAGE_MAX_JOURNAL_FRAMES ||
+        !valid_fresh_keys(cp) ||
         cp->snapshot_count > VOS_STORAGE_MAX_SNAPSHOTS ||
         cp->dead_count > VOS_STORAGE_MAX_DEADLIST ||
         (cp->commit_mode != VOS_STORAGE_COMMIT_ROLLBACKABLE &&
@@ -618,6 +716,10 @@ int vos_storage_reserve(struct vos_storage_store *store,
         return 0;
     }
     struct vos_storage_medium *medium = store->medium;
+    if (!matches_active_checkpoint(store) ||
+        !fresh_transaction_allowed(&medium->checkpoint, spec)) {
+        return 0;
+    }
     if (!verify_nonce_record(store->crypto, store->crypto_slot,
                              store->domain_id, store->key_epoch,
                              &medium->nonce_record) ||
@@ -949,6 +1051,9 @@ int vos_storage_publish(struct vos_storage_store *store,
     next_cp.snapshot_count = medium->checkpoint.snapshot_count;
     for (uint32_t i = 0u; i < next_cp.snapshot_count; ++i) {
         next_cp.snapshots[i] = medium->checkpoint.snapshots[i];
+    }
+    if (!inherit_fresh_keys(&next_cp, &medium->checkpoint, &att->spec)) {
+        return 0;
     }
     next_cp.dead_count = att->staged_dead_count;
     for (uint32_t i = 0u; i < next_cp.dead_count; ++i) {
@@ -1630,6 +1735,7 @@ static int encode_blkdev_checkpoint(const struct vos_storage_checkpoint *cp,
 {
     if (cp == NULL || out == NULL ||
         arena_nodes > VOS_STORAGE_BLKDEV_MAX_ARENA_NODES ||
+        !valid_fresh_keys(cp) ||
         cp->snapshot_count > VOS_STORAGE_MAX_SNAPSHOTS ||
         cp->dead_count > VOS_STORAGE_BLKDEV_MAX_DEADLIST ||
         cp->frame_count > VOS_STORAGE_BLKDEV_MAX_JOURNAL_FRAMES) {
@@ -1663,6 +1769,10 @@ static int encode_blkdev_checkpoint(const struct vos_storage_checkpoint *cp,
     copy_bytes(out + 160u, cp->payload_manifest_digest, VOS_CRYPTO_DIGEST_BYTES);
     copy_bytes(out + 192u, cp->checkpoint_mac, VOS_CRYPTO_DIGEST_BYTES);
     copy_bytes(out + 1056u, cp->fresh_state_digest, VOS_CRYPTO_DIGEST_BYTES);
+    put_le32(out + 1088u, cp->fresh_key_count);
+    for (uint32_t i = 0u; i < cp->fresh_key_count; ++i) {
+        put_le64(out + 1092u + (size_t)i * 8u, cp->fresh_keys[i]);
+    }
     for (uint32_t i = 0u; i < VOS_STORAGE_MAX_SNAPSHOTS; ++i) {
         put_le64(out + 224u + (size_t)i * 8u,
                  (i < cp->snapshot_count) ? cp->snapshots[i] : 0u);
@@ -1695,7 +1805,7 @@ static int decode_blkdev_checkpoint(const uint8_t in[BLKDEV_CP_BYTES],
         arena_nodes > VOS_STORAGE_BLKDEV_MAX_ARENA_NODES ||
         !equal_bytes_ct(in, magic, sizeof(magic)) ||
         !all_zero(in + 80u, 8u) || !all_zero(in + 96u, VOS_CRYPTO_DIGEST_BYTES) ||
-        !all_zero(in + 1088u, BLKDEV_CP_BYTES - 1088u)) {
+        !all_zero(in + 1604u, BLKDEV_CP_BYTES - 1604u)) {
         return 0;
     }
     zero_bytes((uint8_t *)cp_out, sizeof(*cp_out));
@@ -1713,10 +1823,25 @@ static int decode_blkdev_checkpoint(const uint8_t in[BLKDEV_CP_BYTES],
     cp_out->sealed_epoch = get_le64(in + 80u);
     cp_out->snapshot_count = get_le32(in + 88u);
     cp_out->dead_count = get_le32(in + 92u);
+    cp_out->fresh_key_count = get_le32(in + 1088u);
     if (cp_out->committed > 1u ||
+        cp_out->fresh_key_count > VOS_STORAGE_MAX_FRESH_KEYS ||
         cp_out->snapshot_count > VOS_STORAGE_MAX_SNAPSHOTS ||
         cp_out->dead_count > VOS_STORAGE_BLKDEV_MAX_DEADLIST ||
         cp_out->frame_count > VOS_STORAGE_BLKDEV_MAX_JOURNAL_FRAMES) {
+        zero_bytes((uint8_t *)cp_out, sizeof(*cp_out));
+        return 0;
+    }
+    for (uint32_t i = 0u; i < VOS_STORAGE_MAX_FRESH_KEYS; ++i) {
+        const uint64_t key = get_le64(in + 1092u + (size_t)i * 8u);
+        if (i < cp_out->fresh_key_count) {
+            cp_out->fresh_keys[i] = key;
+        } else if (key != 0u) {
+            zero_bytes((uint8_t *)cp_out, sizeof(*cp_out));
+            return 0;
+        }
+    }
+    if (!valid_fresh_keys(cp_out)) {
         zero_bytes((uint8_t *)cp_out, sizeof(*cp_out));
         return 0;
     }

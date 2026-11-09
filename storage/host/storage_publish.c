@@ -1138,6 +1138,179 @@ static int check_active_checkpoint_cache(void)
     return 1;
 }
 
+static int refuses_without_reservation(struct vos_storage_store *store,
+                                        uint64_t domain,
+                                        const struct vos_storage_tx_spec *spec)
+{
+    uint8_t store_before[sizeof(*store)];
+    uint8_t medium_before[sizeof(*store->medium)];
+    uint8_t crypto_before[sizeof(*store->crypto)];
+    memcpy(store_before, store, sizeof(*store));
+    memcpy(medium_before, store->medium, sizeof(*store->medium));
+    memcpy(crypto_before, store->crypto, sizeof(*store->crypto));
+    return !vos_storage_reserve(store, domain, spec) &&
+           memcmp(store_before, store, sizeof(*store)) == 0 &&
+           memcmp(medium_before, store->medium, sizeof(*store->medium)) == 0 &&
+           memcmp(crypto_before, store->crypto, sizeof(*store->crypto)) == 0;
+}
+
+static int check_fresh_key_inventory(void)
+{
+    static const uint8_t master[32] = {0x73u};
+    const uint64_t domain = 0x7373u;
+    const struct vos_node_geometry geometry = {
+        .fan = 4u, .arena_nodes = 16u, .block_bytes = 128u
+    };
+    const struct vos_tree_limits limits = {
+        .height = 0u, .depth_limit = 4u, .visit_limit = 64u
+    };
+    struct vos_crypto_core crypto;
+    struct vos_storage_medium medium;
+    struct vos_storage_store store;
+    vos_crypto_core_init(&crypto, 128u);
+    if (!vos_crypto_core_unlock_domain(&crypto, VOS_CRYPTO_DOMAIN_SYSTEM,
+                                       domain, 1u, master, sizeof(master)) ||
+        !vos_storage_format(&medium, &store, &crypto, VOS_CRYPTO_DOMAIN_SYSTEM,
+                             domain, 1u, &geometry, &limits, 1u, 256u)) {
+        return 0;
+    }
+    struct vos_storage_tx_spec fresh = {
+        .op_kind = VOS_STORAGE_OP_INSERT,
+        .commit_mode = VOS_STORAGE_COMMIT_FRESH,
+        .key = 7u, .value = 100u,
+        .fresh_region_id = 9u, .fresh_region_version = 1u
+    };
+    uint64_t ack = 0u;
+    if (!apply_commit(&store, domain, &fresh, &ack) ||
+        medium.checkpoint.fresh_key_count != 1u || medium.checkpoint.fresh_keys[0] != 7u) {
+        return 0;
+    }
+    struct vos_storage_tx_spec ordinary = {
+        .op_kind = VOS_STORAGE_OP_INSERT,
+        .commit_mode = VOS_STORAGE_COMMIT_ROLLBACKABLE,
+        .key = 7u, .value = 999u
+    };
+    if (!refuses_without_reservation(&store, domain, &ordinary)) {
+        return 0;
+    }
+    ordinary.op_kind = VOS_STORAGE_OP_DELETE;
+    if (!refuses_without_reservation(&store, domain, &ordinary)) {
+        return 0;
+    }
+    ordinary.op_kind = VOS_STORAGE_OP_INSERT_BATCH;
+    ordinary.entry_count = 3u;
+    for (size_t i = 0u; i < ordinary.entry_count; ++i) {
+        ordinary.entries[i].key = 6u + i;
+        ordinary.entries[i].value = 600u + i;
+    }
+    uint64_t value = 0u;
+    if (!refuses_without_reservation(&store, domain, &ordinary) ||
+        vos_storage_lookup(&store, domain, 6u, &value) != VOS_TREE_MISSING ||
+        vos_storage_lookup(&store, domain, 7u, &value) != VOS_TREE_FOUND || value != 100u ||
+        vos_storage_lookup(&store, domain, 8u, &value) != VOS_TREE_MISSING ||
+        !refuses_without_reservation(&store, domain, &fresh)) {
+        return 0;
+    }
+    fresh.fresh_region_id = 10u;
+    fresh.fresh_region_version = 2u;
+    if (!refuses_without_reservation(&store, domain, &fresh)) {
+        return 0;
+    }
+    fresh.fresh_region_id = 9u;
+    fresh.fresh_region_version = 0u;
+    if (!refuses_without_reservation(&store, domain, &fresh)) {
+        return 0;
+    }
+
+    fresh.op_kind = VOS_STORAGE_OP_INSERT_BATCH;
+    fresh.entry_count = 3u;
+    fresh.entries[0].key = 0u;
+    fresh.entries[1].key = 8u;
+    fresh.entries[2].key = 63u;
+    fresh.fresh_region_version = 2u;
+    if (!apply_commit(&store, domain, &fresh, &ack)) {
+        return 0;
+    }
+    for (size_t i = 0u; i < fresh.entry_count; ++i) {
+        ordinary.op_kind = VOS_STORAGE_OP_INSERT;
+        ordinary.key = fresh.entries[i].key;
+        if (!refuses_without_reservation(&store, domain, &ordinary)) {
+            return 0;
+        }
+    }
+
+    /* Every admitted key remains protected after deletion. A permutation of
+     * the bounded key domain exercises canonical union, duplicates and capacity. */
+    fresh.op_kind = VOS_STORAGE_OP_DELETE;
+    for (uint64_t step = 0u; step < VOS_STORAGE_MAX_FRESH_KEYS; ++step) {
+        fresh.key = (step * 17u) % VOS_STORAGE_MAX_FRESH_KEYS;
+        fresh.fresh_region_version = step + 3u;
+        if (!apply_commit(&store, domain, &fresh, &ack)) {
+            return 0;
+        }
+        ordinary.op_kind = VOS_STORAGE_OP_INSERT;
+        ordinary.key = fresh.key;
+        ordinary.value = 999u;
+        if (!refuses_without_reservation(&store, domain, &ordinary)) {
+            return 0;
+        }
+    }
+    if (medium.checkpoint.fresh_key_count != VOS_STORAGE_MAX_FRESH_KEYS) {
+        return 0;
+    }
+    for (uint32_t i = 0u; i < VOS_STORAGE_MAX_FRESH_KEYS; ++i) {
+        if (medium.checkpoint.fresh_keys[i] != i) {
+            return 0;
+        }
+    }
+    fresh.key = UINT64_MAX;
+    ++fresh.fresh_region_version;
+    if (!refuses_without_reservation(&store, domain, &fresh)) {
+        return 0;
+    }
+    fresh.key = 7u;
+    fresh.op_kind = VOS_STORAGE_OP_INSERT;
+    fresh.value = 700u;
+    if (!apply_commit(&store, domain, &fresh, &ack)) {
+        return 0;
+    }
+    ordinary.op_kind = VOS_STORAGE_OP_INSERT;
+    ordinary.key = UINT64_MAX;
+    ordinary.value = 999u;
+    if (!apply_commit(&store, domain, &ordinary, &ack)) {
+        return 0;
+    }
+    ordinary.op_kind = VOS_STORAGE_OP_COMPACT;
+    if (!apply_commit(&store, domain, &ordinary, &ack)) {
+        return 0;
+    }
+    uint8_t image[VOS_STORAGE_BLKDEV_IMAGE_BYTES];
+    if (!vos_storage_encode_blkdev_image(&medium, image) ||
+        !vos_storage_reopen_blkdev_image(image, &medium, &store, &crypto,
+                                         VOS_CRYPTO_DOMAIN_SYSTEM, domain) ||
+        medium.checkpoint.fresh_key_count != VOS_STORAGE_MAX_FRESH_KEYS ||
+        vos_storage_lookup(&store, domain, 7u, &value) != VOS_TREE_FOUND || value != 700u ||
+        vos_storage_lookup(&store, domain, UINT64_MAX, &value) != VOS_TREE_FOUND ||
+        value != 999u) {
+        return 0;
+    }
+    for (uint64_t key = 0u; key < VOS_STORAGE_MAX_FRESH_KEYS; ++key) {
+        ordinary.op_kind = VOS_STORAGE_OP_INSERT;
+        ordinary.key = key;
+        if (!refuses_without_reservation(&store, domain, &ordinary)) {
+            return 0;
+        }
+    }
+    /* Both independently authenticated slots must bind the membership bytes. */
+    image[VOS_STORAGE_BLKDEV_HEADER_BYTES + 32u * VOS_STORAGE_BLKDEV_BLOCK_BYTES + 1596u] ^= 0x40u;
+    image[VOS_STORAGE_BLKDEV_HEADER_BYTES + 48u * VOS_STORAGE_BLKDEV_BLOCK_BYTES + 1596u] ^= 0x40u;
+    if (vos_storage_reopen_blkdev_image(image, &medium, &store, &crypto,
+                                        VOS_CRYPTO_DOMAIN_SYSTEM, domain)) {
+        return 0;
+    }
+    return 1;
+}
+
 int main(void)
 {
     if (!check_crypto_primitives()) {
@@ -1170,6 +1343,10 @@ int main(void)
     }
     if (!check_active_checkpoint_cache()) {
         fprintf(stderr, "storage_publish: active checkpoint cache check failed\n");
+        return 1;
+    }
+    if (!check_fresh_key_inventory()) {
+        fprintf(stderr, "storage_publish: Fresh key inventory check failed\n");
         return 1;
     }
     printf("storage_publish: ok\n");
