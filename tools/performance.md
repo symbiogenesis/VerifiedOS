@@ -34,11 +34,14 @@ An optimization is accepted only when all applicable conditions hold:
    improvement in the changed path without a material end-to-end regression.
    Timing noise is not a test failure or a speedup claim.
 6. The integrated tree follows the
-   [validation handoff](../AGENTS.md#tool-execution-and-validation): Host CI must
-   pass, and every Guest CI lane is dispatched without waiting for its verdict.
-   New deliverables are tracked before validation. The integrator owns generated
-   repairs, shared documentation and the final stable-tree checks. Experiments
-   outside those workflows retain their separate acceptance predicates.
+   [validation handoff](../AGENTS.md#tool-execution-and-validation): the integrator
+   finishes on local `main` and records full Host CI and every Guest CI lane as
+   recommended hosted acceptance. The user owns publication, dispatch, monitoring
+   and verdicts; local completion does not wait for or claim hosted acceptance.
+   Performance acceptance still requires the applicable passing hosted checks and
+   measurements. New deliverables are tracked before validation. The integrator
+   owns generated repairs, shared documentation and the final stable-tree checks.
+   Experiments outside those workflows retain their separate acceptance predicates.
 
 The proof lane owns source-analysis machinery and its consumers; the checker
 lane owns document/checker parsing; the runner lane owns sandbox and worker
