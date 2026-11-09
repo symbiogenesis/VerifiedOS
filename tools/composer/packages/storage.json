@@ -24,7 +24,7 @@
     },
     {
       "path": "storage/src/storage_publish.c",
-      "sha256": "8a641690f39045196d9861e04591dff0b6368513b6b3e567bdadc5161d8d9be2"
+      "sha256": "285f35e6892059759f800fe2a7c24a2cb8632b1040ed93dee9c6db0b7de76edb"
     },
     {
       "path": "storage/include/vos_node_image.h",
@@ -79,7 +79,7 @@
       "id": "resident-reads-boundary",
       "source": {
         "path": "storage/resident-reads.md",
-        "sha256": "57d89278184839f3270ae931c890528a3a7f7d5748e56f306d739fa8f1b79936"
+        "sha256": "7c6a9240b7f74787ede499a88bfe03b07e5c532deecd4cec52e0360b08d3e46b"
       }
     },
     {

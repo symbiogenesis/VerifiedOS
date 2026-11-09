@@ -1322,10 +1322,28 @@ int vos_storage_verify_resident(void *verification,
         (const struct vos_storage_store *)verification;
     uint8_t expected_root[VOS_CRYPTO_DIGEST_BYTES];
     uint64_t committed_value = 0u;
-    if (store == NULL || !store->open || store->crypto == NULL ||
+    if (store == NULL || !store->open || store->medium == NULL ||
+        store->crypto == NULL ||
         identity == NULL || identity->version == 0u ||
         length > VOS_RESIDENT_BYTES ||
         identity->domain != store->domain_id) {
+        return 0;
+    }
+    const struct vos_storage_checkpoint *cp = &store->medium->checkpoint;
+    if (!verify_checkpoint_mac(store->crypto, store->crypto_slot,
+                               store->domain_id, store->key_epoch,
+                               store->medium->geometry.arena_nodes, cp)) {
+        return 0;
+    }
+    if ((store->crypto->epoch_sealed ||
+         cp->commit_mode == VOS_STORAGE_COMMIT_FRESH ||
+         cp->sealed_epoch != 0u) &&
+        !vos_crypto_core_verify_epoch(store->crypto, store->crypto_slot,
+                                      cp->sealed_epoch,
+                                      cp->fresh_region_id,
+                                      cp->fresh_region_version,
+                                      cp->root_digest,
+                                      cp->epoch_root)) {
         return 0;
     }
     if (identity->kind == VOS_RESIDENT_SYSTEM) {

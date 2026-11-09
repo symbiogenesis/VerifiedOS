@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 #include "vos_resident_scalar.h"
+#include "vos_storage_publish.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -9,6 +10,9 @@
 } } while (0)
 
 struct fixture {
+    struct vos_crypto_core crypto;
+    struct vos_storage_medium medium;
+    struct vos_storage_store store;
     struct vos_resident_owner owner;
     struct vos_resident_scalar_retirement attempt;
     struct vos_kernel_effect_state kernel;
@@ -21,24 +25,45 @@ struct fixture {
     uint8_t owned[3][16], bytes[64];
 };
 
-static int verify(void *opaque, const struct vos_resident_identity *identity,
-                  const uint8_t *bytes, size_t length)
-{
-    const struct fixture *f = opaque;
-    return identity->kind == f->identity.kind && length == sizeof(f->bytes) &&
-           memcmp(bytes, f->bytes, length) == 0;
-}
-
 static int setup(struct fixture *f, uint32_t kind)
 {
+    static const struct vos_node_geometry geometry = {4U, 16U, 128U};
+    static const struct vos_tree_limits limits = {0U, 4U, 32U};
     struct vos_supervisor_execution execution;
+    struct vos_storage_tx_spec tx;
+    uint8_t master_key[VOS_CRYPTO_KEY_BYTES_256];
+    uint64_t tree_value = 0, ack_gen = 0;
+    const uint32_t slot = (kind == VOS_RESIDENT_SYSTEM)
+                          ? VOS_CRYPTO_DOMAIN_SYSTEM
+                          : VOS_CRYPTO_DOMAIN_USER;
     memset(f, 0, sizeof(*f));
-    f->identity.owner = 7; f->identity.domain = 11; f->identity.object = 19;
-    f->identity.version = 1; f->identity.generation = 1; f->identity.kind = kind;
-    for (uint32_t i = 0; i < sizeof(f->identity.root); ++i)
-        f->identity.root[i] = (uint8_t)(31U + i);
-    for (uint32_t i = 0; i < sizeof(f->bytes); ++i) f->bytes[i] = (uint8_t)(3U * i + 1U);
-    if (!vos_resident_init(&f->owner, 1, 1, 15, 0, 0) ||
+    for (uint32_t i = 0; i < sizeof(master_key); ++i)
+        master_key[i] = (uint8_t)(0x40U + i);
+    for (uint32_t i = 0; i < sizeof(f->bytes); ++i)
+        f->bytes[i] = (uint8_t)(3U * i + 1U + kind);
+    vos_crypto_core_init(&f->crypto, 16U);
+    if (!vos_crypto_core_unlock_domain(&f->crypto, slot, 11U, 1U,
+                                       master_key, sizeof(master_key)) ||
+        !vos_storage_format(&f->medium, &f->store, &f->crypto, slot, 11U, 1U,
+                            &geometry, &limits, 1U, 64U))
+        return 0;
+    f->store.committed_generation = 2U;
+    if (!vos_storage_bind_resident_identity(&f->store, 7U, 19U, 1U, kind,
+                                            f->bytes, sizeof(f->bytes),
+                                            &tree_value, &f->identity))
+        return 0;
+    f->store.committed_generation = 1U;
+    memset(&tx, 0, sizeof(tx));
+    tx.op_kind = VOS_STORAGE_OP_INSERT;
+    tx.commit_mode = VOS_STORAGE_COMMIT_ROLLBACKABLE;
+    tx.key = 19U;
+    tx.value = tree_value;
+    if (!vos_storage_reserve(&f->store, 11U, &tx) ||
+        !vos_storage_stage(&f->store, 11U) ||
+        !vos_storage_publish(&f->store, 11U, VOS_STORAGE_CUT_NONE, &ack_gen) ||
+        ack_gen != 2U)
+        return 0;
+    if (!vos_resident_init(&f->owner, 1, f->identity.generation, 15, 0, 0) ||
         !vos_resident_publish(&f->owner, &f->identity, f->bytes, sizeof(f->bytes)))
         return 0;
     for (uint32_t i = 0; i < VOS_RESIDENT_HOLDERS; ++i)
@@ -88,6 +113,22 @@ static int successful(uint32_t kind)
     uint8_t output[64];
     size_t length = 999;
     REQUIRE(setup(&f, kind), "setup success");
+    REQUIRE(vos_resident_complete(&f.owner, &f.handles[0], 11, f.sequences[0], 1,
+                                  vos_storage_verify_resident, &f.store,
+                                  output, sizeof(output), &length) &&
+            length == 16 && memcmp(output, f.bytes, 16) == 0,
+            "authenticated storage verifier accepts resident read before retirement");
+    REQUIRE(vos_resident_begin(&f.owner, &f.handles[0], 11, 0, 16, 1,
+                               &f.sequences[0]),
+            "holder 0 begins second read before retirement");
+    length = 999;
+    f.medium.checkpoint.checkpoint_mac[0] ^= 0x01U;
+    REQUIRE(!vos_resident_complete(&f.owner, &f.handles[0], 11, f.sequences[0], 1,
+                                   vos_storage_verify_resident, &f.store,
+                                   output, sizeof(output), &length) &&
+            length == 999 && f.owner.pending[0].active,
+            "corrupted checkpoint MAC refuses resident read without consuming pending transfer");
+    f.medium.checkpoint.checkpoint_mac[0] ^= 0x01U;
     /* A failed holder supplies no acknowledgment; the fixed kernel-owned
      * holder inventory still contains its saved and ordinary capabilities. */
     f.kernel.unit[1].running = 0;
@@ -95,7 +136,8 @@ static int successful(uint32_t kind)
     const uint64_t mask = vos_resident_scalar_prepare(&f.attempt, &f.owner, &f.kernel, &f.binding);
     REQUIRE(mask == 7 && quarantined(&f), "complete holder cancellation before publication");
     REQUIRE(!vos_resident_complete(&f.owner, &f.handles[1], 11, f.sequences[1], 1,
-                                   verify, &f, output, sizeof(output), &length) &&
+                                   vos_storage_verify_resident, &f.store,
+                                   output, sizeof(output), &length) &&
             length == 999, "late resident completion cannot publish");
     REQUIRE(!vos_resident_scalar_prepare(&f.attempt, &f.owner, &f.kernel, &f.binding),
             "prepare is one use");

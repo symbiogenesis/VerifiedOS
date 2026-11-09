@@ -52,10 +52,12 @@ def scalar_resident_controls() -> None:
     work = toolenv.environment(root, sys.platform).parent / "resident-scalar-tests"
     work.mkdir(parents=True, exist_ok=True)
     source = (root / SOURCE).read_text(encoding="utf-8")
-    dependencies = ("storage/src/resident_reads.c", "kernel/src/effects.c",
-                    "kernel/src/context.c", "supervisor/src/supervisor.c",
-                    "supervisor/src/effects.c", "supervisor/src/manifest.c",
-                    "storage/test/resident_scalar.c")
+    dependencies = ("storage/src/node_image.c", "storage/src/tree_image.c",
+                    "storage/src/tree_update.c", "storage/src/crypto_core.c",
+                    "storage/src/storage_publish.c", "storage/src/resident_reads.c",
+                    "kernel/src/effects.c", "kernel/src/context.c",
+                    "supervisor/src/supervisor.c", "supervisor/src/effects.c",
+                    "supervisor/src/manifest.c", "storage/test/resident_scalar.c")
     with tempfile.TemporaryDirectory(prefix="resident-scalar-", dir=work) as directory:
         scratch = Path(directory)
         for name, candidate, expected in _variants(source):

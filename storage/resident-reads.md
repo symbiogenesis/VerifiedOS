@@ -81,17 +81,19 @@ prerequisites; this source adapter manufactures none of them.
 
 `python tools/run.py test --only test_resident_scalar --jobs 1` registers the
 native campaign for Linux, including Host CI's Ubuntu runner. It links the real
-kernel, supervisor and resident sources, exercises both root kinds with
+kernel, supervisor, resident, storage-publication and crypto-core sources,
+exercises both root kinds (`system-integrity` and `user-data`) over committed
+CoW B+ tree roots verified through `vos_storage_verify_resident` with
 independent pending readers and a failed holder, and checks actual clearing of
 declared private bytes and saved capability slots. The existing architectural
-observation seam is mocked. Refusals cover incomplete holder coverage, stale
-epochs, aliasing clearing regions, active copy work, an open victim set, missing
-publication or scrub, owner drift and late completion. Compiled defects omit
-coverage, epoch binding, cancellation or semantic completion, change the
-retained binding, or release backing on semantic completion; each must fail
-its intended oracle after compiling. This source-level campaign supplies no
-target correspondence, cryptographic verification, complete writer trace or
-safe-reuse proof.
+observation seam is mocked. Refusals cover corrupted checkpoint MACs, incomplete
+holder coverage, stale epochs, aliasing clearing regions, active copy work, an
+open victim set, missing publication or scrub, owner drift and late completion.
+Compiled defects omit coverage, epoch binding, cancellation or semantic
+completion, change the retained binding, or release backing on semantic
+completion; each must fail its intended oracle after compiling. This
+source-level campaign supplies no target correspondence, complete writer trace
+or safe-reuse proof.
 
 `python tools/run.py test --only test_resident_reads_c --jobs 1` compiles the native
 fixture and every defect before executing it. The pristine fixture exercises both
