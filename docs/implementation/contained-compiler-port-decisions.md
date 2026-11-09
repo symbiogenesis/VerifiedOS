@@ -293,9 +293,9 @@ A successful report binds catalog, seal, mapping, verifier and every mapped file
 identity. It states only that these exact historical helper/lock bytes are
 available at those explicit restored locations. It performs no population or
 library rescan, compilation, query, checker, qualification, copying or cache
-publication. The private path-bound validator still refuses these relocated
-inputs until its separately reviewed integration; compilation reuse, complete
-kernel qualification, target acceptance and checker resume remain false.
+publication. This standalone report supplies no compilation reuse, complete
+kernel qualification, target acceptance or checker resume. The separately
+reviewed status connection below supplies the bounded compilation-only check.
 
 Acceptance requires independent fixture controls for exact coverage, positive
 mapping, catalog/seal/candidate and mapped-byte substitutions, malformed inputs
@@ -304,6 +304,45 @@ VM seal and restored helper/lock files. Preserve historical receipts and useful
 prior output on refusal; retain only metadata mapping/report outputs in the
 assigned lane. The integrator records focused local checks and leaves hosted
 acceptance to the user.
+
+
+### Read-only relocated-compilation status
+
+The [bounded status connection](contracts/contained-compiler-reuse.md#bounded-relocated-compilation-status-connection)
+is implemented in public revision `bd420567e2abc7b4023df775e219ddb0958a47d1`
+and private helper revision `37c154a7a51123008aa940150cefaf8674e55662`.
+The private validator parses exactly the catalog/seal/mapping bytes whose
+identities it binds, independently repeats mapping validation, preserves all
+existing compilation/source/tool/library checks and rechecks the connection
+before return. It admits only explicit read-only compilation-tier status;
+execution, priming, cold bypass, profile requests and implicit index lookup refuse.
+
+The final native run revalidates the real retained `vm-clean-rebuild-1` candidate
+using exactly the committed four-helper driver deployed in its assigned guest
+lane. It reports compilation `reused` and `inputs_stable: true`; queries, kernel
+and classification remain `not_run`. The original receipt remains SHA-256
+`fdd3e16a7268cf07338ce44df6d0c91a8838e2ad7a496ad459be266b0f79577b`,
+and the original raw seal remains
+`efccc80f0186b5686753cf9e9620ea66f8a5ca978fad6cd8d9b7143321564828`.
+Both are unchanged after the run. The local handoff retains the exact connection,
+mapping, deployment/driver identities, command inputs and final status metadata;
+no contained compiler source, object, executable or installed library is exported.
+The native deployment contains only the four reviewed helper scripts.
+
+Focused public connection and controller controls, private positive/refusal
+controls including transient mapping substitution/restoration, original-path
+regressions and public typing/import checks pass. These checks establish this
+finite status boundary, without a complete compiler qualification or target
+verdict. No compilation, proof query, kernel audit, staging or cache publication
+runs. Q39 and Q43 retain their actual complete-qualification/default-reuse joins.
+
+The status runs from its isolated public checkout. A separate primary-equivalent
+validation witness refuses the retained private Git source because it resides
+below the primary checkout's `out/migration-retained/` directory. The controller's
+existing native-source placement rule remains unchanged. Primary invocation
+requires an explicitly owned compiler Git source location outside that invoking
+checkout; native helper deployment alone does not supply it. This checkpoint
+authorizes no compiler-source move, copy, path alias or containment relaxation.
 
 ## Bounded Parser diagnostic
 

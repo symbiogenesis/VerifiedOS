@@ -321,10 +321,12 @@ metadata paths in the bundle remain part of the reproducibility boundary.
 Q39's next increment connects the explicit helper/lock mapping to the private
 compilation validator for read-only status only. Its prerequisite is
 [the catalog-anchored relocation check](../contained-compiler-port-decisions.md#explicit-relocated-path-verification).
-The retained private driver at `e604e260f74022f0e9aa2d4c9dbf33a5b8cee939`
-accepts no relocation request, hashes historical helper and lock paths directly,
-and derives retention paths from those historical names. A successful public
-mapping report therefore does not currently authorize its compilation reuse.
+The reviewed private status adapter independently authenticates the explicit
+connection before substituting historical helper/lock reads. A standalone public
+mapping report authorizes no compilation reuse. The
+[current status checkpoint](../contained-compiler-port-decisions.md#read-only-relocated-compilation-status)
+records the implemented boundary, final source identities and remaining primary
+source-placement prerequisite.
 
 Before implementation, commit this contract and integrate it into local `main`.
 Use a dedicated worktree in the retained contained repository for changes to its
