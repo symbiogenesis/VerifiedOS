@@ -18,6 +18,9 @@ Gate deadlines own their subprocess trees rather than only their immediate
 children. Bounded termination must release descendant output handles and retain
 partial output while reporting no verdict. Focused controls include a real child
 and grandchild, normal completion and timeout cleanup on Windows and Linux.
+Linux ownership also follows declared command lineage through helper-created
+sessions; nested cancellation excludes sibling commands. Bounded controls cover
+ordinary session-creating helpers as well as nested uses of the ownership helper.
 Behavioral-test progress checkpoints running and completed modules as work
 finishes, independently of deterministic final reporting order. Diagnostic
 publication failure must preserve the preceding snapshot and never change the

@@ -2936,7 +2936,7 @@ The contracts and acceptance predicates were committed before implementation.
 **Acceptance:** pending entry/prose pairs are read through `coread --show`,
 discrepancies repaired at their owner and agreement recorded explicitly.
 Real bounded subprocess fixtures cover child/grandchild cleanup, nested authored
-commands, unaffected siblings, retained output and cleanup failures on Windows
+commands, helper-created Linux sessions, unaffected siblings, retained output and cleanup failures on Windows
 and Linux. Behavioral tests checkpoint queued, running and completed modules
 while final reports remain deterministic; diagnostic failure cannot change a
 verdict. Native selection derives slow toolchain cases, excludes ordinary and
