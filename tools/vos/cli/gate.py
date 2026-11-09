@@ -29,7 +29,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from vos import corpus as corpus_mod
-from vos import sharding, timings
+from vos import process_tree, sharding, timings
 from vos.report import Reporter
 from vos.sharding import Shard
 
@@ -115,8 +115,7 @@ def _launch(root: Path, member: Launch, record: Path | None = None) -> Result:
         environment[timings.ENV] = str(record)
     started = time.perf_counter()
     try:
-        done = subprocess.run(argv, capture_output=True, encoding="utf-8", errors="replace",
-                              cwd=root, check=False, timeout=TIMEOUT, env=environment)
+        done = process_tree.run(argv, cwd=root, timeout=TIMEOUT, env=environment)
     except subprocess.TimeoutExpired as err:
         units = timings.read(record) if record is not None else None
         output = (_partial_text(err.stdout) + _partial_text(err.stderr)).splitlines()
