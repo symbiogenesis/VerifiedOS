@@ -9,8 +9,11 @@
    Scope and relation to sibling storage proofs:
    - Implements the plain copy-on-write B+ tree fallback admitted by R-10-004:
      key and separator routing, lookup (`lookup` and `seek`), insertion with
-     replacement, leaf and internal splitting, copy-on-write path allocation
-     (R-10-010), and post-write structural and depth-balance verification.
+     replacement, lazy copy-on-write deletion (`del`, `delete_gate`),
+     sorted-batch updates (`insert_batch_gate`), canonical history-independent
+     compaction (`compact_gate`), leaf and internal splitting, copy-on-write
+     path allocation (R-10-010), and post-write structural and depth-balance
+     verification.
    - B^epsilon buffered-update message logs (`blook`, `plain_look`, `flush` in
      [JournalIndex.v](JournalIndex.v)), L0 transaction recovery
      ([StorageRecovery.v](StorageRecovery.v), [StorageBridge.v](StorageBridge.v),
@@ -3850,6 +3853,907 @@ Proof.
 Qed.
 
 (* =========================================================================
+   Lazy copy-on-write deletion, sorted-batch updates, and canonical
+   history-independent compaction (R-10-003, R-10-004, R-10-010).
+   ========================================================================= *)
+
+Fixpoint del (ka : KeyAlgebra) (k : Key ka) (ix : Index ka) : Index ka :=
+  match ix with
+  | nil => nil
+  | cons e r =>
+      if key_eqb ka k (fst e) then del ka k r else cons e (del ka k r)
+  end.
+
+Lemma del_app :
+  forall (ka : KeyAlgebra) (k : Key ka) (l r : Index ka),
+    del ka k (app l r) = app (del ka k l) (del ka k r).
+Proof.
+  intros ka k l. induction l as [ | e s IH ]; intros r; simpl; [ reflexivity | ].
+  destruct (key_eqb ka k (fst e)); simpl; rewrite (IH r); reflexivity.
+Qed.
+
+Lemma del_below :
+  forall (ka : KeyAlgebra) (k : Key ka) (ix : Index ka),
+    keys_below ka k ix = true -> del ka k ix = ix.
+Proof.
+  intros ka k ix. induction ix as [ | e r IH ]; intros H; [ reflexivity | ].
+  unfold keys_below in H. simpl in H. apply andb_true_iff in H as [ He Hr ].
+  simpl. rewrite (key_lt_neq ka (fst e) k He). rewrite (IH Hr). reflexivity.
+Qed.
+
+Lemma del_above :
+  forall (ka : KeyAlgebra) (k : Key ka) (ix : Index ka),
+    keys_above ka k ix = true -> del ka k ix = ix.
+Proof.
+  intros ka k ix. induction ix as [ | e r IH ]; intros H; [ reflexivity | ].
+  unfold keys_above in H. simpl in H. apply andb_true_iff in H as [ He Hr ].
+  simpl. rewrite (key_lt_ne ka k (fst e) He). rewrite (IH Hr). reflexivity.
+Qed.
+
+Lemma del_into_left :
+  forall (ka : KeyAlgebra) (k : Key ka) (l r : Index ka),
+    keys_above ka k r = true ->
+    del ka k (app l r) = app (del ka k l) r.
+Proof.
+  intros ka k l r H. rewrite del_app. rewrite (del_above ka k r H). reflexivity.
+Qed.
+
+Lemma del_into_right :
+  forall (ka : KeyAlgebra) (k : Key ka) (l r : Index ka),
+    keys_below ka k l = true ->
+    del ka k (app l r) = app l (del ka k r).
+Proof.
+  intros ka k l r H. rewrite del_app. rewrite (del_below ka k l H). reflexivity.
+Qed.
+
+(*| discharges: R-10-003 |*)
+Theorem the_deleted_key_is_absent :
+  forall (ka : KeyAlgebra) (k : Key ka) (ix : Index ka),
+    look ka k (del ka k ix) = None.
+Proof.
+  intros ka k ix. induction ix as [ | e r IH ]; [ reflexivity | ].
+  simpl. destruct (key_eqb ka k (fst e)) eqn:Ek; [ exact IH | ].
+  simpl. rewrite Ek. exact IH.
+Qed.
+
+(*| discharges: R-10-003 |*)
+Theorem delete_moves_no_other_key :
+  forall (ka : KeyAlgebra) (k j : Key ka) (ix : Index ka),
+    key_eqb ka j k = false -> look ka j (del ka k ix) = look ka j ix.
+Proof.
+  intros ka k j ix Hjk. induction ix as [ | e r IH ]; [ reflexivity | ].
+  simpl. destruct (key_eqb ka k (fst e)) eqn:Ek.
+  - rewrite <- (key_eqb_true ka k (fst e) Ek). rewrite Hjk. exact IH.
+  - simpl. destruct (key_eqb ka j (fst e)); [ reflexivity | exact IH ].
+Qed.
+
+Lemma del_absent :
+  forall (ka : KeyAlgebra) (k : Key ka) (ix : Index ka),
+    look ka k ix = None -> del ka k ix = ix.
+Proof.
+  intros ka k ix. induction ix as [ | e r IH ]; intros H; [ reflexivity | ].
+  simpl in H |- *. destruct (key_eqb ka k (fst e)); [ discriminate H | ].
+  rewrite (IH H). reflexivity.
+Qed.
+
+Lemma del_ins_absent :
+  forall (ka : KeyAlgebra) (k : Key ka) (v : nat) (ix : Index ka),
+    look ka k ix = None -> del ka k (ins ka k v ix) = ix.
+Proof.
+  intros ka k v ix. induction ix as [ | e r IH ]; intros H.
+  - simpl. rewrite (key_eqb_refl ka k). reflexivity.
+  - simpl in H. destruct (key_eqb ka k (fst e)) eqn:Ek; [ discriminate H | ].
+    simpl. rewrite Ek. destruct (key_leb ka k (fst e)) eqn:El.
+    + simpl. rewrite (key_eqb_refl ka k). rewrite Ek.
+      rewrite (del_absent ka k r H). reflexivity.
+    + simpl. rewrite Ek. rewrite (IH H). reflexivity.
+Qed.
+
+Lemma del_keeps_ge_all :
+  forall (ka : KeyAlgebra) (j k : Key ka) (ix : Index ka),
+    ge_all ka j ix = true -> ge_all ka j (del ka k ix) = true.
+Proof.
+  intros ka j k ix. induction ix as [ | e r IH ]; intros H; [ reflexivity | ].
+  simpl in H. apply andb_true_iff in H as [ He Hr ].
+  simpl. destruct (key_eqb ka k (fst e)); [ exact (IH Hr) | ].
+  simpl. apply andb_true_iff. split; [ exact He | exact (IH Hr) ].
+Qed.
+
+(*| discharges: R-10-003 |*)
+Theorem deleting_preserves_the_order :
+  forall (ka : KeyAlgebra) (k : Key ka) (ix : Index ka),
+    sorted ka ix = true -> sorted ka (del ka k ix) = true.
+Proof.
+  intros ka k ix. induction ix as [ | e r IH ]; intros H; [ reflexivity | ].
+  simpl in H. apply andb_true_iff in H as [ Hg Hr ].
+  simpl. destruct (key_eqb ka k (fst e)); [ exact (IH Hr) | ].
+  simpl. apply andb_true_iff.
+  split; [ exact (del_keeps_ge_all ka (fst e) k r Hg) | exact (IH Hr) ].
+Qed.
+
+Lemma del_within :
+  forall (ka : KeyAlgebra) (lo hi : Bound ka) (k : Key ka) (ix : Index ka),
+    entries_within ka lo hi ix = true ->
+    entries_within ka lo hi (del ka k ix) = true.
+Proof.
+  intros ka lo hi k ix H. unfold entries_within in *.
+  induction ix as [ | e r IH ]; [ reflexivity | ].
+  cbn [all_of] in H. apply andb_true_iff in H as [ He Hr ].
+  cbn [del]. destruct (key_eqb ka k (fst e)); [ exact (IH Hr) | ].
+  cbn [all_of]. apply andb_true_iff. split; [ exact He | exact (IH Hr) ].
+Qed.
+
+Lemma length_del :
+  forall (ka : KeyAlgebra) (k : Key ka) (ix : Index ka),
+    length (del ka k ix) <= length ix.
+Proof.
+  intros ka k ix. induction ix as [ | e r IH ]; [ simpl; lia | ].
+  cbn [del]. destruct (key_eqb ka k (fst e)); simpl; lia.
+Qed.
+
+Fixpoint delete_tree (ka : KeyAlgebra) (g : Geometry) (ar : Arena ka)
+                     (fuel b : nat) (k : Key ka)
+  : option (prod (Arena ka) (Grown ka)) :=
+  match nth_error ar b with
+  | None => None
+  | Some nd =>
+      if en_kids nd is nil then publish_leaf ka g ar (del ka k (en_entries nd))
+      else match fuel with
+           | 0 => None
+           | S f =>
+               let j := route ka k (en_seps nd) in
+               match nth_error (en_kids nd) j with
+               | None => None
+               | Some c =>
+                   match delete_tree ka g ar f c k with
+                   | None => None
+                   | Some (pair ar1 (pair a sp)) =>
+                       match splice ka j a sp (en_seps nd) (en_kids nd) with
+                       | pair ss' cs' => publish_branch ka g ar1 ss' cs'
+                       end
+                   end
+               end
+           end
+  end.
+
+Definition delete_checked (ka : KeyAlgebra) (g : Geometry) (ar : Arena ka)
+                          (fuel : nat) (lo hi : Bound ka) (b : nat)
+                          (k : Key ka)
+  : option (prod (Arena ka) (Grown ka)) :=
+  match delete_tree ka g ar fuel b k with
+  | None => None
+  | Some (pair ar' gr) =>
+      if andb (arena_ok ka g ar') (admitted_grown ka g ar' fuel lo hi gr)
+      then Some (pair ar' gr) else None
+  end.
+
+Definition delete_root (ka : KeyAlgebra) (g : Geometry) (ar : Arena ka)
+                       (fuel : nat) (lo hi : Bound ka) (b : nat)
+                       (k : Key ka)
+  : option (prod (Arena ka) (prod nat nat)) :=
+  match delete_checked ka g ar fuel lo hi b k with
+  | None => None
+  | Some (pair ar' (pair a None)) => Some (pair ar' (pair a fuel))
+  | Some (pair ar' (pair a (Some (pair s r)))) =>
+      match alloc ka g ar' (branch_of ka (cons s nil) (cons a (cons r nil))) with
+      | None => None
+      | Some (pair nr ar'') =>
+          if andb (arena_ok ka g ar'')
+                  (admitted ka g ar'' (S fuel) lo hi nr)
+          then Some (pair ar'' (pair nr (S fuel))) else None
+      end
+  end.
+
+Definition delete_gate (ka : KeyAlgebra) (g : Geometry) (ar : Arena ka) (h : nat)
+                       (lo hi : Bound ka) (root : nat) (k : Key ka)
+  : option (prod (Arena ka) (prod nat nat)) :=
+  if Nat.leb h (depth g) then
+    match delete_root ka g ar h lo hi root k with
+    | None => None
+    | Some (pair ar' (pair nr h')) =>
+        if published ka g ar' h' lo hi nr
+        then Some (pair ar' (pair nr h')) else None
+    end
+  else None.
+
+(*| discharges: R-10-010 |*)
+Lemma a_delete_only_appends :
+  forall (ka : KeyAlgebra) (g : Geometry) (fuel : nat) (ar : Arena ka)
+         (b : nat) (k : Key ka) (ar' : Arena ka) (gr : Grown ka),
+    delete_tree ka g ar fuel b k = Some (pair ar' gr) -> appended ka ar ar'.
+Proof.
+  intros ka g fuel. induction fuel as [ | f IH ]; intros ar b k ar' gr H;
+    simpl in H; destruct (nth_error ar b) as [ nd | ]; try discriminate H.
+  - destruct (en_kids nd) as [ | c cs ]; [ | discriminate H ].
+    exact (publish_leaf_appended ka g ar _ ar' gr H).
+  - destruct (en_kids nd) as [ | c cs ].
+    + exact (publish_leaf_appended ka g ar _ ar' gr H).
+    + destruct (nth_error (cons c cs) (route ka k (en_seps nd))) as [ x | ];
+        [ | discriminate H ].
+      destruct (delete_tree ka g ar f x k) as [ [ ar1 [ a sp ] ] | ] eqn:E1;
+        [ | discriminate H ].
+      destruct (splice ka (route ka k (en_seps nd)) a sp (en_seps nd)
+                       (cons c cs)) as [ ss' cs' ].
+      apply (appended_trans ka ar ar1 ar').
+      * exact (IH ar x k ar1 (pair a sp) E1).
+      * exact (publish_branch_appended ka g ar1 ss' cs' ar' gr H).
+Qed.
+
+(*| discharges: R-10-010 |*)
+Theorem a_retained_root_survives_a_later_delete :
+  forall (ka : KeyAlgebra) (g : Geometry) (fuel : nat) (ar : Arena ka)
+         (lo hi : Bound ka) (snap b : nat) (k : Key ka)
+         (ar' : Arena ka) (gr : Grown ka) (q : Key ka),
+    admitted ka g ar fuel lo hi snap = true ->
+    delete_tree ka g ar fuel b k = Some (pair ar' gr) ->
+    lookup ka ar' fuel snap q = lookup ka ar fuel snap q
+    /\ flatten ka ar' fuel snap = flatten ka ar fuel snap
+    /\ admitted ka g ar' fuel lo hi snap = true.
+Proof.
+  intros ka g fuel ar lo hi snap b k ar' gr q Hadm Hdel.
+  destruct (a_delete_only_appends ka g fuel ar b k ar' gr Hdel) as [ ext He ].
+  rewrite He. split; [ | split ].
+  - exact (lookup_frame ka fuel ar ext snap q
+             (admitted_spans ka g fuel ar lo hi snap Hadm)).
+  - exact (flatten_frame ka fuel ar ext snap
+             (admitted_spans ka g fuel ar lo hi snap Hadm)).
+  - exact (admitted_frame ka g fuel ar ext lo hi snap Hadm).
+Qed.
+
+(*| discharges: R-10-003 |*)
+Lemma a_delete_publishes_spanning_nodes :
+  forall (ka : KeyAlgebra) (g : Geometry) (fuel : nat) (ar : Arena ka)
+         (b : nat) (k : Key ka) (ar' : Arena ka) (a : nat)
+         (sp : option (prod (Key ka) nat)),
+    spans ka ar fuel b = true ->
+    delete_tree ka g ar fuel b k = Some (pair ar' (pair a sp)) ->
+    spans ka ar' fuel a = true
+    /\ (forall (s r : _), sp = Some (pair s r) -> spans ka ar' fuel r = true).
+Proof.
+  intros ka g fuel. induction fuel as [ | f IH ];
+    intros ar b k ar' a sp Hs H; simpl in Hs, H;
+    destruct (nth_error ar b) as [ nd | ]; try discriminate H.
+  - destruct (en_kids nd) as [ | c cs ]; [ | discriminate H ].
+    exact (publish_leaf_spans ka g ar _ ar' a sp 0 H).
+  - destruct (en_kids nd) as [ | c cs ].
+    + exact (publish_leaf_spans ka g ar _ ar' a sp (S f) H).
+    + destruct (nth_error (cons c cs) (route ka k (en_seps nd)))
+        as [ x | ] eqn:Ex; [ | discriminate H ].
+      destruct (delete_tree ka g ar f x k) as [ [ ar1 [ a0 sp0 ] ] | ] eqn:E1;
+        [ | discriminate H ].
+      destruct (splice ka (route ka k (en_seps nd)) a0 sp0 (en_seps nd)
+                       (cons c cs)) as [ ss' cs' ] eqn:Esp.
+      assert (Hx : spans ka ar f x = true)
+        by exact (all_of_elim (spans ka ar f) (cons c cs) x Hs
+                    (nth_error_mem (cons c cs) (route ka k (en_seps nd)) x Ex)).
+      destruct (IH ar x k ar1 a0 sp0 Hx E1) as [ Ha0 Hr0 ].
+      destruct (a_delete_only_appends ka g f ar x k ar1 (pair a0 sp0) E1)
+        as [ ext He ].
+      assert (Hkids : all_of (spans ka ar1 f) (cons c cs) = true).
+      { rewrite He.
+        apply (all_of_mono nat (spans ka ar f) (spans ka (app ar ext) f));
+          [ intros y Hy; exact (spans_frame ka f ar ext y Hy) | exact Hs ]. }
+      apply (publish_branch_spans ka g f ar1 ss' cs' ar' a sp); [ | exact H ].
+      exact (splice_spans ka f ar1 (route ka k (en_seps nd)) a0 sp0
+               (en_seps nd) (cons c cs) ss' cs' Hkids Ha0 Hr0 Esp).
+Qed.
+
+(*| discharges: R-10-003 |*)
+Theorem a_delete_represents_the_logical_map :
+  forall (ka : KeyAlgebra) (g : Geometry) (fuel : nat) (ar : Arena ka)
+         (lo hi : Bound ka) (b : nat) (k : Key ka)
+         (ar' : Arena ka) (gr : Grown ka),
+    admitted ka g ar fuel lo hi b = true ->
+    within ka lo hi k = true ->
+    delete_tree ka g ar fuel b k = Some (pair ar' gr) ->
+    flatten_grown ka ar' fuel gr = del ka k (flatten ka ar fuel b).
+Proof.
+  intros ka g fuel. induction fuel as [ | f IH ];
+    intros ar lo hi b k ar' gr Hadm Hw H;
+    simpl in Hadm, H |- *;
+    destruct (nth_error ar b) as [ nd | ]; try discriminate H;
+    apply andb_true_iff in Hadm as [ _ Hadm ].
+  - destruct (en_kids nd) as [ | c cs ]; [ | discriminate H ].
+    exact (publish_leaf_flattens ka g ar _ ar' gr 0 H).
+  - destruct (en_kids nd) as [ | c cs ].
+    + exact (publish_leaf_flattens ka g ar _ ar' gr (S f) H).
+    + apply andb_true_iff in Hadm as [ Hrise Hchain ].
+      destruct (nth_error (cons c cs) (route ka k (en_seps nd)))
+        as [ x | ] eqn:Ex; [ | discriminate H ].
+      assert (Exm : mem_of x (cons c cs) = true)
+        by exact (nth_error_mem (cons c cs) (route ka k (en_seps nd)) x Ex).
+      destruct (delete_tree ka g ar f x k) as [ [ ar1 [ a0 sp0 ] ] | ] eqn:E1;
+        [ | discriminate H ].
+      destruct (splice ka (route ka k (en_seps nd)) a0 sp0 (en_seps nd)
+                       (cons c cs)) as [ ss' cs' ] eqn:Esp.
+      assert (Hkids : all_of (spans ka ar f) (cons c cs) = true)
+        by exact (chain_all ka (admitted ka g ar f) (spans ka ar f)
+                    (en_seps nd) (cons c cs) lo hi
+                    (fun l h y Hy => admitted_spans ka g f ar l h y Hy) Hchain).
+      destruct (a_delete_only_appends ka g f ar x k ar1 (pair a0 sp0) E1)
+        as [ ext He ].
+      assert (Hkids1 : all_of (spans ka ar1 f) (cons c cs) = true).
+      { rewrite He.
+        apply (all_of_mono nat (spans ka ar f) (spans ka (app ar ext) f));
+          [ intros y Hy; exact (spans_frame ka f ar ext y Hy) | exact Hkids ]. }
+      destruct (a_delete_publishes_spanning_nodes ka g f ar x k ar1 a0 sp0
+                  (all_of_elim (spans ka ar f) (cons c cs) x Hkids Exm) E1)
+        as [ Ha0 Hr0 ].
+      rewrite (publish_branch_flattens ka g f ar1 ss' cs' ar' gr
+                 (splice_spans ka f ar1 (route ka k (en_seps nd)) a0 sp0
+                    (en_seps nd) (cons c cs) ss' cs' Hkids1 Ha0 Hr0 Esp) H).
+      destruct (chain_splits ka g f ar (en_seps nd) (cons c cs) lo hi k
+                  Hrise Hchain Hw)
+        as [ P [ Q [ c' [ lo' [ hi' [ Hcat [ Hlen
+             [ Hadm' [ Hw' [ Hbelow Habove ] ] ] ] ] ] ] ] ] ].
+      assert (Hx : c' = x).
+      { rewrite Hcat in Ex. rewrite <- Hlen in Ex.
+        rewrite (nth_error_app_mid nat P Q c') in Ex.
+        congruence. }
+      rewrite Hx in Hcat. rewrite Hx in Hadm'.
+      assert (HIH : flatten_grown ka ar1 f (pair a0 sp0)
+                    = del ka k (flatten ka ar f x))
+        by exact (IH ar lo' hi' x k ar1 (pair a0 sp0) Hadm' Hw' E1).
+      assert (Htake : take (route ka k (en_seps nd)) (cons c cs) = P).
+      { rewrite Hcat. rewrite <- Hlen.
+        exact (take_app_exact nat P (cons x Q) (length P) eq_refl). }
+      assert (Hdrop : drop (S (route ka k (en_seps nd))) (cons c cs) = Q).
+      { rewrite Hcat. rewrite <- Hlen.
+        exact (drop_after nat P Q x (length P) eq_refl). }
+      assert (Hdrop2 : drop (route ka k (en_seps nd)) cs = Q) by exact Hdrop.
+      assert (Hsplit : all_of (spans ka ar f) P = true
+                       /\ all_of (spans ka ar f) Q = true).
+      { rewrite Hcat in Hkids. rewrite all_of_app in Hkids.
+        apply andb_true_iff in Hkids as [ HA HB ]. simpl in HB.
+        apply andb_true_iff in HB as [ _ HB ]. split; assumption. }
+      destruct Hsplit as [ HPs HQs ].
+      assert (HFP : flat_map (flatten ka ar1 f) P = flat_map (flatten ka ar f) P).
+      { rewrite He. exact (flat_map_agree nat (prod (Key ka) nat)
+          (flatten ka (app ar ext) f) (flatten ka ar f) (spans ka ar f) P HPs
+          (fun y Hy => flatten_frame ka f ar ext y Hy)). }
+      assert (HFQ : flat_map (flatten ka ar1 f) Q = flat_map (flatten ka ar f) Q).
+      { rewrite He. exact (flat_map_agree nat (prod (Key ka) nat)
+          (flatten ka (app ar ext) f) (flatten ka ar f) (spans ka ar f) Q HQs
+          (fun y Hy => flatten_frame ka f ar ext y Hy)). }
+      rewrite Hcat. rewrite flat_map_app. rewrite flat_map_cons.
+      rewrite (del_into_right ka k (flat_map (flatten ka ar f) P)
+                 (app (flatten ka ar f x) (flat_map (flatten ka ar f) Q))
+                 Hbelow).
+      rewrite (del_into_left ka k (flatten ka ar f x)
+                 (flat_map (flatten ka ar f) Q) Habove).
+      destruct sp0 as [ [ s1 r1 ] | ]; simpl in Esp, HIH;
+        injection Esp as Es1 Es2; rewrite <- Es2; rewrite Htake; rewrite Hdrop2.
+      * rewrite flat_map_app. rewrite flat_map_cons. rewrite flat_map_cons.
+        rewrite HFP. rewrite HFQ. rewrite <- HIH.
+        rewrite (app_assoc_of (prod (Key ka) nat) (flatten ka ar1 f a0)
+                   (flatten ka ar1 f r1) (flat_map (flatten ka ar f) Q)).
+        reflexivity.
+      * rewrite flat_map_app. rewrite flat_map_cons.
+        rewrite HFP. rewrite HFQ. rewrite <- HIH. reflexivity.
+Qed.
+
+Theorem a_checked_delete_publishes_an_admitted_result :
+  forall (ka : KeyAlgebra) (g : Geometry) (fuel : nat) (ar : Arena ka)
+         (lo hi : Bound ka) (b : nat) (k : Key ka)
+         (ar' : Arena ka) (gr : Grown ka),
+    delete_checked ka g ar fuel lo hi b k = Some (pair ar' gr) ->
+    arena_ok ka g ar' = true
+    /\ admitted_grown ka g ar' fuel lo hi gr = true
+    /\ delete_tree ka g ar fuel b k = Some (pair ar' gr).
+Proof.
+  intros ka g fuel ar lo hi b k ar' gr H. unfold delete_checked in H.
+  destruct (delete_tree ka g ar fuel b k) as [ [ ar1 gr1 ] | ];
+    [ | discriminate H ].
+  destruct (andb (arena_ok ka g ar1) (admitted_grown ka g ar1 fuel lo hi gr1))
+    eqn:E2; [ | discriminate H ].
+  injection H as H1 H2. apply andb_true_iff in E2 as [ EA EB ].
+  rewrite <- H1. rewrite <- H2.
+  split; [ exact EA | split; [ exact EB | reflexivity ] ].
+Qed.
+
+(*| discharges: R-10-003, R-10-010 |*)
+Theorem a_checked_root_delete_answers_the_logical_map :
+  forall (ka : KeyAlgebra) (g : Geometry) (fuel : nat) (ar : Arena ka)
+         (lo hi : Bound ka) (b : nat) (k : Key ka)
+         (ar2 : Arena ka) (root height : nat) (q : Key ka),
+    admitted ka g ar fuel lo hi b = true ->
+    within ka lo hi k = true ->
+    within ka lo hi q = true ->
+    delete_root ka g ar fuel lo hi b k = Some (pair ar2 (pair root height)) ->
+    admitted ka g ar2 height lo hi root = true
+    /\ flatten ka ar2 height root = del ka k (flatten ka ar fuel b)
+    /\ lookup ka ar2 height root q
+       = look ka q (del ka k (flatten ka ar fuel b)).
+Proof.
+  intros ka g fuel ar lo hi b k ar2 root height q Hadm Hk Hq H.
+  unfold delete_root in H.
+  destruct (delete_checked ka g ar fuel lo hi b k)
+    as [ [ ar1 [ a [ [ s r ] | ] ] ] | ] eqn:E1; [ | | discriminate H ].
+  - destruct (alloc ka g ar1 (branch_of ka (cons s nil) (cons a (cons r nil))))
+      as [ [ nr ar3 ] | ] eqn:E2; [ | discriminate H ].
+    destruct (andb (arena_ok ka g ar3)
+                   (admitted ka g ar3 (S fuel) lo hi nr)) eqn:E3;
+      [ | discriminate H ].
+    injection H as H1 H2 H3.
+    apply andb_true_iff in E3 as [ _ E3 ].
+    destruct (a_checked_delete_publishes_an_admitted_result ka g fuel ar lo hi b
+                k ar1 (pair a (Some (pair s r))) E1) as [ _ [ Hag Hdel ] ].
+    simpl in Hag. apply andb_true_iff in Hag as [ _ Hag ].
+    apply andb_true_iff in Hag as [ Ha Hr ].
+    destruct (alloc_appended ka g ar1 _ nr ar3 E2) as [ [ ext He ] _ ].
+    assert (Hflat : flatten ka ar3 (S fuel) nr
+                    = del ka k (flatten ka ar fuel b)).
+    { rewrite (flatten_of_branch ka ar3 fuel nr (cons s nil)
+                 (cons a (cons r nil))
+                 (alloc_node ka g ar1 _ nr ar3 E2)).
+      rewrite flat_map_cons. rewrite flat_map_cons. simpl.
+      rewrite app_nil_r. rewrite He.
+      rewrite (flatten_frame ka fuel ar1 ext a
+                 (admitted_spans ka g fuel ar1 lo (Some s) a Ha)).
+      rewrite (flatten_frame ka fuel ar1 ext r
+                 (admitted_spans ka g fuel ar1 (Some s) hi r Hr)).
+      rewrite <- (flatten_grown_two ka ar1 fuel a r s).
+      exact (a_delete_represents_the_logical_map ka g fuel ar lo hi b k ar1
+               (pair a (Some (pair s r))) Hadm Hk Hdel). }
+    rewrite <- H1. rewrite <- H2. rewrite <- H3.
+    split; [ exact E3 | split; [ exact Hflat | ] ].
+    rewrite (lookup_answers_the_logical_map ka g (S fuel) ar3 lo hi nr q E3 Hq).
+    rewrite Hflat. reflexivity.
+  - injection H as H1 H2 H3.
+    destruct (a_checked_delete_publishes_an_admitted_result ka g fuel ar lo hi b
+                k ar1 (pair a None) E1) as [ _ [ Hag Hdel ] ].
+    simpl in Hag.
+    assert (Hflat : flatten ka ar1 fuel a = del ka k (flatten ka ar fuel b)).
+    { rewrite <- (flatten_grown_one ka ar1 fuel a).
+      exact (a_delete_represents_the_logical_map ka g fuel ar lo hi b k ar1
+               (pair a None) Hadm Hk Hdel). }
+    rewrite <- H1. rewrite <- H2. rewrite <- H3.
+    split; [ exact Hag | split; [ exact Hflat | ] ].
+    rewrite (lookup_answers_the_logical_map ka g fuel ar1 lo hi a q Hag Hq).
+    rewrite Hflat. reflexivity.
+Qed.
+
+(*| discharges: R-10-003 |*)
+Theorem a_gated_delete_publishes_a_published_tree :
+  forall (ka : KeyAlgebra) (g : Geometry) (ar : Arena ka) (h : nat)
+         (lo hi : Bound ka) (root : nat) (k : Key ka)
+         (ar' : Arena ka) (nr h' : nat),
+    delete_gate ka g ar h lo hi root k = Some (pair ar' (pair nr h')) ->
+    published ka g ar' h' lo hi nr = true
+    /\ h' <= depth g
+    /\ at_depth ka ar' h' nr = true
+    /\ well_formed ka g ar' h' lo hi nr = true.
+Proof.
+  intros ka g ar h lo hi root k ar' nr h' H. unfold delete_gate in H.
+  destruct (Nat.leb h (depth g)); [ | discriminate H ].
+  destruct (delete_root ka g ar h lo hi root k)
+    as [ [ ar1 [ nr1 h1 ] ] | ]; [ | discriminate H ].
+  destruct (published ka g ar1 h1 lo hi nr1) eqn:Ep; [ | discriminate H ].
+  injection H as H1 H2 H3. rewrite <- H1, <- H2, <- H3.
+  split; [ exact Ep | ].
+  unfold published in Ep. apply andb_true_iff in Ep as [ Hd Ep ].
+  apply andb_true_iff in Ep as [ _ Ep ]. apply andb_true_iff in Ep as [ Ha Ht ].
+  split; [ apply Nat.leb_le; exact Hd | split; [ exact Ha | exact Ht ] ].
+Qed.
+
+(*| discharges: R-10-003 |*)
+Theorem a_gated_delete_answers_the_logical_map :
+  forall (ka : KeyAlgebra) (g : Geometry) (ar : Arena ka) (h : nat)
+         (lo hi : Bound ka) (root : nat) (k : Key ka)
+         (ar' : Arena ka) (nr h' : nat) (q : Key ka),
+    published ka g ar h lo hi root = true ->
+    within ka lo hi k = true ->
+    within ka lo hi q = true ->
+    delete_gate ka g ar h lo hi root k = Some (pair ar' (pair nr h')) ->
+    flatten ka ar' h' nr = del ka k (flatten ka ar h root)
+    /\ lookup ka ar' h' nr q = look ka q (del ka k (flatten ka ar h root)).
+Proof.
+  intros ka g ar h lo hi root k ar' nr h' q Hp Hk Hq H.
+  unfold published in Hp. apply andb_true_iff in Hp as [ _ Hp ].
+  apply andb_true_iff in Hp as [ _ Hp ]. apply andb_true_iff in Hp as [ _ Ht ].
+  unfold delete_gate in H.
+  destruct (Nat.leb h (depth g)); [ | discriminate H ].
+  destruct (delete_root ka g ar h lo hi root k)
+    as [ [ ar1 [ nr1 h1 ] ] | ] eqn:E1; [ | discriminate H ].
+  destruct (published ka g ar1 h1 lo hi nr1); [ | discriminate H ].
+  injection H as H1 H2 H3. rewrite <- H1, <- H2, <- H3.
+  destruct (a_checked_root_delete_answers_the_logical_map ka g h ar lo hi root k
+              ar1 nr1 h1 q (a_well_formed_tree_is_admitted ka g h ar lo hi root Ht)
+              Hk Hq E1)
+    as [ _ [ Hf Hl ] ].
+  split; [ exact Hf | exact Hl ].
+Qed.
+
+(* -------------------------------------------------------------------------
+   Sorted-batch copy-on-write updates (R-10-003, R-10-004, R-10-010).
+   ------------------------------------------------------------------------- *)
+
+Lemma insert_root_appended :
+  forall (ka : KeyAlgebra) (g : Geometry) (fuel : nat) (ar : Arena ka)
+         (lo hi : Bound ka) (b : nat) (k : Key ka) (v : nat)
+         (ar' : Arena ka) (nr h : nat),
+    insert_root ka g ar fuel lo hi b k v = Some (pair ar' (pair nr h)) ->
+    appended ka ar ar'.
+Proof.
+  intros ka g fuel ar lo hi b k v ar' nr h H. unfold insert_root in H.
+  destruct (insert_checked ka g ar fuel lo hi b k v)
+    as [ [ ar1 [ a [ [ s r ] | ] ] ] | ] eqn:E1; [ | | discriminate H ].
+  - destruct (alloc ka g ar1 (branch_of ka (cons s nil) (cons a (cons r nil))))
+      as [ [ nr0 ar2 ] | ] eqn:E2; [ | discriminate H ].
+    destruct (andb (arena_ok ka g ar2) (admitted ka g ar2 (S fuel) lo hi nr0));
+      [ | discriminate H ].
+    injection H as H1 _ _. rewrite <- H1.
+    destruct (a_checked_insert_publishes_an_admitted_result ka g fuel ar lo hi b
+                k v ar1 _ E1) as [ _ [ _ Hins ] ].
+    exact (appended_trans ka ar ar1 ar2
+             (an_insert_only_appends ka g fuel ar b k v ar1 _ Hins)
+             (proj1 (alloc_appended ka g ar1 _ nr0 ar2 E2))).
+  - injection H as H1 _ _. rewrite <- H1.
+    destruct (a_checked_insert_publishes_an_admitted_result ka g fuel ar lo hi b
+                k v ar1 _ E1) as [ _ [ _ Hins ] ].
+    exact (an_insert_only_appends ka g fuel ar b k v ar1 _ Hins).
+Qed.
+
+Lemma insert_gate_appended :
+  forall (ka : KeyAlgebra) (g : Geometry) (ar : Arena ka) (h : nat)
+         (lo hi : Bound ka) (root : nat) (k : Key ka) (v : nat)
+         (ar' : Arena ka) (nr h' : nat),
+    insert_gate ka g ar h lo hi root k v = Some (pair ar' (pair nr h')) ->
+    appended ka ar ar'.
+Proof.
+  intros ka g ar h lo hi root k v ar' nr h' H. unfold insert_gate in H.
+  destruct (Nat.leb h (depth g)); [ | discriminate H ].
+  destruct (insert_root ka g ar h lo hi root k v)
+    as [ [ ar1 [ nr1 h1 ] ] | ] eqn:E1; [ | discriminate H ].
+  destruct (published ka g ar1 h1 lo hi nr1); [ | discriminate H ].
+  injection H as H1 H2 H3. rewrite <- H1.
+  exact (insert_root_appended ka g h ar lo hi root k v ar1 nr1 h1 E1).
+Qed.
+
+Definition batch_sorted_within (ka : KeyAlgebra) (lo hi : Bound ka)
+                               (batch : Index ka) : bool :=
+  andb (sorted ka batch) (entries_within ka lo hi batch).
+
+Fixpoint insert_batch_steps (ka : KeyAlgebra) (g : Geometry) (ar : Arena ka)
+                            (h : nat) (lo hi : Bound ka) (root : nat)
+                            (batch : Index ka)
+  : option (prod (Arena ka) (prod nat nat)) :=
+  match batch with
+  | nil =>
+      if published ka g ar h lo hi root
+      then Some (pair ar (pair root h)) else None
+  | cons e rest =>
+      match insert_gate ka g ar h lo hi root (fst e) (snd e) with
+      | None => None
+      | Some (pair ar1 (pair nr1 h1)) =>
+          insert_batch_steps ka g ar1 h1 lo hi nr1 rest
+      end
+  end.
+
+Definition insert_batch_gate (ka : KeyAlgebra) (g : Geometry) (ar : Arena ka)
+                             (h : nat) (lo hi : Bound ka) (root : nat)
+                             (batch : Index ka)
+  : option (prod (Arena ka) (prod nat nat)) :=
+  if batch_sorted_within ka lo hi batch
+  then insert_batch_steps ka g ar h lo hi root batch
+  else None.
+
+Lemma insert_batch_steps_appended :
+  forall (ka : KeyAlgebra) (g : Geometry) (batch : Index ka)
+         (ar : Arena ka) (h : nat) (lo hi : Bound ka) (root : nat)
+         (ar' : Arena ka) (nr h' : nat),
+    insert_batch_steps ka g ar h lo hi root batch
+      = Some (pair ar' (pair nr h')) ->
+    appended ka ar ar'.
+Proof.
+  intros ka g batch. induction batch as [ | e rest IH ];
+    intros ar h lo hi root ar' nr h' H; cbn [insert_batch_steps] in H.
+  - destruct (published ka g ar h lo hi root); [ | discriminate H ].
+    injection H as H1 _ _. rewrite <- H1. exists nil.
+    rewrite app_nil_r. reflexivity.
+  - destruct (insert_gate ka g ar h lo hi root (fst e) (snd e))
+      as [ [ ar1 [ nr1 h1 ] ] | ] eqn:E1; [ | discriminate H ].
+    exact (appended_trans ka ar ar1 ar'
+             (insert_gate_appended ka g ar h lo hi root (fst e) (snd e)
+                ar1 nr1 h1 E1)
+             (IH ar1 h1 lo hi nr1 ar' nr h' H)).
+Qed.
+
+(*| discharges: R-10-010 |*)
+Theorem an_insert_batch_only_appends :
+  forall (ka : KeyAlgebra) (g : Geometry) (ar : Arena ka) (h : nat)
+         (lo hi : Bound ka) (root : nat) (batch : Index ka)
+         (ar' : Arena ka) (nr h' : nat),
+    insert_batch_gate ka g ar h lo hi root batch
+      = Some (pair ar' (pair nr h')) ->
+    appended ka ar ar'.
+Proof.
+  intros ka g ar h lo hi root batch ar' nr h' H. unfold insert_batch_gate in H.
+  destruct (batch_sorted_within ka lo hi batch); [ | discriminate H ].
+  exact (insert_batch_steps_appended ka g batch ar h lo hi root ar' nr h' H).
+Qed.
+
+(*| discharges: R-10-010 |*)
+Theorem a_retained_root_survives_a_later_insert_batch :
+  forall (ka : KeyAlgebra) (g : Geometry) (fuel h : nat) (ar : Arena ka)
+         (lo hi : Bound ka) (snap root : nat) (batch : Index ka)
+         (ar' : Arena ka) (nr h' : nat) (q : Key ka),
+    admitted ka g ar fuel lo hi snap = true ->
+    insert_batch_gate ka g ar h lo hi root batch
+      = Some (pair ar' (pair nr h')) ->
+    lookup ka ar' fuel snap q = lookup ka ar fuel snap q
+    /\ flatten ka ar' fuel snap = flatten ka ar fuel snap
+    /\ admitted ka g ar' fuel lo hi snap = true.
+Proof.
+  intros ka g fuel h ar lo hi snap root batch ar' nr h' q Hadm Hb.
+  destruct (an_insert_batch_only_appends ka g ar h lo hi root batch ar' nr h' Hb)
+    as [ ext He ].
+  rewrite He. split; [ | split ].
+  - exact (lookup_frame ka fuel ar ext snap q
+             (admitted_spans ka g fuel ar lo hi snap Hadm)).
+  - exact (flatten_frame ka fuel ar ext snap
+             (admitted_spans ka g fuel ar lo hi snap Hadm)).
+  - exact (admitted_frame ka g fuel ar ext lo hi snap Hadm).
+Qed.
+
+Lemma insert_batch_steps_published :
+  forall (ka : KeyAlgebra) (g : Geometry) (batch : Index ka)
+         (ar : Arena ka) (h : nat) (lo hi : Bound ka) (root : nat)
+         (ar' : Arena ka) (nr h' : nat),
+    insert_batch_steps ka g ar h lo hi root batch
+      = Some (pair ar' (pair nr h')) ->
+    published ka g ar' h' lo hi nr = true.
+Proof.
+  intros ka g batch. induction batch as [ | e rest IH ];
+    intros ar h lo hi root ar' nr h' H; cbn [insert_batch_steps] in H.
+  - destruct (published ka g ar h lo hi root) eqn:Ep; [ | discriminate H ].
+    injection H as H1 H2 H3. rewrite <- H1, <- H2, <- H3. exact Ep.
+  - destruct (insert_gate ka g ar h lo hi root (fst e) (snd e))
+      as [ [ ar1 [ nr1 h1 ] ] | ] eqn:E1; [ | discriminate H ].
+    exact (IH ar1 h1 lo hi nr1 ar' nr h' H).
+Qed.
+
+(*| discharges: R-10-003, R-10-004 |*)
+Theorem a_gated_insert_batch_publishes_a_published_tree :
+  forall (ka : KeyAlgebra) (g : Geometry) (ar : Arena ka) (h : nat)
+         (lo hi : Bound ka) (root : nat) (batch : Index ka)
+         (ar' : Arena ka) (nr h' : nat),
+    insert_batch_gate ka g ar h lo hi root batch
+      = Some (pair ar' (pair nr h')) ->
+    published ka g ar' h' lo hi nr = true
+    /\ batch_sorted_within ka lo hi batch = true.
+Proof.
+  intros ka g ar h lo hi root batch ar' nr h' H. unfold insert_batch_gate in H.
+  destruct (batch_sorted_within ka lo hi batch); [ | discriminate H ].
+  split; [ | reflexivity ].
+  exact (insert_batch_steps_published ka g batch ar h lo hi root ar' nr h' H).
+Qed.
+
+Lemma insert_batch_steps_flatten :
+  forall (ka : KeyAlgebra) (g : Geometry) (batch : Index ka)
+         (ar : Arena ka) (h : nat) (lo hi : Bound ka) (root : nat)
+         (ar' : Arena ka) (nr h' : nat),
+    published ka g ar h lo hi root = true ->
+    entries_within ka lo hi batch = true ->
+    insert_batch_steps ka g ar h lo hi root batch
+      = Some (pair ar' (pair nr h')) ->
+    flatten ka ar' h' nr = ins_all ka batch (flatten ka ar h root).
+Proof.
+  intros ka g batch. induction batch as [ | e rest IH ];
+    intros ar h lo hi root ar' nr h' Hp Hw H;
+    cbn [insert_batch_steps ins_all] in H |- *.
+  - rewrite Hp in H. injection H as H1 H2 H3.
+    rewrite <- H1, <- H2, <- H3. reflexivity.
+  - unfold entries_within in Hw. cbn [all_of] in Hw.
+    apply andb_true_iff in Hw as [ He Hrest ].
+    destruct (insert_gate ka g ar h lo hi root (fst e) (snd e))
+      as [ [ ar1 [ nr1 h1 ] ] | ] eqn:E1; [ | discriminate H ].
+    pose proof (proj1 (a_gated_insert_publishes_a_published_tree
+                         ka g ar h lo hi root (fst e) (snd e) ar1 nr1 h1 E1))
+      as Hp1.
+    pose proof (proj1 (a_gated_insert_answers_the_logical_map
+                         ka g ar h lo hi root (fst e) (snd e) ar1 nr1 h1 (fst e)
+                         Hp He He E1))
+      as Hf1.
+    rewrite <- Hf1.
+    exact (IH ar1 h1 lo hi nr1 ar' nr h' Hp1 Hrest H).
+Qed.
+
+(*| discharges: R-10-003, R-10-004 |*)
+Theorem a_gated_insert_batch_answers_the_logical_map :
+  forall (ka : KeyAlgebra) (g : Geometry) (ar : Arena ka) (h : nat)
+         (lo hi : Bound ka) (root : nat) (batch : Index ka)
+         (ar' : Arena ka) (nr h' : nat) (q : Key ka),
+    published ka g ar h lo hi root = true ->
+    within ka lo hi q = true ->
+    insert_batch_gate ka g ar h lo hi root batch
+      = Some (pair ar' (pair nr h')) ->
+    flatten ka ar' h' nr = ins_all ka batch (flatten ka ar h root)
+    /\ lookup ka ar' h' nr q
+       = look ka q (ins_all ka batch (flatten ka ar h root)).
+Proof.
+  intros ka g ar h lo hi root batch ar' nr h' q Hp Hq H.
+  destruct (a_gated_insert_batch_publishes_a_published_tree
+              ka g ar h lo hi root batch ar' nr h' H) as [ Hp' Hb ].
+  unfold batch_sorted_within in Hb. apply andb_true_iff in Hb as [ _ Hw ].
+  unfold insert_batch_gate in H.
+  destruct (batch_sorted_within ka lo hi batch); [ | discriminate H ].
+  pose proof (insert_batch_steps_flatten ka g batch ar h lo hi root ar' nr h'
+                Hp Hw H) as Hflat.
+  split; [ exact Hflat | ].
+  unfold published in Hp'. apply andb_true_iff in Hp' as [ _ Hp' ].
+  apply andb_true_iff in Hp' as [ _ Hp' ]. apply andb_true_iff in Hp' as [ _ Ht' ].
+  rewrite (lookup_answers_the_logical_map ka g h' ar' lo hi nr q
+             (a_well_formed_tree_is_admitted ka g h' ar' lo hi nr Ht') Hq).
+  rewrite Hflat. reflexivity.
+Qed.
+
+(* -------------------------------------------------------------------------
+   Canonical history-independent compaction (R-10-003, R-10-010).
+   ------------------------------------------------------------------------- *)
+
+Lemma ins_at_end :
+  forall (ka : KeyAlgebra) (e : prod (Key ka) nat) (acc : Index ka),
+    keys_below ka (fst e) acc = true ->
+    ins ka (fst e) (snd e) acc = app acc (cons e nil).
+Proof.
+  intros ka [ k v ] acc H. simpl in *.
+  rewrite <- (app_nil_r acc) at 1.
+  rewrite (ins_into_right ka k v acc nil H). reflexivity.
+Qed.
+
+Lemma keys_below_snoc :
+  forall (ka : KeyAlgebra) (k : Key ka) (acc : Index ka)
+         (e : prod (Key ka) nat),
+    keys_below ka k acc = true ->
+    key_lt ka (fst e) k = true ->
+    keys_below ka k (app acc (cons e nil)) = true.
+Proof.
+  intros ka k acc e H1 H2. unfold keys_below in *.
+  rewrite all_of_app. simpl. rewrite H1, H2. reflexivity.
+Qed.
+
+Lemma ins_all_sorted_acc :
+  forall (ka : KeyAlgebra) (entries acc : Index ka),
+    sorted ka entries = true ->
+    all_of (fun x => keys_below ka (fst x) acc) entries = true ->
+    ins_all ka entries acc = app acc entries.
+Proof.
+  intros ka entries. induction entries as [ | e r IH ]; intros acc Hs Hall.
+  - simpl. rewrite app_nil_r. reflexivity.
+  - cbn [sorted all_of] in Hs, Hall.
+    apply andb_true_iff in Hs as [ Hg Hs ].
+    apply andb_true_iff in Hall as [ He Hr ].
+    rewrite ge_all_is_keys_above in Hg. unfold keys_above in Hg.
+    cbn [ins_all]. rewrite (ins_at_end ka e acc He).
+    rewrite (IH (app acc (cons e nil)) Hs).
+    + rewrite <- app_assoc. reflexivity.
+    + apply (all_of_both _ (fun x => keys_below ka (fst x) acc)
+                           (fun x => key_lt ka (fst e) (fst x)));
+        [ intros x H1 H2; exact (keys_below_snoc ka (fst x) acc e H1 H2)
+        | exact Hr | exact Hg ].
+Qed.
+
+Lemma ins_all_sorted_nil :
+  forall (ka : KeyAlgebra) (entries : Index ka),
+    sorted ka entries = true -> ins_all ka entries nil = entries.
+Proof.
+  intros ka entries Hs.
+  exact (ins_all_sorted_acc ka entries nil Hs
+           (all_of_const _ _ entries (fun _ => eq_refl))).
+Qed.
+
+Definition compact_from_entries (ka : KeyAlgebra) (g : Geometry)
+                                (lo hi : Bound ka) (entries : Index ka)
+  : option (prod (Arena ka) (prod nat nat)) :=
+  if geometry_ok g then
+    insert_batch_gate ka g (cons (leaf_of ka nil) nil) 0 lo hi 0 entries
+  else None.
+
+Definition compact_gate (ka : KeyAlgebra) (g : Geometry) (ar : Arena ka)
+                        (h : nat) (lo hi : Bound ka) (root : nat)
+  : option (prod (Arena ka) (prod nat nat)) :=
+  if published ka g ar h lo hi root then
+    compact_from_entries ka g lo hi (flatten ka ar h root)
+  else None.
+
+(*| discharges: R-10-003, R-10-010 |*)
+Theorem a_gated_compact_publishes_a_published_tree :
+  forall (ka : KeyAlgebra) (g : Geometry) (ar : Arena ka) (h : nat)
+         (lo hi : Bound ka) (root : nat)
+         (ar' : Arena ka) (nr h' : nat),
+    compact_gate ka g ar h lo hi root = Some (pair ar' (pair nr h')) ->
+    published ka g ar' h' lo hi nr = true.
+Proof.
+  intros ka g ar h lo hi root ar' nr h' H.
+  unfold compact_gate, compact_from_entries in H.
+  destruct (published ka g ar h lo hi root); [ | discriminate H ].
+  destruct (geometry_ok g); [ | discriminate H ].
+  exact (proj1 (a_gated_insert_batch_publishes_a_published_tree
+                  ka g (cons (leaf_of ka nil) nil) 0 lo hi 0
+                  (flatten ka ar h root) ar' nr h' H)).
+Qed.
+
+(*| discharges: R-10-003, R-10-010 |*)
+Theorem a_gated_compact_preserves_the_logical_map :
+  forall (ka : KeyAlgebra) (g : Geometry) (ar : Arena ka) (h : nat)
+         (lo hi : Bound ka) (root : nat)
+         (ar' : Arena ka) (nr h' : nat) (q : Key ka),
+    within ka lo hi q = true ->
+    compact_gate ka g ar h lo hi root = Some (pair ar' (pair nr h')) ->
+    flatten ka ar' h' nr = flatten ka ar h root
+    /\ lookup ka ar' h' nr q = lookup ka ar h root q.
+Proof.
+  intros ka g ar h lo hi root ar' nr h' q Hq H.
+  unfold compact_gate, compact_from_entries in H.
+  destruct (published ka g ar h lo hi root) eqn:Hp; [ | discriminate H ].
+  destruct (geometry_ok g) eqn:Hg; [ | discriminate H ].
+  pose proof (the_empty_root_is_published ka g lo hi Hg) as Hemp.
+  destruct (a_gated_insert_batch_publishes_a_published_tree
+              ka g (cons (leaf_of ka nil) nil) 0 lo hi 0
+              (flatten ka ar h root) ar' nr h' H) as [ Hp' Hb ].
+  unfold batch_sorted_within in Hb. apply andb_true_iff in Hb as [ Hs _ ].
+  destruct (a_gated_insert_batch_answers_the_logical_map
+              ka g (cons (leaf_of ka nil) nil) 0 lo hi 0
+              (flatten ka ar h root) ar' nr h' q Hemp Hq H)
+    as [ Hflat Hlook ].
+  cbn [flatten nth_error leaf_of en_kids en_entries] in Hflat, Hlook.
+  rewrite (ins_all_sorted_nil ka (flatten ka ar h root) Hs) in Hflat, Hlook.
+  split; [ exact Hflat | ].
+  unfold published in Hp. apply andb_true_iff in Hp as [ _ Hp ].
+  apply andb_true_iff in Hp as [ _ Hp ]. apply andb_true_iff in Hp as [ _ Ht ].
+  rewrite (lookup_answers_the_logical_map ka g h ar lo hi root q
+             (a_well_formed_tree_is_admitted ka g h ar lo hi root Ht) Hq).
+  exact Hlook.
+Qed.
+
+(*| discharges: R-10-003, R-10-010 |*)
+Theorem compact_gate_is_history_independent :
+  forall (ka : KeyAlgebra) (g : Geometry)
+         (ar1 : Arena ka) (h1 : nat) (root1 : nat)
+         (ar2 : Arena ka) (h2 : nat) (root2 : nat)
+         (lo hi : Bound ka),
+    published ka g ar1 h1 lo hi root1 = true ->
+    published ka g ar2 h2 lo hi root2 = true ->
+    flatten ka ar1 h1 root1 = flatten ka ar2 h2 root2 ->
+    compact_gate ka g ar1 h1 lo hi root1
+      = compact_gate ka g ar2 h2 lo hi root2.
+Proof.
+  intros ka g ar1 h1 root1 ar2 h2 root2 lo hi Hp1 Hp2 Hflat.
+  unfold compact_gate. rewrite Hp1, Hp2, Hflat. reflexivity.
+Qed.
+
+(*| discharges: R-10-003, R-10-010 |*)
+Theorem compact_erases_an_inserted_then_deleted_key :
+  forall (ka : KeyAlgebra) (g : Geometry) (ar : Arena ka) (h : nat)
+         (lo hi : Bound ka) (root : nat) (k : Key ka) (v : nat)
+         (ar1 : Arena ka) (nr1 h1 : nat)
+         (ar2 : Arena ka) (nr2 h2 : nat),
+    published ka g ar h lo hi root = true ->
+    within ka lo hi k = true ->
+    look ka k (flatten ka ar h root) = None ->
+    insert_gate ka g ar h lo hi root k v = Some (pair ar1 (pair nr1 h1)) ->
+    delete_gate ka g ar1 h1 lo hi nr1 k = Some (pair ar2 (pair nr2 h2)) ->
+    compact_gate ka g ar2 h2 lo hi nr2 = compact_gate ka g ar h lo hi root.
+Proof.
+  intros ka g ar h lo hi root k v ar1 nr1 h1 ar2 nr2 h2 Hp Hk Habs Hins Hdel.
+  pose proof (proj1 (a_gated_insert_publishes_a_published_tree
+                       ka g ar h lo hi root k v ar1 nr1 h1 Hins)) as Hp1.
+  pose proof (proj1 (a_gated_delete_publishes_a_published_tree
+                       ka g ar1 h1 lo hi nr1 k ar2 nr2 h2 Hdel)) as Hp2.
+  pose proof (proj1 (a_gated_insert_answers_the_logical_map
+                       ka g ar h lo hi root k v ar1 nr1 h1 k Hp Hk Hk Hins))
+    as Hf1.
+  pose proof (proj1 (a_gated_delete_answers_the_logical_map
+                       ka g ar1 h1 lo hi nr1 k ar2 nr2 h2 k Hp1 Hk Hk Hdel))
+    as Hf2.
+  apply (compact_gate_is_history_independent ka g ar2 h2 nr2 ar h root lo hi
+           Hp2 Hp).
+  rewrite Hf2, Hf1. exact (del_ins_absent ka k v (flatten ka ar h root) Habs).
+Qed.
+
+
+(* =========================================================================
    Inhabitation and the computed families.
 
    Every numeral below is a demo or probe witness value carrying no
@@ -4171,6 +5075,35 @@ Example the_read_path_tells_a_refusal_from_a_miss :
   conj eq_refl (conj eq_refl (conj eq_refl (conj eq_refl (conj eq_refl
     (conj eq_refl (conj eq_refl (conj eq_refl (conj eq_refl (conj eq_refl
     (conj eq_refl (conj eq_refl (conj eq_refl eq_refl)))))))))))).
+
+(* Lazy deletion, sorted-batch updates, out-of-order batch refusal, and
+   history-independent compaction after a splitting insert + lazy delete. *)
+Definition wide_geometry : Geometry :=
+  {| arena_cap := 24; fan := 2; depth := 4 |}.
+
+Definition demo_insert_then_delete_compacted
+  : option (prod (Arena nat_keys) (prod nat nat)) :=
+  match insert_gate nat_keys wide_geometry demo_arena 1 None None 2 3 30 with
+  | None => None
+  | Some (pair ar1 (pair nr1 h1)) =>
+      match delete_gate nat_keys wide_geometry ar1 h1 None None nr1 3 with
+      | None => None
+      | Some (pair ar2 (pair nr2 h2)) =>
+          compact_gate nat_keys wide_geometry ar2 h2 None None nr2
+      end
+  end.
+
+Example the_gate_deletes_batches_and_compacts_history_independently :
+  answers (delete_gate nat_keys demo_geometry demo_arena 1 None None 2 5) = true
+  /\ answers (insert_batch_gate nat_keys wide_geometry demo_arena 1 None None 2
+                (cons (pair 3 30) (cons (pair 9 90) nil))) = true
+  /\ insert_batch_gate nat_keys wide_geometry demo_arena 1 None None 2
+       (cons (pair 9 90) (cons (pair 3 30) nil)) = None
+  /\ demo_insert_then_delete_compacted
+     = compact_gate nat_keys wide_geometry demo_arena 1 None None 2
+  /\ answers (compact_gate nat_keys wide_geometry demo_arena 1 None None 2)
+     = true :=
+  conj eq_refl (conj eq_refl (conj eq_refl (conj eq_refl eq_refl))).
 
 (* R-05-166's decidable half: one closed inhabitant per record this file's
    statements range over. *)

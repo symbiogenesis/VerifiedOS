@@ -343,7 +343,7 @@
       ],
       "descriptor": {
         "path": "tools/composer/packages/crypto-core.json",
-        "sha256": "6f5f24e758f5c47b985c3026b7946f54e24fe04a742784fff3ad83b9dedc6a23"
+        "sha256": "c656f322861975491047b5e04a34f5c8123cb6adba39d54bae1f1d0175f5723a"
       },
       "artifact_slot": "crypto-core-artifact",
       "entry": null,
@@ -362,7 +362,7 @@
       "sources": [
         {
           "path": "proofs/ExecutableIndex.v",
-          "sha256": "70d915e2b9b37a5186a4a750c4c83125f3307be8a28e30c2cf33466b65af1a3f"
+          "sha256": "f917d2ac2fd7aa6cb406e9cf6b94a5392df58073ffd15b3c536f45a86c172454"
         },
         {
           "path": "proofs/JournalIndex.v",
@@ -375,7 +375,7 @@
       ],
       "descriptor": {
         "path": "tools/composer/packages/storage.json",
-        "sha256": "87adf7f1441ab996357fa1484149471af2d2076c39fb80a10e43275c73eaef4d"
+        "sha256": "e7ff8002589be5650d29948f229d1ad661072b087d6456204366a1c1c4b1785a"
       },
       "artifact_slot": "storage-artifact",
       "entry": null,

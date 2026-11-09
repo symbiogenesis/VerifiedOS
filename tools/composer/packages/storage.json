@@ -52,7 +52,7 @@
     },
     {
       "path": "proofs/ExecutableIndex.v",
-      "sha256": "70d915e2b9b37a5186a4a750c4c83125f3307be8a28e30c2cf33466b65af1a3f"
+      "sha256": "f917d2ac2fd7aa6cb406e9cf6b94a5392df58073ffd15b3c536f45a86c172454"
     },
     {
       "path": "proofs/JournalIndex.v",
@@ -72,7 +72,7 @@
       "id": "storage-boundary",
       "source": {
         "path": "storage/README.md",
-        "sha256": "5516d47ad71645e00fec12a84cd332012dc1e90366c31139857759c06cf64269"
+        "sha256": "da7aa27cccf5be073101c48201c1be030c4053fa1b035d64d3f33e3d30e47882"
       }
     },
     {

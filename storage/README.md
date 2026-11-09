@@ -76,14 +76,17 @@ R-10-022a), canonical history-independent bottom-up compaction
 (`vos_tree_compact`, R-10-021), and $O(1)$ birth-generation snapshot-reclamation
 checks and deadlist partitioning (`vos_tree_can_reclaim_node`,
 `vos_tree_classify_reclaim`, R-10-010) under
-[its candidate-update contract](tree-update.md). It fully admits the retained
-tree before appending, checks the candidate tree before returning its root, and
-preserves every byte and expected generation in the prior allocated prefix.
-Arena exhaustion, depth or visit limits and invalid input refuse without
-publishing a root. Failed appends may occupy the unused suffix until its next
-attempt. The caller still owns authentication, stable inputs and actual
-publication. Index refinement, durable nonce and
-checkpoint ordering, persistent reopen and target integration remain open.
+[its candidate-update contract](tree-update.md), mirroring
+[ExecutableIndex.v](../proofs/ExecutableIndex.v)'s proved `insert_gate`,
+`delete_gate`, `insert_batch_gate` and history-independent `compact_gate`. It
+fully admits the retained tree before appending, checks the candidate tree
+before returning its root, and preserves every byte and expected generation in
+the prior allocated prefix. Arena exhaustion, depth or visit limits and invalid
+input refuse without publishing a root. Failed appends may occupy the unused
+suffix until its next attempt. The caller still owns authentication, stable
+inputs and actual publication. Relational C-to-Gallina lowering, durable nonce
+and checkpoint ordering on target, persistent target reopen and two-instance
+target integration remain open.
 
 `python tools/run.py test --only storage_tree_update` checks an independent
 full-width byte boundary on both platforms. Linux additionally compares
