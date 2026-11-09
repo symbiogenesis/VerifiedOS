@@ -23,7 +23,7 @@ def typed_entries() -> None:
     ensure(compiler is not None, "typed entry checks require a native C compiler")
     if compiler is None:
         raise RuntimeError("no native C compiler")
-    rng = random.Random(0x10_005)
+    rng = random.Random(0x10_005)  # noqa: S311 - reproducible public test vectors
     tuples = {tuple(rng.getrandbits(64) for _ in range(6)) for _ in range(128)}
     for field in range(6):
         for edge in (0, 1, 255, 256, 1 << 32, (1 << 64) - 1):

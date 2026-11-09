@@ -100,15 +100,15 @@ def _gcm(key: bytes, iv: bytes, aad: bytes, plaintext: bytes) -> tuple[bytes, by
     for offset in range(0, len(plaintext), 16):
         ctr = (ctr + 1) % (1 << 32)
         stream = _aes(key, j0[:12] + ctr.to_bytes(4, "big"))
-        ciphertext.extend(x ^ y for x, y in zip(plaintext[offset:offset + 16], stream))
+        ciphertext.extend(x ^ y for x, y in zip(plaintext[offset:offset + 16], stream, strict=False))
     auth = aad + bytes(-len(aad) % 16) + ciphertext + bytes(-len(ciphertext) % 16)
     auth += (len(aad) * 8).to_bytes(8, "big") + (len(ciphertext) * 8).to_bytes(8, "big")
-    tag = bytes(x ^ y for x, y in zip(_ghash(h, auth), _aes(key, j0)))
+    tag = bytes(x ^ y for x, y in zip(_ghash(h, auth), _aes(key, j0), strict=True))
     return bytes(ciphertext), tag
 
 
 def _build(output: Path, *sources: Path, shared: bool = False) -> None:
-    cc = next((path for name in ("cc", "gcc", "clang") if (path := shutil.which(name))), None)
+    cc = next((path for name in ("cc", "gcc", "clang") if (path := shutil.which(name)) is not None), None)
     ensure(cc is not None, "native C compiler unavailable")
     command = [str(cc), "-std=c17", "-O2", "-Wall", "-Wextra", "-Werror", "-Wstrict-prototypes"]
     if shared:
@@ -144,7 +144,7 @@ def _native_vectors() -> None:
                     ctypes.c_void_p, ctypes.c_void_p]
         library.vos_aes_gcm_encrypt.argtypes = gcm_args
         library.vos_aes_gcm_open.argtypes = gcm_args
-        rng = random.Random(0x564F534352595054)
+        rng = random.Random(0x564F534352595054)  # noqa: S311 - reproducible public test vectors
         for key_bytes in (16, 24, 32):
             for case in range(16):
                 key = rng.randbytes(key_bytes)
