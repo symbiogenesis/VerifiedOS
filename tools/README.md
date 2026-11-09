@@ -659,7 +659,7 @@ $ python tools/run.py seed coq --sample 20
 $ python tools/run.py seed sail --spec keccak --sample 14
 ```
 
-There is no `-d` on the `wsl` invocation `run.py` makes: it uses WSL's default distribution, expected to be the Ubuntu installation carrying the toolchain. No release number or distribution name is enforced by the tools. `wsl --install` can change that default, so check `wsl -l -v` after installing another distribution; `wsl -s Ubuntu` selects Ubuntu again.
+There is no `-d` on the `wsl` invocation `run.py` makes: it uses WSL's default distribution carrying the toolchain. No release number or distribution name is enforced by the tools. The [current host status](wsl-migration.md#current-host-status) records the migrated host's selection. `wsl --install` can change the default, so check `wsl -l -v` after installing another distribution and use `wsl --set-default <distribution-name>` to select the intended toolchain installation.
 
 The entry-point spellings differ by OS. Use `python` on Windows; the `python3` app-execution alias may not launch an interpreter. Use `python3` in Ubuntu, where a bare `python` is not guaranteed. [PEP 394](https://peps.python.org/pep-0394/) gives the guest spelling, which the shebangs and WSL launcher retain. The [installation guidance](#running-them) supplies a compatible interpreter; after bootstrap, both lanes use it in their managed environment.
 

@@ -50,7 +50,8 @@ from vos.commands import BY_NAME, COMMANDS, Command
 
 type Main = Callable[[list[str]], int]
 
-# WSL invocation prefix. Uses the default WSL distribution (`wsl -s Ubuntu`).
+# WSL invocation prefix. Uses the toolchain's default distribution; see
+# [the host selection guidance](README.md#running-them).
 GUEST = ("wsl", "-u", "root", "-e", "python3", "tools/run.py")
 
 
