@@ -164,6 +164,17 @@ struct vos_storage_store {
     struct vos_storage_attempt attempt;
 };
 
+/* Private to the serialized storage owner. Admission authenticates membership
+ * once; a changed checkpoint requires fresh admission. Mutable host bytes are
+ * still authenticated at completion. Never accept a caller-authored receipt. */
+struct vos_storage_resident_receipt {
+    const struct vos_storage_store *store;
+    struct vos_storage_checkpoint checkpoint;
+    struct vos_resident_identity identity;
+    size_t length;
+    uint32_t valid;
+};
+
 int vos_storage_format(struct vos_storage_medium *medium,
                        struct vos_storage_store *store,
                        struct vos_crypto_core *crypto,
@@ -221,6 +232,15 @@ int vos_storage_verify_resident(void *verification,
                                 const struct vos_resident_identity *identity,
                                 const uint8_t *bytes,
                                 size_t length);
+
+int vos_storage_admit_resident(const struct vos_storage_store *store,
+                               const struct vos_resident_identity *identity,
+                               const uint8_t *bytes, size_t length,
+                               struct vos_storage_resident_receipt *receipt);
+
+int vos_storage_verify_admitted_resident(void *verification,
+                                         const struct vos_resident_identity *identity,
+                                         const uint8_t *bytes, size_t length);
 
 int vos_storage_encode_blkdev_medium(
     const struct vos_storage_medium *medium,
