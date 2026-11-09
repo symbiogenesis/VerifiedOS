@@ -208,6 +208,13 @@ That is a tension between two entries of the same floor: R-18-004a(vii)'s member
 
 ## Research handoff to unwritten inference proofs
 
+The [e-means assessment](e-means-assessment.md#consumer-selection-and-acceptance)
+adds a conditional codebook-training lead for Q4b only when a concrete inference
+candidate uses clustering. Faster training alone changes no resident byte,
+per-token traffic or admitted rate in this report. Any new codebook or
+approximation needs its own quality decision, complete deployment access
+schedule and a separately priced implementation item before work starts.
+
 The [Orthogonal Vectors](../background/open-math-conjectures.md#orthogonal-vectors-conjecture)
 and [matrix-multiplication](../background/open-math-conjectures.md#matrix-multiplication-exponent-equals-two)
 survey entries are non-normative inputs to Q4b's kernel comparison, M6.6's
