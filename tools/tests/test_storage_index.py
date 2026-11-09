@@ -18,12 +18,20 @@ def _direct_accounting() -> None:
     buffered = si.measure("hot", keys, 1, "buffered")
     ensure(plain.block_writes == 6 * si.UPDATES, "single-key plain CoW must charge all L0 writes")
     ensure(not plain.accepted(5) and plain.accepted(6), "endurance predicate must decide")
+    ensure(plain.shadow_block_writes == 3 * si.UPDATES and plain.shadow_barriers == 2 * si.UPDATES,
+           "direct CoW shadow-paging must charge p + 1 writes and 2 barriers per singleton update")
+    ensure(plain.shadow_accepted(4) and plain.shadow_accepted(5) and plain.shadow_accepted(6),
+           "direct CoW shadow-paging satisfies all three endurance budgets for singleton updates")
     ensure(buffered.block_writes < plain.block_writes and buffered.drain_writes > 0,
            "buffering must charge its final drain and reveal a batching advantage")
     ensure(buffered.byte_amplification == buffered.block_writes * 64 / si.UPDATES,
            "report byte amplification, not just block programs per small overwrite")
+    ensure(plain.shadow_byte_amplification == plain.shadow_block_writes * 64 / si.UPDATES,
+           "report shadow-paging byte amplification")
     ensure(not replace(buffered, max_transaction_writes=37).accepted(6),
            "amortized endurance cannot hide an excessive worst transaction")
+    ensure(not replace(plain, shadow_max_transaction_writes=19).shadow_accepted(6),
+           "shadow-paging worst transaction must stay within p + 1 <= 18")
     ensure(not replace(buffered, max_query_message_checks=49).accepted(6),
            "query scan must stay bounded")
 
@@ -105,6 +113,11 @@ def _cli_evidence() -> None:
            "evidence must identify source bytes")
     ensure(any(row["cases"].get("buffered-only", 0) for row in result["budget_dispositions"]),
            "the fixture must exercise an endurance tradeoff")
+    ensure(all(row["cases"] == {"both": len(si.workloads()) * 3}
+               for row in result["shadow_budget_dispositions"]),
+           "under p + 1 CoW shadow-paging, plain CoW B+ passes every declared budget and width")
+    ensure(result["shadow_ram_bytes_reserved"] == 19 * si.BLOCK_BYTES,
+           "direct CoW shadow-paging drops the 17-block redo staging reservation")
     with (patch.object(cli, "experiment", side_effect=AssertionError("seeded violation")),
           redirect_stdout(StringIO())):
         ensure(cli.main([]) == 1, "an experiment violation must fail its CLI")

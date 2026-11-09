@@ -49,6 +49,10 @@ class Transition:
     def writes(self) -> int:
         return 2 * len(self.changed) + 2 if self.changed else 0
 
+    @property
+    def shadow_writes(self) -> int:
+        return len(self.changed) + 1 if self.changed else 0
+
 
 def advance(state: State, messages: tuple[Message, ...], arm: Arm,
             *, drain: bool = False) -> Transition:
@@ -189,14 +193,30 @@ class Measurement:
     max_pending_messages: int
     max_flush_message_scans: int
     max_query_message_checks: int
+    shadow_block_writes: int = 0
+    shadow_barriers: int = 0
+    shadow_max_transaction_writes: int = 0
+    shadow_drain_writes: int = 0
 
     @property
     def byte_amplification(self) -> float:
         return self.block_writes * BLOCK_BYTES / (self.updates * ENTRY_BYTES)
 
+    @property
+    def shadow_byte_amplification(self) -> float:
+        return self.shadow_block_writes * BLOCK_BYTES / (self.updates * ENTRY_BYTES)
+
     def accepted(self, program_budget: int) -> bool:
         return (self.block_writes <= program_budget * self.updates
                 and self.max_transaction_writes <= 36
+                and self.max_transaction_reads <= 17
+                and self.max_pending_messages <= BUFFER + 16
+                and self.max_query_message_checks <= BUFFER
+                and self.max_flush_message_scans <= 2 * LEAVES * (BUFFER + 16))
+
+    def shadow_accepted(self, program_budget: int) -> bool:
+        return (self.shadow_block_writes <= program_budget * self.updates
+                and self.shadow_max_transaction_writes <= 18
                 and self.max_transaction_reads <= 17
                 and self.max_pending_messages <= BUFFER + 16
                 and self.max_query_message_checks <= BUFFER
@@ -211,6 +231,7 @@ def measure(name: str, keys: tuple[int, ...], width: int, arm: Arm) -> Measureme
     # This oracle updates a flat map directly and never reads index messages.
     reference = [0] * KEYS
     writes = barriers = peak_writes = peak_reads = peak_pending = peak_scans = peak_query = 0
+    shadow_writes = shadow_barriers = peak_shadow_writes = 0
     for start in range(0, len(keys), width):
         messages = tuple((key, start + i + 1) for i, key in enumerate(keys[start:start + width]))
         transition = advance(state, messages, arm)
@@ -222,6 +243,9 @@ def measure(name: str, keys: tuple[int, ...], width: int, arm: Arm) -> Measureme
         writes += transition.writes
         barriers += 3
         peak_writes = max(peak_writes, transition.writes)
+        shadow_writes += transition.shadow_writes
+        shadow_barriers += 2
+        peak_shadow_writes = max(peak_shadow_writes, transition.shadow_writes)
         peak_reads = max(peak_reads, len(transition.changed))
         peak_pending = max(peak_pending, transition.pending_peak)
         peak_scans = max(peak_scans, transition.flush_scans)
@@ -236,7 +260,11 @@ def measure(name: str, keys: tuple[int, ...], width: int, arm: Arm) -> Measureme
                        max(peak_writes, drained.writes), drained.writes,
                        max(peak_reads, len(drained.changed)),
                        max(peak_pending, drained.pending_peak),
-                       max(peak_scans, drained.flush_scans), peak_query)
+                       max(peak_scans, drained.flush_scans), peak_query,
+                       shadow_writes + drained.shadow_writes,
+                       shadow_barriers + (2 if drained.changed else 0),
+                       max(peak_shadow_writes, drained.shadow_writes),
+                       drained.shadow_writes)
 
 
 def workloads() -> tuple[tuple[str, tuple[int, ...]], ...]:
@@ -289,20 +317,32 @@ def experiment() -> dict[str, object]:
     nodes = LEAVES + 1
     device_blocks = 3 * nodes + (nodes + 1) + 2 + 1
     ram_blocks = 2 * nodes + 2
+    shadow_ram_blocks = nodes + 2
     packed_root = 128 + LEAVES * 32 + BUFFER * ENTRY_BYTES
-    if device_blocks > 72 or ram_blocks > 36 or packed_root > BLOCK_BYTES:
+    if device_blocks > 72 or ram_blocks > 36 or shadow_ram_blocks > 19 or packed_root > BLOCK_BYTES:
         raise AssertionError("declared capacity/memory envelope does not fit")
     rows = [{**asdict(row), "byte_amplification": row.byte_amplification,
-             "accepted_program_budgets": [budget for budget in BUDGETS if row.accepted(budget)]}
+             "shadow_byte_amplification": row.shadow_byte_amplification,
+             "accepted_program_budgets": [budget for budget in BUDGETS if row.accepted(budget)],
+             "shadow_accepted_program_budgets": [
+                 budget for budget in BUDGETS if row.shadow_accepted(budget)]}
             for row in results]
     dispositions: list[dict[str, object]] = []
+    shadow_dispositions: list[dict[str, object]] = []
     for budget in BUDGETS:
         counts: Counter[str] = Counter()
+        shadow_counts: Counter[str] = Counter()
         for plain, buffered in zip(results[::2], results[1::2], strict=True):
             accepted = (plain.accepted(budget), buffered.accepted(budget))
             counts[{(True, True): "both", (True, False): "bplus-only",
                     (False, True): "buffered-only", (False, False): "reject-both"}[accepted]] += 1
+            shadow_accepted = (plain.shadow_accepted(budget), buffered.shadow_accepted(budget))
+            shadow_counts[{(True, True): "both", (True, False): "bplus-only",
+                           (False, True): "buffered-only",
+                           (False, False): "reject-both"}[shadow_accepted]] += 1
         dispositions.append({"program_budget": budget, "cases": dict(sorted(counts.items()))})
+        shadow_dispositions.append({"program_budget": budget,
+                                    "cases": dict(sorted(shadow_counts.items()))})
     return {"scope": "synthetic-fixed-height-index-comparison", "passed": True,
             "production_adoption": "open", "disposition": "retain-incumbent-pending-target-composition",
             "parameters": {"block_bytes": BLOCK_BYTES, "entry_bytes": ENTRY_BYTES,
@@ -311,10 +351,14 @@ def experiment() -> dict[str, object]:
                            "transaction_widths": [1, 4, 16], "program_budgets": list(BUDGETS),
                            "recovery_policy": "authenticated-prefix-redo",
                            "transaction_barriers": 3,
+                           "shadow_transaction_barriers": 2,
                            "nand_programs_per_block_write": "conditional-one; target-unknown"},
             "device_blocks_reserved": device_blocks, "ram_bytes_reserved": ram_blocks * BLOCK_BYTES,
+            "shadow_ram_bytes_reserved": shadow_ram_blocks * BLOCK_BYTES,
             "useful_key_value_bytes": KEYS * ENTRY_BYTES,
             "root_packed_bytes": packed_root, "buffer_reserved_bytes": BUFFER * ENTRY_BYTES,
             "max_recovery_reads": nodes + 1 + 2, "max_recovery_writes": nodes + 1,
             "recovery_barriers": 2, "exhaustive_streams": streams, "crash_checks": crash_cases,
-            "budget_dispositions": dispositions, "measurements": rows}
+            "budget_dispositions": dispositions,
+            "shadow_budget_dispositions": shadow_dispositions,
+            "measurements": rows}
