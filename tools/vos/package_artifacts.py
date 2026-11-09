@@ -11,7 +11,7 @@ import json
 import re
 import stat
 import struct
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, cast
@@ -199,9 +199,27 @@ def _input(root: Path, relative: object) -> Path:
     return path
 
 
-def read_request(root: Path, source: str) -> Artifact:
-    """Snapshot a transport request, excluding transport paths from content identity."""
-    request = _decode(_ordinary_file(_input(root, source)))
+@dataclass(frozen=True)
+class RequestSnapshot:
+    artifact: Artifact
+    files: tuple[tuple[Path, bytes], ...]
+
+    def recheck(self) -> None:
+        """Refuse changed request or transport bytes before import publication."""
+        for path, contents in self.files:
+            try:
+                unchanged = _ordinary_file(path, size=len(contents)) == contents
+            except (OSError, PackageError) as error:
+                raise PackageError("fixed package import input changed before publication") from error
+            if not unchanged:
+                raise PackageError("fixed package import input changed before publication")
+
+
+def snapshot_request(root: Path, source: str) -> RequestSnapshot:
+    """Keep exact request and transport snapshots beside the immutable artifact."""
+    source_path = _input(root, source)
+    source_bytes = _ordinary_file(source_path)
+    request = _decode(source_bytes)
     if set(request) != {"manifest", "objects"} or not isinstance(request["manifest"], dict):
         raise PackageError("fixed package request requires manifest and object transports")
     document = request["manifest"]
@@ -211,6 +229,7 @@ def read_request(root: Path, source: str) -> Artifact:
     if not isinstance(transports, list) or len(transports) != len(wanted):
         raise PackageError("fixed package transport population differs from manifest")
     objects: dict[str, bytes] = {}
+    files = {source_path: source_bytes}
     for transport in transports:
         if not isinstance(transport, dict) or set(transport) != {"path", "sha256", "bytes"}:
             raise PackageError("malformed fixed package object transport")
@@ -221,10 +240,16 @@ def read_request(root: Path, source: str) -> Artifact:
         if path.stat().st_size != size:
             raise PackageError("fixed package transport byte length differs")
         objects[identity] = _ordinary_file(path, size=size)
+        files[path] = objects[identity]
     content = canonical(document)
     artifact = Artifact(digest(content), content, tuple(sorted(objects.items())))
     artifact.validate()
-    return artifact
+    return RequestSnapshot(artifact, tuple(files.items()))
+
+
+def read_request(root: Path, source: str) -> Artifact:
+    """Read a transport request, excluding transport paths from content identity."""
+    return snapshot_request(root, source).artifact
 
 
 def _directory(path: Path, *, create: bool) -> None:
@@ -249,7 +274,7 @@ def _publish(path: Path, data: bytes) -> None:
         pending.write_bytes(data)
 
 
-def store(directory: Path, artifact: Artifact) -> str:
+def store(directory: Path, artifact: Artifact, *, before_publish: Callable[[], None] | None = None) -> str:
     """Publish immutable content objects; corrupt retained bytes are never repaired."""
     artifact.validate()
     home = directory.absolute()
@@ -258,6 +283,8 @@ def store(directory: Path, artifact: Artifact) -> str:
     if lock.is_symlink() or lock.resolve() != lock:
         raise PackageError("fixed package store lock must not redirect")
     with FileLock(lock, timeout=30):
+        if before_publish is not None:
+            before_publish()
         _directory(home / "objects", create=True)
         _directory(home / "manifests", create=True)
         retained = home / "manifests" / f"{artifact.identity}.json"
@@ -265,6 +292,8 @@ def store(directory: Path, artifact: Artifact) -> str:
             # An existing root must still be complete; publishing the same
             # artifact cannot silently restore a missing retained object.
             load(home, artifact.identity)
+            if before_publish is not None:
+                before_publish()
             return artifact.identity
         # Preflight every existing destination before publishing any new object.
         outputs = [(home / "objects" / f"{identity}.bin", data) for identity, data in artifact.objects]
@@ -272,8 +301,11 @@ def store(directory: Path, artifact: Artifact) -> str:
         for path, data in outputs:
             if (path.exists() or path.is_symlink()) and _ordinary_file(path, size=len(data)) != data:
                 raise PackageError("corrupt fixed package store object refuses publication")
-        for path, data in outputs:
+        for path, data in outputs[:-1]:
             _publish(path, data)
+        if before_publish is not None:
+            before_publish()
+        _publish(*outputs[-1])
     return artifact.identity
 
 
@@ -426,8 +458,7 @@ def observation_symbol(placements: Sequence[Placement]) -> tuple[str, int] | Non
     return homes[0].name, value
 
 
-def verify_observation_symbol(blob: bytes, expected: tuple[str, int] | None) -> None:
-    """Bind the ELF loader's named symbol to the exported initializer window."""
+def _elf_symbols(blob: bytes) -> tuple[list[tuple[int, ...]], bytes, list[tuple[bytes, int, int, int]]]:
     def extent(offset: int, size: int) -> bytes:
         if offset + size > len(blob):
             raise PackageError("fixed package ELF symbol extent exceeds the image")
@@ -439,18 +470,20 @@ def verify_observation_symbol(blob: bytes, expected: tuple[str, int] | None) -> 
             raise PackageError("fixed package ELF symbol name is outside its string table")
         return strings[offset:end]
 
+    if len(blob) < image.EHDR_SIZE:
+        raise PackageError("fixed package ELF symbol binding requires an ELF header")
     header = struct.unpack_from("<16sHHIQQQIHHHHHH", blob)
     shoff, shnum, shstrings = header[6], header[12], header[13]
     if header[11] != image.SHDR_SIZE or not 0 < shstrings < shnum:
         raise PackageError("fixed package ELF symbol binding requires an ordinary section table")
     extent(shoff, shnum * image.SHDR_SIZE)
-    sections = [struct.unpack_from("<IIQQQQIIQQ", blob, shoff + index * image.SHDR_SIZE)
+    sections = [cast("tuple[int, ...]", struct.unpack_from("<IIQQQQIIQQ", blob, shoff + index * image.SHDR_SIZE))
                 for index in range(shnum)]
     strings = sections[shstrings]
     if strings[1] != image.SHT_STRTAB:
         raise PackageError("fixed package ELF section names require a string table")
-    names = extent(strings[4], strings[5])
-    symtabs = [section for section in sections if name(names, section[0]) == b".symtab"]
+    section_names = extent(strings[4], strings[5])
+    symtabs = [section for section in sections if name(section_names, section[0]) == b".symtab"]
     if len(symtabs) != 1:
         raise PackageError("fixed package ELF requires exactly one symbol table")
     table = symtabs[0]
@@ -462,12 +495,47 @@ def verify_observation_symbol(blob: bytes, expected: tuple[str, int] | None) -> 
         raise PackageError("fixed package ELF symbol names require a string table")
     names = extent(strings[4], strings[5])
     entries = extent(table[4], table[5])
-    matches = []
+    symbols: list[tuple[bytes, int, int, int]] = []
     for at in range(0, len(entries), image.SYM_SIZE):
         offset, info, _other, section, value, _size = struct.unpack_from("<IBBHQQ", entries, at)
-        if name(names, offset) != b"tohost":
+        symbols.append((name(names, offset), info, section, value))
+    return sections, section_names, symbols
+
+
+def verify_exports(blob: bytes, placement: Placement) -> None:
+    """Bind every declared export to a defined symbol and the actual loaded region."""
+    if not placement.exports:
+        return
+    sections, _section_names, symbols = _elf_symbols(blob)
+    for exported, value in placement.exports:
+        matches = [(info, section, actual) for name, info, section, actual in symbols
+                   if name == exported.encode()]
+        if len(matches) != 1:
+            raise PackageError("fixed package producer export is missing or ambiguous")
+        info, section_index, actual = matches[0]
+        if (info & 15 not in (0, 1, 2, 5) or not 0 < section_index < len(sections)
+                or actual != value):
+            raise PackageError("fixed package producer export differs from its declared symbol")
+        section = sections[section_index]
+        homes = [region for region in placement.sections if region.addr <= value < region.addr + len(region.data)]
+        if len(homes) != 1:
+            raise PackageError("fixed package producer export is outside a loaded region")
+        region = homes[0]
+        if (section[1] != image.SHT_PROGBITS or section[2] != region.flags
+                or section[3] != region.addr or section[5] != len(region.data)
+                or section[4] + section[5] > len(blob)
+                or blob[section[4]:section[4] + section[5]] != region.data):
+            raise PackageError("fixed package producer export does not name its loaded region")
+
+
+def verify_observation_symbol(blob: bytes, expected: tuple[str, int] | None) -> None:
+    """Bind the ELF loader's named symbol to the exported initializer window."""
+    sections, section_names, symbols = _elf_symbols(blob)
+    matches = []
+    for exported, info, section, value in symbols:
+        if exported != b"tohost":
             continue
-        if info & 15 not in (0, 1, 2, 5) or not 0 < section < shnum:
+        if info & 15 not in (0, 1, 2, 5) or not 0 < section < len(sections):
             raise PackageError("fixed package tohost symbol is not a defined loader symbol")
         matches.append((section, value))
     if expected is None:
@@ -477,7 +545,9 @@ def verify_observation_symbol(blob: bytes, expected: tuple[str, int] | None) -> 
     if len(matches) != 1 or matches[0][1] != expected[1]:
         raise PackageError("fixed package ELF tohost symbol differs from its initializer export")
     section = sections[matches[0][0]]
-    if (name(extent(sections[shstrings][4], sections[shstrings][5]), section[0]) != expected[0].encode()
+    name_end = section_names.find(b"\0", section[0])
+    if (section[0] >= len(section_names) or name_end < 0
+            or section_names[section[0]:name_end] != expected[0].encode()
             or section[1] != image.SHT_PROGBITS
             or section[2] != image.SHF_ALLOC | image.SHF_WRITE
             or not section[3] <= expected[1] < expected[1] + 8 <= section[3] + section[5]):
