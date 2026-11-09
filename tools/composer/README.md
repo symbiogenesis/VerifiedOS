@@ -199,9 +199,9 @@ fields while preserving authored interfaces, handlers and composition choices.
 The inventory writer checks every resolved destination before publishing, refusing
 escapes, aliases and malformed inputs without replacing earlier outputs. Each file
 is published atomically; the output set is not a filesystem transaction.
-Their source digests identify the actual checkout bytes. The storage
-and crypto-core
-sources remain statements: the boot verifier's C is not a storage-crypto compartment.
+Their source digests identify the actual checkout bytes. The storage and
+crypto-core inventories bind their bounded `storage/` C compartment sources and
+Gallina statements without borrowing the boot verifier's C.
 None of these inventories carries a target product, producer qualification,
 refinement, derivation or admission verdict.
 

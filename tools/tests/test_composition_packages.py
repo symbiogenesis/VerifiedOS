@@ -69,8 +69,8 @@ def _roster_inventory_owners() -> None:
         "mmode-firmware": ("firmware/chain/mmode.c", "docs/implementation/contracts/purecap-abi.md"),
         "kernel": ("kernel/src/lifecycle.c", "kernel/README.md"),
         "supervisor": ("supervisor/src/context.c", "docs/implementation/contracts/supervisor-context.md"),
-        "crypto-core": ("proofs/AesGcm.v", "docs/implementation/contracts/boot-roster.md"),
-        "storage": ("proofs/StorageRecovery.v", "docs/implementation/storage-recovery-policy.md"),
+        "crypto-core": ("storage/src/crypto_core.c", "docs/implementation/contracts/boot-roster.md"),
+        "storage": ("storage/src/storage_publish.c", "docs/implementation/storage-recovery-policy.md"),
         "copy-service": ("copy-service/src/copy_service.c", "interfaces/ring-reference.json"),
         "composer": ("tools/vos/composition.py", "tools/composer/composition.schema.json"),
         "admission": ("tools/vos/admission_production.py", "tools/admission/README.md"),
@@ -86,8 +86,9 @@ def _roster_inventory_owners() -> None:
         ensure(all(c.reference(ROOT, ref["path"]) == ref for ref in bindings[name]),
                f"{name}: exact source bytes")
     for name in ("crypto-core", "storage"):
-        ensure(all(ref["path"].startswith("proofs/") for ref in slots[name]["package"]["sources"]),
-               f"{name}: statements do not borrow firmware code as a nonexistent compartment product")
+        paths = {ref["path"] for ref in slots[name]["package"]["sources"]}
+        ensure(bool(paths) and all(path.startswith(("storage/", "proofs/")) for path in paths),
+               f"{name}: compartment sources bind storage C and Gallina statements without borrowing firmware code")
     recipe = json.loads(c.projections(ROOT)["recipe-members.json"])["payload"]["members"]
     ensure(all(member["status"] != "executable" for member in recipe),
            "resolved inventories cannot promote the roster's target status")

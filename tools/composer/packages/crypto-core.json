@@ -3,6 +3,14 @@
   "package_id": "crypto-core",
   "sources": [
     {
+      "path": "storage/src/crypto_core.c",
+      "sha256": "634edd5efc9df2ca68d1985e301c0316e2555fb633e387958252846ca67f98db"
+    },
+    {
+      "path": "storage/include/vos_crypto_core.h",
+      "sha256": "5c2b3f321bac5614e9d26a6bb70916301b718ce64e10e50aebb174b0718d51bb"
+    },
+    {
       "path": "proofs/Keccak.v",
       "sha256": "c471bec624d0597c7be5433c702688397e36508acaf1c07dc6915bf6508e0fa5"
     },
@@ -20,6 +28,13 @@
     }
   ],
   "interfaces": [
+    {
+      "id": "storage-crypto-boundary",
+      "source": {
+        "path": "storage/README.md",
+        "sha256": "dc15db93abf23f97273679d9b895c5dd3b6d647ac1be4a47a3b61ebcf2860684"
+      }
+    },
     {
       "id": "storage-compartment",
       "source": {

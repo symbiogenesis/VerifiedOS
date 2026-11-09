@@ -32,7 +32,7 @@ HARNESS = ROOT / "storage" / "host" / "storage_publish.c"
 def _compiler() -> str:
     for candidate in ("cc", "gcc", "clang"):
         found = shutil.which(candidate)
-        if found:
+        if found is not None:
             return found
     raise AssertionError("no C compiler available in guest test lane")
 
@@ -122,9 +122,9 @@ def _compile_and_run_c_harness() -> None:
             "-o",
             str(binary),
         ]
-        built = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
+        built = subprocess.run(cmd, check=False, capture_output=True, text=True, timeout=60)
         ensure(built.returncode == 0, f"failed to compile storage_publish C harness: {built.stderr}")
-        ran = subprocess.run([str(binary)], capture_output=True, text=True, timeout=60)
+        ran = subprocess.run([str(binary)], check=False, capture_output=True, text=True, timeout=60)
         ensure(
             ran.returncode == 0,
             f"storage_publish C harness failed: {ran.stderr or ran.stdout}",
@@ -211,12 +211,13 @@ def _compile_and_run_c_harness() -> None:
                     "-o",
                     str(mut_bin),
                 ],
+                check=False,
                 capture_output=True,
                 text=True,
                 timeout=60,
             )
             ensure(m_built.returncode == 0, f"mutant {label} did not compile: {m_built.stderr}")
-            m_ran = subprocess.run([str(mut_bin)], capture_output=True, text=True, timeout=60)
+            m_ran = subprocess.run([str(mut_bin)], check=False, capture_output=True, text=True, timeout=60)
             ensure(m_ran.returncode != 0, f"mutant survived: {label}")
 
 
