@@ -49,6 +49,8 @@ struct vos_crypto_epoch_seal {
 
 struct vos_crypto_core {
     struct vos_crypto_domain_slot domains[VOS_CRYPTO_MAX_DOMAINS];
+    /* Nonsecret cache invalidation for this core lifetime; never reused by unlock. */
+    uint64_t domain_context[VOS_CRYPTO_MAX_DOMAINS];
     uint64_t rot_epoch_counter;
     uint64_t rot_epoch_ceiling;
     uint32_t epoch_sealed;

@@ -723,7 +723,7 @@ int vos_crypto_core_unlock_domain(struct vos_crypto_core *core, uint32_t slot,
     static const uint8_t label_dedup[8] = {'V', 'O', 'S', 'D', 'D', 'U', 'P', '1'};
     static const uint8_t label_commit[8] = {'V', 'O', 'S', 'C', 'M', 'I', 'T', '1'};
     if (core == NULL || slot >= VOS_CRYPTO_MAX_DOMAINS || master_key == NULL ||
-        domain_id == 0u ||
+        domain_id == 0u || core->domain_context[slot] == UINT64_MAX ||
         (key_bytes != VOS_CRYPTO_KEY_BYTES_128 &&
          key_bytes != VOS_CRYPTO_KEY_BYTES_256)) {
         return 0;
@@ -759,6 +759,7 @@ int vos_crypto_core_unlock_domain(struct vos_crypto_core *core, uint32_t slot,
     const uint8_t zero_blk[16] = {0};
     aes_encrypt_with_schedule(&dst->aead_schedule, zero_blk, dst->ghash_subkey);
     dst->provisioned = 1u;
+    ++core->domain_context[slot];
     return 1;
 }
 

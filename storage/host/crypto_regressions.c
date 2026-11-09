@@ -62,6 +62,52 @@ static int check_cached_keys(void)
     return 1;
 }
 
+static int check_domain_context(void)
+{
+    struct vos_crypto_core core;
+    const uint8_t key[32] = {1u};
+    const uint8_t other_key[32] = {2u};
+    vos_crypto_core_init(&core, 1u);
+    for (uint32_t slot = 0u; slot < VOS_CRYPTO_MAX_DOMAINS; ++slot) {
+        CHECK(core.domain_context[slot] == 0u);
+    }
+    CHECK(!vos_crypto_core_unlock_domain(&core, 0u, 0u, 1u, key, sizeof(key)));
+    CHECK(!vos_crypto_core_unlock_domain(&core, 0u, 10u, 1u, key, 17u));
+    CHECK(!vos_crypto_core_unlock_domain(&core, VOS_CRYPTO_MAX_DOMAINS,
+                                         10u, 1u, key, sizeof(key)));
+    CHECK(core.domain_context[0] == 0u);
+    CHECK(vos_crypto_core_unlock_domain(&core, 0u, 10u, 1u, key, sizeof(key)));
+    CHECK(core.domain_context[0] == 1u);
+    CHECK(!vos_crypto_core_unlock_domain(&core, 1u, 10u, 1u, key, sizeof(key)));
+    CHECK(core.domain_context[0] == 1u && core.domain_context[1] == 0u);
+    CHECK(vos_crypto_core_unlock_domain(&core, 0u, 10u, 1u, key, sizeof(key)));
+    CHECK(core.domain_context[0] == 2u);
+    CHECK(vos_crypto_core_lock_domain(&core, 0u));
+    CHECK(core.domain_context[0] == 2u);
+    CHECK(vos_crypto_core_unlock_domain(&core, 0u, 10u, 1u, other_key, sizeof(other_key)));
+    CHECK(core.domain_context[0] == 3u);
+    vos_crypto_core_erase_all(&core);
+    CHECK(core.domain_context[0] == 3u);
+    CHECK(vos_crypto_core_unlock_domain(&core, 0u, 10u, 1u, key, sizeof(key)));
+    CHECK(core.domain_context[0] == 4u);
+    core.domain_context[0] = UINT64_MAX - 1u;
+    CHECK(vos_crypto_core_unlock_domain(&core, 0u, 10u, 1u, key, sizeof(key)));
+    CHECK(core.domain_context[0] == UINT64_MAX);
+    const struct vos_crypto_core before = core;
+    CHECK(!vos_crypto_core_unlock_domain(&core, 0u, 10u, 1u, other_key, sizeof(other_key)));
+    CHECK(memcmp(&core, &before, sizeof(core)) == 0);
+    CHECK(vos_crypto_core_lock_domain(&core, 0u));
+    CHECK(core.domain_context[0] == UINT64_MAX);
+    CHECK(!vos_crypto_core_unlock_domain(&core, 0u, 10u, 1u, key, sizeof(key)));
+    vos_crypto_core_erase_all(&core);
+    CHECK(core.domain_context[0] == UINT64_MAX);
+    CHECK(!vos_crypto_core_unlock_domain(&core, 0u, 10u, 1u, key, sizeof(key)));
+    for (uint32_t slot = 1u; slot < VOS_CRYPTO_MAX_DOMAINS; ++slot) {
+        CHECK(core.domain_context[slot] == 0u);
+    }
+    return 1;
+}
+
 static int check_epoch_seals(void)
 {
     struct vos_crypto_core core;
@@ -143,5 +189,5 @@ static int check_epoch_seals(void)
 
 int main(void)
 {
-    return check_cached_keys() && check_epoch_seals() ? 0 : 1;
+    return check_cached_keys() && check_domain_context() && check_epoch_seals() ? 0 : 1;
 }
