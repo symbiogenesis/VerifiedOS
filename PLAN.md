@@ -2926,6 +2926,32 @@ local checks, recommended validation and deferred acceptance.
 
 ## Tooling review reliability fixes
 
+### Follow-through contract
+
+**Start:** the integrated review fixes, the [failure-prevention contract](tools/ci/failure-prevention.md),
+the [Guest CI contract](tools/ci/README.md) and the existing Q43/M7.1d contracts.
+**Owns:** reviewed restoration of pending requirement/prose readings; owned
+process-tree cleanup for host gate deadlines; live behavioral-test progress;
+and scheduled native slow-control coverage. Preserve existing acceptance and
+do not turn absent compiler qualifications or unresolved member products into
+successful reuse or production composition.
+
+**Check:** read each pending entry/prose pair with `coread --show` and bless only
+agreement, repairing discrepancies at their owner. Real bounded subprocess
+fixtures cover child/grandchild cleanup, retained output and timeout refusals on
+both host platforms. Behavioral tests checkpoint completed and running modules
+while final reports retain deterministic order; snapshot failures cannot alter
+verdicts. A dedicated native slow-case selection excludes ordinary cases and
+host-only recursive gate checks, refuses missing toolchains or empty selection,
+and runs after successful model evidence in scheduled/cold Guest CI. Focused
+selection, progress, process ownership and workflow controls precede static
+analysis and the local fanout handoff. Full suites, native model controls,
+benchmarks and hosted acceptance remain user-managed under the shared handoff.
+For Q43 and M7.1d, inspect and repair actual implementation gaps within their
+landed contracts; report missing qualified producers and target products as
+unmet joins rather than fabricate their evidence. This predicate is committed
+before implementation.
+
 **Start:** the behavioral runner, explicit-path fanout preparation and the
 [local completion contract](tools/fanout.md). **Owns:** failure tracebacks for
 test cases and module loading; visible counts and reasons for skipped cases;
