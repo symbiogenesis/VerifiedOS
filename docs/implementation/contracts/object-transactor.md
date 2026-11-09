@@ -6,6 +6,17 @@ The source artifact is `proofs/ObjectTransactor.v`. It uses [JournalIndex.v](../
 
 ## Source-level acceptance
 
+Journal replay builds the selected prefix's transaction-closure index once and
+replays against that index, rather than rescanning the prefix for every record.
+The binary-ID index must prove lookup equality with `JournalIndex.commits` for
+every transaction and exact `apply_all` result equality for every initial store.
+The selected cut, record order, closing-record semantics and rejected incomplete
+transactions remain unchanged. Space is bounded by admitted transaction-ID bits
+and selected records; lookup follows ID bits, never a sparse array sized by an
+untrusted maximum ID. Positive, absent and repeated-closing cases plus both
+recovery disciplines have executable agreement witnesses. This is an equivalent
+executable refinement; it supplies no target WCET or complete recovery protocol.
+
 The artifact must compile and pass the repository's native constant inventory, exact empty assumption-set check, theorem-type binding, record-witness check and kernel recheck. General properties need jointly satisfiable premises and a positive constructed machine. A checksum, signature, proof-checker or health boolean is an explicit abstract interface, not a proof that its real implementation is trustworthy.
 
 The following independent failures must be exhibited and refused by the relevant obligation:

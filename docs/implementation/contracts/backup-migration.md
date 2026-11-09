@@ -254,8 +254,8 @@ exactly once. Crash cuts before publication reopen the original profile; after
 publication they reopen the complete new profile. A migration, allocation,
 authentication or publication failure cannot expose a partly restored profile.
 Unpublished staging is unreachable and removed by the existing crash-safe cleanup
-path; it never overwrites existing state. Failed cryptographic/schema/profile
-manifest/schema/profile cases never reach staging and perform zero region writes.
+path; it never overwrites existing state. Failed manifest/schema/profile cases
+never reach staging and perform zero region writes.
 A later chunk/typed-decoding failure can leave only unreachable staging. Target campaigns
 must distinguish those zero-write refusals from a later failure that abandons
 unpublished staging while preserving all existing reachable bytes.
