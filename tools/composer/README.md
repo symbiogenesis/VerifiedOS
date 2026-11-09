@@ -61,6 +61,12 @@ roster and admission qualification retain their existing owners. Substituted
 images and changes during validation refuse. These controls run in
 `test --only test_fixed_composition`.
 
+If one package exports `tohost`, its export must cover an aligned eight-byte
+writable initializer window. Composition emits the ELF symbol at that address;
+checking verifies the actual symbol, and both commands report `tohost`. Ambiguous
+exports or symbol substitutions refuse. A host image without the export reports
+`null`; the golden-emulator observer requires the export before execution.
+
 ## Typed graph reference
 
 `python tools/run.py composer compose INPUT --output out/graph.json` executes the
