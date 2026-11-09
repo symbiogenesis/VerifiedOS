@@ -709,6 +709,38 @@ def _framesim_is_required_and_reported() -> None:
                    "the assertion-control outcome must not be omitted or reported as success")
 
 
+def _native_controls_follow_model_evidence() -> None:
+    step = _step("Run native slow controls")
+    ensure("        id: native-controls\n" in step
+           and "        timeout-minutes: 30\n" in step
+           and "continue-on-error" not in step
+           and "python3 tools/run.py test --native-controls --jobs 1" in step,
+           "native slow controls must be a required bounded serial model-lane command")
+    guard = re.search(r"(?m)^        if: \$\{\{ (.*) \}\}$", step)
+    ensure(guard is not None and set(guard[1].split(" && ")) == {
+        "matrix.lane == 'model'", "!cancelled()", "steps.dispatch.outcome != 'failure'",
+        "steps.evidence.outcome == 'success'"},
+        "native controls require an accepted successful model run, including deduplicable manual runs")
+    contents = WORKFLOW.read_text(encoding="utf-8")
+    ensure(contents.index(_step("Model evidence")) < contents.index(step)
+           and 'tee "$VOS_LOG_DIR/native-controls.log"' in step,
+           "native controls must follow the build and preserve their output")
+    ensure("native-controls" in LANES["model"], "the model reporter omits native verdicts")
+    with tempfile.TemporaryDirectory() as directory:
+        root = Path(directory)
+        for outcome in ("success", "failure", "skipped", "cancelled"):
+            logs = root / outcome
+            summary = report("model", logs, root / "absent-console", root / "absent-proof",
+                             {"bootstrap": {"outcome": "success"},
+                              "evidence": {"outcome": "success"},
+                              "native-controls": {"outcome": outcome}},
+                             "abc", toolchains="cold", sail_memo="cold")
+            result = json.loads((logs / "results.json").read_text(encoding="utf-8"))
+            ensure(result["commands"].get("native-controls") == outcome
+                   and f"| native-controls | {outcome} |" in summary,
+                   "native-control failures or omissions must not become passing evidence")
+
+
 def cases() -> list[Case]:
     return [
         Case("bootstrap failure retains diagnostics without stale proofs", _bootstrap_failure),
@@ -725,6 +757,8 @@ def cases() -> list[Case]:
         Case("the generated adapter passes before allocating model build work", _adapter_precedes_model_build),
         Case("the native frame/assertion gate is required and reports every outcome",
              _framesim_is_required_and_reported),
+        Case("native controls follow successful model evidence and retain every outcome",
+             _native_controls_follow_model_evidence),
         Case("reading outcome and base are recorded and validated", _reading_outcome_recorded),
         Case("reading step runs in the gate's environment and reads compare's verdict",
              _reading_step),

@@ -469,6 +469,16 @@ jobs:
             --out "$VOS_LOG_DIR/evidence.json" \
             2>&1 | tee "$VOS_LOG_DIR/evidence-console.log"
 
+      - name: Run native slow controls
+        id: native-controls
+        if: ${{ matrix.lane == 'model' && !cancelled() && steps.dispatch.outcome != 'failure' && steps.evidence.outcome == 'success' }}
+        timeout-minutes: 30
+        # Run the native population serially in the model's exclusive build lane.
+        # Every successful model run covers it, including runs weekly dedup reuses.
+        run: |
+          /usr/bin/time -f "$GUEST_TIME" python3 tools/run.py test --native-controls --jobs 1 \
+            2>&1 | tee "$VOS_LOG_DIR/native-controls.log"
+
       - name: Trim the compiler cache
         id: ccache-trim
         if: ${{ matrix.lane == 'model' && !cancelled() && steps.dispatch.outcome != 'failure' && steps.ccache-start.outcome == 'success' }}
