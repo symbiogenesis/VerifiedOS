@@ -514,6 +514,155 @@ Definition SkipsTheTornRecord (cut : Discipline) : Prop :=
 Definition commits (p : list Rec) (t : nat) : bool :=
   any_of (fun r => andb (Nat.eqb (rec_txn r) t) (rec_closes r)) p.
 
+(* Build the closure set once. The positive key is an injective encoding of a
+   transaction ID, and trie lookup follows its bits instead of scanning records.
+   The executable-refinement contract is in
+   [the transactor contract](../docs/implementation/contracts/object-transactor.md#source-level-acceptance). *)
+Inductive TxnIdBits : Type :=
+| TxnOdd : TxnIdBits -> TxnIdBits
+| TxnEven : TxnIdBits -> TxnIdBits
+| TxnOne : TxnIdBits.
+
+Fixpoint txn_id_succ (key : TxnIdBits) : TxnIdBits :=
+  match key with
+  | TxnOdd rest => TxnEven (txn_id_succ rest)
+  | TxnEven rest => TxnOdd rest
+  | TxnOne => TxnEven TxnOne
+  end.
+
+Fixpoint txn_id_of_nat (key : nat) : TxnIdBits :=
+  match key with 0 => TxnOne | S previous => txn_id_succ (txn_id_of_nat previous) end.
+
+Fixpoint txn_id_value (key : TxnIdBits) : nat :=
+  match key with
+  | TxnOdd rest => S (Nat.add (txn_id_value rest) (txn_id_value rest))
+  | TxnEven rest => Nat.add (txn_id_value rest) (txn_id_value rest)
+  | TxnOne => 1
+  end.
+
+Fixpoint txn_id_eqb (a b : TxnIdBits) : bool :=
+  match a, b with
+  | TxnOne, TxnOne => true
+  | TxnOdd a, TxnOdd b => txn_id_eqb a b
+  | TxnEven a, TxnEven b => txn_id_eqb a b
+  | _, _ => false
+  end.
+
+Lemma txn_id_eqb_refl : forall key, txn_id_eqb key key = true.
+Proof. intros key. induction key; cbn; assumption || reflexivity. Qed.
+
+Lemma txn_id_eqb_true : forall a b, txn_id_eqb a b = true -> a = b.
+Proof.
+  intros a. induction a as [a IH|a IH|]; intros b H; destruct b;
+    cbn in H; try discriminate H; try reflexivity; f_equal; apply IH; exact H.
+Qed.
+
+Lemma txn_id_succ_value : forall key, txn_id_value (txn_id_succ key) = S (txn_id_value key).
+Proof.
+  intros key. induction key as [key IH|key IH|]; cbn; try reflexivity.
+  rewrite IH. cbn. rewrite ProofSupport.nat_add_succ. reflexivity.
+Qed.
+
+Lemma txn_id_of_nat_value : forall key, txn_id_value (txn_id_of_nat key) = S key.
+Proof.
+  intros key. induction key as [|key IH]; [reflexivity|].
+  cbn [txn_id_of_nat]. rewrite txn_id_succ_value, IH. reflexivity.
+Qed.
+
+Lemma txn_id_of_nat_injective : forall a b, txn_id_of_nat a = txn_id_of_nat b -> a = b.
+Proof.
+  intros a b H. pose proof (f_equal txn_id_value H) as E.
+  rewrite !txn_id_of_nat_value in E. injection E as E. exact E.
+Qed.
+
+Inductive TxnTrie : Type :=
+| TxnEmpty : TxnTrie
+| TxnBranch : bool -> TxnTrie -> TxnTrie -> TxnTrie.
+
+Fixpoint txn_member (key : TxnIdBits) (index : TxnTrie) : bool :=
+  match index with
+  | TxnEmpty => false
+  | TxnBranch marked zero one =>
+      match key with
+      | TxnOne => marked
+      | TxnEven rest => txn_member rest zero
+      | TxnOdd rest => txn_member rest one
+      end
+  end.
+
+Fixpoint txn_mark (key : TxnIdBits) (index : TxnTrie) : TxnTrie :=
+  match key, index with
+  | TxnOne, TxnEmpty => TxnBranch true TxnEmpty TxnEmpty
+  | TxnOne, TxnBranch _ zero one => TxnBranch true zero one
+  | TxnEven rest, TxnEmpty => TxnBranch false (txn_mark rest TxnEmpty) TxnEmpty
+  | TxnEven rest, TxnBranch marked zero one => TxnBranch marked (txn_mark rest zero) one
+  | TxnOdd rest, TxnEmpty => TxnBranch false TxnEmpty (txn_mark rest TxnEmpty)
+  | TxnOdd rest, TxnBranch marked zero one => TxnBranch marked zero (txn_mark rest one)
+  end.
+
+Lemma txn_member_empty : forall key, txn_member key TxnEmpty = false.
+Proof. intros key. destruct key; reflexivity. Qed.
+
+Lemma txn_member_mark : forall key added index,
+  txn_member key (txn_mark added index) =
+  orb (txn_id_eqb key added) (txn_member key index).
+Proof.
+  intros key. induction key as [key IH|key IH|];
+    intros added index; destruct added; destruct index; cbn;
+    try rewrite IH; rewrite ?txn_member_empty; reflexivity.
+Qed.
+
+Lemma txn_key_eqb : forall a b,
+  txn_id_eqb (txn_id_of_nat a) (txn_id_of_nat b) = Nat.eqb a b.
+Proof.
+  intros a b. destruct (txn_id_eqb (txn_id_of_nat a) (txn_id_of_nat b)) eqn:Hp.
+  - apply txn_id_eqb_true in Hp. apply txn_id_of_nat_injective in Hp. subst b.
+    symmetry. apply nat_eqb_refl.
+  - destruct (Nat.eqb a b) eqn:Hn; [|reflexivity].
+    apply nat_eqb_true in Hn. subst b. rewrite txn_id_eqb_refl in Hp. discriminate Hp.
+Qed.
+
+Lemma txn_nat_eqb_sym : forall a b, Nat.eqb a b = Nat.eqb b a.
+Proof.
+  intros a. induction a as [|a IH]; intros b; destruct b; cbn; [reflexivity|reflexivity|reflexivity|apply IH].
+Qed.
+
+Fixpoint commit_index (prefix : list Rec) : TxnTrie :=
+  match prefix with
+  | nil => TxnEmpty
+  | cons r rest =>
+      if rec_closes r
+      then txn_mark (txn_id_of_nat (rec_txn r)) (commit_index rest)
+      else commit_index rest
+  end.
+
+Definition indexed_commits (index : TxnTrie) (txn : nat) : bool :=
+  txn_member (txn_id_of_nat txn) index.
+
+Definition index_mark_nat (key : nat) (index : TxnTrie) : TxnTrie :=
+  txn_mark (txn_id_of_nat key) index.
+
+Lemma commit_index_exact : forall prefix txn,
+  indexed_commits (commit_index prefix) txn = commits prefix txn.
+Proof.
+  intros prefix. induction prefix as [|r rest IH]; intros txn.
+  - apply txn_member_empty.
+  - unfold indexed_commits. cbn [commit_index].
+    change (txn_member (txn_id_of_nat txn)
+      (if rec_closes r then txn_mark (txn_id_of_nat (rec_txn r)) (commit_index rest)
+       else commit_index rest) =
+      orb (andb (Nat.eqb (rec_txn r) txn) (rec_closes r)) (commits rest txn)).
+    destruct (rec_closes r) eqn:Hclosed.
+    + rewrite txn_member_mark, txn_key_eqb.
+      change (orb (Nat.eqb txn (rec_txn r)) (indexed_commits (commit_index rest) txn)
+        = orb (andb (Nat.eqb (rec_txn r) txn) true) (commits rest txn)).
+      rewrite IH, (txn_nat_eqb_sym txn (rec_txn r)).
+      destruct (Nat.eqb (rec_txn r) txn); reflexivity.
+    + change (indexed_commits (commit_index rest) txn =
+        orb (andb (Nat.eqb (rec_txn r) txn) false) (commits rest txn)).
+      rewrite IH. destruct (Nat.eqb (rec_txn r) txn); reflexivity.
+Qed.
+
 Definition Store : Type := nat -> nat.
 
 Definition put (s : Store) (b v : nat) : Store :=
@@ -528,13 +677,30 @@ Fixpoint apply_all (p : list Rec) (cm : nat -> bool) (s : Store) : Store :=
       apply_all t cm (if cm (rec_txn r) then put s (rec_block r) (rec_value r) else s)
   end.
 
+Lemma apply_all_same_commit_decisions : forall prefix a b,
+  (forall txn, a txn = b txn) -> forall s,
+  apply_all prefix a s = apply_all prefix b s.
+Proof.
+  intros prefix. induction prefix as [|r rest IH]; intros a b H s.
+  - reflexivity.
+  - cbn [apply_all]. rewrite H. apply IH. exact H.
+Qed.
+
 Definition Recovery : Type := list Rec -> Store -> Store.
 
 (* A discipline's own recovery: replay what it admits, under the commit set
    that same admission decides. Every arm below is an instance of this, so
    what separates two recoveries is the discipline and never the replay. *)
 Definition recover_under (cut : Discipline) : Recovery :=
-  fun j s => apply_all (cut j) (commits (cut j)) s.
+  fun j s => let prefix := cut j in
+    apply_all prefix (indexed_commits (commit_index prefix)) s.
+
+Lemma recover_under_specification : forall cut j s,
+  recover_under cut j s = apply_all (cut j) (commits (cut j)) s.
+Proof.
+  intros cut j s. unfold recover_under.
+  apply apply_all_same_commit_decisions. apply commit_index_exact.
+Qed.
 
 Definition spec_recover : Recovery := recover_under scan.
 
@@ -703,7 +869,7 @@ Qed.
 Theorem a_discipline_leaves_untouched_blocks_alone :
   forall cut : Discipline, LeavesUntouchedBlocks cut (recover_under cut).
 Proof.
-  intros cut j s b H. unfold recover_under. unfold touched_under in H.
+  intros cut j s b H. rewrite recover_under_specification. unfold touched_under in H.
   exact (apply_all_untouched (cut j) (commits (cut j)) s b H).
 Qed.
 
@@ -712,7 +878,7 @@ Qed.
 Theorem a_discipline_lands_every_committed_write :
   forall cut : Discipline, LandsEveryCommittedWrite cut (recover_under cut).
 Proof.
-  intros cut j s b v H. unfold recover_under.
+  intros cut j s b v H. rewrite recover_under_specification.
   exact (apply_all_last (cut j) (commits (cut j)) s b v H).
 Qed.
 
@@ -1149,7 +1315,7 @@ Theorem replaying_a_prefix_reaches_the_same_store :
     all_of intact j = true ->
     spec_recover (replay_prefix i j) s b = spec_recover j s b.
 Proof.
-  intros j s i b Hj. unfold spec_recover. unfold recover_under.
+  intros j s i b Hj. unfold spec_recover. rewrite !recover_under_specification.
   assert (Hp : all_of intact (replay_prefix i j) = true).
   { unfold replay_prefix. rewrite (all_of_app Rec intact (take i j) j).
     apply andb_join; [ exact (all_of_take Rec intact i j Hj) | exact Hj ]. }
@@ -1185,7 +1351,7 @@ Theorem replaying_a_suffix_reaches_the_same_store :
     all_of intact j = true ->
     spec_recover (replay_suffix i j) s b = spec_recover j s b.
 Proof.
-  intros j s i b Hj. unfold spec_recover. unfold recover_under.
+  intros j s i b Hj. unfold spec_recover. rewrite !recover_under_specification.
   assert (Hp : all_of intact (replay_suffix i j) = true).
   { unfold replay_suffix. rewrite (all_of_app Rec intact j (drop i j)).
     apply andb_join; [ exact Hj | ].
@@ -2428,6 +2594,31 @@ Definition demo_journal : list Rec :=
   (cons (rec_of 3 4 15 false) nil))))).
 
 Definition demo_store : Store := fun b => b.
+
+Definition indexed_commit_fixture : list Rec :=
+  app (map_over (fun txn => rec_of txn txn (S txn) false) (upto 16))
+      (map_over (fun txn => rec_of txn txn (S txn) (Nat.even txn)) (upto 16)).
+
+Example generated_indexed_membership_preserves_absent_and_repeated_ids :
+  map_over (indexed_commits (commit_index indexed_commit_fixture)) (upto 16)
+    = map_over Nat.even (upto 16) /\
+  indexed_commits (commit_index indexed_commit_fixture) 16 = false /\
+  indexed_commits (commit_index
+    (cons (rec_of 0 0 1 true) (cons (rec_of 0 0 2 true) nil))) 0 = true :=
+  conj eq_refl (conj eq_refl eq_refl).
+
+Example generated_crash_prefixes_keep_the_original_commit_decisions :
+  all_of (fun prefix => all_of (fun txn =>
+    (if indexed_commits (commit_index prefix) txn
+     then commits prefix txn else negb (commits prefix txn)))
+    (upto 17)) (cuts indexed_commit_fixture) = true := eq_refl.
+
+Example both_indexed_recovery_arms_keep_the_original_store :
+  map_over (recover_under scan demo_journal demo_store) (upto 6) =
+    map_over (apply_all (scan demo_journal) (commits (scan demo_journal)) demo_store) (upto 6) /\
+  map_over (recover_under sieve demo_journal demo_store) (upto 6) =
+    map_over (apply_all (sieve demo_journal) (commits (sieve demo_journal)) demo_store) (upto 6) :=
+  conj eq_refl eq_refl.
 
 Definition store_view (rc : Recovery) (j : list Rec) : list nat :=
   map_over (rc j demo_store) (upto (block_count demo)).

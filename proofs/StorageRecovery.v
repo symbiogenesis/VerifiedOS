@@ -72,8 +72,9 @@ Proof.
 Qed.
 
 (* Both arms process at most the declared finite input population. This is
-   a record bound, not a cycle bound or a proof that commits' repeated scans
-   are linear time. An implementation must supply its own WCET refinement. *)
+   a record bound, not a cycle bound. JournalIndex's recovery indexes closure
+   once; ID conversion, trie lookup and replay still need their executable
+   WCET refinement. *)
 Theorem both_arms_respect_the_input_bound : forall j limit,
   length j <= limit -> length (scan j) <= limit /\ length (sieve j) <= limit.
 Proof.

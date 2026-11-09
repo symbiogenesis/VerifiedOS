@@ -6,6 +6,17 @@ The source artifact is `proofs/ObjectTransactor.v`. It uses [JournalIndex.v](../
 
 ## Source-level acceptance
 
+Journal replay builds the selected prefix's transaction-closure index once and
+replays against that index, rather than rescanning the prefix for every record.
+The binary-ID index must prove lookup equality with `JournalIndex.commits` for
+every transaction and exact `apply_all` result equality for every initial store.
+The selected cut, record order, closing-record semantics and rejected incomplete
+transactions remain unchanged. Space is bounded by admitted transaction-ID bits
+and selected records; lookup follows ID bits, never a sparse array sized by an
+untrusted maximum ID. Positive, absent and repeated-closing cases plus both
+recovery disciplines have executable agreement witnesses. This is an equivalent
+executable refinement; it supplies no target WCET or complete recovery protocol.
+
 The artifact must compile and pass the repository's native constant inventory, exact empty assumption-set check, theorem-type binding, record-witness check and kernel recheck. General properties need jointly satisfiable premises and a positive constructed machine. A checksum, signature, proof-checker or health boolean is an explicit abstract interface, not a proof that its real implementation is trustworthy.
 
 The following independent failures must be exhibited and refused by the relevant obligation:
@@ -20,6 +31,37 @@ The following independent failures must be exhibited and refused by the relevant
 Generated crash prefixes and every declared tear location in the staging journal run through both raw recovery arms as comparison/refutation evidence. R-10-002a selects the complete authenticated prefix-redo implementation; neither raw filter alone supplies that protocol. A completely staged candidate is admitted when all independent guards hold; each required guard has a refusing witness. Generated checks and focused mutation probes report their actual domain, and any survivors remain findings rather than being hidden by changing that domain. The authorable source slice has no blanket requirement to mutate every fixture literal; its theorem and refusal obligations above are the fixed acceptance criteria.
 
 ## Execution predicate and open producers
+
+### Path-local runtime reader
+
+R-10-001's runtime reader accepts an explicit bounded root-to-object witness.
+Starting from the boot-attested root, it reads and authenticates the current
+object before using any child address, checks that the witness's next address
+occurs in that object's ordered child list, and repeats until the requested
+object is reached. The canonical encoding covers both object bytes and the
+ordered child addresses. Missing bytes, a hash or link mismatch, a wrong final
+address, a cycle or exhausted depth bound returns no object bytes. Work is
+proportional to the supplied path and encoded objects on it, never the population
+of unrelated descendants. The witness is untrusted routing data, not authority.
+
+The existing `dag_intact` and `spec_read` model a cold whole-image audit and its
+stronger completeness property. A path reader cannot prove that an unrelated
+subtree is currently intact; preserving that theorem by adding a whole-tree scan
+would defeat the runtime contract. Admission/commit still checks completeness,
+and a runtime theorem instead proves authentication of every followed link and
+the requested object's root-bound content. Cryptographic binding of the canonical
+encoding remains the existing hash/descriptor premise, never an axiom that
+silently equates an arbitrary hash with an injective function.
+
+The executable path witness must have inhabited root and descendant cases,
+refuse a correctly named leaf reached through an unauthenticated parent, refuse
+wrong-root/link/hash/depth substitutions, and continue to read a valid path when
+an unrelated subtree is unavailable. Its success theorem preserves the exact
+returned bytes and authenticates every visited object; a generated family varies
+path length and sibling population independently to check bounded work. Focused
+compilation and kernel recheck precede user-managed fresh hosted proof acceptance.
+This is a new runtime specification beside the cold audit, not a repair that
+weakens the audit's existing statement.
 
 M5.4 consumes M5.3d's [early executable publication checkpoint](../storage-recovery-policy.md#early-executable-publication-checkpoint)
 for bounded staging, independently verified publication and persistent reopen.
