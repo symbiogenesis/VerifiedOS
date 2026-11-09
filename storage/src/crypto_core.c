@@ -6,8 +6,9 @@ static void zero_bytes(uint8_t *dst, size_t length)
     if (dst == NULL) {
         return;
     }
+    volatile uint8_t *wipe = dst;
     for (size_t i = 0u; i < length; ++i) {
-        dst[i] = 0u;
+        wipe[i] = 0u;
     }
 }
 
@@ -242,79 +243,10 @@ int vos_hmac_sha256(const uint8_t *key, size_t key_length,
     return 1;
 }
 
-static const uint8_t aes_sbox[256] = {
-    0x63u, 0x7cu, 0x77u, 0x7bu, 0xf2u, 0x6bu, 0x6fu, 0xc5u,
-    0x30u, 0x01u, 0x67u, 0x2bu, 0xfeu, 0xd7u, 0xabu, 0x76u,
-    0xcau, 0x82u, 0xc9u, 0x7du, 0xfau, 0x59u, 0x47u, 0xf0u,
-    0xadu, 0xd4u, 0xa2u, 0xafu, 0x9cu, 0xa4u, 0x72u, 0xc0u,
-    0xb7u, 0xfdu, 0x93u, 0x26u, 0x36u, 0x3fu, 0xf7u, 0xccu,
-    0x34u, 0xa5u, 0xe5u, 0xf1u, 0x71u, 0xd8u, 0x31u, 0x15u,
-    0x04u, 0xc7u, 0x23u, 0xc3u, 0x18u, 0x96u, 0x05u, 0x9au,
-    0x07u, 0x12u, 0x80u, 0xe2u, 0xebu, 0x27u, 0xb2u, 0x75u,
-    0x09u, 0x83u, 0x2cu, 0x1au, 0x1bu, 0x6eu, 0x5au, 0xa0u,
-    0x52u, 0x3bu, 0xd6u, 0xb3u, 0x29u, 0xe3u, 0x2fu, 0x84u,
-    0x53u, 0xd1u, 0x00u, 0xedu, 0x20u, 0xfcu, 0xb1u, 0x5bu,
-    0x6au, 0xcbu, 0xbeu, 0x39u, 0x4au, 0x4cu, 0x58u, 0xcfu,
-    0xd0u, 0xefu, 0xaau, 0xfbu, 0x43u, 0x4du, 0x33u, 0x85u,
-    0x45u, 0xf9u, 0x02u, 0x7fu, 0x50u, 0x3cu, 0x9fu, 0xa8u,
-    0x51u, 0xa3u, 0x40u, 0x8fu, 0x92u, 0x9du, 0x38u, 0xf5u,
-    0xbcu, 0xb6u, 0xdau, 0x21u, 0x10u, 0xffu, 0xf3u, 0xd2u,
-    0xcdu, 0x0cu, 0x13u, 0xecu, 0x5fu, 0x97u, 0x44u, 0x17u,
-    0xc4u, 0xa7u, 0x7eu, 0x3du, 0x64u, 0x5du, 0x19u, 0x73u,
-    0x60u, 0x81u, 0x4fu, 0xdcu, 0x22u, 0x2au, 0x90u, 0x88u,
-    0x46u, 0xeeu, 0xb8u, 0x14u, 0xdeu, 0x5eu, 0x0bu, 0xdbu,
-    0xe0u, 0x32u, 0x3au, 0x0au, 0x49u, 0x06u, 0x24u, 0x5cu,
-    0xc2u, 0xd3u, 0xacu, 0x62u, 0x91u, 0x95u, 0xe4u, 0x79u,
-    0xe7u, 0xc8u, 0x37u, 0x6du, 0x8du, 0xd5u, 0x4eu, 0xa9u,
-    0x6cu, 0x56u, 0xf4u, 0xeau, 0x65u, 0x7au, 0xaeu, 0x08u,
-    0xbau, 0x78u, 0x25u, 0x2eu, 0x1cu, 0xa6u, 0xb4u, 0xc6u,
-    0xe8u, 0xddu, 0x74u, 0x1fu, 0x4bu, 0xbdu, 0x8bu, 0x8au,
-    0x70u, 0x3eu, 0xb5u, 0x66u, 0x48u, 0x03u, 0xf6u, 0x0eu,
-    0x61u, 0x35u, 0x57u, 0xb9u, 0x86u, 0xc1u, 0x1du, 0x9eu,
-    0xe1u, 0xf8u, 0x98u, 0x11u, 0x69u, 0xd9u, 0x8eu, 0x94u,
-    0x9bu, 0x1eu, 0x87u, 0xe9u, 0xceu, 0x55u, 0x28u, 0xdfu,
-    0x8cu, 0xa1u, 0x89u, 0x0du, 0xbfu, 0xe6u, 0x42u, 0x68u,
-    0x41u, 0x99u, 0x2du, 0x0fu, 0xb0u, 0x54u, 0xbbu, 0x16u
-};
-
-static const uint8_t aes_inv_sbox[256] = {
-    0x52u, 0x09u, 0x6au, 0xd5u, 0x30u, 0x36u, 0xa5u, 0x38u,
-    0xbfu, 0x40u, 0xa3u, 0x9eu, 0x81u, 0xf3u, 0xd7u, 0xfbu,
-    0x7cu, 0xe3u, 0x39u, 0x82u, 0x9bu, 0x2fu, 0xffu, 0x87u,
-    0x34u, 0x8eu, 0x43u, 0x44u, 0xc4u, 0xdeu, 0xe9u, 0xcbu,
-    0x54u, 0x7bu, 0x94u, 0x32u, 0xa6u, 0xc2u, 0x23u, 0x3du,
-    0xeeu, 0x4cu, 0x95u, 0x0bu, 0x42u, 0xfau, 0xc3u, 0x4eu,
-    0x08u, 0x2eu, 0xa1u, 0x66u, 0x28u, 0xd9u, 0x24u, 0xb2u,
-    0x76u, 0x5bu, 0xa2u, 0x49u, 0x6du, 0x8bu, 0xd1u, 0x25u,
-    0x72u, 0xf8u, 0xf6u, 0x64u, 0x86u, 0x68u, 0x98u, 0x16u,
-    0xd4u, 0xa4u, 0x5cu, 0xccu, 0x5du, 0x65u, 0xb6u, 0x92u,
-    0x6cu, 0x70u, 0x48u, 0x50u, 0xfdu, 0xedu, 0xb9u, 0xdau,
-    0x5eu, 0x15u, 0x46u, 0x57u, 0xa7u, 0x8du, 0x9du, 0x84u,
-    0x90u, 0xd8u, 0xabu, 0x00u, 0x8cu, 0xbcu, 0xd3u, 0x0au,
-    0xf7u, 0xe4u, 0x58u, 0x05u, 0xb8u, 0xb3u, 0x45u, 0x06u,
-    0xd0u, 0x2cu, 0x1eu, 0x8fu, 0xcau, 0x3fu, 0x0fu, 0x02u,
-    0xc1u, 0xafu, 0xbdu, 0x03u, 0x01u, 0x13u, 0x8au, 0x6bu,
-    0x3au, 0x91u, 0x11u, 0x41u, 0x4fu, 0x67u, 0xdcu, 0xeau,
-    0x97u, 0xf2u, 0xcfu, 0xceu, 0xf0u, 0xb4u, 0xe6u, 0x73u,
-    0x96u, 0xacu, 0x74u, 0x22u, 0xe7u, 0xadu, 0x35u, 0x85u,
-    0xe2u, 0xf9u, 0x37u, 0xe8u, 0x1cu, 0x75u, 0xdfu, 0x6eu,
-    0x47u, 0xf1u, 0x1au, 0x71u, 0x1du, 0x29u, 0xc5u, 0x89u,
-    0x6fu, 0xb7u, 0x62u, 0x0eu, 0xaau, 0x18u, 0xbeu, 0x1bu,
-    0xfcu, 0x56u, 0x3eu, 0x4bu, 0xc6u, 0xd2u, 0x79u, 0x20u,
-    0x9au, 0xdbu, 0xc0u, 0xfeu, 0x78u, 0xcdu, 0x5au, 0xf4u,
-    0x1fu, 0xddu, 0xa8u, 0x33u, 0x88u, 0x07u, 0xc7u, 0x31u,
-    0xb1u, 0x12u, 0x10u, 0x59u, 0x27u, 0x80u, 0xecu, 0x5fu,
-    0x60u, 0x51u, 0x7fu, 0xa9u, 0x19u, 0xb5u, 0x4au, 0x0du,
-    0x2du, 0xe5u, 0x7au, 0x9fu, 0x93u, 0xc9u, 0x9cu, 0xefu,
-    0xa0u, 0xe0u, 0x3bu, 0x4du, 0xaeu, 0x2au, 0xf5u, 0xb0u,
-    0xc8u, 0xebu, 0xbbu, 0x3cu, 0x83u, 0x53u, 0x99u, 0x61u,
-    0x17u, 0x2bu, 0x04u, 0x7eu, 0xbau, 0x77u, 0xd6u, 0x26u,
-    0xe1u, 0x69u, 0x14u, 0x63u, 0x55u, 0x21u, 0x0cu, 0x7du
-};
-
 static uint8_t gf256_xtime(uint8_t x)
 {
-    return (uint8_t)((x << 1u) ^ ((x & 0x80u) != 0u ? 0x1bu : 0x00u));
+    const uint8_t mask = (uint8_t)(0u - (uint32_t)(x >> 7u));
+    return (uint8_t)((x << 1u) ^ (0x1bu & mask));
 }
 
 static uint8_t gf256_mul(uint8_t a, uint8_t b)
@@ -322,21 +254,52 @@ static uint8_t gf256_mul(uint8_t a, uint8_t b)
     uint8_t p = 0u;
     uint8_t cur = a;
     for (uint32_t i = 0u; i < 8u; ++i) {
-        if ((b & (1u << i)) != 0u) {
-            p ^= cur;
-        }
+        const uint8_t mask = (uint8_t)(0u - (uint32_t)((b >> i) & 1u));
+        p ^= (uint8_t)(cur & mask);
         cur = gf256_xtime(cur);
     }
     return p;
 }
 
-struct aes_schedule {
-    uint32_t nr;
-    uint8_t round_keys[15u * VOS_CRYPTO_BLOCK_BYTES];
-};
+/* [The functional AES reference](../../proofs/AesGcm.v#sub_byte) derives the
+ * substitution from field inversion and the affine map. Fixed arithmetic here
+ * removes secret-indexed tables; binary constant-time qualification is separate. */
+static uint8_t gf256_inverse(uint8_t x)
+{
+    const uint8_t x2 = gf256_mul(x, x);
+    const uint8_t x3 = gf256_mul(x2, x);
+    const uint8_t x6 = gf256_mul(x3, x3);
+    const uint8_t x12 = gf256_mul(x6, x6);
+    const uint8_t x15 = gf256_mul(x12, x3);
+    const uint8_t x30 = gf256_mul(x15, x15);
+    const uint8_t x60 = gf256_mul(x30, x30);
+    const uint8_t x120 = gf256_mul(x60, x60);
+    const uint8_t x240 = gf256_mul(x120, x120);
+    const uint8_t x252 = gf256_mul(x240, x12);
+    return gf256_mul(x252, x2);
+}
+
+static uint8_t rotl8(uint8_t x, uint32_t shift)
+{
+    return (uint8_t)((x << shift) | (x >> (8u - shift)));
+}
+
+static uint8_t aes_sub_byte(uint8_t x)
+{
+    const uint8_t y = gf256_inverse(x);
+    return (uint8_t)(y ^ rotl8(y, 1u) ^ rotl8(y, 2u) ^
+                     rotl8(y, 3u) ^ rotl8(y, 4u) ^ 0x63u);
+}
+
+static uint8_t aes_inv_sub_byte(uint8_t x)
+{
+    const uint8_t y = (uint8_t)(rotl8(x, 1u) ^ rotl8(x, 3u) ^
+                                rotl8(x, 6u) ^ 0x05u);
+    return gf256_inverse(y);
+}
 
 static int aes_expand_key(const uint8_t *key, size_t key_bytes,
-                          struct aes_schedule *sched)
+                          struct vos_crypto_aes_schedule *sched)
 {
     uint32_t nk = 0u;
     if (key == NULL || sched == NULL) {
@@ -362,16 +325,16 @@ static int aes_expand_key(const uint8_t *key, size_t key_bytes,
         copy_bytes(temp, sched->round_keys + 4u * (i - 1u), 4u);
         if (i % nk == 0u) {
             const uint8_t t0 = temp[0];
-            temp[0] = (uint8_t)(aes_sbox[temp[1]] ^ rcon);
-            temp[1] = aes_sbox[temp[2]];
-            temp[2] = aes_sbox[temp[3]];
-            temp[3] = aes_sbox[t0];
+            temp[0] = (uint8_t)(aes_sub_byte(temp[1]) ^ rcon);
+            temp[1] = aes_sub_byte(temp[2]);
+            temp[2] = aes_sub_byte(temp[3]);
+            temp[3] = aes_sub_byte(t0);
             rcon = gf256_xtime(rcon);
         } else if (nk > 6u && (i % nk) == 4u) {
-            temp[0] = aes_sbox[temp[0]];
-            temp[1] = aes_sbox[temp[1]];
-            temp[2] = aes_sbox[temp[2]];
-            temp[3] = aes_sbox[temp[3]];
+            temp[0] = aes_sub_byte(temp[0]);
+            temp[1] = aes_sub_byte(temp[1]);
+            temp[2] = aes_sub_byte(temp[2]);
+            temp[3] = aes_sub_byte(temp[3]);
         }
         for (uint32_t j = 0u; j < 4u; ++j) {
             sched->round_keys[4u * i + j] =
@@ -388,7 +351,7 @@ static void aes_add_round_key(uint8_t state[16], const uint8_t rk[16])
     }
 }
 
-static void aes_encrypt_with_schedule(const struct aes_schedule *sched,
+static void aes_encrypt_with_schedule(const struct vos_crypto_aes_schedule *sched,
                                       const uint8_t input[16],
                                       uint8_t output[16])
 {
@@ -398,7 +361,7 @@ static void aes_encrypt_with_schedule(const struct aes_schedule *sched,
     aes_add_round_key(s, sched->round_keys);
     for (uint32_t r = 1u; r < sched->nr; ++r) {
         for (uint32_t i = 0u; i < 16u; ++i) {
-            s[i] = aes_sbox[s[i]];
+            s[i] = aes_sub_byte(s[i]);
         }
         for (uint32_t row = 0u; row < 4u; ++row) {
             for (uint32_t col = 0u; col < 4u; ++col) {
@@ -410,15 +373,16 @@ static void aes_encrypt_with_schedule(const struct aes_schedule *sched,
             const uint8_t a1 = tmp[4u * col + 1u];
             const uint8_t a2 = tmp[4u * col + 2u];
             const uint8_t a3 = tmp[4u * col + 3u];
-            s[4u * col + 0u] = (uint8_t)(gf256_mul(2u, a0) ^ gf256_mul(3u, a1) ^ a2 ^ a3);
-            s[4u * col + 1u] = (uint8_t)(a0 ^ gf256_mul(2u, a1) ^ gf256_mul(3u, a2) ^ a3);
-            s[4u * col + 2u] = (uint8_t)(a0 ^ a1 ^ gf256_mul(2u, a2) ^ gf256_mul(3u, a3));
-            s[4u * col + 3u] = (uint8_t)(gf256_mul(3u, a0) ^ a1 ^ a2 ^ gf256_mul(2u, a3));
+            const uint8_t sum = (uint8_t)(a0 ^ a1 ^ a2 ^ a3);
+            s[4u * col + 0u] = (uint8_t)(a0 ^ sum ^ gf256_xtime((uint8_t)(a0 ^ a1)));
+            s[4u * col + 1u] = (uint8_t)(a1 ^ sum ^ gf256_xtime((uint8_t)(a1 ^ a2)));
+            s[4u * col + 2u] = (uint8_t)(a2 ^ sum ^ gf256_xtime((uint8_t)(a2 ^ a3)));
+            s[4u * col + 3u] = (uint8_t)(a3 ^ sum ^ gf256_xtime((uint8_t)(a3 ^ a0)));
         }
         aes_add_round_key(s, sched->round_keys + 16u * r);
     }
     for (uint32_t i = 0u; i < 16u; ++i) {
-        s[i] = aes_sbox[s[i]];
+        s[i] = aes_sub_byte(s[i]);
     }
     for (uint32_t row = 0u; row < 4u; ++row) {
         for (uint32_t col = 0u; col < 4u; ++col) {
@@ -433,7 +397,7 @@ int vos_aes_encrypt_block(const uint8_t *key, size_t key_bytes,
                           const uint8_t input[VOS_CRYPTO_BLOCK_BYTES],
                           uint8_t output[VOS_CRYPTO_BLOCK_BYTES])
 {
-    struct aes_schedule sched;
+    struct vos_crypto_aes_schedule sched;
     if (input == NULL || output == NULL || !aes_expand_key(key, key_bytes, &sched)) {
         return 0;
     }
@@ -446,7 +410,7 @@ int vos_aes_decrypt_block(const uint8_t *key, size_t key_bytes,
                           const uint8_t input[VOS_CRYPTO_BLOCK_BYTES],
                           uint8_t output[VOS_CRYPTO_BLOCK_BYTES])
 {
-    struct aes_schedule sched;
+    struct vos_crypto_aes_schedule sched;
     uint8_t s[16];
     uint8_t tmp[16];
     if (input == NULL || output == NULL || !aes_expand_key(key, key_bytes, &sched)) {
@@ -461,7 +425,7 @@ int vos_aes_decrypt_block(const uint8_t *key, size_t key_bytes,
             }
         }
         for (uint32_t i = 0u; i < 16u; ++i) {
-            tmp[i] = aes_inv_sbox[tmp[i]];
+            tmp[i] = aes_inv_sub_byte(tmp[i]);
         }
         aes_add_round_key(tmp, sched.round_keys + 16u * r);
         for (uint32_t col = 0u; col < 4u; ++col) {
@@ -485,7 +449,7 @@ int vos_aes_decrypt_block(const uint8_t *key, size_t key_bytes,
         }
     }
     for (uint32_t i = 0u; i < 16u; ++i) {
-        tmp[i] = aes_inv_sbox[tmp[i]];
+        tmp[i] = aes_inv_sub_byte(tmp[i]);
     }
     aes_add_round_key(tmp, sched.round_keys);
     copy_bytes(output, tmp, 16u);
@@ -493,26 +457,35 @@ int vos_aes_decrypt_block(const uint8_t *key, size_t key_bytes,
     return 1;
 }
 
+static uint64_t get_be64(const uint8_t src[8])
+{
+    uint64_t value = 0u;
+    for (uint32_t i = 0u; i < 8u; ++i) {
+        value = (value << 8u) | src[i];
+    }
+    return value;
+}
+
 static void gf128_mul_block(const uint8_t x[16], const uint8_t y[16],
                             uint8_t z[16])
 {
-    uint8_t v[16];
-    uint8_t acc[16];
-    copy_bytes(v, y, 16u);
-    zero_bytes(acc, 16u);
+    const uint64_t x_hi = get_be64(x);
+    const uint64_t x_lo = get_be64(x + 8u);
+    uint64_t v_hi = get_be64(y);
+    uint64_t v_lo = get_be64(y + 8u);
+    uint64_t acc_hi = 0u;
+    uint64_t acc_lo = 0u;
     for (uint32_t i = 0u; i < 128u; ++i) {
-        const uint8_t bit = (uint8_t)((x[i / 8u] >> (7u - (i % 8u))) & 1u);
-        const uint8_t mask = (uint8_t)(0u - bit);
-        for (uint32_t b = 0u; b < 16u; ++b) {
-            acc[b] ^= (uint8_t)(v[b] & mask);
-        }
-        const uint8_t lsb = (uint8_t)(v[15] & 1u);
-        for (uint32_t b = 15u; b > 0u; --b) {
-            v[b] = (uint8_t)((v[b] >> 1u) | ((v[b - 1u] & 1u) << 7u));
-        }
-        v[0] = (uint8_t)((v[0] >> 1u) ^ (lsb != 0u ? 0xe1u : 0x00u));
+        const uint64_t word = i < 64u ? x_hi : x_lo;
+        const uint64_t mask = UINT64_C(0) - ((word >> (63u - (i % 64u))) & 1u);
+        acc_hi ^= v_hi & mask;
+        acc_lo ^= v_lo & mask;
+        const uint64_t reduction = UINT64_C(0) - (v_lo & 1u);
+        v_lo = (v_lo >> 1u) | (v_hi << 63u);
+        v_hi = (v_hi >> 1u) ^ (UINT64_C(0xe100000000000000) & reduction);
     }
-    copy_bytes(z, acc, 16u);
+    put_be64(z, acc_hi);
+    put_be64(z + 8u, acc_lo);
 }
 
 static void ghash_absorb(const uint8_t h[16], uint8_t y[16],
@@ -554,7 +527,7 @@ static void gcm_compute_j0(const uint8_t h[16], const uint8_t *iv,
     ghash_absorb(h, j0, len_blk, 16u);
 }
 
-static void gcm_gctr(const struct aes_schedule *sched, const uint8_t icb[16],
+static void gcm_gctr(const struct vos_crypto_aes_schedule *sched, const uint8_t icb[16],
                      const uint8_t *input, size_t length, uint8_t *output)
 {
     uint8_t cb[16];
@@ -574,7 +547,7 @@ static void gcm_gctr(const struct aes_schedule *sched, const uint8_t icb[16],
     zero_bytes(ks, sizeof(ks));
 }
 
-static void gcm_compute_tag(const struct aes_schedule *sched,
+static void gcm_compute_tag(const struct vos_crypto_aes_schedule *sched,
                             const uint8_t h[16], const uint8_t j0[16],
                             const uint8_t *aad, size_t aad_length,
                             const uint8_t *ciphertext, size_t length,
@@ -596,6 +569,82 @@ static void gcm_compute_tag(const struct aes_schedule *sched,
     zero_bytes(s, sizeof(s));
 }
 
+static int gcm_valid_input(const uint8_t *iv, size_t iv_length,
+                            const uint8_t *aad, size_t aad_length,
+                            const uint8_t *input, size_t length,
+                            const uint8_t *output, const uint8_t *tag)
+{
+    return tag != NULL && iv_length != 0u && iv != NULL &&
+           (aad_length == 0u || aad != NULL) &&
+           (length == 0u || (input != NULL && output != NULL)) &&
+           (uint64_t)length <= UINT64_C(0xfffffffe) * 16u &&
+           (uint64_t)aad_length <= UINT64_MAX / 8u &&
+           (uint64_t)iv_length <= UINT64_MAX / 8u;
+}
+
+static int aes_gcm_encrypt_with_schedule(const struct vos_crypto_aes_schedule *sched,
+                                         const uint8_t h[16],
+                                         const uint8_t *iv, size_t iv_length,
+                                         const uint8_t *aad, size_t aad_length,
+                                         const uint8_t *plaintext, size_t length,
+                                         uint8_t *ciphertext, uint8_t tag[16])
+{
+    if (!gcm_valid_input(iv, iv_length, aad, aad_length,
+                          plaintext, length, ciphertext, tag)) {
+        return 0;
+    }
+    uint8_t j0[16];
+    uint8_t cb[16];
+    gcm_compute_j0(h, iv, iv_length, j0);
+    copy_bytes(cb, j0, 16u);
+    gcm_inc32(cb);
+    if (length != 0u) {
+        gcm_gctr(sched, cb, plaintext, length, ciphertext);
+    }
+    gcm_compute_tag(sched, h, j0, aad, aad_length, ciphertext, length, tag);
+    zero_bytes(j0, sizeof(j0));
+    zero_bytes(cb, sizeof(cb));
+    return 1;
+}
+
+static int aes_gcm_open_with_schedule(const struct vos_crypto_aes_schedule *sched,
+                                      const uint8_t h[16],
+                                      const uint8_t *iv, size_t iv_length,
+                                      const uint8_t *aad, size_t aad_length,
+                                      const uint8_t *ciphertext, size_t length,
+                                      const uint8_t tag[16], uint8_t *plaintext)
+{
+    if (!gcm_valid_input(iv, iv_length, aad, aad_length,
+                          ciphertext, length, plaintext, tag)) {
+        if (plaintext != NULL && length != 0u) {
+            zero_bytes(plaintext, length);
+        }
+        return 0;
+    }
+    uint8_t j0[16];
+    uint8_t cb[16];
+    uint8_t expected[VOS_CRYPTO_TAG_BYTES];
+    gcm_compute_j0(h, iv, iv_length, j0);
+    gcm_compute_tag(sched, h, j0, aad, aad_length, ciphertext, length, expected);
+    if (!equal_bytes_ct(expected, tag, VOS_CRYPTO_TAG_BYTES)) {
+        if (plaintext != NULL && length != 0u) {
+            zero_bytes(plaintext, length);
+        }
+        zero_bytes(j0, sizeof(j0));
+        zero_bytes(expected, sizeof(expected));
+        return 0;
+    }
+    copy_bytes(cb, j0, 16u);
+    gcm_inc32(cb);
+    if (length != 0u) {
+        gcm_gctr(sched, cb, ciphertext, length, plaintext);
+    }
+    zero_bytes(j0, sizeof(j0));
+    zero_bytes(cb, sizeof(cb));
+    zero_bytes(expected, sizeof(expected));
+    return 1;
+}
+
 int vos_aes_gcm_encrypt(const uint8_t *key, size_t key_bytes,
                         const uint8_t *iv, size_t iv_length,
                         const uint8_t *aad, size_t aad_length,
@@ -603,30 +652,19 @@ int vos_aes_gcm_encrypt(const uint8_t *key, size_t key_bytes,
                         uint8_t *ciphertext,
                         uint8_t tag[VOS_CRYPTO_TAG_BYTES])
 {
-    struct aes_schedule sched;
+    struct vos_crypto_aes_schedule sched;
     uint8_t zero_blk[16] = {0};
     uint8_t h[16];
-    uint8_t j0[16];
-    uint8_t cb[16];
-    if (tag == NULL || iv_length == 0u || iv == NULL ||
-        (aad_length != 0u && aad == NULL) ||
-        (length != 0u && (plaintext == NULL || ciphertext == NULL)) ||
-        !aes_expand_key(key, key_bytes, &sched)) {
+    if (!aes_expand_key(key, key_bytes, &sched)) {
         return 0;
     }
     aes_encrypt_with_schedule(&sched, zero_blk, h);
-    gcm_compute_j0(h, iv, iv_length, j0);
-    copy_bytes(cb, j0, 16u);
-    gcm_inc32(cb);
-    if (length != 0u) {
-        gcm_gctr(&sched, cb, plaintext, length, ciphertext);
-    }
-    gcm_compute_tag(&sched, h, j0, aad, aad_length, ciphertext, length, tag);
+    const int ok = aes_gcm_encrypt_with_schedule(&sched, h, iv, iv_length,
+                                                 aad, aad_length, plaintext,
+                                                 length, ciphertext, tag);
     zero_bytes((uint8_t *)&sched, sizeof(sched));
     zero_bytes(h, sizeof(h));
-    zero_bytes(j0, sizeof(j0));
-    zero_bytes(cb, sizeof(cb));
-    return 1;
+    return ok;
 }
 
 int vos_aes_gcm_open(const uint8_t *key, size_t key_bytes,
@@ -636,45 +674,22 @@ int vos_aes_gcm_open(const uint8_t *key, size_t key_bytes,
                      const uint8_t tag[VOS_CRYPTO_TAG_BYTES],
                      uint8_t *plaintext)
 {
-    struct aes_schedule sched;
+    struct vos_crypto_aes_schedule sched;
     uint8_t zero_blk[16] = {0};
     uint8_t h[16];
-    uint8_t j0[16];
-    uint8_t cb[16];
-    uint8_t expected[VOS_CRYPTO_TAG_BYTES];
-    if (tag == NULL || iv_length == 0u || iv == NULL ||
-        (aad_length != 0u && aad == NULL) ||
-        (length != 0u && (ciphertext == NULL || plaintext == NULL)) ||
-        !aes_expand_key(key, key_bytes, &sched)) {
+    if (!aes_expand_key(key, key_bytes, &sched)) {
         if (plaintext != NULL && length != 0u) {
             zero_bytes(plaintext, length);
         }
         return 0;
     }
     aes_encrypt_with_schedule(&sched, zero_blk, h);
-    gcm_compute_j0(h, iv, iv_length, j0);
-    gcm_compute_tag(&sched, h, j0, aad, aad_length, ciphertext, length, expected);
-    if (!equal_bytes_ct(expected, tag, VOS_CRYPTO_TAG_BYTES)) {
-        if (plaintext != NULL && length != 0u) {
-            zero_bytes(plaintext, length);
-        }
-        zero_bytes((uint8_t *)&sched, sizeof(sched));
-        zero_bytes(h, sizeof(h));
-        zero_bytes(j0, sizeof(j0));
-        zero_bytes(expected, sizeof(expected));
-        return 0;
-    }
-    copy_bytes(cb, j0, 16u);
-    gcm_inc32(cb);
-    if (length != 0u) {
-        gcm_gctr(&sched, cb, ciphertext, length, plaintext);
-    }
+    const int ok = aes_gcm_open_with_schedule(&sched, h, iv, iv_length,
+                                              aad, aad_length, ciphertext,
+                                              length, tag, plaintext);
     zero_bytes((uint8_t *)&sched, sizeof(sched));
     zero_bytes(h, sizeof(h));
-    zero_bytes(j0, sizeof(j0));
-    zero_bytes(cb, sizeof(cb));
-    zero_bytes(expected, sizeof(expected));
-    return 1;
+    return ok;
 }
 
 static void derive_purpose_key(const uint8_t *master_key, size_t key_bytes,
@@ -708,10 +723,23 @@ int vos_crypto_core_unlock_domain(struct vos_crypto_core *core, uint32_t slot,
     static const uint8_t label_dedup[8] = {'V', 'O', 'S', 'D', 'D', 'U', 'P', '1'};
     static const uint8_t label_commit[8] = {'V', 'O', 'S', 'C', 'M', 'I', 'T', '1'};
     if (core == NULL || slot >= VOS_CRYPTO_MAX_DOMAINS || master_key == NULL ||
-        domain_id == 0u ||
+        domain_id == 0u || core->domain_context[slot] == UINT64_MAX ||
         (key_bytes != VOS_CRYPTO_KEY_BYTES_128 &&
          key_bytes != VOS_CRYPTO_KEY_BYTES_256)) {
         return 0;
+    }
+    if ((core->epoch_sealed_mask & (1u << slot)) != 0u &&
+        (core->sealed_epochs[slot].domain_id != domain_id ||
+         core->sealed_epochs[slot].key_epoch != key_epoch)) {
+        return 0;
+    }
+    for (uint32_t i = 0u; i < VOS_CRYPTO_MAX_DOMAINS; ++i) {
+        if (i != slot &&
+            ((core->domains[i].provisioned && core->domains[i].domain_id == domain_id) ||
+             ((core->epoch_sealed_mask & (1u << i)) != 0u &&
+              core->sealed_epochs[i].domain_id == domain_id))) {
+            return 0;
+        }
     }
     struct vos_crypto_domain_slot *dst = &core->domains[slot];
     zero_bytes((uint8_t *)dst, sizeof(*dst));
@@ -724,7 +752,14 @@ int vos_crypto_core_unlock_domain(struct vos_crypto_core *core, uint32_t slot,
     dst->domain_id = domain_id;
     dst->key_epoch = key_epoch;
     dst->key_bytes = (uint32_t)key_bytes;
+    if (!aes_expand_key(dst->aead_key, key_bytes, &dst->aead_schedule)) {
+        zero_bytes((uint8_t *)dst, sizeof(*dst));
+        return 0;
+    }
+    const uint8_t zero_blk[16] = {0};
+    aes_encrypt_with_schedule(&dst->aead_schedule, zero_blk, dst->ghash_subkey);
     dst->provisioned = 1u;
+    ++core->domain_context[slot];
     return 1;
 }
 
@@ -742,11 +777,7 @@ void vos_crypto_core_erase_all(struct vos_crypto_core *core)
     if (core == NULL) {
         return;
     }
-    const uint64_t counter = core->rot_epoch_counter;
-    const uint64_t ceiling = core->rot_epoch_ceiling;
-    zero_bytes((uint8_t *)core, sizeof(*core));
-    core->rot_epoch_counter = counter;
-    core->rot_epoch_ceiling = ceiling;
+    zero_bytes((uint8_t *)core->domains, sizeof(core->domains));
 }
 
 static const struct vos_crypto_domain_slot *active_slot(
@@ -770,7 +801,7 @@ int vos_crypto_core_seal(const struct vos_crypto_core *core, uint32_t slot,
     if (dom == NULL || nonce == NULL) {
         return 0;
     }
-    return vos_aes_gcm_encrypt(dom->aead_key, dom->key_bytes,
+    return aes_gcm_encrypt_with_schedule(&dom->aead_schedule, dom->ghash_subkey,
                                nonce, VOS_CRYPTO_NONCE_BYTES,
                                aad, aad_length,
                                plaintext, length, ciphertext, tag);
@@ -790,7 +821,7 @@ int vos_crypto_core_open(const struct vos_crypto_core *core, uint32_t slot,
         }
         return 0;
     }
-    return vos_aes_gcm_open(dom->aead_key, dom->key_bytes,
+    return aes_gcm_open_with_schedule(&dom->aead_schedule, dom->ghash_subkey,
                             nonce, VOS_CRYPTO_NONCE_BYTES,
                             aad, aad_length,
                             ciphertext, length, tag, plaintext);
@@ -880,8 +911,7 @@ static void compute_epoch_root(const struct vos_crypto_domain_slot *dom,
                                const uint8_t state_digest[VOS_CRYPTO_DIGEST_BYTES],
                                uint8_t out[VOS_CRYPTO_DIGEST_BYTES])
 {
-    uint8_t payload[8u + 8u + 8u + 8u + 8u];
-    (void)state_digest;
+    uint8_t payload[8u + 8u + 8u + 8u + 8u + 8u + VOS_CRYPTO_DIGEST_BYTES];
     payload[0] = 'V';
     payload[1] = 'O';
     payload[2] = 'S';
@@ -889,11 +919,13 @@ static void compute_epoch_root(const struct vos_crypto_domain_slot *dom,
     payload[4] = 'P';
     payload[5] = 'C';
     payload[6] = 'H';
-    payload[7] = '1';
+    payload[7] = '2';
     put_le64(payload + 8u, dom->domain_id);
     put_le64(payload + 16u, epoch);
     put_le64(payload + 24u, region_id);
     put_le64(payload + 32u, region_version);
+    put_le64(payload + 40u, dom->key_epoch);
+    copy_bytes(payload + 48u, state_digest, VOS_CRYPTO_DIGEST_BYTES);
     (void)vos_hmac_sha256(dom->commit_key, VOS_CRYPTO_DIGEST_BYTES,
                           payload, sizeof(payload), out);
     zero_bytes(payload, sizeof(payload));
@@ -912,13 +944,17 @@ int vos_crypto_core_seal_epoch(struct vos_crypto_core *core, uint32_t slot,
         return 0;
     }
     const uint64_t next_epoch = core->rot_epoch_counter + 1u;
+    struct vos_crypto_epoch_seal *seal = &core->sealed_epochs[slot];
     compute_epoch_root(dom, next_epoch, region_id, region_version,
-                       state_digest, core->sealed_epoch_root);
+                       state_digest, seal->root);
+    seal->domain_id = dom->domain_id;
+    seal->key_epoch = dom->key_epoch;
+    seal->epoch = next_epoch;
     core->rot_epoch_counter = next_epoch;
     core->epoch_sealed = 1u;
     core->epoch_sealed_mask |= (1u << slot);
     *sealed_epoch_out = next_epoch;
-    copy_bytes(epoch_root_out, core->sealed_epoch_root, VOS_CRYPTO_DIGEST_BYTES);
+    copy_bytes(epoch_root_out, seal->root, VOS_CRYPTO_DIGEST_BYTES);
     return 1;
 }
 
@@ -931,14 +967,16 @@ int vos_crypto_core_verify_epoch(const struct vos_crypto_core *core,
     const struct vos_crypto_domain_slot *dom = active_slot(core, slot);
     uint8_t expected_root[VOS_CRYPTO_DIGEST_BYTES];
     if (dom == NULL || state_digest == NULL || epoch_root == NULL ||
-        !core->epoch_sealed || expected_epoch == 0u ||
-        expected_epoch != core->rot_epoch_counter) {
+        (core->epoch_sealed_mask & (1u << slot)) == 0u || expected_epoch == 0u ||
+        expected_epoch != core->sealed_epochs[slot].epoch ||
+        dom->domain_id != core->sealed_epochs[slot].domain_id ||
+        dom->key_epoch != core->sealed_epochs[slot].key_epoch) {
         return 0;
     }
     compute_epoch_root(dom, expected_epoch, region_id, region_version,
                        state_digest, expected_root);
     const int ok = equal_bytes_ct(expected_root, epoch_root, VOS_CRYPTO_DIGEST_BYTES) &&
-                   equal_bytes_ct(core->sealed_epoch_root, epoch_root, VOS_CRYPTO_DIGEST_BYTES);
+                   equal_bytes_ct(core->sealed_epochs[slot].root, epoch_root, VOS_CRYPTO_DIGEST_BYTES);
     zero_bytes(expected_root, sizeof(expected_root));
     return ok;
 }

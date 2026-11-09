@@ -23,6 +23,11 @@ enum vos_crypto_domain_kind {
     VOS_CRYPTO_DOMAIN_EPOCH = 3u
 };
 
+struct vos_crypto_aes_schedule {
+    uint32_t nr;
+    uint8_t round_keys[15u * VOS_CRYPTO_BLOCK_BYTES];
+};
+
 struct vos_crypto_domain_slot {
     uint32_t provisioned;
     uint32_t key_bytes;
@@ -31,15 +36,27 @@ struct vos_crypto_domain_slot {
     uint8_t aead_key[VOS_CRYPTO_KEY_BYTES_256];
     uint8_t dedup_key[VOS_CRYPTO_DIGEST_BYTES];
     uint8_t commit_key[VOS_CRYPTO_DIGEST_BYTES];
+    struct vos_crypto_aes_schedule aead_schedule;
+    uint8_t ghash_subkey[VOS_CRYPTO_BLOCK_BYTES];
+};
+
+struct vos_crypto_epoch_seal {
+    uint64_t domain_id;
+    uint64_t key_epoch;
+    uint64_t epoch;
+    uint8_t root[VOS_CRYPTO_DIGEST_BYTES];
 };
 
 struct vos_crypto_core {
     struct vos_crypto_domain_slot domains[VOS_CRYPTO_MAX_DOMAINS];
+    /* Nonsecret cache invalidation for this core lifetime; never reused by unlock. */
+    uint64_t domain_context[VOS_CRYPTO_MAX_DOMAINS];
     uint64_t rot_epoch_counter;
     uint64_t rot_epoch_ceiling;
     uint32_t epoch_sealed;
     uint32_t epoch_sealed_mask;
-    uint8_t sealed_epoch_root[VOS_CRYPTO_DIGEST_BYTES];
+    /* RoT-owned state survives domain key lock/erase, scoped to its admitted slot. */
+    struct vos_crypto_epoch_seal sealed_epochs[VOS_CRYPTO_MAX_DOMAINS];
 };
 
 int vos_sha256(const uint8_t *message, size_t length,
