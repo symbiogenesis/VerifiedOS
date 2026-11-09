@@ -238,8 +238,9 @@ def configured(build_dir: Path, source_root: Path, *, known: bool = True) -> Man
         raise ValueError("native CMake cache names another source tree")
     tools = {name: str(_path(cache.get(name, ""), name)) for name in _TOOLS}
     for name in _OPTIONAL_TOOLS:
-        if bool(cache.get(name)):
-            tools[name] = str(_path(cache[name], name, search=True))
+        value = cache.get(name, "")
+        if value and value != "NOTFOUND" and not value.endswith("-NOTFOUND"):
+            tools[name] = str(_path(value, name, search=True))
     selected_ldd = shutil.which("ldd")
     if selected_ldd is None:
         raise ValueError("native shared-library discovery requires ldd")
