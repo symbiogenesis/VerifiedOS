@@ -9,6 +9,7 @@ cannot supply a trusted prior checked-state root or a checker-success flag.
 
 import json
 import tempfile
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, cast
 
@@ -63,19 +64,20 @@ def _recipe(path: Path) -> tuple[dict[str, Any], bytes]:
     return result, contents
 
 
-def compose(root: Path, source: str, store: str, output: str) -> dict[str, object]:
-    """Place exact CAS snapshots; validate the whole image before atomic publication."""
+@dataclass(frozen=True)
+class _Inputs:
+    recipe: Path
+    original: bytes
+    directory: Path
+    placements: tuple[package_artifacts.Placement, ...]
+    entry: int
+    tohost: tuple[str, int] | None
+
+
+def _inputs(root: Path, source: str, store: str) -> _Inputs:
     recipe_path = _path(root, source)
     raw, original = _recipe(recipe_path)
     directory = store_path(root, store)
-    destination = _path(root, output)
-    if (not destination.is_relative_to(root.resolve() / "out")
-            or destination == root.resolve() / "out"
-            or destination.is_dir()
-            or destination.is_relative_to(directory)
-            or destination == recipe_path
-            or (destination.exists() and destination.samefile(recipe_path))):
-        raise package_artifacts.PackageError("fixed composition output must be under out/ and protect its inputs/store")
     placements: list[package_artifacts.Placement] = []
     identities: set[str] = set()
     for member in raw["packages"]:
@@ -92,23 +94,62 @@ def compose(root: Path, source: str, store: str, output: str) -> dict[str, objec
     memory = [package_artifacts.MemoryRegion(**region) for region in raw["memory"]]
     package_artifacts.validate_memory(placements, memory)
     entry = next(item.entry for item in placements if item.artifact.identity == raw["entry"])
-    sections = [section for item in placements for section in item.sections]
+    tohost = package_artifacts.observation_symbol(placements)
+    return _Inputs(recipe_path, original, directory, tuple(placements), entry, tohost)
+
+
+def _stable(inputs: _Inputs) -> None:
+    for item in inputs.placements:
+        if package_artifacts.load(inputs.directory, item.artifact.identity) != item.artifact:
+            raise package_artifacts.PackageError("fixed composition stored artifact changed during construction")
+    if _recipe(inputs.recipe)[1] != inputs.original:
+        raise package_artifacts.PackageError("fixed composition recipe changed during construction")
+
+
+def _report(inputs: _Inputs, path: str, blob: bytes) -> dict[str, object]:
+    return {"scope": "fixed-package-host-composition", "production_admission": False,
+            "recipe_sha256": package_artifacts.digest(inputs.original),
+            "image": {"path": path, "sha256": package_artifacts.digest(blob)},
+            "packages": [item.binding() for item in inputs.placements],
+            "tohost": None if inputs.tohost is None else inputs.tohost[1],
+            "open": ["actual TAL/CIC and modular linkage consumers",
+                     "authenticated generation commit and native resident qualification"]}
+
+
+def validate(root: Path, source: str, store: str, image: str) -> dict[str, object]:
+    """Bind an existing image to the full recipe/CAS snapshot without writing."""
+    inputs = _inputs(root, source, store)
+    path = _path(root, image)
+    blob = package_artifacts._ordinary_file(path, size=path.stat().st_size)
+    package_artifacts.verify_image(blob, inputs.placements, expected_entry=inputs.entry)
+    package_artifacts.verify_observation_symbol(blob, inputs.tohost)
+    _stable(inputs)
+    if package_artifacts._ordinary_file(path, size=len(blob)) != blob:
+        raise package_artifacts.PackageError("fixed composition image changed during validation")
+    return _report(inputs, image, blob)
+
+
+def compose(root: Path, source: str, store: str, output: str) -> dict[str, object]:
+    """Place exact CAS snapshots; validate the whole image before atomic publication."""
+    inputs = _inputs(root, source, store)
+    destination = _path(root, output)
+    if (not destination.is_relative_to(root.resolve() / "out")
+            or destination == root.resolve() / "out"
+            or destination.is_dir()
+            or destination.is_relative_to(inputs.directory)
+            or destination == inputs.recipe
+            or (destination.exists() and destination.samefile(inputs.recipe))):
+        raise package_artifacts.PackageError("fixed composition output must be under out/ and protect its inputs/store")
+    sections = [section for item in inputs.placements for section in item.sections]
     with tempfile.TemporaryDirectory(prefix="vos-fixed-image-") as temporary:
         interchange = Path(temporary) / "image.elf"
-        image.write_elf(interchange, sections, {}, entry)
+        symbols = {} if inputs.tohost is None else {"tohost": inputs.tohost}
+        image.write_elf(interchange, sections, symbols, inputs.entry)
         blob = interchange.read_bytes()
-    package_artifacts.verify_image(blob, placements, expected_entry=entry)
-    for item in placements:
-        if package_artifacts.load(directory, item.artifact.identity) != item.artifact:
-            raise package_artifacts.PackageError("fixed composition stored artifact changed during construction")
-    if _recipe(recipe_path)[1] != original:
-        raise package_artifacts.PackageError("fixed composition recipe changed during construction")
+    package_artifacts.verify_image(blob, inputs.placements, expected_entry=inputs.entry)
+    package_artifacts.verify_observation_symbol(blob, inputs.tohost)
+    _stable(inputs)
     destination.parent.mkdir(parents=True, exist_ok=True)
     with atomic_path(destination) as pending:
         pending.write_bytes(blob)
-    return {"scope": "fixed-package-host-composition", "production_admission": False,
-            "recipe_sha256": package_artifacts.digest(original),
-            "image": {"path": output, "sha256": package_artifacts.digest(blob)},
-            "packages": [item.binding() for item in placements],
-            "open": ["actual TAL/CIC and modular linkage consumers",
-                     "authenticated generation commit and native resident qualification"]}
+    return _report(inputs, output, blob)

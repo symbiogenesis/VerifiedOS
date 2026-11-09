@@ -53,6 +53,20 @@ Package bytes must be unchanged at two valid translated layouts. The existing
 assembly-based harness remains a bring-up producer rather than the native
 installation policy.
 
+An existing image can be checked against the same recipe, stored objects,
+placement, selected entry and physical load permissions without invoking a
+producer or publishing a replacement. The read-only check returns the exact
+recipe, image and package identities for the boot observer. Recipe, stored-object
+or image changes during that check refuse; its result supplies no production
+admission or qualified-compiler verdict.
+
+For golden-emulator observation, one package may export `tohost` at an aligned
+eight-byte writable initializer window. Composition emits that exact export as
+the ELF `tohost` symbol. Read-only checking binds the actual symbol to the same
+package window and refuses absent, extra, ambiguous or redirected symbols. A
+host-only image without that export may still compose; the boot consumer requires
+it before execution. No separate HTIF memory or bytes are added by the composer.
+
 Each generation still obtains a new concrete TAL binding, monotonic capability
 wiring, fresh modular linkage/instantiation connecting reused correspondence to
 the exact installed image and wired capabilities, handler graph,
@@ -113,6 +127,13 @@ Independent controls must demonstrate:
 - The emitted image contains the declared package bytes at the declared physical
   load addresses and permissions. Producer-side source/proof metadata supplies
   no executable or capability authority.
+- Read-only checking accepts an unchanged composed image without assembly or
+  writes. Changed image bytes, selected entry, permissions, recipe or stored
+  objects refuse, including substitutions during checking; refusal preserves
+  every existing output.
+- A declared `tohost` export yields exactly its initializer window's ELF symbol;
+  duplicate exports, invalid windows and substituted symbols refuse. Images
+  without the export report it absent and gain no emulator-execution evidence.
 
 Focused host tests and Python checks supply local feedback. Host CI on Windows
 and Ubuntu and all Guest lanes are user-managed under the
