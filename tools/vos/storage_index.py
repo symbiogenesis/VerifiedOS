@@ -118,6 +118,68 @@ def recover(previous: Medium, home: Medium, visible: tuple[Record, ...],
     return tuple(result)
 
 
+def recover_shadow(previous: Medium, shadow: tuple[Record, ...],
+                   published: tuple[Record, ...] | None) -> Medium:
+    """Direct CoW shadow-paging recovery (p + 1 writes, 2 barriers, O(1) root check).
+
+    The p candidate nodes are written directly to fresh unreferenced arena blocks
+    before Barrier 1, and the authenticated root/commit slot (`published`) is
+    written before Barrier 2. A crash before Barrier 2 selects `previous` with
+    zero block writes; a crash after Barrier 2 selects the shadow blocks if and
+    only if every block named by `published` authenticates.
+    """
+    if published is None:
+        return previous
+    if shadow != published or not shadow:
+        raise ValueError("published shadow root references corrupted or missing block")
+    slots = [slot for slot, _ in shadow]
+    if len(set(slots)) != len(slots) or any(not 0 <= slot < len(previous) for slot in slots):
+        raise ValueError("invalid shadow arena target")
+    result = list(previous)
+    for slot, payload in shadow:
+        result[slot] = payload
+    return tuple(result)
+
+
+def shadow_crash_checks(before: State, transition: Transition,
+                        expected_map: tuple[int, ...]) -> int:
+    """Every shadow-write prefix (p shadow writes + 1 root write) and corruption."""
+    records = redo(before, transition)
+    if not records:
+        return 0
+    previous = before.medium()
+    expected = transition.state.medium()
+    old_map = materialize(previous)
+    p = len(records)
+    checked = 0
+    for cut in range(p + 2):
+        visible = records[:min(cut, p)]
+        published = records if cut >= p + 1 else None
+        recovered = recover_shadow(previous, visible, published)
+        wanted = expected if published is not None else previous
+        if recovered != wanted:
+            raise AssertionError("shadow crash prefix changes committed node images")
+        if materialize(recovered) != (expected_map if published is not None else old_map):
+            raise AssertionError("shadow recovery differs from independently replayed map")
+        checked += 1
+    for index, (slot, payload) in enumerate(records):
+        for replacement in ((slot, (*payload, -1)), ((slot + 1) % len(previous), payload)):
+            corrupt = (*records[:index], replacement, *records[index + 1:])
+            try:
+                recover_shadow(previous, corrupt, records)
+            except ValueError:
+                checked += 1
+            else:
+                raise AssertionError("published shadow root accepted torn/misdirected block")
+        try:
+            recover_shadow(previous, records[:index], records)
+        except ValueError:
+            checked += 1
+        else:
+            raise AssertionError("published shadow root rolled back on missing block")
+    return checked
+
+
 def materialize(medium: Medium) -> tuple[int, ...]:
     """Read serialized node images by ordered flat-map replay, without lookup()."""
     values = [value for leaf in medium[1:] for value in leaf]
@@ -285,6 +347,7 @@ def experiment() -> dict[str, object]:
     # Exhaust all streams through six operations over duplicate/other-leaf keys.
     streams = 0
     crash_cases = 0
+    shadow_crash_cases = 0
     for length in range(1, 7):
         for keys in product((0, 1, KEYS_PER_LEAF), repeat=length):
             for arm in ("cow-bplus", "buffered"):
@@ -301,8 +364,11 @@ def experiment() -> dict[str, object]:
         if transition.state.values != tuple(expected):
             raise AssertionError("drain violates independently constructed map")
         crash_cases += crash_checks(before, transition, tuple(expected))
+        shadow_crash_cases += shadow_crash_checks(before, transition, tuple(expected))
     crash_cases += crash_checks(State(), advance(State(), ((0, 1),), "buffered"),
                                 (1, *((0,) * (KEYS - 1))))
+    shadow_crash_cases += shadow_crash_checks(
+        State(), advance(State(), ((0, 1),), "cow-bplus"), (1, *((0,) * (KEYS - 1))))
     full = State(messages=tuple((i * KEYS_PER_LEAF, i + 1)
                                for i in range(LEAVES) for _ in range(3)))
     overflow = advance(full, ((0, 999),), "buffered")
@@ -313,13 +379,16 @@ def experiment() -> dict[str, object]:
         expected_full[child * KEYS_PER_LEAF] = child + 1
     expected_full[0] = 999
     crash_cases += crash_checks(full, overflow, tuple(expected_full))
+    shadow_crash_cases += shadow_crash_checks(full, overflow, tuple(expected_full))
     # Static packing/reservation checks use actual declared dimensions.
     nodes = LEAVES + 1
     device_blocks = 3 * nodes + (nodes + 1) + 2 + 1
+    shadow_device_blocks = 3 * nodes + 2 + 1
     ram_blocks = 2 * nodes + 2
     shadow_ram_blocks = nodes + 2
     packed_root = 128 + LEAVES * 32 + BUFFER * ENTRY_BYTES
-    if device_blocks > 72 or ram_blocks > 36 or shadow_ram_blocks > 19 or packed_root > BLOCK_BYTES:
+    if (device_blocks > 72 or shadow_device_blocks > 54 or ram_blocks > 36
+            or shadow_ram_blocks > 19 or packed_root > BLOCK_BYTES):
         raise AssertionError("declared capacity/memory envelope does not fit")
     rows = [{**asdict(row), "byte_amplification": row.byte_amplification,
              "shadow_byte_amplification": row.shadow_byte_amplification,
@@ -353,12 +422,18 @@ def experiment() -> dict[str, object]:
                            "transaction_barriers": 3,
                            "shadow_transaction_barriers": 2,
                            "nand_programs_per_block_write": "conditional-one; target-unknown"},
-            "device_blocks_reserved": device_blocks, "ram_bytes_reserved": ram_blocks * BLOCK_BYTES,
+            "device_blocks_reserved": device_blocks,
+            "shadow_device_blocks_reserved": shadow_device_blocks,
+            "ram_bytes_reserved": ram_blocks * BLOCK_BYTES,
             "shadow_ram_bytes_reserved": shadow_ram_blocks * BLOCK_BYTES,
             "useful_key_value_bytes": KEYS * ENTRY_BYTES,
             "root_packed_bytes": packed_root, "buffer_reserved_bytes": BUFFER * ENTRY_BYTES,
             "max_recovery_reads": nodes + 1 + 2, "max_recovery_writes": nodes + 1,
-            "recovery_barriers": 2, "exhaustive_streams": streams, "crash_checks": crash_cases,
+            "recovery_barriers": 2,
+            "shadow_max_recovery_reads": 2, "shadow_max_recovery_writes": 0,
+            "shadow_recovery_barriers": 0,
+            "exhaustive_streams": streams, "crash_checks": crash_cases,
+            "shadow_crash_checks": shadow_crash_cases,
             "budget_dispositions": dispositions,
             "shadow_budget_dispositions": shadow_dispositions,
             "measurements": rows}

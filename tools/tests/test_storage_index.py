@@ -82,6 +82,18 @@ def _recovery_refuses_corruption() -> None:
            "independent expected committed leaf values")
     ensure(si.recover(old, recovered, records, records) == recovered,
            "retained redo must be idempotent after any recovery prefix")
+    for prefix in range(len(records)):
+        ensure(si.recover_shadow(old, records[:prefix], None) == old,
+               "uncommitted shadow blocks cannot publish updates")
+        try:
+            si.recover_shadow(old, records[:prefix], records)
+        except ValueError:
+            pass
+        else:
+            raise AssertionError("published shadow root with missing block must refuse")
+    shadow_recovered = si.recover_shadow(old, records, records)
+    ensure(shadow_recovered == recovered,
+           "O(1) shadow root recovery must reach the exact committed medium")
 
 
 def _oracle_detects_lost_messages() -> None:
@@ -118,6 +130,13 @@ def _cli_evidence() -> None:
            "under p + 1 CoW shadow-paging, plain CoW B+ passes every declared budget and width")
     ensure(result["shadow_ram_bytes_reserved"] == 19 * si.BLOCK_BYTES,
            "direct CoW shadow-paging drops the 17-block redo staging reservation")
+    ensure(result["shadow_device_blocks_reserved"] == 54,
+           "direct CoW shadow-paging drops the 18-block on-disk redo reservation")
+    ensure(result["shadow_max_recovery_reads"] == 2
+           and result["shadow_max_recovery_writes"] == 0
+           and result["shadow_recovery_barriers"] == 0
+           and result["shadow_crash_checks"] > 0,
+           "direct CoW shadow-paging recovery is O(1) root-slot verification with zero replay writes")
     with (patch.object(cli, "experiment", side_effect=AssertionError("seeded violation")),
           redirect_stdout(StringIO())):
         ensure(cli.main([]) == 1, "an experiment violation must fail its CLI")
