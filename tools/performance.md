@@ -177,8 +177,10 @@ greedy oracle compares full matches, captures and bounded searches. ASCII stream
 windows skip glyph searches only when every requested needle needs a non-ASCII
 byte; overlap windows and generic ASCII needles retain their complete checks.
 
-The census validator resolves its schema plan once per call, retains every
-compatible union branch and constructs diagnostic paths on failure. Reverse indexes
+The census validator compiles the default schema with `jsonschema-rs` for
+fast positive validation, resolves its fallback schema plan with discriminator
+tag dispatch, retains every compatible union branch and constructs diagnostic
+paths on failure. Reverse indexes
 replace repeated population joins; declaration fallback serialization is lazy.
 Native-effect comparisons retain all resolver effects. Unusual supplied schemas
 retain the original interpreter, including its decisions about whether a malformed

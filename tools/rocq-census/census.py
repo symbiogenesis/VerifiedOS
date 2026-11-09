@@ -1,19 +1,26 @@
 # SPDX-License-Identifier: Apache-2.0
 """Replay the native support census without changing the common inventory guard.
 
-This module is deliberately stdlib-only: the cold hosted route runs before a tools
-environment exists. Its schema reader supports exactly the vocabulary used by the
-checked-in schema, and refuses an unfamiliar keyword rather than ignoring it.
-Native provenance is input evidence; acceptance additionally needs the runner's
-unchanged-input, native-control, exact-assumption and recursive-kernel joins.
+When the locked tools environment is active, validate_schema uses compiled
+jsonschema_rs Draft 2020-12 validation for the checked-in schema; cold stdlib-only
+invocations use the pre-compiled schema shape directly. Its schema reader supports
+exactly the vocabulary used by the checked-in schema, and refuses an unfamiliar
+keyword rather than ignoring it. Native provenance is input evidence; acceptance
+additionally needs the runner's unchanged-input, native-control, exact-assumption
+and recursive-kernel joins.
 """
 
 import copy
 import json
 import re
-from collections.abc import Callable, Iterator
+from collections.abc import Callable, Iterable, Iterator
 from pathlib import Path
 from typing import Any, cast
+
+try:
+    import jsonschema_rs
+except ImportError:
+    jsonschema_rs = None
 
 from vos import proofaudit
 
@@ -51,8 +58,11 @@ def _require(condition: bool, message: str) -> None:
         raise CensusError(message)
 
 
+_KEY_ENCODE = json.JSONEncoder(sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode
+
+
 def _key(value: object) -> str:
-    return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+    return _KEY_ENCODE(value)
 
 
 def _literal_equal(left: object, right: object) -> bool:
@@ -115,15 +125,109 @@ class _UncompiledSchemaError(Exception):
 class _Shape:
     """One schema node, shared only inside a single complete validation."""
 
+    __slots__ = (
+        "allowed",
+        "alternatives",
+        "compiled_pattern",
+        "const",
+        "discriminators",
+        "dispatch",
+        "effective_kind",
+        "enum",
+        "has_const",
+        "has_enum",
+        "items",
+        "kind",
+        "max_items",
+        "maximum",
+        "members",
+        "min_items",
+        "min_length",
+        "minimum",
+        "no_additional",
+        "pattern",
+        "reference",
+        "required",
+        "schema",
+        "unique_items",
+    )
+
     def __init__(self, schema: dict[str, Any]) -> None:
         self.schema = schema
         self.reference: _Shape | None = None
         self.alternatives: tuple[tuple[bool, tuple[_Shape, ...]], ...] = ()
+        self.dispatch: tuple[tuple[str, dict[str, tuple[_Shape, ...]]] | None, ...] = ()
         self.members: tuple[tuple[str, _Shape], ...] = ()
         self.required = frozenset(schema.get("required", ()))
         self.allowed: frozenset[str] | None = None
         self.items: _Shape | None = None
         self.discriminators: tuple[tuple[str, dict[str, Any]], ...] = ()
+        self.has_const = "const" in schema
+        self.const = schema.get("const")
+        self.has_enum = "enum" in schema
+        self.enum: Any = schema.get("enum")
+        self.kind: str | None = schema.get("type") if isinstance(schema.get("type"), str) else None
+        self.effective_kind: str | None = self.kind
+        self.no_additional = schema.get("additionalProperties") is False
+        min_items = schema.get("minItems", 0)
+        self.min_items: int = min_items if type(min_items) is int else 0
+        max_items = schema.get("maxItems")
+        self.max_items: int | None = max_items if type(max_items) is int else None
+        self.unique_items = bool(schema.get("uniqueItems"))
+        min_length = schema.get("minLength", 0)
+        self.min_length: int = min_length if type(min_length) is int else 0
+        pattern = schema.get("pattern")
+        self.pattern: str | None = pattern if isinstance(pattern, str) else None
+        self.compiled_pattern = _SCHEMA_PATTERNS.get(self.pattern) if self.pattern is not None else None
+        minimum = schema.get("minimum")
+        self.minimum: int | float | None = minimum if type(minimum) in {int, float} else None
+        maximum = schema.get("maximum")
+        self.maximum: int | float | None = maximum if type(maximum) in {int, float} else None
+
+
+def _target_shape(shape: _Shape) -> _Shape:
+    if shape.reference is not None and not (shape.schema.keys() - {"$ref", "title", "description"}):
+        return shape.reference
+    return shape
+
+
+def _branch_dispatch(branches: tuple[_Shape, ...]) -> tuple[str, dict[str, tuple[_Shape, ...]]] | None:
+    if not branches:
+        return None
+    targets = tuple(_target_shape(branch) for branch in branches)
+    if any(target.kind != "object" or not target.discriminators for target in targets):
+        return None
+    first_names = [name for name, _ in targets[0].discriminators if name in targets[0].required]
+    for name in first_names:
+        by_value: dict[str, list[_Shape]] = {}
+        valid = True
+        for branch, target in zip(branches, targets, strict=True):
+            if name not in target.required:
+                valid = False
+                break
+            matched = [constraint for key, constraint in target.discriminators if key == name]
+            if len(matched) != 1:
+                valid = False
+                break
+            constraint = matched[0]
+            values: list[str] = []
+            if "const" in constraint and "enum" not in constraint and type(constraint["const"]) is str:
+                values = [constraint["const"]]
+            elif (
+                "enum" in constraint
+                and "const" not in constraint
+                and isinstance(constraint["enum"], list)
+                and all(type(item) is str for item in constraint["enum"])
+            ):
+                values = list(constraint["enum"])
+            if not values:
+                valid = False
+                break
+            for tag in values:
+                by_value.setdefault(tag, []).append(branch)
+        if valid:
+            return name, {tag: tuple(items) for tag, items in by_value.items()}
+    return None
 
 
 def _compile_schema(schema: dict[str, Any], document: dict[str, Any]) -> _Shape:
@@ -179,7 +283,14 @@ def _compile_schema(schema: dict[str, Any], document: dict[str, Any]) -> _Shape:
             result.items = compile_node(node["items"])
         return result
 
-    return compile_node(schema)
+    root = compile_node(schema)
+    for node_shape in shapes.values():
+        node_shape.dispatch = tuple(_branch_dispatch(branches) for _, branches in node_shape.alternatives)
+        if node_shape.effective_kind is None and any(
+                branches and all(_target_shape(branch).kind == "object" for branch in branches)
+                for _, branches in node_shape.alternatives):
+            node_shape.effective_kind = "object"
+    return root
 
 
 def _failure(path: list[str | int], site: str, message: str) -> None:
@@ -188,12 +299,15 @@ def _failure(path: list[str | int], site: str, message: str) -> None:
 
 
 def _compatible(value: object, shape: _Shape) -> bool:
-    """Discard only union branches contradicted by a scalar property constraint."""
+    """Discard only union branches contradicted by value type or scalar property constraints."""
+    target = _target_shape(shape)
+    if target.effective_kind is not None and not _has_type(value, target.effective_kind):
+        return False
     if not isinstance(value, dict):
         return True
-    if any(name in value and type(value[name]) not in {str, bool, type(None)} for name, _ in shape.discriminators):
+    if any(name in value and type(value[name]) not in {str, bool, type(None)} for name, _ in target.discriminators):
         return True
-    for name, constraint in shape.discriminators:
+    for name, constraint in target.discriminators:
         if name not in value:
             continue
         if "const" in constraint and not _literal_equal(value[name], constraint["const"]):
@@ -204,15 +318,22 @@ def _compatible(value: object, shape: _Shape) -> bool:
 
 
 def _visit(value: object, shape: _Shape, path: list[str | int], site: str) -> None:
-    schema = shape.schema
-    if "$ref" in schema:
+    if shape.reference is not None or "$ref" in shape.schema:
         reference = shape.reference
         if reference is None:
             raise CensusError("unsupported census schema reference")
         _visit(value, reference, path, site)
-    for exact, branches in shape.alternatives:
+    for (exact, branches), dispatch in zip(shape.alternatives, shape.dispatch, strict=True):
         passed = 0
-        for branch in branches:
+        if dispatch is not None and isinstance(value, dict):
+            disc_name, by_tag = dispatch
+            if disc_name in value and type(value[disc_name]) is str:
+                candidates: Iterable[_Shape] = by_tag.get(value[disc_name], ())
+            else:
+                candidates = branches
+        else:
+            candidates = branches
+        for branch in candidates:
             if not _compatible(value, branch):
                 continue
             try:
@@ -222,17 +343,17 @@ def _visit(value: object, shape: _Shape, path: list[str | int], site: str) -> No
             passed += 1
         if not (passed == 1 if exact else passed > 0):
             _failure(path, site, "no unique schema shape")
-    if "const" in schema and not _literal_equal(value, schema["const"]):
+    if shape.has_const and not _literal_equal(value, shape.const):
         _failure(path, site, "unexpected constant")
-    if "enum" in schema and not any(_literal_equal(value, item) for item in schema["enum"]):
+    if shape.has_enum and not any(_literal_equal(value, item) for item in shape.enum):
         _failure(path, site, "unsupported native shape")
-    if "type" in schema and not _has_type(value, schema["type"]):
+    if shape.kind is not None and not _has_type(value, shape.kind):
         _failure(path, site, "incorrect native value type")
     if isinstance(value, dict):
         if not shape.required <= value.keys():
             _failure(path, site, "missing native member")
         if shape.allowed is not None:
-            if schema.get("additionalProperties") is False and value.keys() - shape.allowed:
+            if shape.no_additional and value.keys() - shape.allowed:
                 _failure(path, site, "unexpected native member")
             for name, member in shape.members:
                 if name in value:
@@ -242,11 +363,11 @@ def _visit(value: object, shape: _Shape, path: list[str | int], site: str) -> No
                     finally:
                         path.pop()
     if isinstance(value, list):
-        if len(value) < schema.get("minItems", 0):
+        if len(value) < shape.min_items:
             _failure(path, site, "incomplete native array")
-        if "maxItems" in schema and len(value) > schema["maxItems"]:
+        if shape.max_items is not None and len(value) > shape.max_items:
             _failure(path, site, "ambiguous native array")
-        if schema.get("uniqueItems") and len({_key(item) for item in value}) != len(value):
+        if shape.unique_items and len({_key(item) for item in value}) != len(value):
             _failure(path, site, "duplicate native member")
         if shape.items is not None:
             for index, item in enumerate(value):
@@ -256,16 +377,16 @@ def _visit(value: object, shape: _Shape, path: list[str | int], site: str) -> No
                 finally:
                     path.pop()
     if isinstance(value, str):
-        if len(value) < schema.get("minLength", 0):
+        if len(value) < shape.min_length:
             _failure(path, site, "empty native string")
-        if "pattern" in schema:
-            compiled = _SCHEMA_PATTERNS.get(schema["pattern"])
-            if (compiled.search(value) if compiled is not None else re.search(schema["pattern"], value)) is None:
+        if shape.pattern is not None:
+            compiled = shape.compiled_pattern
+            if (compiled.search(value) if compiled is not None else re.search(shape.pattern, value)) is None:
                 _failure(path, site, "invalid native string encoding")
-    if type(value) in {int, float}:
-        if "minimum" in schema and not value >= schema["minimum"]:
+    if isinstance(value, (int, float)) and not isinstance(value, bool):
+        if shape.minimum is not None and not value >= shape.minimum:
             _failure(path, site, "invalid native index")
-        if "maximum" in schema and not value <= schema["maximum"]:
+        if shape.maximum is not None and not value <= shape.maximum:
             _failure(path, site, "invalid native index")
 
 
@@ -320,12 +441,34 @@ def _recursive_validate(value: object, schema: dict[str, Any], document: dict[st
         _require("maximum" not in schema or value <= schema["maximum"], f"{site}: invalid native index")
 
 
+_DEFAULT_SCHEMA: dict[str, Any] = json.loads(SCHEMA.read_text(encoding="utf-8"))
+_schema_vocabulary(_DEFAULT_SCHEMA)
+_DEFAULT_SHAPE = _compile_schema(_DEFAULT_SCHEMA, _DEFAULT_SCHEMA)
+_DEFAULT_VISIT = _visit
+_DEFAULT_RS_VALIDATOR: Any = (
+    jsonschema_rs.validator_for(_DEFAULT_SCHEMA, validate_formats=False)
+    if jsonschema_rs is not None
+    else None
+)
+
+
 def validate_schema(value: object, *, schema: dict[str, Any] | None = None) -> dict[str, Any]:
     """Strict schema validation; the focused tests compare this reader with Draft 2020-12."""
-    definition = json.loads(SCHEMA.read_text(encoding="utf-8")) if schema is None else schema
+    if schema is None:
+        if globals().get("_visit") is _DEFAULT_VISIT and _DEFAULT_RS_VALIDATOR is not None:
+            try:
+                if _DEFAULT_RS_VALIDATOR.is_valid(value):
+                    return cast("dict[str, Any]", value)
+            except (RecursionError, TypeError, ValueError):
+                pass
+        try:
+            _visit(value, _DEFAULT_SHAPE, [], "census")
+        except (RecursionError, KeyError, TypeError) as error:
+            raise CensusError("unsupported or excessively nested census/schema") from error
+        return cast("dict[str, Any]", value)
     try:
-        _schema_vocabulary(definition)
-        _validate(value, definition, definition, "census")
+        _schema_vocabulary(schema)
+        _validate(value, schema, schema, "census")
     except (RecursionError, KeyError, TypeError) as error:
         raise CensusError("unsupported or excessively nested census/schema") from error
     return cast("dict[str, Any]", value)
@@ -454,13 +597,14 @@ def _path(path: dict[str, Any]) -> str:
 
 
 def _nodes(value: object) -> Iterator[dict[str, Any]]:
-    if isinstance(value, dict):
-        yield value
-        for child in value.values():
-            yield from _nodes(child)
-    elif isinstance(value, list):
-        for child in value:
-            yield from _nodes(child)
+    pending: list[object] = [value]
+    while pending:
+        current = pending.pop()
+        if isinstance(current, dict):
+            yield current
+            pending.extend(reversed(current.values()))
+        elif isinstance(current, list):
+            pending.extend(reversed(current))
 
 
 def _domains(value: dict[str, Any]) -> tuple[set[str], set[str]]:
@@ -801,18 +945,26 @@ def _census(metadata: object, searches: dict[str, str], readings: dict[str, str]
     paths, kernels = _domains(value)
     path_order: list[str] | None = None
     kernel_order: list[str] | None = None
+    first_module_inputs: list[Any] | None = None
+    first_kernel_inputs: list[Any] | None = None
     for resolver in resolvers.values():
         _require(resolver["owner_module_id"] in modules, "foreign native resolver")
-        inputs = [_key(effect["input"]) for effect in resolver["module_effects"]]
-        _require(len(inputs) == len(set(inputs)) and set(inputs) == paths, "incomplete native resolver module domain")
-        if path_order is None:
-            path_order = inputs
-        _require(inputs == path_order, "native resolver module domains disagree on key order")
-        inputs = [_key(effect["input"]) for effect in resolver["kernel_effects"]]
-        _require(len(inputs) == len(set(inputs)) and set(inputs) == kernels, "incomplete native resolver kernel domain")
-        if kernel_order is None:
-            kernel_order = inputs
-        _require(inputs == kernel_order, "native resolver kernel domains disagree on key order")
+        module_inputs = [effect["input"] for effect in resolver["module_effects"]]
+        if path_order is None or module_inputs != first_module_inputs:
+            inputs = [_key(item) for item in module_inputs]
+            _require(len(inputs) == len(set(inputs)) and set(inputs) == paths, "incomplete native resolver module domain")
+            if path_order is None:
+                path_order = inputs
+                first_module_inputs = module_inputs
+            _require(inputs == path_order, "native resolver module domains disagree on key order")
+        kernel_inputs = [effect["input"] for effect in resolver["kernel_effects"]]
+        if kernel_order is None or kernel_inputs != first_kernel_inputs:
+            inputs = [_key(item) for item in kernel_inputs]
+            _require(len(inputs) == len(set(inputs)) and set(inputs) == kernels, "incomplete native resolver kernel domain")
+            if kernel_order is None:
+                kernel_order = inputs
+                first_kernel_inputs = kernel_inputs
+            _require(inputs == kernel_order, "native resolver kernel domains disagree on key order")
     if path_order is None or kernel_order is None:
         raise CensusError("missing native resolver domain order")
     path_ranks = {key: index for index, key in enumerate(path_order)}

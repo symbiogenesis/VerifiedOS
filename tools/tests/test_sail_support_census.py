@@ -812,6 +812,10 @@ class SailSupportCensusTests(unittest.TestCase):
         with patch.dict(validate.__globals__, {"_recursive_validate": lambda *_: self.fail("the checked schema must compile")}):
             value, _, _ = _fixture()
             validate(value)
+        self.assertIsNotNone(validate.__globals__["_DEFAULT_RS_VALIDATOR"])
+        with patch.dict(validate.__globals__, {"_DEFAULT_RS_VALIDATOR": None,
+                                               "_recursive_validate": lambda *_: self.fail("the checked schema must compile")}):
+            validate(value)
 
     def test_compiled_schema_defers_malformed_unused_children_to_original_reader(self) -> None:
         validate = _ADAPTER["_validate"]
