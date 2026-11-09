@@ -17,7 +17,7 @@ Start with the register's [entry format and reading rules](../requirements-regis
 
 1. Does each acceptance criterion decide the obligation? All criteria must hold. `IS` entries classify or define; review their correctness rather than asking whether they are implemented.
 2. Does the entry contain the facts needed for that decision? Opening the prose for an explanation is normal; needing an unstated fact from it is a finding. A clause that contributes nothing should be deleted or made testable, regardless of the entry's length.
-3. Does the obligation need a `· Fail-closed:` or `· RoT-fresh:` declaration? These lines confer membership in the fail-closed seam register and freshness enumeration. The checker catches disagreement between declarations and collected sets; the reviewer must still detect missing declarations on both sides.
+3. Does the obligation need a `· Fail-closed:` or `· RoT-fresh:` declaration? These lines confer membership in the fail-closed seam register and freshness enumeration. The checker catches disagreement between declarations and collected sets, and lexically over-approximates refusal language across requirement bodies (`K-20`, which surfaced the detector, entropy, display, and budget seams) as a regenerated review agenda; the reviewer must still detect missing declarations on both sides.
 4. Does the named crown-jewel specification match the obligation? The trace's prose bookmark derives from the requirement ID. The checker resolves that reference; deciding whether the linked text supports the entry remains a reading task.
 
 ## 3. Conventions that can look like errors
