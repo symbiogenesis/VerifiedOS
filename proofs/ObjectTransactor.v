@@ -308,12 +308,12 @@ Definition leaf_only_read (t : Transactor) (st : Objects) (root n : nat) : optio
    retains its stronger completeness statement. See
    [the path contract](../docs/implementation/contracts/object-transactor.md#path-local-runtime-reader). *)
 Fixpoint path_read_from (fuel : nat) (t : Transactor) (st : Objects)
-                       (seen : list nat) (root target : nat)
+                       (seen : TxnTrie) (root target : nat)
                        (route : list nat) : option nat :=
   match fuel with
   | 0 => None
   | S remaining =>
-      if mem_of root seen then None else
+      if indexed_commits seen root then None else
       match st root with
       | None => None
       | Some o =>
@@ -322,7 +322,7 @@ Fixpoint path_read_from (fuel : nat) (t : Transactor) (st : Objects)
           | nil => if Nat.eqb root target then Some (obj_bytes o) else None
           | cons next rest =>
               if mem_of next (obj_kids o)
-              then path_read_from remaining t st (cons root seen) next target rest
+              then path_read_from remaining t st (index_mark_nat root seen) next target rest
               else None
           end
           else None
@@ -331,7 +331,7 @@ Fixpoint path_read_from (fuel : nat) (t : Transactor) (st : Objects)
 
 Definition path_read (t : Transactor) (st : Objects) (root target : nat)
                      (route : list nat) : option nat :=
-  path_read_from (S (walk_depth t)) t st nil root target route.
+  path_read_from (S (walk_depth t)) t st TxnEmpty root target route.
 
 Inductive AuthenticatedObjectPath (t : Transactor) (st : Objects)
     : nat -> nat -> list nat -> Prop :=
@@ -353,7 +353,7 @@ Proof.
   intros fuel. induction fuel as [|remaining IH];
     intros t st seen root target route b H; [discriminate H|].
   cbn [path_read_from] in H.
-  destruct (mem_of root seen); [discriminate H|].
+  destruct (indexed_commits seen root); [discriminate H|].
   destruct (st root) as [o|] eqn:Ho; [|discriminate H].
   destruct (Nat.eqb (address t o) root) eqn:Ha; [|discriminate H].
   pose proof (nat_eqb_true _ _ Ha) as Ea.
@@ -364,7 +364,7 @@ Proof.
     + apply authenticated_here with (o := o); assumption.
     + exists o. split; [exact Ho|]. split; [exact Ea|reflexivity].
   - destruct (mem_of next (obj_kids o)) eqn:Hnext; [|discriminate H].
-    destruct (IH t st (cons root seen) next target rest b H) as [Hp Hn].
+    destruct (IH t st (index_mark_nat root seen) next target rest b H) as [Hp Hn].
     split; [eapply authenticated_step; eassumption|exact Hn].
 Qed.
 
@@ -377,7 +377,7 @@ Theorem path_reader_authenticates_every_link :
 Proof.
   intros t st root target route b H.
   exact (path_read_from_authenticates_every_link
-    (S (walk_depth t)) t st nil root target route b H).
+    (S (walk_depth t)) t st TxnEmpty root target route b H).
 Qed.
 
 Lemma path_read_from_respects_depth :
@@ -388,12 +388,12 @@ Proof.
   intros fuel. induction fuel as [|remaining IH];
     intros t st seen root target route b H; [discriminate H|].
   cbn [path_read_from] in H.
-  destruct (mem_of root seen); [discriminate H|].
+  destruct (indexed_commits seen root); [discriminate H|].
   destruct (st root) as [o|]; [|discriminate H].
   destruct (Nat.eqb (address t o) root); [|discriminate H].
   destruct route as [|next rest]; [reflexivity|].
   destruct (mem_of next (obj_kids o)); [|discriminate H].
-  exact (IH t st (cons root seen) next target rest b H).
+  exact (IH t st (index_mark_nat root seen) next target rest b H).
 Qed.
 
 Definition ReadsOnlyAnIntactImage (rd : Reader) : Prop :=
@@ -1593,7 +1593,7 @@ Example runtime_path_refuses_parent_link_root_and_depth_substitutions :
   path_read demo_transactor unverified_parent_objects 17 7 (cons 7 nil) = None /\
   path_read demo_transactor demo_objects 17 5 (cons 5 nil) = None /\
   path_read demo_transactor demo_objects 19 7 (cons 9 nil) = None /\
-  path_read_from 1 demo_transactor demo_objects nil 17 7 (cons 7 nil) = None :=
+  path_read_from 1 demo_transactor demo_objects TxnEmpty 17 7 (cons 7 nil) = None :=
   conj eq_refl (conj eq_refl (conj eq_refl eq_refl)).
 
 Definition cyclic_path_objects : Objects := fun n =>
@@ -1625,7 +1625,7 @@ Example generated_path_lengths_return_exact_bytes :
 
 Example generated_path_depth_exhaustion_refuses :
   map_over (fun steps =>
-    path_read_from steps demo_transactor chain_path_objects nil
+    path_read_from steps demo_transactor chain_path_objects TxnEmpty
       (S steps) 1 (descending_route steps)) (upto 8)
   = map_over (fun _ => (None : option nat)) (upto 8) := eq_refl.
 
