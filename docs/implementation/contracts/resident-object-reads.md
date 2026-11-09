@@ -49,9 +49,15 @@ The selected representation declares these typed inputs and transitions:
   before acknowledging success. System-image roots identify the admitted generation;
   a generation change cannot silently rebind an existing reservation.
 - Read supplies that reservation and an in-window offset/length. It checks current
-  authority, identity and byte authentication before returning payload. R-10-001's
-  every-read verification and R-10-012's authenticate-then-return rule remain intact;
-  a prior admission or authenticated descriptor alone cannot replace them.
+  authority, identity and byte authentication before returning payload. Admission
+  authentication may be reused only while the exact root/version/window resides
+  in owner-controlled backing with no writable alias, capability-enforced write
+  exclusion, end-to-end ECC and the retirement barrier. Every read validates the
+  retained binding and current key/root/reservation epoch; close, reset, key
+  erasure or identity change invalidates it. This preserves R-10-001's root binding
+  and R-10-012's authenticate-then-return rule without rehashing protected bytes.
+  A mutable host buffer or an unproved exclusion boundary still requires byte
+  authentication on every read; a prior descriptor alone is insufficient.
 - Renewal and retirement are explicit operations. The owner closes admission and
   prevents new reads before completing outstanding operations and the existing
   revocation/reuse barrier. A holder cannot force indefinite waiting for its

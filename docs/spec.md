@@ -822,7 +822,7 @@ flowchart TD
 ```
 
 - **Immutable base image and redundant root verification:** <a id="r-10-001"></a>
-  The base OS is a bit-for-bit reproducible, content-addressed Merkle-DAG image whose reads are verified at runtime against the boot-attested signed root by the small **system-integrity reader** ([§6](#6-trusted-computing-base-exhaustive), the sole storage component in the TCB).
+  The base OS is a bit-for-bit reproducible, content-addressed Merkle-DAG image whose reads are verified at runtime against the boot-attested signed root by the small **system-integrity reader** ([§6](#6-trusted-computing-base-exhaustive), the sole storage component in the TCB). An admitted immutable resident window may retain that authentication under `r-10-006a`'s protected-backing, identity, authority and lifetime checks; mutable buffers are authenticated on every read.
   * **Self-checksummed redundant roots:** <a id="r-10-001a"></a> Because no parent hash covers the root node, each root carries its own checksum beside its signature and is written to multiple fixed locations (≥2 copies per slot on separately erasable regions). Boot verifies all candidate copies on their own bytes and selects the highest valid security version, never relying on an unverified slot pointer.
 - **Four-layer verified storage stack (Coq/Iris, CompCert C, wholly outside the TCB):** <a id="r-10-002"></a>
 
