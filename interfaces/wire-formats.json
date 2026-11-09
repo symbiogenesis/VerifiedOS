@@ -1053,8 +1053,8 @@
       "owner": "Q42a",
       "descriptor": "absent",
       "transcription": "none authored",
-      "canonicity": "Required: envelope, plaintext, region records and identity-consuming nested schemas need whole-admissible-language injectivity and accepted-byte re-encoding; alternate lengths, order, duplicates and tails fail decoding.",
-      "evidence": "The backup contract states the bounded grammar shape and authenticate-before-write acceptance. Concrete profile widths, Narcissus derivations, canonicity and target copy-once lowering remain Q42a's obligations; no backup implementation is present.",
+      "canonicity": "Required: envelope, authenticated manifest/catalog, indexed chunks, Merkle proofs and identity-consuming nested schemas need whole-admissible-language injectivity and accepted-byte re-encoding; alternate lengths, order, duplicates and tails fail decoding.",
+      "evidence": "The backup contract states the bounded manifest/chunk grammar, per-chunk authenticate-before-stage and complete-coverage-before-publication acceptance. Concrete profile widths, Narcissus derivations, canonicity and target copy-once lowering remain Q42a's obligations; no backup implementation is present.",
       "references": [
         "docs/implementation/contracts/backup-migration.md",
         "docs/requirements-register.md"

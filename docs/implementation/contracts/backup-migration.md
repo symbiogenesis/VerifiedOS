@@ -69,8 +69,10 @@ network sessions, or belong to the trusted path. The key remains crypto-core
 resident except for the explicit holder recovery display or protected recipient
 transfer in section 3. Manifests declare served labels, secrets, deadline classes,
 device authority, maximum object/region extent, staging capacity and scheduled
-work bounds. Composition refuses an elastic placement or insufficient whole-object
-authentication/staging capacity; it does not borrow another label's memory or
+work bounds. Composition separately reserves the bounded manifest catalog, one
+chunk, Merkle-proof scratch and complete persistent staging; the total backup
+need not fit volatile memory. It refuses an elastic placement or insufficient
+declared capacity; it does not borrow another label's memory or
 slack. Per-label service instances or a reviewed cross-label non-interference
 interface retain the ordinary storage confidentiality boundary.
 
@@ -82,9 +84,11 @@ following nonrecursive forms. The fixed order shown is part of the grammar.
 
 | Id | Fields in wire order | Bounds and interpretation |
 | --- | --- | --- |
-| `backup-envelope-v1` | magic, version, descriptor-profile identity, ciphertext length, fresh sealing nonce, ciphertext, authentication tag | Magic and version have one literal encoding; profile selects one composition-fixed descriptor and AES-GCM configuration, never cipher negotiation; exact total extent and no trailing bytes |
-| `backup-plaintext-v1` | exporting generation identity, source profile identity, region count, region records | One source profile and one exporting generation; count and total size bounded by the composed profile |
-| `backup-region-v1` | region identity, schema identity, schema generation identity, payload length, canonical typed payload | Records strictly ordered by region identity, no duplicate; schema generation equals the exporting generation's declared catalog entry; payload exactly the schema extent |
+| `backup-envelope-v1` | magic, version, descriptor-profile identity, total extent, manifest nonce, encrypted manifest, manifest tag, ordered chunk records | One opaque object; fixed AES-GCM configuration and exact extent, no negotiation or trailing bytes |
+| `backup-plaintext-v1` | exporting generation identity, source profile identity, region count, region catalog, chunk size/count, ciphertext Merkle root | Authenticated manifest; bounded catalog and exact complete region/chunk coverage, not the full payload |
+| `backup-region-v1` | region identity, schema identity, schema generation identity, payload length, first chunk and chunk count | Strict region order, no duplicate; source catalog schema binding; disjoint contiguous chunk ranges whose union is the declared payload |
+| `backup-chunk-v1` | chunk index, region identity, region offset, plaintext length, ciphertext, authentication tag, Merkle proof | Exact increasing index and per-region coverage; fixed chunk size except each region's last chunk; both AEAD and root proof checked before staging |
+| `backup-proof-v1` | ordered sibling digests | Exact depth and left/right orientation derived from chunk index/count; domain-separated leaf/internal hashing and canonical padding fixed by the profile |
 
 All scalars have one fixed unsigned big-endian representation. Identity widths,
 count/length widths and maxima are constants of the descriptor profile emitted
@@ -97,18 +101,29 @@ reserved flag, extension bag, padding, path, raw address or executable image occ
 Different descriptor-profile versions are different grammars and are never
 interpreted by fallback.
 
-The AEAD plaintext is the complete `backup-plaintext-v1`. Associated data is a
-domain separator for `BackupObject-v1` and the complete canonical envelope prefix
-through the nonce. Every identity, region position, schema and payload is thereby
-authenticated. The nonce is newly generated sealing metadata, never a restored
-source nonce or exported DRBG state. AES-GCM uses a newly drawn 256-bit key for
-each object and one sealing invocation; a retry gets a new key and nonce, never
-reseals changed bytes under a reused pair. Limits meet the selected AEAD's bounds.
-The tag's wire width and nonce width are fixed by the at-rest crypto profile;
-Q42a must bind the actual crypto-core interface and refuse absent parameters.
+The crypto core derives distinct manifest and chunk subkeys from one newly drawn
+256-bit object key with fixed domain separators. The authenticated manifest is
+the complete `backup-plaintext-v1`; its AAD binds the canonical envelope prefix.
+Chunk AAD binds a canonical catalog-context digest (generation, profile, region
+schemas/lengths, chunk geometry and envelope identity, excluding the Merkle root),
+the index/count, region and exact offset/length. The Merkle root commits to every
+indexed ciphertext and AEAD tag; the manifest authenticates that root. Excluding
+the root from chunk AAD avoids a circular commitment. A chunk from another object,
+position or region cannot fill an admitted slot.
+
+The chunk nonce is the injective 96-bit encoding of its admitted index under its
+object-specific subkey; the manifest uses its distinct subkey and a fresh nonce.
+No source nonce or DRBG state is exported. Chunk count, index width and bytes per
+key satisfy the selected AEAD bounds and refuse exhaustion. A retry uses a new
+object key. Export fixes one immutable checkpoint before computing the chunk
+root and sealing the manifest; a bounded second pass or seekable output may emit
+the envelope, but changed source bytes cannot be resealed under an old pair.
+The descriptor profile fixes the root tree shape, leaf/internal domain separators,
+padding, nonce widths and tag widths before implementation; absent parameters
+refuse. This contract incorporates no external streaming format or implementation.
 
 Q42a owes the correctness pair and, independently, whole-admissible-language
-canonicity for the envelope, plaintext, records and identity-consuming nested
+canonicity for the envelope, manifest, catalog, chunks, proofs and identity-consuming nested
 schemas. For each descriptor `D`, the checked statement includes
 `decode_D(encode_D(v)) = Some(v)`, and for every accepted complete byte string
 `b`, `encode_D(decode_D(b)) = b`; consequently two accepted byte strings decoding
@@ -122,7 +137,7 @@ The descriptor is a `CJ-FORMAT` member under R-05-046, enumerated in the authore
 [wire-format inventory source](../../../interfaces/wire-formats.json) under
 `backup-object`, with descriptor status `absent`, owner `Q42a` and an owed
 canonicity theorem. Its generated inventory entry must link here and enumerate
-the three forms above. The contract and descriptor receive independent
+the forms above. The contract and descriptor receive independent
 R-05-150 review. [The parser workflow](../../assurance/proof-reuse/parsers.md)
 and [U-13/U-14](../../assurance/unassigned-proof-map.md) retain locked-prover
 qualification, correctness, assumptions and copy-once Fiat/Bedrock-to-Clight
@@ -188,14 +203,18 @@ anti-rollback floor, credentials or monotonic counters. Credential/unlock gating
 and consent precede import; possession of the recovery secret alone cannot enact
 a restore on a locked device.
 
-The restore state machine is `Idle -> Authorized -> Authenticated -> Planned ->
-Staged -> Committed`, with failure/cancellation going to `Discarded`. Before
-`Planned` there is no region-store write authority. Complete untrusted bytes may
-be held in bounded volatile quarantine, not persistent import storage. First
-validate the bounded canonical envelope extent and fixed profile, then authenticate
-the whole ciphertext, then decode the complete plaintext and region catalog, and
-then validate every schema and the complete destination plan. No streaming prefix
-is installed and no authenticated prefix authorizes a region write.
+The restore state machine is `Idle -> Authorized -> ManifestAuthenticated ->
+Planned -> Staging -> Complete -> Committed`, with failure/cancellation going to
+`Discarded`. Before `Planned` there is no region-store write authority. First
+validate the bounded canonical envelope prefix and fixed profile, authenticate
+and decode the complete manifest/catalog, and decide every schema and the complete
+destination plan. Then read one chunk and its bounded proof at a time, check its
+index, region coverage, Merkle root and AEAD tag before decoding or staging its
+bytes in an unreachable receiving namespace. The source is untrusted and may
+change between reads: every consumed chunk is checked against the same admitted
+manifest, so an earlier pass or mutable source handle supplies no authorization.
+Only exact complete coverage and canonical typed decoding reach `Complete` and
+authorize atomic publication. No streaming prefix becomes current profile state.
 
 The intended source profile and object identity are supplied by the holder's
 trusted selection, not learned as authorization from untrusted object fields.
@@ -211,8 +230,8 @@ For each region, the receiving generation's immutable plan chooses exactly one:
 
 | Plan arm | Decision before staging | Result |
 | --- | --- | --- |
-| Same schema | Exact supported schema/generation mapping and canonical typed decode | Copy typed data into a new receiving namespace |
-| Checked migration | Receiving generation carries admitted code and a checked source-to-target schema relation; bounded migration succeeds | Write the new typed schema beside the old |
+| Same schema | Exact supported schema/generation mapping and admitted bounded decoder | Decode verified chunks into a new receiving namespace; canonical completion required before publication |
+| Checked migration | Receiving generation carries admitted code and a checked source-to-target schema relation with bounded staging/scratch | Migrate verified chunks beside the old; completion required before publication |
 | Discard | Receiving generation explicitly declares this unknown/obsolete schema discardable and the holder confirms its listed data loss | Import no bytes for that region; use ordinary initial state |
 | Unsupported | No exact codec, checked migration or explicit approved discard plan | Refuse the entire attempt; zero region writes |
 
@@ -223,6 +242,9 @@ plan identifies the authenticated region/schema and skips its bounded opaque byt
 without reinterpreting them. This reconciles R-10-038's migrate-or-discard rule
 with the requirement that the original unsupported-schema attempt writes nothing.
 All source schemas and dispositions are decided before any region is staged.
+A schema decoder or migration needing whole-region scratch declares that bound
+explicitly; it cannot claim the one-chunk working-memory bound. Composition may
+instead use separately reserved unreachable staging as its bounded workspace.
 
 Staging writes the complete new profile state beside the current state in the
 verified stack, preserving the prior namespace, root and index byte for byte.
@@ -233,7 +255,8 @@ publication they reopen the complete new profile. A migration, allocation,
 authentication or publication failure cannot expose a partly restored profile.
 Unpublished staging is unreachable and removed by the existing crash-safe cleanup
 path; it never overwrites existing state. Failed cryptographic/schema/profile
-cases never reach staging and perform zero region writes at all. Target campaigns
+manifest/schema/profile cases never reach staging and perform zero region writes.
+A later chunk/typed-decoding failure can leave only unreachable staging. Target campaigns
 must distinguish those zero-write refusals from a later failure that abandons
 unpublished staging while preserving all existing reachable bytes.
 
@@ -373,7 +396,7 @@ schema/profile plan, transfer key ownership and restore phase.
 | `Appraise` | Authentic issuance, exact fresh challenge/role/context, timely one-use decision, allowed running generation/reference manifest and declared identity scope; decide once in each direction |
 | `ConfirmRoots` | Both appraisals succeeded; source trusted path obtains holder consent to the authenticated receiver roots, connection and transfer plan, with credential verified on both devices |
 | `Transfer` | Both appraisals, both credential witnesses and exact live confirmation hold; mint one object key, send sealed `BackupObject-v1` and key on this connection only |
-| `PrepareRestore` | Authenticate the whole object and all schemas/profile/plan; take section 4's zero-write refusal or prepare the complete new namespace |
+| `PrepareRestore` | Authenticate manifest and all schemas/profile/plan; verify each chunk before unreachable staging and require complete canonical coverage before preparing publication |
 | `Publish` | Complete staged state and all current witnesses match; atomic restore commit; consume transfer authorization |
 | `Close` | Completion, any failed check, deadline, cancellation, lock, restart, generation/roots/lifecycle change or key-context retirement; clear transient bytes/keys and revoke all attempt authority |
 
@@ -381,7 +404,7 @@ The target relation is: every `Transfer` has distinct prior authentic issuance
 and successful appraisal for both live connection holders at the stated running
 generations, unconsumed fresh challenges, primary-credential witnesses for both
 and a source holder's confirmation of exactly the receiving context's roots and
-plan. Every `Publish` additionally has a whole-object authenticated complete
+plan. Every `Publish` additionally has manifest-bound authenticated complete
 schema plan and the atomic preservation property of BM-RESTORE. The model must
 construct an inhabited successful joint trace as well as traces rejected by each
 precondition; a model that refuses all migrations fails acceptance.
@@ -424,19 +447,20 @@ the migration service and nothing here prevents that availability cost.
 ## 7. Acceptance cases and requirement mapping
 
 The following are implementation acceptance cases, not results of this contract
-landing. Each refusal observes both a zero region-write trace and unchanged
-current-profile root/index/bytes unless the row explicitly describes post-staging
+landing. Each refusal observes unchanged current-profile root/index/bytes and
+zero region writes unless the row explicitly describes chunk/post-staging
 failure. A destination-storage prefix from failed export is never reported valid.
 
 | Case | Concrete witness and required observation | Owner |
 | --- | --- | --- |
-| `BA-EXPORT` | Two rollbackable regions at one quiescent committed checkpoint round-trip with exact profile, generation, schema and values; untrusted destination sees only one opaque AES-GCM object | Q42a |
+| `BA-EXPORT` | Two rollbackable regions at one quiescent committed checkpoint round-trip with exact profile, generation, schema and values; untrusted destination sees only one opaque manifest/chunk AEAD object | Q42a |
 | `BA-TYPE` | Installed export graph and recursive DataOnly schema reach only rollbackable regions; Fresh-reading, key/credential, sealed-object and consent-store controls are refused at admission or detected by the bypass campaign | Q42a |
 | `BA-FORMAT` | Narcissus pair and independent whole-language canonicity, bounded copy-once target decoder and exact inventory binding; alternate encodings/duplicate records/trailing bytes are rejected | Q42a |
 | `BA-KEY` | DRBG/crypto interface constructs the full-entropy 256-bit one-object key; entropy failure stops export, credential-only derivation and escrow paths are absent; retries never reuse the key/nonce | Q42a |
 | `BA-DISPLAY` | Exact leading-zero recovery secret round-trips; one trusted display lifetime, credential plus one-use consent, cancellation/lock clear; no app-visible secret/log/output | Q42b |
 | `BA-WRAP` | Both unlocked enrolled devices accept the protected recipient context, import one backup key and retain only the recipient-bound locally sealed handle; unenrolled/wrong recipient or unconfirmed roots receive no key | Q42c |
-| `BA-OBJECT-REFUSE` | Truncate at each field boundary; permute records; substitute profile, generation, schema, payload or tag; append a tail; change descriptor profile; use a wrong key or a valid foreign-profile object | Q42a: zero region writes |
+| `BA-OBJECT-REFUSE` | Manifest/profile/schema/tag substitution refuses before writes; truncate, reorder, duplicate or substitute every chunk/proof/index/offset, change input between reads, append a tail or omit final coverage: no unauthenticated chunk staged and no partial publication | Q42a: manifest refusals write nothing; later failures leave only unreachable staging |
+| `BA-STREAM` | Backup exceeds admitted volatile scratch while catalog, one chunk and proof fit; exact round trip and chunk-count/AEAD limits pass; schemas needing more scratch declare it; exhausted staging refuses without changing current state | Q42a |
 | `BA-SCHEMA` | Unsupported source schema with no checked migration or explicit discard plan refuses with zero writes; a new confirmed discard attempt imports no bytes for that region; a checked migration and unchanged-schema arm each succeed | Q42a/Q42b |
 | `BA-ATOMIC` | Target crash/failure at every staging/publication cut; prior state remains byte-identical before commit, complete new state after; post-staging failure leaves only unreachable cleanup state | Q42a |
 | `BA-FRESH` | Each section 5 initializer has a successful receiving-device witness and its old spent/revoked/token/attempt replay witness; no old authority activates, platform counters stay current and missing initializer refuses | Q42a with each manifest owner |
@@ -449,7 +473,7 @@ failure. A destination-storage prefix from failed export is never reported valid
 | Register criterion | Contract clause | Acceptance case |
 | --- | --- | --- |
 | R-10-038 main: unlocked holder; rollbackable typed profile regions; verified stack; one opaque object on chosen untrusted storage | BM-EXPORT, BM-PLACE, BM-CONSENT | BA-EXPORT, BA-TYPE, BA-CONSENT |
-| R-10-038 main: whole-object authentication and every-schema check before writing, beside existing state, failure preservation | BM-FORMAT, BM-RESTORE | BA-OBJECT-REFUSE, BA-SCHEMA, BA-ATOMIC |
+| R-10-038 main: authenticated manifest and every-schema plan before staging, per-chunk authentication before write, complete coverage before atomic publication | BM-FORMAT, BM-RESTORE | BA-OBJECT-REFUSE, BA-STREAM, BA-SCHEMA, BA-ATOMIC |
 | R-10-038 key acceptance: DRBG entropy, once-displayed or enrolled-RoT-wrapped recovery, no credential-only derivation or escrow | BM-KEY, BM-CONSENT | BA-KEY, BA-DISPLAY, BA-WRAP |
 | R-10-038 format acceptance: descriptor/canonicity/inventory; exporting generation/profile/every schema; truncate/reorder/substitute/foreign-profile refusal; migrate or discard | BM-FORMAT, BM-RESTORE | BA-FORMAT, BA-OBJECT-REFUSE, BA-SCHEMA |
 | R-10-038 retained-replica acceptance: at-rest AES-GCM, 256-bit symmetric key, stored-secret horizon, off-device residual | BM-KEY, section 9 | BA-KEY, BA-RESIDUAL |
@@ -469,7 +493,7 @@ existing owners and estimates. **Owns:** this object's descriptors/pairs/canonic
 and lowering, the closed export view and holder audit, one-object key/nonce
 interface, bounded fixed-tier export/restore state machine, schema/discard plan,
 fresh initializer joins and crash-safe atomic publication. **Check:** BA-EXPORT,
-BA-TYPE, BA-FORMAT, BA-KEY, BA-OBJECT-REFUSE, BA-SCHEMA, BA-ATOMIC and BA-FRESH
+BA-TYPE, BA-FORMAT, BA-KEY, BA-OBJECT-REFUSE, BA-STREAM, BA-SCHEMA, BA-ATOMIC and BA-FRESH
 on the real bounded source and target path, with exact source/configuration/image
 identities, required proof/assumption/kernel evidence and negative controls;
 reference serialization alone does not pass. **Join:** M5.3d, manifest owners,
@@ -488,8 +512,8 @@ new screen is accepted from a mockup or a textual consent record alone.
 
 **Q42c · Realize and prove the migration session. Start:** this contract's
 MigrationSession relation, accepted bounded TLS/attestation/credential/context
-interfaces and M6.9/U-20 cryptographic foundations; Q42a's complete volatile
-object extent and Q42b's channel-bound witnesses. **Owns:** canonical bounded
+interfaces and M6.9/U-20 cryptographic foundations; Q42a's authenticated manifest
+and bounded chunk stream and Q42b's channel-bound witnesses. **Owns:** canonical bounded
 migration/challenge/evidence/key-transfer record descriptors, mutual protocol
 realization, the MigrationSession mechanization and inhabited success/refutation
 witnesses, exact conditional session-agreement theorem, computational argument

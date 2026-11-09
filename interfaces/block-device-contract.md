@@ -19,6 +19,31 @@ obligations. A logical-block model implements none of those mechanisms. R1c-ii m
 use this interface for a simulation wrapper within the reviewed scope; a
 production flash interface still needs its own reviewed commands and FTL binding.
 
+### Physical NAND refinement boundary
+
+The logical block length, backing capacity, single pending command and PIO data
+window are finite test-interface parameters. They prescribe neither NAND program
+granules nor the number of physical operations in flight. The production FTL may
+pack several logical blocks into an append-only physical page and pipeline
+independent die/plane operations; it must preserve this interface's addressed
+bytes, ordered durability answers and reset/refusal behavior at the logical
+boundary. A logical 128-byte update never authorizes a 128-byte physical NAND
+program operation.
+
+Before a production controller/FTL implementation, R-12-025 through R-12-030's
+owner must land the selected part's page/erase geometry, supported plane/die
+concurrency, bounded queue descriptors and DMA authority, ECC/parity placement,
+program/erase rules, cancellation and barrier semantics, and the scheduled
+worst-case service bound. No generic NAND page size or measured throughput is
+inferred from this fixture. The refinement campaign must cover sub-page update
+packing, queue exhaustion, independent-plane completion order, reset with every
+queue position in flight, physical bad-block/ECC outcomes, and acknowledged-byte
+preservation through reopen. DMA uses the existing capability/revocation checks.
+M5.3d and R1c-ii retain their logical-device predicates; physical NAND acceptance
+is an additional production join for the safe-Rust availability workstream and
+M5.3, not a reason to silently replace the
+reviewed single-command model or to claim its throughput for production.
+
 | Choice or constraint | Owner and present disposition |
 | --- | --- |
 | Dense placement and attestation of an aperture; device memory cannot execute | R-15-002b and R-15-002d in the [register](../docs/requirements-register.md), with their [map rationale](../docs/spec.md#r-15-002b). Placement is already declared by `platform.blkdev` in the [composition](../model/config/verifiedos.json); it does not specify a device. |
