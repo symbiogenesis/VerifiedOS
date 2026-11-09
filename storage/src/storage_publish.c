@@ -947,7 +947,7 @@ int vos_storage_reopen(struct vos_storage_medium *medium,
     }
 
     /* R-10-013e: verify sealed Fresh epoch root against the RoT counter. */
-    if (crypto->epoch_sealed ||
+    if (((crypto->epoch_sealed_mask & (1u << crypto_slot)) != 0u) ||
         cp->commit_mode == VOS_STORAGE_COMMIT_FRESH ||
         cp->sealed_epoch != 0u) {
         if (!vos_crypto_core_verify_epoch(crypto, crypto_slot, cp->sealed_epoch,
@@ -1335,7 +1335,7 @@ int vos_storage_verify_resident(void *verification,
                                store->medium->geometry.arena_nodes, cp)) {
         return 0;
     }
-    if ((store->crypto->epoch_sealed ||
+    if ((((store->crypto->epoch_sealed_mask & (1u << store->crypto_slot)) != 0u) ||
          cp->commit_mode == VOS_STORAGE_COMMIT_FRESH ||
          cp->sealed_epoch != 0u) &&
         !vos_crypto_core_verify_epoch(store->crypto, store->crypto_slot,
@@ -1372,4 +1372,409 @@ int vos_storage_verify_resident(void *verification,
         return 0;
     }
     return committed_value == resident_tree_value(identity->root, identity->version);
+}
+
+static uint32_t get_le32(const uint8_t *src)
+{
+    uint32_t result = 0u;
+    for (uint32_t i = 0u; i < 4u; ++i) {
+        result |= (uint32_t)src[i] << (8u * i);
+    }
+    return result;
+}
+
+static int all_zero(const uint8_t *buf, size_t length)
+{
+    uint8_t acc = 0u;
+    for (size_t i = 0u; i < length; ++i) {
+        acc |= buf[i];
+    }
+    return acc == 0u;
+}
+
+enum {
+    BLKDEV_CP_BYTES = 16u * VOS_STORAGE_BLKDEV_BLOCK_BYTES
+};
+
+static int encode_blkdev_checkpoint(const struct vos_storage_checkpoint *cp,
+                                    uint64_t arena_nodes,
+                                    uint8_t out[BLKDEV_CP_BYTES])
+{
+    if (cp == NULL || out == NULL ||
+        arena_nodes > VOS_STORAGE_BLKDEV_MAX_ARENA_NODES ||
+        cp->snapshot_count > VOS_STORAGE_MAX_SNAPSHOTS ||
+        cp->dead_count > VOS_STORAGE_BLKDEV_MAX_DEADLIST ||
+        cp->frame_count > VOS_STORAGE_BLKDEV_MAX_JOURNAL_FRAMES) {
+        return 0;
+    }
+    zero_bytes(out, BLKDEV_CP_BYTES);
+    out[0] = 'V';
+    out[1] = 'O';
+    out[2] = 'S';
+    out[3] = 'C';
+    out[4] = 'H';
+    out[5] = 'K';
+    out[6] = '0';
+    out[7] = '1';
+    put_le32(out + 8u, cp->committed ? 1u : 0u);
+    put_le32(out + 12u, cp->commit_mode);
+    put_le64(out + 16u, cp->domain_id);
+    put_le64(out + 24u, cp->key_epoch);
+    put_le64(out + 32u, cp->generation);
+    put_le64(out + 40u, cp->root);
+    put_le32(out + 48u, cp->height);
+    put_le32(out + 52u, cp->frame_count);
+    put_le64(out + 56u, cp->used);
+    put_le64(out + 64u, cp->fresh_region_id);
+    put_le64(out + 72u, cp->fresh_region_version);
+    put_le64(out + 80u, cp->sealed_epoch);
+    put_le32(out + 88u, cp->snapshot_count);
+    put_le32(out + 92u, cp->dead_count);
+    copy_bytes(out + 96u, cp->epoch_root, VOS_CRYPTO_DIGEST_BYTES);
+    copy_bytes(out + 128u, cp->root_digest, VOS_CRYPTO_DIGEST_BYTES);
+    copy_bytes(out + 160u, cp->payload_manifest_digest, VOS_CRYPTO_DIGEST_BYTES);
+    copy_bytes(out + 192u, cp->checkpoint_mac, VOS_CRYPTO_DIGEST_BYTES);
+    for (uint32_t i = 0u; i < VOS_STORAGE_MAX_SNAPSHOTS; ++i) {
+        put_le64(out + 224u + (size_t)i * 8u,
+                 (i < cp->snapshot_count) ? cp->snapshots[i] : 0u);
+    }
+    for (uint32_t i = 0u; i < VOS_STORAGE_BLKDEV_MAX_DEADLIST; ++i) {
+        const size_t at = 288u + (size_t)i * 16u;
+        if (i < cp->dead_count) {
+            put_le64(out + at, cp->deadlist[i].node_id);
+            put_le64(out + at + 8u, cp->deadlist[i].birth_generation);
+        }
+    }
+    for (uint32_t i = 0u; i < VOS_STORAGE_BLKDEV_MAX_ARENA_NODES; ++i) {
+        const size_t at = 544u + (size_t)i * 32u;
+        if ((uint64_t)i < arena_nodes) {
+            put_le32(out + at, cp->auth[i].valid ? 1u : 0u);
+            put_le32(out + at + 4u, cp->auth[i].kind);
+            put_le64(out + at + 8u, cp->auth[i].generation);
+            copy_bytes(out + at + 16u, cp->auth[i].tag, VOS_CRYPTO_TAG_BYTES);
+        }
+    }
+    return 1;
+}
+
+static int decode_blkdev_checkpoint(const uint8_t in[BLKDEV_CP_BYTES],
+                                    uint64_t arena_nodes,
+                                    struct vos_storage_checkpoint *cp_out)
+{
+    static const uint8_t magic[8] = {'V', 'O', 'S', 'C', 'H', 'K', '0', '1'};
+    if (in == NULL || cp_out == NULL ||
+        arena_nodes > VOS_STORAGE_BLKDEV_MAX_ARENA_NODES ||
+        !equal_bytes_ct(in, magic, sizeof(magic)) ||
+        !all_zero(in + 1056u, BLKDEV_CP_BYTES - 1056u)) {
+        return 0;
+    }
+    zero_bytes((uint8_t *)cp_out, sizeof(*cp_out));
+    cp_out->committed = get_le32(in + 8u);
+    cp_out->commit_mode = get_le32(in + 12u);
+    cp_out->domain_id = get_le64(in + 16u);
+    cp_out->key_epoch = get_le64(in + 24u);
+    cp_out->generation = get_le64(in + 32u);
+    cp_out->root = get_le64(in + 40u);
+    cp_out->height = get_le32(in + 48u);
+    cp_out->frame_count = get_le32(in + 52u);
+    cp_out->used = get_le64(in + 56u);
+    cp_out->fresh_region_id = get_le64(in + 64u);
+    cp_out->fresh_region_version = get_le64(in + 72u);
+    cp_out->sealed_epoch = get_le64(in + 80u);
+    cp_out->snapshot_count = get_le32(in + 88u);
+    cp_out->dead_count = get_le32(in + 92u);
+    if (cp_out->committed > 1u ||
+        cp_out->snapshot_count > VOS_STORAGE_MAX_SNAPSHOTS ||
+        cp_out->dead_count > VOS_STORAGE_BLKDEV_MAX_DEADLIST ||
+        cp_out->frame_count > VOS_STORAGE_BLKDEV_MAX_JOURNAL_FRAMES) {
+        zero_bytes((uint8_t *)cp_out, sizeof(*cp_out));
+        return 0;
+    }
+    copy_bytes(cp_out->epoch_root, in + 96u, VOS_CRYPTO_DIGEST_BYTES);
+    copy_bytes(cp_out->root_digest, in + 128u, VOS_CRYPTO_DIGEST_BYTES);
+    copy_bytes(cp_out->payload_manifest_digest, in + 160u, VOS_CRYPTO_DIGEST_BYTES);
+    copy_bytes(cp_out->checkpoint_mac, in + 192u, VOS_CRYPTO_DIGEST_BYTES);
+    for (uint32_t i = 0u; i < VOS_STORAGE_MAX_SNAPSHOTS; ++i) {
+        const uint64_t snap = get_le64(in + 224u + (size_t)i * 8u);
+        if (i < cp_out->snapshot_count) {
+            cp_out->snapshots[i] = snap;
+        } else if (snap != 0u) {
+            zero_bytes((uint8_t *)cp_out, sizeof(*cp_out));
+            return 0;
+        }
+    }
+    for (uint32_t i = 0u; i < VOS_STORAGE_BLKDEV_MAX_DEADLIST; ++i) {
+        const size_t at = 288u + (size_t)i * 16u;
+        const uint64_t nid = get_le64(in + at);
+        const uint64_t bgen = get_le64(in + at + 8u);
+        if (i < cp_out->dead_count) {
+            cp_out->deadlist[i].node_id = nid;
+            cp_out->deadlist[i].birth_generation = bgen;
+        } else if (nid != 0u || bgen != 0u) {
+            zero_bytes((uint8_t *)cp_out, sizeof(*cp_out));
+            return 0;
+        }
+    }
+    for (uint32_t i = 0u; i < VOS_STORAGE_BLKDEV_MAX_ARENA_NODES; ++i) {
+        const size_t at = 544u + (size_t)i * 32u;
+        if ((uint64_t)i < arena_nodes) {
+            cp_out->auth[i].valid = get_le32(in + at);
+            cp_out->auth[i].kind = get_le32(in + at + 4u);
+            cp_out->auth[i].generation = get_le64(in + at + 8u);
+            copy_bytes(cp_out->auth[i].tag, in + at + 16u, VOS_CRYPTO_TAG_BYTES);
+        } else if (!all_zero(in + at, 32u)) {
+            zero_bytes((uint8_t *)cp_out, sizeof(*cp_out));
+            return 0;
+        }
+    }
+    return 1;
+}
+
+int vos_storage_encode_blkdev_medium(
+    const struct vos_storage_medium *medium,
+    uint8_t medium_bytes[VOS_STORAGE_BLKDEV_MEDIUM_BYTES])
+{
+    if (medium == NULL || medium_bytes == NULL ||
+        !valid_geometry_and_limits(&medium->geometry, &medium->limits) ||
+        medium->geometry.block_bytes != VOS_STORAGE_BLKDEV_BLOCK_BYTES ||
+        medium->geometry.arena_nodes > VOS_STORAGE_BLKDEV_MAX_ARENA_NODES ||
+        medium->journal_count > VOS_STORAGE_BLKDEV_MAX_JOURNAL_FRAMES ||
+        medium->journal_reusable > 1u ||
+        medium->has_fallback > 1u) {
+        return 0;
+    }
+    zero_bytes(medium_bytes, VOS_STORAGE_BLKDEV_MEDIUM_BYTES);
+
+    /* Block 0: superblock + durable key-wide nonce reservation record. */
+    medium_bytes[0] = 'V';
+    medium_bytes[1] = 'O';
+    medium_bytes[2] = 'S';
+    medium_bytes[3] = 'S';
+    medium_bytes[4] = 'U';
+    medium_bytes[5] = 'P';
+    medium_bytes[6] = '0';
+    medium_bytes[7] = '1';
+    put_le32(medium_bytes + 8u, medium->geometry.fan);
+    put_le32(medium_bytes + 12u, medium->limits.height);
+    put_le64(medium_bytes + 16u, medium->geometry.arena_nodes);
+    put_le64(medium_bytes + 24u, (uint64_t)medium->geometry.block_bytes);
+    put_le32(medium_bytes + 32u, medium->limits.depth_limit);
+    put_le32(medium_bytes + 36u, medium->limits.visit_limit);
+    put_le32(medium_bytes + 40u, medium->journal_count);
+    put_le32(medium_bytes + 44u, medium->journal_reusable);
+    put_le32(medium_bytes + 48u, medium->has_fallback);
+    put_le64(medium_bytes + 64u, medium->nonce_record.domain_id);
+    put_le64(medium_bytes + 72u, medium->nonce_record.key_epoch);
+    put_le64(medium_bytes + 80u, medium->nonce_record.reserved_generation);
+    put_le64(medium_bytes + 88u, medium->nonce_record.max_generation);
+    copy_bytes(medium_bytes + 96u, medium->nonce_record.mac,
+               VOS_CRYPTO_DIGEST_BYTES);
+
+    /* Blocks 1..16: encrypted arena blocks. */
+    copy_bytes(medium_bytes + VOS_STORAGE_BLKDEV_BLOCK_BYTES,
+               medium->arena_ciphertext,
+               (size_t)medium->geometry.arena_nodes * VOS_STORAGE_BLKDEV_BLOCK_BYTES);
+
+    /* Blocks 17..30: journal frames 0..6 (2 blocks = 256 bytes per frame). */
+    for (uint32_t j = 0u; j < medium->journal_count; ++j) {
+        const struct vos_storage_journal_frame *fr = &medium->journal[j];
+        uint8_t *hdr = medium_bytes +
+                       (size_t)(17u + 2u * j) * VOS_STORAGE_BLKDEV_BLOCK_BYTES;
+        uint8_t *ct = hdr + VOS_STORAGE_BLKDEV_BLOCK_BYTES;
+        put_le32(hdr + 0u, fr->occupied ? 1u : 0u);
+        put_le32(hdr + 4u, fr->frame_index);
+        put_le32(hdr + 8u, fr->kind);
+        put_le64(hdr + 16u, fr->tx_generation);
+        put_le64(hdr + 24u, fr->target_node_id);
+        copy_bytes(hdr + 32u, fr->tag, VOS_CRYPTO_TAG_BYTES);
+        copy_bytes(hdr + 48u, fr->content_digest, VOS_CRYPTO_DIGEST_BYTES);
+        copy_bytes(hdr + 80u, fr->frame_mac, VOS_CRYPTO_DIGEST_BYTES);
+        copy_bytes(ct, fr->ciphertext, VOS_STORAGE_BLKDEV_BLOCK_BYTES);
+    }
+
+    /* Blocks 32..47: primary checkpoint. */
+    if (!encode_blkdev_checkpoint(
+            &medium->checkpoint, medium->geometry.arena_nodes,
+            medium_bytes + 32u * VOS_STORAGE_BLKDEV_BLOCK_BYTES)) {
+        zero_bytes(medium_bytes, VOS_STORAGE_BLKDEV_MEDIUM_BYTES);
+        return 0;
+    }
+
+    /* Blocks 48..63: fallback checkpoint when present. */
+    if (medium->has_fallback &&
+        !encode_blkdev_checkpoint(
+            &medium->fallback_checkpoint, medium->geometry.arena_nodes,
+            medium_bytes + 48u * VOS_STORAGE_BLKDEV_BLOCK_BYTES)) {
+        zero_bytes(medium_bytes, VOS_STORAGE_BLKDEV_MEDIUM_BYTES);
+        return 0;
+    }
+    return 1;
+}
+
+int vos_storage_decode_blkdev_medium(
+    const uint8_t medium_bytes[VOS_STORAGE_BLKDEV_MEDIUM_BYTES],
+    struct vos_storage_medium *medium_out)
+{
+    static const uint8_t sup_magic[8] = {'V', 'O', 'S', 'S', 'U', 'P', '0', '1'};
+    if (medium_bytes == NULL || medium_out == NULL ||
+        !equal_bytes_ct(medium_bytes, sup_magic, sizeof(sup_magic)) ||
+        !all_zero(medium_bytes + 52u, 12u)) {
+        return 0;
+    }
+    zero_bytes((uint8_t *)medium_out, sizeof(*medium_out));
+    medium_out->geometry.fan = get_le32(medium_bytes + 8u);
+    medium_out->limits.height = get_le32(medium_bytes + 12u);
+    medium_out->geometry.arena_nodes = get_le64(medium_bytes + 16u);
+    const uint64_t bbytes = get_le64(medium_bytes + 24u);
+    medium_out->geometry.block_bytes = (size_t)bbytes;
+    medium_out->limits.depth_limit = get_le32(medium_bytes + 32u);
+    medium_out->limits.visit_limit = get_le32(medium_bytes + 36u);
+    medium_out->journal_count = get_le32(medium_bytes + 40u);
+    medium_out->journal_reusable = get_le32(medium_bytes + 44u);
+    medium_out->has_fallback = get_le32(medium_bytes + 48u);
+
+    if (bbytes != VOS_STORAGE_BLKDEV_BLOCK_BYTES ||
+        !valid_geometry_and_limits(&medium_out->geometry, &medium_out->limits) ||
+        medium_out->geometry.arena_nodes > VOS_STORAGE_BLKDEV_MAX_ARENA_NODES ||
+        medium_out->journal_count > VOS_STORAGE_BLKDEV_MAX_JOURNAL_FRAMES ||
+        medium_out->journal_reusable > 1u ||
+        medium_out->has_fallback > 1u) {
+        zero_bytes((uint8_t *)medium_out, sizeof(*medium_out));
+        return 0;
+    }
+    medium_out->nonce_record.domain_id = get_le64(medium_bytes + 64u);
+    medium_out->nonce_record.key_epoch = get_le64(medium_bytes + 72u);
+    medium_out->nonce_record.reserved_generation = get_le64(medium_bytes + 80u);
+    medium_out->nonce_record.max_generation = get_le64(medium_bytes + 88u);
+    copy_bytes(medium_out->nonce_record.mac, medium_bytes + 96u,
+               VOS_CRYPTO_DIGEST_BYTES);
+
+    /* Blocks 1..16: encrypted arena blocks. */
+    copy_bytes(medium_out->arena_ciphertext,
+               medium_bytes + VOS_STORAGE_BLKDEV_BLOCK_BYTES,
+               (size_t)medium_out->geometry.arena_nodes * VOS_STORAGE_BLKDEV_BLOCK_BYTES);
+
+    /* Blocks 17..30: journal frames. Frame blocks may carry bit tears from an
+     * interrupted in-flight write; decode raw fields so vos_storage_reopen can
+     * apply the R-10-002a prefix-redo / MAC verification decision. */
+    for (uint32_t j = 0u; j < medium_out->journal_count; ++j) {
+        const uint8_t *hdr = medium_bytes +
+                             (size_t)(17u + 2u * j) * VOS_STORAGE_BLKDEV_BLOCK_BYTES;
+        const uint8_t *ct = hdr + VOS_STORAGE_BLKDEV_BLOCK_BYTES;
+        struct vos_storage_journal_frame *fr = &medium_out->journal[j];
+        fr->occupied = (get_le32(hdr + 0u) != 0u) ? 1u : 0u;
+        fr->frame_index = get_le32(hdr + 4u);
+        fr->kind = get_le32(hdr + 8u);
+        fr->tx_generation = get_le64(hdr + 16u);
+        fr->target_node_id = get_le64(hdr + 24u);
+        copy_bytes(fr->tag, hdr + 32u, VOS_CRYPTO_TAG_BYTES);
+        copy_bytes(fr->content_digest, hdr + 48u, VOS_CRYPTO_DIGEST_BYTES);
+        copy_bytes(fr->frame_mac, hdr + 80u, VOS_CRYPTO_DIGEST_BYTES);
+        copy_bytes(fr->ciphertext, ct, VOS_STORAGE_BLKDEV_BLOCK_BYTES);
+    }
+
+    /* Blocks 32..47: primary checkpoint. */
+    if (!decode_blkdev_checkpoint(
+            medium_bytes + 32u * VOS_STORAGE_BLKDEV_BLOCK_BYTES,
+            medium_out->geometry.arena_nodes, &medium_out->checkpoint)) {
+        zero_bytes((uint8_t *)medium_out, sizeof(*medium_out));
+        return 0;
+    }
+
+    /* Blocks 48..63: fallback checkpoint when present. */
+    if (medium_out->has_fallback) {
+        if (!decode_blkdev_checkpoint(
+                medium_bytes + 48u * VOS_STORAGE_BLKDEV_BLOCK_BYTES,
+                medium_out->geometry.arena_nodes,
+                &medium_out->fallback_checkpoint)) {
+            zero_bytes((uint8_t *)medium_out, sizeof(*medium_out));
+            return 0;
+        }
+    } else if (!all_zero(medium_bytes + 48u * VOS_STORAGE_BLKDEV_BLOCK_BYTES,
+                         BLKDEV_CP_BYTES)) {
+        zero_bytes((uint8_t *)medium_out, sizeof(*medium_out));
+        return 0;
+    }
+    return 1;
+}
+
+int vos_storage_encode_blkdev_image(
+    const struct vos_storage_medium *medium,
+    uint8_t image_bytes[VOS_STORAGE_BLKDEV_IMAGE_BYTES])
+{
+    if (medium == NULL || image_bytes == NULL) {
+        return 0;
+    }
+    zero_bytes(image_bytes, VOS_STORAGE_BLKDEV_HEADER_BYTES);
+    image_bytes[0] = 'V';
+    image_bytes[1] = 'O';
+    image_bytes[2] = 'S';
+    image_bytes[3] = 'B';
+    image_bytes[4] = 'L';
+    image_bytes[5] = 'K';
+    image_bytes[6] = '0';
+    image_bytes[7] = '1';
+    put_le64(image_bytes + 8u, VOS_STORAGE_BLKDEV_BLOCK_BYTES);
+    put_le64(image_bytes + 16u, VOS_STORAGE_BLKDEV_BLOCK_COUNT);
+    put_le64(image_bytes + 24u, 0u);
+    if (!vos_storage_encode_blkdev_medium(
+            medium, image_bytes + VOS_STORAGE_BLKDEV_HEADER_BYTES)) {
+        zero_bytes(image_bytes, VOS_STORAGE_BLKDEV_IMAGE_BYTES);
+        return 0;
+    }
+    return 1;
+}
+
+int vos_storage_decode_blkdev_image(
+    const uint8_t image_bytes[VOS_STORAGE_BLKDEV_IMAGE_BYTES],
+    struct vos_storage_medium *medium_out)
+{
+    static const uint8_t blk_magic[8] = {'V', 'O', 'S', 'B', 'L', 'K', '0', '1'};
+    if (image_bytes == NULL || medium_out == NULL ||
+        !equal_bytes_ct(image_bytes, blk_magic, sizeof(blk_magic)) ||
+        get_le64(image_bytes + 8u) != VOS_STORAGE_BLKDEV_BLOCK_BYTES ||
+        get_le64(image_bytes + 16u) != VOS_STORAGE_BLKDEV_BLOCK_COUNT ||
+        get_le64(image_bytes + 24u) != 0u) {
+        return 0;
+    }
+    return vos_storage_decode_blkdev_medium(
+        image_bytes + VOS_STORAGE_BLKDEV_HEADER_BYTES, medium_out);
+}
+
+int vos_storage_reopen_blkdev_image(
+    const uint8_t image_bytes[VOS_STORAGE_BLKDEV_IMAGE_BYTES],
+    struct vos_storage_medium *medium,
+    struct vos_storage_store *store,
+    struct vos_crypto_core *crypto,
+    uint32_t crypto_slot,
+    uint64_t expected_domain_id)
+{
+    if (image_bytes == NULL || medium == NULL || store == NULL) {
+        return 0;
+    }
+    zero_bytes((uint8_t *)store, sizeof(*store));
+    if (!vos_storage_decode_blkdev_image(image_bytes, medium)) {
+        return 0;
+    }
+    return vos_storage_reopen(medium, store, crypto, crypto_slot,
+                              expected_domain_id);
+}
+
+void vos_storage_apply_block_tear(
+    uint8_t medium_bytes[VOS_STORAGE_BLKDEV_MEDIUM_BYTES],
+    uint32_t block_index,
+    const uint8_t old_block[VOS_STORAGE_BLKDEV_BLOCK_BYTES],
+    const uint8_t new_block[VOS_STORAGE_BLKDEV_BLOCK_BYTES],
+    const uint8_t tear_mask[VOS_STORAGE_BLKDEV_BLOCK_BYTES])
+{
+    if (medium_bytes == NULL || old_block == NULL || new_block == NULL ||
+        tear_mask == NULL || block_index >= VOS_STORAGE_BLKDEV_BLOCK_COUNT) {
+        return;
+    }
+    uint8_t *dst = medium_bytes +
+                   (size_t)block_index * VOS_STORAGE_BLKDEV_BLOCK_BYTES;
+    for (size_t i = 0u; i < VOS_STORAGE_BLKDEV_BLOCK_BYTES; ++i) {
+        dst[i] = (uint8_t)((old_block[i] & (uint8_t)~tear_mask[i]) |
+                           (new_block[i] & tear_mask[i]));
+    }
 }

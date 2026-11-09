@@ -343,7 +343,7 @@
       ],
       "descriptor": {
         "path": "tools/composer/packages/crypto-core.json",
-        "sha256": "186bd37159cc55115cb8ff20618376ae66bffeb15d627babdca2ccf170dabc17"
+        "sha256": "6f5f24e758f5c47b985c3026b7946f54e24fe04a742784fff3ad83b9dedc6a23"
       },
       "artifact_slot": "crypto-core-artifact",
       "entry": null,
@@ -375,7 +375,7 @@
       ],
       "descriptor": {
         "path": "tools/composer/packages/storage.json",
-        "sha256": "ca029476006738da14320d3c964c32357559dd5acb65f5097e6780c43f1f0b11"
+        "sha256": "87adf7f1441ab996357fa1484149471af2d2076c39fb80a10e43275c73eaef4d"
       },
       "artifact_slot": "storage-artifact",
       "entry": null,

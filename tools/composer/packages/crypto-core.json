@@ -4,11 +4,11 @@
   "sources": [
     {
       "path": "storage/src/crypto_core.c",
-      "sha256": "634edd5efc9df2ca68d1985e301c0316e2555fb633e387958252846ca67f98db"
+      "sha256": "591ed51e96bcb4310792371afa0ce06983dbe12734c4a42027ba3db20e8a8b73"
     },
     {
       "path": "storage/include/vos_crypto_core.h",
-      "sha256": "5c2b3f321bac5614e9d26a6bb70916301b718ce64e10e50aebb174b0718d51bb"
+      "sha256": "0ef29c0dfa347cdd7d23936aa585b5902ddea9617f4e0f025fdffedc2f901d6b"
     },
     {
       "path": "proofs/Keccak.v",
@@ -32,7 +32,7 @@
       "id": "storage-crypto-boundary",
       "source": {
         "path": "storage/README.md",
-        "sha256": "dc15db93abf23f97273679d9b895c5dd3b6d647ac1be4a47a3b61ebcf2860684"
+        "sha256": "5516d47ad71645e00fec12a84cd332012dc1e90366c31139857759c06cf64269"
       }
     },
     {
@@ -46,7 +46,7 @@
       "id": "storage-authentication",
       "source": {
         "path": "docs/implementation/storage-recovery-policy.md",
-        "sha256": "3c2474f9337d2b5f62a6b29fb35532c44c4934923b582e6c6185b1eb12870b8b"
+        "sha256": "23674a18d27182282eb9fb2caf48d4a8adfb4df23e4a1f2c85f1c6d8ca895116"
       }
     }
   ],

@@ -134,13 +134,25 @@ R-10-014, R-10-032).
   checking the domain-separated object digest and verifying `(object_id, root, version)`
   membership in the store's authenticated B+ tree without mutating common
   owner state.
+- `vos_storage_encode_blkdev_medium`, `vos_storage_decode_blkdev_medium`,
+  `vos_storage_encode_blkdev_image`, `vos_storage_decode_blkdev_image`,
+  `vos_storage_reopen_blkdev_image` and `vos_storage_apply_block_tear` map
+  `struct vos_storage_medium` onto the modeled block device's 8192-byte
+  (`64` blocks of `128` bytes) medium and 32-byte `"VOSBLK01"` persistent image
+  header ([interfaces/block-device-contract.md](../interfaces/block-device-contract.md)),
+  with [the C++ `blkdev::image` join harness](host/storage_blkdev_join.cpp)
+  linking `storage_publish.c` and `crypto_core.c` directly to
+  [model/c_emulator/blkdev_image.cpp](../model/c_emulator/blkdev_image.cpp).
 
 `python tools/run.py test --only storage_publish` checks the Python SHA-256,
 HMAC-SHA-256 and domain-KDF oracle on both platforms; Linux additionally builds
-and runs [the native C harness](host/storage_publish.c) across NIST test vectors,
-all five crash cuts, non-prefix tear/swap/rollback refusals, two-instance
-(`system-integrity` and `user-data`) execution over the shared L1 index body
-(R-10-003), and Q44 resident-read completion with zero common per-read writes,
-and kills six compiled behavioral mutants across `crypto_core.c` and
-`storage_publish.c`. Target purecap/Sail execution and Gallina refinement of the
-extended tree operations remain open.
+and runs [the native C harness](host/storage_publish.c) and
+[the `blkdev::image` join harness](host/storage_blkdev_join.cpp) across NIST
+test vectors, all five crash cuts, `"VOSBLK01"` image header/geometry
+validation, `verifiedos-blkdev-receipt-2` SHA-256 chaining across writer close
+and reader open, non-prefix reset bit tears (`(old & ~m) | (new & m)`),
+swap/rollback refusals, two-instance (`system-integrity` and `user-data`)
+execution over the shared L1 index body (R-10-003), and Q44 resident-read
+completion with zero common per-read writes, and kills eight compiled behavioral
+mutants across `crypto_core.c` and `storage_publish.c`. Target purecap/Sail
+execution and Gallina refinement of the extended tree operations remain open.

@@ -27,6 +27,9 @@ TREE_IMAGE_SOURCE = ROOT / "storage" / "src" / "tree_image.c"
 TREE_UPDATE_SOURCE = ROOT / "storage" / "src" / "tree_update.c"
 RESIDENT_SOURCE = ROOT / "storage" / "src" / "resident_reads.c"
 HARNESS = ROOT / "storage" / "host" / "storage_publish.c"
+BLKDEV_JOIN_HARNESS = ROOT / "storage" / "host" / "storage_blkdev_join.cpp"
+BLKDEV_IMAGE_CPP = ROOT / "model" / "c_emulator" / "blkdev_image.cpp"
+BLKDEV_IMAGE_H = ROOT / "model" / "c_emulator" / "blkdev_image.h"
 
 
 def _compiler() -> str:
@@ -35,6 +38,14 @@ def _compiler() -> str:
         if found is not None:
             return found
     raise AssertionError("no C compiler available in guest test lane")
+
+
+def _cxx_compiler() -> str:
+    for candidate in ("c++", "g++", "clang++"):
+        found = shutil.which(candidate)
+        if found is not None:
+            return found
+    raise AssertionError("no C++ compiler available in guest test lane")
 
 
 def _derive_purpose_key(master_key: bytes, domain_id: int,
@@ -180,6 +191,12 @@ def _compile_and_run_c_harness() -> None:
                 "committed_value = resident_tree_value(identity->root, identity->version);\n"
                 "    if (0) {",
             ),
+            (
+                "publish",
+                "accept wrong geometry in VOSBLK01 image decode",
+                "get_le64(image_bytes + 8u) != VOS_STORAGE_BLKDEV_BLOCK_BYTES ||",
+                "(0 && get_le64(image_bytes + 8u) != VOS_STORAGE_BLKDEV_BLOCK_BYTES) ||",
+            ),
         ]
 
         for idx, (kind, label, target, replacement) in enumerate(mutants):
@@ -221,8 +238,89 @@ def _compile_and_run_c_harness() -> None:
             ensure(m_ran.returncode != 0, f"mutant survived: {label}")
 
 
+def _compile_and_run_blkdev_image_join() -> None:
+    cc = _compiler()
+    cxx = _cxx_compiler()
+    c_sources = [
+        NODE_SOURCE,
+        TREE_IMAGE_SOURCE,
+        TREE_UPDATE_SOURCE,
+        RESIDENT_SOURCE,
+        CRYPTO_SOURCE,
+        PUBLISH_SOURCE,
+    ]
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp_path = Path(tmp)
+        objs: list[str] = []
+        for idx, src in enumerate(c_sources):
+            obj = tmp_path / f"c_{idx}.o"
+            built_c = subprocess.run(
+                [
+                    cc,
+                    "-std=c11",
+                    "-O2",
+                    "-Wall",
+                    "-Wextra",
+                    "-Werror",
+                    f"-I{CRYPTO_HEADER.parent}",
+                    "-c",
+                    str(src),
+                    "-o",
+                    str(obj),
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+                timeout=60,
+            )
+            ensure(built_c.returncode == 0, f"failed to compile {src}: {built_c.stderr}")
+            objs.append(str(obj))
+
+        join_bin = tmp_path / "storage_blkdev_join"
+        built_cxx = subprocess.run(
+            [
+                cxx,
+                "-std=c++17",
+                "-O2",
+                "-Wall",
+                "-Wextra",
+                "-Werror",
+                f"-I{CRYPTO_HEADER.parent}",
+                f"-I{BLKDEV_IMAGE_H.parent}",
+                str(BLKDEV_IMAGE_CPP),
+                str(BLKDEV_JOIN_HARNESS),
+                *objs,
+                "-o",
+                str(join_bin),
+            ],
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=60,
+        )
+        ensure(
+            built_cxx.returncode == 0,
+            f"failed to compile storage_blkdev_join: {built_cxx.stderr}",
+        )
+        scratch = tmp_path / "blkdev_scratch"
+        scratch.mkdir(parents=True, exist_ok=True)
+        ran = subprocess.run(
+            [str(join_bin), str(scratch)],
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=60,
+        )
+        ensure(
+            ran.returncode == 0,
+            f"storage_blkdev_join failed: {ran.stderr or ran.stdout}",
+        )
+        ensure("storage_blkdev_join: ok" in ran.stdout, f"unexpected output: {ran.stdout!r}")
+
+
 def cases() -> list[Case]:
     return [
         Case("storage_publish_python_oracle", _check_python_crypto_and_kdf_oracle, lane="any"),
         Case("storage_publish_c_harness_and_mutants", _compile_and_run_c_harness, lane="guest"),
+        Case("storage_publish_blkdev_image_join", _compile_and_run_blkdev_image_join, lane="guest"),
     ]

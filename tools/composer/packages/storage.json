@@ -24,7 +24,7 @@
     },
     {
       "path": "storage/src/storage_publish.c",
-      "sha256": "285f35e6892059759f800fe2a7c24a2cb8632b1040ed93dee9c6db0b7de76edb"
+      "sha256": "715cb8e664abdecaefa59e0aa4cdb3b09c10fc7292ef72937582a4de911c8409"
     },
     {
       "path": "storage/include/vos_node_image.h",
@@ -48,7 +48,7 @@
     },
     {
       "path": "storage/include/vos_storage_publish.h",
-      "sha256": "001ee0780bb6eaf4c5f2a92864ae95efdfabab4c28d934850542fc373868e938"
+      "sha256": "6eef3b3fa01648f504303241bc51a63d1d1baab5fbb8e925983974074c1ac3bc"
     },
     {
       "path": "proofs/ExecutableIndex.v",
@@ -72,7 +72,7 @@
       "id": "storage-boundary",
       "source": {
         "path": "storage/README.md",
-        "sha256": "dc15db93abf23f97273679d9b895c5dd3b6d647ac1be4a47a3b61ebcf2860684"
+        "sha256": "5516d47ad71645e00fec12a84cd332012dc1e90366c31139857759c06cf64269"
       }
     },
     {
@@ -86,7 +86,7 @@
       "id": "storage-recovery",
       "source": {
         "path": "docs/implementation/storage-recovery-policy.md",
-        "sha256": "3c2474f9337d2b5f62a6b29fb35532c44c4934923b582e6c6185b1eb12870b8b"
+        "sha256": "23674a18d27182282eb9fb2caf48d4a8adfb4df23e4a1f2c85f1c6d8ca895116"
       }
     },
     {

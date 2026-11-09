@@ -97,15 +97,21 @@ credit or estimate reduction before measured integration evidence exists.
 bytes (`node_image.c`, `tree_image.c`, `tree_update.c`), coordinate-derived
 96-bit AES-GCM nonces (R-10-022a, F-458), domain-separated keyed digests
 (R-10-016), HMAC-signed complete-transaction payload manifests and checkpoints,
-and RoT-sealed `Fresh` epochs (R-10-013c, R-10-013e). `python tools/run.py test --only storage_publish`
-exercises all five crash cuts (`VOS_STORAGE_CUT_AFTER_RESERVE`,
-`VOS_STORAGE_CUT_MID_PAYLOAD`, `VOS_STORAGE_CUT_BEFORE_CHECKPOINT`,
-`VOS_STORAGE_CUT_BEFORE_EPOCH_SEAL`, `VOS_STORAGE_CUT_BEFORE_ACK`), non-prefix
-journal tear/swap/rollback refusals, two-instance (`system-integrity` and
-`user-data`) execution and Q44's `vos_storage_verify_resident` join, and kills
-six compiled behavioral mutants. Joining this C producer to the emulator's
-`blkdev_image` persistent device adapter and purecap Sail target execution
-remains open under M5.3d.
+RoT-sealed `Fresh` epochs (R-10-013c, R-10-013e), and canonical 8192-byte
+logical-block serialization (`64` blocks of `128` bytes) with `"VOSBLK01"`
+header framing (`vos_storage_encode_blkdev_image`,
+`vos_storage_reopen_blkdev_image`, `vos_storage_apply_block_tear`) joined
+directly to the emulator's [persistent `blkdev_image` adapter](../../model/c_emulator/blkdev_image.cpp)
+in [`storage/host/storage_blkdev_join.cpp`](../../storage/host/storage_blkdev_join.cpp).
+`python tools/run.py test --only storage_publish` exercises all five crash cuts
+(`VOS_STORAGE_CUT_AFTER_RESERVE`, `VOS_STORAGE_CUT_MID_PAYLOAD`,
+`VOS_STORAGE_CUT_BEFORE_CHECKPOINT`, `VOS_STORAGE_CUT_BEFORE_EPOCH_SEAL`,
+`VOS_STORAGE_CUT_BEFORE_ACK`), `blkdev::image` create/persist/reopen with
+`verifiedos-blkdev-receipt-2` SHA-256 chaining, non-prefix block bit tears
+(`(old & ~m) | (new & m)`), journal tear/swap/rollback refusals, two-instance
+(`system-integrity` and `user-data`) execution and Q44's
+`vos_storage_verify_resident` join, and kills eight compiled behavioral mutants.
+Purecap Sail target execution remains open under M5.3d.
 
 ## Acceptance fixed before companion authoring
 

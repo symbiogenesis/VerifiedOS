@@ -706,6 +706,162 @@ static int check_two_instances_and_resident_reads(void)
     return 1;
 }
 
+static int check_blkdev_image_serialization_and_tears(void)
+{
+    static const struct vos_node_geometry geom = {
+        .fan = 4u,
+        .arena_nodes = 16u,
+        .block_bytes = 128u
+    };
+    static const struct vos_tree_limits limits = {
+        .height = 0u,
+        .depth_limit = 4u,
+        .visit_limit = 64u
+    };
+    static const uint8_t master[32] = {
+        0x11u, 0x22u, 0x33u, 0x44u, 0x55u, 0x66u, 0x77u, 0x88u,
+        0x99u, 0xaau, 0xbbu, 0xccu, 0xddu, 0xeeu, 0xffu, 0x00u,
+        0x01u, 0x23u, 0x45u, 0x67u, 0x89u, 0xabu, 0xcdu, 0xefu,
+        0xfeu, 0xdcu, 0xbau, 0x98u, 0x76u, 0x54u, 0x32u, 0x10u
+    };
+    const uint64_t dom = 0x5050u;
+    struct vos_crypto_core crypto;
+    struct vos_storage_medium medium;
+    struct vos_storage_store store;
+    vos_crypto_core_init(&crypto, 16u);
+    if (!vos_crypto_core_unlock_domain(&crypto, VOS_CRYPTO_DOMAIN_SYSTEM,
+                                       dom, 1u, master, sizeof(master)) ||
+        !vos_storage_format(&medium, &store, &crypto, VOS_CRYPTO_DOMAIN_SYSTEM,
+                            dom, 1u, &geom, &limits, 1u, 64u)) {
+        return 0;
+    }
+
+    struct vos_storage_tx_spec tx = {
+        .op_kind = VOS_STORAGE_OP_INSERT,
+        .commit_mode = VOS_STORAGE_COMMIT_ROLLBACKABLE,
+        .key = 100u,
+        .value = 1000u
+    };
+    uint64_t ack = 0u;
+    if (!apply_commit(&store, dom, &tx, &ack) || ack != 2u) {
+        return 0;
+    }
+
+    uint8_t img_gen2[VOS_STORAGE_BLKDEV_IMAGE_BYTES] = {0};
+    if (!vos_storage_encode_blkdev_image(&medium, img_gen2) ||
+        memcmp(img_gen2, "VOSBLK01", 8u) != 0) {
+        return 0;
+    }
+
+    /* Reopen into fresh zeroed medium and store from the VOSBLK01 image bytes. */
+    struct vos_storage_medium reopened_med;
+    struct vos_storage_store reopened_store;
+    uint64_t val = 0u;
+    if (!vos_storage_reopen_blkdev_image(img_gen2, &reopened_med,
+                                         &reopened_store, &crypto,
+                                         VOS_CRYPTO_DOMAIN_SYSTEM, dom) ||
+        reopened_store.committed_generation != 2u ||
+        vos_storage_lookup(&reopened_store, dom, 100u, &val) != VOS_TREE_FOUND ||
+        val != 1000u) {
+        return 0;
+    }
+
+    /* Header corruption and wrong-geometry refusals. */
+    uint8_t bad_img[VOS_STORAGE_BLKDEV_IMAGE_BYTES];
+    memcpy(bad_img, img_gen2, sizeof(bad_img));
+    bad_img[7] = '2';
+    if (vos_storage_reopen_blkdev_image(bad_img, &reopened_med, &reopened_store,
+                                        &crypto, VOS_CRYPTO_DOMAIN_SYSTEM, dom)) {
+        return 0;
+    }
+    memcpy(bad_img, img_gen2, sizeof(bad_img));
+    bad_img[8] = 64u; /* wrong block_bytes = 64 */
+    if (vos_storage_reopen_blkdev_image(bad_img, &reopened_med, &reopened_store,
+                                        &crypto, VOS_CRYPTO_DOMAIN_SYSTEM, dom)) {
+        return 0;
+    }
+    memcpy(bad_img, img_gen2, sizeof(bad_img));
+    bad_img[24] = 1u; /* non-zero reserved header byte */
+    if (vos_storage_reopen_blkdev_image(bad_img, &reopened_med, &reopened_store,
+                                        &crypto, VOS_CRYPTO_DOMAIN_SYSTEM, dom)) {
+        return 0;
+    }
+
+    /* Non-prefix bit tear ((old & ~m) | (new & m)) on an uncommitted journal
+     * frame block during VOS_STORAGE_CUT_BEFORE_CHECKPOINT: reopen discards the
+     * uncommitted journal and preserves generation 2. */
+    tx.key = 200u;
+    tx.value = 2000u;
+    if (!vos_storage_reserve(&store, dom, &tx) ||
+        !vos_storage_stage(&store, dom) ||
+        vos_storage_publish(&store, dom, VOS_STORAGE_CUT_BEFORE_CHECKPOINT, &ack)) {
+        return 0;
+    }
+    uint8_t img_cut3[VOS_STORAGE_BLKDEV_IMAGE_BYTES] = {0};
+    if (!vos_storage_encode_blkdev_image(&medium, img_cut3)) {
+        return 0;
+    }
+    uint8_t mask[VOS_STORAGE_BLKDEV_BLOCK_BYTES];
+    for (size_t i = 0u; i < sizeof(mask); ++i) {
+        mask[i] = (uint8_t)((i & 1u) ? 0x5au : 0xa5u);
+    }
+    const uint8_t *old_blk18 =
+        img_gen2 + VOS_STORAGE_BLKDEV_HEADER_BYTES + 18u * VOS_STORAGE_BLKDEV_BLOCK_BYTES;
+    const uint8_t *new_blk18 =
+        img_cut3 + VOS_STORAGE_BLKDEV_HEADER_BYTES + 18u * VOS_STORAGE_BLKDEV_BLOCK_BYTES;
+    uint8_t new_blk18_copy[VOS_STORAGE_BLKDEV_BLOCK_BYTES];
+    memcpy(new_blk18_copy, new_blk18, sizeof(new_blk18_copy));
+    vos_storage_apply_block_tear(
+        img_cut3 + VOS_STORAGE_BLKDEV_HEADER_BYTES, 18u,
+        old_blk18, new_blk18_copy, mask);
+    if (!vos_storage_reopen_blkdev_image(img_cut3, &reopened_med,
+                                         &reopened_store, &crypto,
+                                         VOS_CRYPTO_DOMAIN_SYSTEM, dom) ||
+        reopened_store.committed_generation != 2u ||
+        reopened_med.nonce_record.reserved_generation != 3u ||
+        vos_storage_lookup(&reopened_store, dom, 200u, &val) != VOS_TREE_MISSING ||
+        vos_storage_lookup(&reopened_store, dom, 100u, &val) != VOS_TREE_FOUND ||
+        val != 1000u) {
+        return 0;
+    }
+
+    /* VOS_STORAGE_CUT_BEFORE_ACK serialized to VOSBLK01 image: intact image
+     * replays committed redo prefix to generation 4; non-prefix bit tear on
+     * the committed journal block 18 is refused by Reopen! */
+    if (!vos_storage_reopen(&medium, &store, &crypto,
+                            VOS_CRYPTO_DOMAIN_SYSTEM, dom) ||
+        !vos_storage_reserve(&store, dom, &tx) ||
+        !vos_storage_stage(&store, dom) ||
+        vos_storage_publish(&store, dom, VOS_STORAGE_CUT_BEFORE_ACK, &ack)) {
+        return 0;
+    }
+    uint8_t img_cut5[VOS_STORAGE_BLKDEV_IMAGE_BYTES] = {0};
+    if (!vos_storage_encode_blkdev_image(&medium, img_cut5)) {
+        return 0;
+    }
+    if (!vos_storage_reopen_blkdev_image(img_cut5, &reopened_med,
+                                         &reopened_store, &crypto,
+                                         VOS_CRYPTO_DOMAIN_SYSTEM, dom) ||
+        reopened_store.committed_generation != 4u ||
+        vos_storage_lookup(&reopened_store, dom, 200u, &val) != VOS_TREE_FOUND ||
+        val != 2000u) {
+        return 0;
+    }
+    memcpy(new_blk18_copy,
+           img_cut5 + VOS_STORAGE_BLKDEV_HEADER_BYTES +
+               18u * VOS_STORAGE_BLKDEV_BLOCK_BYTES,
+           sizeof(new_blk18_copy));
+    vos_storage_apply_block_tear(
+        img_cut5 + VOS_STORAGE_BLKDEV_HEADER_BYTES, 18u,
+        old_blk18, new_blk18_copy, mask);
+    if (vos_storage_reopen_blkdev_image(img_cut5, &reopened_med,
+                                        &reopened_store, &crypto,
+                                        VOS_CRYPTO_DOMAIN_SYSTEM, dom)) {
+        return 0;
+    }
+    return 1;
+}
+
 int main(void)
 {
     if (!check_crypto_primitives()) {
@@ -722,6 +878,10 @@ int main(void)
     }
     if (!check_two_instances_and_resident_reads()) {
         fprintf(stderr, "storage_publish: two-instance and resident-read check failed\n");
+        return 1;
+    }
+    if (!check_blkdev_image_serialization_and_tears()) {
+        fprintf(stderr, "storage_publish: blkdev_image serialization and tears check failed\n");
         return 1;
     }
     printf("storage_publish: ok\n");

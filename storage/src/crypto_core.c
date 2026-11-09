@@ -916,6 +916,7 @@ int vos_crypto_core_seal_epoch(struct vos_crypto_core *core, uint32_t slot,
                        state_digest, core->sealed_epoch_root);
     core->rot_epoch_counter = next_epoch;
     core->epoch_sealed = 1u;
+    core->epoch_sealed_mask |= (1u << slot);
     *sealed_epoch_out = next_epoch;
     copy_bytes(epoch_root_out, core->sealed_epoch_root, VOS_CRYPTO_DIGEST_BYTES);
     return 1;

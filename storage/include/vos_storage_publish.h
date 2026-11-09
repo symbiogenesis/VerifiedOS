@@ -17,7 +17,17 @@ enum {
     VOS_STORAGE_MAX_JOURNAL_FRAMES = 32u,
     VOS_STORAGE_MAX_SNAPSHOTS = 8u,
     VOS_STORAGE_MAX_DEADLIST = 64u,
-    VOS_STORAGE_MAX_BATCH = VOS_TREE_MAX_BATCH
+    VOS_STORAGE_MAX_BATCH = VOS_TREE_MAX_BATCH,
+    VOS_STORAGE_BLKDEV_BLOCK_BYTES = 128u,
+    VOS_STORAGE_BLKDEV_BLOCK_COUNT = 64u,
+    VOS_STORAGE_BLKDEV_MEDIUM_BYTES =
+        VOS_STORAGE_BLKDEV_BLOCK_BYTES * VOS_STORAGE_BLKDEV_BLOCK_COUNT,
+    VOS_STORAGE_BLKDEV_HEADER_BYTES = 32u,
+    VOS_STORAGE_BLKDEV_IMAGE_BYTES =
+        VOS_STORAGE_BLKDEV_HEADER_BYTES + VOS_STORAGE_BLKDEV_MEDIUM_BYTES,
+    VOS_STORAGE_BLKDEV_MAX_ARENA_NODES = 16u,
+    VOS_STORAGE_BLKDEV_MAX_JOURNAL_FRAMES = 7u,
+    VOS_STORAGE_BLKDEV_MAX_DEADLIST = 16u
 };
 
 enum vos_storage_op_kind {
@@ -211,5 +221,36 @@ int vos_storage_verify_resident(void *verification,
                                 const struct vos_resident_identity *identity,
                                 const uint8_t *bytes,
                                 size_t length);
+
+int vos_storage_encode_blkdev_medium(
+    const struct vos_storage_medium *medium,
+    uint8_t medium_bytes[VOS_STORAGE_BLKDEV_MEDIUM_BYTES]);
+
+int vos_storage_decode_blkdev_medium(
+    const uint8_t medium_bytes[VOS_STORAGE_BLKDEV_MEDIUM_BYTES],
+    struct vos_storage_medium *medium_out);
+
+int vos_storage_encode_blkdev_image(
+    const struct vos_storage_medium *medium,
+    uint8_t image_bytes[VOS_STORAGE_BLKDEV_IMAGE_BYTES]);
+
+int vos_storage_decode_blkdev_image(
+    const uint8_t image_bytes[VOS_STORAGE_BLKDEV_IMAGE_BYTES],
+    struct vos_storage_medium *medium_out);
+
+int vos_storage_reopen_blkdev_image(
+    const uint8_t image_bytes[VOS_STORAGE_BLKDEV_IMAGE_BYTES],
+    struct vos_storage_medium *medium,
+    struct vos_storage_store *store,
+    struct vos_crypto_core *crypto,
+    uint32_t crypto_slot,
+    uint64_t expected_domain_id);
+
+void vos_storage_apply_block_tear(
+    uint8_t medium_bytes[VOS_STORAGE_BLKDEV_MEDIUM_BYTES],
+    uint32_t block_index,
+    const uint8_t old_block[VOS_STORAGE_BLKDEV_BLOCK_BYTES],
+    const uint8_t new_block[VOS_STORAGE_BLKDEV_BLOCK_BYTES],
+    const uint8_t tear_mask[VOS_STORAGE_BLKDEV_BLOCK_BYTES]);
 
 #endif

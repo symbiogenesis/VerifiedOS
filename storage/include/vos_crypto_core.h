@@ -38,6 +38,7 @@ struct vos_crypto_core {
     uint64_t rot_epoch_counter;
     uint64_t rot_epoch_ceiling;
     uint32_t epoch_sealed;
+    uint32_t epoch_sealed_mask;
     uint8_t sealed_epoch_root[VOS_CRYPTO_DIGEST_BYTES];
 };
 
