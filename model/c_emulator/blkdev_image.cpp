@@ -444,9 +444,10 @@ bool image::persist_impl(uint64_t kind, uint64_t offset, uint64_t length, const 
         }
         bytes[i] = static_cast<uint8_t>(value);
       }
-      if (durable && kind != static_cast<uint64_t>(event::read) &&
-          kind != static_cast<uint64_t>(event::flush) &&
-          !write_all(m_fd, bytes.data(), bytes.size(), header_bytes + offset)) {
+      if (
+        durable && kind != static_cast<uint64_t>(event::read) && kind != static_cast<uint64_t>(event::flush) &&
+        !write_all(m_fd, bytes.data(), bytes.size(), header_bytes + offset)
+      ) {
         durable = false;
         failure = error_text();
       }
