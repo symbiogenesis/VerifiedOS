@@ -2926,57 +2926,44 @@ local checks, recommended validation and deferred acceptance.
 
 ## Tooling review reliability fixes
 
-### Follow-through contract
+**Scope:** the behavioral runner, owned host-gate process trees, native slow
+controls and reviewed requirement/prose agreement. The
+[failure-prevention contract](tools/ci/failure-prevention.md),
+[Guest CI contract](tools/ci/README.md) and
+[local completion contract](tools/fanout.md) own their detailed boundaries.
+The contracts and acceptance predicates were committed before implementation.
 
-**Start:** the integrated review fixes, the [failure-prevention contract](tools/ci/failure-prevention.md),
-the [Guest CI contract](tools/ci/README.md) and the existing Q43/M7.1d contracts.
-**Owns:** reviewed restoration of pending requirement/prose readings; owned
-process-tree cleanup for host gate deadlines; live behavioral-test progress;
-and scheduled native slow-control coverage. Preserve existing acceptance and
-do not turn absent compiler qualifications or unresolved member products into
-successful reuse or production composition.
+**Acceptance:** pending entry/prose pairs are read through `coread --show`,
+discrepancies repaired at their owner and agreement recorded explicitly.
+Real bounded subprocess fixtures cover child/grandchild cleanup, nested authored
+commands, unaffected siblings, retained output and cleanup failures on Windows
+and Linux. Behavioral tests checkpoint queued, running and completed modules
+while final reports remain deterministic; diagnostic failure cannot change a
+verdict. Native selection derives slow toolchain cases, excludes ordinary and
+host-only recursive cases, refuses unavailable tools or empty coverage, and runs
+serially after every successful Guest model evidence run. Existing traceback,
+skip-reporting, binary byte-preservation and explicit-path handoff controls remain
+required. Focused controls and static analysis precede the local fanout handoff;
+full suites, native model controls, benchmarks and hosted acceptance remain
+user-managed.
 
-**Check:** read each pending entry/prose pair with `coread --show` and bless only
-agreement, repairing discrepancies at their owner. Real bounded subprocess
-fixtures cover child/grandchild cleanup, retained output and timeout refusals on
-both host platforms. Behavioral tests checkpoint completed and running modules
-while final reports retain deterministic order; snapshot failures cannot alter
-verdicts. A dedicated native slow-case selection excludes ordinary cases and
-host-only recursive gate checks, refuses missing toolchains or empty selection,
-and runs after successful model evidence in scheduled/cold Guest CI. Focused
-selection, progress, process ownership and workflow controls precede static
-analysis and the local fanout handoff. Full suites, native model controls,
-benchmarks and hosted acceptance remain user-managed under the shared handoff.
-For Q43 and M7.1d, inspect and repair actual implementation gaps within their
-landed contracts; report missing qualified producers and target products as
-unmet joins rather than fabricate their evidence. This predicate is committed
-before implementation.
+**Local result:** the pending co-read worklist is clear after full pair review,
+with misplaced bookmarks and omitted or conflicting prose repaired against the
+existing requirements. Process ownership, live progress and native scheduling
+implementations are integrated on local `main`; focused Windows/Linux process,
+runner and Guest reporting controls pass. Composition projections reproduce from
+the reviewed roster contract. The `tooling-followthrough-20261109` journal owns
+the final local handoff and full hosted recommendations. Hosted acceptance stays
+pending until the user supplies its evidence or requests inspection.
 
-**Start:** the behavioral runner, explicit-path fanout preparation and the
-[local completion contract](tools/fanout.md). **Owns:** failure tracebacks for
-test cases and module loading; visible counts and reasons for skipped cases;
-reviewable new binary deliverables through `fanout finish --path`.
-
-**Check:** focused runner controls retain exception type, failing source location,
-chained exceptions, continuation after failures, captured output and deterministic
-report order. Slow/lane filtering and empty shard shares keep their existing
-selection and verdicts while reports distinguish no selected cases from executed
-passing cases. A temporary-repository fanout control commits a new non-UTF-8
-binary byte-for-byte, prints its size and SHA-256 for review and leaves unrelated
-files unstaged. Existing text previews, path containment and explicit staging
-controls remain required. Run focused `test_runner` and `test_fanout` controls,
-static analysis and the local fanout handoff; the user owns hosted acceptance.
-Implementation starts after this predicate is committed.
-
-Implemented locally: runner failures retain tracebacks and skipped-case reasons;
-binary handoffs retain reviewable identities and exact bytes. Focused runner,
-fanout and lane controls and Python static analysis pass. The
-`tooling-review-20261109` fanout journal records integration and the requested
-full hosted scope. Existing K-61 prose-review debt prevents final handoff and
-retirement: the same pending pairs occur at the session's starting revision,
-and neither normative input nor the co-read ledger changed. Read the owed pairs
-before recording agreement; automatic blessing cannot supply that review.
-Hosted acceptance remains user-managed and pending.
+**Producer joins:** Q43 already implements default validated reuse, including
+actual compilation-tier reuse; complete-tier reuse still requires Q39's genuine
+completed qualification. M7.1d already implements the typed input, source-bound
+projections and generated-manifest consumer adapters; real target products,
+handler choices, authenticated handoff and independent admission remain their
+existing owners' joins. Missing producers supply no successful reuse or
+production-composition verdict, and no extra cold compiler audit is commissioned
+merely to test the cache.
 
 ## C modernization
 
