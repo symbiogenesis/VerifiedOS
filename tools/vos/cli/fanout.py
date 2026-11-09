@@ -296,7 +296,14 @@ def _prepare(root: Path, paths: list[str], message: str | None) -> None:
         for relative in normalized:
             print(_git(root, "--literal-pathspecs", "diff", "HEAD", "--", relative), flush=True)
             if not _git(root, "--literal-pathspecs", "ls-files", "--", relative):
-                print(f"new file: {relative}\n{(root / relative).read_text(encoding='utf-8')}", flush=True)
+                target = root / relative
+                try:
+                    preview = target.read_text(encoding="utf-8")
+                except UnicodeDecodeError:
+                    print(f"new binary file: {relative} ({target.stat().st_size} bytes; "
+                          f"SHA-256 {receipts.digest(target)})", flush=True)
+                else:
+                    print(f"new file: {relative}\n{preview}", flush=True)
         _git(root, "--literal-pathspecs", "add", "--", *normalized)
     result = subprocess.run([sys.executable, str(root / "tools" / "run.py"), "check", "--fix"],
                             cwd=root, check=False, timeout=300)

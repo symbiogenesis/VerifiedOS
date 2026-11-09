@@ -1,7 +1,10 @@
 # SPDX-License-Identifier: Apache-2.0
 """Batch integration preserves worker ancestry, the journal and explicit commit paths."""
 
+import hashlib
 import json
+from contextlib import redirect_stdout
+from io import StringIO
 from pathlib import Path
 
 from tests.fanout_fixture import commit, fixture, git, init, refuses
@@ -83,6 +86,29 @@ def _explicit_commit() -> None:
                "another session's work is not staged")
 
 
+def _explicit_binary_commit() -> None:
+    with fixture() as (root, _, _):
+        payload = b"\x1f\x8b\x08\x00\xff\xfe\x80\r\n"
+        (root / "evidence.gz").write_bytes(payload)
+        (root / "unrelated.txt").write_text("other session\n", encoding="utf-8")
+        output = StringIO()
+        with redirect_stdout(output):
+            refuses(lambda: fanout._prepare(root, ["evidence.gz"], "deliver binary file"),
+                     "uncommitted inputs")
+        preview = output.getvalue()
+        ensure(f"new binary file: evidence.gz ({len(payload)} bytes; "
+               f"SHA-256 {hashlib.sha256(payload).hexdigest()})" in preview,
+               f"a binary deliverable needs a reviewable content identity: {preview}")
+        held = git(root, "rev-parse", "HEAD:evidence.gz")
+        expected = git(root, "hash-object", "--", "evidence.gz")
+        ensure(held == expected and (root / "evidence.gz").read_bytes() == payload,
+               "explicit binary staging must preserve the exact deliverable bytes")
+        ensure(git(root, "diff-tree", "--no-commit-id", "--name-only", "-r", "HEAD")
+               == "evidence.gz" and not git(root, "diff", "--cached", "--name-only")
+               and "?? unrelated.txt" in git(root, "status", "--porcelain"),
+               "binary handoff must commit only the explicitly selected file")
+
+
 def _reading_base_fixed_at_init() -> None:
     with fixture() as (root, lane, _):
         base = git(root, "rev-parse", "HEAD")
@@ -149,6 +175,7 @@ def cases() -> list[Case]:
             Case("conflict remains for integrator", _conflict),
             Case("paths, journal identity and exclusive mutation", _paths_and_journal),
             Case("only explicit paths enter commit", _explicit_commit),
+            Case("new binary files retain bytes and explicit ownership", _explicit_binary_commit),
             Case("reading base fixed at init and resumable without it",
                  _reading_base_fixed_at_init),
             Case("local revision has a strict commit identity", _local_revision_shape),
