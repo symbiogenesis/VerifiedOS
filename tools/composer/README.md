@@ -52,6 +52,15 @@ simulated reboot, selection of either package's entry, peer-entry substitution
 without replacing an existing image, stale-context invalidation and
 corrupt-state/image refusals.
 
+`composer check-fixed out/layout.json --image out/generation.elf` checks an
+existing image against the same recipe, store, complete load bytes, placement,
+permissions and selected entry. It accepts `--store` with the same default and
+returns the exact recipe, image and package identities without rebuilding or
+writing. The boot observer can consume this checked image while actual compiler,
+roster and admission qualification retain their existing owners. Substituted
+images and changes during validation refuse. These controls run in
+`test --only test_fixed_composition`.
+
 ## Typed graph reference
 
 `python tools/run.py composer compose INPUT --output out/graph.json` executes the
