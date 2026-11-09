@@ -248,7 +248,7 @@ static size_t serialize_checkpoint(const struct vos_storage_checkpoint *cp,
     buf[4] = 'H';
     buf[5] = 'K';
     buf[6] = 'P';
-    buf[7] = '2';
+    buf[7] = '3';
     put_le32(buf + 8u, cp->committed);
     put_le32(buf + 12u, cp->commit_mode);
     put_le64(buf + 16u, cp->domain_id);
@@ -260,9 +260,9 @@ static size_t serialize_checkpoint(const struct vos_storage_checkpoint *cp,
     put_le64(buf + 56u, cp->used);
     put_le64(buf + 64u, cp->fresh_region_id);
     put_le64(buf + 72u, cp->fresh_region_version);
-    put_le64(buf + 80u, cp->sealed_epoch);
+    put_le64(buf + 80u, 0u);
     size_t at = 88u;
-    copy_bytes(buf + at, cp->epoch_root, VOS_CRYPTO_DIGEST_BYTES);
+    zero_bytes(buf + at, VOS_CRYPTO_DIGEST_BYTES);
     at += VOS_CRYPTO_DIGEST_BYTES;
     copy_bytes(buf + at, cp->root_digest, VOS_CRYPTO_DIGEST_BYTES);
     at += VOS_CRYPTO_DIGEST_BYTES;
@@ -590,6 +590,24 @@ static int valid_tx_spec(const struct vos_storage_store *store,
     return 0;
 }
 
+int vos_storage_attach_persistence(struct vos_storage_store *store,
+                                    vos_storage_persistor persist, void *opaque)
+{
+    if (store == NULL || !store->open || store->attempt.reserved) return 0;
+    store->persist = persist;
+    store->persistence = opaque;
+    return 1;
+}
+
+static int persist_store(struct vos_storage_store *store)
+{
+    if (store->persist != NULL && !store->persist(store->persistence, store->medium)) {
+        store->open = 0u;
+        return 0;
+    }
+    return 1;
+}
+
 int vos_storage_reserve(struct vos_storage_store *store,
                         uint64_t caller_domain,
                         const struct vos_storage_tx_spec *spec)
@@ -630,6 +648,7 @@ int vos_storage_reserve(struct vos_storage_store *store,
         return 0;
     }
     medium->nonce_record = next_nonce;
+    if (!persist_store(store)) return 0;
 
     zero_bytes((uint8_t *)&store->attempt, sizeof(store->attempt));
     store->attempt.reserved = 1u;
@@ -903,6 +922,7 @@ int vos_storage_publish(struct vos_storage_store *store,
             medium->journal[0].frame_mac[0] ^= 0xffu;
         }
         medium->journal_count = partial;
+        if (!persist_store(store)) return 0;
         return 0;
     }
 
@@ -910,6 +930,7 @@ int vos_storage_publish(struct vos_storage_store *store,
         medium->journal[i] = att->frames[i];
     }
     medium->journal_count = att->frame_count;
+    if (!persist_store(store)) return 0;
 
     if (cut_point == VOS_STORAGE_CUT_BEFORE_CHECKPOINT) {
         return 0;
@@ -959,6 +980,7 @@ int vos_storage_publish(struct vos_storage_store *store,
         medium->fallback_checkpoint = medium->checkpoint;
         medium->has_fallback = 1u;
         medium->checkpoint = next_cp;
+        if (!persist_store(store)) return 0;
         if (cut_point == VOS_STORAGE_CUT_BEFORE_EPOCH_SEAL) {
             return 0;
         }
@@ -987,6 +1009,7 @@ int vos_storage_publish(struct vos_storage_store *store,
         medium->has_fallback = 1u;
         medium->checkpoint = next_cp;
     }
+    if (!persist_store(store)) return 0;
 
     /* Cut before acknowledgment / journal reuse: checkpoint is durable on medium,
      * and arena shadow application + journal retirement will complete on Reopen. */
@@ -1003,6 +1026,7 @@ int vos_storage_publish(struct vos_storage_store *store,
     medium->fallback_checkpoint = next_cp;
     medium->has_fallback = 1u;
 
+    if (!persist_store(store)) return 0;
     copy_bytes(store->plain_arena, att->staged_plaintext,
                (size_t)medium->geometry.arena_nodes * block_bytes);
     for (uint32_t i = 0u; i < medium->geometry.arena_nodes; ++i) {
@@ -1053,21 +1077,31 @@ int vos_storage_reopen(struct vos_storage_medium *medium,
         medium->checkpoint = medium->fallback_checkpoint;
     }
 
-    /* R-10-013c: an epoch that does not seal loses its writes rather than
-     * presenting them as fresh. Roll back unsealed Fresh checkpoints to the
-     * retained fallback checkpoint. */
-    if (medium->checkpoint.commit_mode == VOS_STORAGE_COMMIT_FRESH &&
-        medium->checkpoint.sealed_epoch == 0u) {
-        if (!medium->has_fallback ||
-            !verify_checkpoint_mac(crypto, crypto_slot, expected_domain_id,
-                                   key_epoch, medium->geometry.arena_nodes,
-                                   &medium->fallback_checkpoint)) {
-            return 0;
+    /* [Pending Fresh recovery](../../docs/implementation/storage-recovery-policy.md#storage-critique-repair-acceptance).
+     * The checkpoint authenticates state; epoch evidence is derived from RoT. */
+    struct vos_storage_checkpoint *selected = &medium->checkpoint;
+    if (selected->commit_mode == VOS_STORAGE_COMMIT_FRESH ||
+        selected->fresh_region_version != 0u ||
+        (crypto->epoch_sealed_mask & (1u << crypto_slot)) != 0u) {
+        const struct vos_crypto_epoch_seal *seal = &crypto->sealed_epochs[crypto_slot];
+        if (!vos_crypto_core_verify_epoch(crypto, crypto_slot, seal->epoch,
+                                           selected->fresh_region_id, selected->fresh_region_version,
+                                           selected->fresh_state_digest, seal->root)) {
+            if (selected->commit_mode != VOS_STORAGE_COMMIT_FRESH || !fallback_valid ||
+                medium->fallback_checkpoint.generation >= selected->generation) return 0;
+            medium->checkpoint = medium->fallback_checkpoint;
+            selected = &medium->checkpoint;
+            medium->journal_count = 0u;
+            medium->journal_reusable = 1u;
+            zero_bytes((uint8_t *)medium->journal, sizeof(medium->journal));
         }
-        medium->checkpoint = medium->fallback_checkpoint;
-        medium->journal_count = 0u;
-        medium->journal_reusable = 1u;
-        zero_bytes((uint8_t *)medium->journal, sizeof(medium->journal));
+        if (selected->fresh_region_version != 0u) {
+            if (!vos_crypto_core_verify_epoch(crypto, crypto_slot, seal->epoch,
+                                               selected->fresh_region_id, selected->fresh_region_version,
+                                               selected->fresh_state_digest, seal->root)) return 0;
+            selected->sealed_epoch = seal->epoch;
+            copy_bytes(selected->epoch_root, seal->root, VOS_CRYPTO_DIGEST_BYTES);
+        }
     }
 
     const struct vos_storage_checkpoint *cp = &medium->checkpoint;
@@ -1558,7 +1592,7 @@ int vos_storage_verify_admitted_resident(void *verification,
          cp->commit_mode == VOS_STORAGE_COMMIT_FRESH || cp->sealed_epoch != 0u) &&
         !vos_crypto_core_verify_epoch(store->crypto, store->crypto_slot,
                                       cp->sealed_epoch, cp->fresh_region_id,
-                                      cp->fresh_region_version, cp->root_digest,
+                                      cp->fresh_region_version, cp->fresh_state_digest,
                                       cp->epoch_root)) return 0;
     uint8_t expected[VOS_CRYPTO_DIGEST_BYTES];
     return compute_resident_digest(store, identity->owner, identity->domain,
@@ -1609,7 +1643,7 @@ static int encode_blkdev_checkpoint(const struct vos_storage_checkpoint *cp,
     out[4] = 'H';
     out[5] = 'K';
     out[6] = '0';
-    out[7] = '2';
+    out[7] = '3';
     put_le32(out + 8u, cp->committed ? 1u : 0u);
     put_le32(out + 12u, cp->commit_mode);
     put_le64(out + 16u, cp->domain_id);
@@ -1621,10 +1655,10 @@ static int encode_blkdev_checkpoint(const struct vos_storage_checkpoint *cp,
     put_le64(out + 56u, cp->used);
     put_le64(out + 64u, cp->fresh_region_id);
     put_le64(out + 72u, cp->fresh_region_version);
-    put_le64(out + 80u, cp->sealed_epoch);
+    put_le64(out + 80u, 0u);
     put_le32(out + 88u, cp->snapshot_count);
     put_le32(out + 92u, cp->dead_count);
-    copy_bytes(out + 96u, cp->epoch_root, VOS_CRYPTO_DIGEST_BYTES);
+    zero_bytes(out + 96u, VOS_CRYPTO_DIGEST_BYTES);
     copy_bytes(out + 128u, cp->root_digest, VOS_CRYPTO_DIGEST_BYTES);
     copy_bytes(out + 160u, cp->payload_manifest_digest, VOS_CRYPTO_DIGEST_BYTES);
     copy_bytes(out + 192u, cp->checkpoint_mac, VOS_CRYPTO_DIGEST_BYTES);
@@ -1656,10 +1690,11 @@ static int decode_blkdev_checkpoint(const uint8_t in[BLKDEV_CP_BYTES],
                                     uint64_t arena_nodes,
                                     struct vos_storage_checkpoint *cp_out)
 {
-    static const uint8_t magic[8] = {'V', 'O', 'S', 'C', 'H', 'K', '0', '2'};
+    static const uint8_t magic[8] = {'V', 'O', 'S', 'C', 'H', 'K', '0', '3'};
     if (in == NULL || cp_out == NULL ||
         arena_nodes > VOS_STORAGE_BLKDEV_MAX_ARENA_NODES ||
         !equal_bytes_ct(in, magic, sizeof(magic)) ||
+        !all_zero(in + 80u, 8u) || !all_zero(in + 96u, VOS_CRYPTO_DIGEST_BYTES) ||
         !all_zero(in + 1088u, BLKDEV_CP_BYTES - 1088u)) {
         return 0;
     }

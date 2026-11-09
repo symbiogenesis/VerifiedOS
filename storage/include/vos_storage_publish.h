@@ -121,6 +121,10 @@ struct vos_storage_medium {
     struct vos_storage_checkpoint fallback_checkpoint;
 };
 
+/* Trusted serialized durability seam; success means the supplied medium is
+ * persistent. The callback may not mutate the store, crypto core or medium. */
+typedef int (*vos_storage_persistor)(void *opaque, const struct vos_storage_medium *medium);
+
 struct vos_storage_tx_spec {
     uint32_t op_kind;
     uint32_t commit_mode;
@@ -160,6 +164,8 @@ struct vos_storage_store {
     uint64_t committed_used;
     struct vos_storage_medium *medium;
     struct vos_crypto_core *crypto;
+    vos_storage_persistor persist;
+    void *persistence;
     uint8_t plain_arena[VOS_STORAGE_MAX_ARENA_NODES * VOS_STORAGE_MAX_BLOCK_BYTES];
     uint64_t plain_generations[VOS_STORAGE_MAX_ARENA_NODES];
     struct vos_storage_attempt attempt;
@@ -198,6 +204,9 @@ int vos_storage_format(struct vos_storage_medium *medium,
 int vos_storage_reserve(struct vos_storage_store *store,
                         uint64_t caller_domain,
                         const struct vos_storage_tx_spec *spec);
+
+int vos_storage_attach_persistence(struct vos_storage_store *store,
+                                    vos_storage_persistor persist, void *opaque);
 
 int vos_storage_stage(struct vos_storage_store *store,
                       uint64_t caller_domain);

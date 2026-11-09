@@ -68,7 +68,7 @@ bool persist_medium_to_blkdev(
                            VOS_STORAGE_BLKDEV_BLOCK_BYTES) == 0 ||
                (img.persist_bytes(static_cast<uint64_t>(ev), offset,
                                    VOS_STORAGE_BLKDEV_BLOCK_BYTES, bytes,
-                                   block == 0 ? VOS_STORAGE_BLKDEV_BLOCK_BYTES : sizeof(raw_medium)) &&
+                                   block == 0 ? static_cast<size_t>(VOS_STORAGE_BLKDEV_BLOCK_BYTES) : sizeof(raw_medium)) &&
                 (!after_write || after_write()));
     };
     uint8_t header[VOS_STORAGE_BLKDEV_BLOCK_BYTES];
@@ -95,6 +95,22 @@ bool persist_medium_to_blkdev(
     return img.persist_bytes(
                static_cast<uint64_t>(blkdev::event::flush),
                0, 0, nullptr, 0);
+}
+
+struct persistence_bridge {
+    blkdev::image *image;
+    std::function<bool()> after_write;
+    const struct vos_crypto_core *crypto = nullptr;
+    uint64_t fail_after_epoch = UINT64_MAX;
+};
+
+int persist_storage(void *opaque, const struct vos_storage_medium *medium)
+{
+    auto *bridge = static_cast<persistence_bridge *>(opaque);
+    if (bridge->crypto != nullptr && bridge->crypto->rot_epoch_counter > bridge->fail_after_epoch)
+        return 0;
+    return persist_medium_to_blkdev(*bridge->image, medium, blkdev::event::write,
+                                     bridge->after_write) ? 1 : 0;
 }
 
 std::string read_file_text(const std::string &path)
@@ -155,9 +171,9 @@ bool check_packed_adapter(const std::string &dir)
     return true;
 }
 
-bool check_publication_prefixes(const std::string &dir)
+bool check_publication_prefixes(const std::string &dir, bool fresh)
 {
-    const std::string path = dir + "/prefixes.blk";
+    const std::string path = dir + (fresh ? "/fresh-prefixes.blk" : "/prefixes.blk");
     const struct vos_node_geometry geometry = {4u, 16u, 128u};
     const struct vos_tree_limits limits = {0u, 4u, 64u};
     struct vos_crypto_core crypto;
@@ -180,11 +196,11 @@ bool check_publication_prefixes(const std::string &dir)
         tx.op_kind = round % 4 == 3 ? VOS_STORAGE_OP_COMPACT : VOS_STORAGE_OP_INSERT;
         tx.key = 7;
         tx.value = 300 + round;
+        tx.commit_mode = fresh ? VOS_STORAGE_COMMIT_FRESH : VOS_STORAGE_COMMIT_ROLLBACKABLE;
+        tx.fresh_region_id = 1;
+        tx.fresh_region_version = round + 1;
         const uint64_t next_value = tx.op_kind == VOS_STORAGE_OP_COMPACT ? prior_value : tx.value;
-        uint64_t ack = 0;
-        if (!vos_storage_reserve(&store, 19u, &tx) ||
-            !vos_storage_stage(&store, 19u) ||
-            !vos_storage_publish(&store, 19u, VOS_STORAGE_CUT_NONE, &ack)) return false;
+        const uint64_t next_generation = medium.nonce_record.reserved_generation + 1;
         auto previous = img.current_bytes();
         auto recover = [&](const std::vector<uint8_t> &bytes) {
             struct vos_storage_medium recovered;
@@ -196,7 +212,8 @@ bool check_publication_prefixes(const std::string &dir)
             if (reader.committed_generation == prior_generation)
                 return prior_found ? result == VOS_TREE_FOUND && value == prior_value :
                                      result == VOS_TREE_MISSING;
-            return reader.committed_generation == ack && result == VOS_TREE_FOUND && value == next_value;
+            return reader.committed_generation == next_generation &&
+                   result == VOS_TREE_FOUND && value == next_value;
         };
         auto observe = [&]() {
             ++writes;
@@ -220,8 +237,13 @@ bool check_publication_prefixes(const std::string &dir)
             previous = current;
             return true;
         };
-        if (!persist_medium_to_blkdev(img, &medium, blkdev::event::write, observe)) {
-            std::fprintf(stderr, "prefix recovery failed at round %u write %zu\n", round, writes);
+        persistence_bridge bridge{&img, observe};
+        uint64_t ack = 0;
+        if (!vos_storage_attach_persistence(&store, persist_storage, &bridge) ||
+            !vos_storage_reserve(&store, 19u, &tx) ||
+            !vos_storage_stage(&store, 19u) ||
+            !vos_storage_publish(&store, 19u, VOS_STORAGE_CUT_NONE, &ack) || ack != next_generation) {
+            std::fprintf(stderr, "prefix recovery failed fresh=%d round %u write %zu\n", fresh, round, writes);
             return false;
         }
         const size_t before_noop = writes;
@@ -229,6 +251,26 @@ bool check_publication_prefixes(const std::string &dir)
             writes != before_noop) return false;
         prior_value = next_value;
         prior_found = true;
+    }
+    if (fresh) {
+        persistence_bridge bridge{&img, {}, &crypto, crypto.rot_epoch_counter};
+        struct vos_storage_tx_spec tx = {};
+        tx.op_kind = VOS_STORAGE_OP_INSERT;
+        tx.commit_mode = VOS_STORAGE_COMMIT_FRESH;
+        tx.key = 7; tx.value = 999;
+        tx.fresh_region_id = 1; tx.fresh_region_version = 17;
+        uint64_t ack = 0;
+        if (!vos_storage_attach_persistence(&store, persist_storage, &bridge) ||
+            !vos_storage_reserve(&store, 19u, &tx) || !vos_storage_stage(&store, 19u) ||
+            vos_storage_publish(&store, 19u, VOS_STORAGE_CUT_NONE, &ack) || ack != 0 || store.open)
+            return false;
+        struct vos_storage_medium recovered;
+        struct vos_storage_store reader;
+        uint64_t value = 0;
+        if (!vos_storage_decode_blkdev_medium(img.current_bytes().data(), &recovered) ||
+            !vos_storage_reopen(&recovered, &reader, &crypto, 0u, 19u) ||
+            vos_storage_lookup(&reader, 19u, 7u, &value) != VOS_TREE_FOUND || value != 999)
+            return false;
     }
     return writes > 0 && tears > 0 && img.close();
 }
@@ -246,7 +288,7 @@ int main(int argc, char **argv)
         std::fprintf(stderr, "storage_blkdev_join: packed adapter failed\n");
         return 1;
     }
-    if (!check_publication_prefixes(dir)) {
+    if (!check_publication_prefixes(dir, false) || !check_publication_prefixes(dir, true)) {
         std::fprintf(stderr, "storage_blkdev_join: publication prefixes failed\n");
         return 1;
     }
@@ -312,6 +354,7 @@ int main(int argc, char **argv)
             sys_init_bytes, sys_init_bytes + VOS_STORAGE_BLKDEV_MEDIUM_BYTES);
         blkdev::image img(
             sys_img_path, blkdev::image::mode::create, blk_geom, fixture, r_create);
+        persistence_bridge bridge{&img, {}};
 
         /* Publish batch at generation 2. */
         struct vos_storage_tx_spec batch_tx = {};
@@ -323,7 +366,8 @@ int main(int argc, char **argv)
             batch_tx.entries[i].value = static_cast<uint64_t>((i + 1u) * 100u);
         }
         uint64_t ack = 0;
-        if (!vos_storage_reserve(&sys_store, sys_dom, &batch_tx) ||
+        if (!vos_storage_attach_persistence(&sys_store, persist_storage, &bridge) ||
+            !vos_storage_reserve(&sys_store, sys_dom, &batch_tx) ||
             !vos_storage_stage(&sys_store, sys_dom) ||
             !vos_storage_publish(&sys_store, sys_dom, VOS_STORAGE_CUT_NONE, &ack) ||
             ack != 2u ||
@@ -361,6 +405,7 @@ int main(int argc, char **argv)
         const std::vector<uint8_t> empty_fixture;
         blkdev::image img(
             sys_img_path, blkdev::image::mode::open, blk_geom, empty_fixture, r_cut5);
+        persistence_bridge bridge{&img, {}};
         struct vos_storage_tx_spec ins_tx = {};
         ins_tx.op_kind = VOS_STORAGE_OP_INSERT;
         ins_tx.commit_mode = VOS_STORAGE_COMMIT_FRESH;
@@ -369,7 +414,8 @@ int main(int argc, char **argv)
         ins_tx.fresh_region_id = 1u;
         ins_tx.fresh_region_version = 1u;
         uint64_t ack = 0;
-        if (!vos_storage_reserve(&re_store, sys_dom, &ins_tx) ||
+        if (!vos_storage_attach_persistence(&re_store, persist_storage, &bridge) ||
+            !vos_storage_reserve(&re_store, sys_dom, &ins_tx) ||
             !vos_storage_stage(&re_store, sys_dom) ||
             vos_storage_publish(
                 &re_store, sys_dom, VOS_STORAGE_CUT_BEFORE_ACK, &ack) ||
@@ -398,6 +444,7 @@ int main(int argc, char **argv)
         const std::vector<uint8_t> empty_fixture;
         blkdev::image img(
             sys_img_path, blkdev::image::mode::open, blk_geom, empty_fixture, r_cut4);
+        persistence_bridge bridge{&img, {}};
         struct vos_storage_tx_spec fresh_tx = {};
         fresh_tx.op_kind = VOS_STORAGE_OP_INSERT;
         fresh_tx.commit_mode = VOS_STORAGE_COMMIT_FRESH;
@@ -406,7 +453,8 @@ int main(int argc, char **argv)
         fresh_tx.fresh_region_id = 1u;
         fresh_tx.fresh_region_version = 2u;
         uint64_t ack = 0;
-        if (!vos_storage_reserve(&re_store, sys_dom, &fresh_tx) ||
+        if (!vos_storage_attach_persistence(&re_store, persist_storage, &bridge) ||
+            !vos_storage_reserve(&re_store, sys_dom, &fresh_tx) ||
             !vos_storage_stage(&re_store, sys_dom) ||
             vos_storage_publish(
                 &re_store, sys_dom, VOS_STORAGE_CUT_BEFORE_EPOCH_SEAL, &ack) ||
@@ -460,13 +508,15 @@ int main(int argc, char **argv)
         const std::vector<uint8_t> empty_fixture;
         blkdev::image sys_img(
             sys_img_path, blkdev::image::mode::open, blk_geom, empty_fixture);
+        persistence_bridge bridge{&sys_img, {}};
         struct vos_storage_tx_spec sys_tx = {};
         sys_tx.op_kind = VOS_STORAGE_OP_INSERT;
         sys_tx.commit_mode = VOS_STORAGE_COMMIT_ROLLBACKABLE;
         sys_tx.key = 900u;
         sys_tx.value = sys_tree_val;
         uint64_t ack = 0;
-        if (!vos_storage_reserve(&re_store, sys_dom, &sys_tx) ||
+        if (!vos_storage_attach_persistence(&re_store, persist_storage, &bridge) ||
+            !vos_storage_reserve(&re_store, sys_dom, &sys_tx) ||
             !vos_storage_stage(&re_store, sys_dom) ||
             !vos_storage_publish(&re_store, sys_dom, VOS_STORAGE_CUT_NONE, &ack) ||
             ack != 5u ||
@@ -481,13 +531,15 @@ int main(int argc, char **argv)
             usr_init_bytes, usr_init_bytes + VOS_STORAGE_BLKDEV_MEDIUM_BYTES);
         blkdev::image usr_img(
             usr_img_path, blkdev::image::mode::create, blk_geom, usr_fixture);
+        persistence_bridge bridge{&usr_img, {}};
         struct vos_storage_tx_spec usr_tx = {};
         usr_tx.op_kind = VOS_STORAGE_OP_INSERT;
         usr_tx.commit_mode = VOS_STORAGE_COMMIT_ROLLBACKABLE;
         usr_tx.key = 900u;
         usr_tx.value = usr_tree_val;
         uint64_t ack = 0;
-        if (!vos_storage_reserve(&usr_store, usr_dom, &usr_tx) ||
+        if (!vos_storage_attach_persistence(&usr_store, persist_storage, &bridge) ||
+            !vos_storage_reserve(&usr_store, usr_dom, &usr_tx) ||
             !vos_storage_stage(&usr_store, usr_dom) ||
             !vos_storage_publish(&usr_store, usr_dom, VOS_STORAGE_CUT_NONE, &ack) ||
             ack != 2u ||

@@ -179,10 +179,11 @@ def _compile_and_run_c_harness() -> None:
             ),
             (
                 "publish",
-                "present unsealed Fresh epoch write as committed on Reopen",
-                "if (medium->checkpoint.commit_mode == VOS_STORAGE_COMMIT_FRESH &&\n"
-                "        medium->checkpoint.sealed_epoch == 0u) {",
-                "if (0 && medium->checkpoint.commit_mode == VOS_STORAGE_COMMIT_FRESH) {",
+                "skip independently sealed pending checkpoint recovery",
+                "if (selected->commit_mode == VOS_STORAGE_COMMIT_FRESH ||\n"
+                "        selected->fresh_region_version != 0u ||\n"
+                "        (crypto->epoch_sealed_mask & (1u << crypto_slot)) != 0u) {",
+                "if (0 && selected->commit_mode == VOS_STORAGE_COMMIT_FRESH) {",
             ),
             (
                 "publish",
