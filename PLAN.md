@@ -2936,8 +2936,9 @@ The contracts and acceptance predicates were committed before implementation.
 **Acceptance:** pending entry/prose pairs are read through `coread --show`,
 discrepancies repaired at their owner and agreement recorded explicitly.
 Real bounded subprocess fixtures cover child/grandchild cleanup, nested authored
-commands, helper-created Linux sessions, unaffected siblings, retained output and cleanup failures on Windows
-and Linux. Behavioral tests checkpoint queued, running and completed modules
+commands, helper-created Linux sessions, unaffected siblings, retained output
+and cleanup failures on Windows and Linux. Behavioral tests checkpoint queued,
+running and completed modules
 while final reports remain deterministic; diagnostic failure cannot change a
 verdict. Native selection derives slow toolchain cases, excludes ordinary and
 host-only recursive cases, refuses unavailable tools or empty coverage, and runs
@@ -2951,10 +2952,12 @@ user-managed.
 with misplaced bookmarks and omitted or conflicting prose repaired against the
 existing requirements. Process ownership, live progress and native scheduling
 implementations are integrated on local `main`; focused Windows/Linux process,
-runner and Guest reporting controls pass. Composition projections reproduce from
-the reviewed roster contract. The `tooling-followthrough-20261109` journal owns
-the final local handoff and full hosted recommendations. Hosted acceptance stays
-pending until the user supplies its evidence or requests inspection.
+runner and Guest reporting controls pass, including detached Linux helpers and
+the session-only ownership negative control. Composition projections reproduce
+from the reviewed roster contract. The `tooling-followthrough-20261109` journal
+records the initial handoff; `tooling-detached-20261109` owns the final local
+handoff and full hosted recommendations. Hosted acceptance stays pending until
+the user supplies its evidence or requests inspection.
 
 **Producer joins:** Q43 already implements default validated reuse, including
 actual compilation-tier reuse; complete-tier reuse still requires Q39's genuine
