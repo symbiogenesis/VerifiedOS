@@ -266,6 +266,40 @@ any historical receipt. An authenticated relocation connection remains required
 before reuse; a complete kernel audit, its diagnosis and target qualification
 remain open. This inventory runs no compiler, query or checker.
 
+### Explicit relocated-path verification
+
+The `compiler-relocation` host command verifies the remaining helper/lock path
+connection without invoking the private reuse validator. Its trusted input is an
+explicit SHA-256 for the retained candidate catalog, supplied independently of
+the relocation mapping. The catalog selects one named candidate and authenticates
+its exact pre-query compilation seal, including the original native root. Neither
+the mapping nor a newly edited seal can replace that digest binding.
+
+The closed mapping has `schema: "verifiedos-contained-compiler-relocation/1"`,
+`candidate`, and `files`, an object mapping each historical absolute helper/lock
+path to its explicit restored absolute path. Coverage must equal every helper
+and the lock named by that seal; missing or additional paths refuse. Every mapped
+file must match its seal-owned SHA-256. Unsupported seal/catalog shapes,
+substituted candidates, corrupt seals, malformed/duplicate JSON keys, linked or
+escaping restored paths, and any input drift before return refuse the whole
+operation. There is no prefix replacement, inferred fallback or receipt rewrite.
+
+A successful report binds catalog, seal, mapping, verifier and every mapped file
+identity. It states only that these exact historical helper/lock bytes are
+available at those explicit restored locations. It performs no population or
+library rescan, compilation, query, checker, qualification, copying or cache
+publication. The private path-bound validator still refuses these relocated
+inputs until its separately reviewed integration; compilation reuse, complete
+kernel qualification, target acceptance and checker resume remain false.
+
+Acceptance requires independent fixture controls for exact coverage, positive
+mapping, catalog/seal/candidate and mapped-byte substitutions, malformed inputs
+and final recheck drift, followed by a read-only run against the real retained
+VM seal and restored helper/lock files. Preserve historical receipts and useful
+prior output on refusal; retain only metadata mapping/report outputs in the
+assigned lane. The integrator records focused local checks and leaves hosted
+acceptance to the user.
+
 Read-only inspection of the sealed locked profiler and checker sources identifies
 no supported unfinished-event capture route. The handoff retains those source
 identities and the observation's limits; no new diagnostic or root-cause verdict
