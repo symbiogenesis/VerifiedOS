@@ -91,6 +91,22 @@ is reusable only for identical relevant source/configuration/image inputs;
 changed adapters rerun the affected cuts. This ordering supplies no performance
 credit or estimate reduction before measured integration evidence exists.
 
+[The C publication and reopen producer](../../storage/src/storage_publish.c) and
+[crypto-core compartment](../../storage/src/crypto_core.c) implement `Reserve`,
+`Stage`, `Publish` and `Reopen` over real bounded node-image and CoW B+ tree
+bytes (`node_image.c`, `tree_image.c`, `tree_update.c`), coordinate-derived
+96-bit AES-GCM nonces (R-10-022a, F-458), domain-separated keyed digests
+(R-10-016), HMAC-signed complete-transaction payload manifests and checkpoints,
+and RoT-sealed `Fresh` epochs (R-10-013c, R-10-013e). `python tools/run.py test --only storage_publish`
+exercises all five crash cuts (`VOS_STORAGE_CUT_AFTER_RESERVE`,
+`VOS_STORAGE_CUT_MID_PAYLOAD`, `VOS_STORAGE_CUT_BEFORE_CHECKPOINT`,
+`VOS_STORAGE_CUT_BEFORE_EPOCH_SEAL`, `VOS_STORAGE_CUT_BEFORE_ACK`), non-prefix
+journal tear/swap/rollback refusals, two-instance (`system-integrity` and
+`user-data`) execution and Q44's `vos_storage_verify_resident` join, and kills
+six compiled behavioral mutants. Joining this C producer to the emulator's
+`blkdev_image` persistent device adapter and purecap Sail target execution
+remains open under M5.3d.
+
 ## Acceptance fixed before companion authoring
 
 This decision document passes when it names both existing arms and their computed store difference; separates their shared obligations from full-transaction completeness; accounts for L0 through L3 and Q22f's conditional costs; states the selected policy and exact register boundary; and identifies every producer the final crash predicate needs. It does not pass by marking M5.3 complete or choosing an arm in source code.

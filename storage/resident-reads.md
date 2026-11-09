@@ -109,11 +109,33 @@ serves two independent entry/full-image windows and decodes the returned whole
 image. This concrete byte witness retains the fixture-verifier seam and supplies
 no equivalence to cryptographic storage authentication.
 
-The actual storage/crypto owner, accepted scalar
-completion interface, Gallina/Python correspondence, target artifact and complete
-concrete writer/resource qualification remain open. This is a C implementation
-checkpoint and compiled-control campaign, not Q44 or M5.3d completion. Complete
-hosted model/proof acceptance follows the repository validation handoff; behavior
+## Authenticated storage and crypto verifier join
+
+[The storage publication producer](src/storage_publish.c) and
+[crypto-core compartment](src/crypto_core.c) supply the real cryptographic
+verifier callback `vos_storage_verify_resident` for `vos_resident_complete`
+under [its public header](include/vos_storage_publish.h). Given an open
+`vos_storage_store` (`system-integrity` at `VOS_RESIDENT_ROOT_SIGNED` or
+`user-data` at `VOS_RESIDENT_ROOT_COMMITTED`), `vos_storage_bind_resident_identity`
+computes the domain-separated `vos_crypto_core_keyed_digest` (R-10-016) over the
+object bytes and encodes the deterministic B+ tree authenticator entry
+`resident_tree_value(root, version)`. During every `vos_resident_complete` call,
+`vos_storage_verify_resident` checks the store's domain and root kind, verifies
+the checkpoint MAC and any sealed `Fresh` epoch floor (R-10-013e), recomputes
+the domain-separated object digest over the isolated backing snapshot, and looks
+up `identity->object` in the store's authenticated CoW B+ tree (R-10-001,
+R-10-003, R-10-006a, R-10-006b). Any tampered backing byte, wrong domain,
+uncommitted object or rolled-back store state refuses before `vos_resident_complete`
+copies a byte to the caller, while repeated reads across independent holders
+record zero writes to `VOS_RESIDENT_COMMON`.
+
+`python tools/run.py test --only storage_publish` exercises
+`vos_storage_verify_resident` across both storage instances and kills a compiled
+mutant that skips the authenticated B+ tree lookup. Gallina/Python
+correspondence, purecap/Sail target execution and complete concrete
+writer/resource qualification remain open. This is a C implementation checkpoint
+and compiled-control campaign, not Q44 or M5.3d completion. Complete hosted
+model/proof acceptance follows the repository validation handoff; behavior
 counts here supply no benchmark or throughput claim.
 
 This document uses `CC-BY-4.0` under [COPYRIGHT.md](../COPYRIGHT.md).

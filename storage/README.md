@@ -28,14 +28,14 @@ canonical 96-bit (12-byte) coordinate-derived AES-GCM nonce bijection over
 generation, 24-bit arena node identity, 7-bit domain epoch and 1-bit node kind
 so parent branch slots need not store a separate 12-byte nonce per child.
 
-The identity checks provide no authentication. A storage caller must authenticate
-the entire block against its independent parent/root evidence before using it;
-changed payload bytes can be well-formed and pass this codec. The numeric instance
-is bring-up source, not the final object-key representation. No target storage
-service, AES-GCM binding, independent checkpoint verifier, durable nonce
-reservation, journal publication, persistent reopen or index-refinement verdict
-is supplied here. M5.3d retains those joins and the complete two-instance campaign
-under [the recovery contract](../docs/implementation/storage-recovery-policy.md).
+The identity checks in `node_image.c` alone provide no cryptographic
+authentication: a storage caller must authenticate each block against its
+independent parent/root evidence before using it, as implemented by
+[crypto_core.c](src/crypto_core.c) and [storage_publish.c](src/storage_publish.c)
+below. The numeric key/value instance remains bring-up source rather than the
+final variable-width object-key representation, and purecap Sail target execution
+and full Gallina index-refinement closure remain open under
+[the recovery contract](../docs/implementation/storage-recovery-policy.md).
 
 `python tools/run.py test --only storage_node_image` discovers the focused
 behavioral module. Its native C cases run on Linux, including Host CI's Ubuntu
@@ -89,3 +89,58 @@ checkpoint ordering, persistent reopen and target integration remain open.
 full-width byte boundary on both platforms. Linux additionally compares
 generated insertions and replacements with independent maps and retained roots,
 exercises split/resource refusals and executes compiled behavioral controls.
+
+[The crypto-core compartment](src/crypto_core.c) and
+[its public header](include/vos_crypto_core.h) implement the self-contained C11
+cryptographic primitives required by M5.3d and Q44: FIPS 180-4 SHA-256,
+FIPS 198-1 HMAC-SHA-256, FIPS 197 AES-128/192/256, NIST SP 800-38D AES-GCM
+96-bit-nonce authenticated encryption and constant-time tag verification
+(matching [Sha256.v](../proofs/Sha256.v) and [AesGcm.v](../proofs/AesGcm.v)),
+domain-separated purpose-key derivation (`aead_key`, `dedup_key`, `commit_key`,
+R-10-015, R-10-023), deterministic within-domain `vos_crypto_core_keyed_digest`
+with cross-domain incomparability (R-10-016), RoT monotonic `Fresh` epoch
+sealing and verification (`vos_crypto_core_seal_epoch`,
+`vos_crypto_core_verify_epoch`, R-10-013c, R-10-013e), and BFU/lock/crypto-erase
+key zeroization (`vos_crypto_core_lock_domain`, `vos_crypto_core_crypto_erase`,
+R-10-014, R-10-032).
+
+[The early publication and reopen producer](src/storage_publish.c) and
+[its public header](include/vos_storage_publish.h) join `node_image.c`,
+`tree_image.c`, `tree_update.c`, `resident_reads.c` and `crypto_core.c` under
+[the recovery policy's early executable publication checkpoint](../docs/implementation/storage-recovery-policy.md#early-executable-publication-checkpoint):
+
+- `vos_storage_reserve` persists the monotonic key-wide nonce reservation record
+  before any node block or journal frame is sealed with that generation's
+  coordinate-derived AES-GCM nonce (R-10-022a, F-458), refusing exhaustion
+  without wrapping or rolling back consumed reservations.
+- `vos_storage_stage` authenticates the retained arena prefix, executes the
+  bounded CoW B+ tree candidate update (`insert`, `insert_batch`, `delete` or
+  `compact`) alongside snapshot-aware deadlist classification, and seals each
+  allocated node block and redo journal frame with coordinate-derived AES-GCM
+  and domain-separated keyed digests without mutating the committed root.
+- `vos_storage_publish` binds the ordered redo payload manifest, per-block AEAD
+  metadata, root digest and optional `Fresh` epoch seal into the HMAC-signed
+  checkpoint before acknowledgment or journal reuse (R-10-002a, R-10-013c),
+  supporting deterministic crash-cut injection (`VOS_STORAGE_CUT_AFTER_RESERVE`,
+  `VOS_STORAGE_CUT_MID_PAYLOAD`, `VOS_STORAGE_CUT_BEFORE_CHECKPOINT`,
+  `VOS_STORAGE_CUT_BEFORE_EPOCH_SEAL`, `VOS_STORAGE_CUT_BEFORE_ACK`).
+- `vos_storage_reopen` discards volatile store state, verifies the durable nonce
+  floor, checkpoint MAC and `Fresh` epoch root (R-10-013e), rolls back unsealed
+  `Fresh` checkpoints (R-10-013c), replays complete committed redo prefixes
+  idempotently while discarding uncommitted suffixes and refusing torn/corrupted
+  committed frames (F-460), and reconstructs the authenticated arena.
+- `vos_storage_verify_resident` supplies Q44's real `vos_resident_verifier`
+  callback for `vos_resident_complete` (R-10-006a, R-10-006b, R-10-001),
+  checking the domain-separated object digest and verifying `(object_id, root, version)`
+  membership in the store's authenticated B+ tree without mutating common
+  owner state.
+
+`python tools/run.py test --only storage_publish` checks the Python SHA-256,
+HMAC-SHA-256 and domain-KDF oracle on both platforms; Linux additionally builds
+and runs [the native C harness](host/storage_publish.c) across NIST test vectors,
+all five crash cuts, non-prefix tear/swap/rollback refusals, two-instance
+(`system-integrity` and `user-data`) execution over the shared L1 index body
+(R-10-003), and Q44 resident-read completion with zero common per-read writes,
+and kills six compiled behavioral mutants across `crypto_core.c` and
+`storage_publish.c`. Target purecap/Sail execution and Gallina refinement of the
+extended tree operations remain open.
