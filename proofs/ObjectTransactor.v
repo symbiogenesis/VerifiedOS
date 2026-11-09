@@ -291,10 +291,10 @@ Definition spec_read (t : Transactor) (st : Objects) (root n : nat) : option nat
 
 (* Checking a leaf after following unverified parent links is insufficient:
    a corrupt parent can introduce an otherwise correctly named leaf. The
-   bounded symbolic reader authenticates the entire enumerated image before
-   it releases bytes. A path-local implementation needs a refinement of
-   this integrity boundary and its finite-DAG representation. The bounded
-   reference walk refuses any unfinished child frontier. *)
+   cold audit authenticates the entire enumerated image before it releases
+   bytes and refuses any unfinished child frontier. The path-local runtime
+   reader below instead authenticates its explicit root-to-object witness;
+   it does not assert completeness of unrelated subtrees. *)
 Definition leaf_only_read (t : Transactor) (st : Objects) (root n : nat) : option nat :=
   if mem_of n (reach_list t st root)
   then match st n with
@@ -302,6 +302,99 @@ Definition leaf_only_read (t : Transactor) (st : Objects) (root n : nat) : optio
        | Some o => if Nat.eqb (address t o) n then Some (obj_bytes o) else None
        end
   else None.
+
+(* The runtime witness is untrusted routing data. Authenticate each current
+   object before inspecting its child links; the cold whole-image audit above
+   retains its stronger completeness statement. See
+   [the path contract](../docs/implementation/contracts/object-transactor.md#path-local-runtime-reader). *)
+Fixpoint path_read_from (fuel : nat) (t : Transactor) (st : Objects)
+                       (seen : list nat) (root target : nat)
+                       (route : list nat) : option nat :=
+  match fuel with
+  | 0 => None
+  | S remaining =>
+      if mem_of root seen then None else
+      match st root with
+      | None => None
+      | Some o =>
+          if Nat.eqb (address t o) root then
+          match route with
+          | nil => if Nat.eqb root target then Some (obj_bytes o) else None
+          | cons next rest =>
+              if mem_of next (obj_kids o)
+              then path_read_from remaining t st (cons root seen) next target rest
+              else None
+          end
+          else None
+      end
+  end.
+
+Definition path_read (t : Transactor) (st : Objects) (root target : nat)
+                     (route : list nat) : option nat :=
+  path_read_from (S (walk_depth t)) t st nil root target route.
+
+Inductive AuthenticatedObjectPath (t : Transactor) (st : Objects)
+    : nat -> nat -> list nat -> Prop :=
+| authenticated_here : forall n o,
+    st n = Some o -> address t o = n ->
+    AuthenticatedObjectPath t st n n nil
+| authenticated_step : forall root next target o rest,
+    st root = Some o -> address t o = root ->
+    mem_of next (obj_kids o) = true ->
+    AuthenticatedObjectPath t st next target rest ->
+    AuthenticatedObjectPath t st root target (cons next rest).
+
+Lemma path_read_from_authenticates_every_link :
+  forall fuel t st seen root target route b,
+    path_read_from fuel t st seen root target route = Some b ->
+    AuthenticatedObjectPath t st root target route /\
+    exists o, st target = Some o /\ address t o = target /\ obj_bytes o = b.
+Proof.
+  intros fuel. induction fuel as [|remaining IH];
+    intros t st seen root target route b H; [discriminate H|].
+  cbn [path_read_from] in H.
+  destruct (mem_of root seen); [discriminate H|].
+  destruct (st root) as [o|] eqn:Ho; [|discriminate H].
+  destruct (Nat.eqb (address t o) root) eqn:Ha; [|discriminate H].
+  pose proof (nat_eqb_true _ _ Ha) as Ea.
+  destruct route as [|next rest].
+  - destruct (Nat.eqb root target) eqn:Ht; [|discriminate H].
+    apply nat_eqb_true in Ht. subst root. inversion H; subst b.
+    split.
+    + apply authenticated_here with (o := o); assumption.
+    + exists o. split; [exact Ho|]. split; [exact Ea|reflexivity].
+  - destruct (mem_of next (obj_kids o)) eqn:Hnext; [|discriminate H].
+    destruct (IH t st (cons root seen) next target rest b H) as [Hp Hn].
+    split; [eapply authenticated_step; eassumption|exact Hn].
+Qed.
+
+(*| discharges: R-10-001 |*)
+Theorem path_reader_authenticates_every_link :
+  forall t st root target route b,
+    path_read t st root target route = Some b ->
+    AuthenticatedObjectPath t st root target route /\
+    exists o, st target = Some o /\ address t o = target /\ obj_bytes o = b.
+Proof.
+  intros t st root target route b H.
+  exact (path_read_from_authenticates_every_link
+    (S (walk_depth t)) t st nil root target route b H).
+Qed.
+
+Lemma path_read_from_respects_depth :
+  forall fuel t st seen root target route b,
+    path_read_from fuel t st seen root target route = Some b ->
+    Nat.leb (S (count_of route)) fuel = true.
+Proof.
+  intros fuel. induction fuel as [|remaining IH];
+    intros t st seen root target route b H; [discriminate H|].
+  cbn [path_read_from] in H.
+  destruct (mem_of root seen); [discriminate H|].
+  destruct (st root) as [o|]; [|discriminate H].
+  destruct (Nat.eqb (address t o) root); [|discriminate H].
+  destruct route as [|next rest]; [reflexivity|].
+  destruct (mem_of next (obj_kids o)); [|discriminate H].
+  exact (IH t st (cons root seen) next target rest b H).
+Qed.
 
 Definition ReadsOnlyAnIntactImage (rd : Reader) : Prop :=
   forall (t : Transactor) (st : Objects) (root n b : nat),
@@ -1477,6 +1570,64 @@ Definition demo_objects : Objects := fun n =>
   else if Nat.eqb n 17 then Some base_root_obj
   else if Nat.eqb n 19 then Some other_root_obj
   else None.
+
+Definition missing_sibling_objects : Objects := fun n =>
+  if Nat.eqb n 9 then None else demo_objects n.
+
+Definition unverified_parent_objects : Objects := fun n =>
+  if Nat.eqb n 17
+  then Some {| obj_bytes := 2; obj_kids := cons 7 (cons 9 nil) |}
+  else demo_objects n.
+
+Example path_reads_the_root_and_its_authenticated_child :
+  path_read demo_transactor demo_objects 17 17 nil = Some 1 /\
+  path_read demo_transactor demo_objects 17 7 (cons 7 nil) = Some 7 :=
+  conj eq_refl eq_refl.
+
+Example runtime_path_does_not_read_an_unrelated_missing_sibling :
+  path_read demo_transactor missing_sibling_objects 17 7 (cons 7 nil) = Some 7 /\
+  spec_read demo_transactor missing_sibling_objects 17 7 = None :=
+  conj eq_refl eq_refl.
+
+Example runtime_path_refuses_parent_link_root_and_depth_substitutions :
+  path_read demo_transactor unverified_parent_objects 17 7 (cons 7 nil) = None /\
+  path_read demo_transactor demo_objects 17 5 (cons 5 nil) = None /\
+  path_read demo_transactor demo_objects 19 7 (cons 9 nil) = None /\
+  path_read_from 1 demo_transactor demo_objects nil 17 7 (cons 7 nil) = None :=
+  conj eq_refl (conj eq_refl (conj eq_refl eq_refl)).
+
+Definition cyclic_path_objects : Objects := fun n =>
+  if Nat.eqb n 5
+  then Some {| obj_bytes := 0; obj_kids := cons 5 nil |}
+  else None.
+
+Example runtime_path_refuses_a_revisited_authenticated_node :
+  path_read demo_transactor cyclic_path_objects 5 5 (cons 5 nil) = None := eq_refl.
+
+Definition chain_path_objects : Objects := fun n =>
+  match n with
+  | 0 => None
+  | S 0 => Some {| obj_bytes := 1; obj_kids := nil |}
+  | S (S previous) => Some {| obj_bytes := 1; obj_kids := cons (S previous) nil |}
+  end.
+
+Fixpoint descending_route (steps : nat) : list nat :=
+  match steps with
+  | 0 => nil
+  | S previous => cons (S previous) (descending_route previous)
+  end.
+
+Example generated_path_lengths_return_exact_bytes :
+  map_over (fun steps =>
+    path_read {| demo_transactor with walk_depth := steps |}
+      chain_path_objects (S steps) 1 (descending_route steps)) (upto 8)
+  = map_over (fun _ => Some 1) (upto 8) := eq_refl.
+
+Example generated_path_depth_exhaustion_refuses :
+  map_over (fun steps =>
+    path_read_from steps demo_transactor chain_path_objects nil
+      (S steps) 1 (descending_route steps)) (upto 8)
+  = map_over (fun _ => (None : option nat)) (upto 8) := eq_refl.
 
 (* A store answering a name with bytes that do not hash to it. *)
 Definition rogue_leaf : Obj := {| obj_bytes := 8; obj_kids := nil |}.
