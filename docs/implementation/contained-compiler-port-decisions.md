@@ -266,6 +266,11 @@ any historical receipt. An authenticated relocation connection remains required
 before reuse; a complete kernel audit, its diagnosis and target qualification
 remain open. This inventory runs no compiler, query or checker.
 
+Read-only inspection of the sealed locked profiler and checker sources identifies
+no supported unfinished-event capture route. The handoff retains those source
+identities and the observation's limits; no new diagnostic or root-cause verdict
+is supplied.
+
 ## Bounded Parser diagnostic
 
 The [Parser diagnostic manifest](retained-evidence/q39/bounded-parser-profile-20261013/manifest.json),

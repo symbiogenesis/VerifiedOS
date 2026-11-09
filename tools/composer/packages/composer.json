@@ -152,7 +152,7 @@
     },
     {
       "path": "tools/vos/fixed_composition.py",
-      "sha256": "588c46699c6f53a6a8411dac1839988bdf8be59a3e73aadcdfd351f728bf2804"
+      "sha256": "f82fe24d9be005275a05f93a170b5c3067dc80d3a851496b7474371b4419486e"
     },
     {
       "path": "tools/vos/image.py",
@@ -180,7 +180,7 @@
     },
     {
       "path": "tools/vos/package_artifacts.py",
-      "sha256": "2228d14d1ca855beac248dc9a42352b836c01607fa78e85e9c5c9e5ceb434993"
+      "sha256": "d8f2cc801f1f90f5fd1b01e6f9901edce59d6c47074bb09e8abf4039dd20d7ca"
     },
     {
       "path": "tools/vos/proof_staging.py",

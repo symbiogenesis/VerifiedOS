@@ -570,7 +570,7 @@
         },
         {
           "path": "tools/vos/fixed_composition.py",
-          "sha256": "588c46699c6f53a6a8411dac1839988bdf8be59a3e73aadcdfd351f728bf2804"
+          "sha256": "f82fe24d9be005275a05f93a170b5c3067dc80d3a851496b7474371b4419486e"
         },
         {
           "path": "tools/vos/image.py",
@@ -598,7 +598,7 @@
         },
         {
           "path": "tools/vos/package_artifacts.py",
-          "sha256": "2228d14d1ca855beac248dc9a42352b836c01607fa78e85e9c5c9e5ceb434993"
+          "sha256": "d8f2cc801f1f90f5fd1b01e6f9901edce59d6c47074bb09e8abf4039dd20d7ca"
         },
         {
           "path": "tools/vos/proof_staging.py",
@@ -647,7 +647,7 @@
       ],
       "descriptor": {
         "path": "tools/composer/packages/composer.json",
-        "sha256": "ede9a252e53a4f1097de936e971a34fdd3920c1357be7949ed691c1150f6db6e"
+        "sha256": "ddaac0c7c1d32faaef789939b5799f2b1d33ffe03fa7aabad72c37187bf38399"
       },
       "artifact_slot": "composer-artifact",
       "entry": null,
@@ -786,7 +786,7 @@
         },
         {
           "path": "tools/vos/package_artifacts.py",
-          "sha256": "2228d14d1ca855beac248dc9a42352b836c01607fa78e85e9c5c9e5ceb434993"
+          "sha256": "d8f2cc801f1f90f5fd1b01e6f9901edce59d6c47074bb09e8abf4039dd20d7ca"
         },
         {
           "path": "tools/vos/proof_staging.py",
@@ -835,7 +835,7 @@
       ],
       "descriptor": {
         "path": "tools/composer/packages/admission.json",
-        "sha256": "470747d93418c5f910167c92b4c73ca1f734c6a12ea9bbf382710edd6102cabd"
+        "sha256": "aa50110068d712ae9d5df1ba91a930774454176f4d8d2bb94e9567bd9c44e0a5"
       },
       "artifact_slot": "admission-artifact",
       "entry": null,
