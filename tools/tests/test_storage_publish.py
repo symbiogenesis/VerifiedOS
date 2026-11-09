@@ -4,8 +4,6 @@
 including the `Q44` authenticated resident-read verifier join.
 """
 
-from __future__ import annotations
-
 import hashlib
 import hmac
 import shutil
@@ -123,12 +121,14 @@ def _compile_and_run_c_harness() -> None:
         binary = Path(tmp) / "storage_publish_test"
         cmd = [
             cc,
-            "-std=c11",
+            "-std=c17",
             "-O2",
             "-Wall",
             "-Wextra",
             "-Werror",
             f"-I{CRYPTO_HEADER.parent}",
+            "-DVOS_STORAGE_COUNT_CHECKPOINT_MACS",
+            "-Wl,--wrap=vos_crypto_core_verify_commit_mac",
             *[str(src) for src in sources],
             "-o",
             str(binary),
@@ -144,6 +144,7 @@ def _compile_and_run_c_harness() -> None:
 
         crypto_src = CRYPTO_SOURCE.read_text(encoding="utf-8")
         publish_src = PUBLISH_SOURCE.read_text(encoding="utf-8")
+        tree_src = TREE_UPDATE_SOURCE.read_text(encoding="utf-8")
 
         mutants: list[tuple[str, str, str, str]] = [
             (
@@ -197,10 +198,28 @@ def _compile_and_run_c_harness() -> None:
                 "get_le64(image_bytes + 8u) != VOS_STORAGE_BLKDEV_BLOCK_BYTES ||",
                 "(0 && get_le64(image_bytes + 8u) != VOS_STORAGE_BLKDEV_BLOCK_BYTES) ||",
             ),
+            (
+                "tree",
+                "discard reclaimed node identities during allocation",
+                "const int reused = update->reuse != NULL && update->reused < update->reuse->count;",
+                "const int reused = 0;",
+            ),
+            (
+                "publish",
+                "refuse torn primary before trying authenticated fallback",
+                "if (!primary_valid && !fallback_valid) {",
+                "if (!primary_valid) {",
+            ),
+            (
+                "publish",
+                "acknowledge without refreshing redundant checkpoint",
+                "    medium->fallback_checkpoint = next_cp;",
+                "    (void)next_cp;",
+            ),
         ]
 
         for idx, (kind, label, target, replacement) in enumerate(mutants):
-            base_text = crypto_src if kind == "crypto" else publish_src
+            base_text = {"crypto": crypto_src, "publish": publish_src, "tree": tree_src}[kind]
             ensure(target in base_text, f"mutant target missing for {label}")
             mutated_text = base_text.replace(target, replacement, 1)
             mut_file = Path(tmp) / f"mutant_{idx}_{kind}.c"
@@ -209,7 +228,7 @@ def _compile_and_run_c_harness() -> None:
             mut_sources = [
                 NODE_SOURCE,
                 TREE_IMAGE_SOURCE,
-                TREE_UPDATE_SOURCE,
+                mut_file if kind == "tree" else TREE_UPDATE_SOURCE,
                 RESIDENT_SOURCE,
                 mut_file if kind == "crypto" else CRYPTO_SOURCE,
                 mut_file if kind == "publish" else PUBLISH_SOURCE,
@@ -218,12 +237,14 @@ def _compile_and_run_c_harness() -> None:
             m_built = subprocess.run(
                 [
                     cc,
-                    "-std=c11",
+                    "-std=c17",
                     "-O2",
                     "-Wall",
                     "-Wextra",
                     "-Werror",
                     f"-I{CRYPTO_HEADER.parent}",
+                    "-DVOS_STORAGE_COUNT_CHECKPOINT_MACS",
+                    "-Wl,--wrap=vos_crypto_core_verify_commit_mac",
                     *[str(src) for src in mut_sources],
                     "-o",
                     str(mut_bin),
@@ -257,7 +278,7 @@ def _compile_and_run_blkdev_image_join() -> None:
             built_c = subprocess.run(
                 [
                     cc,
-                    "-std=c11",
+                    "-std=c17",
                     "-O2",
                     "-Wall",
                     "-Wextra",

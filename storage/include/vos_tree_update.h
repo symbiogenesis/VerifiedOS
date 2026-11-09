@@ -38,6 +38,46 @@ struct vos_tree_reclaim_plan {
     uint64_t deadlist_ids[VOS_TREE_MAX_VISITS];
 };
 
+/* Caller-owned allocation/reclamation workspace. Reusable identities must be
+ * strictly increasing, below used and unreachable from every retained input
+ * root. Retired marks are tentative until the candidate succeeds; retained
+ * backing remains stable. */
+struct vos_tree_reuse {
+    const uint64_t *ids;
+    size_t count;
+    uint8_t *retired;
+    size_t retired_count;
+};
+
+int vos_tree_insert_reuse(const struct vos_tree_arena *arena,
+                          const struct vos_tree_limits *limits,
+                          uint64_t root, uint64_t generation,
+                          uint64_t key, uint64_t value,
+                          const struct vos_tree_reuse *reuse,
+                          struct vos_tree_update_result *output);
+int vos_tree_insert_batch_reuse(const struct vos_tree_arena *arena,
+                                const struct vos_tree_limits *limits,
+                                uint64_t root, uint64_t generation,
+                                const struct vos_tree_entry *entries,
+                                size_t entry_count,
+                                const struct vos_tree_reuse *reuse,
+                                struct vos_tree_update_result *output);
+int vos_tree_delete_reuse(const struct vos_tree_arena *arena,
+                          const struct vos_tree_limits *limits,
+                          uint64_t root, uint64_t generation, uint64_t key,
+                          const struct vos_tree_reuse *reuse,
+                          struct vos_tree_update_result *output);
+
+/* Compact from a stable source into disjoint destination backing. Explicit
+ * reusable identities may include current source nodes because reads use the
+ * separate source. The caller protects snapshots and publishes atomically. */
+int vos_tree_compact_into(const struct vos_tree_arena *source,
+                          const struct vos_tree_arena *destination,
+                          const struct vos_tree_limits *limits,
+                          uint64_t root, uint64_t generation,
+                          const struct vos_tree_reuse *reuse,
+                          struct vos_tree_update_result *output);
+
 /* Return 1 only after complete input and candidate tree admission. Insert or
  * replace one numeric entry using copy-on-write path rebuilding and splits.
  * New nodes use generation; retained prefix bytes/generations never change.

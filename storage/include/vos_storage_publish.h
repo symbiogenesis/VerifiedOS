@@ -98,6 +98,7 @@ struct vos_storage_checkpoint {
     uint64_t sealed_epoch;
     uint8_t epoch_root[VOS_CRYPTO_DIGEST_BYTES];
     uint8_t root_digest[VOS_CRYPTO_DIGEST_BYTES];
+    uint8_t fresh_state_digest[VOS_CRYPTO_DIGEST_BYTES];
     uint8_t payload_manifest_digest[VOS_CRYPTO_DIGEST_BYTES];
     struct vos_storage_block_auth auth[VOS_STORAGE_MAX_ARENA_NODES];
     uint32_t snapshot_count;
@@ -162,6 +163,14 @@ struct vos_storage_store {
     uint8_t plain_arena[VOS_STORAGE_MAX_ARENA_NODES * VOS_STORAGE_MAX_BLOCK_BYTES];
     uint64_t plain_generations[VOS_STORAGE_MAX_ARENA_NODES];
     struct vos_storage_attempt attempt;
+    uint32_t active_checkpoint_valid;
+    uint32_t active_crypto_slot;
+    const struct vos_storage_medium *active_medium;
+    const struct vos_crypto_core *active_crypto;
+    uint8_t active_checkpoint_bytes[sizeof(struct vos_storage_checkpoint)];
+    uint64_t active_key_context;
+    uint8_t active_geometry_bytes[sizeof(struct vos_node_geometry)];
+    uint8_t active_limits_bytes[sizeof(struct vos_tree_limits)];
 };
 
 /* Private to the serialized storage owner. Admission authenticates membership

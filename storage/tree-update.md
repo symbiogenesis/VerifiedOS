@@ -50,6 +50,16 @@ validate only the root-to-leaf path(s) of the target key(s) via
 `vos_tree_lookup_path` before and after the copy-on-write path rebuild (`height + 1`
 node decodes per routed key) without walking untouched off-route subtrees.
 
+The storage owner calls `vos_tree_insert_reuse`, `vos_tree_insert_batch_reuse`
+and `vos_tree_delete_reuse` for that same path validation with a strictly
+increasing list of authenticated free identities. Allocation consumes each
+identity at most once, then uses the unused suffix. A caller-owned bitmap records
+the rewritten input paths; its marks become reclamation evidence only after the
+whole candidate succeeds. The caller must exclude every current and retained
+root from the free list. These explicit APIs preserve the original append-only
+APIs' prefix contract while allowing the publication owner to reuse unreachable
+blocks without rescanning the complete tree after every update.
+
 `vos_tree_compact` performs an in-order traversal of the reachable tree and
 packs its live sorted entries bottom-up into a canonical, history-independent B+
 tree in `generation` (R-10-021), filling every leaf and branch to `fan` entries
@@ -61,6 +71,17 @@ whether the block can be reclaimed immediately or must join a retained snapshot'
 deadlist, and `vos_tree_classify_reclaim` partitions every arena node reachable
 from `old_root` that is no longer reachable from `new_root` into `reclaimed_ids`
 and `deadlist_ids` without a reference-count B+ tree (R-10-010).
+
+`vos_tree_compact_into` reads a stable source arena and writes separate candidate
+backing using explicitly available identities. It can therefore compact an arena
+whose allocated prefix already reaches capacity. The storage owner protects all
+snapshot-pinned identities and uses the complete redo transaction before
+overwriting any current-root identity on the persistent medium. Full input and
+candidate admission remain maintenance work. A genuinely full set of live and
+snapshot-pinned nodes can still refuse; compaction does not invent free capacity.
+The allocated-prefix high-water mark can remain unchanged while retired slots
+become reusable. Snapshot retention must precede reclamation: a freed historical
+generation cannot be reintroduced as a snapshot.
 
 The function returns success only after full candidate admission at the returned
 height and a lookup confirming the requested key/value. The same finite visit
