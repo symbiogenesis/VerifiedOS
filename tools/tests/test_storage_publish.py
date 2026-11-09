@@ -148,6 +148,18 @@ def _compile_and_run_c_harness() -> None:
 
         mutants: list[tuple[str, str, str, str]] = [
             (
+                "publish",
+                "allow rollbackable replacement of Fresh keys",
+                "if (spec->commit_mode == VOS_STORAGE_COMMIT_ROLLBACKABLE && protected) {",
+                "if (0 && spec->commit_mode == VOS_STORAGE_COMMIT_ROLLBACKABLE && protected) {",
+            ),
+            (
+                "publish",
+                "omit Fresh key membership from checkpoint authentication",
+                "put_le64(buf + at, cp->fresh_keys[i]);",
+                "put_le64(buf + at, 0u);",
+            ),
+            (
                 "crypto",
                 "bypass AES-GCM tag check",
                 "if (!equal_bytes_ct(expected, tag, VOS_CRYPTO_TAG_BYTES)) {",
@@ -338,6 +350,36 @@ def _compile_and_run_blkdev_image_join() -> None:
             f"storage_blkdev_join failed: {ran.stderr or ran.stdout}",
         )
         ensure("storage_blkdev_join: ok" in ran.stdout, f"unexpected output: {ran.stdout!r}")
+
+        original = PUBLISH_SOURCE.read_text(encoding="utf-8")
+        target = ("medium->checkpoint = next_cp;\n"
+                  "        if (!persist_store(store)) return 0;\n"
+                  "        if (cut_point == VOS_STORAGE_CUT_BEFORE_EPOCH_SEAL) {")
+        ensure(original.count(target) == 1, "pending persistence mutant anchor must be unique")
+        candidate = tmp_path / "missing_pending_persistence.c"
+        candidate.write_text(original.replace(target, target.replace(
+            "if (!persist_store(store)) return 0;", "(void)store;"), 1),
+            encoding="utf-8", newline="\n")
+        obj = tmp_path / "missing_pending_persistence.o"
+        built = subprocess.run([
+            cc, "-std=c17", "-O2", "-Wall", "-Wextra", "-Werror", "-Wstrict-prototypes",
+            f"-I{CRYPTO_HEADER.parent}", "-c", str(candidate), "-o", str(obj)
+        ], capture_output=True, text=True, timeout=60, check=False)
+        ensure(built.returncode == 0, f"pending persistence control stillborn: {built.stderr}")
+        mutant = tmp_path / "missing_pending_persistence"
+        mutated_objs = [str(obj) if src == PUBLISH_SOURCE else objs[i] for i, src in enumerate(c_sources)]
+        linked = subprocess.run([
+            cxx, "-std=c++17", "-O2", "-Wall", "-Wextra", "-Werror",
+            f"-I{CRYPTO_HEADER.parent}", f"-I{BLKDEV_IMAGE_H.parent}",
+            str(BLKDEV_IMAGE_CPP), str(BLKDEV_JOIN_HARNESS), *mutated_objs, "-o", str(mutant)
+        ], capture_output=True, text=True, timeout=60, check=False)
+        ensure(linked.returncode == 0, f"pending persistence control link failed: {linked.stderr}")
+        mutated_scratch = tmp_path / "mutant_scratch"
+        mutated_scratch.mkdir()
+        rejected = subprocess.run([str(mutant), str(mutated_scratch)], capture_output=True,
+                                  text=True, timeout=60, check=False)
+        ensure(rejected.returncode != 0 and "publication prefixes failed" in rejected.stderr,
+               f"pending persistence control survived or missed oracle: {rejected.stderr}")
 
 
 def cases() -> list[Case]:
