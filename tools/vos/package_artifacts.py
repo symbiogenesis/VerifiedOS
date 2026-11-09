@@ -365,8 +365,8 @@ def validate_memory(placements: Sequence[Placement], regions: Sequence[MemoryReg
                 raise PackageError("fixed package region has incompatible physical memory class or permissions")
 
 
-def verify_image(blob: bytes, placements: Sequence[Placement]) -> None:
-    """Compare expected immutable regions with actual physical PT_LOAD effects."""
+def verify_image(blob: bytes, placements: Sequence[Placement], *, expected_entry: int | None = None) -> None:
+    """Check physical PT_LOAD effects and an optional caller-selected package entry."""
     fresh = _placements(placements)
     if len(blob) < image.EHDR_SIZE:
         raise PackageError("fixed package image is not an ELF64 RISC-V executable")
@@ -377,8 +377,12 @@ def verify_image(blob: bytes, placements: Sequence[Placement]) -> None:
         raise PackageError("fixed package image is not a supported ELF64 RISC-V executable")
     if header[5] + header[10] * image.PHDR_SIZE > len(blob):
         raise PackageError("fixed package image program table is truncated")
-    if header[4] not in {item.entry for item in fresh}:
+    entries = {item.entry for item in fresh}
+    if header[4] not in entries:
         raise PackageError("fixed package image entry differs from declared package entries")
+    if expected_entry is not None and (type(expected_entry) is not int or expected_entry not in entries
+                                       or header[4] != expected_entry):
+        raise PackageError("fixed package image entry differs from the selected package entry")
     expected = [(item, section) for item in fresh for section in item.sections]
     matched: set[int] = set()
     extents: list[tuple[int, int]] = []

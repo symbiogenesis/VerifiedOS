@@ -3,6 +3,7 @@
 
 import copy
 import json
+import struct
 import tempfile
 from contextlib import redirect_stdout
 from io import StringIO
@@ -12,7 +13,7 @@ from unittest.mock import patch
 
 from tests.harness import Case, ensure
 from tests.test_package_artifacts import fixture_artifact
-from vos import asm, fixed_composition, package_artifacts
+from vos import asm, fixed_composition, image, package_artifacts
 from vos.cli import composer
 
 
@@ -135,7 +136,43 @@ def _refusals_preserve_output() -> None:
         ensure(code == 1 and "byte limit" in out and destination.read_bytes() == b"old generation", out)
 
 
+def _selected_entry_substitution_preserves_output() -> None:
+    with tempfile.TemporaryDirectory(prefix="vos-fixed-entry-") as directory:
+        root = Path(directory)
+        source = fixture_recipe(root)
+        raw = json.loads((root / source).read_bytes())
+        sibling = fixture_artifact(root, "sibling")
+        package_artifacts.store(root / "out/native-packages", sibling)
+        raw["packages"].append({"artifact": sibling.identity, "base": 0x80001000})
+        original = image.write_elf
+        destination = root / "out/generation.elf"
+        for selected in (raw["packages"][0]["artifact"], sibling.identity):
+            raw["entry"] = selected
+            (root / source).write_bytes(package_artifacts.canonical(raw))
+            args = ["compose-fixed", source, "--output", "out/generation.elf"]
+            code, report = _run(root, args)
+            ensure(code == 0, report)
+            selected_base = next(item["base"] for item in raw["packages"] if item["artifact"] == selected)
+            ensure(struct.unpack_from("<Q", destination.read_bytes(), 24)[0] == selected_base,
+                   "composition starts at the recipe-selected member")
+            previous = destination.read_bytes()
+            alternate = next(item["base"] for item in raw["packages"] if item["artifact"] != selected)
+
+            def substituted(path: Path, *args: Any, **kwargs: Any) -> None:
+                original(path, *args, **kwargs)
+                blob = bytearray(path.read_bytes())
+                struct.pack_into("<Q", blob, 24, alternate)
+                path.write_bytes(blob)
+
+            with patch.object(image, "write_elf", side_effect=substituted):
+                code, report = _run(root, args)
+            ensure(code == 1 and "selected package entry" in report, report)
+            ensure(destination.read_bytes() == previous,
+                   "a valid sibling entry substitution preserves the prior generation")
+
+
 def cases() -> list[Case]:
     return [Case("public commands reuse exact stored native bytes at two layouts", _commands_reuse_the_actual_artifact),
             Case("one changed package leaves its unchanged neighbor intact", _replace_only_one_package),
-            Case("bad context placement and output aliases preserve the old image", _refusals_preserve_output)]
+            Case("bad context placement and output aliases preserve the old image", _refusals_preserve_output),
+            Case("another valid package entry refuses before replacing the generation", _selected_entry_substitution_preserves_output)]
