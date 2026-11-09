@@ -98,6 +98,7 @@ struct vos_storage_checkpoint {
     uint64_t sealed_epoch;
     uint8_t epoch_root[VOS_CRYPTO_DIGEST_BYTES];
     uint8_t root_digest[VOS_CRYPTO_DIGEST_BYTES];
+    uint8_t fresh_state_digest[VOS_CRYPTO_DIGEST_BYTES];
     uint8_t payload_manifest_digest[VOS_CRYPTO_DIGEST_BYTES];
     struct vos_storage_block_auth auth[VOS_STORAGE_MAX_ARENA_NODES];
     uint32_t snapshot_count;

@@ -230,7 +230,7 @@ static int compute_payload_manifest(const struct vos_crypto_core *crypto,
 
 enum {
     CHECKPOINT_HEADER_BYTES = 8u + 4u + 4u + 8u + 8u + 8u + 8u + 4u + 4u + 8u +
-                              8u + 8u + 8u + 3u * VOS_CRYPTO_DIGEST_BYTES + 4u + 4u,
+                              8u + 8u + 8u + 4u * VOS_CRYPTO_DIGEST_BYTES + 4u + 4u,
     CHECKPOINT_AUTH_BYTES = 4u + 4u + 8u + VOS_CRYPTO_TAG_BYTES,
     CHECKPOINT_SERIAL_BYTES = CHECKPOINT_HEADER_BYTES +
                               VOS_STORAGE_MAX_SNAPSHOTS * 8u +
@@ -248,7 +248,7 @@ static size_t serialize_checkpoint(const struct vos_storage_checkpoint *cp,
     buf[4] = 'H';
     buf[5] = 'K';
     buf[6] = 'P';
-    buf[7] = '1';
+    buf[7] = '2';
     put_le32(buf + 8u, cp->committed);
     put_le32(buf + 12u, cp->commit_mode);
     put_le64(buf + 16u, cp->domain_id);
@@ -265,6 +265,8 @@ static size_t serialize_checkpoint(const struct vos_storage_checkpoint *cp,
     copy_bytes(buf + at, cp->epoch_root, VOS_CRYPTO_DIGEST_BYTES);
     at += VOS_CRYPTO_DIGEST_BYTES;
     copy_bytes(buf + at, cp->root_digest, VOS_CRYPTO_DIGEST_BYTES);
+    at += VOS_CRYPTO_DIGEST_BYTES;
+    copy_bytes(buf + at, cp->fresh_state_digest, VOS_CRYPTO_DIGEST_BYTES);
     at += VOS_CRYPTO_DIGEST_BYTES;
     copy_bytes(buf + at, cp->payload_manifest_digest, VOS_CRYPTO_DIGEST_BYTES);
     at += VOS_CRYPTO_DIGEST_BYTES;
@@ -490,6 +492,8 @@ int vos_storage_format(struct vos_storage_medium *medium,
         return 0;
     }
     medium->journal_reusable = 1u;
+    medium->fallback_checkpoint = *cp;
+    medium->has_fallback = 1u;
 
     store->open = 1u;
     store->crypto_slot = crypto_slot;
@@ -555,7 +559,13 @@ int vos_storage_reserve(struct vos_storage_store *store,
     }
     if (spec->op_kind != VOS_STORAGE_OP_COMPACT &&
         store->committed_used >= medium->geometry.arena_nodes) {
-        return 0;
+        int reusable = 0;
+        for (uint64_t id = 0u; id < store->committed_used; ++id) {
+            reusable |= !medium->checkpoint.auth[(size_t)id].valid;
+        }
+        if (!reusable) {
+            return 0;
+        }
     }
     if (spec->commit_mode == VOS_STORAGE_COMMIT_FRESH &&
         store->crypto->rot_epoch_counter >= store->crypto->rot_epoch_ceiling) {
@@ -593,6 +603,13 @@ int vos_storage_stage(struct vos_storage_store *store,
     }
     struct vos_storage_medium *medium = store->medium;
     struct vos_storage_attempt *att = &store->attempt;
+    if (!verify_checkpoint_mac(store->crypto, store->crypto_slot,
+                               store->domain_id, store->key_epoch,
+                               medium->geometry.arena_nodes, &medium->checkpoint) ||
+        medium->checkpoint.generation != store->committed_generation ||
+        medium->checkpoint.root != store->committed_root) {
+        return 0;
+    }
     const size_t block_bytes = medium->geometry.block_bytes;
     const size_t arena_bytes = (size_t)medium->geometry.arena_nodes * block_bytes;
 
@@ -617,63 +634,87 @@ int vos_storage_stage(struct vos_storage_store *store,
     arena.generations = att->staged_generations;
     arena.generation_count = medium->geometry.arena_nodes;
 
-    const uint64_t start_allocated = store->committed_used;
-    int update_ok = 0;
-
-    if (att->spec.op_kind == VOS_STORAGE_OP_INSERT) {
-        update_ok = vos_tree_insert(&arena, &cur_limits, store->committed_root,
-                                    att->generation, att->spec.key,
-                                    att->spec.value, &att->result);
-    } else if (att->spec.op_kind == VOS_STORAGE_OP_INSERT_BATCH) {
-        update_ok = vos_tree_insert_batch(&arena, &cur_limits, store->committed_root,
-                                          att->generation, att->spec.entries,
-                                          att->spec.entry_count, &att->result);
-    } else if (att->spec.op_kind == VOS_STORAGE_OP_DELETE) {
-        update_ok = vos_tree_delete(&arena, &cur_limits, store->committed_root,
-                                    att->generation, att->spec.key, &att->result);
-    } else if (att->spec.op_kind == VOS_STORAGE_OP_COMPACT) {
-        update_ok = vos_tree_compact(&arena, &cur_limits, store->committed_root,
-                                     att->generation, &att->result);
+    uint64_t free_ids[VOS_STORAGE_MAX_ARENA_NODES];
+    uint8_t retired[VOS_STORAGE_MAX_ARENA_NODES] = {0};
+    size_t free_count = 0u;
+    uint64_t latest_snap = 0u;
+    for (uint32_t i = 0u; i < medium->checkpoint.snapshot_count; ++i) {
+        if (medium->checkpoint.snapshots[i] > latest_snap) {
+            latest_snap = medium->checkpoint.snapshots[i];
+        }
     }
-
-    if (!update_ok || att->result.used <= start_allocated ||
-        att->result.used > medium->geometry.arena_nodes ||
-        att->result.used - start_allocated > VOS_STORAGE_MAX_JOURNAL_FRAMES) {
+    const int has_snapshot = medium->checkpoint.snapshot_count != 0u;
+    const int compact = att->spec.op_kind == VOS_STORAGE_OP_COMPACT;
+    for (uint64_t id = 0u; id < store->committed_used; ++id) {
+        const struct vos_storage_block_auth *auth = &medium->checkpoint.auth[(size_t)id];
+        if (!auth->valid || (compact &&
+            vos_tree_can_reclaim_node(auth->generation, latest_snap, has_snapshot))) {
+            free_ids[free_count++] = id;
+        }
+    }
+    const struct vos_tree_reuse reuse = {
+        .ids = free_ids, .count = free_count,
+        .retired = retired, .retired_count = VOS_STORAGE_MAX_ARENA_NODES
+    };
+    int update_ok = 0;
+    if (att->spec.op_kind == VOS_STORAGE_OP_INSERT) {
+        update_ok = vos_tree_insert_reuse(&arena, &cur_limits, store->committed_root,
+                                          att->generation, att->spec.key,
+                                          att->spec.value, &reuse, &att->result);
+    } else if (att->spec.op_kind == VOS_STORAGE_OP_INSERT_BATCH) {
+        update_ok = vos_tree_insert_batch_reuse(&arena, &cur_limits, store->committed_root,
+                                                att->generation, att->spec.entries,
+                                                att->spec.entry_count, &reuse, &att->result);
+    } else if (att->spec.op_kind == VOS_STORAGE_OP_DELETE) {
+        update_ok = vos_tree_delete_reuse(&arena, &cur_limits, store->committed_root,
+                                          att->generation, att->spec.key, &reuse, &att->result);
+    } else if (compact) {
+        struct vos_tree_arena source = arena;
+        source.bytes = store->plain_arena;
+        source.generations = store->plain_generations;
+        update_ok = vos_tree_compact_into(&source, &arena, &cur_limits,
+                                          store->committed_root, att->generation,
+                                          &reuse, &att->result);
+    }
+    if (!update_ok || att->result.used == 0u ||
+        att->result.used > medium->geometry.arena_nodes) {
         return 0;
     }
 
-    /* Record O(1) birth-generation snapshot reclamation for replaced nodes (R-10-010). */
-    if (medium->checkpoint.snapshot_count > 0u) {
-        struct vos_tree_arena reclaim_arena = arena;
-        reclaim_arena.used = att->result.used;
-        struct vos_tree_limits new_limits = medium->limits;
-        new_limits.height = att->result.height;
-        struct vos_tree_reclaim_plan plan = {0};
-        uint64_t latest_snap = 0u;
-        for (uint32_t i = 0u; i < medium->checkpoint.snapshot_count; ++i) {
-            if (medium->checkpoint.snapshots[i] > latest_snap) {
-                latest_snap = medium->checkpoint.snapshots[i];
-            }
+    /* Retire only the rewritten paths; snapshot-owned blocks remain pinned. */
+    for (uint64_t id = 0u; id < store->committed_used; ++id) {
+        if (!retired[(size_t)id] ||
+            att->staged_generations[(size_t)id] == att->generation) {
+            continue;
         }
-        if (!vos_tree_classify_reclaim(&reclaim_arena, &cur_limits,
-                                       store->committed_root, &new_limits,
-                                       att->result.root, latest_snap, 1, &plan)) {
-            return 0;
-        }
-        for (uint32_t i = 0u; i < plan.deadlist_count; ++i) {
-            if (att->staged_dead_count >= VOS_STORAGE_MAX_DEADLIST) {
-                return 0;
+        const uint64_t birth = store->plain_generations[(size_t)id];
+        if (vos_tree_can_reclaim_node(birth, latest_snap, has_snapshot)) {
+            zero_bytes((uint8_t *)&att->staged_auth[(size_t)id],
+                       sizeof(att->staged_auth[(size_t)id]));
+        } else {
+            int already_dead = 0;
+            for (uint32_t i = 0u; i < att->staged_dead_count; ++i) {
+                already_dead |= att->staged_deadlist[i].node_id == id;
             }
-            const uint64_t dead_id = plan.deadlist_ids[i];
-            att->staged_deadlist[att->staged_dead_count].node_id = dead_id;
-            att->staged_deadlist[att->staged_dead_count].birth_generation =
-                att->staged_generations[(size_t)dead_id];
-            ++att->staged_dead_count;
+            if (!already_dead) {
+                if (att->staged_dead_count >= VOS_STORAGE_MAX_DEADLIST) {
+                    return 0;
+                }
+                att->staged_deadlist[att->staged_dead_count].node_id = id;
+                att->staged_deadlist[att->staged_dead_count].birth_generation = birth;
+                ++att->staged_dead_count;
+            }
         }
     }
 
     uint32_t f_idx = 0u;
-    for (uint64_t id = start_allocated; id < att->result.used; ++id) {
+    for (uint64_t id = 0u; id < att->result.used; ++id) {
+        if (att->staged_generations[(size_t)id] != att->generation) {
+            continue;
+        }
+        if (f_idx >= VOS_STORAGE_MAX_JOURNAL_FRAMES) {
+            return 0;
+        }
         struct vos_storage_journal_frame *frame = &att->frames[f_idx];
         uint32_t kind = 0u;
         zero_bytes((uint8_t *)frame, sizeof(*frame));
@@ -737,6 +778,8 @@ static int verify_staged_candidate(const struct vos_storage_store *store)
                              store->key_epoch, frame->target_node_id,
                              &att->staged_auth[(size_t)frame->target_node_id],
                              frame->ciphertext, opened, &decoded) ||
+            !equal_bytes_ct(opened, att->staged_plaintext +
+                            (size_t)frame->target_node_id * block_bytes, block_bytes) ||
             !vos_crypto_core_keyed_digest(store->crypto, store->crypto_slot,
                                           opened, block_bytes, digest) ||
             !equal_bytes_ct(digest, frame->content_digest, VOS_CRYPTO_DIGEST_BYTES)) {
@@ -750,8 +793,30 @@ static int verify_staged_candidate(const struct vos_storage_store *store)
     candidate.generations = att->staged_generations;
     candidate.generation_count = (size_t)att->result.used;
     candidate_limits.height = att->result.height;
-    return vos_tree_lookup(&candidate, &candidate_limits,
-                           att->result.root, 0u, &checked) != VOS_TREE_REFUSED;
+    if (att->spec.op_kind == VOS_STORAGE_OP_COMPACT) {
+        return vos_tree_lookup(&candidate, &candidate_limits,
+                               att->result.root, 0u, &checked) != VOS_TREE_REFUSED;
+    }
+    const size_t queries = att->spec.op_kind == VOS_STORAGE_OP_INSERT_BATCH
+        ? att->spec.entry_count : 1u;
+    for (size_t i = 0u; i < queries; ++i) {
+        const uint64_t key = att->spec.op_kind == VOS_STORAGE_OP_INSERT_BATCH
+            ? att->spec.entries[i].key : att->spec.key;
+        const int status = vos_tree_lookup_path(&candidate, &candidate_limits,
+                                                att->result.root, key, &checked);
+        if (att->spec.op_kind == VOS_STORAGE_OP_DELETE) {
+            if (status != VOS_TREE_MISSING) {
+                return 0;
+            }
+        } else {
+            const uint64_t value = att->spec.op_kind == VOS_STORAGE_OP_INSERT_BATCH
+                ? att->spec.entries[i].value : att->spec.value;
+            if (status != VOS_TREE_FOUND || checked != value) {
+                return 0;
+            }
+        }
+    }
+    return 1;
 }
 
 int vos_storage_publish(struct vos_storage_store *store,
@@ -833,6 +898,7 @@ int vos_storage_publish(struct vos_storage_store *store,
     }
 
     if (next_cp.commit_mode == VOS_STORAGE_COMMIT_FRESH) {
+        copy_bytes(next_cp.fresh_state_digest, next_cp.root_digest, VOS_CRYPTO_DIGEST_BYTES);
         next_cp.fresh_region_id = att->spec.fresh_region_id;
         next_cp.fresh_region_version = att->spec.fresh_region_version;
         next_cp.sealed_epoch = 0u;
@@ -849,7 +915,7 @@ int vos_storage_publish(struct vos_storage_store *store,
         if (!vos_crypto_core_seal_epoch(store->crypto, store->crypto_slot,
                                         next_cp.fresh_region_id,
                                         next_cp.fresh_region_version,
-                                        next_cp.root_digest,
+                                        next_cp.fresh_state_digest,
                                         &next_cp.sealed_epoch,
                                         next_cp.epoch_root) ||
             !sign_checkpoint(store->crypto, store->crypto_slot, &next_cp)) {
@@ -857,6 +923,8 @@ int vos_storage_publish(struct vos_storage_store *store,
         }
         medium->checkpoint = next_cp;
     } else {
+        copy_bytes(next_cp.fresh_state_digest, medium->checkpoint.fresh_state_digest,
+                   VOS_CRYPTO_DIGEST_BYTES);
         next_cp.fresh_region_id = medium->checkpoint.fresh_region_id;
         next_cp.fresh_region_version = medium->checkpoint.fresh_region_version;
         next_cp.sealed_epoch = medium->checkpoint.sealed_epoch;
@@ -881,9 +949,9 @@ int vos_storage_publish(struct vos_storage_store *store,
         copy_bytes(medium->arena_ciphertext + (size_t)id * block_bytes,
                    att->frames[i].ciphertext, block_bytes);
     }
-    medium->journal_count = 0u;
     medium->journal_reusable = 1u;
-    zero_bytes((uint8_t *)medium->journal, sizeof(medium->journal));
+    medium->fallback_checkpoint = next_cp;
+    medium->has_fallback = 1u;
 
     copy_bytes(store->plain_arena, att->staged_plaintext,
                (size_t)medium->geometry.arena_nodes * block_bytes);
@@ -917,11 +985,21 @@ int vos_storage_reopen(struct vos_storage_medium *medium,
 
     const uint64_t key_epoch = crypto->domains[crypto_slot].key_epoch;
     if (!verify_nonce_record(crypto, crypto_slot, expected_domain_id,
-                             key_epoch, &medium->nonce_record) ||
-        !verify_checkpoint_mac(crypto, crypto_slot, expected_domain_id,
-                               key_epoch, medium->geometry.arena_nodes,
-                               &medium->checkpoint)) {
+                             key_epoch, &medium->nonce_record)) {
         return 0;
+    }
+    const int primary_valid = verify_checkpoint_mac(
+        crypto, crypto_slot, expected_domain_id, key_epoch,
+        medium->geometry.arena_nodes, &medium->checkpoint);
+    const int fallback_valid = medium->has_fallback && verify_checkpoint_mac(
+        crypto, crypto_slot, expected_domain_id, key_epoch,
+        medium->geometry.arena_nodes, &medium->fallback_checkpoint);
+    if (!primary_valid && !fallback_valid) {
+        return 0;
+    }
+    if (!primary_valid || (fallback_valid &&
+        medium->fallback_checkpoint.generation > medium->checkpoint.generation)) {
+        medium->checkpoint = medium->fallback_checkpoint;
     }
 
     /* R-10-013c: an epoch that does not seal loses its writes rather than
@@ -953,7 +1031,7 @@ int vos_storage_reopen(struct vos_storage_medium *medium,
         if (!vos_crypto_core_verify_epoch(crypto, crypto_slot, cp->sealed_epoch,
                                           cp->fresh_region_id,
                                           cp->fresh_region_version,
-                                          cp->root_digest, cp->epoch_root)) {
+                                          cp->fresh_state_digest, cp->epoch_root)) {
             return 0;
         }
     }
@@ -961,7 +1039,7 @@ int vos_storage_reopen(struct vos_storage_medium *medium,
     const size_t block_bytes = medium->geometry.block_bytes;
 
     /* R-10-002a bounded prefix redo recovery. */
-    if (medium->journal_count > 0u) {
+    if (medium->journal_count > 0u && !medium->journal_reusable) {
         if (medium->journal_count > VOS_STORAGE_MAX_JOURNAL_FRAMES) {
             return 0;
         }
@@ -1009,9 +1087,7 @@ int vos_storage_reopen(struct vos_storage_medium *medium,
                 copy_bytes(medium->arena_ciphertext + (size_t)id * block_bytes,
                            medium->journal[i].ciphertext, block_bytes);
             }
-            medium->journal_count = 0u;
             medium->journal_reusable = 1u;
-            zero_bytes((uint8_t *)medium->journal, sizeof(medium->journal));
         } else if (j_gen > cp->generation &&
                    j_gen <= medium->nonce_record.reserved_generation) {
             /* Uncommitted suffix: discard without rolling back nonce reservation. */
@@ -1025,6 +1101,9 @@ int vos_storage_reopen(struct vos_storage_medium *medium,
 
     /* Authenticate and reconstruct all arena blocks 0 .. cp->used - 1. */
     for (uint64_t id = 0u; id < cp->used; ++id) {
+        if (!cp->auth[(size_t)id].valid) {
+            continue;
+        }
         struct vos_node decoded = {0};
         if (!open_node_block(crypto, crypto_slot, &medium->geometry,
                              expected_domain_id, key_epoch, id,
@@ -1064,6 +1143,8 @@ int vos_storage_reopen(struct vos_storage_medium *medium,
         return 0;
     }
 
+    medium->fallback_checkpoint = medium->checkpoint;
+    medium->has_fallback = 1u;
     store->open = 1u;
     store->crypto_slot = crypto_slot;
     store->domain_id = expected_domain_id;
@@ -1095,14 +1176,14 @@ int vos_storage_lookup(const struct vos_storage_store *store,
                                medium->geometry.arena_nodes, cp)) {
         return VOS_TREE_REFUSED;
     }
-    if (store->crypto->epoch_sealed ||
+    if ((store->crypto->epoch_sealed_mask & (1u << store->crypto_slot)) != 0u ||
         cp->commit_mode == VOS_STORAGE_COMMIT_FRESH ||
         cp->sealed_epoch != 0u) {
         if (!vos_crypto_core_verify_epoch(store->crypto, store->crypto_slot,
                                           cp->sealed_epoch,
                                           cp->fresh_region_id,
                                           cp->fresh_region_version,
-                                          cp->root_digest, cp->epoch_root)) {
+                                          cp->fresh_state_digest, cp->epoch_root)) {
             return VOS_TREE_REFUSED;
         }
     }
@@ -1203,18 +1284,31 @@ int vos_storage_retain_snapshot(struct vos_storage_store *store,
         generation == 0u || generation > store->committed_generation) {
         return 0;
     }
-    struct vos_storage_checkpoint *cp = &store->medium->checkpoint;
+    struct vos_storage_checkpoint next = store->medium->checkpoint;
+    struct vos_storage_checkpoint *cp = &next;
+    if (!verify_checkpoint_mac(store->crypto, store->crypto_slot,
+                               store->domain_id, store->key_epoch,
+                               store->medium->geometry.arena_nodes, cp)) {
+        return 0;
+    }
     for (uint32_t i = 0u; i < cp->snapshot_count; ++i) {
         if (cp->snapshots[i] == generation) {
             return 1;
         }
     }
-    if (cp->snapshot_count >= VOS_STORAGE_MAX_SNAPSHOTS) {
+    if (generation != store->committed_generation ||
+        cp->snapshot_count >= VOS_STORAGE_MAX_SNAPSHOTS) {
         return 0;
     }
     cp->snapshots[cp->snapshot_count] = generation;
     ++cp->snapshot_count;
-    return sign_checkpoint(store->crypto, store->crypto_slot, cp);
+    if (!sign_checkpoint(store->crypto, store->crypto_slot, cp)) {
+        return 0;
+    }
+    store->medium->checkpoint = *cp;
+    store->medium->fallback_checkpoint = *cp;
+    store->medium->has_fallback = 1u;
+    return 1;
 }
 
 int vos_storage_object_digest(const struct vos_storage_store *store,
@@ -1415,7 +1509,7 @@ static int encode_blkdev_checkpoint(const struct vos_storage_checkpoint *cp,
     out[4] = 'H';
     out[5] = 'K';
     out[6] = '0';
-    out[7] = '1';
+    out[7] = '2';
     put_le32(out + 8u, cp->committed ? 1u : 0u);
     put_le32(out + 12u, cp->commit_mode);
     put_le64(out + 16u, cp->domain_id);
@@ -1434,6 +1528,7 @@ static int encode_blkdev_checkpoint(const struct vos_storage_checkpoint *cp,
     copy_bytes(out + 128u, cp->root_digest, VOS_CRYPTO_DIGEST_BYTES);
     copy_bytes(out + 160u, cp->payload_manifest_digest, VOS_CRYPTO_DIGEST_BYTES);
     copy_bytes(out + 192u, cp->checkpoint_mac, VOS_CRYPTO_DIGEST_BYTES);
+    copy_bytes(out + 1056u, cp->fresh_state_digest, VOS_CRYPTO_DIGEST_BYTES);
     for (uint32_t i = 0u; i < VOS_STORAGE_MAX_SNAPSHOTS; ++i) {
         put_le64(out + 224u + (size_t)i * 8u,
                  (i < cp->snapshot_count) ? cp->snapshots[i] : 0u);
@@ -1461,11 +1556,11 @@ static int decode_blkdev_checkpoint(const uint8_t in[BLKDEV_CP_BYTES],
                                     uint64_t arena_nodes,
                                     struct vos_storage_checkpoint *cp_out)
 {
-    static const uint8_t magic[8] = {'V', 'O', 'S', 'C', 'H', 'K', '0', '1'};
+    static const uint8_t magic[8] = {'V', 'O', 'S', 'C', 'H', 'K', '0', '2'};
     if (in == NULL || cp_out == NULL ||
         arena_nodes > VOS_STORAGE_BLKDEV_MAX_ARENA_NODES ||
         !equal_bytes_ct(in, magic, sizeof(magic)) ||
-        !all_zero(in + 1056u, BLKDEV_CP_BYTES - 1056u)) {
+        !all_zero(in + 1088u, BLKDEV_CP_BYTES - 1088u)) {
         return 0;
     }
     zero_bytes((uint8_t *)cp_out, sizeof(*cp_out));
@@ -1494,6 +1589,7 @@ static int decode_blkdev_checkpoint(const uint8_t in[BLKDEV_CP_BYTES],
     copy_bytes(cp_out->root_digest, in + 128u, VOS_CRYPTO_DIGEST_BYTES);
     copy_bytes(cp_out->payload_manifest_digest, in + 160u, VOS_CRYPTO_DIGEST_BYTES);
     copy_bytes(cp_out->checkpoint_mac, in + 192u, VOS_CRYPTO_DIGEST_BYTES);
+    copy_bytes(cp_out->fresh_state_digest, in + 1056u, VOS_CRYPTO_DIGEST_BYTES);
     for (uint32_t i = 0u; i < VOS_STORAGE_MAX_SNAPSHOTS; ++i) {
         const uint64_t snap = get_le64(in + 224u + (size_t)i * 8u);
         if (i < cp_out->snapshot_count) {
@@ -1673,22 +1769,19 @@ int vos_storage_decode_blkdev_medium(
         copy_bytes(fr->ciphertext, ct, VOS_STORAGE_BLKDEV_BLOCK_BYTES);
     }
 
-    /* Blocks 32..47: primary checkpoint. */
+    /* Decode slots independently: a torn slot is not a malformed device image.
+     * Reopen authenticates/selects complete slots before returning any bytes. */
     if (!decode_blkdev_checkpoint(
             medium_bytes + 32u * VOS_STORAGE_BLKDEV_BLOCK_BYTES,
             medium_out->geometry.arena_nodes, &medium_out->checkpoint)) {
-        zero_bytes((uint8_t *)medium_out, sizeof(*medium_out));
-        return 0;
+        zero_bytes((uint8_t *)&medium_out->checkpoint, sizeof(medium_out->checkpoint));
     }
-
-    /* Blocks 48..63: fallback checkpoint when present. */
     if (medium_out->has_fallback) {
         if (!decode_blkdev_checkpoint(
                 medium_bytes + 48u * VOS_STORAGE_BLKDEV_BLOCK_BYTES,
-                medium_out->geometry.arena_nodes,
-                &medium_out->fallback_checkpoint)) {
-            zero_bytes((uint8_t *)medium_out, sizeof(*medium_out));
-            return 0;
+                medium_out->geometry.arena_nodes, &medium_out->fallback_checkpoint)) {
+            zero_bytes((uint8_t *)&medium_out->fallback_checkpoint,
+                       sizeof(medium_out->fallback_checkpoint));
         }
     } else if (!all_zero(medium_bytes + 48u * VOS_STORAGE_BLKDEV_BLOCK_BYTES,
                          BLKDEV_CP_BYTES)) {
