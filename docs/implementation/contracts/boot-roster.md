@@ -454,7 +454,10 @@ and checks the actual ELF's complete physical load bytes, permissions and select
 entry. Each observed entry is the placed entry of the corresponding package;
 first-entry order follows the composition recipe's package order. The selected
 entry must therefore belong to its first package. Loaded regions and the aligned
-HTIF doubleword must also fit the selected emulator configuration without overlap.
+HTIF doubleword must also fit the selected emulator configuration. The HTIF word
+is an aligned, complete writable initializer export named `tohost`; the actual
+ELF symbol must match it. Missing, duplicate or substituted exports refuse before
+launch. This word may occupy its owning initializer and cannot overlap code.
 The adapter reuses the streaming observer, process/timeout, console, HTIF,
 first-entry and expected-digest checks above. Input drift discovered at the final
 binding check refuses a clean verdict or expected-value refresh.
@@ -473,6 +476,7 @@ boundary; real roster membership, qualified compiler provenance, authenticated
 handoff, TAL/CIC and full-roster target acceptance retain their existing owners.
 Scripted process controls supply host harness evidence only. No reviewed golden
 emulator capture or production acceptance follows from them.
+
 ## 7. Exit codes
 
 `0` is a composition or run that met every check. `1` is a refusal this contract names.
