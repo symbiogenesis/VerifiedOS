@@ -44,6 +44,32 @@ The [BeamFS layout assessment](../background/architectural-alternatives.md#beamf
 
 ## Early executable publication checkpoint
 
+### Storage critique repair acceptance
+
+The bounded producer's repair must preserve authenticated complete publication,
+retained roots, nonce uniqueness and acknowledged-state recovery. Its acceptance
+uses generated native cases for full-arena compaction and subsequent allocation,
+snapshot-protected reclamation, state-digest substitution, interleaved domain
+epoch seals, every primary-checkpoint block tear, and authenticated path-local
+updates. Recovery must distinguish an interrupted checkpoint from corruption of
+acknowledged payload; a fallback cannot silently discard acknowledged work.
+
+Performance changes must remove repeated work at its actual caller and retain
+the independent evidence each authentication layer supplies. Resident admission
+may retain verified immutable bytes only with explicit backing ownership,
+invalidation, bounds and retirement checks; mutable host buffers still require
+verification. Persistent adapters must compare and write changed logical blocks
+without treating a partial checkpoint write as atomic. CoW publication and
+reclamation must account for every retained checkpoint and snapshot before reuse.
+
+The specification review must decide path-local object authentication, typed key
+and extent codecs, bounded backup streaming and the logical-device/physical-NAND
+refinement boundary at their existing owners before dependent implementation.
+Executable replacements require equivalence/refusal witnesses and focused native
+checks; changed Gallina additionally requires the portable proof workflow and
+user-managed fresh hosted acceptance. Functional host results supply no target,
+constant-time, physical-media or production-throughput verdict.
+
 M5.3d owns one bounded stage, publish and reopen interface over its selected
 storage implementation. Qualify this interface before expanding M5.4's update,
 Q32b's semantic-checkpoint or Q42a's restore adapters. This is an early checkpoint
