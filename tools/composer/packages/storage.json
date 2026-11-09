@@ -12,7 +12,7 @@
     },
     {
       "path": "storage/src/tree_update.c",
-      "sha256": "ec12df30d18b910c2192cd27bce6f617f1797b188fc586799c3473f335720621"
+      "sha256": "1f6d05ba1fb2adddf4a689fd7117f74551eb4d30ec4e06e24b564b6440e0a64b"
     },
     {
       "path": "storage/src/resident_reads.c",
@@ -24,7 +24,7 @@
     },
     {
       "path": "storage/src/storage_publish.c",
-      "sha256": "715cb8e664abdecaefa59e0aa4cdb3b09c10fc7292ef72937582a4de911c8409"
+      "sha256": "7e4a2974cac38b56b9cf2c940bb9d0db8953180e9c029861b1c1070181948855"
     },
     {
       "path": "storage/include/vos_node_image.h",
@@ -36,7 +36,7 @@
     },
     {
       "path": "storage/include/vos_tree_update.h",
-      "sha256": "cf31461b7682b3575fa3716808700f9ca0bc3b80ee688c79b94dd4ab4dcae88b"
+      "sha256": "2075969ec56e2d72864f4bafad8a1b97dfe30ec61426554f8149a84977a5dc0b"
     },
     {
       "path": "storage/include/vos_resident_reads.h",
@@ -48,7 +48,7 @@
     },
     {
       "path": "storage/include/vos_storage_publish.h",
-      "sha256": "6eef3b3fa01648f504303241bc51a63d1d1baab5fbb8e925983974074c1ac3bc"
+      "sha256": "843260a02f10faac36104658336a96dd626134255f165772658f2e451f4f30e5"
     },
     {
       "path": "proofs/ExecutableIndex.v",
@@ -56,15 +56,27 @@
     },
     {
       "path": "proofs/JournalIndex.v",
-      "sha256": "18f71a86cd340ab22a4611b69aa83505b5eeae7230d1b11afe27bb552633a388"
+      "sha256": "e22588c37c223cfab65b6bbb151cdd712c7f8099aadab89440ce726842179deb"
     },
     {
       "path": "proofs/StorageRecovery.v",
-      "sha256": "aeb84e567a6282e9b80e6a09005884e4b6d1a09b7da89c3f49c1fff03d740eec"
+      "sha256": "db46bae068cc54c92c0edf332fa62bfb521531c87752d28c77c0d03caa578484"
     },
     {
       "path": "proofs/KeyspaceDomains.v",
-      "sha256": "7b1c89502c1615bebda8f1ebac9395dcb4504b12b26c1786a868cbf65ae5a0df"
+      "sha256": "899c22468e3c9a66b5c6db7e898606267de6a215df0e0b2227975e468165bcf4"
+    },
+    {
+      "path": "storage/src/typed_entry.c",
+      "sha256": "cd54d7473916511877296e96cbb7888f9d65420147f7ee84d50aa3616f72a7cf"
+    },
+    {
+      "path": "storage/include/vos_typed_entry.h",
+      "sha256": "73e7c0753a988247ec187a7410586928a1e83fa3024f0d02c68186ed47050728"
+    },
+    {
+      "path": "proofs/ObjectTransactor.v",
+      "sha256": "acde93573446388ad8ed1299500799a9ab29e47e45af25bc4fdcf3a8563bd94e"
     }
   ],
   "interfaces": [
@@ -72,28 +84,28 @@
       "id": "storage-boundary",
       "source": {
         "path": "storage/README.md",
-        "sha256": "1b2e414cb2f1c8876829192f6acc23f4f77bdf4984e9923e7d4af327b148f452"
+        "sha256": "f57f952050b6429bc78357cf283d070040b48c9ecc0da21b0a5e80295f2f4d7a"
       }
     },
     {
       "id": "resident-reads-boundary",
       "source": {
         "path": "storage/resident-reads.md",
-        "sha256": "7c6a9240b7f74787ede499a88bfe03b07e5c532deecd4cec52e0360b08d3e46b"
+        "sha256": "a69689d7389543680906a99cf35e744e89133dd5ca24461059fe74249a87dcdf"
       }
     },
     {
       "id": "storage-recovery",
       "source": {
         "path": "docs/implementation/storage-recovery-policy.md",
-        "sha256": "23674a18d27182282eb9fb2caf48d4a8adfb4df23e4a1f2c85f1c6d8ca895116"
+        "sha256": "bfb609d9da6abc9d3e2cb9320b10998688e2f56eb2090c1ebfb7e85dac438743"
       }
     },
     {
       "id": "block-device",
       "source": {
         "path": "interfaces/block-device-contract.md",
-        "sha256": "c0c07d5ba8f4a023bfbf39eaf47e55d3f1043fbf13a46f81c14b9da0a56e55f3"
+        "sha256": "bfe26f6c7fc218e31ee9b6078eac3213b095dfddb6fa6fd589f534ed50a62479"
       }
     },
     {
@@ -101,6 +113,13 @@
       "source": {
         "path": "docs/implementation/contracts/boot-roster.md",
         "sha256": "7315a855b856df7f077d40aa3a525a8fc35193fa9589bab95d5706d8e91765e4"
+      }
+    },
+    {
+      "id": "typed-entry-boundary",
+      "source": {
+        "path": "storage/typed-entry.md",
+        "sha256": "6ea013d4a893cc62f3a123e616c70d2606d9e8ad641aecb80813a46192e27b26"
       }
     }
   ],

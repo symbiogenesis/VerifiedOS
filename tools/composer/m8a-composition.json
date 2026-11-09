@@ -334,7 +334,7 @@
         },
         {
           "path": "proofs/AesGcm.v",
-          "sha256": "fe9ac633db13c93931c1b0cbee025e48a124177764dc7e04cb76bdab0a298c85"
+          "sha256": "a156754e3d39d76bf961757bbca71652aeb4c506255f3c8a80bfbd5f6f3582ed"
         },
         {
           "path": "proofs/MlDsa.v",
@@ -343,7 +343,7 @@
       ],
       "descriptor": {
         "path": "tools/composer/packages/crypto-core.json",
-        "sha256": "7a89acd96c0aa25ec3bfa0d29f157f993f68e82d941d53d94c0ae3b09198fce2"
+        "sha256": "1fe37045e93fae42a2ebf447eb8a1cd72be88f88ce1f436527dad16e7fcd44fb"
       },
       "artifact_slot": "crypto-core-artifact",
       "entry": null,
@@ -366,16 +366,16 @@
         },
         {
           "path": "proofs/JournalIndex.v",
-          "sha256": "18f71a86cd340ab22a4611b69aa83505b5eeae7230d1b11afe27bb552633a388"
+          "sha256": "e22588c37c223cfab65b6bbb151cdd712c7f8099aadab89440ce726842179deb"
         },
         {
           "path": "proofs/StorageRecovery.v",
-          "sha256": "aeb84e567a6282e9b80e6a09005884e4b6d1a09b7da89c3f49c1fff03d740eec"
+          "sha256": "db46bae068cc54c92c0edf332fa62bfb521531c87752d28c77c0d03caa578484"
         }
       ],
       "descriptor": {
         "path": "tools/composer/packages/storage.json",
-        "sha256": "6a575ef7e65fac7854fd4a1ae2ff8a848fd507b6ae84b41e9b0ad6013d203bcc"
+        "sha256": "4b1ef736c26db5fd8c396030a24bfc3d64d89dc438c09e8d3bb2ebf02250a5c0"
       },
       "artifact_slot": "storage-artifact",
       "entry": null,
