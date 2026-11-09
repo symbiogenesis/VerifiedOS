@@ -349,6 +349,20 @@ def _hex_digest(value: object, where: str, pattern: re.Pattern[str]) -> str:
     return value
 
 
+def parse_expected(value: object, where: str) -> Expected | None:
+    """Read the shared image, console, event and trace expectation block."""
+    if value is None:
+        return None
+    block = _exact(value, _EXPECTED_KEYS, where)
+    return Expected(
+        _hex_digest(block["image_sha256"], f"{where}/image_sha256", _SHA256_RE),
+        _hex_digest(block["console_sha256"], f"{where}/console_sha256", _SHA256_RE),
+        _hex_digest(block["event_sha256"], f"{where}/event_sha256", _SHA256_RE),
+        _count(block["events"], f"{where}/events", positive=True),
+        _hex_digest(block["trace_digest"], f"{where}/trace_digest", _DIGEST16_RE),
+        _count(block["retired"], f"{where}/retired", positive=True))
+
+
 def parse_recipe(data: bytes, path: str) -> Recipe:
     parsed = _json(data, path)
     if not isinstance(parsed, dict):
@@ -389,18 +403,7 @@ def parse_recipe(data: bytes, path: str) -> Recipe:
             _text(block["source"], f"{path}/composer/source"),
             _address(block["address"], f"{path}/composer/address"))
         attached_admission = _text(raw["admission"], f"{path}/admission")
-    expected_raw = raw["expected"]
-    expected = None
-    if expected_raw is not None:
-        where = f"{path}/expected"
-        block = _exact(expected_raw, _EXPECTED_KEYS, where)
-        expected = Expected(
-            _hex_digest(block["image_sha256"], f"{where}/image_sha256", _SHA256_RE),
-            _hex_digest(block["console_sha256"], f"{where}/console_sha256", _SHA256_RE),
-            _hex_digest(block["event_sha256"], f"{where}/event_sha256", _SHA256_RE),
-            _count(block["events"], f"{where}/events", positive=True),
-            _hex_digest(block["trace_digest"], f"{where}/trace_digest", _DIGEST16_RE),
-            _count(block["retired"], f"{where}/retired", positive=True))
+    expected = parse_expected(raw["expected"], f"{path}/expected")
     return Recipe(path, _text(raw["name"], f"{path}/name"), _text(raw["roster"], f"{path}/roster"),
                   _text(raw["configuration"], f"{path}/configuration"),
                   _count(raw["inst_limit"], f"{path}/inst_limit", positive=True),

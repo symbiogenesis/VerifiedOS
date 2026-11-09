@@ -16,7 +16,7 @@ import sys
 from pathlib import Path
 from typing import cast
 
-from vos import boot, corpus, env
+from vos import boot, corpus, env, fixed_boot, package_artifacts
 
 SCOPE = ("boot harness evidence at the composed boundary; M7.1 acceptance stays open "
          "while any listed join is open")
@@ -120,6 +120,26 @@ def cmd_run(args: argparse.Namespace) -> int:
         return 2
 
 
+def cmd_run_fixed(args: argparse.Namespace) -> int:
+    root = corpus.find_root()
+    try:
+        recipe = fixed_boot.load_recipe(root, args.recipe)
+        simulator = _simulator(args)
+        if simulator is None or not simulator.is_file():
+            print("FAIL boot run-fixed: no golden emulator; select this lane's emulator or --simulator PATH")
+            return 2
+        result = fixed_boot.run(root, recipe, _out("fixed-package", args.out), simulator,
+                                timeout=args.timeout, refresh=args.refresh, keep_trace=args.keep_trace)
+    except (boot.RecipeError, OSError) as error:
+        print(f"FAIL boot run-fixed: {error}")
+        return 2
+    except (boot.RefusalError, package_artifacts.PackageError) as error:
+        print(f"FAIL boot run-fixed: {error}")
+        return 1
+    print(json.dumps(result, indent=2))
+    return 1 if result["findings"] else 0
+
+
 def _boot(args: argparse.Namespace, root: Path, recipe: boot.Recipe, record: dict[str, object],
           out: Path, simulator: Path) -> int:
     console_path = out / "console.log"
@@ -202,5 +222,14 @@ def main(argv: list[str] | None = None) -> int:
                      help="keep the whole commit trace beside the record as trace.log")
     run.add_argument("--timeout", type=float, default=900.0,
                      help="seconds before a boot counts as never having reported")
+    fixed = sub.add_parser("run-fixed", suggest_on_error=True,
+                           help="observe an existing fixed-package image without rebuilding its producers")
+    fixed.add_argument("recipe", help="fixed-package observation recipe relative to the checkout")
+    fixed.add_argument("--out", help="where observer logs and run.json are written")
+    fixed.add_argument("--simulator", help="the emulator to boot on (default: this lane's)")
+    fixed.add_argument("--refresh", action="store_true", help="capture expected digests from a clean run")
+    fixed.add_argument("--keep-trace", action="store_true", help="retain the complete commit trace")
+    fixed.add_argument("--timeout", type=float, default=900.0, help="maximum run time in seconds")
+    fixed.set_defaults(run=cmd_run_fixed)
     args = parser.parse_args(argv)
     return cast("int", args.run(args))
