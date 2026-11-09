@@ -12,7 +12,7 @@
     },
     {
       "path": "proofs/AesGcm.v",
-      "sha256": "c2fe391ed336f8e32df72d81fde0507b5fd105d53b62a0320989d35240d2b89b"
+      "sha256": "fe9ac633db13c93931c1b0cbee025e48a124177764dc7e04cb76bdab0a298c85"
     },
     {
       "path": "proofs/MlDsa.v",
@@ -31,7 +31,7 @@
       "id": "storage-authentication",
       "source": {
         "path": "docs/implementation/storage-recovery-policy.md",
-        "sha256": "e61f931a26788f94558e96a4fa45170a5ad2b5ab8e205e262d47ec5d5f205cd1"
+        "sha256": "4b696a36a96c99dd03d726279103299c41e11349224e0948e26be3539d2d51f2"
       }
     }
   ],

@@ -89,7 +89,7 @@
    (*| BEGIN derived: cited entries |*)
    Owner: docs/requirements-register.md
    Requirements: R-10-002a R-10-022 R-10-022a R-10-024 R-17-030zb
-   SHA256: 8fd58a5b975c9796eab875178f3bb18d871f0ef24587568f0dd025acbdbca12d
+   SHA256: d61dc3b57b0df946d60228546adeeb5fbc77f1e3181afa51985d5b2d970d1ffb
    (*| END derived |*)
    ========================================================================= *)
 
