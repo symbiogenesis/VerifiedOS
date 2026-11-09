@@ -391,6 +391,7 @@ void image::bind(mode how, const std::vector<uint8_t> &fixture) {
     refuse("cannot read image " + m_path + ": " + error_text());
   }
   m_opened.assign(whole.begin() + static_cast<std::ptrdiff_t>(header_bytes), whole.end());
+  m_current = m_opened;
   if (!note(
         "{\"schema\":\"verifiedos-blkdev-receipt-2\",\"event\":\"open\",\"mode\":" +
         quoted(how == mode::create ? "create" : "open") + ",\"image\":" + quoted(m_path) +
@@ -413,6 +414,15 @@ void image::load(uint64_t *medium, size_t medium_len) {
 }
 
 bool image::persist(uint64_t kind, uint64_t offset, uint64_t length, const uint64_t *medium, size_t medium_len) {
+  return persist_impl(kind, offset, length, medium, medium_len);
+}
+
+bool image::persist_bytes(uint64_t kind, uint64_t offset, uint64_t length, const uint8_t *medium, size_t medium_len) {
+  return persist_impl(kind, offset, length, medium, medium_len);
+}
+
+template <typename Byte>
+bool image::persist_impl(uint64_t kind, uint64_t offset, uint64_t length, const Byte *medium, size_t medium_len) {
   const uint64_t medium_bytes = m_geometry.block_bytes * m_geometry.block_count;
   const bool known = kind >= static_cast<uint64_t>(event::read) && kind <= static_cast<uint64_t>(event::media_fault);
   bool durable = m_fd >= 0 && !m_failed && known;
@@ -421,7 +431,7 @@ bool image::persist(uint64_t kind, uint64_t offset, uint64_t length, const uint6
     failure = "unknown event kind";
   }
   if (durable && length != 0) {
-    if (offset > medium_bytes || length > medium_bytes - offset || offset + length > medium_len) {
+    if (medium == nullptr || offset > medium_bytes || length > medium_bytes - offset || offset + length > medium_len) {
       durable = false;
       failure = "range outside the image";
     } else {
@@ -434,7 +444,9 @@ bool image::persist(uint64_t kind, uint64_t offset, uint64_t length, const uint6
         }
         bytes[i] = static_cast<uint8_t>(value);
       }
-      if (durable && !write_all(m_fd, bytes.data(), bytes.size(), header_bytes + offset)) {
+      if (durable && kind != static_cast<uint64_t>(event::read) &&
+          kind != static_cast<uint64_t>(event::flush) &&
+          !write_all(m_fd, bytes.data(), bytes.size(), header_bytes + offset)) {
         durable = false;
         failure = error_text();
       }
@@ -448,6 +460,10 @@ bool image::persist(uint64_t kind, uint64_t offset, uint64_t length, const uint6
   }
   if (!durable) {
     m_failed = true;
+  } else if (kind != static_cast<uint64_t>(event::read) && kind != static_cast<uint64_t>(event::flush)) {
+    for (uint64_t i = 0; i < length; ++i) {
+      m_current[offset + i] = static_cast<uint8_t>(medium[offset + i]);
+    }
   }
   std::string record = "{\"event\":\"persist\",\"kind\":" + quoted(event_name(kind)) + ",\"offset\":" + number(offset) +
                        ",\"length\":" + number(length) + ",\"durable\":" + (durable ? "true" : "false");

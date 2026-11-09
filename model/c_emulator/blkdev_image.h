@@ -118,6 +118,14 @@ public:
   // Returns whether every change since binding is durable in the image.
   bool persist(uint64_t kind, uint64_t offset, uint64_t length, const uint64_t *medium, size_t medium_len);
 
+  // Packed host bytes use the same persistence boundary as the Sail register.
+  bool persist_bytes(uint64_t kind, uint64_t offset, uint64_t length, const uint8_t *medium, size_t medium_len);
+
+  // Last successfully persisted bytes, for block-granular host adapters.
+  const std::vector<uint8_t> &current_bytes() const {
+    return m_current;
+  }
+
   bool healthy() const {
     return !m_failed;
   }
@@ -137,6 +145,8 @@ public:
   bool close();
 
 private:
+  template <typename Byte>
+  bool persist_impl(uint64_t kind, uint64_t offset, uint64_t length, const Byte *medium, size_t medium_len);
   void bind(mode how, const std::vector<uint8_t> &fixture);
   [[noreturn]] void refuse(const std::string &why);
   bool note(const std::string &json);
@@ -150,6 +160,7 @@ private:
   bool m_receipt_failed = false;
   uint64_t m_sequence = 0;
   std::vector<uint8_t> m_opened;
+  std::vector<uint8_t> m_current;
 };
 
 } // namespace blkdev
