@@ -1,12 +1,12 @@
 # SPDX-License-Identifier: Apache-2.0
 # The releases uv installs from PyPI into the model's Python hook environments, which
 # Host CI's Model hooks step names as UV_CONSTRAINT: the clang-format wheel the
-# clang-format mirror requires and the rapidfuzz Lucas-C's hooks require. prek runs
-# pre-commit/pre-commit-hooks in-process in Rust without a Python environment. The hook
-# packages themselves are not listed: each builds from the commit
-# model/.pre-commit-config.yaml pins under the hashed backends in
+# clang-format mirror requires and the typos wheel crate-ci/typos requires. prek runs
+# pre-commit/pre-commit-hooks and builtin deny-pattern in-process in Rust without a Python
+# environment. The hook placeholder packages themselves are not listed: each builds from the
+# commit model/.pre-commit-config.yaml pins under the hashed backend in
 # model-hooks-build-constraints.txt. Each pin carries the SHA-256 digests PyPI states
-# for its Linux x86_64 and aarch64 CPython 3.14 wheels, which uv verifies while still
+# for its Linux x86_64 and aarch64 wheels, which uv verifies while still
 # building each hook's local clone. Each release was uploaded more than three days
 # before it was pinned, the cooldown tools/pyproject.toml's exclude-newer sets and the
 # step's UV_EXCLUDE_NEWER keeps; tools/README.md#model-hook-dependencies gives the
@@ -14,6 +14,6 @@
 clang-format==23.1.4 \
     --hash=sha256:0fec4dcb7de29469d29deef39f4818a88ea230d6019870927e9235ce8f7b06bb \
     --hash=sha256:cef37c9b8516bacc7ce45ef7d5794c1aa7943707eb7277e7bb648f46b745d303
-rapidfuzz==3.14.6 \
-    --hash=sha256:08bc63b88048376114d1e66cf8fa6926495d03bb873eb87854fa74cf6848a70b \
-    --hash=sha256:760ee152af5e8b4d241a469f933ba2d7215248618ae19770fec7d80d9e149db6
+typos==1.52.0 \
+    --hash=sha256:418fd85f7fc11dec14e5482e747f6e916af56da96207cde0cdd69540a4b389f6 \
+    --hash=sha256:5e870133c7e9cace94183e4d638697004a1473e79abcd01b8f75e362049a9b5c

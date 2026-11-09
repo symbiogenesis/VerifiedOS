@@ -509,7 +509,7 @@ _HOOK_REV_LINE_RE = re.compile(
 _FULL_COMMIT_RE = re.compile(r"[0-9a-f]{40}")
 
 
-_HOOK_META = "meta"
+_HOOK_BUILTINS = frozenset({"meta", "builtin"})
 
 
 def _hook_entries(text: str) -> list[tuple[str, MappingNode]]:
@@ -764,7 +764,7 @@ class Owners:
 
 
 def _hook_census(owners: Owners, reviews: tuple[Review, ...], findings: list[str]) -> int:
-    """Every parsed repository is meta or a reviewed remote; local hooks refuse."""
+    """Every parsed repository is meta, builtin or a reviewed remote; local hooks refuse."""
     try:
         entries = owners._hooks(HOOK_CONFIG)
     except OwnerError:
@@ -773,7 +773,7 @@ def _hook_census(owners: Owners, reviews: tuple[Review, ...], findings: list[str
              if owner.kind in ("pre-commit", "pre-commit-rev") and owner.path == HOOK_CONFIG}
     for url, entry in entries:
         where = f"{HOOK_CONFIG}:{yamlutil.start(entry).line + 1}"
-        if url == _HOOK_META or url in named:
+        if url in _HOOK_BUILTINS or url in named:
             continue
         if url == "local":
             findings.append(f"{where} is a local hook repository, whose hooks run an entry on "

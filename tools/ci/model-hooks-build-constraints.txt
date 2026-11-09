@@ -1,18 +1,11 @@
 # SPDX-License-Identifier: Apache-2.0
-# The build backends uv installs from PyPI into the isolated environment it builds each
-# Python hook package in, which Host CI's Model hooks step names as UV_BUILD_CONSTRAINT:
-# isolated builds read build constraints separately from regular constraints. setuptools
-# builds every hook package, and codespell's also requires setuptools-scm, which brings
-# vcs-versioning and packaging. Each carries the SHA-256 PyPI states for its one wheel,
-# so uv verifies every build backend's wheel digest. Each release was uploaded more than
-# three days before it was pinned, the cooldown tools/pyproject.toml's exclude-newer
-# sets and the step's UV_EXCLUDE_NEWER keeps; tools/README.md#model-hook-dependencies
-# gives the review that moves them.
-packaging==26.3 \
-    --hash=sha256:d7193f7c8e4e93f444fde0262bf90af30e16fa0ad0ad44cb553c87339b23cd1c
+# The build backend uv installs from PyPI into the isolated environment it builds each
+# Python hook placeholder package in, which Host CI's Model hooks step names as
+# UV_BUILD_CONSTRAINT: isolated builds read build constraints separately from regular
+# constraints. setuptools builds both clang-format's and typos's placeholder packages. It
+# carries the SHA-256 PyPI states for its one wheel, so uv verifies the build backend's
+# wheel digest. Each release was uploaded more than three days before it was pinned, the
+# cooldown tools/pyproject.toml's exclude-newer sets and the step's UV_EXCLUDE_NEWER keeps;
+# tools/README.md#model-hook-dependencies gives the review that moves them.
 setuptools==84.2.1 \
     --hash=sha256:ca140b45d5325a9478f880e351484f62fef15f336462e449ca0c03c873d589c2
-setuptools-scm==10.3.4 \
-    --hash=sha256:82f34c3e3084fc2b57d397200637cc13f2338004052d2fee47baa5f0e902464e
-vcs-versioning==2.6.0 \
-    --hash=sha256:f8bebd1302ebc12e67ceb30fc7dd698ec969414b6fa43b30c3f14ac9b1e72c41

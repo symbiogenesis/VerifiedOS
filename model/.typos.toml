@@ -1,0 +1,31 @@
+[files]
+extend-exclude = [
+  "dependencies/**",
+  "first_party/src/common/link.ld",
+  "first_party/src/common/encoding.h",
+  "*.diff",
+]
+
+[default.extend-words]
+csr = "csr"
+disjointness = "disjointness"
+fpr = "fpr"
+hgeie = "hgeie"
+NTO = "NTO"
+restat = "restat"
+rotater = "rotater"
+satus = "satus"
+SIE = "SIE"
+sie = "sie"
+SME = "SME"
+sme = "sme"
+stimes = "stimes"
+SXL = "SXL"
+tbe = "tbe"
+tHi = "tHi"
+thi = "thi"
+toi = "toi"
+Vill = "Vill"
+vill = "vill"
+VOR = "VOR"
+vor = "vor"

@@ -1252,36 +1252,6 @@
       ]
     },
     {
-      "id": "lucas_c_pre_commit_hooks_85",
-      "tool": "Lucas-C pre-commit-hooks",
-      "subject": "the reviewed release",
-      "reviewed": [
-        "1.5.6"
-      ],
-      "owners": [
-        {
-          "kind": "pre-commit",
-          "path": "model/.pre-commit-config.yaml",
-          "key": "https://github.com/Lucas-C/pre-commit-hooks"
-        }
-      ]
-    },
-    {
-      "id": "lucas_c_pre_commit_hooks_86",
-      "tool": "Lucas-C pre-commit-hooks",
-      "subject": "the reviewed commit",
-      "reviewed": [
-        "ad1b27d73581aa16cca06fc4a0761fc563ffe8e8"
-      ],
-      "owners": [
-        {
-          "kind": "pre-commit-rev",
-          "path": "model/.pre-commit-config.yaml",
-          "key": "https://github.com/Lucas-C/pre-commit-hooks"
-        }
-      ]
-    },
-    {
       "id": "prettier_87",
       "tool": "prettier",
       "subject": "the reviewed release",
@@ -1312,32 +1282,37 @@
       ]
     },
     {
-      "id": "codespell_89",
-      "tool": "codespell",
+      "id": "typos_89",
+      "tool": "typos",
       "subject": "the reviewed release",
       "reviewed": [
-        "2.4.3"
+        "1.52.0"
       ],
       "owners": [
         {
           "kind": "pre-commit",
           "path": "model/.pre-commit-config.yaml",
-          "key": "https://github.com/codespell-project/codespell"
+          "key": "https://github.com/crate-ci/typos"
+        },
+        {
+          "kind": "pip",
+          "path": "tools/ci/model-hooks-constraints.txt",
+          "key": "typos"
         }
       ]
     },
     {
-      "id": "codespell_90",
-      "tool": "codespell",
+      "id": "typos_90",
+      "tool": "typos",
       "subject": "the reviewed commit",
       "reviewed": [
-        "57b21406f092110c18776e39b0bda50d37c945c8"
+        "4c8b7f51ca60df14e3c5ca82770dfbbe6c3dae85"
       ],
       "owners": [
         {
           "kind": "pre-commit-rev",
           "path": "model/.pre-commit-config.yaml",
-          "key": "https://github.com/codespell-project/codespell"
+          "key": "https://github.com/crate-ci/typos"
         }
       ]
     },
@@ -1372,21 +1347,6 @@
       ]
     },
     {
-      "id": "the_model_hooks_pypi_dependencies_94",
-      "tool": "The model hooks' PyPI dependencies",
-      "subject": "rapidfuzz's pinned release",
-      "reviewed": [
-        "3.14.6"
-      ],
-      "owners": [
-        {
-          "kind": "pip",
-          "path": "tools/ci/model-hooks-constraints.txt",
-          "key": "rapidfuzz"
-        }
-      ]
-    },
-    {
       "id": "the_model_hooks_pypi_dependencies_95",
       "tool": "The model hooks' PyPI dependencies",
       "subject": "setuptools's pinned release",
@@ -1398,81 +1358,6 @@
           "kind": "pip",
           "path": "tools/ci/model-hooks-build-constraints.txt",
           "key": "setuptools"
-        }
-      ]
-    },
-    {
-      "id": "the_model_hooks_pypi_dependencies_96",
-      "tool": "The model hooks' PyPI dependencies",
-      "subject": "setuptools-scm's pinned release",
-      "reviewed": [
-        "10.3.4"
-      ],
-      "owners": [
-        {
-          "kind": "pip",
-          "path": "tools/ci/model-hooks-build-constraints.txt",
-          "key": "setuptools-scm"
-        }
-      ]
-    },
-    {
-      "id": "the_model_hooks_pypi_dependencies_97",
-      "tool": "The model hooks' PyPI dependencies",
-      "subject": "setuptools-scm's tag read",
-      "reviewed": [
-        "10.3.4"
-      ],
-      "owners": [
-        {
-          "kind": "pip",
-          "path": "tools/ci/model-hooks-build-constraints.txt",
-          "key": "setuptools-scm"
-        }
-      ]
-    },
-    {
-      "id": "the_model_hooks_pypi_dependencies_98",
-      "tool": "The model hooks' PyPI dependencies",
-      "subject": "vcs-versioning's pinned release",
-      "reviewed": [
-        "2.6.0"
-      ],
-      "owners": [
-        {
-          "kind": "pip",
-          "path": "tools/ci/model-hooks-build-constraints.txt",
-          "key": "vcs-versioning"
-        }
-      ]
-    },
-    {
-      "id": "the_model_hooks_pypi_dependencies_99",
-      "tool": "The model hooks' PyPI dependencies",
-      "subject": "vcs-versioning's tag read",
-      "reviewed": [
-        "2.6.0"
-      ],
-      "owners": [
-        {
-          "kind": "pip",
-          "path": "tools/ci/model-hooks-build-constraints.txt",
-          "key": "vcs-versioning"
-        }
-      ]
-    },
-    {
-      "id": "the_model_hooks_pypi_dependencies_100",
-      "tool": "The model hooks' PyPI dependencies",
-      "subject": "packaging's pinned release",
-      "reviewed": [
-        "26.3"
-      ],
-      "owners": [
-        {
-          "kind": "pip",
-          "path": "tools/ci/model-hooks-build-constraints.txt",
-          "key": "packaging"
         }
       ]
     },
@@ -2617,16 +2502,6 @@
       ]
     },
     {
-      "id": "Lucas-C pre-commit-hooks",
-      "tool": "Lucas-C pre-commit-hooks",
-      "license": "`MIT`",
-      "standing": "The model's `forbid-tabs` hook. The reviewed `v${lucas_c_pre_commit_hooks_85_0}` revision `${lucas_c_pre_commit_hooks_86_0}` of `Lucas-C/pre-commit-hooks` has `LICENSE`, blob `d91c83da8c59bce67506e253a535bc44a27ef8fb`, copyright 2019 Lucas Cimon. uv installs the `rapidfuzz` it requires from PyPI at the hashed release [tools/ci/model-hooks-constraints.txt](tools/ci/model-hooks-constraints.txt) fixes, and builds the hook package with the setuptools [tools/ci/model-hooks-build-constraints.txt](tools/ci/model-hooks-build-constraints.txt) fixes by hash. No hook source is redistributed here.",
-      "reviews": [
-        "lucas_c_pre_commit_hooks_85",
-        "lucas_c_pre_commit_hooks_86"
-      ]
-    },
-    {
       "id": "prettier",
       "tool": "prettier",
       "license": "`MIT`; bundled code under the terms its notices list",
@@ -2637,13 +2512,13 @@
       ]
     },
     {
-      "id": "codespell",
-      "tool": "codespell",
-      "license": "`GPL-2.0-only`",
-      "standing": "The model's spelling check, reading [model/.codespellrc](model/.codespellrc). The reviewed `v${codespell_89_0}` revision `${codespell_90_0}` of `codespell-project/codespell` has `COPYING`, blob `d159169d1050894d3ea3b98e1c965c4058208fe1`, the GNU General Public License version 2, and its `pyproject.toml` declares `GPL-2.0-only` and no runtime dependency. uv builds it with the setuptools, setuptools-scm, vcs-versioning and packaging [tools/ci/model-hooks-build-constraints.txt](tools/ci/model-hooks-build-constraints.txt) fixes by hash. It is run and never linked; no codespell source is redistributed here.",
+      "id": "typos",
+      "tool": "typos",
+      "license": "`MIT OR Apache-2.0`",
+      "standing": "The model's source-code spell checker, reading [model/.typos.toml](model/.typos.toml). The reviewed `v${typos_89_0}` revision `${typos_90_0}` of `crate-ci/typos` has [LICENSE-MIT](https://github.com/crate-ci/typos/blob/4c8b7f51ca60df14e3c5ca82770dfbbe6c3dae85/LICENSE-MIT), blob `a2d01088b6ce55e837a6d193943580f978fb2d2e` and SHA-256 `6efb0476a1cc085077ed49357026d8c173bf33017278ef440f222fb9cbcb66e6`, copyright individual contributors, and [LICENSE-APACHE](https://github.com/crate-ci/typos/blob/4c8b7f51ca60df14e3c5ca82770dfbbe6c3dae85/LICENSE-APACHE), blob `6aa81fe0175d388df89cf5c127af4b0f44ea55cb` and SHA-256 `249fdb6694467dd615b259f7ddde07be3f8ae5a72cecebb0e24f6629af4215fe`, read on 2026-11-09, and installs PyPI's `typos` wheel of the same release, which [tools/ci/model-hooks-constraints.txt](tools/ci/model-hooks-constraints.txt) also fixes by hash; uv builds the repository's placeholder package with the setuptools [tools/ci/model-hooks-build-constraints.txt](tools/ci/model-hooks-build-constraints.txt) fixes by hash. Its bundled CycloneDX SBOM states each statically linked Rust crate's terms, every one permissive or offering a permissive election. No hook source or executable is redistributed here.",
       "reviews": [
-        "codespell_89",
-        "codespell_90"
+        "typos_89",
+        "typos_90"
       ]
     },
     {
@@ -2659,16 +2534,10 @@
     {
       "id": "The model hooks' PyPI dependencies",
       "tool": "The model hooks' PyPI dependencies",
-      "license": "`MIT`; packaging `Apache-2.0 OR BSD-2-Clause`; setuptools vendors code under `Apache-2.0`, `Apache-2.0 OR BSD-2-Clause`, the LGPL version 3, `MPL-2.0` and `BSD-3-Clause`",
-      "standing": "What uv downloads from PyPI into the model's Python hook environments when Host CI's Model hooks step runs, or a local run given that step's variables. [tools/ci/model-hooks-constraints.txt](tools/ci/model-hooks-constraints.txt) fixes by hash the rapidfuzz Lucas-C's hooks require (beside clang-format's wheel, read in its own row above), and [tools/ci/model-hooks-build-constraints.txt](tools/ci/model-hooks-build-constraints.txt) fixes by hash the build backends: setuptools for every hook package, and setuptools-scm, vcs-versioning and packaging for codespell's. The pinned wheels' license files are byte-identical to their sdists' and, where a blob is given, to the release tags': rapidfuzz `v${the_model_hooks_pypi_dependencies_94_0}` `LICENSE`, blob `42c23b2103346d5439dd72582ed6d4a0d8d7b27b`, SHA-256 `f34ccdffdff56fc417785915eedf18601d5479755df3c472b2c754c29802d683`, copyright 2020-present Max Bachmann and 2011 Adam Cohen, the only license file its compiled wheel carries; setuptools `v${the_model_hooks_pypi_dependencies_95_0}` `LICENSE`, blob `1bb5a44356f00884a71ceeefd24ded6caaba2418`, SHA-256 `86da0f01aeae46348a3c3d465195dc1ceccde79f79e87769a64b8da04b2a4741`, the MIT grant with no copyright line, its wheel vendoring importlib_metadata under `Apache-2.0`, packaging under `Apache-2.0 OR BSD-2-Clause`, autocommand under the LGPL version 3 text, jaraco.context, jaraco.functools, jaraco.text, more-itertools, platformdirs, tomli, wheel, zipp and backports.tarfile under `MIT`, and validate-pyproject's generated validator and schemas under `MPL-2.0` with fastjsonschema's code under `BSD-3-Clause`, each with the license file or notice the wheel carries; setuptools-scm `${the_model_hooks_pypi_dependencies_96_0}` `setuptools-scm/LICENSE` at the `setuptools-scm-v${the_model_hooks_pypi_dependencies_97_0}` tag, blob `89de354795ec7a7cdab07c091029653d3618540d`, the MIT grant with no copyright line; vcs-versioning `${the_model_hooks_pypi_dependencies_98_0}` `vcs-versioning/LICENSE.txt` at the `vcs-versioning-v${the_model_hooks_pypi_dependencies_99_0}` tag, blob `5b48e3b8f55287d4d216e35cae477f42003bf61a`, copyright 2023-present Ronny Pfannschmidt; and packaging `${the_model_hooks_pypi_dependencies_100_0}` `LICENSE`, blob `6f62d44e4ef733c0e713afcd2371fed7f2b3de67`, offering `LICENSE.APACHE`, blob `f433b1a53f5b830a205fd2df78e2b34974656c7b`, or `LICENSE.BSD`, blob `42ce7b75c92fb01a3f6ed17eea363f756b7da582`. They run only in those throwaway environments, and nothing is redistributed here.",
+      "license": "`MIT`; setuptools vendors code under `Apache-2.0`, `Apache-2.0 OR BSD-2-Clause`, the LGPL version 3, `MPL-2.0` and `BSD-3-Clause`",
+      "standing": "What uv downloads from PyPI into the model's isolated Python hook build environments when Host CI's Model hooks step runs, or a local run given that step's variables. [tools/ci/model-hooks-constraints.txt](tools/ci/model-hooks-constraints.txt) fixes by hash the `clang-format` and `typos` wheels read in their own rows above, and [tools/ci/model-hooks-build-constraints.txt](tools/ci/model-hooks-build-constraints.txt) fixes by hash the single build backend `setuptools` that builds both placeholder packages: `setuptools` `v${the_model_hooks_pypi_dependencies_95_0}` `LICENSE`, blob `1bb5a44356f00884a71ceeefd24ded6caaba2418`, SHA-256 `86da0f01aeae46348a3c3d465195dc1ceccde79f79e87769a64b8da04b2a4741`, the MIT grant with no copyright line, its wheel vendoring importlib_metadata under `Apache-2.0`, packaging under `Apache-2.0 OR BSD-2-Clause`, autocommand under the LGPL version 3 text, jaraco.context, jaraco.functools, jaraco.text, more-itertools, platformdirs, tomli, wheel, zipp and backports.tarfile under `MIT`, and validate-pyproject's generated validator and schemas under `MPL-2.0` with fastjsonschema's code under `BSD-3-Clause`, each with the license file or notice the wheel carries. It runs only in those throwaway environments, and nothing is redistributed here.",
       "reviews": [
-        "the_model_hooks_pypi_dependencies_100",
-        "the_model_hooks_pypi_dependencies_94",
-        "the_model_hooks_pypi_dependencies_95",
-        "the_model_hooks_pypi_dependencies_96",
-        "the_model_hooks_pypi_dependencies_97",
-        "the_model_hooks_pypi_dependencies_98",
-        "the_model_hooks_pypi_dependencies_99"
+        "the_model_hooks_pypi_dependencies_95"
       ]
     },
     {

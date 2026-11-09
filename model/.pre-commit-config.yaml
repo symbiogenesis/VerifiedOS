@@ -1,11 +1,11 @@
 # See https://pre-commit.com for more information
 # See https://pre-commit.com/hooks.html for more hooks
-# This directory is not the Git top level, which pre-commit runs from, so the
+# This directory is not the Git top level, which prek runs from, so the
 # paths below are written from the repository root: `files` keeps every hook
 # inside model/, and the exclusion and hook configuration paths name model/.
-# Run with `pre-commit run --config model/.pre-commit-config.yaml`.
-# Each rev is the full commit of the tag its `# frozen:` comment names, the form
-# `pre-commit autoupdate --freeze` writes: a tag can be moved, a commit cannot.
+# Run with `prek run --config model/.pre-commit-config.yaml`.
+# Each remote rev is the full commit of the tag its `# frozen:` comment names:
+# a tag can be moved, a commit cannot.
 files: "^model/"
 exclude: "^(model/dependencies/)"
 minimum_pre_commit_version: 4.7.0
@@ -28,20 +28,21 @@ repos:
     hooks:
       - id: clang-format
         types_or: [c, c++] # Don't try running clang-format on .json files
-  - repo: https://github.com/Lucas-C/pre-commit-hooks
-    rev: ad1b27d73581aa16cca06fc4a0761fc563ffe8e8 # frozen: v1.5.6
+  - repo: builtin
     hooks:
-      - id: forbid-tabs
+      - id: deny-pattern
+        name: forbid-tabs
+        args: ['\t']
         exclude: '.*\.(diff|dump|patch|svg|S|old)|Makefile*'
   - repo: https://github.com/rbubley/mirrors-prettier
     rev: 331f33fa4dfbcbca7c3da3620c137fde0faab273 # frozen: v3.9.10
     hooks:
       - id: prettier
-  - repo: https://github.com/codespell-project/codespell
-    rev: 57b21406f092110c18776e39b0bda50d37c945c8 # frozen: v2.4.3
+  - repo: https://github.com/crate-ci/typos
+    rev: 4c8b7f51ca60df14e3c5ca82770dfbbe6c3dae85 # frozen: v1.52.0
     hooks:
-      - id: codespell
-        args: [--config, model/.codespellrc]
+      - id: typos
+        args: [--config, model/.typos.toml, --force-exclude]
   - repo: https://github.com/tcort/markdown-link-check
     rev: 275c27c5035a5b4a656fe0e21a4c1403c118c767 # frozen: v3.15.0
     hooks:
