@@ -962,6 +962,8 @@ PROPERTY_MARK = re.compile(r"^\$\[property\]\s*$")
 FUNCTION_HEAD = re.compile(r"^(?:private\s+)?function\s+([A-Za-z_][A-Za-z0-9_']*)\s*\(")
 
 PROVED, COUNTEREXAMPLE, UNDECIDED = "proved", "counterexample", "undecided"
+SMT_SOLVERS = ("z3", "bitwuzla", "cvc5")
+SMT_AUTO_SOLVERS = ("z3", "cvc5")
 SOLVER_VERDICTS: dict[str, str] = {
     "unsat": PROVED, "sat": COUNTEREXAMPLE, "unknown": UNDECIDED, "timeout": UNDECIDED,
 }
@@ -1036,15 +1038,32 @@ def _solver_version(binary: str) -> str:
     return done.stdout.strip() or done.stderr.strip() or f"{binary}: no version"
 
 
+def _solver_argv(solver: str, timeout: int, smt2: Path) -> list[str]:
+    """Build the command-line argv for `solver` on `smt2` under `timeout` seconds."""
+    limit_ms = max(1, timeout) * 1000
+    if solver == "z3":
+        return ["z3", f"-T:{timeout}", "-model", str(smt2)]
+    if solver == "bitwuzla":
+        return ["bitwuzla", f"--time-limit={limit_ms}", "--produce-models",
+                "--print-model", str(smt2)]
+    if solver == "cvc5":
+        return ["cvc5", "--lang=smt2.6", f"--tlimit-per={limit_ms}",
+                "--produce-models", "--dump-models", str(smt2)]
+    raise ValueError(f"unsupported SMT solver: {solver}")
+
+
 def cmd_smt(e: env.Environment, args: argparse.Namespace) -> int:
     """Emit and solve `$[property]` obligations in `unit_tests/cap_properties.sail`.
 
     Reports per-property verdicts (`proved`, `counterexample`, `undecided`) and
     timings under `--timeout`, or delegates to Sail's `--smt-auto` when `--auto` is set.
     """
+    solver = str(getattr(args, "solver", "z3"))
+    if args.auto and solver not in SMT_AUTO_SOLVERS:
+        print(f"--auto supports {', '.join(SMT_AUTO_SOLVERS)}, not {solver}", file=sys.stderr)
+        return 1
     _require("sail", SAIL_HOW)
-    if not args.auto:
-        _require("z3", "z3 is what the model's own ctest names for --smt-auto-solver")
+    _require(solver, f"{solver} is the selected SMT solver for run.py model smt")
 
     source = e.model / SMT_SOURCE
     if not source.is_file():
@@ -1084,7 +1103,7 @@ def cmd_smt(e: env.Environment, args: argparse.Namespace) -> int:
                     "sail", "--strict-var", "--strict-bitvector", "--strict-exponentials",
                     "--memo-z3", "--memo-z3-path", str(cache),
                     "--smt",
-                    *(["--smt-auto", "--smt-auto-solver", "z3"] if args.auto else []),
+                    *(["--smt-auto", "--smt-auto-solver", solver] if args.auto else []),
                     "-o", str(out / SMT_PREFIX),
                     "--config", str(e.profile),
                     "--variable", SMT_VARIABLE,
@@ -1095,7 +1114,7 @@ def cmd_smt(e: env.Environment, args: argparse.Namespace) -> int:
         if code:
             print(f"the emission failed with exit {code}; the log is {log}", file=sys.stderr)
             return code
-        return _solve_each(out, picked, args.timeout, e)
+        return _solve_each(out, picked, args.timeout, e, solver=solver)
     finally:
         lock.close()
 
@@ -1113,8 +1132,15 @@ def _report_auto(log: Path, picked: list[str], code: int) -> int:
     return 1 if failed or code else 0
 
 
-def _solve_each(out: Path, picked: list[str], timeout: int, e: env.Environment) -> int:
-    """Run `z3` on each emitted `.smt2` file under `timeout` seconds."""
+def _solve_each(
+    out: Path,
+    picked: list[str],
+    timeout: int,
+    e: env.Environment,
+    *,
+    solver: str = "z3",
+) -> int:
+    """Run `solver` on each emitted `.smt2` file under `timeout` seconds."""
     counts = dict.fromkeys((PROVED, COUNTEREXAMPLE, UNDECIDED, UNRECOGNIZED), 0)
     for name in picked:
         smt2 = out / f"{SMT_PREFIX}_{name}.smt2"
@@ -1125,20 +1151,20 @@ def _solve_each(out: Path, picked: list[str], timeout: int, e: env.Environment) 
         started = time.perf_counter()
         said = ""
         try:
-            done = subprocess.run(["z3", f"-T:{timeout}", "-model", str(smt2)],
+            done = subprocess.run(_solver_argv(solver, timeout, smt2),
                                   capture_output=True, text=True, check=False,
                                   timeout=timeout + 60)
             said = f"{done.stdout}\n{done.stderr}".strip()
             if done.returncode != 0 or done.stderr.strip():
                 verdict, model = None, []
-                said = f"z3 exited {done.returncode}: {said}"
+                said = f"{solver} exited {done.returncode}: {said}"
             else:
                 verdict, model = solver_verdict(done.stdout)
         except subprocess.TimeoutExpired:
             verdict, model = UNDECIDED, []
         except OSError as err:
             verdict, model = None, []
-            said = f"z3 could not run: {err}"
+            said = f"{solver} could not run: {err}"
         wall = time.perf_counter() - started
         label = verdict or UNRECOGNIZED
         counts[label] += 1
@@ -1157,7 +1183,7 @@ def _solve_each(out: Path, picked: list[str], timeout: int, e: env.Environment) 
     print(f"== {len(picked)} properties: {counts[PROVED]} proved, "
           f"{counts[COUNTEREXAMPLE]} counterexample, {counts[UNDECIDED]} undecided at "
           f"--timeout {timeout} s, {counts[UNRECOGNIZED]} unrecognized or missing; "
-          f"{_solver_version('sail')}; {_solver_version('z3')}; "
+          f"{_solver_version('sail')}; {_solver_version(solver)}; "
           f"lane {e.lane or 'primary'} in {out}")
     return 0 if picked and counts[PROVED] == len(picked) else 1
 
@@ -1961,6 +1987,8 @@ def main(argv: list[str] | None = None) -> int:
                      help="run this property alone (repeatable; default: every one)")
     smt.add_argument("--timeout", type=int, default=600,
                      help="seconds the solver gets per property before it is undecided")
+    smt.add_argument("--solver", choices=SMT_SOLVERS, default="z3",
+                     help="SMT-LIB2 solver for emitted properties (default: z3)")
     smt.add_argument("--auto", action="store_true",
                      help="Sail's own --smt-auto instead, which renders and replays a "
                           "counterexample in Sail values and has no per-property timeout")

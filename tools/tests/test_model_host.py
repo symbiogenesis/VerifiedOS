@@ -2095,6 +2095,23 @@ def _solver_verdicts() -> None:
         verdict, _ = _MODEL.solver_verdict(output)
         ensure(verdict is None, f"{output!r} must be unrecognized, got {verdict}")
 
+    smt2 = Path("smt/model_propOne.smt2")
+    ensure(_MODEL._solver_argv("z3", 60, smt2) == ["z3", "-T:60", "-model", str(smt2)],
+           "z3 solver argv must pass -T:<sec> and -model")
+    ensure(_MODEL._solver_argv("bitwuzla", 60, smt2) == [
+               "bitwuzla", "--time-limit=60000", "--produce-models", "--print-model", str(smt2)],
+           "bitwuzla solver argv must pass --time-limit=<ms>, --produce-models, and --print-model")
+    ensure(_MODEL._solver_argv("cvc5", 60, smt2) == [
+               "cvc5", "--lang=smt2.6", "--tlimit-per=60000",
+               "--produce-models", "--dump-models", str(smt2)],
+           "cvc5 solver argv must pass --lang=smt2.6, --tlimit-per=<ms>, --produce-models, and --dump-models")
+    try:
+        _MODEL._solver_argv("unknown-solver", 60, smt2)
+    except ValueError as err:
+        ensure("unsupported SMT solver" in str(err), f"unexpected error: {err}")
+    else:
+        raise AssertionError("unsupported solver must raise ValueError")
+
 
 _AUTO_TRANSCRIPT = (
     "Checking counterexample: /root/build/lane-x/smt/model_propOne.smt2\n"
