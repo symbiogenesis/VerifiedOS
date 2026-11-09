@@ -87,6 +87,11 @@ def main(argv: list[str] | None = None) -> int:
     fixed.add_argument("source")
     fixed.add_argument("--store", default="out/native-packages")
     fixed.add_argument("--output", required=True)
+    fixed_check = commands.add_parser("check-fixed", suggest_on_error=True,
+                                     help="check existing fixed package image bytes without rebuilding")
+    fixed_check.add_argument("source")
+    fixed_check.add_argument("--store", default="out/native-packages")
+    fixed_check.add_argument("--image", required=True)
     emit = commands.add_parser("compose", suggest_on_error=True, help="emit canonical graph bytes from a descriptor document")
     emit.add_argument("source")
     emit.add_argument("--output", required=True)
@@ -136,6 +141,9 @@ def main(argv: list[str] | None = None) -> int:
             return 0
         if args.command == "compose-fixed":
             print(json.dumps(fixed_composition.compose(root, args.source, args.store, args.output), indent=2))
+            return 0
+        if args.command == "check-fixed":
+            print(json.dumps(fixed_composition.validate(root, args.source, args.store, args.image), indent=2))
             return 0
         if args.command == "bind-sources":
             print(json.dumps({"source_bindings": source_bindings.emit(root)}, indent=2))

@@ -409,3 +409,76 @@ def verify_image(blob: bytes, placements: Sequence[Placement], *, expected_entry
         matched.add(selected)
     if matched != set(range(len(expected))):
         raise PackageError("fixed package image omits a declared loadable region")
+
+
+def observation_symbol(placements: Sequence[Placement]) -> tuple[str, int] | None:
+    """Select one complete writable HTIF word from the immutable package exports."""
+    selected = [(item, value) for item in placements for name, value in item.exports if name == "tohost"]
+    if not selected:
+        return None
+    if len(selected) != 1:
+        raise PackageError("fixed package observation requires one unambiguous tohost export")
+    item, value = selected[0]
+    homes = [section for section in item.sections if section.writable and not section.executable
+             and section.addr <= value and value + 8 <= section.addr + len(section.data)]
+    if value % 8 or len(homes) != 1:
+        raise PackageError("fixed package tohost must cover an aligned writable initializer word")
+    return homes[0].name, value
+
+
+def verify_observation_symbol(blob: bytes, expected: tuple[str, int] | None) -> None:
+    """Bind the ELF loader's named symbol to the exported initializer window."""
+    def extent(offset: int, size: int) -> bytes:
+        if offset + size > len(blob):
+            raise PackageError("fixed package ELF symbol extent exceeds the image")
+        return blob[offset:offset + size]
+
+    def name(strings: bytes, offset: int) -> bytes:
+        end = strings.find(b"\0", offset)
+        if offset >= len(strings) or end < 0:
+            raise PackageError("fixed package ELF symbol name is outside its string table")
+        return strings[offset:end]
+
+    header = struct.unpack_from("<16sHHIQQQIHHHHHH", blob)
+    shoff, shnum, shstrings = header[6], header[12], header[13]
+    if header[11] != image.SHDR_SIZE or not 0 < shstrings < shnum:
+        raise PackageError("fixed package ELF symbol binding requires an ordinary section table")
+    extent(shoff, shnum * image.SHDR_SIZE)
+    sections = [struct.unpack_from("<IIQQQQIIQQ", blob, shoff + index * image.SHDR_SIZE)
+                for index in range(shnum)]
+    strings = sections[shstrings]
+    if strings[1] != image.SHT_STRTAB:
+        raise PackageError("fixed package ELF section names require a string table")
+    names = extent(strings[4], strings[5])
+    symtabs = [section for section in sections if name(names, section[0]) == b".symtab"]
+    if len(symtabs) != 1:
+        raise PackageError("fixed package ELF requires exactly one symbol table")
+    table = symtabs[0]
+    if (table[1] != image.SHT_SYMTAB or table[9] != image.SYM_SIZE
+            or table[5] % image.SYM_SIZE or not 0 < table[6] < shnum):
+        raise PackageError("fixed package ELF symbol table has invalid shape")
+    strings = sections[table[6]]
+    if strings[1] != image.SHT_STRTAB:
+        raise PackageError("fixed package ELF symbol names require a string table")
+    names = extent(strings[4], strings[5])
+    entries = extent(table[4], table[5])
+    matches = []
+    for at in range(0, len(entries), image.SYM_SIZE):
+        offset, info, _other, section, value, _size = struct.unpack_from("<IBBHQQ", entries, at)
+        if name(names, offset) != b"tohost":
+            continue
+        if info & 15 not in (0, 1, 2, 5) or not 0 < section < shnum:
+            raise PackageError("fixed package tohost symbol is not a defined loader symbol")
+        matches.append((section, value))
+    if expected is None:
+        if matches:
+            raise PackageError("fixed package ELF has an undeclared tohost symbol")
+        return
+    if len(matches) != 1 or matches[0][1] != expected[1]:
+        raise PackageError("fixed package ELF tohost symbol differs from its initializer export")
+    section = sections[matches[0][0]]
+    if (name(extent(sections[shstrings][4], sections[shstrings][5]), section[0]) != expected[0].encode()
+            or section[1] != image.SHT_PROGBITS
+            or section[2] != image.SHF_ALLOC | image.SHF_WRITE
+            or not section[3] <= expected[1] < expected[1] + 8 <= section[3] + section[5]):
+        raise PackageError("fixed package ELF tohost symbol does not name its writable initializer window")
