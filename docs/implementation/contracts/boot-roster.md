@@ -491,8 +491,15 @@ identified emulator, with assembly disabled after construction. Both packages
 must be entered in order and the worker's initialized value must reach the
 controller before HTIF success. A controller that omits the worker must refuse
 even if its HTIF status is success. Retained-emulator execution binds only that
-binary; current-model qualification remains open without its current successful
-build receipt.
+binary. This bounded fixture may instead consume the
+[focused simulator dependency](../contained-compiler-port-decisions.md#focused-simulator-dependency-for-compiler-replay),
+validating its successful receipt before and after execution. Bind its exact
+current model/profile, tools, logs and simulator, then require both translated
+captures/replays and the missing-worker and wrong-initializer refusals with
+assembly disabled after construction. The focused receipt records bundled model
+tests as unrun. These observations supply no complete model qualification,
+qualified compiler, real-roster admission or final target acceptance; other
+target commands retain their complete model-build receipt contracts.
 
 ## 7. Exit codes
 
