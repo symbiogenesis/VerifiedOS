@@ -239,9 +239,12 @@ absolute directory beneath this checkout's native lane. It configures the curren
 model, builds only the explicit `sail_riscv_sim` target and validates the frozen
 profile against the generated schema. Its distinct receipt binds the source
 population, actual producer tools, commands, logs and simulator; bundled model
-tests are recorded as unrun and full model acceptance as pending. Only Q39's
-HELLO and large-argument replay consume this route. Other target commands retain
-their complete model-build receipt contracts. The
+tests are recorded as unrun and full model acceptance as pending. Q39's
+HELLO and large-argument replay and the bounded
+[fixed-package fixture](../docs/implementation/contracts/boot-roster.md#fixed-package-image-observation)
+may consume this route. The fixture validates the receipt before and after its
+focused execution and supplies no roster or complete model acceptance. Other
+target commands retain their complete model-build receipt contracts. The
 [compiler port decisions](../docs/implementation/contained-compiler-port-decisions.md#focused-simulator-dependency-for-compiler-replay)
 own its narrow scope.
 

@@ -64,6 +64,14 @@ drift. Original roots remain evidence identities after retirement; current model
 bytes are checked without requiring the retired checkout to exist. General target
 readers retain their complete-build contracts.
 
+The bounded [fixed-package boot fixture](contracts/boot-roster.md#fixed-package-image-observation)
+may also use this dependency for its finite translated-layout observations.
+Validate the focused receipt before and after execution, binding the current
+model, profile, native tools, logs and simulator. This use establishes only that
+fixture's observations on the source-bound simulator. It supplies no complete
+model verdict, qualified compiler, real-roster admission or final target acceptance.
+Other target consumers retain their complete-build receipt requirements.
+
 The reviewed implementation at VerifiedOS
 `603bcd302fb194ae19886240134636b13ad16f49` has passing focused controls. Its
 accepted focused build passes configure and the simulator target; the native
