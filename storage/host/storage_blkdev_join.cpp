@@ -15,6 +15,7 @@ extern "C" {
 #include <cstdio>
 #include <cstring>
 #include <fstream>
+#include <functional>
 #include <string>
 #include <vector>
 
@@ -51,7 +52,8 @@ bool load_from_blkdev(
 bool persist_medium_to_blkdev(
     blkdev::image &img,
     const struct vos_storage_medium *medium,
-    blkdev::event ev = blkdev::event::write)
+    blkdev::event ev = blkdev::event::write,
+    const std::function<bool()> &after_write = {})
 {
     uint8_t raw_medium[VOS_STORAGE_BLKDEV_MEDIUM_BYTES];
     if (!vos_storage_encode_blkdev_medium(medium, raw_medium)) {
@@ -64,9 +66,10 @@ bool persist_medium_to_blkdev(
         const size_t offset = block * VOS_STORAGE_BLKDEV_BLOCK_BYTES;
         return std::memcmp(bytes + offset, img.current_bytes().data() + offset,
                            VOS_STORAGE_BLKDEV_BLOCK_BYTES) == 0 ||
-               img.persist_bytes(static_cast<uint64_t>(ev), offset,
-                                  VOS_STORAGE_BLKDEV_BLOCK_BYTES, bytes,
-                                  block == 0 ? VOS_STORAGE_BLKDEV_BLOCK_BYTES : sizeof(raw_medium));
+               (img.persist_bytes(static_cast<uint64_t>(ev), offset,
+                                   VOS_STORAGE_BLKDEV_BLOCK_BYTES, bytes,
+                                   block == 0 ? VOS_STORAGE_BLKDEV_BLOCK_BYTES : sizeof(raw_medium)) &&
+                (!after_write || after_write()));
     };
     uint8_t header[VOS_STORAGE_BLKDEV_BLOCK_BYTES];
     std::memcpy(header, img.current_bytes().data(), sizeof(header));
@@ -152,6 +155,84 @@ bool check_packed_adapter(const std::string &dir)
     return true;
 }
 
+bool check_publication_prefixes(const std::string &dir)
+{
+    const std::string path = dir + "/prefixes.blk";
+    const struct vos_node_geometry geometry = {4u, 16u, 128u};
+    const struct vos_tree_limits limits = {0u, 4u, 64u};
+    struct vos_crypto_core crypto;
+    struct vos_storage_medium medium;
+    struct vos_storage_store store;
+    const uint8_t key[32] = {0x8c};
+    vos_crypto_core_init(&crypto, 100u);
+    if (!vos_crypto_core_unlock_domain(&crypto, 0u, 19u, 1u, key, sizeof(key)) ||
+        !vos_storage_format(&medium, &store, &crypto, 0u, 19u, 1u,
+                            &geometry, &limits, 1u, 100u)) return false;
+    std::vector<uint8_t> fixture(VOS_STORAGE_BLKDEV_MEDIUM_BYTES);
+    if (!vos_storage_encode_blkdev_medium(&medium, fixture.data())) return false;
+    blkdev::image img(path, blkdev::image::mode::create, {128, 64}, fixture);
+    uint64_t prior_value = 0;
+    bool prior_found = false;
+    size_t writes = 0, tears = 0;
+    for (uint32_t round = 0; round < 16; ++round) {
+        const uint64_t prior_generation = store.committed_generation;
+        struct vos_storage_tx_spec tx = {};
+        tx.op_kind = round % 4 == 3 ? VOS_STORAGE_OP_COMPACT : VOS_STORAGE_OP_INSERT;
+        tx.key = 7;
+        tx.value = 300 + round;
+        const uint64_t next_value = tx.op_kind == VOS_STORAGE_OP_COMPACT ? prior_value : tx.value;
+        uint64_t ack = 0;
+        if (!vos_storage_reserve(&store, 19u, &tx) ||
+            !vos_storage_stage(&store, 19u) ||
+            !vos_storage_publish(&store, 19u, VOS_STORAGE_CUT_NONE, &ack)) return false;
+        auto previous = img.current_bytes();
+        auto recover = [&](const std::vector<uint8_t> &bytes) {
+            struct vos_storage_medium recovered;
+            struct vos_storage_store reader;
+            if (!vos_storage_decode_blkdev_medium(bytes.data(), &recovered) ||
+                !vos_storage_reopen(&recovered, &reader, &crypto, 0u, 19u)) return false;
+            uint64_t value = 0;
+            const int result = vos_storage_lookup(&reader, 19u, 7u, &value);
+            if (reader.committed_generation == prior_generation)
+                return prior_found ? result == VOS_TREE_FOUND && value == prior_value :
+                                     result == VOS_TREE_MISSING;
+            return reader.committed_generation == ack && result == VOS_TREE_FOUND && value == next_value;
+        };
+        auto observe = [&]() {
+            ++writes;
+            const auto current = img.current_bytes();
+            const std::string on_disk = read_file_text(path);
+            if (on_disk.size() != blkdev::header_bytes + current.size() ||
+                std::memcmp(on_disk.data() + blkdev::header_bytes, current.data(), current.size()) != 0 ||
+                !recover(current)) return false;
+            for (uint32_t block = 32; block < 64; ++block) {
+                const size_t offset = block * VOS_STORAGE_BLKDEV_BLOCK_BYTES;
+                if (std::memcmp(current.data() + offset, previous.data() + offset, 128) == 0) continue;
+                auto torn = current;
+                for (size_t byte = 0; byte < 128; ++byte) {
+                    const uint8_t mask = byte % 2 == 0 ? 0x55 : 0xaa;
+                    torn[offset + byte] = static_cast<uint8_t>(
+                        (previous[offset + byte] & ~mask) | (current[offset + byte] & mask));
+                }
+                ++tears;
+                if (!recover(torn)) return false;
+            }
+            previous = current;
+            return true;
+        };
+        if (!persist_medium_to_blkdev(img, &medium, blkdev::event::write, observe)) {
+            std::fprintf(stderr, "prefix recovery failed at round %u write %zu\n", round, writes);
+            return false;
+        }
+        const size_t before_noop = writes;
+        if (!persist_medium_to_blkdev(img, &medium, blkdev::event::write, observe) ||
+            writes != before_noop) return false;
+        prior_value = next_value;
+        prior_found = true;
+    }
+    return writes > 0 && tears > 0 && img.close();
+}
+
 } // namespace
 
 int main(int argc, char **argv)
@@ -163,6 +244,10 @@ int main(int argc, char **argv)
     const std::string dir = argv[1];
     if (!check_packed_adapter(dir)) {
         std::fprintf(stderr, "storage_blkdev_join: packed adapter failed\n");
+        return 1;
+    }
+    if (!check_publication_prefixes(dir)) {
+        std::fprintf(stderr, "storage_blkdev_join: publication prefixes failed\n");
         return 1;
     }
     const std::string sys_img_path = dir + "/system.blk";
