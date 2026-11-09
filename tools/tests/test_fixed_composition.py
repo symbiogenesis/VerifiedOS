@@ -5,6 +5,7 @@ import copy
 import json
 import struct
 import tempfile
+from collections.abc import Callable
 from contextlib import redirect_stdout
 from io import StringIO
 from pathlib import Path
@@ -39,6 +40,223 @@ def _run(root: Path, args: list[str]) -> tuple[int, str]:
     with patch.object(composer.corpus, "find_root", return_value=root), redirect_stdout(out):
         code = composer.main(args)
     return code, out.getvalue()
+
+
+def producer_fixture(root: Path) -> tuple[str, Path, dict[str, Any]]:
+    request, code = fixture_request(root, "produced")
+    request["manifest"]["exports"].append({"name": "value", "offset": 256})
+    source = "produced.json"
+    (root / source).write_bytes(package_artifacts.canonical(request))
+    path = root / "out/producer.elf"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    sections = [image.Section(".text", 0x80000000, bytearray(code), executable=True),
+                image.Section(".data", 0x80000100, bytearray(struct.pack("<Q", 11)), writable=True)]
+    image.write_elf(path, sections, {"main": (".text", 0x80000000), "value": (".data", 0x80000100)}, 0x80000000)
+    return source, path, request
+
+
+def _import_produced_image_at_two_layouts() -> None:
+    with tempfile.TemporaryDirectory(prefix="vos-produced-package-") as directory:
+        root = Path(directory)
+        source, path, request = producer_fixture(root)
+        original = path.read_bytes()
+        with patch.object(asm.Assembler, "assemble", side_effect=AssertionError("producer reran")):
+            result = fixed_composition.publish_package(root, source, "out/store",
+                                                      producer_image="out/producer.elf", producer_base=0x80000000)
+            artifact = package_artifacts.load(root / "out/store", str(result["artifact"]))
+            ensure(result["producer_image"] == {"path": "out/producer.elf", "base": 0x80000000,
+                                                "sha256": package_artifacts.digest(original)}
+                   and result["production_admission"] is False,
+                   "import binds actual produced image bytes and withholds proof/target acceptance")
+            for base in (0x80000000, 0x80001000):
+                recipe = {"schema_version": 1, "context": request["manifest"]["context"],
+                          "packages": [{"artifact": artifact.identity, "base": base}],
+                          "memory": [{"base": 0x80000000, "size": 65536, "memory_class": 0,
+                                      "writable": True, "executable": True}], "entry": artifact.identity}
+                (root / "recipe.json").write_bytes(package_artifacts.canonical(recipe))
+                output = f"out/translated-{base:x}.elf"
+                fixed_composition.compose(root, "recipe.json", "out/store", output)
+                package_artifacts.verify_image((root / output).read_bytes(),
+                                               [package_artifacts.place(artifact, base)], expected_entry=base)
+            ensure(path.read_bytes() == original, "import and translated composition preserve original producer ELF")
+
+
+def _producer_image_refusals_preserve_the_store() -> None:
+    with tempfile.TemporaryDirectory(prefix="vos-produced-refusals-") as directory:
+        root = Path(directory)
+        source, path, _request = producer_fixture(root)
+        prior = fixture_artifact(root, "retained")
+        package_artifacts.store(root / "out/store", prior)
+        retained = {p.relative_to(root / "out/store").as_posix(): p.read_bytes()
+                    for p in (root / "out/store").rglob("*") if p.is_file()}
+        original = path.read_bytes()
+        header = struct.unpack_from("<16sHHIQQQIHHHHHH", original)
+        first_load = struct.unpack_from("<IIQQQQQQ", original, image.EHDR_SIZE)
+        symbol_section_at = header[6] + (header[12] - 3) * image.SHDR_SIZE
+        symbol_table = struct.unpack_from("<IIQQQQIIQQ", original, symbol_section_at)
+        corruptions: list[tuple[str, bytes]] = []
+        for field, at, format_, value in (
+                ("load-byte", first_load[2], "<B", original[first_load[2]] ^ 1),
+                ("load-permission", image.EHDR_SIZE + 4, "<I", image.PF_R | image.PF_W | image.PF_X),
+                ("entry", 24, "<Q", 0x80000004),
+                ("export-value", symbol_table[4] + image.SYM_SIZE + 8, "<Q", 0x80000004),
+                ("undefined-export", symbol_table[4] + image.SYM_SIZE + 6, "<H", 0),
+                ("export-region-flags", header[6] + image.SHDR_SIZE + 8, "<Q", image.SHF_ALLOC),
+                ("export-region-bytes", header[6] + image.SHDR_SIZE + 24, "<Q", first_load[2] + 1),
+                ("symbol-table-shape", symbol_section_at + 56, "<Q", 8)):
+            changed = bytearray(original)
+            struct.pack_into(format_, changed, at, value)
+            corruptions.append((field, bytes(changed)))
+        missing = bytearray(original)
+        struct.pack_into("<I", missing, symbol_table[4] + image.SYM_SIZE, 0)
+        corruptions.append(("missing-export", bytes(missing)))
+        duplicate = bytearray(original)
+        main_name = struct.unpack_from("<I", original, symbol_table[4] + image.SYM_SIZE)[0]
+        struct.pack_into("<I", duplicate, symbol_table[4] + 2 * image.SYM_SIZE, main_name)
+        corruptions.append(("duplicate-export", bytes(duplicate)))
+        for field, changed in corruptions:
+            path.write_bytes(changed)
+            try:
+                fixed_composition.publish_package(root, source, "out/store",
+                                                  producer_image="out/producer.elf", producer_base=0x80000000)
+            except package_artifacts.PackageError:
+                pass
+            else:
+                raise AssertionError(f"producer import accepted {field}")
+            ensure(path.read_bytes() == changed and retained == {
+                p.relative_to(root / "out/store").as_posix(): p.read_bytes()
+                for p in (root / "out/store").rglob("*") if p.is_file()},
+                f"{field} refusal preserves producer bytes and every existing store member")
+
+
+def _producer_import_refuses_input_drift() -> None:
+    with tempfile.TemporaryDirectory(prefix="vos-produced-drift-") as directory:
+        root = Path(directory)
+        source, path, request = producer_fixture(root)
+        original = path.read_bytes()
+        source_bytes = (root / source).read_bytes()
+        object_path = root / request["objects"][0]["path"]
+        object_bytes = object_path.read_bytes()
+        verify = package_artifacts.verify_exports
+        for changed in (root / source, object_path, path):
+            (root / source).write_bytes(source_bytes)
+            object_path.write_bytes(object_bytes)
+            path.write_bytes(original)
+
+            def drift(blob: bytes, placement: package_artifacts.Placement, changed: Path = changed) -> None:
+                verify(blob, placement)
+                changed.write_bytes(changed.read_bytes() + b" ")
+
+            with patch.object(package_artifacts, "verify_exports", side_effect=drift):
+                try:
+                    fixed_composition.publish_package(root, source, "out/store",
+                                                      producer_image="out/producer.elf", producer_base=0x80000000)
+                except package_artifacts.PackageError as error:
+                    ensure("changed before publication" in str(error), str(error))
+                else:
+                    raise AssertionError("producer import accepted input drift")
+            ensure(not (root / "out/store").exists(), "drift refuses before creating or publishing store contents")
+
+
+def _producer_import_requires_paired_inputs_and_separate_outputs() -> None:
+    with tempfile.TemporaryDirectory(prefix="vos-produced-inputs-") as directory:
+        root = Path(directory)
+        source, path, _request = producer_fixture(root)
+        original = path.read_bytes()
+        for producer_image, producer_base in (("out/producer.elf", None), (None, 0x80000000),
+                                              ("out/producer.elf", True)):
+            try:
+                fixed_composition.publish_package(root, source, "out/store", producer_image=producer_image,
+                                                  producer_base=producer_base)
+            except package_artifacts.PackageError:
+                pass
+            else:
+                raise AssertionError("producer import accepted unpaired or noninteger base inputs")
+        (root / "out/producer").mkdir()
+        (root / "out/producer/producer.elf").write_bytes(original)
+        try:
+            fixed_composition.publish_package(root, source, "out/producer", producer_image="out/producer/producer.elf",
+                                              producer_base=0x80000000)
+        except package_artifacts.PackageError as error:
+            ensure("overlap" in str(error), str(error))
+        else:
+            raise AssertionError("producer import accepted a store containing its input image")
+        (root / "out/store").mkdir()
+        (root / "out/store/.publish.lock").hardlink_to(path)
+        try:
+            fixed_composition.publish_package(root, source, "out/store", producer_image="out/producer.elf",
+                                              producer_base=0x80000000)
+        except package_artifacts.PackageError as error:
+            ensure("overlap" in str(error), str(error))
+        else:
+            raise AssertionError("producer import accepted a store output hardlinked to its input image")
+        ensure(path.read_bytes() == original and not (root / "out/store/manifests").exists(),
+               "input and output refusals preserve produced bytes and publish no artifact root")
+
+
+def _producer_import_rechecks_under_lock_and_before_root_publication() -> None:
+    for boundary in ("lock", "root", "retained-hit"):
+        for input_kind in ("request", "object", "image"):
+            with tempfile.TemporaryDirectory(prefix="vos-produced-publication-") as directory:
+                root = Path(directory)
+                source, path, request = producer_fixture(root)
+                prior = fixture_artifact(root, "retained")
+                home = root / "out/store"
+                package_artifacts.store(home, prior)
+                artifact = package_artifacts.read_request(root, source)
+                if boundary == "retained-hit":
+                    package_artifacts.store(home, artifact)
+                retained = {p: p.read_bytes() for p in home.rglob("*") if p.is_file()}
+                changed = {"request": root / source, "object": root / request["objects"][0]["path"],
+                           "image": path}[input_kind]
+
+                def mutate(changed: Path = changed) -> None:
+                    changed.write_bytes(changed.read_bytes() + b" ")
+
+                enter = package_artifacts.FileLock.__enter__
+                publish = package_artifacts._publish
+                load = package_artifacts.load
+
+                def lock_drift(lock: package_artifacts.FileLock,
+                               enter: Callable[[package_artifacts.FileLock], package_artifacts.FileLock] = enter
+                               ) -> package_artifacts.FileLock:
+                    acquired = enter(lock)
+                    mutate()
+                    return acquired
+
+                def object_drift(path: Path, data: bytes, publish: Callable[[Path, bytes], None] = publish) -> None:
+                    publish(path, data)
+                    mutate()
+
+                def retained_drift(directory: Path, identity: str,
+                                   load: Callable[[Path, str], package_artifacts.Artifact] = load
+                                   ) -> package_artifacts.Artifact:
+                    result = load(directory, identity)
+                    mutate()
+                    return result
+
+                target, replacement = {"lock": ("FileLock.__enter__", lock_drift),
+                                       "root": ("_publish", object_drift),
+                                       "retained-hit": ("load", retained_drift)}[boundary]
+                if boundary == "lock":
+                    hook = patch.object(package_artifacts.FileLock, "__enter__", side_effect=replacement, autospec=True)
+                else:
+                    hook = patch.object(package_artifacts, target, side_effect=replacement)
+                with hook:
+                    try:
+                        fixed_composition.publish_package(root, source, "out/store",
+                                                          producer_image="out/producer.elf", producer_base=0x80000000)
+                    except package_artifacts.PackageError as error:
+                        ensure("changed before publication" in str(error), str(error))
+                    else:
+                        raise AssertionError(f"producer import accepted {input_kind} drift at {boundary}")
+                ensure(all(p.read_bytes() == data for p, data in retained.items()),
+                       "publication refusal preserves every previously retained store byte")
+                expected_roots = {f"{prior.identity}.json"}
+                if boundary == "retained-hit":
+                    expected_roots.add(f"{artifact.identity}.json")
+                ensure({p.name for p in (home / "manifests").iterdir()} == expected_roots,
+                       "publication refusal creates no new artifact root or imported success")
 
 
 def _commands_reuse_the_actual_artifact() -> None:
@@ -398,4 +616,9 @@ def cases() -> list[Case]:
             Case("recipe store and image drift refuse during read-only validation", _read_only_check_refuses_input_drift),
             Case("the exported HTIF window binds the actual loader symbol", _htif_export_and_actual_elf_symbol_agree),
             Case("HTIF requires a complete aligned writable initializer word", _htif_requires_a_complete_writable_word),
-            Case("HTIF symbol omission duplicates malformed tables and undeclared exports refuse", _htif_symbol_population_is_closed)]
+            Case("HTIF symbol omission duplicates malformed tables and undeclared exports refuse", _htif_symbol_population_is_closed),
+            Case("explicit producer import binds native exports before two translated layouts", _import_produced_image_at_two_layouts),
+            Case("producer byte permission entry and export refusals preserve useful store contents", _producer_image_refusals_preserve_the_store),
+            Case("request transported objects and producer image drift refuse before publication", _producer_import_refuses_input_drift),
+            Case("producer imports require paired inputs and separate store outputs", _producer_import_requires_paired_inputs_and_separate_outputs),
+            Case("producer imports recheck lock waits root publication and retained hits", _producer_import_rechecks_under_lock_and_before_root_publication)]
