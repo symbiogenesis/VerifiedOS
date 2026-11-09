@@ -415,3 +415,63 @@ The integrator's finishing allowance adds ten active minutes solely for the revi
 native helper deployment, one final source-bound read-only status, current-state
 evidence and commits. It commissions no further implementation candidate or audit;
 finish a final run already in progress at the limit, then stop without restart.
+
+## Continuation from an isolated public lane
+
+Q39/Q43 work continues from a dedicated public worktree under the
+[isolation procedure](../../../tools/README.md#worktree-isolation-during-fan-out).
+Use the existing restored private Git checkout as an explicit `--source`, its
+immutable catalog revision as `--source-revision`, and the public lane's native
+`lane_root` for new outputs. The private checkout must be outside that invoking
+public checkout, as
+[the controller requires](../../../tools/vos/compiler_build.py#Settings.validate).
+The successful relocated status satisfies this condition. Its direct-primary
+refusal requires no source relocation and does not prevent dedicated-lane work.
+Only public changes are integrated into local `main`; private sources and sealed
+native evidence remain at their retained locations.
+
+Before any later invocation, the worker records an explicit input ledger with
+the following fields. This ledger plans an operation and supplies no new verdict.
+
+| Input | Required binding |
+| --- | --- |
+| Public execution | Verified dedicated checkout, committed public revision, assigned owner and native lane root |
+| Private source | Explicit existing Git checkout and full catalog source revision; no source copy, move or path alias |
+| Driver | Reviewed private helper revision, complete four-file manifest and exact native deployment identities before and after execution |
+| Retained basis | Independently supplied catalog digest, named candidate, original receipt and raw seal digests, exact explicit helper/lock mapping |
+| Environment | Original lock identity, explicit retained opam root/switch, configuration bytes and kernel profile |
+| Mutable paths | Fresh assigned output/cache paths and sibling locks, disjoint from each other and every protected input |
+| Evidence | Operation requested, actual phase actions, preserved historical identities, current bindings and deferred acceptance |
+
+Archived argument arrays retain their original paths. Retirement can move a
+driver deployment and its public metadata; a copied old manifest still names the
+old helper root. Therefore construct current explicit arguments and a reviewed
+manifest for the actual deployment, then let the existing controller and private
+validator check them. Do not turn a prefix substitution, a retained plan or an
+old successful status into acceptance. Reuse unchanged-input observations for
+planning instead of repeating status solely to restate the placement result.
+
+The next acceptance-releasing work is Q39's bounded diagnosis and complete locked
+qualification. The
+[existing diagnostic](../contained-compiler-port-decisions.md#bounded-parser-diagnostic)
+establishes no root cause, progress bound or supported unfinished-event capture.
+Before another diagnostic, land its exact hypothesis, selected sealed input,
+supported capture method, wall-time/resource cap, stopping rule and decisive
+positive/refusal observations. An unsupported capture method or missing bound
+returns that specific prerequisite; it does not authorize another audit,
+profiling workload, proof repair, switch change or installation. The exhausted
+relocation/status implementation allowances supply no renewed attempt budget.
+
+The continuation ledger's acceptance is a review of the bound inputs and the
+existing checkout-relative decision: direct primary invocation with the nested
+source still refuses; a verified isolated lane retains the existing outside-root
+condition. No new controller behavior is commissioned. A future semantic change
+needs its own landed predicate and focused positive/refusal controls.
+
+Complete proof gates and benchmarks remain hosted-only under the
+[validation handoff](../../../AGENTS.md#tool-execution-and-validation), with hosted
+execution and verdicts owned by the user. No new compiler qualification or audit
+is launched by this continuation handoff. Q39 still requires both complete
+qualifications and its target/consumer checks; Q43 then requires genuine unchanged
+complete-tier default reuse. Compilation-only status, metadata availability and
+pending hosted checks supply none of those verdicts.

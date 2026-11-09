@@ -336,13 +336,24 @@ finite status boundary, without a complete compiler qualification or target
 verdict. No compilation, proof query, kernel audit, staging or cache publication
 runs. Q39 and Q43 retain their actual complete-qualification/default-reuse joins.
 
-The status runs from its isolated public checkout. A separate primary-equivalent
-validation witness refuses the retained private Git source because it resides
-below the primary checkout's `out/migration-retained/` directory. The controller's
-existing native-source placement rule remains unchanged. Primary invocation
-requires an explicitly owned compiler Git source location outside that invoking
-checkout; native helper deployment alone does not supply it. This checkpoint
-authorizes no compiler-source move, copy, path alias or containment relaxation.
+The supported entry is an isolated public checkout. The controller's
+[native-path validation](../../tools/vos/compiler_build.py#Settings.validate)
+requires the compiler source, helper, opam and native output roots to be outside
+that invoking checkout. The explicitly selected restored private Git source is
+outside a dedicated public lane, and the successful status above uses that route.
+Direct invocation from the primary checkout refuses that same source because it
+resides below the primary's `out/migration-retained/` directory. Direct primary
+invocation is not a qualification prerequisite: subsequent work uses its assigned
+public lane and integrates its public changes into local `main` through the
+ordinary fan-out handoff. No source move, copy, path alias or containment
+relaxation is needed for this route.
+
+The [continuation handoff](contracts/contained-compiler-reuse.md#continuation-from-an-isolated-public-lane)
+separates that satisfied placement condition from Q39's unresolved diagnostic and
+qualification inputs. Historical status arguments refer to a retired lane and
+are provenance, not a current launch command. A new invocation binds its own
+absolute paths and revalidates every retained input; neither the supported lane
+route nor a compilation-tier status closes Q39 or Q43.
 
 ## Bounded Parser diagnostic
 
