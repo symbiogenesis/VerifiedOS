@@ -41,7 +41,7 @@ def _json(data: bytes, where: str) -> dict[str, Any]:
     except (ValueError, RecursionError) as error:
         raise ValueError(f"malformed {where}: {error}") from error
     if not isinstance(raw, dict):
-        raise ValueError(f"{where} must be an object")
+        raise TypeError(f"{where} must be an object")
     return raw
 
 

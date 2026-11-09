@@ -56,11 +56,11 @@ def _memory(snapshot: bytes) -> list[package_artifacts.MemoryRegion]:
                 boot._hex_value(region["base"], "memory base"),
                 boot._hex_value(region["size"], "memory size"), memory_class,
                 attributes["writable"], attributes["executable"]))
-        if not result:
-            raise ValueError("no MainMemory region")
-        return result
     except (ValueError, UnicodeError, KeyError, TypeError) as error:
         raise boot.RecipeError(f"fixed boot configuration memory: {error}") from error
+    if not result:
+        raise boot.RecipeError("fixed boot configuration memory: no MainMemory region")
+    return result
 
 
 def _bindings(root: Path, recipe: Recipe, configuration: bytes) -> dict[str, object]:
@@ -94,8 +94,8 @@ def _bindings(root: Path, recipe: Recipe, configuration: bytes) -> dict[str, obj
 def _protected_inputs(root: Path, recipe: Recipe, simulator: Path,
                       binding: dict[str, object]) -> list[Path]:
     raw = recipe.document
-    protected = [recipe.path, simulator, *(root / raw[key] for key in
-                  ("composition", "image", "configuration"))]
+    protected = [recipe.path, simulator]
+    protected.extend(root / cast("str", raw[key]) for key in ("composition", "image", "configuration"))
     store = (root / raw["store"]).resolve()
     for item in cast("list[dict[str, Any]]", binding["packages"]):
         artifact = package_artifacts.load(store, item["artifact"])

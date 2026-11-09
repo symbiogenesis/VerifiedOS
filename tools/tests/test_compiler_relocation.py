@@ -9,6 +9,7 @@ from collections.abc import Callable, Generator
 from contextlib import contextmanager, redirect_stderr, redirect_stdout
 from io import StringIO
 from pathlib import Path
+from typing import Any
 from unittest.mock import patch
 
 from tests.harness import Case, ensure
@@ -45,7 +46,7 @@ def _fixture() -> Generator[tuple[Path, str]]:
         yield root, hashlib.sha256(catalog).hexdigest()
 
 
-def _verify(root: Path, trusted: str, *, zipped: bool = False) -> dict:
+def _verify(root: Path, trusted: str, *, zipped: bool = False) -> dict[str, Any]:
     return relocation.verify(root / "catalog.json", trusted, "candidate-1",
                              root / ("seal.json.gz" if zipped else "seal.json"),
                              root / "mapping.json", output=root / "out/report.json", output_root=root / "out")

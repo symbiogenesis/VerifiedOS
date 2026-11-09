@@ -7,6 +7,7 @@ import json
 import os
 import shutil
 import struct
+import subprocess
 import sys
 import tempfile
 from contextlib import redirect_stdout
@@ -89,8 +90,10 @@ def _run(root: Path, *, refresh: bool = False, plan: dict[str, Any] | None = Non
     (root / "plan.json").write_text(json.dumps(plan or {"console": "F", "lines": _lines()}), encoding="utf-8")
     original = boot.subprocess.Popen
 
-    def process(argv: list[str], **kwargs: Any) -> Any:
-        return original([sys.executable, argv[0], str(root / "plan.json"), *argv[1:]], **kwargs)
+    def process(argv: list[str], *, stdout: int, stderr: int, text: bool,
+                encoding: str, errors: str, cwd: Path | None) -> subprocess.Popen[str]:
+        return original([sys.executable, argv[0], str(root / "plan.json"), *argv[1:]],
+                        stdout=stdout, stderr=stderr, text=text, encoding=encoding, errors=errors, cwd=cwd)
 
     with patch.object(boot.subprocess, "Popen", side_effect=process):
         return fixed_boot.run(root, fixed_boot.load_recipe(root, "boot.json"), root / "out/observe",
@@ -243,9 +246,12 @@ def _changed_inputs_refuse_refresh() -> None:
         for target in targets:
             before = target.read_bytes()
 
-            def changed(*args: Any, **kwargs: Any) -> boot.Observation:
-                observation = original(*args, **kwargs)
-                target.write_bytes(before + b" ")
+            def changed(argv: list[str], console_path: Path, entries: dict[int, str],
+                        tohost: int, timeout: float, trace_path: Path | None = None, *,
+                        cwd: Path | None = None, changed_path: Path = target,
+                        changed_bytes: bytes = before) -> boot.Observation:
+                observation = original(argv, console_path, entries, tohost, timeout, trace_path, cwd=cwd)
+                changed_path.write_bytes(changed_bytes + b" ")
                 return observation
 
             with patch.object(boot, "boot_image", side_effect=changed):
