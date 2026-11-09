@@ -43,8 +43,75 @@ int main(int argc, char **argv)
         return 3;
     }
 #endif
-    if (argc < 7 || (strcmp(argv[1], "encode") != 0 && strcmp(argv[1], "decode") != 0)) {
+    if (argc < 7 || (strcmp(argv[1], "encode") != 0 && strcmp(argv[1], "decode") != 0 &&
+                     strcmp(argv[1], "nonce-encode") != 0 && strcmp(argv[1], "nonce-decode") != 0)) {
         return 3;
+    }
+    if (strcmp(argv[1], "nonce-encode") == 0) {
+        struct vos_node_nonce coords = {0};
+        uint8_t nonce[VOS_NODE_NONCE_BYTES + 16u];
+        uint8_t old_nonce[VOS_NODE_NONCE_BYTES + 16u];
+        if (argc != 9) {
+            return 3;
+        }
+        for (uint32_t i = 0u; i < 7u; ++i) {
+            if (!number(argv[i + 2u], &args[i])) {
+                return 3;
+            }
+        }
+        if (args[0] > UINT32_MAX || args[2] > HOST_BLOCK_LIMIT ||
+            args[3] > UINT32_MAX || args[4] > UINT32_MAX) {
+            return 3;
+        }
+        geometry.fan = (uint32_t)args[0];
+        geometry.arena_nodes = args[1];
+        geometry.block_bytes = (size_t)args[2];
+        coords.domain_epoch = (uint32_t)args[3];
+        coords.kind = (uint32_t)args[4];
+        coords.node_id = args[5];
+        coords.generation = args[6];
+        memset(nonce, 0xa5, sizeof nonce);
+        memcpy(old_nonce, nonce, sizeof nonce);
+        if (!vos_node_derive_nonce(&geometry, &coords, nonce)) {
+            return memcmp(old_nonce, nonce, sizeof nonce) == 0 ? 2 : 4;
+        }
+        for (size_t at = VOS_NODE_NONCE_BYTES; at < sizeof nonce; ++at) {
+            if (nonce[at] != 0xa5) {
+                return 4;
+            }
+        }
+        return fwrite(nonce, 1u, VOS_NODE_NONCE_BYTES, stdout) == VOS_NODE_NONCE_BYTES ? 0 : 3;
+    }
+    if (strcmp(argv[1], "nonce-decode") == 0) {
+        struct vos_node_nonce coords;
+        struct vos_node_nonce prior_coords;
+        if (argc != 7) {
+            return 3;
+        }
+        for (uint32_t i = 0u; i < 5u; ++i) {
+            if (!number(argv[i + 2u], &args[i])) {
+                return 3;
+            }
+        }
+        if (args[0] > UINT32_MAX || args[2] > HOST_BLOCK_LIMIT) {
+            return 3;
+        }
+        geometry.fan = (uint32_t)args[0];
+        geometry.arena_nodes = args[1];
+        geometry.block_bytes = (size_t)args[2];
+        const size_t nonce_len = fread(block, 1u, sizeof block, stdin);
+        if (ferror(stdin) || (nonce_len == sizeof block && fgetc(stdin) != EOF)) {
+            return 3;
+        }
+        memset(&coords, 0xa5, sizeof coords);
+        memcpy(&prior_coords, &coords, sizeof coords);
+        if (!vos_node_decode_nonce(&geometry, args[3], args[4], block, nonce_len, &coords)) {
+            return memcmp(&prior_coords, &coords, sizeof coords) == 0 ? 2 : 4;
+        }
+        printf("{\"domain_epoch\":%" PRIu32 ",\"kind\":%" PRIu32
+               ",\"id\":%" PRIu64 ",\"generation\":%" PRIu64 "}\n",
+               coords.domain_epoch, coords.kind, coords.node_id, coords.generation);
+        return 0;
     }
     const int encode = strcmp(argv[1], "encode") == 0;
     for (uint32_t i = 0u; i < (encode ? 7u : 5u); ++i) {

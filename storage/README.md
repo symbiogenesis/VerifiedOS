@@ -22,7 +22,11 @@ addresses. These payload words are little-endian `uint64`. Unused block bytes ar
 zero and a decoder refuses nonzero padding, an unknown format, wrong length,
 wrong expected identity or generation, invalid shape or out-of-arena references.
 Unused decoded array cells are zero. In-memory unused cells do not enter the
-encoding.
+encoding. `vos_node_derive_nonce` and `vos_node_decode_nonce` provide the
+canonical 96-bit (12-byte) coordinate-derived AES-GCM nonce bijection over
+`(domain_epoch, kind, node_id, generation)` (R-10-022a), packing the 64-bit
+generation, 24-bit arena node identity, 7-bit domain epoch and 1-bit node kind
+so parent branch slots need not store a separate 12-byte nonce per child.
 
 The identity checks provide no authentication. A storage caller must authenticate
 the entire block against its independent parent/root evidence before using it;

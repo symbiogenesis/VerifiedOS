@@ -136,3 +136,45 @@ int vos_node_decode(const struct vos_node_geometry *geometry,
     *output = decoded;
     return 1;
 }
+
+int vos_node_derive_nonce(const struct vos_node_geometry *geometry,
+                          const struct vos_node_nonce *coords,
+                          uint8_t output[VOS_NODE_NONCE_BYTES])
+{
+    if (!geometry_ok(geometry, geometry != NULL ? geometry->block_bytes : 0u) ||
+        coords == NULL || output == NULL ||
+        (coords->kind != VOS_NODE_LEAF && coords->kind != VOS_NODE_BRANCH) ||
+        coords->domain_epoch > VOS_NODE_NONCE_MAX_DOMAIN ||
+        coords->node_id >= geometry->arena_nodes ||
+        coords->node_id > VOS_NODE_NONCE_MAX_ID) {
+        return 0;
+    }
+    put_integer(output, coords->generation, 8u);
+    put_integer(output + 8u, coords->node_id, 3u);
+    output[11] = (uint8_t)((coords->domain_epoch << 1u) | coords->kind);
+    return 1;
+}
+
+int vos_node_decode_nonce(const struct vos_node_geometry *geometry,
+                          uint64_t expected_id, uint64_t expected_generation,
+                          const uint8_t *bytes, size_t length,
+                          struct vos_node_nonce *output)
+{
+    struct vos_node_nonce nonce = {0};
+    if (!geometry_ok(geometry, geometry != NULL ? geometry->block_bytes : 0u) ||
+        bytes == NULL || output == NULL || length != VOS_NODE_NONCE_BYTES) {
+        return 0;
+    }
+    nonce.generation = get_integer(bytes, 8u);
+    nonce.node_id = get_integer(bytes + 8u, 3u);
+    nonce.kind = (uint32_t)(bytes[11] & 1u);
+    nonce.domain_epoch = (uint32_t)(bytes[11] >> 1u);
+    if (nonce.node_id != expected_id ||
+        nonce.generation != expected_generation ||
+        nonce.node_id >= geometry->arena_nodes ||
+        nonce.node_id > VOS_NODE_NONCE_MAX_ID) {
+        return 0;
+    }
+    *output = nonce;
+    return 1;
+}

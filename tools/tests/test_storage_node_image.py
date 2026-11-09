@@ -28,6 +28,13 @@ def _image(kind: int, node_id: int, generation: int,
     return (header + payload).ljust(block_bytes, b"\0")
 
 
+def _nonce_image(domain_epoch: int, kind: int, node_id: int, generation: int) -> bytes:
+    """Independent 96-bit coordinate-derived AES-GCM nonce oracle (R-10-022a)."""
+    return (struct.pack("<Q", generation)
+            + node_id.to_bytes(3, "little")
+            + bytes([((domain_epoch & 0x7F) << 1) | (kind & 1)]))
+
+
 def _oracle_boundaries() -> None:
     leaf = _image(0, 7, MAXIMUM, [0, MAXIMUM], [MAXIMUM, 1], 64)
     ensure(leaf[:8] == b"VOSNODE1" and leaf[16:24] == b"\x07" + b"\0" * 7,
@@ -37,6 +44,12 @@ def _oracle_boundaries() -> None:
     branch = _image(1, 0, 0, [9], [0, 1], 64)
     ensure(struct.unpack("<QQQ", branch[32:56]) == (9, 0, 1) and branch[56:] == b"\0" * 8,
            "independent branch/padding boundary changed")
+    nonce_lo = _nonce_image(0, 0, 0, 0)
+    nonce_hi = _nonce_image(127, 1, 0xFFFFFF, MAXIMUM)
+    ensure(len(nonce_lo) == 12 and nonce_lo == b"\0" * 12,
+           "coordinate-derived zero nonce boundary changed")
+    ensure(len(nonce_hi) == 12 and nonce_hi == b"\xff" * 12,
+           "coordinate-derived max nonce boundary changed")
 
 
 def _build(directory: Path, *, source: str | None = None) -> Path:
@@ -74,6 +87,22 @@ def _decode(binary: Path, data: bytes, *, fan: int = 4, arena: int = 19,
                           capture_output=True, timeout=5, check=False)
 
 
+def _nonce_encode(binary: Path, fan: int, arena: int, block_bytes: int,
+                  domain_epoch: int, kind: int, node_id: int,
+                  generation: int) -> subprocess.CompletedProcess[bytes]:
+    args = ["nonce-encode", fan, arena, block_bytes, domain_epoch, kind, node_id, generation]
+    return subprocess.run([str(binary), *(str(arg) for arg in args)],
+                          capture_output=True, timeout=5, check=False)
+
+
+def _nonce_decode(binary: Path, data: bytes, *, fan: int = 4, arena: int = 19,
+                  block_bytes: int = 112, node_id: int = 7, generation: int = MAXIMUM
+                  ) -> subprocess.CompletedProcess[bytes]:
+    return subprocess.run([str(binary), "nonce-decode", str(fan), str(arena),
+                           str(block_bytes), str(node_id), str(generation)],
+                          input=data, capture_output=True, timeout=5, check=False)
+
+
 def _population(binary: Path) -> None:
     for fan in (2, 4, 16):
         block_bytes = 32 + 16 * fan + 8
@@ -101,6 +130,27 @@ def _population(binary: Path) -> None:
     accepted = _decode(binary, bytes(changed))
     ensure(accepted.returncode == 0 and json.loads(accepted.stdout)["values"][0] == 3,
            "codec confused framing with payload authentication")
+    seen_nonces: set[bytes] = set()
+    for domain_epoch in (0, 1, 42, 127):
+        for kind in (0, 1):
+            for node_id in (0, 7, 18):
+                for generation in (0, 1, MAXIMUM):
+                    expected_nonce = _nonce_image(domain_epoch, kind, node_id, generation)
+                    encoded_nonce = _nonce_encode(
+                        binary, 4, 19, 112, domain_epoch, kind, node_id, generation)
+                    ensure(encoded_nonce.returncode == 0 and encoded_nonce.stdout == expected_nonce,
+                           "coordinate-derived nonce disagrees with byte oracle")
+                    seen_nonces.add(encoded_nonce.stdout)
+                    decoded_nonce = _nonce_decode(
+                        binary, expected_nonce, node_id=node_id, generation=generation)
+                    ensure(decoded_nonce.returncode == 0,
+                           "valid coordinate-derived nonce was refused")
+                    ensure(json.loads(decoded_nonce.stdout) == {
+                        "domain_epoch": domain_epoch, "kind": kind,
+                        "id": node_id, "generation": generation,
+                    }, "decoded coordinate-derived nonce structure differs")
+    ensure(len(seen_nonces) == 4 * 2 * 3 * 3,
+           "coordinate-derived nonces must be strictly injective over distinct coordinates")
 
 
 def _refusals(binary: Path) -> None:
@@ -131,6 +181,21 @@ def _refusals(binary: Path) -> None:
         refused = _encode(binary, fan, arena, size, kind, node_id, MAXIMUM, keys, values)
         ensure(refused.returncode == 2 and not refused.stdout,
                "invalid encode changed output, crashed or was accepted")
+    valid_nonce = _nonce_image(5, 1, 7, MAXIMUM)
+    for bad_nonce in (valid_nonce[:-1], valid_nonce + b"\0"):
+        refused = _nonce_decode(binary, bad_nonce)
+        ensure(refused.returncode == 2 and not refused.stdout,
+               "malformed nonce length was accepted or changed output")
+    for nonce_change in ({"fan": 1}, {"arena": 7}, {"node_id": 8}, {"generation": 0}):
+        refused = _nonce_decode(binary, valid_nonce, **nonce_change)
+        ensure(refused.returncode == 2 and not refused.stdout,
+               "nonce decode accepted mismatched binding or invalid geometry")
+    for fan, arena, domain_epoch, kind, node_id in (
+            (1, 19, 0, 0, 0), (4, 19, 128, 0, 0), (4, 19, 0, 2, 0),
+            (4, 19, 0, 0, 19), (4, 0x2000000, 0, 0, 0x1000000)):
+        refused = _nonce_encode(binary, fan, arena, 112, domain_epoch, kind, node_id, MAXIMUM)
+        ensure(refused.returncode == 2 and not refused.stdout,
+               "invalid coordinate-derived nonce encode was accepted or changed output")
 
 
 def _native_campaign() -> None:
@@ -171,6 +236,16 @@ def _compiled_controls() -> None:
             # A killed control must execute and demonstrate the specific bad acceptance.
             ensure(_decode(binary, data, **arguments).returncode == 0,
                    f"{name} mutant did not execute the expected accepted defect")
+        nonce_needle = "nonce.node_id != expected_id ||"
+        ensure(source.count(nonce_needle) == 1, "ambiguous nonce-binding mutation site")
+        nonce_data = _nonce_image(3, 0, 7, MAXIMUM)
+        ensure(_nonce_decode(pristine, nonce_data, node_id=8).returncode == 2,
+               "pristine did not refuse wrong nonce node_id")
+        nonce_mutant = _build(
+            directory / "nonce-binding",
+            source=source.replace(nonce_needle, "(nonce.node_id != expected_id && nonce.node_id > expected_id) ||"))
+        ensure(_nonce_decode(nonce_mutant, nonce_data, node_id=8).returncode == 0,
+               "nonce-binding mutant did not execute the expected accepted defect")
 
 
 def cases() -> list[Case]:
