@@ -1,7 +1,7 @@
 # Wire-format inventory
 
 <!-- Generated from interfaces/wire-formats.json by vos.wire_formats.emit; do not edit. -->
-<!-- Source SHA256: 72511cd8649ed2efa783b8c2abab040adab1ee38b8c3c01f9fccfe278e266916 -->
+<!-- Source SHA256: 78a01a8fd0e7c28d9863af0bb3db74ac37af4fef2fd26de6f46b234e7bcaedbd -->
 
 This is U-12's inventory of the attacker-facing format families the current design names, including crown-jewel row 10's member classes and row 3's IDL mapping. The authored source is [wire-formats.json](../../interfaces/wire-formats.json). A composition must specialize each open family into exact versions, subsets, byte/field/depth limits and descriptor identities before admitting it. The release's still-image, audio, container, font and document selections remain open; a family row does not choose a format or admit an implementation.
 
@@ -511,11 +511,11 @@ Canonicity means decode injectivity on the entire admissible byte language and r
 
 - Descriptor: **absent**. Owner: **Q42a**.
 - Hand transcription: **none authored**.
-- Canonicity: Required: envelope, plaintext, region records and identity-consuming nested schemas need whole-admissible-language injectivity and accepted-byte re-encoding; alternate lengths, order, duplicates and tails fail decoding.
-- Current evidence: The backup contract states the bounded grammar shape and authenticate-before-write acceptance. Concrete profile widths, Narcissus derivations, canonicity and target copy-once lowering remain Q42a's obligations; no backup implementation is present.
+- Canonicity: Required: envelope, authenticated manifest/catalog, indexed chunks, Merkle proofs and identity-consuming nested schemas need whole-admissible-language injectivity and accepted-byte re-encoding; alternate lengths, order, duplicates and tails fail decoding.
+- Current evidence: The backup contract states the bounded manifest/chunk grammar, per-chunk authenticate-before-stage and complete-coverage-before-publication acceptance. Concrete profile widths, Narcissus derivations, canonicity and target copy-once lowering remain Q42a's obligations; no backup implementation is present.
 - Requirements: R-05-042, R-05-046, R-05-051a, R-10-038, R-10-039.
 - Sources: [backup-migration.md](../../docs/implementation/contracts/backup-migration.md), [requirements-register.md](../../docs/requirements-register.md).
-- Forms generated from the owning grammar: `backup-envelope-v1`, `backup-plaintext-v1`, `backup-region-v1`.
+- Forms generated from the owning grammar: `backup-envelope-v1`, `backup-plaintext-v1`, `backup-region-v1`, `backup-chunk-v1`, `backup-proof-v1`.
 
 ### Canonical recovery-secret entry for a 256-bit backup key <a id="backup-recovery-secret"></a>
 
