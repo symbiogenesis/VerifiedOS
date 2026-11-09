@@ -315,3 +315,80 @@ The original failed qualification receipt stayed byte-identical and
 Complete-tier priming and unchanged all-phase default reuse still need a newly
 qualified Q39 pair. Native retained basis paths and the two exact index/controller
 metadata paths in the bundle remain part of the reproducibility boundary.
+
+## Bounded relocated-compilation status connection
+
+Q39's next increment connects the explicit helper/lock mapping to the private
+compilation validator for read-only status only. Its prerequisite is
+[the catalog-anchored relocation check](../contained-compiler-port-decisions.md#explicit-relocated-path-verification).
+The retained private driver at `e604e260f74022f0e9aa2d4c9dbf33a5b8cee939`
+accepts no relocation request, hashes historical helper and lock paths directly,
+and derives retention paths from those historical names. A successful public
+mapping report therefore does not currently authorize its compilation reuse.
+
+Before implementation, commit this contract and integrate it into local `main`.
+Use a dedicated worktree in the retained contained repository for changes to its
+reviewed helpers; compiler sources, proof statements and historical build trees
+remain outside this increment. Record the new private commit and reviewed helper
+manifest separately from each original compilation's immutable helper seal.
+
+The public `compiler-build status` interface may accept one explicit relocation
+connection containing the catalog path and independently supplied SHA-256,
+candidate name, exact raw compilation-seal path and mapping path. All fields are
+required together, and `--reuse-from` must explicitly select that candidate's
+retained compilation receipt. This option refuses `build`, `prime`, `--fresh`,
+profile requests, inferred candidates and default-index lookup. Existing requests
+without the option preserve their existing behavior.
+
+Both boundaries validate the connection. The controller replays the existing
+catalog/seal/mapping verification and binds its exact input snapshots. The private
+validator independently checks the supplied catalog digest, its selected immutable
+source revision/native root and raw seal digest, and exact mapping coverage of
+that seal's helpers and lock. Only admitted historical helper identities remain
+eligible. Every restored path must be explicit, absolute, free of redirection and
+match the seal-owned bytes; no prefix replacement, ambient fallback, executable
+helper import or rewritten receipt is permitted. The explicit reuse receipt must
+be the selected native root's `compiler/build-result.json`, and its original
+catalog identity must match. The requested lock must be the explicitly mapped
+sealed lock. Unsupported seal schemas and recursive reused origins refuse this
+first connection rather than broadening its authority.
+
+The connection substitutes only helper/lock file reads. All existing source Git
+archive, compilation receipt, configuration/profile, native population, installed
+library, tool identity and before/after stability checks remain required. Status
+runs no compilation, proof query, kernel audit, classification, staging or index
+publication. The result may report only authenticated compilation-tier reuse;
+queries, kernel and classification stay `not_run`, with the original failed
+overall verdict retained. It binds the connection's catalog, seal, mapping and
+mapped bytes and includes their actual restored retention paths, while retaining
+the original producer manifest, receipt digest, native root and historical timing.
+Both boundaries recheck connection inputs before returning a clean result.
+
+Acceptance and refusal controls are:
+
+| Case | Required decision |
+| --- | --- |
+| Exact explicit mapping and unchanged sealed compilation | Compilation-only status; original identities/timings preserved; no execution or publication |
+| Omitted connection on existing valid original paths | Existing status behavior remains accepted |
+| Missing, extra or unsupported connection field; wrong operation or implicit candidate | Refuse before driver launch or output/cache writes |
+| Catalog, candidate, source revision, native root, seal or original receipt substitution | Refuse the connection |
+| Missing/extra mapping, wrong helper identity, wrong restored bytes or requested lock | Refuse the connection |
+| Relative, linked, escaping or mutable-output-overlapping connection input | Refuse before any mutation |
+| Mapping/catalog/seal/helper/lock change during controller or private validation | Refuse; preserve useful prior output/index and every historical byte |
+| Source/object, archive, tool/library, configuration or profile drift | Existing private compilation refusal remains decisive |
+| Pending/failed kernel record or complete-tier claim | No complete qualification credit; compile-only status or refusal as appropriate |
+
+Run focused public framing/relocation and private fixture controls, including a
+positive original-path regression and mutation hooks on the independent private
+check. Then run one real retained VM candidate through explicit read-only status,
+recording before/after historical receipt/seal hashes and the private/controller
+identities. If it succeeds, a second unchanged candidate may confirm the same
+boundary. A fixture or mapping-only result cannot satisfy the real status case.
+
+The private attempt is bounded to three candidate edits or forty-five active
+minutes; public framing to three candidate edits or thirty active minutes, with
+editing and focused-check waits counted. At the limit finish the current check,
+record the exact failure and stop for integrator replanning. Missing toolchain or
+input identities do not authorize installation, a new audit, profiling, proof
+repair, source export, snapshot copying or relaxed validation. Hosted acceptance
+remains user-managed; this connection closes neither Q39 nor Q43.
