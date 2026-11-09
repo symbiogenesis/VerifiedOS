@@ -24,6 +24,26 @@ hashes the canonical manifest, including actual output object hashes; moving a
 transport file preserves that root. The store rehashes existing objects before
 reuse and refuses missing or corrupt content.
 
+An existing one-package producer ELF can be checked before its objects enter
+the store:
+
+```text
+python tools/run.py composer package-store out/package-request.json --producer-image out/package.elf --producer-base 0x80000000
+```
+
+The image and base options are required together. Import checks complete physical
+load bytes and permissions, the entry, and every declared export's defined ELF
+symbol and actual loaded section. Producer section names may differ from the
+package's composed section names. The returned `producer_image` binds exact image
+bytes and base; the artifact identity remains independent of transport paths.
+Exact request, transport and image snapshots are rechecked after acquiring the
+store lock and immediately before publishing a new artifact root or returning a
+retained hit. Refusal leaves existing store bytes intact; unreferenced new objects
+may remain when drift is discovered after object publication. Import does not
+run a producer, validate proof objects, prove arbitrary position independence or
+qualify the compiler. The package's real correspondence and admission checks
+remain required.
+
 The [composition recipe schema](fixed-composition.schema.json) takes
 `schema_version: 1`, the selected artifact `context`, `packages` containing
 `artifact` roots and `base` addresses, a physical `memory` map, and an `entry`

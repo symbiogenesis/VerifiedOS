@@ -9,6 +9,7 @@ cannot supply a trusted prior checked-state root or a checker-success flag.
 
 import json
 import tempfile
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, cast
@@ -38,12 +39,44 @@ def store_path(root: Path, relative: str) -> Path:
     return path
 
 
-def publish_package(root: Path, source: str, store: str) -> dict[str, object]:
-    artifact = package_artifacts.read_request(root, source)
+def publish_package(root: Path, source: str, store: str, *, producer_image: str | None = None,
+                    producer_base: int | None = None) -> dict[str, object]:
+    if (producer_image is None) != (producer_base is None):
+        raise package_artifacts.PackageError("fixed package producer image and base are required together")
+    request = package_artifacts.snapshot_request(root, source)
+    artifact = request.artifact
     directory = store_path(root, store)
-    package_artifacts.store(directory, artifact)
-    return {"artifact": artifact.identity, "package_id": artifact.package_id,
-            "store": store, "production_admission": False}
+    producer = None
+    before_publish: Callable[[], None] | None = None
+    if producer_image is not None:
+        path = _path(root, producer_image)
+        outputs = [directory / ".publish.lock", directory / "manifests" / f"{artifact.identity}.json",
+                   *(directory / "objects" / f"{identity}.bin" for identity, _ in artifact.objects)]
+        if path.is_relative_to(directory) or any(output.exists() and output.samefile(path) for output in outputs):
+            raise package_artifacts.PackageError("fixed package store must not overlap its producer image")
+        blob = package_artifacts._ordinary_file(path, size=path.stat().st_size)
+        placement = package_artifacts.place(artifact, cast("int", producer_base))
+        package_artifacts.verify_image(blob, [placement], expected_entry=placement.entry)
+        package_artifacts.verify_exports(blob, placement)
+
+        def recheck() -> None:
+            request.recheck()
+            try:
+                unchanged = package_artifacts._ordinary_file(path, size=len(blob)) == blob
+            except (OSError, package_artifacts.PackageError) as error:
+                raise package_artifacts.PackageError("fixed package producer image changed before publication") from error
+            if not unchanged:
+                raise package_artifacts.PackageError("fixed package producer image changed before publication")
+
+        recheck()
+        before_publish = recheck
+        producer = {"path": producer_image, "sha256": package_artifacts.digest(blob), "base": producer_base}
+    package_artifacts.store(directory, artifact, before_publish=before_publish)
+    result: dict[str, object] = {"artifact": artifact.identity, "package_id": artifact.package_id,
+                                "store": store, "production_admission": False}
+    if producer is not None:
+        result["producer_image"] = producer
+    return result
 
 
 def _recipe(path: Path) -> tuple[dict[str, Any], bytes]:
