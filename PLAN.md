@@ -2943,10 +2943,14 @@ static analysis and the local fanout handoff; the user owns hosted acceptance.
 Implementation starts after this predicate is committed.
 
 Implemented locally: runner failures retain tracebacks and skipped-case reasons;
-binary handoffs retain reviewable identities and exact bytes. Focused runner and
-fanout controls pass. The `tooling-review-20261109` fanout journal records the
-settled local revision, final preparation and full hosted recommendations;
-hosted acceptance remains user-managed and pending.
+binary handoffs retain reviewable identities and exact bytes. Focused runner,
+fanout and lane controls and Python static analysis pass. The
+`tooling-review-20261109` fanout journal records integration and the requested
+full hosted scope. Existing K-61 prose-review debt prevents final handoff and
+retirement: the same pending pairs occur at the session's starting revision,
+and neither normative input nor the co-read ledger changed. Read the owed pairs
+before recording agreement; automatic blessing cannot supply that review.
+Hosted acceptance remains user-managed and pending.
 
 ## C modernization
 
