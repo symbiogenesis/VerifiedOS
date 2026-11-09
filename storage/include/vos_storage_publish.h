@@ -168,7 +168,7 @@ struct vos_storage_store {
     const struct vos_storage_medium *active_medium;
     const struct vos_crypto_core *active_crypto;
     uint8_t active_checkpoint_bytes[sizeof(struct vos_storage_checkpoint)];
-    uint8_t active_key_slot_bytes[sizeof(struct vos_crypto_domain_slot)];
+    uint64_t active_key_context;
     uint8_t active_geometry_bytes[sizeof(struct vos_node_geometry)];
     uint8_t active_limits_bytes[sizeof(struct vos_tree_limits)];
 };

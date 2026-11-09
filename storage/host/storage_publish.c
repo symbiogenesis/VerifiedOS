@@ -1117,11 +1117,13 @@ static int check_active_checkpoint_cache(void)
         return 0;
     }
     store.medium = &medium;
-    crypto.domains[VOS_CRYPTO_DOMAIN_SYSTEM].commit_key[0] ^= 1u;
-    if (vos_storage_lookup(&store, domain, 8u, &value) != VOS_TREE_REFUSED) {
+    static const uint8_t foreign_key[32] = {0x62u};
+    vos_crypto_core_lock_domain(&crypto, VOS_CRYPTO_DOMAIN_SYSTEM);
+    if (!vos_crypto_core_unlock_domain(&crypto, VOS_CRYPTO_DOMAIN_SYSTEM,
+                                       domain, 1u, foreign_key, sizeof(foreign_key)) ||
+        vos_storage_lookup(&store, domain, 8u, &value) != VOS_TREE_REFUSED) {
         return 0;
     }
-    crypto.domains[VOS_CRYPTO_DOMAIN_SYSTEM].commit_key[0] ^= 1u;
     vos_crypto_core_lock_domain(&crypto, VOS_CRYPTO_DOMAIN_SYSTEM);
     if (vos_storage_lookup(&store, domain, 8u, &value) != VOS_TREE_REFUSED ||
         !vos_crypto_core_unlock_domain(&crypto, VOS_CRYPTO_DOMAIN_SYSTEM,

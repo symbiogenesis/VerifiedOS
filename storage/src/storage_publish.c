@@ -421,9 +421,7 @@ static void retain_active_checkpoint(struct vos_storage_store *store)
     copy_bytes(store->active_checkpoint_bytes,
                (const uint8_t *)&store->medium->checkpoint,
                sizeof(store->medium->checkpoint));
-    copy_bytes(store->active_key_slot_bytes,
-               (const uint8_t *)&store->crypto->domains[store->crypto_slot],
-               sizeof(store->crypto->domains[store->crypto_slot]));
+    store->active_key_context = store->crypto->domain_context[store->crypto_slot];
     copy_bytes(store->active_geometry_bytes,
                (const uint8_t *)&store->medium->geometry,
                sizeof(store->medium->geometry));
@@ -450,14 +448,17 @@ static int matches_active_checkpoint(const struct vos_storage_store *store)
            cp->generation == store->committed_generation &&
            cp->root == store->committed_root && cp->height == store->committed_height &&
            cp->used == store->committed_used &&
-           equal_bytes_ct(store->active_key_slot_bytes, (const uint8_t *)slot, sizeof(*slot)) &&
            equal_bytes_ct(store->active_checkpoint_bytes, (const uint8_t *)cp, sizeof(*cp)) &&
            equal_bytes_ct(store->active_geometry_bytes,
                            (const uint8_t *)&store->medium->geometry,
                            sizeof(store->medium->geometry)) &&
            equal_bytes_ct(store->active_limits_bytes,
                            (const uint8_t *)&store->medium->limits,
-                           sizeof(store->medium->limits));
+                           sizeof(store->medium->limits)) &&
+           (store->active_key_context == store->crypto->domain_context[store->crypto_slot] ||
+            verify_checkpoint_mac(store->crypto, store->crypto_slot,
+                                   store->domain_id, store->key_epoch,
+                                   store->medium->geometry.arena_nodes, cp));
 }
 
 int vos_storage_format(struct vos_storage_medium *medium,
