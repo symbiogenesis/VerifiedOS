@@ -266,6 +266,11 @@ any historical receipt. An authenticated relocation connection remains required
 before reuse; a complete kernel audit, its diagnosis and target qualification
 remain open. This inventory runs no compiler, query or checker.
 
+Read-only inspection of the sealed locked profiler and checker sources identifies
+no supported unfinished-event capture route. The handoff retains those source
+identities and the observation's limits; no new diagnostic or root-cause verdict
+is supplied.
+
 ### Explicit relocated-path verification
 
 The `compiler-relocation` host command verifies the remaining helper/lock path
@@ -299,11 +304,6 @@ VM seal and restored helper/lock files. Preserve historical receipts and useful
 prior output on refusal; retain only metadata mapping/report outputs in the
 assigned lane. The integrator records focused local checks and leaves hosted
 acceptance to the user.
-
-Read-only inspection of the sealed locked profiler and checker sources identifies
-no supported unfinished-event capture route. The handoff retains those source
-identities and the observation's limits; no new diagnostic or root-cause verdict
-is supplied.
 
 ## Bounded Parser diagnostic
 

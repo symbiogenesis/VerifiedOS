@@ -154,6 +154,8 @@ COMMANDS: tuple[Command, ...] = (
     Command("compiler-build", "vos.cli.compiler_build",
             "build a contained compiler with validated default reuse and phase evidence",
             lane="guest", host_ok=frozenset({"--help", "-h"})),
+    Command("compiler-relocation", "vos.cli.compiler_relocation",
+            "verify explicit restored helper and lock byte identities without compiler reuse"),
     Command("vector-bitcount", "vos.cli.vector_bitcount",
             "generate independent vector cases and execute the hosted Sail adapter check",
             lane="guest", host_ok=frozenset({"emit", "check", "--help", "-h"})),
