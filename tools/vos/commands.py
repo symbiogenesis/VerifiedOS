@@ -96,7 +96,7 @@ COMMANDS: tuple[Command, ...] = (
             "captured ring parameters against the declared per-operation budgets"),
     Command("boot", "vos.cli.boot",
             "compose a roster image, boot it on the golden emulator and digest the run",
-            lane="guest", host_ok=frozenset({"roster"})),
+            lane="guest", host_ok=frozenset({"roster", "prepare-fixed-fixture"})),
     Command("composer", "vos.cli.composer",
             "compose fixed native artifacts and typed graphs", lane="guest",
             host_ok=frozenset({"compose", "fixture", "compare", "project", "check-project", "promote",

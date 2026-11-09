@@ -82,6 +82,9 @@ def main(argv: list[str] | None = None) -> int:
                                        help="store a fixed native artifact and its exact content objects")
     package_store.add_argument("source")
     package_store.add_argument("--store", default="out/native-packages")
+    package_store.add_argument("--producer-image", help="existing one-package ELF to bind before storing")
+    package_store.add_argument("--producer-base", type=lambda value: int(value, 0),
+                               help="package base in the producer ELF (decimal or 0x-prefixed)")
     fixed = commands.add_parser("compose-fixed", suggest_on_error=True,
                                help="compose stored fixed package bytes without re-lowering")
     fixed.add_argument("source")
@@ -137,7 +140,9 @@ def main(argv: list[str] | None = None) -> int:
     root = corpus.find_root()
     try:
         if args.command == "package-store":
-            print(json.dumps(fixed_composition.publish_package(root, args.source, args.store), indent=2))
+            print(json.dumps(fixed_composition.publish_package(
+                root, args.source, args.store, producer_image=args.producer_image,
+                producer_base=args.producer_base), indent=2))
             return 0
         if args.command == "compose-fixed":
             print(json.dumps(fixed_composition.compose(root, args.source, args.store, args.output), indent=2))

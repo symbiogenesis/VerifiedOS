@@ -16,7 +16,7 @@ import sys
 from pathlib import Path
 from typing import cast
 
-from vos import boot, corpus, env, fixed_boot, package_artifacts
+from vos import boot, corpus, env, fixed_boot, fixed_boot_fixture, package_artifacts
 
 SCOPE = ("boot harness evidence at the composed boundary; M7.1 acceptance stays open "
          "while any listed join is open")
@@ -118,6 +118,19 @@ def cmd_run(args: argparse.Namespace) -> int:
     except OSError as exc:
         print(f"FAIL boot run: {exc}")
         return 2
+
+
+def cmd_prepare_fixed_fixture(args: argparse.Namespace) -> int:
+    try:
+        result = fixed_boot_fixture.prepare(corpus.find_root(), args.out)
+    except OSError as error:
+        print(f"FAIL boot prepare-fixed-fixture: {error}")
+        return 2
+    except package_artifacts.PackageError as error:
+        print(f"FAIL boot prepare-fixed-fixture: {error}")
+        return 1
+    print(json.dumps(result, indent=2))
+    return 0
 
 
 def cmd_run_fixed(args: argparse.Namespace) -> int:
@@ -231,5 +244,10 @@ def main(argv: list[str] | None = None) -> int:
     fixed.add_argument("--keep-trace", action="store_true", help="retain the complete commit trace")
     fixed.add_argument("--timeout", type=float, default=900.0, help="maximum run time in seconds")
     fixed.set_defaults(run=cmd_run_fixed)
+    prepare = sub.add_parser("prepare-fixed-fixture", suggest_on_error=True,
+                             help="construct two stored fixture packages at two translated layouts")
+    prepare.add_argument("--out", default="out/fixed-boot-fixture",
+                         help="fresh checkout-relative output directory under out/")
+    prepare.set_defaults(run=cmd_prepare_fixed_fixture)
     args = parser.parse_args(argv)
     return cast("int", args.run(args))

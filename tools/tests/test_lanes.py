@@ -183,6 +183,14 @@ def _fixed_check_fixture(scratch: Path) -> list[str]:
     return [source, "--image", "out/fixed-existing.elf"]
 
 
+def _fixed_boot_fixture(scratch: Path) -> list[str]:
+    shutil.copytree(_ROOT / "tools/boot", scratch / "tools/boot", dirs_exist_ok=True)
+    configuration = scratch / "model/config/verifiedos.json"
+    configuration.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copyfile(_ROOT / "model/config/verifiedos.json", configuration)
+    return ["--out", "out/fixed-boot-lane-fixture"]
+
+
 def _source_binding_fixture(scratch: Path) -> list[str]:
     """The fixed-path inventory writer receives a complete private source tree."""
     paths = {name for view in source_bindings.GROUPS for name in source_bindings.sources(view)}
@@ -373,6 +381,7 @@ _RUNS: dict[tuple[str, str], Argv] = {
     ("memory-planner", "structure-corpus"): lambda _: ["--two-stack-max-objects", "8"],
     ("memory-certificates", "encode"): _memory_encoding,
     ("boot", "roster"): lambda _: [],
+    ("boot", "prepare-fixed-fixture"): _fixed_boot_fixture,
     ("composer", "compose"): _composition_fixture,
     ("composer", "package-store"): lambda scratch: [_fixed_store(scratch)],
     ("composer", "compose-fixed"): lambda scratch: [_fixed_recipe(scratch), "--output", "out/fixed-image.elf"],
@@ -447,6 +456,8 @@ def _declared_subcommands_answer_on_this_lane() -> None:
                 isolated = patch.object(_MODULES[name], "env", SimpleNamespace(
                     load=lambda fixture=fixture, **_: SimpleNamespace(root=fixture)))
             elif name == "prepare":
+                isolated = patch.object(_MODULES[name], "corpus", SimpleNamespace(find_root=lambda: scratch))
+            elif (name, sub) == ("boot", "prepare-fixed-fixture"):
                 isolated = patch.object(_MODULES[name], "corpus", SimpleNamespace(find_root=lambda: scratch))
             elif name == "vector-bitcount":
                 isolated = patch.object(_MODULES[name], "find_root", lambda: scratch)
