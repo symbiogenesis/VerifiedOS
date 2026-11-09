@@ -57,7 +57,10 @@ Each member's log, JSON `elapsed_seconds` and CI summary include wall time from
 process launch. Members run concurrently, so their durations must not be summed.
 [vos/timings.py](vos/timings.py) records finer measurements in JSON `units`:
 
-- Behavioral tests record cases and seconds per module.
+- Behavioral tests record cases and seconds per module, checkpointing queued,
+  running and completed modules as results arrive. A completed failure retains
+  its diagnostics even while an earlier module is still running; final reports
+  and timing records keep discovery order.
 - The selftest records phases and individual cases.
 - The checker records module imports, corpus/register/artifact loading, rule groups,
   and the generated group's batched staged-blob read and individual artifacts.
@@ -682,7 +685,10 @@ slow/lane restrictions and explicitly identify modules with no selected cases;
 intentional empty shard shares keep their existing successful verdict.
 `test --jobs N` limits concurrent workers; the default uses
 available CPUs up to eight. Imports happen inside each worker, so test callbacks
-may be closures without requiring serialization.
+may be closures without requiring serialization. `test --native-controls` selects
+only slow toolchain cases and refuses an unavailable guest toolchain or an empty
+selection. Guest CI runs that selection serially after successful model evidence;
+it does not select ordinary cases or host-only recursive full-gate controls.
 
 `trace-diff` bounds each executor run with `--timeout`, so an emulator that hangs without retiring instructions becomes a SHORT finding instead of a command that never returns.
 

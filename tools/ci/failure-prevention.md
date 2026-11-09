@@ -23,8 +23,9 @@ finishes, independently of deterministic final reporting order. Diagnostic
 publication failure must preserve the preceding snapshot and never change the
 test verdict.
 
-Scheduled and cold Guest model runs execute the slow toolchain controls after
-successful model evidence. Their dedicated selection runs neither ordinary
+Every successful Guest model run executes the slow toolchain controls after
+model evidence, including scheduled and cold runs. This keeps unchanged-revision
+schedule reuse bound to a run that included those controls. Their dedicated selection runs neither ordinary
 host cases nor the recursive full-gate slow cases. Missing toolchains and an
 empty native-control population refuse rather than supplying a passing result.
 Focused controls hold selection, dependency ordering and native-result

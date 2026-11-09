@@ -21,6 +21,17 @@ groups and acceptance joins. Their repeated Sail setup belongs to the
 [target setup action](../../.github/actions/setup-target-sail/action.yml);
 their readiness checks and campaign verdicts belong to each workflow.
 
+Every successful model-evidence run is followed by
+`python3 tools/run.py test --native-controls --jobs 1` in the same model lane.
+The runner derives this population from slow cases marked `toolchain`, excluding
+ordinary cases and host-only full-gate recursion. It refuses a missing guest
+toolchain or an empty selected population. The workflow bounds the step and
+requires its successful outcome in the model result; skipped, canceled or failed
+controls supply no passing model evidence. Running the controls on warm manual
+runs as well as scheduled/cold runs keeps weekly unchanged-revision reuse valid.
+These finite native controls consume the provisioned tools and current model
+build, without requiring production compiler qualification or target boot staging.
+
 Manual qualification and measurement routes run only when their consumers need
 them. Model snapshots supply architecture-specific emulators beside the contained
 compiler. OpenSSL qualifies independent cryptographic oracles; the instrument
