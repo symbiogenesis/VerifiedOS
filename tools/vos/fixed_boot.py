@@ -94,9 +94,9 @@ def _bindings(root: Path, recipe: Recipe, configuration: bytes) -> dict[str, obj
 def _protected_inputs(root: Path, recipe: Recipe, simulator: Path,
                       binding: dict[str, object]) -> list[Path]:
     raw = recipe.document
-    protected = [recipe.path, simulator]
+    protected: list[Path] = [recipe.path, simulator]
     protected.extend(root / cast("str", raw[key]) for key in ("composition", "image", "configuration"))
-    store = (root / raw["store"]).resolve()
+    store = (root / cast("str", raw["store"])).resolve()
     for item in cast("list[dict[str, Any]]", binding["packages"]):
         artifact = package_artifacts.load(store, item["artifact"])
         protected.append(store / "manifests" / f"{artifact.identity}.json")
