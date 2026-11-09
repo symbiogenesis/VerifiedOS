@@ -17,6 +17,7 @@ enum {
     VOS_STORAGE_MAX_JOURNAL_FRAMES = 32u,
     VOS_STORAGE_MAX_SNAPSHOTS = 8u,
     VOS_STORAGE_MAX_DEADLIST = 64u,
+    VOS_STORAGE_MAX_FRESH_KEYS = 64u,
     VOS_STORAGE_MAX_BATCH = VOS_TREE_MAX_BATCH,
     VOS_STORAGE_BLKDEV_BLOCK_BYTES = 128u,
     VOS_STORAGE_BLKDEV_BLOCK_COUNT = 64u,
@@ -100,6 +101,8 @@ struct vos_storage_checkpoint {
     uint8_t root_digest[VOS_CRYPTO_DIGEST_BYTES];
     uint8_t fresh_state_digest[VOS_CRYPTO_DIGEST_BYTES];
     uint8_t payload_manifest_digest[VOS_CRYPTO_DIGEST_BYTES];
+    uint32_t fresh_key_count;
+    uint64_t fresh_keys[VOS_STORAGE_MAX_FRESH_KEYS];
     struct vos_storage_block_auth auth[VOS_STORAGE_MAX_ARENA_NODES];
     uint32_t snapshot_count;
     uint64_t snapshots[VOS_STORAGE_MAX_SNAPSHOTS];
