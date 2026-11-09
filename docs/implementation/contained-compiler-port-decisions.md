@@ -252,6 +252,20 @@ qualified source/toolchain identities. Publication and hosted validation retain
 the repository handoff requirements; pending or interrupted checks supply no
 passing evidence.
 
+## Relocated input readiness
+
+The read-only 2026-11-09 inventory matches the retained VM candidates' catalog-bound
+files, listed population and installed-library seal entries, tool identities, and
+the explicitly mapped helper and lock bytes. The restored private worktree retains
+the catalog's revision and is clean. The local `plan-next-20261109` handoff retains
+the inventory and its native report identity; no private source is exported.
+
+The historical absolute host helper and lock paths are absent. Matching their
+relocated bytes does not satisfy the existing path-bound reuse validator or change
+any historical receipt. An authenticated relocation connection remains required
+before reuse; a complete kernel audit, its diagnosis and target qualification
+remain open. This inventory runs no compiler, query or checker.
+
 ## Bounded Parser diagnostic
 
 The [Parser diagnostic manifest](retained-evidence/q39/bounded-parser-profile-20261013/manifest.json),
