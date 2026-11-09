@@ -4,6 +4,24 @@
 #include <stdio.h>
 #include <string.h>
 
+#if defined(VOS_STORAGE_COUNT_CHECKPOINT_MACS)
+static uint64_t checkpoint_mac_checks;
+
+int __real_vos_crypto_core_verify_commit_mac(
+    const struct vos_crypto_core *core, uint32_t slot,
+    const uint8_t *record, size_t length,
+    const uint8_t expected[VOS_CRYPTO_DIGEST_BYTES]);
+
+int __wrap_vos_crypto_core_verify_commit_mac(
+    const struct vos_crypto_core *core, uint32_t slot,
+    const uint8_t *record, size_t length,
+    const uint8_t expected[VOS_CRYPTO_DIGEST_BYTES])
+{
+    ++checkpoint_mac_checks;
+    return __real_vos_crypto_core_verify_commit_mac(core, slot, record, length, expected);
+}
+#endif
+
 static int check_crypto_primitives(void)
 {
     /* FIPS 180-4 single-block ("abc") and two-block SHA-256 vectors. */
@@ -1031,6 +1049,93 @@ static int check_reused_multilevel_maps(void)
     return 1;
 }
 
+static int check_active_checkpoint_cache(void)
+{
+    const uint64_t domain = 0x6161u;
+    static const uint8_t master[32] = {0x61u};
+    const struct vos_node_geometry geometry = {
+        .fan = 4u, .arena_nodes = 8u, .block_bytes = 128u
+    };
+    const struct vos_tree_limits limits = {
+        .height = 0u, .depth_limit = 4u, .visit_limit = 64u
+    };
+    struct vos_crypto_core crypto;
+    struct vos_storage_medium medium;
+    struct vos_storage_store store;
+    vos_crypto_core_init(&crypto, 16u);
+    if (!vos_crypto_core_unlock_domain(&crypto, VOS_CRYPTO_DOMAIN_SYSTEM,
+                                       domain, 1u, master, sizeof(master)) ||
+        !vos_storage_format(&medium, &store, &crypto, VOS_CRYPTO_DOMAIN_SYSTEM,
+                             domain, 1u, &geometry, &limits, 1u, 64u)) {
+        return 0;
+    }
+    struct vos_storage_tx_spec tx = {
+        .op_kind = VOS_STORAGE_OP_INSERT,
+        .commit_mode = VOS_STORAGE_COMMIT_ROLLBACKABLE,
+        .key = 8u, .value = 80u
+    };
+    uint64_t ack = 0u;
+    if (!apply_commit(&store, domain, &tx, &ack)) {
+        return 0;
+    }
+    uint8_t store_before[sizeof(store)];
+    uint8_t crypto_before[sizeof(crypto)];
+    memcpy(store_before, &store, sizeof(store));
+    memcpy(crypto_before, &crypto, sizeof(crypto));
+#if defined(VOS_STORAGE_COUNT_CHECKPOINT_MACS)
+    const uint64_t checks_before = checkpoint_mac_checks;
+#endif
+    for (uint32_t read = 0u; read < 16u; ++read) {
+        uint64_t value = 0u;
+        if (vos_storage_lookup(&store, domain, 8u, &value) != VOS_TREE_FOUND ||
+            value != 80u || memcmp(store_before, &store, sizeof(store)) != 0 ||
+            memcmp(crypto_before, &crypto, sizeof(crypto)) != 0) {
+            return 0;
+        }
+    }
+#if defined(VOS_STORAGE_COUNT_CHECKPOINT_MACS)
+    if (checkpoint_mac_checks != checks_before) {
+        return 0;
+    }
+#endif
+    /* Changing any byte of the external checkpoint invalidates the private
+     * admission, including its padding and currently unused authentication slots. */
+    uint8_t *checkpoint_bytes = (uint8_t *)&medium.checkpoint;
+    for (size_t i = 0u; i < sizeof(medium.checkpoint); ++i) {
+        checkpoint_bytes[i] ^= 1u;
+        uint64_t value = UINT64_MAX;
+        const int status = vos_storage_lookup(&store, domain, 8u, &value);
+        checkpoint_bytes[i] ^= 1u;
+        if (status != VOS_TREE_REFUSED || value != UINT64_MAX) {
+            return 0;
+        }
+    }
+    struct vos_storage_medium foreign_medium = medium;
+    store.medium = &foreign_medium;
+    uint64_t value = 0u;
+    if (vos_storage_lookup(&store, domain, 8u, &value) != VOS_TREE_REFUSED) {
+        return 0;
+    }
+    store.medium = &medium;
+    crypto.domains[VOS_CRYPTO_DOMAIN_SYSTEM].commit_key[0] ^= 1u;
+    if (vos_storage_lookup(&store, domain, 8u, &value) != VOS_TREE_REFUSED) {
+        return 0;
+    }
+    crypto.domains[VOS_CRYPTO_DOMAIN_SYSTEM].commit_key[0] ^= 1u;
+    vos_crypto_core_lock_domain(&crypto, VOS_CRYPTO_DOMAIN_SYSTEM);
+    if (vos_storage_lookup(&store, domain, 8u, &value) != VOS_TREE_REFUSED ||
+        !vos_crypto_core_unlock_domain(&crypto, VOS_CRYPTO_DOMAIN_SYSTEM,
+                                       domain, 1u, master, sizeof(master)) ||
+        vos_storage_lookup(&store, domain, 8u, &value) != VOS_TREE_FOUND || value != 80u ||
+        !vos_storage_retain_snapshot(&store, domain, ack) ||
+        vos_storage_lookup(&store, domain, 8u, &value) != VOS_TREE_FOUND ||
+        !vos_storage_reopen(&medium, &store, &crypto, VOS_CRYPTO_DOMAIN_SYSTEM, domain) ||
+        vos_storage_lookup(&store, domain, 8u, &value) != VOS_TREE_FOUND || value != 80u) {
+        return 0;
+    }
+    return 1;
+}
+
 int main(void)
 {
     if (!check_crypto_primitives()) {
@@ -1059,6 +1164,10 @@ int main(void)
     }
     if (!check_reused_multilevel_maps()) {
         fprintf(stderr, "storage_publish: reused multilevel map check failed\n");
+        return 1;
+    }
+    if (!check_active_checkpoint_cache()) {
+        fprintf(stderr, "storage_publish: active checkpoint cache check failed\n");
         return 1;
     }
     printf("storage_publish: ok\n");

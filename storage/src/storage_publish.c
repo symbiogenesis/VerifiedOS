@@ -412,6 +412,54 @@ static int open_node_block(const struct vos_crypto_core *crypto,
     return 1;
 }
 
+static void retain_active_checkpoint(struct vos_storage_store *store)
+{
+    store->active_checkpoint_valid = 0u;
+    store->active_medium = store->medium;
+    store->active_crypto = store->crypto;
+    store->active_crypto_slot = store->crypto_slot;
+    copy_bytes(store->active_checkpoint_bytes,
+               (const uint8_t *)&store->medium->checkpoint,
+               sizeof(store->medium->checkpoint));
+    copy_bytes(store->active_key_slot_bytes,
+               (const uint8_t *)&store->crypto->domains[store->crypto_slot],
+               sizeof(store->crypto->domains[store->crypto_slot]));
+    copy_bytes(store->active_geometry_bytes,
+               (const uint8_t *)&store->medium->geometry,
+               sizeof(store->medium->geometry));
+    copy_bytes(store->active_limits_bytes,
+               (const uint8_t *)&store->medium->limits,
+               sizeof(store->medium->limits));
+    store->active_checkpoint_valid = 1u;
+}
+
+static int matches_active_checkpoint(const struct vos_storage_store *store)
+{
+    if (!store->active_checkpoint_valid ||
+        store->active_medium != store->medium ||
+        store->active_crypto != store->crypto ||
+        store->active_crypto_slot != store->crypto_slot ||
+        store->crypto_slot >= VOS_CRYPTO_MAX_DOMAINS) {
+        return 0;
+    }
+    const struct vos_crypto_domain_slot *slot = &store->crypto->domains[store->crypto_slot];
+    const struct vos_storage_checkpoint *cp = &store->medium->checkpoint;
+    return slot->provisioned && slot->domain_id == store->domain_id &&
+           slot->key_epoch == store->key_epoch &&
+           cp->domain_id == store->domain_id && cp->key_epoch == store->key_epoch &&
+           cp->generation == store->committed_generation &&
+           cp->root == store->committed_root && cp->height == store->committed_height &&
+           cp->used == store->committed_used &&
+           equal_bytes_ct(store->active_key_slot_bytes, (const uint8_t *)slot, sizeof(*slot)) &&
+           equal_bytes_ct(store->active_checkpoint_bytes, (const uint8_t *)cp, sizeof(*cp)) &&
+           equal_bytes_ct(store->active_geometry_bytes,
+                           (const uint8_t *)&store->medium->geometry,
+                           sizeof(store->medium->geometry)) &&
+           equal_bytes_ct(store->active_limits_bytes,
+                           (const uint8_t *)&store->medium->limits,
+                           sizeof(store->medium->limits));
+}
+
 int vos_storage_format(struct vos_storage_medium *medium,
                        struct vos_storage_store *store,
                        struct vos_crypto_core *crypto,
@@ -505,6 +553,7 @@ int vos_storage_format(struct vos_storage_medium *medium,
     store->committed_used = 1u;
     store->medium = medium;
     store->crypto = crypto;
+    retain_active_checkpoint(store);
     return 1;
 }
 
@@ -962,6 +1011,7 @@ int vos_storage_publish(struct vos_storage_store *store,
     store->committed_root = next_cp.root;
     store->committed_height = next_cp.height;
     store->committed_used = next_cp.used;
+    retain_active_checkpoint(store);
     zero_bytes((uint8_t *)&store->attempt, sizeof(store->attempt));
     *acknowledged_generation = next_cp.generation;
     return 1;
@@ -1155,6 +1205,7 @@ int vos_storage_reopen(struct vos_storage_medium *medium,
     store->committed_used = cp->used;
     store->medium = medium;
     store->crypto = crypto;
+    retain_active_checkpoint(store);
     return 1;
 }
 
@@ -1171,9 +1222,7 @@ int vos_storage_lookup(const struct vos_storage_store *store,
     const struct vos_storage_medium *medium = store->medium;
     const struct vos_storage_checkpoint *cp = &medium->checkpoint;
     const size_t block_bytes = medium->geometry.block_bytes;
-    if (!verify_checkpoint_mac(store->crypto, store->crypto_slot,
-                               store->domain_id, store->key_epoch,
-                               medium->geometry.arena_nodes, cp)) {
+    if (!matches_active_checkpoint(store)) {
         return VOS_TREE_REFUSED;
     }
     if ((store->crypto->epoch_sealed_mask & (1u << store->crypto_slot)) != 0u ||
@@ -1308,6 +1357,7 @@ int vos_storage_retain_snapshot(struct vos_storage_store *store,
     store->medium->checkpoint = *cp;
     store->medium->fallback_checkpoint = *cp;
     store->medium->has_fallback = 1u;
+    retain_active_checkpoint(store);
     return 1;
 }
 
