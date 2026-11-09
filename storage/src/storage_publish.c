@@ -1374,6 +1374,9 @@ int vos_storage_admit_resident(const struct vos_storage_store *store,
         .valid = 1u
     };
     *receipt = admitted;
+    copy_bytes((uint8_t *)&receipt->checkpoint,
+                (const uint8_t *)&store->medium->checkpoint,
+                sizeof(receipt->checkpoint));
     return 1;
 }
 
