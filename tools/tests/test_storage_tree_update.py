@@ -311,7 +311,7 @@ def _compiled_controls() -> None:
     full = Arena(2, _leaf(2, [1, 5], [10, 50]) + b"\0" * (64 * 7), [0] * 8)
     mutants = [
         ("replacement-value", "values[route] = update->value;", "values[route] = 0u;", _empty(2), 9, 90),
-        ("copy-on-write-prefix", "node->node_id = update->next;", "update->next = 0u; node->node_id = update->next;", _empty(2), 9, 90),
+        ("copy-on-write-prefix", "const uint64_t next_id = reused ? update->reuse->ids[update->reused] : update->next;", "const uint64_t next_id = 0u;", _empty(2), 9, 90),
         ("leaf-split-separator", "keys[kind == VOS_NODE_LEAF ? cut : cut - 1u]", "keys[cut - 1u]", full, 9, 90),
     ]
     work = toolenv.environment(ROOT, sys.platform).parent / "storage-update-tests"
