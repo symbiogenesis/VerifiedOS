@@ -2,10 +2,14 @@
 """Real owned children and grandchildren cannot outlive a bounded host command."""
 
 import ctypes
+import json
 import os
+import signal
 import subprocess
 import sys
 import tempfile
+import time
+from contextlib import suppress
 from pathlib import Path
 from types import SimpleNamespace
 from typing import BinaryIO, cast
@@ -149,6 +153,161 @@ def _linux_nested_scope() -> None:
         ensure(not _running(sibling), "outer cancellation missed an authored nested command")
 
 
+_LINUX_RECORDING = """import json,os,subprocess,sys,time
+from pathlib import Path
+def record(name):
+ fields=Path('/proc/'+str(os.getpid())+'/stat').read_text().rpartition(')')[2].split()
+ value=dict(pid=os.getpid(),group=int(fields[2]),session=int(fields[3]),start=int(fields[19]))
+ target=Path(name+'.pid.json')
+ pending=target.with_suffix('.pending')
+ pending.write_text(json.dumps(value))
+ pending.replace(target)
+"""
+
+
+def _linux_record(root: Path, name: str) -> process_tree._LinuxProcess:
+    value = json.loads((root / f"{name}.pid.json").read_text(encoding="utf-8"))
+    return process_tree._LinuxProcess(**value)
+
+
+def _linux_fixture_cleanup(root: Path) -> None:
+    if sys.platform != "linux":
+        raise OSError("Linux process fixtures require Linux")
+    # Independent identity checks keep a failing ownership control from leaking
+    # its explicitly recorded fixture processes or targeting a reused PID.
+    records = [process_tree._LinuxProcess(**json.loads(path.read_text(encoding="utf-8")))
+               for path in root.glob("*.pid.json")]
+    for record in records:
+        try:
+            descriptor = os.pidfd_open(record.pid)
+        except ProcessLookupError:
+            continue
+        try:
+            with suppress(ProcessLookupError):
+                if process_tree._linux_process(Path("/proc") / str(record.pid)) == record:
+                    signal.pidfd_send_signal(descriptor, signal.SIGKILL)
+        finally:
+            os.close(descriptor)
+    deadline = time.monotonic() + 3
+    while any(process_tree._linux_process(Path("/proc") / str(record.pid)) == record
+              for record in records):
+        ensure(time.monotonic() < deadline, "recorded process fixture did not terminate")
+        time.sleep(0.01)
+
+
+def _linux_raw_detachment() -> None:
+    for early_exit in (False, True):
+        with tempfile.TemporaryDirectory(prefix="vos-process-detached-") as temporary:
+            root = Path(temporary)
+            (root / "grandchild.py").write_text(
+                _LINUX_RECORDING + "record('detached-grandchild')\ntime.sleep(30)\n", encoding="utf-8")
+            (root / "child.py").write_text(
+                _LINUX_RECORDING + "record('detached-child')\n"
+                "subprocess.Popen([sys.executable,'grandchild.py'],start_new_session=True)\n"
+                "while not Path('detached-grandchild.pid.json').exists(): time.sleep(0.01)\n"
+                + ("" if early_exit else "time.sleep(30)\n"), encoding="utf-8")
+            (root / "leader.py").write_text(
+                _LINUX_RECORDING + "record('leader')\n"
+                "child=subprocess.Popen([sys.executable,'child.py'],start_new_session=True)\n"
+                "while not Path('detached-grandchild.pid.json').exists(): time.sleep(0.01)\n"
+                + ("child.wait(timeout=5)\n" if early_exit else "")
+                + "print('raw detached descendants ready',flush=True)\n"
+                + ("" if early_exit else "time.sleep(30)\n"), encoding="utf-8")
+            sibling = subprocess.Popen([sys.executable, "-c", _LINUX_RECORDING
+                                        + "record('unrelated-sibling')\ntime.sleep(30)\n"],
+                                       cwd=root, start_new_session=True)
+            try:
+                try:
+                    result = process_tree.run([sys.executable, "leader.py"], cwd=root,
+                                              env=os.environ, timeout=2)
+                except subprocess.TimeoutExpired as error:
+                    ensure(not early_exit and "raw detached descendants ready" in str(error.stdout),
+                           "a live leader must retain its original timeout diagnostics")
+                else:
+                    ensure(early_exit and result.returncode == 0,
+                           "an exited leader must preserve its successful exit")
+                for name in ("detached-child", "detached-grandchild"):
+                    record = _linux_record(root, name)
+                    ensure(process_tree._linux_process(Path("/proc") / str(record.pid)) is None,
+                           f"raw new-session {name} escaped owned cleanup")
+                ensure(sibling.poll() is None, "owned cleanup terminated an unrelated sibling")
+            finally:
+                try:
+                    _linux_fixture_cleanup(root)
+                finally:
+                    if sibling.poll() is None:
+                        sibling.kill()
+                    sibling.wait(timeout=3)
+
+
+def _linux_detached_nested_scope() -> None:
+    with tempfile.TemporaryDirectory(prefix="vos-process-detached-nested-") as temporary:
+        root = Path(temporary)
+        (root / "raw.py").write_text(_LINUX_RECORDING
+                                     + "record('inner-detached')\ntime.sleep(30)\n", encoding="utf-8")
+        (root / "inner.py").write_text(
+            _LINUX_RECORDING + "record('inner')\n"
+            "subprocess.Popen([sys.executable,'raw.py'],start_new_session=True)\n"
+            "while not Path('inner-detached.pid.json').exists(): time.sleep(0.01)\n"
+            "time.sleep(30)\n", encoding="utf-8")
+        (root / "worker.py").write_text(
+            _LINUX_RECORDING + f"sys.path.insert(0,{str(TOOLS)!r})\nfrom vos import process_tree\n"
+            "record('detached-worker')\n"
+            "sibling=subprocess.Popen([sys.executable,'-c',"
+            + repr(_LINUX_RECORDING + "record('outer-sibling')\ntime.sleep(30)\n")
+            + "],start_new_session=True)\n"
+            "try:\n process_tree.run([sys.executable,'inner.py'],cwd=Path.cwd(),env=os.environ,timeout=2)\n"
+            "except subprocess.TimeoutExpired:\n pass\n"
+            "else:\n raise AssertionError('inner command did not time out')\n"
+            "if sibling.poll() is not None: raise AssertionError('inner cleanup killed sibling')\n"
+            "recorded=json.loads(Path('inner-detached.pid.json').read_text())\n"
+            "if process_tree._linux_process(Path('/proc')/str(recorded['pid'])) is not None:\n"
+            " raise AssertionError('inner cleanup missed raw detached child')\n"
+            "print('detached nested cleanup preserved sibling',flush=True)\ntime.sleep(30)\n",
+            encoding="utf-8")
+        (root / "leader.py").write_text(
+            _LINUX_RECORDING + "record('outer')\n"
+            "subprocess.Popen([sys.executable,'worker.py'],start_new_session=True)\ntime.sleep(30)\n",
+            encoding="utf-8")
+        try:
+            try:
+                process_tree.run([sys.executable, "leader.py"], cwd=root, env=os.environ, timeout=4)
+            except subprocess.TimeoutExpired as error:
+                ensure("detached nested cleanup preserved sibling" in str(error.stdout),
+                       f"nested detached ownership or sibling isolation failed: {error.stdout}")
+            else:
+                raise AssertionError("outer command did not reach its deadline")
+            for name in ("inner-detached", "detached-worker", "outer-sibling"):
+                record = _linux_record(root, name)
+                ensure(process_tree._linux_process(Path("/proc") / str(record.pid)) is None,
+                       f"outer cleanup missed the recorded {name}")
+        finally:
+            _linux_fixture_cleanup(root)
+
+
+def _linux_raw_detachment_control() -> None:
+    original = process_tree._LinuxOwner.members
+
+    def session_only(owner: process_tree._LinuxOwner) -> list[process_tree._LinuxProcess]:
+        return [member for member in original(owner) if member.session == owner.session]
+
+    with patch.object(process_tree._LinuxOwner, "members", session_only):
+        try:
+            _linux_raw_detachment()
+        except AssertionError as error:
+            ensure("escaped owned cleanup" in str(error),
+                   f"the session-only defect must fail its owned-detachment control: {error}")
+        else:
+            raise AssertionError("session-only ownership survived the detached-child control")
+
+
+def _linux_unbound_owner() -> None:
+    with patch.dict(os.environ, {process_tree._CONTEXT: ""}):
+        owner = process_tree._LinuxOwner()
+        ensure(owner.whole_session and owner.members() == [],
+               "an unbound owner must never collect its caller's session")
+
+
 def _windows_waits_for_quiescence() -> None:
     job = process_tree._WindowsJob.__new__(process_tree._WindowsJob)
     job.handle = 123
@@ -227,6 +386,14 @@ def cases() -> list[Case]:
             Case("ordinary-exits-streams-and-missing-commands", _ordinary_exit_and_launch_failure),
             Case("nested-Linux-deadlines-preserve-siblings-and-obey-outer-ownership",
                  _linux_nested_scope, lane="guest"),
+            Case("raw-Linux-session-creation-keeps-descendants-owned",
+                 _linux_raw_detachment, lane="guest"),
+            Case("detached-Linux-nested-helper-keeps-lineage-and-preserves-siblings",
+                 _linux_detached_nested_scope, lane="guest"),
+            Case("raw-Linux-detachment-control-refutes-session-only-ownership",
+                 _linux_raw_detachment_control, lane="guest"),
+            Case("unbound-Linux-owner-never-collects-caller-session",
+                 _linux_unbound_owner, lane="guest"),
             Case("Windows-waits-for-delayed-descendant-quiescence", _windows_waits_for_quiescence,
                  lane="host"),
             Case("cleanup-refusals-preserve-primary-error-and-release-files",

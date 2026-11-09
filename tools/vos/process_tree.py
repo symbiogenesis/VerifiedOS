@@ -2,8 +2,10 @@
 """Bounded host commands with owned descendants and complete captured diagnostics.
 
 Windows assigns a suspended leader to a private Job before resuming its initial
-thread; descendants inherit that Job even when the leader exits first. POSIX
-commands start a new session and retain their process-group identity for cleanup.
+thread; descendants inherit that Job even when the leader exits first. Linux
+commands export a unique invocation lineage before launch, so authored helpers
+remain owned when they start new sessions; native session/group membership also
+reaches same-session descendants that do not retain the environment marker.
 This is lifecycle ownership for authored tools, not a sandbox for hostile code.
 """
 
@@ -34,10 +36,7 @@ _CONTEXT = "_VOS_PROCESS_TREE_CONTEXT"
 
 
 class _Context(TypedDict):
-    token: str
-    origin: int
-    session: int
-    groups: list[int]
+    lineage: list[str]
 
 
 class _Accounting(ctypes.Structure):
@@ -244,11 +243,11 @@ def _context(raw: str | bytes | None) -> _Context | None:
         value = json.loads(raw or "null")
     except (ValueError, UnicodeError):
         return None
-    if (not isinstance(value, dict) or set(value) != {"token", "origin", "session", "groups"}
-            or not isinstance(value["token"], str) or len(value["token"]) != 32
-            or any(type(value[key]) is not int or value[key] < 0 for key in ("origin", "session"))
-            or not isinstance(value["groups"], list)
-            or any(type(group) is not int or group <= 0 for group in value["groups"])):
+    if (not isinstance(value, dict) or set(value) != {"lineage"}
+            or not isinstance(value["lineage"], list) or not value["lineage"]
+            or any(not isinstance(part, str) or len(part) != 32
+                   or any(char not in "0123456789abcdef" for char in part)
+                   for part in value["lineage"])):
         return None
     return cast("_Context", value)
 
@@ -273,52 +272,53 @@ def _linux_process(path: Path) -> _LinuxProcess | None:
 
 
 class _LinuxOwner:
-    """Nested authored commands retain one session and distinct owned subtrees."""
+    """Each invocation owns one unique lineage prefix, including detached helpers."""
+
+    uid: int
 
     def __init__(self) -> None:
         if sys.platform != "linux":
             raise OSError("host process ownership supports Linux and Windows")
         inherited = _context(os.environ.get(_CONTEXT))
-        session, group = os.getsid(0), os.getpgrp()
-        if inherited is not None and (inherited["session"] == session or (
-                inherited["session"] == 0 and inherited["origin"] != session)):
-            inherited["session"] = session
-            if group not in inherited["groups"]:
-                inherited["groups"].append(group)
-            self.context = inherited
-            self.whole_session = False
-        else:
-            self.context: _Context = {"token": uuid.uuid4().hex, "origin": session,
-                                     "session": 0, "groups": []}
-            self.whole_session = True
+        ancestors = inherited["lineage"] if inherited is not None else []
+        self.context: _Context = {"lineage": [*ancestors, uuid.uuid4().hex]}
+        self.whole_session = inherited is None
+        self.session = os.getsid(0)
+        self.uid = os.getuid()
         self.pid = 0
 
     def bind(self, process: subprocess.Popen[str]) -> None:
         self.pid = process.pid
         if self.whole_session:
-            self.context["session"] = process.pid
+            self.session = process.pid
 
     def members(self) -> list[_LinuxProcess]:
+        if self.pid == 0:
+            return []
         result: list[_LinuxProcess] = []
         for path in Path("/proc").iterdir():
             if not path.name.isdecimal():
                 continue
-            member = _linux_process(path)
-            if member is None or member.session != self.context["session"]:
+            try:
+                if path.stat().st_uid != self.uid:
+                    continue
+            except (FileNotFoundError, ProcessLookupError):
                 continue
-            if self.whole_session or member.group == self.pid:
+            member = _linux_process(path)
+            if member is None:
+                continue
+            if member.session == self.session and (self.whole_session or member.group == self.pid):
                 result.append(member)
                 continue
             try:
                 environment = (path / "environ").read_bytes().split(b"\0")
-            except (FileNotFoundError, ProcessLookupError):
+            except (FileNotFoundError, ProcessLookupError, PermissionError):
                 continue
             prefix = (_CONTEXT + "=").encode()
             raw = next((item[len(prefix):] for item in environment if item.startswith(prefix)), None)
             context = _context(raw)
-            if (context is not None and context["token"] == self.context["token"]
-                    and context["session"] == self.context["session"]
-                    and self.pid in context["groups"]):
+            if (context is not None and context["lineage"][:len(self.context["lineage"])]
+                    == self.context["lineage"]):
                 result.append(member)
         return result
 
