@@ -1,8 +1,11 @@
 # SPDX-License-Identifier: Apache-2.0
 """Behavioral runner isolation, selection and failure reporting."""
 
+import os
 import tempfile
+import time
 from collections.abc import Callable
+from concurrent.futures import ThreadPoolExecutor
 from contextlib import redirect_stderr, redirect_stdout
 from io import StringIO
 from pathlib import Path
@@ -362,6 +365,126 @@ def _module_timings_stay_out_of_the_report() -> None:
            f"the command records to the file its environment names: {through_main!r}")
 
 
+def _progress_module_fixture(name: str, slow: bool, lanes: frozenset[Lane],
+                             shard: Shard | None = None,
+                             splits: frozenset[str] = frozenset(), *,
+                             native_controls: bool = False) -> runner.ModuleReport:
+    def control() -> None:
+        if name == "a_blocked":
+            release = Path(os.environ["VOS_RUNNER_PROGRESS_FIXTURE"]) / "release"
+            deadline = time.monotonic() + 20
+            while not release.exists() and time.monotonic() < deadline:
+                time.sleep(0.02)
+            ensure(release.exists(), "fixture release did not arrive within its deadline")
+        else:
+            print("later module diagnostic")
+            raise ValueError("later module failed")
+
+    with patch.object(runner, "_load", return_value=[Case("fixture", control)]):
+        return runner._run_module(name, slow, lanes, shard, splits,
+                                  native_controls=native_controls)
+
+
+def _progress_survives_an_earlier_stall() -> None:
+    with tempfile.TemporaryDirectory(prefix="vos-runner-progress-") as temporary:
+        root = Path(temporary)
+        record = root / "units.json"
+        names = ["a_blocked", "z_complete"]
+        with (patch.dict(os.environ, {"VOS_RUNNER_PROGRESS_FIXTURE": temporary}),
+              patch.object(runner, "_module_names", return_value=names),
+              patch.object(runner, "_run_module", _progress_module_fixture),
+              ThreadPoolExecutor(max_workers=1) as observer):
+            result = observer.submit(runner.run, jobs=2, record=record)
+            snapshot: list[timings.Unit] = []
+            try:
+                deadline = time.monotonic() + 15
+                while time.monotonic() < deadline:
+                    snapshot = timings.read(record) or []
+                    if (len(snapshot) == 2 and snapshot[0].get("status") == "running"
+                            and snapshot[1].get("cases") == 1):
+                        break
+                    time.sleep(0.02)
+                ensure(len(snapshot) == 2 and snapshot[0].get("status") == "running"
+                       and snapshot[1].get("cases") == 1 and not result.done(),
+                       f"a later completion must be visible while the first module runs: {snapshot}")
+                output = snapshot[1].get("output")
+                if not isinstance(output, list):
+                    raise AssertionError(f"completed failure has no retained output: {snapshot}")
+                ensure(snapshot[1].get("findings") == 1
+                       and "later module diagnostic" in output
+                       and any("ValueError: later module failed" in str(line)
+                               for line in output),
+                       f"completed failure diagnostics must survive an earlier stall: {snapshot}")
+            finally:
+                (root / "release").write_text("release\n", encoding="utf-8")
+            report = result.result(timeout=20)
+        units = timings.read(record) or []
+        ensure(report.findings == 1 and report.out[1:3]
+               == ["ok a_blocked: 1 case(s)", "FAIL z_complete: 1 failure(s):"],
+               f"completion order must not alter final report order: {report.out}")
+        ensure([unit["name"] for unit in units] == names
+               and all("status" not in unit for unit in units),
+               f"a completed run keeps only final timings in module order: {units}")
+
+
+def _progress_write_failure_keeps_verdict() -> None:
+    with tempfile.TemporaryDirectory(prefix="vos-runner-progress-failure-") as temporary:
+        record = Path(temporary) / "units.json"
+        record.write_text("[]\n", encoding="utf-8")
+        with (patch.object(runner, "_module_names", return_value=["test_report"]),
+              patch("vos.timings.atomic_path", side_effect=PermissionError("seeded refusal"))):
+            report = runner.run(jobs=1, record=record)
+        ensure(report.findings == 0 and record.read_text(encoding="utf-8") == "[]\n",
+               "diagnostic publication failure must preserve the preceding snapshot and test verdict")
+
+
+def _native_controls_select_only_slow_toolchain_cases() -> None:
+    visited: list[str] = []
+    cases = [Case("ordinary", lambda: visited.append("ordinary")),
+             Case("toolchain", lambda: visited.append("toolchain"), lane="toolchain"),
+             Case("host-slow", lambda: visited.append("host"), slow=True, lane="host"),
+             Case("any-slow", lambda: visited.append("any"), slow=True),
+             Case("native", lambda: visited.append("native"), slow=True, lane="toolchain")]
+    report = runner._run_cases("native", cases, False, frozenset({"any", "toolchain"}),
+                               native_controls=True)
+    ensure(report.findings == 0 and report.cases == 1 and visited == ["native"],
+           f"native controls must exclude ordinary and recursive host cases: {visited}, {report.out}")
+    report = runner._run_cases("ordinary", cases[:4], True, frozenset({"any", "host", "toolchain"}),
+                               native_controls=True)
+    ensure(report.cases == 0 and not report.out and visited == ["native"],
+           "modules without native controls must not execute or clutter the native report")
+
+
+def _native_controls_fail_closed() -> None:
+    with (patch.object(runner, "_module_names", return_value=["fixture"]),
+          patch.object(runner, "_lanes", return_value=frozenset({"any", "guest"}))):
+        report = runner.run(native_controls=True)
+    ensure(report.findings == 1 and "requires the provisioned Sail toolchain" in "\n".join(report.out),
+           "a missing native toolchain cannot turn every native case into a passing skip")
+
+    def empty_module(*_args: object, **_kwargs: object) -> runner.ModuleReport:
+        return runner.ModuleReport()
+
+    def threads(**_kwargs: object) -> ThreadPoolExecutor:
+        return ThreadPoolExecutor(max_workers=1)
+
+    with (patch.object(runner, "_module_names", return_value=["fixture"]),
+          patch.object(runner, "_lanes", return_value=frozenset({"toolchain"})),
+          patch.object(runner, "_run_module", side_effect=empty_module),
+          patch.object(runner, "ProcessPoolExecutor", side_effect=threads)):
+        report = runner.run(native_controls=True)
+    ensure(report.findings == 1 and "empty native-control suite" in "\n".join(report.out),
+           f"an empty native selection cannot pass: {report.out}")
+    for invoke in (lambda: runner.run(native_controls=True, only="runner"),
+                   lambda: runner.run(native_controls=True, shard=Shard(1, 2))):
+        try:
+            invoke()
+        except ValueError as error:
+            ensure("--native-controls" in str(error), "conflicting selections need a named refusal")
+        else:
+            raise AssertionError("native controls must not silently narrow another selection")
+
+
 def cases() -> list[Case]:
     return [
         Case("selection-and-failures", _selection_and_failures),
@@ -379,4 +502,9 @@ def cases() -> list[Case]:
         Case("declarations-are-read-from-the-line", _declarations_are_read_from_the_line),
         Case("shards-split-declared-modules-by-case", _shards_split_declared_modules_by_case),
         Case("module-timings-stay-out-of-the-report", _module_timings_stay_out_of_the_report),
+        Case("progress-survives-an-earlier-stall", _progress_survives_an_earlier_stall),
+        Case("progress-write-failure-keeps-verdict", _progress_write_failure_keeps_verdict),
+        Case("native-controls-select-only-slow-toolchain-cases",
+             _native_controls_select_only_slow_toolchain_cases),
+        Case("native-controls-fail-closed", _native_controls_fail_closed),
     ]
