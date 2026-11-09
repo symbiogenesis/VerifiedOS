@@ -86,7 +86,7 @@ def _lines(*, peer: bool = False) -> list[str]:
 
 
 def _run(root: Path, *, refresh: bool = False, plan: dict[str, Any] | None = None,
-         timeout: float = 10) -> dict[str, Any]:
+         timeout: float = 10, recipe_path: str = "boot.json") -> dict[str, Any]:
     (root / "plan.json").write_text(json.dumps(plan or {"console": "F", "lines": _lines()}), encoding="utf-8")
     original = boot.subprocess.Popen
 
@@ -96,7 +96,7 @@ def _run(root: Path, *, refresh: bool = False, plan: dict[str, Any] | None = Non
                         stdout=stdout, stderr=stderr, text=text, encoding=encoding, errors=errors, cwd=cwd)
 
     with patch.object(boot.subprocess, "Popen", side_effect=process):
-        return fixed_boot.run(root, fixed_boot.load_recipe(root, "boot.json"), root / "out/observe",
+        return fixed_boot.run(root, fixed_boot.load_recipe(root, recipe_path), root / "out/observe",
                               root / "simulator.py", timeout=timeout, refresh=refresh, keep_trace=True)
 
 
