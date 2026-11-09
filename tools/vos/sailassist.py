@@ -8,6 +8,7 @@ owns persistent journals and compiler logs so both entry paths share one lane.
 
 import base64
 import ctypes
+import functools
 import json
 import math
 import os
@@ -22,9 +23,8 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from jsonschema import Draft202012Validator
-
 from vos import env, receipts
+from vos import schema as schema_mod
 from vos.cli import entry
 from vos.jsonutil import finite_float, unique_object
 
@@ -56,11 +56,16 @@ def read_json(path: Path) -> dict[str, Any]:
     return raw
 
 
-def validate(value: dict[str, Any], kind: str) -> None:
+@functools.cache
+def _view_validator(kind: str) -> schema_mod.Validator:
     schema = read_json(SCHEMA)
-    view = {"$schema": schema["$schema"], "$defs": schema["$defs"],
-            "$ref": f"#/$defs/{kind}"}
-    failure = next(iter(Draft202012Validator(view).iter_errors(value)), None)
+    view: dict[str, object] = {
+        "$schema": schema["$schema"], "$defs": schema["$defs"], "$ref": f"#/$defs/{kind}"}
+    return schema_mod.strict_integer_validator(view)
+
+
+def validate(value: dict[str, Any], kind: str) -> None:
+    failure = next(iter(_view_validator(kind).iter_errors(value)), None)
     if failure:
         raise ValueError(f"{kind}: {failure.json_path}: {failure.message}")
 

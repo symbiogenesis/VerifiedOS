@@ -6,15 +6,15 @@ There are no network listeners, model calls, executable tool arguments or caches
 The reader remains available during retrieval so cancellation can suppress replies.
 """
 
+import functools
 import json
 import threading
 from concurrent.futures import Future, ThreadPoolExecutor
 from pathlib import Path
 from typing import Any, BinaryIO, Never
 
-from jsonschema import Draft202012Validator
-
 from vos import sailbundle, sailcontext
+from vos import schema as schema_mod
 from vos.jsonutil import finite_float, unique_object
 
 MODERN = "2026-07-28"
@@ -102,6 +102,11 @@ def fail(code: int, message: str, data: object = None) -> Never:
     raise ProtocolError(code, message, data)
 
 
+@functools.cache
+def _tool_validator(operation: sailcontext.Operation) -> schema_mod.Validator:
+    return schema_mod.strict_integer_validator(tool_schema(operation))
+
+
 class Server:
     """One stdio process; all modern request context comes from that request."""
 
@@ -167,7 +172,7 @@ class Server:
             operation = operations.get(name) if isinstance(name, str) else None
             if operation is None:
                 fail(-32602, "Unknown tool")
-            validator = Draft202012Validator(tool_schema(operation))
+            validator = _tool_validator(operation)
             invalid = next(iter(validator.iter_errors(arguments)), None)
             if invalid:
                 value: dict[str, Any] = {"isError": True,

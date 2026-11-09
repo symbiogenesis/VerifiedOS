@@ -18,15 +18,15 @@ query-local universe levels (`<query_file>.<counter>`) in `Check` output are ren
 `?u1`, `?u2`, ... in first-appearance order.
 """
 
+import functools
 import json
 import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import NamedTuple, TypedDict, cast, override
 
-from jsonschema import Draft202012Validator
-
 from vos import proofaudit
+from vos import schema as schema_mod
 from vos.jsonutil import unique_object
 
 FORMAT = "verifiedos-proof-reading"
@@ -308,10 +308,15 @@ def compare(base: Reading, candidate: Reading) -> list[Difference]:
     return found
 
 
+@functools.cache
+def _reading_validator() -> schema_mod.Validator:
+    schema = cast("dict[str, object]", json.loads(SCHEMA_PATH.read_text(encoding="utf-8")))
+    return schema_mod.strict_integer_validator(schema)
+
+
 def validate(reading: object) -> Reading:
     """Validate `reading` against `SCHEMA_PATH`."""
-    schema = json.loads(SCHEMA_PATH.read_text(encoding="utf-8"))
-    failure = next(iter(Draft202012Validator(schema).iter_errors(reading)), None)
+    failure = next(iter(_reading_validator().iter_errors(reading)), None)
     if failure is not None:
         raise ReadingError(f"not a proof reading at {failure.json_path}: {failure.message}")
     return cast("Reading", reading)
