@@ -89,6 +89,8 @@ static int run_domain(uint32_t slot)
     REQUIRE(vos_crypto_core_lock_domain(&crypto, slot));
     REQUIRE(!vos_storage_verify_admitted_resident(&receipt, &identity, payload, sizeof(payload)));
     REQUIRE(vos_crypto_core_unlock_domain(&crypto, slot, domain, 1u, key, sizeof(key)));
+    REQUIRE(!vos_storage_verify_admitted_resident(&receipt, &identity, payload, sizeof(payload)));
+    REQUIRE(vos_storage_admit_resident(&store, &identity, payload, sizeof(payload), &receipt));
     REQUIRE(vos_storage_verify_admitted_resident(&receipt, &identity, payload, sizeof(payload)));
     uint64_t epoch = 0u;
     uint8_t epoch_root[VOS_CRYPTO_DIGEST_BYTES];

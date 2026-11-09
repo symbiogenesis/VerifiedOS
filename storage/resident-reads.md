@@ -135,9 +135,10 @@ record zero writes to `VOS_RESIDENT_COMMON`.
 once into a receipt held privately by the serialized owner.
 `vos_storage_verify_admitted_resident` reuses that membership while the exact
 checkpoint, domain, key epoch and resident identity remain unchanged. It checks
-key availability and the current Fresh seal and hashes the actual mutable host
+key availability, its admitted key-context token and the current Fresh seal and hashes the actual mutable host
 backing on each completion. A checkpoint change requires new admission; a locked
-key, advanced Fresh seal, changed backing, identity or length refuses. Neither
+key, advanced Fresh seal, changed backing, identity or length refuses. Relocking
+and unlocking requires new admission; store/core replacement discards the receipt. Neither
 receipt nor common resident state is written during repeated reads. Corruption of
 external arena blocks after admission does not invalidate already authenticated
 resident bytes; a new storage lookup still detects that corruption. The

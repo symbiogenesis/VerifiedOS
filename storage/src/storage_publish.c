@@ -1652,6 +1652,7 @@ int vos_storage_admit_resident(const struct vos_storage_store *store,
     }
     const struct vos_storage_resident_receipt admitted = {
         .store = store,
+        .key_context = store->crypto->domain_context[store->crypto_slot],
         .checkpoint = store->medium->checkpoint,
         .identity = *identity,
         .length = length,
@@ -1690,7 +1691,8 @@ int vos_storage_verify_admitted_resident(void *verification,
                          (const uint8_t *)&receipt->checkpoint,
                          sizeof(receipt->checkpoint))) return 0;
     const struct vos_crypto_domain_slot *slot = &store->crypto->domains[store->crypto_slot];
-    if (!slot->provisioned || slot->domain_id != store->domain_id ||
+    if (store->crypto->domain_context[store->crypto_slot] != receipt->key_context ||
+        !slot->provisioned || slot->domain_id != store->domain_id ||
         slot->key_epoch != store->key_epoch) return 0;
     const struct vos_storage_checkpoint *cp = &receipt->checkpoint;
     if ((((store->crypto->epoch_sealed_mask & (1u << store->crypto_slot)) != 0u) ||

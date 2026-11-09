@@ -184,9 +184,11 @@ struct vos_storage_store {
 
 /* Private to the serialized storage owner. Admission authenticates membership
  * once; a changed checkpoint requires fresh admission. Mutable host bytes are
- * still authenticated at completion. Never accept a caller-authored receipt. */
+ * still authenticated at completion. Discard receipts when reopening/replacing
+ * their store or crypto-core object. Never accept a caller-authored receipt. */
 struct vos_storage_resident_receipt {
     const struct vos_storage_store *store;
+    uint64_t key_context;
     struct vos_storage_checkpoint checkpoint;
     struct vos_resident_identity identity;
     size_t length;
