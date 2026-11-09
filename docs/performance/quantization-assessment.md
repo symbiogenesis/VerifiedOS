@@ -20,6 +20,13 @@ neither its quality nor its zero distribution is inherited from another model.
 
 ## Shared comparison and source identity
 
+The [e-means assessment](e-means-assessment.md) retains a separate, consumer-gated
+lead for training vector-quantization codebooks. It does not ternarize the
+selected checkpoints or improve their packing by itself. Selecting a new
+codebook or approximation needs fresh quality and full deployment-cost evidence;
+its training-time result supplies no byte saving or inference-rate multiplier
+to this exact-symbol comparison.
+
 These are packing choices for an already ternarized model. They do not supply
 a training method or establish the quality of a new ternary checkpoint.
 The [Bonsai review's exact artifact identities](bonsai2-assessment.md#source-and-candidate-selection)
