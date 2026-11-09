@@ -20,7 +20,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from vos import env
+from vos import compiler_relocation, env
 from vos.atomic import atomic_path
 from vos.jsonutil import finite_float, unique_object
 from vos.receipts import digest
@@ -210,6 +210,7 @@ class Settings:
     profile: bool = False
     fresh: bool = False
     reuse_from: Path | None = None
+    relocation: Path | None = None
 
     def validate(self, checkout: Path, *, status: bool = False) -> None:
         if REVISION.fullmatch(self.source_revision) is None:
@@ -253,6 +254,17 @@ class Settings:
             if any(protected.is_relative_to(destination) or destination.is_relative_to(protected)
                    for destination in mutable):
                 raise ValueError("output, cache or operation lock overlaps the explicit reuse candidate")
+        if self.relocation is not None:
+            if not status or self.reuse_from is None or self.fresh or self.profile:
+                raise ValueError("relocation requires explicit read-only status without execution requests")
+            connection = compiler_relocation.connection(self.relocation, self.source_revision, self.reuse_from, self.lock)
+            paths = [connection[key]["path"] for key in ("connection", "catalog", "seal", "mapping")]
+            paths.extend(item["restored"] for item in connection["files"])
+            for path in paths:
+                protected = _absolute(Path(path))
+                if any(protected.is_relative_to(destination) or destination.is_relative_to(protected)
+                       for destination in mutable):
+                    raise ValueError("output, cache or operation lock overlaps a relocation input")
         if not status and out.exists():
             raise ValueError("output collision; choose a new owned output directory")
 
@@ -443,6 +455,9 @@ def run(settings: Settings, checkout: Path, *, status: bool = False, prime: bool
     if prime and (status or settings.reuse_from is None or settings.fresh or settings.profile):
         raise ValueError("prime requires an explicit compilation candidate without execution requests")
     settings.validate(checkout, status=status)
+    relocation = (compiler_relocation.connection(settings.relocation, settings.source_revision,
+                                                settings.reuse_from, settings.lock)
+                  if settings.relocation is not None and settings.reuse_from is not None else None)
     before = driver_identity(settings.driver_root, settings.driver_manifest)
     snapshot = context(settings, before)
     key = _identity(snapshot)
@@ -465,6 +480,8 @@ def run(settings: Settings, checkout: Path, *, status: bool = False, prime: bool
                        "profile": settings.profile, "fresh": settings.fresh,
                        "reuse_from": str(selected) if selected is not None else None,
                        "policy": policy, "response_json": str(response)}
+            if settings.relocation is not None:
+                request["relocation"] = str(settings.relocation.resolve())
             request_path = scratch / "request.json"
             _atomic(request_path, request)
             # No shell, environment replacement or exposure of private diagnostics.
@@ -475,6 +492,12 @@ def run(settings: Settings, checkout: Path, *, status: bool = False, prime: bool
             _result(raw, request, code=done.returncode)
         if before != driver_identity(settings.driver_root, settings.driver_manifest) or snapshot != context(settings, before):
             raise ValueError("driver or request inputs changed during the operation")
+        if (settings.relocation is not None and settings.reuse_from is not None
+                and (relocation != compiler_relocation.connection(settings.relocation, settings.source_revision,
+                                                                  settings.reuse_from, settings.lock)
+                     or raw.get("relocation") != relocation
+                     or raw["outcome"] != "status" or raw["effective_policy"] != "compilation-reuse")):
+            raise ValueError("private relocated compilation connection is missing, changed or not compilation-only")
         validation = raw.get("validation_seconds")
         if ((not _seconds(validation) and not (
                 validation is None and raw["outcome"] in {"refused", "unavailable"}))
