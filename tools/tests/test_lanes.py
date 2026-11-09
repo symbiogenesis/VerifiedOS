@@ -455,9 +455,7 @@ def _declared_subcommands_answer_on_this_lane() -> None:
                 _staged_root(fixture)
                 isolated = patch.object(_MODULES[name], "env", SimpleNamespace(
                     load=lambda fixture=fixture, **_: SimpleNamespace(root=fixture)))
-            elif name == "prepare":
-                isolated = patch.object(_MODULES[name], "corpus", SimpleNamespace(find_root=lambda: scratch))
-            elif (name, sub) == ("boot", "prepare-fixed-fixture"):
+            elif name == "prepare" or (name, sub) == ("boot", "prepare-fixed-fixture"):
                 isolated = patch.object(_MODULES[name], "corpus", SimpleNamespace(find_root=lambda: scratch))
             elif name == "vector-bitcount":
                 isolated = patch.object(_MODULES[name], "find_root", lambda: scratch)
