@@ -207,7 +207,7 @@ def _cleanup_preserves_primary_and_closes_capture() -> None:
             try:
                 process_tree.run(["fixture"], cwd=Path(temporary), env=os.environ, timeout=0.25)
             except BaseException as error:
-                ensure(type(error) is type(primary), f"{stage}: cleanup replaced the primary error")
+                ensure(error is primary, f"{stage}: cleanup replaced the primary error")
                 if stage in {"stop", "cancel", "timeout", "wait"}:
                     ensure(isinstance(error.__cause__, OSError), f"{stage}: cleanup error was lost")
                 if isinstance(error, subprocess.TimeoutExpired):

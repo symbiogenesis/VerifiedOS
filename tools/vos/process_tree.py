@@ -408,9 +408,10 @@ def run(argv: list[str], *, cwd: Path, env: Mapping[str, str],
             cleanup = _cleanup(process, owner)
             stdout_file.seek(0)
             stderr_file.seek(0)
-            stdout, stderr = _text(stdout_file.read()), _text(stderr_file.read())
+            stdout_blob, stderr_blob = stdout_file.read(), stderr_file.read()
+            stdout, stderr = _text(stdout_blob), _text(stderr_blob)
             if isinstance(primary, subprocess.TimeoutExpired):
-                primary = subprocess.TimeoutExpired(argv, primary.timeout, stdout, stderr)
+                primary.output, primary.stderr = stdout_blob, stderr_blob
             if primary is not None:
                 if cleanup is not None:
                     raise primary from cleanup
