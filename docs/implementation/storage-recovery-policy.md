@@ -76,6 +76,12 @@ exact region, version and state digest; otherwise it selects the prior valid
 checkpoint. Every physical persistence prefix and the seal/final-checkpoint gap
 must preserve the applicable acknowledged state, with no unauthenticated bytes
 returned. A final-image-only adapter supplies no such ordering evidence.
+The undeployed numeric checkpoint encodes derived seal fields as canonical zero;
+its MAC binds the region, version and state digest, while the independent trusted
+seal supplies epoch/root evidence. Sealing therefore changes no authenticated
+checkpoint bytes on disk. Recovery reconstructs that evidence from the trusted
+per-domain seal after verifying the checkpoint, rather than overwriting the only
+recoverable pending checkpoint during seal completion.
 
 The specification review must decide path-local object authentication, typed key
 and extent codecs, bounded backup streaming and the logical-device/physical-NAND
