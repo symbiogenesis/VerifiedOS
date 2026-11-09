@@ -166,3 +166,58 @@ def verify(catalog: Path, catalog_sha256: str, candidate: str, seal: Path,
             pending.write_text(json.dumps(report, sort_keys=True, indent=2) + "\n",
                                encoding="utf-8", newline="\n")
     return report
+
+
+CONNECTION = "verifiedos-contained-relocation-request/1"
+STATUS_CONNECTION = "verifiedos-contained-relocated-compilation/1"
+
+
+def connection(path: Path, source_revision: str, reuse_from: Path, lock: Path) -> dict[str, Any]:
+    """Bind explicit read-only status inputs; the private validator repeats this check."""
+    snapshots: dict[Path, bytes] = {}
+    data = _read(path, snapshots)
+    raw = _json(data, "relocation connection")
+    fields = {"schema", "catalog", "catalog_sha256", "candidate", "seal", "mapping"}
+    if set(raw) != fields or raw["schema"] != CONNECTION:
+        raise ValueError("unsupported relocation connection fields")
+    if any(not isinstance(raw[key], str) or not raw[key] for key in fields - {"schema"}):
+        raise ValueError("relocation connection fields must be strings")
+    catalog, seal, mapping = (Path(raw[key]) for key in ("catalog", "seal", "mapping"))
+    verified = verify(catalog, raw["catalog_sha256"], raw["candidate"], seal, mapping)
+    original = _path(Path(verified["original_native_root"]))
+    receipt = _path(reuse_from)
+    if (verified["source_revision"] != source_revision or receipt != original / "compiler/build-result.json"
+            or _path(seal) != original / "compile-seal.json"):
+        raise ValueError("relocation connection differs from the explicit original candidate")
+    catalog_data = _read(catalog, snapshots)
+    if _digest(catalog_data) != verified["catalog"]["sha256"]:
+        raise ValueError("relocation catalog changed during connection")
+    selected = next(item for item in _json(catalog_data, "catalog")["candidates"]
+                    if item["name"] == raw["candidate"])
+    reference = selected["files"].get("compiler/build-result.json")
+    receipt_data = _read(receipt, snapshots)
+    if (not isinstance(reference, dict) or set(reference) != {"sha256", "bytes"}
+            or type(reference["bytes"]) is not int or reference["bytes"] != len(receipt_data)
+            or _hash(reference["sha256"]) != _digest(receipt_data)):
+        raise ValueError("original receipt differs from the selected catalog identity")
+    seal_data = _read(seal, snapshots)
+    if _digest(seal_data) != verified["seal"]["sha256"]:
+        raise ValueError("status relocation requires the exact raw compilation seal")
+    sealed = _json(seal_data, "compilation seal")
+    if sealed.get("reuse_basis") or sealed.get("schema") != "verifiedos-clean-compile-seal/2":
+        raise ValueError("unsupported relocated compilation origin")
+    for item in verified["files"]:
+        blob = _read(Path(item["restored"]), snapshots)
+        if _digest(blob) != item["sha256"]:
+            raise ValueError("mapped bytes changed during connection")
+    restored_lock = next(item["restored"] for item in verified["files"] if item["historical"] == sealed["lock"])
+    if _path(lock) != Path(restored_lock):
+        raise ValueError("requested lock differs from the explicit relocated sealed lock")
+    if _digest(_read(mapping, snapshots)) != verified["mapping"]["sha256"]:
+        raise ValueError("relocation mapping changed during connection")
+    _recheck(snapshots)
+    return {"schema": STATUS_CONNECTION, "connection": {"path": str(_path(path)), "sha256": _digest(data)},
+            "catalog": verified["catalog"], "seal": {"path": str(_path(seal)), "sha256": _digest(seal_data)},
+            "mapping": verified["mapping"], "candidate": raw["candidate"], "source_revision": source_revision,
+            "original_native_root": str(original), "original_receipt_sha256": _digest(receipt_data),
+            "files": verified["files"]}

@@ -25,6 +25,8 @@ def main(argv: list[str] | None = None) -> int:
         command.add_argument("--jobs", type=positive_int, default=1)
         command.add_argument("--reuse-from", type=Path, required=operation == "prime",
                              help="explicit candidate; prime authenticates compilation without an audit")
+        command.add_argument("--relocation", type=Path,
+                             help="explicit catalog/seal/mapping connection; read-only status only")
         command.add_argument("--json", action="store_true")
         if operation == "build":
             command.add_argument("--fresh", action="store_true", help="bypass both reuse tiers and the index")
