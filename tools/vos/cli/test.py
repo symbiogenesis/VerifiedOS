@@ -21,6 +21,7 @@ import os
 import re
 import sys
 import time
+import traceback
 from concurrent.futures import ProcessPoolExecutor
 from contextlib import redirect_stderr, redirect_stdout
 from functools import partial
@@ -86,7 +87,7 @@ def _load(name: str, split: bool | None = None) -> list[Case] | str:
         module = importlib.import_module(f"tests.{name}")
         found: object = module.cases()
     except (Exception, SystemExit) as err:  # importing a test must not exit the runner
-        return f"failed to load: {err!r}"
+        return f"failed to load: {err!r}\n{traceback.format_exc().rstrip()}"
     declared = getattr(module, INDEPENDENT, False) is True
     if split is not None and declared != split:
         return (f"sets {INDEPENDENT} in a form a sharded run does not read; state it as "
@@ -109,22 +110,35 @@ def _run_cases(name: str, cases: list[Case] | str, slow: bool,
     """Run all selected cases in `name` (or `share`'s slice) and return its `ModuleReport`."""
     rep = ModuleReport()
     if isinstance(cases, str):
-        rep.report(name, "module error(s):", [cases])
+        rep.report(name, "module error(s):", cases.splitlines(), count=1)
         return rep
 
     listed = len(cases)
     failures: list[str] = []
+    skipped: dict[str, int] = {}
     for case in cases if share is None else share.share(cases):
-        if (case.slow and not slow) or case.lane not in lanes:
+        reasons: list[str] = []
+        if case.slow and not slow:
+            reasons.append("slow (requires --slow)")
+        if case.lane not in lanes:
+            reasons.append(f"lane '{case.lane}' unavailable")
+        if reasons:
+            reason = " and ".join(reasons)
+            skipped[reason] = skipped.get(reason, 0) + 1
             continue
         rep.cases += 1
         try:
             case.fn()
         except (Exception, SystemExit) as err:  # an unexpected exit is a failed case
-            failures.append(f"{case.name}: {err}")
-    rep.report(name, "failure(s):", failures,
-               ok=f"{rep.cases} case(s)"
-               + ("" if share is None else f", this shard's share of {listed}"))
+            failures.append(f"{case.name}: {err}\n{traceback.format_exc().rstrip()}")
+    rep.report(name, "failure(s):",
+               (line for failure in failures for line in failure.splitlines()),
+               ok=(f"{rep.cases} case(s)" if rep.cases else "no cases selected (0 executed)")
+               + ("" if share is None else f", this shard's share of {listed}"),
+               count=len(failures))
+    if skipped:
+        summary = "; ".join(f"{count} {reason}" for reason, count in sorted(skipped.items()))
+        rep.line(f"skipped {name}: {sum(skipped.values())} case(s) ({summary})")
     return rep
 
 

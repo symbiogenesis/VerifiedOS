@@ -51,6 +51,93 @@ def _load_errors() -> None:
         ensure("SystemExit" in str(runner._load("sample")), "an import must not exit the suite")
 
 
+def _failure_tracebacks() -> None:
+    visited: list[str] = []
+
+    def inner_failure() -> None:
+        raise KeyError("inner failure")
+
+    def chained() -> None:
+        try:
+            inner_failure()
+        except KeyError as cause:
+            raise RuntimeError("outer failure") from cause
+
+    def empty_message() -> None:
+        raise AssertionError
+
+    report = runner._run_cases("sample", [Case("chained", chained),
+                                         Case("empty", empty_message),
+                                         Case("after", lambda: visited.append("after"))],
+                               False, frozenset({"any"}))
+    text = "\n".join(report.out)
+    ensure(report.findings == 2 and report.cases == 3 and visited == ["after"],
+           f"tracebacks must preserve one finding per failed case and continuation: {text}")
+    ensure("Traceback (most recent call last):" in text
+           and f'File "{__file__}", line ' in text and "in chained" in text
+           and 'raise KeyError("inner failure")' in text
+           and "KeyError: 'inner failure'" in text
+           and "The above exception was the direct cause of the following exception:" in text
+           and "RuntimeError: outer failure" in text,
+           f"the case failure must retain its source location and exception chain: {text}")
+    ensure("in empty_message" in text and "AssertionError" in text,
+           "an exception with no message still needs its type and failing source")
+    ensure(all("\n" not in line for line in report.out),
+           "traceback diagnostics remain individual report lines")
+
+
+def _module_load_tracebacks() -> None:
+    def inner_failure() -> None:
+        raise ValueError("inner import failure")
+
+    def outer_failure() -> None:
+        raise TypeError("outer import failure")
+
+    def failed_import(name: str) -> None:
+        try:
+            inner_failure()
+        except ValueError:
+            outer_failure()
+
+    with patch.object(runner.importlib, "import_module", side_effect=failed_import):
+        loaded = runner._load("sample")
+    report = runner._run_cases("sample", loaded, False, frozenset({"any"}))
+    text = "\n".join(report.out)
+    ensure(report.findings == 1 and report.cases == 0,
+           f"one module-load exception remains one finding: {text}")
+    ensure("failed to load:" in text and "Traceback (most recent call last):" in text
+           and f'File "{__file__}", line ' in text and "in failed_import" in text
+           and "ValueError: inner import failure" in text
+           and "During handling of the above exception, another exception occurred:" in text
+           and "TypeError: outer import failure" in text,
+           f"a load failure must retain its source and implicit exception chain: {text}")
+
+
+def _skipped_cases_are_visible() -> None:
+    cases = [Case("ordinary", lambda: None),
+             Case("slow", lambda: None, slow=True),
+             Case("guest", lambda: None, lane="guest"),
+             Case("toolchain", lambda: None, lane="toolchain"),
+             Case("both", lambda: None, slow=True, lane="guest")]
+    report = runner._run_cases("sample", cases, False, frozenset({"any", "host"}))
+    text = "\n".join(report.out)
+    ensure(report.findings == 0 and report.cases == 1 and "ok sample: 1 case(s)" in text
+           and "skipped sample: 4 case(s)" in text
+           and "1 lane 'guest' unavailable" in text
+           and "1 lane 'toolchain' unavailable" in text
+           and "1 slow (requires --slow) and lane 'guest' unavailable" in text,
+           f"slow, unavailable lanes and overlapping reasons must remain visible: {text}")
+    report = runner._run_cases("sample", cases[1:], False, frozenset({"any", "host"}))
+    ensure(report.findings == 0 and report.cases == 0
+           and report.out[0] == "ok sample: no cases selected (0 executed)",
+           f"a wholly filtered module must say nothing executed: {report.out}")
+    report = runner._run_cases("sample", cases, True, frozenset({"any", "host"}))
+    text = "\n".join(report.out)
+    ensure(report.cases == 2 and "skipped sample: 3 case(s)" in text
+           and "2 lane 'guest' unavailable" in text and "requires --slow" not in text,
+           f"enabling slow cases must remove only that filtering reason: {text}")
+
+
 def _empty_modules_fail_before_selection() -> None:
     for shard, splits in ((None, frozenset()), (Shard(1, 2), frozenset({"sample"}))):
         with patch.object(runner.importlib, "import_module",
@@ -177,8 +264,9 @@ def _declared_modules_share_their_cases() -> None:
                 report = runner._run_module("sample", False, lanes, Shard(index, total),
                                             frozenset({"sample"}))
             share = [j for j in (0, 1, 3, 5) if j % total == index - 1]
-            ensure(ran[before:] == share and report.cases == len(share) and report.out
-                   == [f"ok sample: {len(share)} case(s), this shard's share of 6"],
+            selected = f"{len(share)} case(s)" if share else "no cases selected (0 executed)"
+            ensure(ran[before:] == share and report.cases == len(share) and report.out[0]
+                   == f"ok sample: {selected}, this shard's share of 6",
                    f"shard {index}/{total} ran {ran[before:]}, not its share {share}, or "
                    f"reported it otherwise: {report.out}")
         ensure(sorted(ran) == [0, 1, 3, 5],
@@ -187,7 +275,7 @@ def _declared_modules_share_their_cases() -> None:
     ran = []
     with patch.object(runner.importlib, "import_module", return_value=_declared_module(ran)):
         report = runner._run_module("sample", False, lanes)
-    ensure(ran == [0, 1, 3, 5] and report.out == ["ok sample: 4 case(s)"],
+    ensure(ran == [0, 1, 3, 5] and report.out[0] == "ok sample: 4 case(s)",
            f"an unsharded run must be unchanged: {ran}, {report.out}")
     # A declaration the source reading missed, or one it read that the module does not
     # make, is a module error on the shard rather than a silent change of its cases.
@@ -278,6 +366,9 @@ def cases() -> list[Case]:
     return [
         Case("selection-and-failures", _selection_and_failures),
         Case("load-errors", _load_errors),
+        Case("failure-tracebacks", _failure_tracebacks),
+        Case("module-load-tracebacks", _module_load_tracebacks),
+        Case("skipped-cases-are-visible", _skipped_cases_are_visible),
         Case("empty-modules-fail-before-selection", _empty_modules_fail_before_selection),
         Case("captured-output", _captured_output),
         Case("spawn-isolation", _spawn_isolation),
