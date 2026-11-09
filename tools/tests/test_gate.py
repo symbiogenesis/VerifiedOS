@@ -252,7 +252,7 @@ def _launch_times_success_findings_and_missing_verdicts() -> None:
         (OSError("cannot launch"), gate.NO_VERDICT),
     ]
     for outcome, expected in outcomes:
-        with (patch.object(gate.subprocess, "run") as launched,
+        with (patch.object(gate.process_tree, "run") as launched,
               patch.object(gate.time, "perf_counter", side_effect=[10.0, 12.75])):
             if isinstance(outcome, Exception):
                 launched.side_effect = outcome
@@ -288,7 +288,7 @@ def _launch_hands_a_member_its_timings_file() -> None:
 
     with tempfile.TemporaryDirectory(prefix="vos-gate-units-") as td:
         outer, record = Path(td) / "outer.json", Path(td) / "member.json"
-        with (patch.object(gate.subprocess, "run", side_effect=run),
+        with (patch.object(gate.process_tree, "run", side_effect=run),
               patch.dict(gate.os.environ, {timings.ENV: str(outer)})):
             given = gate._launch(_ROOT, member, record)
             bare = gate._launch(_ROOT, member)
