@@ -182,7 +182,8 @@ Acceptance for this export is the unchanged complete normal stage and exact
 payload equality. Refusal controls cover a missing or substituted staged unit,
 source or helper drift during reconstruction/publication, altered root, text,
 initializer, zero gap or slot tag, a truncated or mismatched payload, a wrong
-entry or extent, and an output aliasing any consumed input, including a hardlink.
+entry or extent, substituted loaded-window permissions, and an output aliasing
+any consumed input, including a hardlink.
 Every refusal preserves the previous output and historical bytes. A repeat export
 of unchanged inputs is byte-identical. These finite host checks establish the
 export only; decoded instruction coverage, concrete TAL/CIC checking, production
