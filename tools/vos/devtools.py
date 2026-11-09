@@ -11,13 +11,13 @@ from string import Template
 from typing import Any, cast
 
 from jsonschema.exceptions import SchemaError
-from yaml.nodes import MappingNode, Node, ScalarNode, SequenceNode
 
 from vos import yamlutil
 from vos.jsonutil import unique_object
 from vos.pyversion import supported_minor
 from vos.report import apart
 from vos.schema import strict_integer_validator
+from vos.yamlutil import MappingNode, Node, ScalarNode, SequenceNode
 
 DATA = "tools/development-tools.json"
 SCHEMA = "tools/development-tools.schema.json"

@@ -3,13 +3,62 @@
 
 import re
 from collections.abc import Iterator
-from typing import TYPE_CHECKING, cast
+from typing import cast, override
 
-if TYPE_CHECKING:
-    from yaml.error import Mark
-    from yaml.nodes import MappingNode, Node
+from ruamel.yaml.composer import Composer
+from ruamel.yaml.error import StreamMark, YAMLError
+from ruamel.yaml.nodes import MappingNode, Node, ScalarNode, SequenceNode
+from ruamel.yaml.parser import Parser
+from ruamel.yaml.reader import Reader
+from ruamel.yaml.resolver import BaseResolver
+from ruamel.yaml.scanner import Scanner
+
+__all__ = [
+    "MappingNode",
+    "Node",
+    "ScalarNode",
+    "SequenceNode",
+    "StreamMark",
+    "fields",
+    "lines",
+    "mappings",
+    "read",
+    "start",
+]
 
 _BREAK: re.Pattern[str] = re.compile(r"\r\n|[\r\n\x85\u2028\u2029]")
+
+
+class _NodeLoader(Reader, Scanner, Parser, Composer, BaseResolver):
+    """Pure-Python YAML node composer without implicit scalar tag coercion."""
+
+    comment_handling = None
+    max_depth = None
+    processing_version = (1, 1)
+
+    def __init__(self, text: str) -> None:
+        Reader.__init__(self, text, loader=self)
+        Scanner.__init__(self, loader=self)
+        Parser.__init__(self, loader=self)
+        Composer.__init__(self, loader=self)
+        BaseResolver.__init__(self, loadumper=self)
+
+    @override
+    def forward(self, length: int = 1) -> None:
+        if self.pointer + length + 1 >= len(self.buffer):
+            self.update(length + 1)
+        while length != 0:
+            ch = self.buffer[self.pointer]
+            self.pointer += 1
+            self.index += 1
+            if ch in "\n\x85\u2028\u2029" or (
+                ch == "\r" and self.buffer[self.pointer] != "\n"
+            ):
+                self.line += 1
+                self.column = 0
+            elif ch != "\ufeff":
+                self.column += 1
+            length -= 1
 
 
 def lines(text: str) -> list[str]:
@@ -17,18 +66,16 @@ def lines(text: str) -> list[str]:
     return cast("list[str]", _BREAK.split(text))
 
 
-def start(node: Node) -> Mark:
+def start(node: Node) -> StreamMark:
     """Require the source position a consumer uses for diagnostics and policy."""
     mark = node.start_mark
     if mark is None:
         raise ValueError("YAML node has no source start")
-    return cast("Mark", mark)
+    return cast("StreamMark", mark)
 
 
 def fields(node: MappingNode) -> dict[str, Node]:
     """Read a mapping without silently collapsing duplicate or compound keys."""
-    from yaml.nodes import ScalarNode  # noqa: PLC0415
-
     found: dict[str, Node] = {}
     for key, value in node.value:
         where = f"line {start(key).line + 1}"
@@ -45,22 +92,17 @@ def fields(node: MappingNode) -> dict[str, Node]:
 def read(text: str) -> Node:
     """Read one nonempty tree; refuse aliases, merges and non-text scalar tags.
 
-    BaseLoader leaves plain scalars as text, including workflow keys such as `on`.
+    BaseResolver leaves plain scalars as text, including workflow keys such as `on`.
     Composition never invokes a YAML constructor. Node identity detects aliases
     and cycles before a consumer can miss a second occurrence or recurse forever.
     """
-    from yaml import YAMLError, compose  # noqa: PLC0415
-    from yaml.nodes import MappingNode, SequenceNode  # noqa: PLC0415
-
+    loader = _NodeLoader(text)
     try:
-        from yaml.cyaml import CBaseLoader as NodeLoader  # noqa: PLC0415
-    except ImportError:
-        from yaml import BaseLoader as NodeLoader  # noqa: PLC0415
-
-    try:
-        root = cast("Node | None", compose(text, Loader=NodeLoader))
+        root = cast("Node | None", loader.get_single_node())
     except (YAMLError, RecursionError) as error:
         raise ValueError(f"invalid YAML: {error}") from error
+    finally:
+        loader.dispose()
     if root is None:
         raise ValueError("empty YAML document")
     pending = [root]
@@ -87,8 +129,6 @@ def read(text: str) -> Node:
 
 def mappings(root: Node) -> Iterator[MappingNode]:
     """Visit the actual mappings of a tree already validated by `read`."""
-    from yaml.nodes import MappingNode, SequenceNode  # noqa: PLC0415
-
     pending = [root]
     while pending:
         node = pending.pop()

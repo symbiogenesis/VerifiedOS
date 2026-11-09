@@ -560,11 +560,11 @@ date, and any other change then follows from it; when that package keeps its ver
 any other `[[package]]` change is index drift from the re-resolution and is reviewed
 on its own.
 
-The supported interpreter remains Python 3.14. Python 3.15.0 is released, but
-the all-groups, wheels-only resolution fails because the direct runtime
-dependency `PyYAML` 6.0.3 has no CPython 3.15 wheels. A Python 3.15 move
-requires that wheel closure to resolve under `no-build = true`; source builds
-are not a fallback.
+The supported interpreter remains Python 3.14. Python 3.15.0 is released, and
+replacing `PyYAML` 6.0.3 with the pure-Python `ruamel.yaml` 0.19.1 wheel closes
+the all-groups, wheels-only resolution under `no-build = true`; upgrading the
+universal `requires-python` floor to 3.15 remains a separate coordinated step
+across bootstrap, host, guest, and CI.
 
 When a compatible Python is absent, install it explicitly with your platform's
 installer or `uv python install --no-config <supported-minor>`, taking the minor
@@ -1109,7 +1109,7 @@ mismatches fail the gate.
 Runtime dependencies (JSON Schema validation, CommonMark parsing, file locking) and
 development tools share a single cross-platform resolution in [uv.lock](uv.lock).
 Workflow and hook pin readers use [vos/yamlutil.py](vos/yamlutil.py) (backed by locked
-PyYAML) to parse YAML AST nodes with source locations while rejecting duplicate keys,
+`ruamel.yaml`) to parse YAML AST nodes with source locations while rejecting duplicate keys,
 aliases, merge keys, and nonstandard tags. Structured entries in
 [development-tools.json](development-tools.json) (validated by
 [development-tools.schema.json](development-tools.schema.json)) own development-tool

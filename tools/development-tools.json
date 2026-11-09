@@ -1142,23 +1142,38 @@
       ]
     },
     {
-      "id": "pyyaml_and_filelock_74",
-      "tool": "PyYAML and filelock",
-      "subject": "PyYAML's locked release",
+      "id": "jsonschema_rs_71",
+      "tool": "jsonschema-rs",
+      "subject": "jsonschema-rs's locked release",
       "reviewed": [
-        "6.0.3"
+        "0.60.3"
       ],
       "owners": [
         {
           "kind": "uv",
           "path": "tools/uv.lock",
-          "key": "pyyaml"
+          "key": "jsonschema-rs"
         }
       ]
     },
     {
-      "id": "pyyaml_and_filelock_77",
-      "tool": "PyYAML and filelock",
+      "id": "ruamel_yaml_and_filelock_74",
+      "tool": "ruamel.yaml and filelock",
+      "subject": "ruamel.yaml's locked release",
+      "reviewed": [
+        "0.19.1"
+      ],
+      "owners": [
+        {
+          "kind": "uv",
+          "path": "tools/uv.lock",
+          "key": "ruamel-yaml"
+        }
+      ]
+    },
+    {
+      "id": "ruamel_yaml_and_filelock_77",
+      "tool": "ruamel.yaml and filelock",
       "subject": "filelock's locked release",
       "reviewed": [
         "4.2.9"
@@ -2563,13 +2578,22 @@
       ]
     },
     {
-      "id": "PyYAML and filelock",
-      "tool": "PyYAML and filelock",
+      "id": "jsonschema-rs",
+      "tool": "jsonschema-rs",
       "license": "`MIT`",
-      "standing": "Direct host runtime dependencies in [tools/pyproject.toml](tools/pyproject.toml), whose wheels [tools/uv.lock](tools/uv.lock) fixes. PyYAML `${pyyaml_and_filelock_74_0}` composes workflow and hook YAML as source nodes without constructing objects; its `LICENSE`, blob `2f1b8e15e5627d92f0521605c9870bc8e5505cb4`, grants MIT under the copyright notices of Ingy döt Net and Kirill Simonov. filelock `${pyyaml_and_filelock_77_0}` serializes Lychee and rumdl cache installation with operating-system locks; its `LICENSE`, blob `291919c0b6f41d014767f6c877af9f7595fcff99`, grants MIT, copyright 2025 Bernát Gábor and contributors. Neither package is redistributed here.",
+      "standing": "Direct host runtime dependency in [tools/pyproject.toml](tools/pyproject.toml), whose prebuilt `cp310-abi3` wheels [tools/uv.lock](tools/uv.lock) fixes by hash for compiled JSON Schema Draft 2020-12 validation during native Sail census replay. The reviewed `python-v${jsonschema_rs_71_0}` release commit `377bc9ae74d8c5b76f41c1df1ce284bf34ad333b` carries [LICENSE](https://github.com/Stranger6667/jsonschema/blob/377bc9ae74d8c5b76f41c1df1ce284bf34ad333b/LICENSE), blob `20c070f6401feda6f47be1b158f4f5a4a9d14062` and SHA-256 `117829c3ca21efb132d81a44b55363d395ab8eea18526873bc828da4c0e5f038`, granting MIT, copyright 2020-2026 Dmitry Dygalo; the wheel metadata states `License :: OSI Approved :: MIT License` and its bundled CycloneDX SBOM `jsonschema-py.cyclonedx.json` states each statically linked Rust crate's terms, every one permissive or offering a permissive election. No jsonschema-rs source or compiled wheel is redistributed here.",
       "reviews": [
-        "pyyaml_and_filelock_74",
-        "pyyaml_and_filelock_77"
+        "jsonschema_rs_71"
+      ]
+    },
+    {
+      "id": "ruamel.yaml and filelock",
+      "tool": "ruamel.yaml and filelock",
+      "license": "`MIT`",
+      "standing": "Direct host runtime dependencies in [tools/pyproject.toml](tools/pyproject.toml), whose wheels [tools/uv.lock](tools/uv.lock) fixes. ruamel.yaml `${ruamel_yaml_and_filelock_74_0}` composes workflow and hook YAML as source nodes in pure Python without constructing objects; its wheel's `LICENSE`, blob `c781ecbf698a18bdff8b2687661e6437aaeb2c47` and SHA-256 `3e7632bb0dc1150f15f8161f5eec48dec8a99aaa1dfc9e8f63c02931e0fba7f8`, grants MIT, copyright 2014-2026 Anthon van der Neut, Ruamel bvba. filelock `${ruamel_yaml_and_filelock_77_0}` serializes Lychee and rumdl cache installation with operating-system locks; its `LICENSE`, blob `291919c0b6f41d014767f6c877af9f7595fcff99`, grants MIT, copyright 2025 Bernát Gábor and contributors. Neither package is redistributed here.",
+      "reviews": [
+        "ruamel_yaml_and_filelock_74",
+        "ruamel_yaml_and_filelock_77"
       ]
     },
     {

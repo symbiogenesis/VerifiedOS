@@ -1,10 +1,9 @@
 # SPDX-License-Identifier: Apache-2.0
 """Composed policy YAML preserves marks and refuses ambiguous interpretations."""
 
-from yaml.nodes import MappingNode, ScalarNode
-
 from tests.harness import Case, ensure
 from vos import yamlutil
+from vos.yamlutil import MappingNode, ScalarNode
 
 
 def _keys_and_source_marks() -> None:

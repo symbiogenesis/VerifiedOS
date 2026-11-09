@@ -20,11 +20,11 @@
         },
         {
           "path": "tools/pyproject.toml",
-          "sha256": "aff2e612db6d6b8b84f6ce3a8bda90f4c7c7bb9598f5b659131076b8b43a0a11"
+          "sha256": "48f5ab1bf830b490766df25db52898ffcdcf57e1bf8a99b16fd903539799a4c1"
         },
         {
           "path": "tools/uv.lock",
-          "sha256": "04a3b476b56a800581bc738e661b5032ef6db804ab9cefbffcfe91d60ba99100"
+          "sha256": "0a470cbea5bb34c291a46053bc4c455f96ddd275adc435c14fab2a0babdbf0e1"
         },
         {
           "path": "tools/vos/composer.py",
@@ -89,11 +89,11 @@
         },
         {
           "path": "tools/pyproject.toml",
-          "sha256": "aff2e612db6d6b8b84f6ce3a8bda90f4c7c7bb9598f5b659131076b8b43a0a11"
+          "sha256": "48f5ab1bf830b490766df25db52898ffcdcf57e1bf8a99b16fd903539799a4c1"
         },
         {
           "path": "tools/uv.lock",
-          "sha256": "04a3b476b56a800581bc738e661b5032ef6db804ab9cefbffcfe91d60ba99100"
+          "sha256": "0a470cbea5bb34c291a46053bc4c455f96ddd275adc435c14fab2a0babdbf0e1"
         },
         {
           "path": "tools/vos/admission.py",
@@ -430,11 +430,11 @@
         },
         {
           "path": "tools/pyproject.toml",
-          "sha256": "aff2e612db6d6b8b84f6ce3a8bda90f4c7c7bb9598f5b659131076b8b43a0a11"
+          "sha256": "48f5ab1bf830b490766df25db52898ffcdcf57e1bf8a99b16fd903539799a4c1"
         },
         {
           "path": "tools/uv.lock",
-          "sha256": "04a3b476b56a800581bc738e661b5032ef6db804ab9cefbffcfe91d60ba99100"
+          "sha256": "0a470cbea5bb34c291a46053bc4c455f96ddd275adc435c14fab2a0babdbf0e1"
         },
         {
           "path": "tools/vos/composer.py",
@@ -647,7 +647,7 @@
       ],
       "descriptor": {
         "path": "tools/composer/packages/composer.json",
-        "sha256": "314ccb6e3a776372b5febba7688876936ce64c378385ab04cd2e64ab888e6d87"
+        "sha256": "186675409b360a4efbe3b0f6af403e8e4ff3da7c90daa9137f3affc0725b2fb6"
       },
       "artifact_slot": "composer-artifact",
       "entry": null,
@@ -674,11 +674,11 @@
         },
         {
           "path": "tools/pyproject.toml",
-          "sha256": "aff2e612db6d6b8b84f6ce3a8bda90f4c7c7bb9598f5b659131076b8b43a0a11"
+          "sha256": "48f5ab1bf830b490766df25db52898ffcdcf57e1bf8a99b16fd903539799a4c1"
         },
         {
           "path": "tools/uv.lock",
-          "sha256": "04a3b476b56a800581bc738e661b5032ef6db804ab9cefbffcfe91d60ba99100"
+          "sha256": "0a470cbea5bb34c291a46053bc4c455f96ddd275adc435c14fab2a0babdbf0e1"
         },
         {
           "path": "tools/vos/admission.py",
@@ -835,7 +835,7 @@
       ],
       "descriptor": {
         "path": "tools/composer/packages/admission.json",
-        "sha256": "60d131443196509cc3aa518e85284c5f9b0a392dccfb10e71d502a6faa2fc1de"
+        "sha256": "c9d4e09ded28221a41ddd691e62d885cc7db138d98004eb6172324b188dae64c"
       },
       "artifact_slot": "admission-artifact",
       "entry": null,
