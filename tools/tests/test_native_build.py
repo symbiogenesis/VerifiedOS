@@ -163,13 +163,14 @@ def _population_and_configuration() -> None:
         ensure(subject.prepare(at.build, at.source, original), "missing prior header allowed reuse")
 
 
-
 def _optional_tool_selection() -> None:
     with fixture() as at:
         cache = at.build / "CMakeCache.txt"
         baseline = cache.read_text(encoding="utf-8")
         for name in subject._OPTIONAL_TOOLS:
-            for value in (None, "", "NOTFOUND", f"{name}-NOTFOUND"):
+            absent = ((None, "", "NOTFOUND", f"{name}-NOTFOUND")
+                      if name in subject._DISCOVERED_TOOLS else (None, ""))
+            for value in absent:
                 cache.write_text(baseline + (f"{name}:FILEPATH={value}\n" if value is not None else ""),
                                  encoding="utf-8")
                 current = subject.configured(at.build, at.source)
@@ -185,7 +186,22 @@ def _optional_tool_selection() -> None:
             before = _change(selected)
             _refuses(subject.validate, current)
             selected.write_bytes(before)
-            for value in ("unavailable-relative-native-tool", str(at.root / "absent-tool")):
+            invalid = ["unavailable-relative-native-tool", str(at.root / "absent-tool")]
+            if name not in subject._DISCOVERED_TOOLS:
+                invalid.extend(("NOTFOUND", f"{name}-NOTFOUND"))
+                sentinel = at.root / "wrapper-NOTFOUND"
+                sentinel.write_bytes(b"\x7fELFlauncher")
+                invalid.append(str(sentinel))
+                literal = at.root / "NOTFOUND"
+                literal.write_bytes(b"\x7fELFliteral launcher")
+                cache.write_text(baseline + f"{name}:FILEPATH={literal}\n", encoding="utf-8")
+                bound = subject.configured(at.build, at.source)
+                ensure(bound["tools"][name] == str(literal) and str(literal) in bound["files"],
+                       "existing literal-NOTFOUND launcher escaped native binding")
+                before = _change(literal)
+                _refuses(subject.validate, bound)
+                literal.write_bytes(before)
+            for value in invalid:
                 cache.write_text(baseline + f"{name}:FILEPATH={value}\n", encoding="utf-8")
                 with patch.object(subject.shutil, "which", return_value=None):
                     _refuses(subject.configured, at.build, at.source)

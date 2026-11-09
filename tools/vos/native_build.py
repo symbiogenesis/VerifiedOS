@@ -30,9 +30,9 @@ STAMP = "vos-native-inputs.json"
 SIMULATOR = "c_emulator/sail_riscv_sim"
 _TOOLS = ("CMAKE_C_COMPILER", "CMAKE_CXX_COMPILER", "CMAKE_AR", "CMAKE_RANLIB",
           "CMAKE_LINKER", "CMAKE_MAKE_PROGRAM", "CMAKE_COMMAND")
-_OPTIONAL_TOOLS = ("CMAKE_C_COMPILER_AR", "CMAKE_CXX_COMPILER_AR",
-                   "CMAKE_C_COMPILER_RANLIB", "CMAKE_CXX_COMPILER_RANLIB",
-                   "CMAKE_C_COMPILER_LAUNCHER", "CMAKE_CXX_COMPILER_LAUNCHER")
+_DISCOVERED_TOOLS = ("CMAKE_C_COMPILER_AR", "CMAKE_CXX_COMPILER_AR",
+                     "CMAKE_C_COMPILER_RANLIB", "CMAKE_CXX_COMPILER_RANLIB")
+_OPTIONAL_TOOLS = (*_DISCOVERED_TOOLS, "CMAKE_C_COMPILER_LAUNCHER", "CMAKE_CXX_COMPILER_LAUNCHER")
 _ENVIRONMENT = ("PATH", "CPATH", "C_INCLUDE_PATH", "CPLUS_INCLUDE_PATH", "LIBRARY_PATH",
                 "LD_LIBRARY_PATH", "LD_PRELOAD", "LD_AUDIT", "COMPILER_PATH",
                 "GCC_EXEC_PREFIX", "SDKROOT", "SOURCE_DATE_EPOCH")
@@ -239,7 +239,8 @@ def configured(build_dir: Path, source_root: Path, *, known: bool = True) -> Man
     tools = {name: str(_path(cache.get(name, ""), name)) for name in _TOOLS}
     for name in _OPTIONAL_TOOLS:
         value = cache.get(name, "")
-        if value and value != "NOTFOUND" and not value.endswith("-NOTFOUND"):
+        if value and (name not in _DISCOVERED_TOOLS
+                      or (value != "NOTFOUND" and not value.endswith("-NOTFOUND"))):
             tools[name] = str(_path(value, name, search=True))
     selected_ldd = shutil.which("ldd")
     if selected_ldd is None:
