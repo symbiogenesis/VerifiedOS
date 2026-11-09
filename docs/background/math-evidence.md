@@ -301,7 +301,7 @@ Sorted reference payload SHA-256: `23b690105f12b96f3ef7a997cf508a5b775e70bcaf077
 | [tools/vos/math_evidence.py](../../tools/vos/math_evidence.py) | `cbe9e115518178c4ad00db96377ccbd9508544e9b24fbe78055b3d921d700a3c` |
 | [tools/vos/__init__.py](../../tools/vos/__init__.py) | `f4bf65b676335680ed2e74c496374a83a2d37380cb6bc32a0af94d192c788e36` |
 | [tools/vos/atomic.py](../../tools/vos/atomic.py) | `384e706e945f8cead1e1b3791f916f6e7f8783a7497c17dd3a551a765e670471` |
-| [tools/vos/corpus.py](../../tools/vos/corpus.py) | `a7d012ee4da10d5fff06b0d8b8b7011e53115baa8be9c3bc633b579c1df79ffb` |
+| [tools/vos/corpus.py](../../tools/vos/corpus.py) | `902c15dd9f7f6a8e4e07e837265ba780424923dcd8e75a108eaa7a7df6d55b08` |
 | [tools/vos/env.py](../../tools/vos/env.py) | `c42ed53ffe87480e46decda34c8b80b78f513cf66bbd0d7623055201d0b07be4` |
 | [tools/vos/jsonutil.py](../../tools/vos/jsonutil.py) | `651b6cf84e7e3d3af970df71a286b5c700eea9b2b1b88f2db7dd44f572bfd8e5` |
 | [tools/vos/proof_staging.py](../../tools/vos/proof_staging.py) | `ab0615ff765fa486883a2f9846bc7660efe7ef225d562dfe5a0a800addf8d32c` |

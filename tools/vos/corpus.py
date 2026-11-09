@@ -13,7 +13,7 @@ import re
 import subprocess
 from collections.abc import Iterable, Iterator
 from dataclasses import dataclass, field
-from functools import cache
+from functools import cache, lru_cache
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -59,22 +59,23 @@ def _markdown() -> MarkdownIt:
 
     # Structural readers need block maps and the unexpanded inline token's
     # content, never its children. Keep the same block grammar and normalization;
-    # omitting inline expansion avoids parsing every document's links twice.
-    return MarkdownIt("commonmark", {"html": True}).enable("table").disable("inline")
+    # omitting inline expansion and text_join avoids parsing every document's links twice.
+    return MarkdownIt("commonmark", {"html": True}).enable("table").disable(["inline", "text_join"])
 
 
-def _syntax(lines: list[str]) -> tuple[list[bool], list[tuple[int, str]]]:
-    """Read code regions and headings from maintained token source maps."""
-    fenced = [False] * len(lines)
+@lru_cache(maxsize=512)
+def _syntax_text(normalized: str,
+                 line_count: int) -> tuple[tuple[bool, ...], tuple[tuple[int, str], ...]]:
+    fenced = [False] * line_count
     headings: list[tuple[int, str]] = []
-    tokens = _markdown().parse("\n".join(line.removesuffix("\r") for line in lines))
+    tokens = _markdown().parse(normalized)
     for index, token in enumerate(tokens):
         if token.type not in {"fence", "code_block", "heading_open"}:
             continue
         if token.map is None:
             raise ValueError(f"Markdown {token.type} token has no source map")
         start, end = token.map
-        if not 0 <= start < end <= len(lines):
+        if not 0 <= start < end <= line_count:
             raise ValueError(f"Markdown {token.type} token has an invalid source map")
         if token.type in {"fence", "code_block"}:
             fenced[start:end] = [True] * (end - start)
@@ -82,7 +83,14 @@ def _syntax(lines: list[str]) -> tuple[list[bool], list[tuple[int, str]]]:
             if index + 1 == len(tokens) or tokens[index + 1].type != "inline":
                 raise ValueError("Markdown heading has no inline content token")
             headings.append((start, tokens[index + 1].content))
-    return fenced, headings
+    return tuple(fenced), tuple(headings)
+
+
+def _syntax(lines: list[str]) -> tuple[list[bool], list[tuple[int, str]]]:
+    """Read code regions and headings from maintained token source maps."""
+    fenced, headings = _syntax_text("\n".join(line.removesuffix("\r") for line in lines),
+                                    len(lines))
+    return list(fenced), list(headings)
 
 
 def fence_lines(lines: list[str]) -> list[bool]:
