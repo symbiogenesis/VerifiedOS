@@ -477,6 +477,23 @@ handoff, TAL/CIC and full-roster target acceptance retain their existing owners.
 Scripted process controls supply host harness evidence only. No reviewed golden
 emulator capture or production acceptance follows from them.
 
+`boot prepare-fixed-fixture` constructs two declared fixture packages once and
+publishes two translated composition and observation recipes under `out/`.
+The controller calls the worker through a fixture-only capability convention;
+both use PC-relative references to their own initializer bytes. The generated
+record binds the actual assembly sources, producer images and stored artifact
+identities. Proof objects and checking contexts are explicitly fixture data.
+Neither construction nor observation supplies a real roster export, checked
+proof, compiler qualification or production admission.
+
+The focused executable check captures and replays both layouts on one explicitly
+identified emulator, with assembly disabled after construction. Both packages
+must be entered in order and the worker's initialized value must reach the
+controller before HTIF success. A controller that omits the worker must refuse
+even if its HTIF status is success. Retained-emulator execution binds only that
+binary; current-model qualification remains open without its current successful
+build receipt.
+
 ## 7. Exit codes
 
 `0` is a composition or run that met every check. `1` is a refusal this contract names.
