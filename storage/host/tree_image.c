@@ -6,6 +6,7 @@
 #include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #ifdef _WIN32
 #include <fcntl.h>
@@ -39,11 +40,17 @@ int main(int argc, char **argv)
     uint64_t arguments[8];
     uint64_t generations[HOST_NODE_LIMIT];
     uint64_t value = UINT64_MAX - 17u;
+    int path_only = 0;
 #ifdef _WIN32
     if (_setmode(_fileno(stdin), _O_BINARY) == -1) {
         return 3;
     }
 #endif
+    if (argc > 1 && strcmp(argv[1], "--path") == 0) {
+        path_only = 1;
+        --argc;
+        ++argv;
+    }
     if (argc < 9) {
         return 3;
     }
@@ -76,7 +83,9 @@ int main(int argc, char **argv)
     limits.height = (uint32_t)arguments[4];
     limits.depth_limit = (uint32_t)arguments[5];
     limits.visit_limit = (uint32_t)arguments[6];
-    const int result = vos_tree_lookup(&image, &limits, arguments[3], arguments[7], &value);
+    const int result = path_only
+        ? vos_tree_lookup_path(&image, &limits, arguments[3], arguments[7], &value)
+        : vos_tree_lookup(&image, &limits, arguments[3], arguments[7], &value);
     if (result == VOS_TREE_REFUSED) {
         return value == UINT64_MAX - 17u ? 2 : 4;
     }

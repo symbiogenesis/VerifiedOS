@@ -39,4 +39,13 @@ int vos_tree_lookup(const struct vos_tree_image *image,
                     const struct vos_tree_limits *limits,
                     uint64_t root, uint64_t key, uint64_t *output);
 
+/* Validate only the root-to-leaf query path in O(height * fan) work (at most
+ * height + 1 node decodes). Enforces expected node identity and generation,
+ * strict separator ordering on every visited branch, inherited [lower, upper)
+ * key brackets, strict leaf key ordering and exact leaf depth height == 0 on
+ * the routed path without walking off-route subtrees (R-10-022a). */
+int vos_tree_lookup_path(const struct vos_tree_image *image,
+                         const struct vos_tree_limits *limits,
+                         uint64_t root, uint64_t key, uint64_t *output);
+
 #endif

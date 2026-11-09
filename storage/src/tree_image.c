@@ -14,6 +14,7 @@ struct tree_walk {
     uint64_t value;
     uint32_t remaining;
     int found;
+    int path_only;
 };
 
 static int within(struct key_range range, uint64_t key, int strict_lower)
@@ -70,6 +71,9 @@ static int walk_node(struct tree_walk *walk, uint64_t id, uint32_t height,
     }
     for (uint32_t i = 0u; i < node.count; ++i) {
         struct key_range child = range;
+        if (walk->path_only && i != route) {
+            continue;
+        }
         if (i != 0u) {
             child.lower = node.keys[i - 1u];
             child.has_lower = 1;
@@ -86,9 +90,10 @@ static int walk_node(struct tree_walk *walk, uint64_t id, uint32_t height,
     return 1;
 }
 
-int vos_tree_lookup(const struct vos_tree_image *image,
-                    const struct vos_tree_limits *limits,
-                    uint64_t root, uint64_t key, uint64_t *output)
+static int lookup_with_mode(const struct vos_tree_image *image,
+                            const struct vos_tree_limits *limits,
+                            uint64_t root, uint64_t key, int path_only,
+                            uint64_t *output)
 {
     struct tree_walk walk;
     struct key_range range = {0};
@@ -109,6 +114,7 @@ int vos_tree_lookup(const struct vos_tree_image *image,
     walk.value = 0u;
     walk.remaining = limits->visit_limit;
     walk.found = 0;
+    walk.path_only = path_only;
     if (!walk_node(&walk, root, limits->height, range, 1)) {
         return VOS_TREE_REFUSED;
     }
@@ -117,4 +123,18 @@ int vos_tree_lookup(const struct vos_tree_image *image,
     }
     *output = walk.value;
     return VOS_TREE_FOUND;
+}
+
+int vos_tree_lookup(const struct vos_tree_image *image,
+                    const struct vos_tree_limits *limits,
+                    uint64_t root, uint64_t key, uint64_t *output)
+{
+    return lookup_with_mode(image, limits, root, key, 0, output);
+}
+
+int vos_tree_lookup_path(const struct vos_tree_image *image,
+                         const struct vos_tree_limits *limits,
+                         uint64_t root, uint64_t key, uint64_t *output)
+{
+    return lookup_with_mode(image, limits, root, key, 1, output);
 }

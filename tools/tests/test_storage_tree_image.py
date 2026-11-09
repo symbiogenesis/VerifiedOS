@@ -24,6 +24,7 @@ class ReadOptions(TypedDict, total=False):
     depth: int
     visits: int
     block_bytes: int
+    path_only: bool
 
 
 def _block(node_id: int, generation: int, keys: list[int], values: list[int],
@@ -59,10 +60,12 @@ def _build(directory: Path, *, source: str | None = None) -> Path:
 def _read(binary: Path, blocks: list[bytes], generations: list[int], root: int,
           key: int, *, fan: int = 4, height: int = 1, depth: int = 16,
           visits: int = 4096, data: bytes | None = None,
-          block_bytes: int | None = None) -> subprocess.CompletedProcess[bytes]:
+          block_bytes: int | None = None,
+          path_only: bool = False) -> subprocess.CompletedProcess[bytes]:
     size = 32 + 16 * fan if block_bytes is None else block_bytes
+    prefix = ["--path"] if path_only else []
     arguments = [fan, len(blocks), size, root, height, depth, visits, key, *generations]
-    return subprocess.run([str(binary), *(str(part) for part in arguments)],
+    return subprocess.run([str(binary), *prefix, *(str(part) for part in arguments)],
                           input=b"".join(blocks) if data is None else data,
                           capture_output=True, timeout=5, check=False)
 
@@ -130,8 +133,14 @@ def _population(binary: Path) -> None:
                 for query in queries:
                     _answer(_read(binary, blocks, generations, root, query, fan=fan,
                                   height=height, visits=len(blocks)), expected.get(query))
+                    _answer(_read(binary, blocks, generations, root, query, fan=fan,
+                                  height=height, visits=height + 1, path_only=True),
+                            expected.get(query))
                 _refused(_read(binary, blocks, generations, root, 0, fan=fan,
                                height=height, visits=max(0, len(blocks) - 1)))
+                if height > 0:
+                    _refused(_read(binary, blocks, generations, root, 0, fan=fan,
+                                   height=height, visits=height, path_only=True))
     # Old and successor roots coexist, retaining old generation nodes and values.
     blocks, generations = _demo()
     blocks += [_block(3, 4, [1, 2], [99, 20]),
@@ -227,6 +236,8 @@ def _compiled_controls() -> None:
          [_block(0, 0, [1], [10])], [0], 0, 1, {"height": 1}, None),
         ("visit-consumption", "--walk->remaining;", "(void)walk->remaining;",
          blocks, generations, 2, 1, {"visits": 2}, None),
+        ("path-only-pruning", "if (walk->path_only && i != route)", "if (0 && i != route)",
+         blocks, generations, 2, 1, {"visits": 2, "path_only": True}, 10),
     ]
     work = toolenv.environment(ROOT, sys.platform).parent / "storage-tree-tests"
     work.mkdir(parents=True, exist_ok=True)
@@ -242,6 +253,9 @@ def _compiled_controls() -> None:
                 _answer(result, expected)
             binary = _build(directory / name, source=source.replace(needle, replacement))
             bad = _read(binary, nodes, versions, root, key, **arguments)
+            if name == "path-only-pruning":
+                _refused(bad)
+                continue
             ensure(bad.returncode == 0, f"{name} mutant did not execute its accepted defect")
             if expected is not None:
                 ensure(json.loads(bad.stdout)["found"] is False,

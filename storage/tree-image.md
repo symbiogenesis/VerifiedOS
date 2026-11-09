@@ -15,7 +15,13 @@ evidence before this interface uses it. Identity fields are not that evidence.
 Inputs and output must be disjoint and stay unchanged throughout the call.
 
 `vos_tree_lookup` validates every reachable node, including branches outside the
-query's route. Local framing and expected identity/generation use the existing
+query's route, serving as the full-tree checkpoint audit. `vos_tree_lookup_path`
+provides the $O(\log_B N)$ runtime query path (R-10-022a): it validates only the
+root-to-leaf path (`height + 1` node decodes), checking expected identity and
+generation, strict separator ordering across every visited branch, the inherited
+`[lower, upper)` key bracket at each step, strict leaf key ordering, and exact
+leaf depth `height == 0` on the routed leaf without walking off-route subtrees.
+Local framing and expected identity/generation use the existing
 codec. Leaf keys are strictly increasing, each at or above its inherited lower
 bound and strictly below its upper bound. Separators are strictly increasing,
 strictly above the inherited lower bound and strictly below the upper bound.
