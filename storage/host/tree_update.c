@@ -38,23 +38,63 @@ int main(int argc, char **argv)
     struct vos_tree_update_result result = {
         .root = UINT64_MAX, .used = UINT64_MAX, .height = UINT32_MAX,
     };
+    struct vos_tree_entry batch[VOS_TREE_MAX_BATCH];
     uint64_t arguments[12];
-    if (argc < 13) {
+    int mode = 0; /* 0 = insert, 1 = delete, 2 = compact, 3 = batch */
+    if (argc > 1) {
+        if (strcmp(argv[1], "--delete") == 0) {
+            mode = 1;
+            --argc;
+            ++argv;
+        } else if (strcmp(argv[1], "--compact") == 0) {
+            mode = 2;
+            --argc;
+            ++argv;
+        } else if (strcmp(argv[1], "--batch") == 0) {
+            mode = 3;
+            --argc;
+            ++argv;
+        }
+    }
+    const uint32_t header_args = (mode == 3) ? 11u : 12u;
+    if (argc < (int)(header_args + 1u)) {
         return 3;
     }
-    for (uint32_t i = 0u; i < 12u; ++i) {
+    for (uint32_t i = 0u; i < header_args; ++i) {
         if (!number(argv[i + 1u], &arguments[i])) {
+            return 3;
+        }
+    }
+    size_t batch_count = 0u;
+    uint64_t untouched_flag = 0u;
+    int gen_offset = 13;
+    if (mode == 3) {
+        batch_count = (size_t)arguments[9];
+        untouched_flag = arguments[10];
+        if (batch_count > VOS_TREE_MAX_BATCH ||
+            argc != (int)(12u + 2u * batch_count + arguments[1])) {
+            return 3;
+        }
+        for (size_t i = 0u; i < batch_count; ++i) {
+            if (!number(argv[12u + 2u * i], &batch[i].key) ||
+                !number(argv[13u + 2u * i], &batch[i].value)) {
+                return 3;
+            }
+        }
+        gen_offset = (int)(12u + 2u * batch_count);
+    } else {
+        untouched_flag = arguments[11];
+        if (argc != 13 + (int)arguments[1]) {
             return 3;
         }
     }
     if (arguments[0] > UINT32_MAX || arguments[1] > HOST_NODE_LIMIT ||
         arguments[2] > HOST_BLOCK_LIMIT || arguments[3] > arguments[1] ||
-        arguments[5] > UINT32_MAX || arguments[6] > UINT32_MAX || arguments[7] > UINT32_MAX ||
-        argc != 13 + (int)arguments[1]) {
+        arguments[5] > UINT32_MAX || arguments[6] > UINT32_MAX || arguments[7] > UINT32_MAX) {
         return 3;
     }
     for (uint32_t i = 0u; i < arguments[1]; ++i) {
-        if (!number(argv[i + 13u], &generations[i])) {
+        if (!number(argv[(int)i + gen_offset], &generations[i])) {
             return 3;
         }
     }
@@ -75,14 +115,25 @@ int main(int argc, char **argv)
     limits.height = (uint32_t)arguments[5];
     limits.depth_limit = (uint32_t)arguments[6];
     limits.visit_limit = (uint32_t)arguments[7];
-    const int accepted = vos_tree_insert(&arena, &limits, arguments[4], arguments[8],
-                               arguments[9], arguments[10], &result);
+    int accepted = 0;
+    if (mode == 0) {
+        accepted = vos_tree_insert(&arena, &limits, arguments[4], arguments[8],
+                                   arguments[9], arguments[10], &result);
+    } else if (mode == 1) {
+        accepted = vos_tree_delete(&arena, &limits, arguments[4], arguments[8],
+                                   arguments[9], &result);
+    } else if (mode == 2) {
+        accepted = vos_tree_compact(&arena, &limits, arguments[4], arguments[8], &result);
+    } else {
+        accepted = vos_tree_insert_batch(&arena, &limits, arguments[4], arguments[8],
+                                         batch, batch_count, &result);
+    }
     if (memcmp(retained, bytes, retained_length) != 0 ||
         memcmp(retained_generations, generations, (size_t)arena.used * sizeof(uint64_t)) != 0) {
         return 4;
     }
     if (!accepted) {
-        if (arguments[11] != 0u &&
+        if (untouched_flag != 0u &&
             (memcmp(retained, bytes, arena.length) != 0 ||
              memcmp(retained_generations, generations, sizeof generations) != 0)) {
             return 4;
@@ -90,8 +141,13 @@ int main(int argc, char **argv)
         return result.root == UINT64_MAX && result.used == UINT64_MAX &&
                result.height == UINT32_MAX ? 2 : 4;
     }
-    printf("{\"root\":%" PRIu64 ",\"used\":%" PRIu64 ",\"height\":%" PRIu32 ",\"generations\":[",
-           result.root, result.used, result.height);
+    const int reclaimable = vos_tree_can_reclaim_node(
+        arguments[8], mode == 3 ? 0u : arguments[10],
+        mode == 2 ? (arguments[9] != 0u) : 1);
+    printf("{\"root\":%" PRIu64 ",\"used\":%" PRIu64 ",\"height\":%" PRIu32
+           ",\"reclaimable\":%s,\"generations\":[",
+           result.root, result.used, result.height,
+           reclaimable ? "true" : "false");
     for (uint32_t i = 0u; i < arena.geometry.arena_nodes; ++i) {
         printf("%s%" PRIu64, i == 0u ? "" : ",", generations[i]);
     }

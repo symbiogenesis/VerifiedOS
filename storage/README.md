@@ -42,9 +42,13 @@ malformed inputs without changing caller outputs. Compiled behavioral mutations
 must fail their specified controls; a compile failure supplies no mutation kill.
 
 [The tree-image reader](src/tree_image.c) now joins those blocks to bounded
-numeric lookup under [its read contract](tree-image.md). It checks the entire
-reachable tree before returning a value or a true miss, including key ordering,
-strict separators, child ranges, exact shared leaf depth and finite work limits.
+numeric lookup under [its read contract](tree-image.md). `vos_tree_lookup`
+checks the entire reachable tree before returning a value or a true miss,
+including key ordering, strict separators, child ranges, exact shared leaf depth
+and finite work limits; `vos_tree_lookup_path` provides the $O(\log_B N)$
+runtime query path (R-10-022a), validating only the root-to-leaf path (`height + 1`
+node decodes) and its inherited `[lower, upper)` brackets without walking
+off-route subtrees.
 Retained roots can share nodes with different expected generations. Empty leaves
 and single-child branches retain the reference's local shape; repeated empty
 children remain admissible within the declared reference-visit budget. Structural
@@ -60,14 +64,18 @@ retained-root and refusal campaign and executed behavioral controls. The native
 campaigns run on Host CI's Ubuntu runner.
 
 [The numeric copy-on-write updater](src/tree_update.c) adds insertion,
-replacement and leaf, internal and root splits under
+replacement, leaf/internal/root splits, single-pass sorted-batch CoW updates
+(`vos_tree_insert_batch`, R-10-004), Rodeh-style lazy CoW deletion
+(`vos_tree_delete`, R-10-010), canonical history-independent bottom-up compaction
+(`vos_tree_compact`, R-10-021), and $O(1)$ birth-generation snapshot-reclamation
+checks (`vos_tree_can_reclaim_node`, R-10-010) under
 [its candidate-update contract](tree-update.md). It fully admits the retained
 tree before appending, checks the candidate tree before returning its root, and
 preserves every byte and expected generation in the prior allocated prefix.
 Arena exhaustion, depth or visit limits and invalid input refuse without
 publishing a root. Failed appends may occupy the unused suffix until its next
 attempt. The caller still owns authentication, stable inputs and actual
-publication. Deletion, minimum occupancy, index refinement, durable nonce and
+publication. Index refinement, durable nonce and
 checkpoint ordering, persistent reopen and target integration remain open.
 
 `python tools/run.py test --only storage_tree_update` checks an independent

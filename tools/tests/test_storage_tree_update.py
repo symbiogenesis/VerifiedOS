@@ -60,12 +60,23 @@ def _build(directory: Path, source: str | None = None) -> Path:
 
 def _invoke(binary: Path, arena: Arena, key: int, value: int, *, generation: int = 1,
             depth: int = 16, visits: int = 4096,
-            untouched: bool = False) -> subprocess.CompletedProcess[bytes]:
-    arguments = [arena.fan, len(arena.generations), 32 + 16 * arena.fan, arena.used,
-                 arena.root, arena.height, depth, visits, generation, key, value,
-                 int(untouched), *arena.generations]
-    return subprocess.run([str(binary), *(str(part) for part in arguments)], input=arena.blocks,
-                          capture_output=True, timeout=10, check=False)
+            untouched: bool = False,
+            mode: str | None = None,
+            batch: list[tuple[int, int]] | None = None) -> subprocess.CompletedProcess[bytes]:
+    prefix = [f"--{mode}"] if mode is not None else []
+    if mode == "batch":
+        if batch is None:
+            raise AssertionError("batch mode requires batch entries")
+        flat = [word for pair in batch for word in pair]
+        arguments = [arena.fan, len(arena.generations), 32 + 16 * arena.fan, arena.used,
+                     arena.root, arena.height, depth, visits, generation, len(batch),
+                     int(untouched), *flat, *arena.generations]
+    else:
+        arguments = [arena.fan, len(arena.generations), 32 + 16 * arena.fan, arena.used,
+                     arena.root, arena.height, depth, visits, generation, key, value,
+                     int(untouched), *arena.generations]
+    return subprocess.run([str(binary), *prefix, *(str(part) for part in arguments)],
+                          input=arena.blocks, capture_output=True, timeout=10, check=False)
 
 
 def _accepted(result: subprocess.CompletedProcess[bytes], old: Arena, generation: int) -> Arena:
@@ -173,6 +184,98 @@ def _refusals(binary: Path) -> None:
     refused(Arena(2, bytes(broken), arena.generations, arena.used, arena.root, arena.height), untouched=True)
 
 
+def _tree_signature(arena: Arena) -> list[tuple[int, int, int, bytes]]:
+    """Extract canonical node payloads in DFS order with relative child indices."""
+    size = 32 + 16 * arena.fan
+    order: dict[int, int] = {}
+    nodes: list[tuple[int, int, int, bytes]] = []
+
+    def walk(node_id: int, level: int) -> int:
+        if node_id not in order:
+            order[node_id] = len(order)
+            block = arena.blocks[node_id * size:(node_id + 1) * size]
+            kind, count, _, _ = struct.unpack("<IIQQ", block[8:32])
+            if kind == 0:
+                payload = block[32:32 + 16 * count]
+            else:
+                words = list(struct.unpack("<" + "Q" * (2 * count - 1),
+                                           block[32:32 + 8 * (2 * count - 1)]))
+                seps = words[:count - 1]
+                children = [walk(c, level - 1) for c in words[count - 1:]]
+                payload = struct.pack("<" + "Q" * (2 * count - 1), *seps, *children)
+            nodes.append((level, kind, count, payload))
+        return order[node_id]
+
+    walk(arena.root, arena.height)
+    return nodes
+
+
+def _batch_delete_and_compact(binary: Path) -> None:
+    for fan in (2, 3, 4, 16):
+        count = min(48, 2 * fan * fan + 2)
+        keys = [5 * i + 1 for i in range(count)]
+        expected = {k: k * 17 for k in keys}
+        # Compare single-pass sorted batch against sequential single-key insertions.
+        seq_arena = _empty(fan)
+        for k in keys[:2 * fan]:
+            seq_arena = _accepted(_invoke(binary, seq_arena, k, expected[k], generation=1),
+                                  seq_arena, 1)
+        batch_entries = [(k, expected[k]) for k in keys[:2 * fan]]
+        batch_arena = _accepted(
+            _invoke(binary, _empty(fan), 0, 0, generation=1, mode="batch", batch=batch_entries),
+            _empty(fan), 1)
+        ensure(_map(batch_arena) == _map(seq_arena),
+               "sorted-batch CoW update disagrees with sequential insertions")
+        ensure(batch_arena.used < seq_arena.used,
+               "sorted-batch CoW update must allocate fewer nodes than sequential single-key path copies")
+        # Exercise multi-batch growth, replacements, and Rodeh lazy deletion.
+        rest = [(k, expected[k]) for k in keys[2 * fan:]]
+        grown = _accepted(
+            _invoke(binary, batch_arena, 0, 0, generation=2, mode="batch", batch=rest),
+            batch_arena, 2)
+        ensure(_map(grown) == expected and _map(grown, batch_arena.root, batch_arena.height) == dict(batch_entries),
+               "multi-batch update must preserve retained root")
+        # Build a second tree with the same final map via reverse insertions + lazy deletions.
+        alt = _empty(fan)
+        extra_keys = [5 * i + 3 for i in range(fan + 2)]
+        for step, k in enumerate(reversed(keys + extra_keys), start=1):
+            alt = _accepted(_invoke(binary, alt, k, expected.get(k, 999), generation=step), alt, step)
+        for step, k in enumerate(extra_keys, start=200):
+            before_del = _map(alt)
+            before_root, before_height = alt.root, alt.height
+            alt = _accepted(_invoke(binary, alt, k, 0, generation=step, mode="delete"), alt, step)
+            del before_del[k]
+            ensure(_map(alt) == before_del, "lazy CoW delete disagrees with expected map")
+            ensure(_map(alt, before_root, before_height)[k] == 999,
+                   "lazy CoW delete mutated retained snapshot root")
+        ensure(_map(alt) == expected, "divergent histories must reach identical logical map")
+        # Compact both trees and verify strict history-independent canonical layout!
+        comp1 = _accepted(_invoke(binary, grown, 1, 5, generation=500, mode="compact"), grown, 500)
+        comp2 = _accepted(_invoke(binary, alt, 1, 500, generation=500, mode="compact"), alt, 500)
+        ensure(_map(comp1) == expected and _map(comp2) == expected,
+               "compaction must preserve exact logical map")
+        ensure(comp1.height == comp2.height and _tree_signature(comp1) == _tree_signature(comp2),
+               "compacted B+ trees must be strictly history-independent (canonical)")
+        # Verify O(1) birth-generation snapshot reclamation flag reported by host seam.
+        hdr1 = json.loads(_invoke(binary, grown, 1, 499, generation=500, mode="compact").stdout.split(b"\n", 1)[0])
+        hdr2 = json.loads(_invoke(binary, grown, 1, 500, generation=500, mode="compact").stdout.split(b"\n", 1)[0])
+        ensure(hdr1["reclaimable"] is True and hdr2["reclaimable"] is False,
+               "birth-generation deadlist check must distinguish gen > snap from gen <= snap")
+        # Delete all remaining keys down to an empty tree at height 0.
+        cur = comp1
+        remaining = expected.copy()
+        for idx, k in enumerate(keys, start=600):
+            cur = _accepted(_invoke(binary, cur, k, 0, generation=idx, mode="delete"), cur, idx)
+            del remaining[k]
+            ensure(_map(cur) == remaining, "lazy delete down to empty must preserve remaining keys")
+        ensure(cur.height == 0 and _map(cur) == {}, "empty tree after lazy deletion must collapse to height 0")
+    # Batch refusal checks: empty, duplicate, and unsorted batches must refuse cleanly.
+    for bad_batch in ([], [(5, 50), (5, 60)], [(9, 90), (2, 20)]):
+        res = _invoke(binary, _empty(2), 0, 0, mode="batch", batch=bad_batch, untouched=True)
+        ensure(res.returncode == 2 and not res.stdout,
+               "malformed batch must refuse without mutating arena")
+
+
 def _native_campaign() -> None:
     work = toolenv.environment(ROOT, sys.platform).parent / "storage-update-tests"
     work.mkdir(parents=True, exist_ok=True)
@@ -180,6 +283,7 @@ def _native_campaign() -> None:
         binary = _build(Path(temporary))
         _population(binary)
         _refusals(binary)
+        _batch_delete_and_compact(binary)
 
 
 def _compiled_controls() -> None:
@@ -204,6 +308,19 @@ def _compiled_controls() -> None:
             mutated = _build(directory / name, source.replace(needle, replacement))
             result = _invoke(mutated, arena, key, value)
             ensure(result.returncode in (2, 4), f"compiled {name} defect escaped its update witness")
+        # Additional compiled controls for lazy deletion, sorted-batch order, and compaction.
+        del_target = "if (node.keys[i] == update->key)"
+        ensure(source.count(del_target) == 1, "ambiguous delete mutation site")
+        del_mutant = _build(directory / "delete-skip", source.replace(del_target, "if (0)"))
+        seeded = _accepted(_invoke(pristine, _empty(2), 9, 90), _empty(2), 1)
+        ensure(_invoke(del_mutant, seeded, 9, 0, generation=2, mode="delete").returncode in (2, 4),
+               "compiled delete defect escaped candidate lookup check")
+        batch_target = "if (entries[i - 1u].key >= entries[i].key)"
+        ensure(source.count(batch_target) == 1, "ambiguous batch-order mutation site")
+        batch_mutant = _build(directory / "batch-order", source.replace(batch_target, "if (0)"))
+        ensure(_invoke(batch_mutant, _empty(2), 0, 0, mode="batch",
+                       batch=[(9, 90), (2, 20)]).returncode in (2, 4),
+               "compiled unsorted-batch defect escaped candidate admission")
 
 
 def _byte_oracle() -> None:
