@@ -39,8 +39,9 @@ int main(int argc, char **argv)
         .root = UINT64_MAX, .used = UINT64_MAX, .height = UINT32_MAX,
     };
     struct vos_tree_entry batch[VOS_TREE_MAX_BATCH];
+    struct vos_tree_reclaim_plan reclaim_plan = {0};
     uint64_t arguments[12];
-    int mode = 0; /* 0 = insert, 1 = delete, 2 = compact, 3 = batch */
+    int mode = 0; /* 0=insert, 1=delete, 2=compact, 3=batch, 4=insert-path, 5=delete-path, 6=batch-path */
     if (argc > 1) {
         if (strcmp(argv[1], "--delete") == 0) {
             mode = 1;
@@ -54,9 +55,23 @@ int main(int argc, char **argv)
             mode = 3;
             --argc;
             ++argv;
+        } else if (strcmp(argv[1], "--insert-path") == 0) {
+            mode = 4;
+            --argc;
+            ++argv;
+        } else if (strcmp(argv[1], "--delete-path") == 0) {
+            mode = 5;
+            --argc;
+            ++argv;
+        } else if (strcmp(argv[1], "--batch-path") == 0) {
+            mode = 6;
+            --argc;
+            ++argv;
         }
     }
-    const uint32_t header_args = (mode == 3) ? 11u : 12u;
+    const int is_batch = (mode == 3 || mode == 6);
+    const int is_path = (mode >= 4);
+    const uint32_t header_args = is_batch ? 11u : 12u;
     if (argc < (int)(header_args + 1u)) {
         return 3;
     }
@@ -68,7 +83,7 @@ int main(int argc, char **argv)
     size_t batch_count = 0u;
     uint64_t untouched_flag = 0u;
     int gen_offset = 13;
-    if (mode == 3) {
+    if (is_batch) {
         batch_count = (size_t)arguments[9];
         untouched_flag = arguments[10];
         if (batch_count > VOS_TREE_MAX_BATCH ||
@@ -124,9 +139,18 @@ int main(int argc, char **argv)
                                    arguments[9], &result);
     } else if (mode == 2) {
         accepted = vos_tree_compact(&arena, &limits, arguments[4], arguments[8], &result);
-    } else {
+    } else if (mode == 3) {
         accepted = vos_tree_insert_batch(&arena, &limits, arguments[4], arguments[8],
                                          batch, batch_count, &result);
+    } else if (mode == 4) {
+        accepted = vos_tree_insert_path(&arena, &limits, arguments[4], arguments[8],
+                                        arguments[9], arguments[10], &result);
+    } else if (mode == 5) {
+        accepted = vos_tree_delete_path(&arena, &limits, arguments[4], arguments[8],
+                                        arguments[9], &result);
+    } else {
+        accepted = vos_tree_insert_batch_path(&arena, &limits, arguments[4], arguments[8],
+                                              batch, batch_count, &result);
     }
     if (memcmp(retained, bytes, retained_length) != 0 ||
         memcmp(retained_generations, generations, (size_t)arena.used * sizeof(uint64_t)) != 0) {
@@ -141,13 +165,46 @@ int main(int argc, char **argv)
         return result.root == UINT64_MAX && result.used == UINT64_MAX &&
                result.height == UINT32_MAX ? 2 : 4;
     }
-    const int reclaimable = vos_tree_can_reclaim_node(
-        arguments[8], mode == 3 ? 0u : arguments[10],
-        mode == 2 ? (arguments[9] != 0u) : 1);
+    const uint64_t snap_gen = is_batch ? 0u : arguments[10];
+    const int has_snap = mode == 2 ? (arguments[9] != 0u) : 1;
+    const int reclaimable = vos_tree_can_reclaim_node(arguments[8], snap_gen, has_snap);
+    if (!is_path) {
+        struct vos_tree_arena post_arena = arena;
+        struct vos_tree_limits new_limits = limits;
+        post_arena.used = result.used;
+        new_limits.height = result.height;
+        if (!vos_tree_classify_reclaim(&post_arena, &limits, arguments[4],
+                                       &new_limits, result.root,
+                                       snap_gen, has_snap, &reclaim_plan)) {
+            return 4;
+        }
+        for (uint32_t i = 0u; i < reclaim_plan.reclaimed_count; ++i) {
+            const uint64_t id = reclaim_plan.reclaimed_ids[i];
+            if (id >= arena.used ||
+                !vos_tree_can_reclaim_node(generations[id], snap_gen, has_snap)) {
+                return 4;
+            }
+        }
+        for (uint32_t i = 0u; i < reclaim_plan.deadlist_count; ++i) {
+            const uint64_t id = reclaim_plan.deadlist_ids[i];
+            if (id >= arena.used ||
+                vos_tree_can_reclaim_node(generations[id], snap_gen, has_snap)) {
+                return 4;
+            }
+        }
+    }
     printf("{\"root\":%" PRIu64 ",\"used\":%" PRIu64 ",\"height\":%" PRIu32
-           ",\"reclaimable\":%s,\"generations\":[",
+           ",\"reclaimable\":%s,\"reclaimed\":[",
            result.root, result.used, result.height,
            reclaimable ? "true" : "false");
+    for (uint32_t i = 0u; i < reclaim_plan.reclaimed_count; ++i) {
+        printf("%s%" PRIu64, i == 0u ? "" : ",", reclaim_plan.reclaimed_ids[i]);
+    }
+    printf("],\"deadlist\":[");
+    for (uint32_t i = 0u; i < reclaim_plan.deadlist_count; ++i) {
+        printf("%s%" PRIu64, i == 0u ? "" : ",", reclaim_plan.deadlist_ids[i]);
+    }
+    printf("],\"generations\":[");
     for (uint32_t i = 0u; i < arena.geometry.arena_nodes; ++i) {
         printf("%s%" PRIu64, i == 0u ? "" : ",", generations[i]);
     }

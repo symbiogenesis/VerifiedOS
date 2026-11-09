@@ -64,7 +64,7 @@ def _invoke(binary: Path, arena: Arena, key: int, value: int, *, generation: int
             mode: str | None = None,
             batch: list[tuple[int, int]] | None = None) -> subprocess.CompletedProcess[bytes]:
     prefix = [f"--{mode}"] if mode is not None else []
-    if mode == "batch":
+    if mode in ("batch", "batch-path"):
         if batch is None:
             raise AssertionError("batch mode requires batch entries")
         flat = [word for pair in batch for word in pair]
@@ -256,11 +256,31 @@ def _batch_delete_and_compact(binary: Path) -> None:
                "compaction must preserve exact logical map")
         ensure(comp1.height == comp2.height and _tree_signature(comp1) == _tree_signature(comp2),
                "compacted B+ trees must be strictly history-independent (canonical)")
-        # Verify O(1) birth-generation snapshot reclamation flag reported by host seam.
+        # Verify O(1) birth-generation snapshot reclamation flag and deadlist classifier.
+        hdr_split = json.loads(_invoke(binary, grown, 1, 1, generation=500, mode="compact").stdout.split(b"\n", 1)[0])
         hdr1 = json.loads(_invoke(binary, grown, 1, 499, generation=500, mode="compact").stdout.split(b"\n", 1)[0])
         hdr2 = json.loads(_invoke(binary, grown, 1, 500, generation=500, mode="compact").stdout.split(b"\n", 1)[0])
         ensure(hdr1["reclaimable"] is True and hdr2["reclaimable"] is False,
                "birth-generation deadlist check must distinguish gen > snap from gen <= snap")
+        ensure(bool(hdr_split["reclaimed"]) and bool(hdr_split["deadlist"]) and
+               set(hdr_split["reclaimed"]).isdisjoint(hdr_split["deadlist"]) and
+               all(grown.generations[n] > 1 for n in hdr_split["reclaimed"]) and
+               all(grown.generations[n] <= 1 for n in hdr_split["deadlist"]),
+               "vos_tree_classify_reclaim must partition unlinked nodes into reclaimed (gen > snap) and deadlist (gen <= snap)")
+        # Exercise O(log_B N) path-local CoW updates under tight visit_limit = height + 2.
+        path_visits = grown.height + 2
+        ensure(_invoke(binary, grown, keys[0], 777, generation=3, visits=path_visits).returncode == 2,
+               "whole-tree insert must refuse when visit_limit is smaller than total tree nodes")
+        path_ins = _accepted(_invoke(binary, grown, keys[0], 777, generation=3,
+                                     visits=path_visits, mode="insert-path"), grown, 3)
+        ensure(_map(path_ins)[keys[0]] == 777, "insert-path must update target key in O(height) visits")
+        path_batch = _accepted(
+            _invoke(binary, grown, 0, 0, generation=3, visits=path_visits,
+                    mode="batch-path", batch=[(keys[0], 888)]), grown, 3)
+        ensure(_map(path_batch)[keys[0]] == 888, "batch-path must update batch keys in O(height) visits")
+        path_del = _accepted(_invoke(binary, grown, keys[0], 0, generation=3,
+                                     visits=path_visits, mode="delete-path"), grown, 3)
+        ensure(keys[0] not in _map(path_del), "delete-path must remove target key in O(height) visits")
         # Delete all remaining keys down to an empty tree at height 0.
         cur = comp1
         remaining = expected.copy()
@@ -308,7 +328,7 @@ def _compiled_controls() -> None:
             mutated = _build(directory / name, source.replace(needle, replacement))
             result = _invoke(mutated, arena, key, value)
             ensure(result.returncode in (2, 4), f"compiled {name} defect escaped its update witness")
-        # Additional compiled controls for lazy deletion, sorted-batch order, and compaction.
+        # Additional compiled controls for lazy deletion, sorted-batch order, path-local pruning, and deadlist classification.
         del_target = "if (node.keys[i] == update->key)"
         ensure(source.count(del_target) == 1, "ambiguous delete mutation site")
         del_mutant = _build(directory / "delete-skip", source.replace(del_target, "if (0)"))
@@ -321,6 +341,26 @@ def _compiled_controls() -> None:
         ensure(_invoke(batch_mutant, _empty(2), 0, 0, mode="batch",
                        batch=[(9, 90), (2, 20)]).returncode in (2, 4),
                "compiled unsorted-batch defect escaped candidate admission")
+        path_target = "? vos_tree_lookup_path(&update.input, limits, root, key, &checked)"
+        ensure(source.count(path_target) == 1, "ambiguous insert-path mutation site")
+        path_mutant = _build(
+            directory / "insert-path-pruning",
+            source.replace(path_target, "? vos_tree_lookup(&update.input, limits, root, key, &checked)"))
+        split_tree = _accepted(_invoke(pristine, full, 9, 90), full, 1)
+        ensure(_invoke(pristine, split_tree, 1, 100, generation=2,
+                       visits=2, mode="insert-path").returncode == 0,
+               "pristine insert-path failed under tight height + 1 visits")
+        ensure(_invoke(path_mutant, split_tree, 1, 100, generation=2,
+                       visits=2, mode="insert-path").returncode == 2,
+               "insert-path mutant did not fail when visiting off-route sibling")
+        reclaim_target = "output->deadlist_ids[output->deadlist_count] = id;\n            ++output->deadlist_count;"
+        ensure(source.count(reclaim_target) == 1, "ambiguous reclaim-classify mutation site")
+        reclaim_mutant = _build(
+            directory / "reclaim-classify",
+            source.replace(reclaim_target,
+                           "output->reclaimed_ids[output->reclaimed_count] = id;\n            ++output->reclaimed_count;"))
+        ensure(_invoke(reclaim_mutant, split_tree, 1, 1, generation=5, mode="compact").returncode == 4,
+               "compiled deadlist classification defect escaped host witness")
 
 
 def _byte_oracle() -> None:

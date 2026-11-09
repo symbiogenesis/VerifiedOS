@@ -44,6 +44,12 @@ parent branch's separator list while preserving every surviving child's valid
 key bracket), and collapses single-child branch roots until the root is either a
 leaf at height zero or a multi-child branch.
 
+`vos_tree_insert_path`, `vos_tree_insert_batch_path`, and `vos_tree_delete_path`
+provide the path-local $O(\log_B N)$ runtime update paths (R-10-022a): they
+validate only the root-to-leaf path(s) of the target key(s) via
+`vos_tree_lookup_path` before and after the copy-on-write path rebuild (`height + 1`
+node decodes per routed key) without walking untouched off-route subtrees.
+
 `vos_tree_compact` performs an in-order traversal of the reachable tree and
 packs its live sorted entries bottom-up into a canonical, history-independent B+
 tree in `generation` (R-10-021), filling every leaf and branch to `fan` entries
@@ -52,7 +58,9 @@ and geometry compact to identical node layouts regardless of prior insertion or
 deletion order. `vos_tree_can_reclaim_node` decides in $O(1)$ from an overwritten
 or deleted node's birth generation (`node_generation > latest_snapshot_generation`)
 whether the block can be reclaimed immediately or must join a retained snapshot's
-deadlist (R-10-010).
+deadlist, and `vos_tree_classify_reclaim` partitions every arena node reachable
+from `old_root` that is no longer reachable from `new_root` into `reclaimed_ids`
+and `deadlist_ids` without a reference-count B+ tree (R-10-010).
 
 The function returns success only after full candidate admission at the returned
 height and a lookup confirming the requested key/value. The same finite visit

@@ -149,19 +149,11 @@ static int insert_node(struct update *update, uint64_t id, uint32_t height,
     return publish(update, VOS_NODE_BRANCH, count, keys, values, result);
 }
 
-int vos_tree_insert(const struct vos_tree_arena *arena,
-                    const struct vos_tree_limits *limits,
-                    uint64_t root, uint64_t generation,
-                    uint64_t key, uint64_t value,
-                    struct vos_tree_update_result *output)
+static int valid_arena_header(const struct vos_tree_arena *arena,
+                              const struct vos_tree_limits *limits,
+                              const struct vos_tree_update_result *output,
+                              struct update *update)
 {
-    struct update update;
-    struct grown grown;
-    struct vos_node new_root = {0};
-    struct vos_tree_limits candidate_limits;
-    struct vos_tree_image candidate;
-    struct vos_tree_update_result accepted;
-    uint64_t checked;
     if (arena == NULL || limits == NULL || output == NULL ||
         arena->bytes == NULL || arena->generations == NULL ||
         arena->geometry.fan < 2u || arena->geometry.fan > VOS_NODE_MAX_FAN ||
@@ -172,18 +164,56 @@ int vos_tree_insert(const struct vos_tree_arena *arena,
         arena->generation_count != arena->geometry.arena_nodes) {
         return 0;
     }
-    update.arena = arena;
-    update.input.geometry = arena->geometry;
-    update.input.geometry.arena_nodes = arena->used;
-    update.input.bytes = arena->bytes;
-    update.input.length = (size_t)arena->used * arena->geometry.block_bytes;
-    update.input.generations = arena->generations;
-    update.input.generation_count = (size_t)arena->used;
-    /* Full admission precedes any append, including off-route references. */
-    if (vos_tree_lookup(&update.input, limits, root, key, &checked) == VOS_TREE_REFUSED) {
+    update->arena = arena;
+    update->input.geometry = arena->geometry;
+    update->input.geometry.arena_nodes = arena->used;
+    update->input.bytes = arena->bytes;
+    update->input.length = (size_t)arena->used * arena->geometry.block_bytes;
+    update->input.generations = arena->generations;
+    update->input.generation_count = (size_t)arena->used;
+    update->next = arena->used;
+    return 1;
+}
+
+static int valid_arena_and_input(const struct vos_tree_arena *arena,
+                                 const struct vos_tree_limits *limits,
+                                 uint64_t root,
+                                 const struct vos_tree_update_result *output,
+                                 struct update *update)
+{
+    uint64_t checked = 0u;
+    if (!valid_arena_header(arena, limits, output, update)) {
         return 0;
     }
-    update.next = arena->used;
+    if (vos_tree_lookup(&update->input, limits, root, 0u, &checked) == VOS_TREE_REFUSED) {
+        return 0;
+    }
+    return 1;
+}
+
+static int insert_internal(const struct vos_tree_arena *arena,
+                           const struct vos_tree_limits *limits,
+                           uint64_t root, uint64_t generation,
+                           uint64_t key, uint64_t value,
+                           int path_only,
+                           struct vos_tree_update_result *output)
+{
+    struct update update = {0};
+    struct grown grown;
+    struct vos_node new_root = {0};
+    struct vos_tree_limits candidate_limits;
+    struct vos_tree_image candidate;
+    struct vos_tree_update_result accepted;
+    uint64_t checked = 0u;
+    if (!valid_arena_header(arena, limits, output, &update)) {
+        return 0;
+    }
+    const int pre_status = path_only
+        ? vos_tree_lookup_path(&update.input, limits, root, key, &checked)
+        : vos_tree_lookup(&update.input, limits, root, key, &checked);
+    if (pre_status == VOS_TREE_REFUSED) {
+        return 0;
+    }
     update.generation = generation;
     update.key = key;
     update.value = value;
@@ -213,12 +243,32 @@ int vos_tree_insert(const struct vos_tree_arena *arena,
     candidate.generation_count = (size_t)accepted.used;
     candidate_limits = *limits;
     candidate_limits.height = accepted.height;
-    if (vos_tree_lookup(&candidate, &candidate_limits, accepted.root, key, &checked) !=
-        VOS_TREE_FOUND || checked != value) {
+    const int post_status = path_only
+        ? vos_tree_lookup_path(&candidate, &candidate_limits, accepted.root, key, &checked)
+        : vos_tree_lookup(&candidate, &candidate_limits, accepted.root, key, &checked);
+    if (post_status != VOS_TREE_FOUND || checked != value) {
         return 0;
     }
     *output = accepted;
     return 1;
+}
+
+int vos_tree_insert(const struct vos_tree_arena *arena,
+                    const struct vos_tree_limits *limits,
+                    uint64_t root, uint64_t generation,
+                    uint64_t key, uint64_t value,
+                    struct vos_tree_update_result *output)
+{
+    return insert_internal(arena, limits, root, generation, key, value, 0, output);
+}
+
+int vos_tree_insert_path(const struct vos_tree_arena *arena,
+                         const struct vos_tree_limits *limits,
+                         uint64_t root, uint64_t generation,
+                         uint64_t key, uint64_t value,
+                         struct vos_tree_update_result *output)
+{
+    return insert_internal(arena, limits, root, generation, key, value, 1, output);
 }
 
 #define VOS_BATCH_MAX_ITEMS (VOS_NODE_MAX_FAN * (VOS_TREE_MAX_BATCH + 2u))
@@ -228,37 +278,6 @@ struct batch_nodes {
     uint64_t ids[VOS_BATCH_MAX_ITEMS];
     uint64_t separators[VOS_BATCH_MAX_ITEMS];
 };
-
-static int valid_arena_and_input(const struct vos_tree_arena *arena,
-                                 const struct vos_tree_limits *limits,
-                                 uint64_t root,
-                                 const struct vos_tree_update_result *output,
-                                 struct update *update)
-{
-    uint64_t checked = 0u;
-    if (arena == NULL || limits == NULL || output == NULL ||
-        arena->bytes == NULL || arena->generations == NULL ||
-        arena->geometry.fan < 2u || arena->geometry.fan > VOS_NODE_MAX_FAN ||
-        arena->geometry.block_bytes < VOS_NODE_HEADER_BYTES + 16u * arena->geometry.fan ||
-        arena->used == 0u || arena->used > arena->geometry.arena_nodes ||
-        arena->length % arena->geometry.block_bytes != 0u ||
-        arena->length / arena->geometry.block_bytes != arena->geometry.arena_nodes ||
-        arena->generation_count != arena->geometry.arena_nodes) {
-        return 0;
-    }
-    update->arena = arena;
-    update->input.geometry = arena->geometry;
-    update->input.geometry.arena_nodes = arena->used;
-    update->input.bytes = arena->bytes;
-    update->input.length = (size_t)arena->used * arena->geometry.block_bytes;
-    update->input.generations = arena->generations;
-    update->input.generation_count = (size_t)arena->used;
-    if (vos_tree_lookup(&update->input, limits, root, 0u, &checked) == VOS_TREE_REFUSED) {
-        return 0;
-    }
-    update->next = arena->used;
-    return 1;
-}
 
 static int publish_batch(struct update *update, uint32_t kind, uint32_t total,
                          const uint64_t *keys, const uint64_t *values,
@@ -398,12 +417,13 @@ static int insert_batch_node(struct update *update, uint64_t id, uint32_t height
     return publish_batch(update, VOS_NODE_BRANCH, total, keys, values, out);
 }
 
-int vos_tree_insert_batch(const struct vos_tree_arena *arena,
-                          const struct vos_tree_limits *limits,
-                          uint64_t root, uint64_t generation,
-                          const struct vos_tree_entry *entries,
-                          size_t entry_count,
-                          struct vos_tree_update_result *output)
+static int insert_batch_internal(const struct vos_tree_arena *arena,
+                                 const struct vos_tree_limits *limits,
+                                 uint64_t root, uint64_t generation,
+                                 const struct vos_tree_entry *entries,
+                                 size_t entry_count,
+                                 int path_only,
+                                 struct vos_tree_update_result *output)
 {
     struct update update = {0};
     struct batch_nodes current = {0};
@@ -419,7 +439,17 @@ int vos_tree_insert_batch(const struct vos_tree_arena *arena,
             return 0;
         }
     }
-    if (!valid_arena_and_input(arena, limits, root, output, &update)) {
+    if (path_only) {
+        if (!valid_arena_header(arena, limits, output, &update)) {
+            return 0;
+        }
+        for (size_t i = 0u; i < entry_count; ++i) {
+            if (vos_tree_lookup_path(&update.input, limits, root,
+                                     entries[i].key, &checked) == VOS_TREE_REFUSED) {
+                return 0;
+            }
+        }
+    } else if (!valid_arena_and_input(arena, limits, root, output, &update)) {
         return 0;
     }
     update.generation = generation;
@@ -446,7 +476,7 @@ int vos_tree_insert_batch(const struct vos_tree_arena *arena,
     candidate_limits = *limits;
     candidate_limits.height = accepted.height;
     for (size_t i = 0u; i < entry_count; ++i) {
-        const int status = (i == 0u)
+        const int status = (!path_only && i == 0u)
             ? vos_tree_lookup(&candidate, &candidate_limits, accepted.root,
                               entries[i].key, &checked)
             : vos_tree_lookup_path(&candidate, &candidate_limits, accepted.root,
@@ -457,6 +487,28 @@ int vos_tree_insert_batch(const struct vos_tree_arena *arena,
     }
     *output = accepted;
     return 1;
+}
+
+int vos_tree_insert_batch(const struct vos_tree_arena *arena,
+                          const struct vos_tree_limits *limits,
+                          uint64_t root, uint64_t generation,
+                          const struct vos_tree_entry *entries,
+                          size_t entry_count,
+                          struct vos_tree_update_result *output)
+{
+    return insert_batch_internal(arena, limits, root, generation,
+                                 entries, entry_count, 0, output);
+}
+
+int vos_tree_insert_batch_path(const struct vos_tree_arena *arena,
+                               const struct vos_tree_limits *limits,
+                               uint64_t root, uint64_t generation,
+                               const struct vos_tree_entry *entries,
+                               size_t entry_count,
+                               struct vos_tree_update_result *output)
+{
+    return insert_batch_internal(arena, limits, root, generation,
+                                 entries, entry_count, 1, output);
 }
 
 static int delete_node(struct update *update, uint64_t id, uint32_t height,
@@ -543,11 +595,11 @@ static int delete_node(struct update *update, uint64_t id, uint32_t height,
     return allocate(update, &out, new_id);
 }
 
-int vos_tree_delete(const struct vos_tree_arena *arena,
-                    const struct vos_tree_limits *limits,
-                    uint64_t root, uint64_t generation,
-                    uint64_t key,
-                    struct vos_tree_update_result *output)
+static int delete_internal(const struct vos_tree_arena *arena,
+                           const struct vos_tree_limits *limits,
+                           uint64_t root, uint64_t generation,
+                           uint64_t key, int path_only,
+                           struct vos_tree_update_result *output)
 {
     struct update update = {0};
     struct vos_tree_limits candidate_limits;
@@ -555,7 +607,13 @@ int vos_tree_delete(const struct vos_tree_arena *arena,
     struct vos_tree_update_result accepted;
     uint64_t checked = 0u;
     int empty = 0;
-    if (!valid_arena_and_input(arena, limits, root, output, &update)) {
+    if (path_only) {
+        if (!valid_arena_header(arena, limits, output, &update) ||
+            vos_tree_lookup_path(&update.input, limits, root, key, &checked) ==
+                VOS_TREE_REFUSED) {
+            return 0;
+        }
+    } else if (!valid_arena_and_input(arena, limits, root, output, &update)) {
         return 0;
     }
     update.generation = generation;
@@ -605,12 +663,32 @@ int vos_tree_delete(const struct vos_tree_arena *arena,
     candidate.generation_count = (size_t)accepted.used;
     candidate_limits = *limits;
     candidate_limits.height = accepted.height;
-    if (vos_tree_lookup(&candidate, &candidate_limits, accepted.root, key, &checked) !=
-        VOS_TREE_MISSING) {
+    const int post_status = path_only
+        ? vos_tree_lookup_path(&candidate, &candidate_limits, accepted.root, key, &checked)
+        : vos_tree_lookup(&candidate, &candidate_limits, accepted.root, key, &checked);
+    if (post_status != VOS_TREE_MISSING) {
         return 0;
     }
     *output = accepted;
     return 1;
+}
+
+int vos_tree_delete(const struct vos_tree_arena *arena,
+                    const struct vos_tree_limits *limits,
+                    uint64_t root, uint64_t generation,
+                    uint64_t key,
+                    struct vos_tree_update_result *output)
+{
+    return delete_internal(arena, limits, root, generation, key, 0, output);
+}
+
+int vos_tree_delete_path(const struct vos_tree_arena *arena,
+                         const struct vos_tree_limits *limits,
+                         uint64_t root, uint64_t generation,
+                         uint64_t key,
+                         struct vos_tree_update_result *output)
+{
+    return delete_internal(arena, limits, root, generation, key, 1, output);
 }
 
 struct compact_builder {
@@ -788,4 +866,101 @@ int vos_tree_can_reclaim_node(uint64_t node_generation,
                               int has_snapshot)
 {
     return !has_snapshot || node_generation > latest_snapshot_generation;
+}
+
+struct node_set {
+    uint32_t visits;
+    uint32_t count;
+    uint64_t ids[VOS_TREE_MAX_VISITS];
+};
+
+static int collect_reachable(const struct vos_tree_image *image,
+                             uint32_t visit_limit,
+                             uint64_t id, uint32_t height,
+                             struct node_set *set)
+{
+    struct vos_node node;
+    if (set->visits >= visit_limit || set->visits >= VOS_TREE_MAX_VISITS ||
+        id >= image->geometry.arena_nodes ||
+        !vos_node_decode(&image->geometry, id, image->generations[(size_t)id],
+                         image->bytes + (size_t)id * image->geometry.block_bytes,
+                         image->geometry.block_bytes, &node)) {
+        return 0;
+    }
+    ++set->visits;
+    int seen = 0;
+    for (uint32_t i = 0u; i < set->count; ++i) {
+        if (set->ids[i] == id) {
+            seen = 1;
+            break;
+        }
+    }
+    if (!seen) {
+        set->ids[set->count] = id;
+        ++set->count;
+    }
+    if (node.kind == VOS_NODE_LEAF) {
+        return height == 0u;
+    }
+    if (height == 0u) {
+        return 0;
+    }
+    for (uint32_t i = 0u; i < node.count; ++i) {
+        if (!collect_reachable(image, visit_limit, node.values[i], height - 1u, set)) {
+            return 0;
+        }
+    }
+    return 1;
+}
+
+int vos_tree_classify_reclaim(const struct vos_tree_arena *arena,
+                              const struct vos_tree_limits *old_limits,
+                              uint64_t old_root,
+                              const struct vos_tree_limits *new_limits,
+                              uint64_t new_root,
+                              uint64_t latest_snapshot_generation,
+                              int has_snapshot,
+                              struct vos_tree_reclaim_plan *output)
+{
+    struct update update = {0};
+    struct vos_tree_update_result dummy = {0};
+    struct node_set old_set = {0};
+    struct node_set new_set = {0};
+    uint64_t checked = 0u;
+    if (output == NULL || new_limits == NULL ||
+        !valid_arena_header(arena, old_limits, &dummy, &update)) {
+        return 0;
+    }
+    if (vos_tree_lookup(&update.input, old_limits, old_root, 0u, &checked) == VOS_TREE_REFUSED ||
+        vos_tree_lookup(&update.input, new_limits, new_root, 0u, &checked) == VOS_TREE_REFUSED ||
+        !collect_reachable(&update.input, old_limits->visit_limit, old_root,
+                           old_limits->height, &old_set) ||
+        !collect_reachable(&update.input, new_limits->visit_limit, new_root,
+                           new_limits->height, &new_set)) {
+        return 0;
+    }
+    output->reclaimed_count = 0u;
+    output->deadlist_count = 0u;
+    for (uint32_t i = 0u; i < old_set.count; ++i) {
+        const uint64_t id = old_set.ids[i];
+        int still_live = 0;
+        for (uint32_t j = 0u; j < new_set.count; ++j) {
+            if (new_set.ids[j] == id) {
+                still_live = 1;
+                break;
+            }
+        }
+        if (still_live) {
+            continue;
+        }
+        if (vos_tree_can_reclaim_node(arena->generations[(size_t)id],
+                                      latest_snapshot_generation, has_snapshot)) {
+            output->reclaimed_ids[output->reclaimed_count] = id;
+            ++output->reclaimed_count;
+        } else {
+            output->deadlist_ids[output->deadlist_count] = id;
+            ++output->deadlist_count;
+        }
+    }
+    return 1;
 }

@@ -31,6 +31,13 @@ struct vos_tree_entry {
     uint64_t value;
 };
 
+struct vos_tree_reclaim_plan {
+    uint32_t reclaimed_count;
+    uint32_t deadlist_count;
+    uint64_t reclaimed_ids[VOS_TREE_MAX_VISITS];
+    uint64_t deadlist_ids[VOS_TREE_MAX_VISITS];
+};
+
 /* Return 1 only after complete input and candidate tree admission. Insert or
  * replace one numeric entry using copy-on-write path rebuilding and splits.
  * New nodes use generation; retained prefix bytes/generations never change.
@@ -43,6 +50,16 @@ int vos_tree_insert(const struct vos_tree_arena *arena,
                     uint64_t key, uint64_t value,
                     struct vos_tree_update_result *output);
 
+/* Insert or replace one numeric entry while validating only the root-to-leaf
+ * query path in O(height * fan) work (at most height + 1 node decodes before
+ * and after the copy-on-write path rebuild) without walking off-route subtrees
+ * (R-10-022a). */
+int vos_tree_insert_path(const struct vos_tree_arena *arena,
+                         const struct vos_tree_limits *limits,
+                         uint64_t root, uint64_t generation,
+                         uint64_t key, uint64_t value,
+                         struct vos_tree_update_result *output);
+
 /* Apply a strictly key-sorted batch of 1..VOS_TREE_MAX_BATCH insertions or
  * replacements in a single top-down copy-on-write pass (R-10-004). Each
  * modified subtree is visited once and allocated in generation at most once per
@@ -54,6 +71,16 @@ int vos_tree_insert_batch(const struct vos_tree_arena *arena,
                           size_t entry_count,
                           struct vos_tree_update_result *output);
 
+/* Apply a strictly key-sorted batch of 1..VOS_TREE_MAX_BATCH insertions or
+ * replacements in a single top-down copy-on-write pass while validating only
+ * the root-to-leaf paths of the batch keys (R-10-004, R-10-022a). */
+int vos_tree_insert_batch_path(const struct vos_tree_arena *arena,
+                               const struct vos_tree_limits *limits,
+                               uint64_t root, uint64_t generation,
+                               const struct vos_tree_entry *entries,
+                               size_t entry_count,
+                               struct vos_tree_update_result *output);
+
 /* Remove key using Rodeh-style lazy copy-on-write deletion without sibling
  * underflow borrows or merges (R-10-010). Prunes empty subtrees along the
  * root-to-leaf path and collapses single-child branch roots while preserving
@@ -63,6 +90,15 @@ int vos_tree_delete(const struct vos_tree_arena *arena,
                     uint64_t root, uint64_t generation,
                     uint64_t key,
                     struct vos_tree_update_result *output);
+
+/* Remove key using Rodeh-style lazy copy-on-write deletion while validating
+ * only the root-to-leaf path of key before and after the update (R-10-010,
+ * R-10-022a). */
+int vos_tree_delete_path(const struct vos_tree_arena *arena,
+                         const struct vos_tree_limits *limits,
+                         uint64_t root, uint64_t generation,
+                         uint64_t key,
+                         struct vos_tree_update_result *output);
 
 /* Pack all reachable live key/value entries of root into a canonical,
  * history-independent B+ tree in generation by bottom-up sorted chunking
@@ -79,5 +115,19 @@ int vos_tree_compact(const struct vos_tree_arena *arena,
 int vos_tree_can_reclaim_node(uint64_t node_generation,
                               uint64_t latest_snapshot_generation,
                               int has_snapshot);
+
+/* Partition every arena node reachable from old_root that is no longer
+ * reachable from new_root into immediately reclaimable nodes (birth generation
+ * > latest_snapshot_generation, or !has_snapshot) and snapshot deadlist nodes
+ * (birth generation <= latest_snapshot_generation) in O(1) per unlinked node
+ * without a reference-count B+ tree (R-10-010). */
+int vos_tree_classify_reclaim(const struct vos_tree_arena *arena,
+                              const struct vos_tree_limits *old_limits,
+                              uint64_t old_root,
+                              const struct vos_tree_limits *new_limits,
+                              uint64_t new_root,
+                              uint64_t latest_snapshot_generation,
+                              int has_snapshot,
+                              struct vos_tree_reclaim_plan *output);
 
 #endif

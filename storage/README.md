@@ -70,9 +70,12 @@ campaigns run on Host CI's Ubuntu runner.
 [The numeric copy-on-write updater](src/tree_update.c) adds insertion,
 replacement, leaf/internal/root splits, single-pass sorted-batch CoW updates
 (`vos_tree_insert_batch`, R-10-004), Rodeh-style lazy CoW deletion
-(`vos_tree_delete`, R-10-010), canonical history-independent bottom-up compaction
+(`vos_tree_delete`, R-10-010), path-local $O(\log_B N)$ CoW updates
+(`vos_tree_insert_path`, `vos_tree_insert_batch_path`, `vos_tree_delete_path`,
+R-10-022a), canonical history-independent bottom-up compaction
 (`vos_tree_compact`, R-10-021), and $O(1)$ birth-generation snapshot-reclamation
-checks (`vos_tree_can_reclaim_node`, R-10-010) under
+checks and deadlist partitioning (`vos_tree_can_reclaim_node`,
+`vos_tree_classify_reclaim`, R-10-010) under
 [its candidate-update contract](tree-update.md). It fully admits the retained
 tree before appending, checks the candidate tree before returning its root, and
 preserves every byte and expected generation in the prior allocated prefix.
