@@ -89,9 +89,16 @@ and checkpoint ordering on target, persistent target reopen and two-instance
 target integration remain open.
 
 `python tools/run.py test --only storage_tree_update` checks an independent
-full-width byte boundary on both platforms. Linux additionally compares
-generated insertions and replacements with independent maps and retained roots,
-exercises split/resource refusals and executes compiled behavioral controls.
+full-width byte boundary and C-to-Gallina `VOSNODE1` translation unit on both
+platforms. Linux additionally compares generated insertions, replacements,
+splits, lazy deletions, sorted-batch updates, retained snapshots and
+history-independent compaction with independent maps, translates the compiled C
+updater's `VOSNODE1` arena bytes directly into Gallina (`ExecutableIndexComparison.v`)
+to verify exact structural and logical-map agreement (`eq_refl` and `rocqchk`)
+with [ExecutableIndex.v](../proofs/ExecutableIndex.v)'s `published`, `read_gate`,
+`insert_gate`, `delete_gate`, `insert_batch_gate` and `compact_gate` (plus a
+tampered-value negative control), exercises split/resource refusals and executes
+compiled behavioral controls.
 
 [The crypto-core compartment](src/crypto_core.c) and
 [its public header](include/vos_crypto_core.h) implement the self-contained C11

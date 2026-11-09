@@ -11,7 +11,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from tests.harness import TOOLS, Case, ensure
-from vos import toolenv
+from vos import env, proof_staging, toolenv
 
 ROOT = TOOLS.parent
 MAXIMUM = (1 << 64) - 1
@@ -375,7 +375,223 @@ def _byte_oracle() -> None:
            "independent tree parser lost mixed-generation or retained-root map semantics")
 
 
+def _nat_list(values: list[int]) -> str:
+    text = "nil"
+    for value in reversed(values):
+        text = f"(cons {value} {text})"
+    return text
+
+
+def _pair_list(pairs: list[tuple[int, int]]) -> str:
+    text = "nil"
+    for k, v in reversed(pairs):
+        text = f"(cons ({k}, {v}) {text})"
+    return text
+
+
+def _arena_to_gallina(arena: Arena) -> str:
+    """Translate raw VOSNODE1 blocks into an ExecutableIndex.v Arena nat_keys term."""
+    size = 32 + 16 * arena.fan
+    nodes: list[str] = []
+    for node_id in range(arena.used):
+        block = arena.blocks[node_id * size:(node_id + 1) * size]
+        kind, count, identity, generation = struct.unpack("<IIQQ", block[8:32])
+        ensure(block[:8] == b"VOSNODE1" and identity == node_id and
+               generation == arena.generations[node_id],
+               "corrupt VOSNODE1 block header during Gallina translation")
+        if kind == 0:
+            entries = [struct.unpack("<QQ", block[32 + 16 * i:48 + 16 * i])
+                       for i in range(count)]
+            nodes.append(f"(leaf_of nat_keys {_pair_list(entries)})")
+        else:
+            ensure(kind == 1 and count > 0, "invalid branch block in Gallina translation")
+            words = list(struct.unpack("<" + "Q" * (2 * count - 1),
+                                       block[32:32 + 8 * (2 * count - 1)]))
+            seps, children = words[:count - 1], words[count - 1:]
+            nodes.append(f"(branch_of nat_keys {_nat_list(seps)} {_nat_list(children)})")
+    text = "nil"
+    for node in reversed(nodes):
+        text = f"(cons {node} {text})"
+    return text
+
+
+def _gallina_comparison_source(steps: list[Arena], alt_comp: Arena) -> str:
+    """Emit a Rocq source binding C VOSNODE1 outputs to ExecutableIndex.v by eq_refl."""
+    ensure(len(steps) == 11, "expected 11 C update steps for Gallina comparison")
+    lines = [
+        "(* SPDX-License-Identifier: Apache-2.0 *)",
+        "From Stdlib Require Import List.",
+        "Require Import JournalIndex.",
+        "Require Import ExecutableIndex.",
+        "",
+        "Definition cmp_geom : Geometry := {| arena_cap := 64; fan := 2; depth := 8 |}.",
+        "Definition tight_geom : Geometry := {| arena_cap := 4; fan := 2; depth := 8 |}.",
+        "Definition g_init : option (prod (Arena nat_keys) (prod nat nat)) :=",
+        "  Some (pair (cons (leaf_of nat_keys nil) nil) (pair 0 0)).",
+        "Definition g_ins (st : option (prod (Arena nat_keys) (prod nat nat))) (k : nat) (v : nat) :=",
+        "  match st with",
+        "  | Some (pair ar (pair r h)) => insert_gate nat_keys cmp_geom ar h None None r k v",
+        "  | None => None",
+        "  end.",
+        "Definition g_del (st : option (prod (Arena nat_keys) (prod nat nat))) (k : nat) :=",
+        "  match st with",
+        "  | Some (pair ar (pair r h)) => delete_gate nat_keys cmp_geom ar h None None r k",
+        "  | None => None",
+        "  end.",
+        "Definition g_batch (st : option (prod (Arena nat_keys) (prod nat nat))) (b : Index nat_keys) :=",
+        "  match st with",
+        "  | Some (pair ar (pair r h)) => insert_batch_gate nat_keys cmp_geom ar h None None r b",
+        "  | None => None",
+        "  end.",
+        "Definition g_compact (st : option (prod (Arena nat_keys) (prod nat nat))) :=",
+        "  match st with",
+        "  | Some (pair ar (pair r h)) => compact_gate nat_keys cmp_geom ar h None None r",
+        "  | None => None",
+        "  end.",
+        "Definition probe_keys : list nat :=",
+        f"  {_nat_list([0, 5, 10, 12, 15, 18, 20, 25, 30, 35, 40, 99])}.",
+        "",
+        "Definition g_st_0 := g_ins g_init 10 100.",
+        "Definition g_st_1 := g_ins g_st_0 20 200.",
+        "Definition g_st_2 := g_ins g_st_1 30 300.",
+        "Definition g_st_3 := g_ins g_st_2 15 150.",
+        "Definition g_st_4 := g_ins g_st_3 25 250.",
+        "Definition g_st_5 := g_ins g_st_4 35 350.",
+        "Definition g_st_6 := g_ins g_st_5 20 202.",
+        "Definition g_st_7 := g_del g_st_6 15.",
+        "Definition g_st_8 := g_del g_st_7 99.",
+        f"Definition g_st_9 := g_batch g_st_8 {_pair_list([(5, 50), (12, 120), (40, 400)])}.",
+        "Definition g_st_10 := g_compact g_st_9.",
+        "",
+        "Definition g_alt_0 := g_ins (g_ins (g_ins (g_ins (g_ins (g_ins (g_ins (g_ins (g_ins g_init"
+        " 40 400) 35 350) 30 300) 25 250) 20 202) 18 180) 12 120) 10 100) 5 50.",
+        "Definition g_alt_del := g_del g_alt_0 18.",
+        "Definition g_alt_comp := g_compact g_alt_del.",
+        "",
+    ]
+    for idx, ar in enumerate(steps):
+        lines.append(f"Definition c_ar_{idx} : Arena nat_keys := {_arena_to_gallina(ar)}.")
+        lines.append(
+            f"Example c_published_{idx} : "
+            f"published nat_keys cmp_geom c_ar_{idx} {ar.height} None None {ar.root} = true := eq_refl.")
+        lines.append(
+            f"Example c_flatten_{idx} : "
+            f"option_map (fun p => flatten nat_keys (fst p) (snd (snd p)) (fst (snd p))) g_st_{idx} = "
+            f"Some (flatten nat_keys c_ar_{idx} {ar.height} {ar.root}) := eq_refl.")
+        lines.append(
+            f"Example c_reads_{idx} : "
+            f"option_map (fun p => map (read_gate nat_keys cmp_geom (fst p) (snd (snd p)) (fst (snd p))) probe_keys) g_st_{idx} = "
+            f"Some (map (read_gate nat_keys cmp_geom c_ar_{idx} {ar.height} {ar.root}) probe_keys) := eq_refl.")
+    # Retained snapshots in step 9 preserve earlier C roots from steps 2 and 6.
+    lines.append(
+        f"Example c_retained_2_in_9 : "
+        f"flatten nat_keys c_ar_9 {steps[2].height} {steps[2].root} = "
+        f"flatten nat_keys c_ar_2 {steps[2].height} {steps[2].root} := eq_refl.")
+    lines.append(
+        f"Example c_retained_6_in_9 : "
+        f"flatten nat_keys c_ar_9 {steps[6].height} {steps[6].root} = "
+        f"flatten nat_keys c_ar_6 {steps[6].height} {steps[6].root} := eq_refl.")
+    # History-independent compaction across divergent C and Gallina histories.
+    lines.append(f"Definition c_ar_alt_comp : Arena nat_keys := {_arena_to_gallina(alt_comp)}.")
+    lines.append(
+        f"Example c_alt_comp_published : "
+        f"published nat_keys cmp_geom c_ar_alt_comp {alt_comp.height} None None {alt_comp.root} = true := eq_refl.")
+    lines.append(
+        f"Example c_alt_comp_flatten : "
+        f"flatten nat_keys c_ar_alt_comp {alt_comp.height} {alt_comp.root} = "
+        f"flatten nat_keys c_ar_10 {steps[10].height} {steps[10].root} := eq_refl.")
+    lines.append("Example g_comp_history_independent : g_alt_comp = g_st_10 := eq_refl.")
+    # Refusal correspondence for unsorted batch and arena exhaustion.
+    lines.append(
+        f"Example g_refuses_unsorted_batch : "
+        f"g_batch g_init {_pair_list([(9, 90), (2, 20)])} = None := eq_refl.")
+    lines.append(
+        "Example g_refuses_exhausted_arena : "
+        "match g_st_1 with Some (pair ar (pair r h)) => insert_gate nat_keys tight_geom ar h None None r 30 300 | None => None end = None := eq_refl.")
+    return "\n".join(lines) + "\n"
+
+
+def _gallina_translation_unit() -> None:
+    left = _leaf(2, [10], [100])
+    right = (b"VOSNODE1" + struct.pack("<IIQQQQ", 0, 1, 1, 1, 20, 200)).ljust(64, b"\0")
+    root = (b"VOSNODE1" + struct.pack("<IIQQQQQ", 1, 2, 2, 1, 20, 0, 1)).ljust(64, b"\0")
+    sample = Arena(2, left + right + root, [0, 1, 1], used=3, root=2, height=1)
+    rendered = _arena_to_gallina(sample)
+    ensure("leaf_of nat_keys (cons (10, 100) nil)" in rendered and
+           "branch_of nat_keys (cons 20 nil) (cons 0 (cons 1 nil))" in rendered,
+           "Gallina arena translation lost leaf or branch structure")
+    source = _gallina_comparison_source([sample] * 11, sample)
+    ensure("Require Import ExecutableIndex." in source and
+           "Example g_comp_history_independent : g_alt_comp = g_st_10 := eq_refl." in source,
+           "Gallina comparison source lost ExecutableIndex.v equalities")
+
+
+def _gallina_comparison() -> None:
+    work = toolenv.environment(ROOT, sys.platform).parent / "storage-update-tests"
+    stage_dir = work / "gallina-stage"
+    stage_dir.mkdir(parents=True, exist_ok=True)
+    staged = proof_staging.stage(ROOT, stage_dir, ("ExecutableIndex.v",))
+    for artifact in staged.sources:
+        vo = artifact.with_suffix(".vo")
+        if not vo.is_file():
+            done = subprocess.run([*env.rocq_command(), "-q", "-Q", str(stage_dir), "", str(artifact)],
+                                  cwd=stage_dir, capture_output=True, text=True, timeout=180, check=False)
+            ensure(done.returncode == 0, f"failed to compile staged {artifact.name}: {done.stderr}")
+    with tempfile.TemporaryDirectory(prefix="gallina-", dir=work) as temporary:
+        temp = Path(temporary)
+        binary = _build(temp)
+        ar = _empty(2, capacity=64)
+        steps: list[Arena] = []
+        for gen, (k, v) in enumerate([(10, 100), (20, 200), (30, 300), (15, 150),
+                                      (25, 250), (35, 350), (20, 202)], start=1):
+            ar = _accepted(_invoke(binary, ar, k, v, generation=gen), ar, gen)
+            steps.append(ar)
+        ar = _accepted(_invoke(binary, ar, 15, 0, generation=8, mode="delete"), ar, 8)
+        steps.append(ar)
+        ar = _accepted(_invoke(binary, ar, 99, 0, generation=9, mode="delete"), ar, 9)
+        steps.append(ar)
+        ar = _accepted(_invoke(binary, ar, 0, 0, generation=10, mode="batch",
+                               batch=[(5, 50), (12, 120), (40, 400)]), ar, 10)
+        steps.append(ar)
+        comp1 = _accepted(_invoke(binary, ar, 1, 0, generation=11, mode="compact"), ar, 11)
+        steps.append(comp1)
+        # Build divergent C history and compact it.
+        alt = _empty(2, capacity=64)
+        for gen, (k, v) in enumerate([(40, 400), (35, 350), (30, 300), (25, 250), (20, 202),
+                                      (18, 180), (12, 120), (10, 100), (5, 50)], start=20):
+            alt = _accepted(_invoke(binary, alt, k, v, generation=gen), alt, gen)
+        alt = _accepted(_invoke(binary, alt, 18, 0, generation=30, mode="delete"), alt, 30)
+        alt_comp = _accepted(_invoke(binary, alt, 1, 0, generation=31, mode="compact"), alt, 31)
+        ensure(_tree_signature(comp1) == _tree_signature(alt_comp),
+               "C compacted trees from divergent histories must have identical canonical structure")
+        source = _gallina_comparison_source(steps, alt_comp)
+        comparison = temp / "ExecutableIndexComparison.v"
+        comparison.write_text(source, encoding="utf-8", newline="")
+        compiled = subprocess.run(
+            [*env.rocq_command(), "-q", "-Q", str(stage_dir), "", "-Q", str(temp), "", str(comparison)],
+            cwd=temp, capture_output=True, text=True, timeout=180, check=False)
+        ensure(compiled.returncode == 0,
+               f"locked Rocq rejected C-to-ExecutableIndex.v comparison: {compiled.stderr}")
+        checked = subprocess.run(
+            [*env.rocqchk_command(), "-silent", "-Q", str(stage_dir), "", "-Q", str(temp), "",
+             "ExecutableIndexComparison"],
+            cwd=temp, capture_output=True, text=True, timeout=180, check=False)
+        ensure(checked.returncode == 0,
+               f"rocqchk rejected ExecutableIndexComparison closure: {checked.stderr}")
+        # Negative control: perturbing a translated C value must fail locked Rocq conversion.
+        tampered = temp / "ExecutableIndexTampered.v"
+        tampered.write_text(source.replace("(10, 100)", "(10, 101)", 1), encoding="utf-8", newline="")
+        bad = subprocess.run(
+            [*env.rocq_command(), "-q", "-Q", str(stage_dir), "", "-Q", str(temp), "", str(tampered)],
+            cwd=temp, capture_output=True, text=True, timeout=180, check=False)
+        ensure(bad.returncode != 0, "tampered C answer passed locked Rocq ExecutableIndex.v comparison")
+    staged.validate(ROOT)
+
+
 def cases() -> list[Case]:
     return [Case("independent update byte boundaries", _byte_oracle),
+            Case("Gallina ExecutableIndex translation syntax", _gallina_translation_unit),
             Case("compiled insertion, replacement, split and retained-map population", _native_campaign, lane="guest"),
-            Case("compiled copy-on-write and split defect controls", _compiled_controls, lane="guest")]
+            Case("compiled copy-on-write and split defect controls", _compiled_controls, lane="guest"),
+            Case("compiled Gallina ExecutableIndex conversion and rocqchk comparison",
+                 _gallina_comparison, lane="toolchain")]
