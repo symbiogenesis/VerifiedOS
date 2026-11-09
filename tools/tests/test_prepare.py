@@ -64,6 +64,37 @@ def _locked_formatter() -> None:
             raise AssertionError("unlocked formatter accepted")
 
 
+def _locked_model_hooks() -> None:
+    root = TOOLS.parent
+    result = subprocess.CompletedProcess([], 0)
+    with tempfile.TemporaryDirectory(prefix="vos-prepare-lane-") as name:
+        base = Path(name).resolve()
+        lane_env = prepare.env.Environment(root, root / "model", base / "build", base / "logs",
+                                           "", 4, 8192, 4, 4)
+        with (patch.object(prepare.sys, "platform", "linux"),
+              patch.object(prepare.env, "load", return_value=lane_env),
+              patch.object(prepare.shutil, "which", return_value="/usr/bin/uv"),
+              patch.object(prepare.subprocess, "run", return_value=result) as invoke):
+            ensure(prepare.model_prepare(root, ["model/README.md"]) == 0, "model prepare failed")
+            argv = invoke.call_args.args[0]
+            child = invoke.call_args.kwargs["env"]
+            ensure(argv[:9] == ["/usr/bin/uv", "run", "--project", "tools", "--locked", "--exact",
+                                "--only-group", "model", "--no-python-downloads"],
+                   "model preparation must use the locked model group")
+            ensure(argv[9:] == ["prek", "run", "--config", "model/.pre-commit-config.yaml",
+                                "--show-diff-on-failure", "--files", "model/README.md"],
+                   "model preparation must run prek on the selected files")
+            ensure(child["PREK_HOME"] == str(base / "build" / "model-hooks" / "prek")
+                   and child["PREK_UV_SOURCE"] == "none"
+                   and child["UV_PYTHON_DOWNLOADS"] == "never"
+                   and child["UV_CONSTRAINT"] == str(root / "tools/ci/model-hooks-constraints.txt")
+                   and child["UV_BUILD_CONSTRAINT"] == str(root / "tools/ci/model-hooks-build-constraints.txt")
+                   and child["UV_EXCLUDE_NEWER"] == "3 days"
+                   and child["SKIP"] == "markdown-link-check",
+                   "model preparation must pass isolated prek and uv constraint variables")
+
+
 def cases() -> list[Case]:
     return [Case("contained explicit selection", _selection),
-            Case("locked import formatter and check-only mode", _locked_formatter)]
+            Case("locked import formatter and check-only mode", _locked_formatter),
+            Case("locked model hook runner and uv constraints", _locked_model_hooks)]

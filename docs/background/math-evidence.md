@@ -294,8 +294,8 @@ Sorted reference payload SHA-256: `23b690105f12b96f3ef7a997cf508a5b775e70bcaf077
 | --- | --- |
 | [tools/vos/source_bindings.py](../../tools/vos/source_bindings.py) | `b949d49bafb5c9e738376f053bbbd71754df961e94ed3312b9b4a55f8fc1652f` |
 | [proofs/ProofSupport.v](../../proofs/ProofSupport.v) | `21fefa8c275f9a6ee41299d2d59b971974a8f89453cb8749bbec0d7d13e86a22` |
-| [tools/pyproject.toml](../../tools/pyproject.toml) | `d91a86d67cac8addc27addfff6768303c6f171ea83900f284bb2a6ba4d05803e` |
-| [tools/uv.lock](../../tools/uv.lock) | `69d98b7162309e87bd7ffdc36f9485ac54b31865f93d870446111594bfc50d7c` |
+| [tools/pyproject.toml](../../tools/pyproject.toml) | `aff2e612db6d6b8b84f6ce3a8bda90f4c7c7bb9598f5b659131076b8b43a0a11` |
+| [tools/uv.lock](../../tools/uv.lock) | `04a3b476b56a800581bc738e661b5032ef6db804ab9cefbffcfe91d60ba99100` |
 | [tools/vos/composer.py](../../tools/vos/composer.py) | `b96169f76319dd55c7597462472257830370fe9c86c44236ae3379efe34bcd3e` |
 | [proofs/HandlerGraph.v](../../proofs/HandlerGraph.v) | `0f779ec5f3fb93552ea47302f2e71bc0d2d4fd5fbed82c879b3370bf56a2972e` |
 | [tools/vos/math_evidence.py](../../tools/vos/math_evidence.py) | `cbe9e115518178c4ad00db96377ccbd9508544e9b24fbe78055b3d921d700a3c` |

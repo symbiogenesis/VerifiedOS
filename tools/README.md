@@ -561,10 +561,10 @@ any other `[[package]]` change is index drift from the re-resolution and is revi
 on its own.
 
 The supported interpreter remains Python 3.14. Python 3.15.0 is released, but
-the all-groups, wheels-only resolution fails because the hook runner requires
-PyYAML and its released 6.0.3 files have no CPython 3.15 wheels. A Python 3.15
-move requires that wheel closure to resolve under `no-build = true`; source
-builds are not a fallback.
+the all-groups, wheels-only resolution fails because the direct runtime
+dependency `PyYAML` 6.0.3 has no CPython 3.15 wheels. A Python 3.15 move
+requires that wheel closure to resolve under `no-build = true`; source builds
+are not a fallback.
 
 When a compatible Python is absent, install it explicitly with your platform's
 installer or `uv python install --no-config <supported-minor>`, taking the minor
@@ -1177,9 +1177,9 @@ dependency's wheel list in [uv.lock](uv.lock) before committing it. Only request
 groups are installed, so a non-default group without one platform's wheel is
 refused on that platform alone and the default synchronization is unaffected.
 
-The optional `model` group pins the pre-commit runner used by the curated model's
+The optional `model` group pins the `prek` runner used by the curated model's
 hook configuration. Set `UV_PROJECT_ENVIRONMENT` to the environment in the placement
-table above, then run `uv run --project tools --locked --group model pre-commit --version`.
+table above, then run `uv run --project tools --locked --group model prek --version`.
 For a WSL-mounted checkout, `run.py model lane` supplies the guest lane root.
 The gate step itself synchronizes only the default dependency groups, and
 [uv.lock](uv.lock) is one resolution covering every group, so each `run.py`
@@ -1194,13 +1194,13 @@ The optional `workflows` group pins zizmor, which Host CI syncs alone into an
 environment of its own; [workflow analysis](#workflow-analysis) gives the command.
 PyPI publishes no Windows ARM64 wheel for it, so run it on Linux.
 
-<a id="model-hooks"></a>**Host CI runs the curated model's pre-commit hooks, except the external link check.** Because `pre-commit` runs from the repository root, [model/.pre-commit-config.yaml](../model/.pre-commit-config.yaml) scopes all hooks to `files: "^model/"`, excludes `model/dependencies/`, and passes `model/.codespellrc` and `model/.markdown-link-check.config`. Each hook repository is pinned to a full commit SHA with a `# frozen:` tag comment and a matching development-tools entry in [THIRD-PARTY.md](../THIRD-PARTY.md) checked by K-118 (`git ls-remote` verifies tag-to-commit correspondence during review). The `model-hooks` job in [Host CI](../.github/workflows/host-gates.yml) runs `--all-files --show-diff-on-failure` with `SKIP=markdown-link-check` (avoiding network fetches for external URLs) and pins hook dependencies as described [below](#model-hook-dependencies). To run the hooks locally from the checkout root, set `SKIP=markdown-link-check` and the pip/virtualenv constraint variables (using absolute paths), then run `uv run --project tools --locked --group model pre-commit run --config model/.pre-commit-config.yaml --all-files` (or `--files <paths>`). Because fixing hooks (`trailing-whitespace`, `end-of-file-fixer`, `clang-format`, `prettier`) modify files in place, inspect `git diff -- model` afterward. Never run `pre-commit install` (despite upstream's [model/CONTRIBUTING.md](../model/CONTRIBUTING.md)): it installs a shared Git hook across all worktrees that binds one OS's interpreter, fails commits when fixing hooks rewrite staged files, and fetches external links on every staged Markdown file.
+<a id="model-hooks"></a>**Host CI runs the curated model's pre-commit hooks with `prek`, except the external link check.** Because `prek` runs from the repository root, [model/.pre-commit-config.yaml](../model/.pre-commit-config.yaml) scopes all hooks to `files: "^model/"`, excludes `model/dependencies/`, and passes `model/.codespellrc` and `model/.markdown-link-check.config`. Each hook repository is pinned to a full commit SHA with a `# frozen:` tag comment and a matching development-tools entry in [THIRD-PARTY.md](../THIRD-PARTY.md) checked by K-118 (`git ls-remote` verifies tag-to-commit correspondence during review). `prek` executes all six hooks in `pre-commit/pre-commit-hooks` (`trailing-whitespace`, `end-of-file-fixer`, `check-yaml`, `check-added-large-files`, `check-executables-have-shebangs`, `check-shebang-scripts-are-executable`) in-process on its built-in Rust fast path without creating a Python hook environment. The `model-hooks` job in [Host CI](../.github/workflows/host-gates.yml) runs `--all-files --show-diff-on-failure` with `SKIP=markdown-link-check` (avoiding network fetches for external URLs) and pins hook dependencies as described [below](#model-hook-dependencies). To run the hooks locally from the checkout root, set `SKIP=markdown-link-check`, `PREK_HOME`, `PREK_UV_SOURCE=none`, `UV_PYTHON_DOWNLOADS=never`, and the `uv` constraint variables (using absolute paths), then run `uv run --project tools --locked --group model prek run --config model/.pre-commit-config.yaml --all-files` (or use `python tools/run.py prepare model --path <path>` for selected files). Because fixing hooks (`trailing-whitespace`, `end-of-file-fixer`, `clang-format`, `prettier`) modify files in place, inspect `git diff -- model` afterward. Never run `prek install` or `pre-commit install` (despite upstream's [model/CONTRIBUTING.md](../model/CONTRIBUTING.md)): it installs a shared Git hook across all worktrees that binds one OS's runner, fails commits when fixing hooks rewrite staged files, and fetches external links on every staged Markdown file.
 
-<a id="model-hook-dependencies"></a>**Model hook Python dependencies are pinned via pip constraint files.** `pre-commit` installs each Python hook with `pip install .` inside an isolated virtualenv:
+<a id="model-hook-dependencies"></a>**Model hook Python dependencies are pinned via `uv` constraint files.** With `PREK_UV_SOURCE=none`, `prek` installs each Python hook with the locked `uv` on `PATH` inside an isolated environment:
 
-- **Runtime constraints ([model-hooks-constraints.txt](ci/model-hooks-constraints.txt), `PIP_CONSTRAINT`):** Pins runtime dependencies installed alongside hooks (`ruamel.yaml`, `rapidfuzz`, `clang-format`). Hashes are omitted here because pip's hash-checking mode rejects local directory installs (`pip install .`).
-- **Build constraints ([model-hooks-build-constraints.txt](ci/model-hooks-build-constraints.txt), `PIP_BUILD_CONSTRAINT`):** Pins isolated PEP 517 build backends (`setuptools`, `setuptools-scm`, `vcs-versioning`, `packaging`) with wheel `--hash=sha256:` digests, enforcing hash-checking mode for build dependencies.
-- **Cooldown and review:** Host CI passes both files by absolute path along with `PIP_UPLOADED_PRIOR_TO=P3D` (enforcing the [3-day release cooldown](#running-them)) and an empty `VIRTUALENV_OVERRIDE_APP_DATA` so virtualenv uses its embedded pip. `prettier` is fetched by npm using the version and registry integrity hash from its hook mirror. Review both constraint files whenever a hook revision or the locked `virtualenv` version changes. K-118 parses both files using pip's line-continuation and comment rules, requires every line to be a strict `<name>==<release>` pin (with optional `--hash=sha256:` digests and no pip flags, markers, extras, or URLs), and verifies that each pinned version matches its license entry in [THIRD-PARTY.md](../THIRD-PARTY.md).
+- **Runtime constraints ([model-hooks-constraints.txt](ci/model-hooks-constraints.txt), `UV_CONSTRAINT`):** Pins runtime dependencies installed alongside Python hooks (`rapidfuzz`, `clang-format`) with wheel `--hash=sha256:` digests for Linux `x86_64` and `aarch64`, which `uv pip install` verifies while still building each hook's local clone.
+- **Build constraints ([model-hooks-build-constraints.txt](ci/model-hooks-build-constraints.txt), `UV_BUILD_CONSTRAINT`):** Pins isolated PEP 517 build backends (`setuptools`, `setuptools-scm`, `vcs-versioning`, `packaging`) with wheel `--hash=sha256:` digests.
+- **Cooldown and review:** Host CI passes both files by absolute path along with `UV_EXCLUDE_NEWER="3 days"` (enforcing the [3-day release cooldown](#running-them)), `PREK_UV_SOURCE=none`, and `UV_PYTHON_DOWNLOADS=never`. `prettier` is fetched by npm using the version and registry integrity hash from its hook mirror. Review both constraint files whenever a hook revision or the locked `uv` version changes. K-118 parses both files using pip's line-continuation and comment rules, requires every line to be a strict `<name>==<release>` pin (with optional `--hash=sha256:` digests and no pip flags, markers, extras, or URLs), and verifies that each pinned version matches its license entry in [THIRD-PARTY.md](../THIRD-PARTY.md).
 
 [ty.toml](ty.toml) enables every ty rule at error. Its admitted tables, exact
 values and keys are declared in [the configuration schema](ty-config.schema.json);

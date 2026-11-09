@@ -72,14 +72,15 @@ def model_prepare(root: Path, names: list[str]) -> int:
     child = os.environ.copy()
     child.update({
         "UV_PROJECT_ENVIRONMENT": str(lane / "venv-model"),
-        "PRE_COMMIT_HOME": str(lane / "pre-commit"),
-        "VIRTUALENV_OVERRIDE_APP_DATA": str(lane / "virtualenv"),
-        "PIP_CONSTRAINT": str(root / "tools/ci/model-hooks-constraints.txt"),
-        "PIP_BUILD_CONSTRAINT": str(root / "tools/ci/model-hooks-build-constraints.txt"),
-        "PIP_UPLOADED_PRIOR_TO": "P3D", "SKIP": "markdown-link-check",
+        "PREK_HOME": str(lane / "prek"),
+        "PREK_UV_SOURCE": "none",
+        "UV_PYTHON_DOWNLOADS": "never",
+        "UV_CONSTRAINT": str(root / "tools/ci/model-hooks-constraints.txt"),
+        "UV_BUILD_CONSTRAINT": str(root / "tools/ci/model-hooks-build-constraints.txt"),
+        "UV_EXCLUDE_NEWER": "3 days", "SKIP": "markdown-link-check",
     })
     argv = [uv, "run", "--project", "tools", "--locked", "--exact", "--only-group", "model",
-            "--no-python-downloads", "pre-commit", "run", "--config", "model/.pre-commit-config.yaml",
+            "--no-python-downloads", "prek", "run", "--config", "model/.pre-commit-config.yaml",
             "--show-diff-on-failure", "--files", *paths]
     return subprocess.run(argv, cwd=root, env=child, check=False, timeout=1800).returncode
 

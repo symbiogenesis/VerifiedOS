@@ -7,7 +7,7 @@ dependencies = ["filelock==4.2.9", "jsonschema", "markdown-it-py==4.2.0", "PyYAM
 
 [dependency-groups]
 dev = ["ty==0.0.97", "ruff==0.17.3"]
-model = ["pre-commit==4.7.0"]
+model = ["prek==0.5.10"]
 workflows = ["zizmor==1.32.0"]
 
 [tool.uv]

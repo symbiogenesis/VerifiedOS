@@ -504,30 +504,31 @@ jobs:
             tools/uv.lock
 
       # The curated model's pre-commit hooks, as model/.pre-commit-config.yaml pins them
-      # by commit, run over model/ with the pre-commit tools/uv.lock's model group locks,
+      # by commit, run over model/ with the prek tools/uv.lock's model group locks,
       # in an environment of their own; any finding or rewrite fails the job.
       # markdown-link-check is skipped because it fetches every external link the
-      # model's Markdown names. pip installs each Python hook's dependencies at the
-      # releases tools/ci/model-hooks-constraints.txt fixes and builds its package with
-      # the hashed backends tools/ci/model-hooks-build-constraints.txt fixes, both named
-      # by absolute path because pip runs in each hook's clone, and admits no file
-      # uploaded within three days; a private app-data directory keeps each
-      # environment's pip the one the locked virtualenv embeds. prettier installs from
-      # npm on the runner's Node.js.
+      # model's Markdown names. prek runs pre-commit-hooks in-process in Rust; for
+      # Python hooks, the runner's uv (selected by PREK_UV_SOURCE=none) installs each
+      # hook's dependencies at the hashed wheels tools/ci/model-hooks-constraints.txt
+      # fixes and builds its package with the hashed backends
+      # tools/ci/model-hooks-build-constraints.txt fixes, both named by absolute path
+      # because uv runs in each hook's clone, and admits no file uploaded within three
+      # days. prettier installs from npm on the runner's Node.js.
       - name: Model hooks
         if: ${{ !cancelled() && steps.dispatch.outcome != 'failure' }}
         shell: bash
         env:
           UV_PROJECT_ENVIRONMENT: ${{ runner.temp }}/venv-model
-          PRE_COMMIT_HOME: ${{ runner.temp }}/pre-commit
-          VIRTUALENV_OVERRIDE_APP_DATA: ${{ runner.temp }}/virtualenv
-          PIP_CONSTRAINT: ${{ github.workspace }}/tools/ci/model-hooks-constraints.txt
-          PIP_BUILD_CONSTRAINT: ${{ github.workspace }}/tools/ci/model-hooks-build-constraints.txt
-          PIP_UPLOADED_PRIOR_TO: P3D
+          PREK_HOME: ${{ runner.temp }}/prek
+          PREK_UV_SOURCE: none
+          UV_PYTHON_DOWNLOADS: never
+          UV_CONSTRAINT: ${{ github.workspace }}/tools/ci/model-hooks-constraints.txt
+          UV_BUILD_CONSTRAINT: ${{ github.workspace }}/tools/ci/model-hooks-build-constraints.txt
+          UV_EXCLUDE_NEWER: 3 days
           SKIP: markdown-link-check
         run: |
           uv run --project tools --locked --exact --only-group model --no-python-downloads \
-            pre-commit run --config model/.pre-commit-config.yaml --all-files \
+            prek run --config model/.pre-commit-config.yaml --all-files \
             --show-diff-on-failure --color=always
 
   # fanout_ci.HOST_JOBS in tools/vos/fanout_ci.py owns these job names; renaming one

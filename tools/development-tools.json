@@ -32,17 +32,17 @@
       ]
     },
     {
-      "id": "pre_commit_2",
-      "tool": "pre-commit",
-      "subject": "the reviewed release",
+      "id": "prek_2",
+      "tool": "prek",
+      "subject": "the reviewed release and its licence tag",
       "reviewed": [
-        "4.7.0"
+        "0.5.10"
       ],
       "owners": [
         {
           "kind": "uv",
           "path": "tools/uv.lock",
-          "key": "pre-commit"
+          "key": "prek"
         }
       ]
     },
@@ -1142,53 +1142,8 @@
       ]
     },
     {
-      "id": "pre_commit_s_dependencies_71",
-      "tool": "pre-commit's dependencies",
-      "subject": "cfgv's locked release",
-      "reviewed": [
-        "3.5.0"
-      ],
-      "owners": [
-        {
-          "kind": "uv",
-          "path": "tools/uv.lock",
-          "key": "cfgv"
-        }
-      ]
-    },
-    {
-      "id": "pre_commit_s_dependencies_72",
-      "tool": "pre-commit's dependencies",
-      "subject": "identify's locked release",
-      "reviewed": [
-        "2.6.20"
-      ],
-      "owners": [
-        {
-          "kind": "uv",
-          "path": "tools/uv.lock",
-          "key": "identify"
-        }
-      ]
-    },
-    {
-      "id": "pre_commit_s_dependencies_73",
-      "tool": "pre-commit's dependencies",
-      "subject": "nodeenv's locked release",
-      "reviewed": [
-        "1.12.0"
-      ],
-      "owners": [
-        {
-          "kind": "uv",
-          "path": "tools/uv.lock",
-          "key": "nodeenv"
-        }
-      ]
-    },
-    {
-      "id": "pre_commit_s_dependencies_74",
-      "tool": "pre-commit's dependencies",
+      "id": "pyyaml_and_filelock_74",
+      "tool": "PyYAML and filelock",
       "subject": "PyYAML's locked release",
       "reviewed": [
         "6.0.3"
@@ -1202,38 +1157,8 @@
       ]
     },
     {
-      "id": "pre_commit_s_dependencies_75",
-      "tool": "pre-commit's dependencies",
-      "subject": "virtualenv's locked release",
-      "reviewed": [
-        "21.15.5"
-      ],
-      "owners": [
-        {
-          "kind": "uv",
-          "path": "tools/uv.lock",
-          "key": "virtualenv"
-        }
-      ]
-    },
-    {
-      "id": "pre_commit_s_dependencies_76",
-      "tool": "pre-commit's dependencies",
-      "subject": "distlib's locked release",
-      "reviewed": [
-        "0.4.4"
-      ],
-      "owners": [
-        {
-          "kind": "uv",
-          "path": "tools/uv.lock",
-          "key": "distlib"
-        }
-      ]
-    },
-    {
-      "id": "pre_commit_s_dependencies_77",
-      "tool": "pre-commit's dependencies",
+      "id": "pyyaml_and_filelock_77",
+      "tool": "PyYAML and filelock",
       "subject": "filelock's locked release",
       "reviewed": [
         "4.2.9"
@@ -1243,51 +1168,6 @@
           "kind": "uv",
           "path": "tools/uv.lock",
           "key": "filelock"
-        }
-      ]
-    },
-    {
-      "id": "pre_commit_s_dependencies_78",
-      "tool": "pre-commit's dependencies",
-      "subject": "platformdirs's locked release",
-      "reviewed": [
-        "4.14.5"
-      ],
-      "owners": [
-        {
-          "kind": "uv",
-          "path": "tools/uv.lock",
-          "key": "platformdirs"
-        }
-      ]
-    },
-    {
-      "id": "pre_commit_s_dependencies_79",
-      "tool": "pre-commit's dependencies",
-      "subject": "python-discovery's locked release",
-      "reviewed": [
-        "1.9.4"
-      ],
-      "owners": [
-        {
-          "kind": "uv",
-          "path": "tools/uv.lock",
-          "key": "python-discovery"
-        }
-      ]
-    },
-    {
-      "id": "pre_commit_s_dependencies_80",
-      "tool": "pre-commit's dependencies",
-      "subject": "packaging's locked release",
-      "reviewed": [
-        "26.3"
-      ],
-      "owners": [
-        {
-          "kind": "uv",
-          "path": "tools/uv.lock",
-          "key": "packaging"
         }
       ]
     },
@@ -1473,21 +1353,6 @@
           "kind": "pre-commit-rev",
           "path": "model/.pre-commit-config.yaml",
           "key": "https://github.com/tcort/markdown-link-check"
-        }
-      ]
-    },
-    {
-      "id": "the_model_hooks_pypi_dependencies_93",
-      "tool": "The model hooks' PyPI dependencies",
-      "subject": "ruamel.yaml's pinned release",
-      "reviewed": [
-        "0.19.1"
-      ],
-      "owners": [
-        {
-          "kind": "pip",
-          "path": "tools/ci/model-hooks-constraints.txt",
-          "key": "ruamel.yaml"
         }
       ]
     },
@@ -2424,12 +2289,12 @@
       ]
     },
     {
-      "id": "pre-commit",
-      "tool": "pre-commit",
+      "id": "prek",
+      "tool": "prek",
       "license": "`MIT`",
-      "standing": "Runs the model's hooks, which Host CI's model-hooks job runs over `model/`, all but markdown-link-check. [tools/pyproject.toml](tools/pyproject.toml) pins the runner; [tools/uv.lock](tools/uv.lock) records dependencies. The reviewed `v${pre_commit_2_0}` tag's `LICENSE`, blob `4a071fc533d4fd07dbe81e1e8f0f0998b17220be`, credits the pre-commit dev team, Anthony Sottile and Ken Struys, copyright 2014. No runner source is redistributed here.",
+      "standing": "Runs the model's hooks, which Host CI's model-hooks job runs over `model/`, all but markdown-link-check. [tools/pyproject.toml](tools/pyproject.toml)'s `model` group pins the Rust runner and [tools/uv.lock](tools/uv.lock) records its wheel hashes, with no Python runtime dependencies. The reviewed `v${prek_2_0}` tag at commit `516f5bdce9eab921021edb1c22305ad569605d50` carries [LICENSE](https://github.com/j178/prek/blob/516f5bdce9eab921021edb1c22305ad569605d50/LICENSE), blob `345dbe469e04ab68abbd523d427d4caabd80b6ad` and SHA-256 `08215c44c901c7edf78c3a2b1e02558b0646a3ffa8161be0c112acfd3fb0c100`, read on 2026-11-09 and crediting j178, copyright 2024; the wheel's metadata states `License-Expression: MIT` and carries the same file beside `licenses/LICENSE.identify.txt`, blob `0ecc5db911dadf39c600843c4646aa2b5c3a0ed7`, copyright 2017 Chris Kuehl and Anthony Sottile, and `licenses/LICENSE.pre-commit.txt`, blob `4a071fc533d4fd07dbe81e1e8f0f0998b17220be`, crediting the pre-commit dev team, Anthony Sottile and Ken Struys, copyright 2014. Its bundled CycloneDX SBOM states each statically linked Rust crate's terms, every one permissive or offering a permissive election. No runner source or executable is redistributed here.",
       "reviews": [
-        "pre_commit_2"
+        "prek_2"
       ]
     },
     {
@@ -2698,28 +2563,20 @@
       ]
     },
     {
-      "id": "pre-commit's dependencies",
-      "tool": "pre-commit's dependencies",
-      "license": "`MIT`; nodeenv `BSD-3-Clause`; distlib `PSF-2.0`; packaging `Apache-2.0 OR BSD-2-Clause`",
-      "standing": "The optional `model` group's closure, which [tools/uv.lock](tools/uv.lock) fixes. The locked wheels and release tags carry these license instruments: cfgv `v${pre_commit_s_dependencies_71_0}` `LICENSE`, blob `b7af5ef213084fe100c5bb755659ef68c14dae5b`, copyright 2018 Anthony Sottile; identify `v${pre_commit_s_dependencies_72_0}` `LICENSE`, blob `0ecc5db911dadf39c600843c4646aa2b5c3a0ed7`, copyright 2017 Chris Kuehl and Anthony Sottile; nodeenv `${pre_commit_s_dependencies_73_0}` `LICENSE`, blob `a087c8d694a12d9f113ab83e2eeb7adbfa1353cd`, copyright 2011 Eugene Kalinin; PyYAML `${pre_commit_s_dependencies_74_0}` `LICENSE`, blob `2f1b8e15e5627d92f0521605c9870bc8e5505cb4`, copyright Ingy döt Net and Kirill Simonov; virtualenv `${pre_commit_s_dependencies_75_0}` `LICENSE`, blob `99598eb01766f838b130ff04c02103c1418215e1`, and `THIRD-PARTY-NOTICES.md`, blob `458691bf6c33b95f19c30701d22e7fe598caf1ca`, which leaves its embedded pip and setuptools wheels under their own licenses, including those of the packages each vendors; distlib `${pre_commit_s_dependencies_76_0}` `LICENSE.txt`, blob `c31ac56d772f7061c8b42f0ee96063b7a94a4859`, the PSF License Version 2 with Python's historical agreements; filelock `${pre_commit_s_dependencies_77_0}` `LICENSE`, blob `291919c0b6f41d014767f6c877af9f7595fcff99`, copyright 2025 Bernát Gábor and contributors; platformdirs `${pre_commit_s_dependencies_78_0}` `LICENSE`, blob `f35fed9191b1142ddaada8a96de4a9461c5d796c`, crediting the platformdirs developers; python-discovery `${pre_commit_s_dependencies_79_0}` `LICENSE`, blob `364982344fbd94d55705e1f27a9a87abaa255333`, the MIT grant with no copyright line; and packaging `${pre_commit_s_dependencies_80_0}` `LICENSE`, blob `6f62d44e4ef733c0e713afcd2371fed7f2b3de67`, offering `LICENSE.APACHE`, blob `f433b1a53f5b830a205fd2df78e2b34974656c7b`, or `LICENSE.BSD`, blob `42ce7b75c92fb01a3f6ed17eea363f756b7da582`. nodeenv installs Node.js for pre-commit's Node hooks under Node's own terms. Nothing is redistributed here. The same reviewed filelock release is a direct host dependency for serializing Lychee and rumdl cache installation with operating-system locks. The selected wheel has the recorded LICENSE blob; no package is redistributed here. The same reviewed PyYAML release is a direct runtime dependency for composing workflow and hook YAML as source nodes without constructing objects. Its ${pre_commit_s_dependencies_74_0} LICENSE grants MIT under the recorded copyright notices; no package is redistributed here.",
+      "id": "PyYAML and filelock",
+      "tool": "PyYAML and filelock",
+      "license": "`MIT`",
+      "standing": "Direct host runtime dependencies in [tools/pyproject.toml](tools/pyproject.toml), whose wheels [tools/uv.lock](tools/uv.lock) fixes. PyYAML `${pyyaml_and_filelock_74_0}` composes workflow and hook YAML as source nodes without constructing objects; its `LICENSE`, blob `2f1b8e15e5627d92f0521605c9870bc8e5505cb4`, grants MIT under the copyright notices of Ingy döt Net and Kirill Simonov. filelock `${pyyaml_and_filelock_77_0}` serializes Lychee and rumdl cache installation with operating-system locks; its `LICENSE`, blob `291919c0b6f41d014767f6c877af9f7595fcff99`, grants MIT, copyright 2025 Bernát Gábor and contributors. Neither package is redistributed here.",
       "reviews": [
-        "pre_commit_s_dependencies_71",
-        "pre_commit_s_dependencies_72",
-        "pre_commit_s_dependencies_73",
-        "pre_commit_s_dependencies_74",
-        "pre_commit_s_dependencies_75",
-        "pre_commit_s_dependencies_76",
-        "pre_commit_s_dependencies_77",
-        "pre_commit_s_dependencies_78",
-        "pre_commit_s_dependencies_79",
-        "pre_commit_s_dependencies_80"
+        "pyyaml_and_filelock_74",
+        "pyyaml_and_filelock_77"
       ]
     },
     {
       "id": "pre-commit-hooks",
       "tool": "pre-commit-hooks",
       "license": "`MIT`",
-      "standing": "Six of the model's hooks: trailing whitespace, final newlines, YAML syntax, added large files and the two shebang checks. [model/.pre-commit-config.yaml](model/.pre-commit-config.yaml) pins each hook repository by commit. The reviewed `v${pre_commit_hooks_81_0}` revision `${pre_commit_hooks_82_0}` has `LICENSE`, blob `4a071fc533d4fd07dbe81e1e8f0f0998b17220be`, crediting the pre-commit dev team, Anthony Sottile and Ken Struys, copyright 2014. pre-commit installs the `ruamel.yaml` it requires from PyPI at the release [tools/ci/model-hooks-constraints.txt](tools/ci/model-hooks-constraints.txt) fixes, by version and not by hash, and pip builds the hook package with the setuptools [tools/ci/model-hooks-build-constraints.txt](tools/ci/model-hooks-build-constraints.txt) fixes by hash. No hook source is redistributed here.",
+      "standing": "Six of the model's hooks: trailing whitespace, final newlines, YAML syntax, added large files and the two shebang checks. [model/.pre-commit-config.yaml](model/.pre-commit-config.yaml) pins each hook repository by commit. The reviewed `v${pre_commit_hooks_81_0}` revision `${pre_commit_hooks_82_0}` has `LICENSE`, blob `4a071fc533d4fd07dbe81e1e8f0f0998b17220be`, crediting the pre-commit dev team, Anthony Sottile and Ken Struys, copyright 2014. prek executes all six hooks in-process on its built-in Rust fast path without creating a Python hook environment or installing `ruamel.yaml`. No hook source is redistributed here.",
       "reviews": [
         "pre_commit_hooks_81",
         "pre_commit_hooks_82"
@@ -2729,7 +2586,7 @@
       "id": "clang-format",
       "tool": "clang-format",
       "license": "`Apache-2.0 WITH LLVM-exception`; the hook mirror `MIT`",
-      "standing": "The model's C and C++ formatter, reading the `.clang-format` the model carries from upstream, at the reviewed release. The reviewed `v${clang_format_83_0}` revision `${clang_format_84_0}` of `pre-commit/mirrors-clang-format` has `LICENSE`, blob `1962eadb1dc3e282938003e2900440c057a74ed6`, copyright 2021 Anthony Sottile, and installs PyPI's `clang-format` wheel of the same release, which [tools/ci/model-hooks-constraints.txt](tools/ci/model-hooks-constraints.txt) also fixes, by version and not by hash; pip builds the mirror's placeholder package with the setuptools [tools/ci/model-hooks-build-constraints.txt](tools/ci/model-hooks-build-constraints.txt) fixes by hash. The wheel's metadata declares the Apache License and carries its LLVM exception and legacy NCSA notices in `LICENSE.md`, SHA-256 `73ba74dfaa520b49a401b5d21459a8523a146f3b7518a833eea5efa85130bf68`, beside the packaging's `COPYING.md`, SHA-256 `272ff22ee13e20e82c16b0d2c03bcefbc00800e3f09ae03bce52e2a367ddfaa1`, crediting Dominic Kempf, Heidelberg University and contributors, 2021; the executable is LLVM's. No hook source or executable is redistributed here.",
+      "standing": "The model's C and C++ formatter, reading the `.clang-format` the model carries from upstream, at the reviewed release. The reviewed `v${clang_format_83_0}` revision `${clang_format_84_0}` of `pre-commit/mirrors-clang-format` has `LICENSE`, blob `1962eadb1dc3e282938003e2900440c057a74ed6`, copyright 2021 Anthony Sottile, and installs PyPI's `clang-format` wheel of the same release, which [tools/ci/model-hooks-constraints.txt](tools/ci/model-hooks-constraints.txt) also fixes by hash; uv builds the mirror's placeholder package with the setuptools [tools/ci/model-hooks-build-constraints.txt](tools/ci/model-hooks-build-constraints.txt) fixes by hash. The wheel's metadata declares the Apache License and carries its LLVM exception and legacy NCSA notices in `LICENSE.md`, SHA-256 `73ba74dfaa520b49a401b5d21459a8523a146f3b7518a833eea5efa85130bf68`, beside the packaging's `COPYING.md`, SHA-256 `272ff22ee13e20e82c16b0d2c03bcefbc00800e3f09ae03bce52e2a367ddfaa1`, crediting Dominic Kempf, Heidelberg University and contributors, 2021; the executable is LLVM's. No hook source or executable is redistributed here.",
       "reviews": [
         "clang_format_83",
         "clang_format_84"
@@ -2739,7 +2596,7 @@
       "id": "Lucas-C pre-commit-hooks",
       "tool": "Lucas-C pre-commit-hooks",
       "license": "`MIT`",
-      "standing": "The model's `forbid-tabs` hook. The reviewed `v${lucas_c_pre_commit_hooks_85_0}` revision `${lucas_c_pre_commit_hooks_86_0}` of `Lucas-C/pre-commit-hooks` has `LICENSE`, blob `d91c83da8c59bce67506e253a535bc44a27ef8fb`, copyright 2019 Lucas Cimon. pre-commit installs the `rapidfuzz` it requires from PyPI at the release [tools/ci/model-hooks-constraints.txt](tools/ci/model-hooks-constraints.txt) fixes, by version and not by hash, and pip builds the hook package with the setuptools [tools/ci/model-hooks-build-constraints.txt](tools/ci/model-hooks-build-constraints.txt) fixes by hash. No hook source is redistributed here.",
+      "standing": "The model's `forbid-tabs` hook. The reviewed `v${lucas_c_pre_commit_hooks_85_0}` revision `${lucas_c_pre_commit_hooks_86_0}` of `Lucas-C/pre-commit-hooks` has `LICENSE`, blob `d91c83da8c59bce67506e253a535bc44a27ef8fb`, copyright 2019 Lucas Cimon. uv installs the `rapidfuzz` it requires from PyPI at the hashed release [tools/ci/model-hooks-constraints.txt](tools/ci/model-hooks-constraints.txt) fixes, and builds the hook package with the setuptools [tools/ci/model-hooks-build-constraints.txt](tools/ci/model-hooks-build-constraints.txt) fixes by hash. No hook source is redistributed here.",
       "reviews": [
         "lucas_c_pre_commit_hooks_85",
         "lucas_c_pre_commit_hooks_86"
@@ -2749,7 +2606,7 @@
       "id": "prettier",
       "tool": "prettier",
       "license": "`MIT`; bundled code under the terms its notices list",
-      "standing": "The model's JSON, Markdown and YAML formatter. The reviewed `v${prettier_87_0}` revision `${prettier_88_0}` of `rbubley/mirrors-prettier` has `LICENSE`, blob `d86d9ea06347dbd79c04079484155ea94fa2c3ed`, copyright 2014 Anthony Sottile, and installs npm's `prettier` of the same release. That package declares MIT; its `LICENSE`, SHA-256 `b0f2417199889f1c0d28ec4e0244eacf1a15de5819d61f641dd7d8f45153ac9c`, credits James Long and contributors, and its `THIRD-PARTY-NOTICES.md`, SHA-256 `3f58498bc5cc36173c44f33a33e2f7b30a2771274edf84bd75b8dc2d7a741dfd`, puts the bundled code under MIT, ISC, BSD-3-Clause, Apache-2.0, BSD-2-Clause and BlueOak-1.0.0 terms. pre-commit runs it on the Node.js and npm on `PATH` when both are there, and otherwise on a Node.js nodeenv downloads. The package declares no dependency, and npm checks it against the registry's integrity hash, which nothing here fixes, as nothing here fixes the Node.js or npm that install it. Nothing is redistributed here.",
+      "standing": "The model's JSON, Markdown and YAML formatter. The reviewed `v${prettier_87_0}` revision `${prettier_88_0}` of `rbubley/mirrors-prettier` has `LICENSE`, blob `d86d9ea06347dbd79c04079484155ea94fa2c3ed`, copyright 2014 Anthony Sottile, and installs npm's `prettier` of the same release. That package declares MIT; its `LICENSE`, SHA-256 `b0f2417199889f1c0d28ec4e0244eacf1a15de5819d61f641dd7d8f45153ac9c`, credits James Long and contributors, and its `THIRD-PARTY-NOTICES.md`, SHA-256 `3f58498bc5cc36173c44f33a33e2f7b30a2771274edf84bd75b8dc2d7a741dfd`, puts the bundled code under MIT, ISC, BSD-3-Clause, Apache-2.0, BSD-2-Clause and BlueOak-1.0.0 terms. prek runs it on the Node.js and npm on `PATH`. The package declares no dependency, and npm checks it against the registry's integrity hash, which nothing here fixes, as nothing here fixes the Node.js or npm that install it. Nothing is redistributed here.",
       "reviews": [
         "prettier_87",
         "prettier_88"
@@ -2759,7 +2616,7 @@
       "id": "codespell",
       "tool": "codespell",
       "license": "`GPL-2.0-only`",
-      "standing": "The model's spelling check, reading [model/.codespellrc](model/.codespellrc). The reviewed `v${codespell_89_0}` revision `${codespell_90_0}` of `codespell-project/codespell` has `COPYING`, blob `d159169d1050894d3ea3b98e1c965c4058208fe1`, the GNU General Public License version 2, and its `pyproject.toml` declares `GPL-2.0-only` and no runtime dependency. pip builds it with the setuptools, setuptools-scm, vcs-versioning and packaging [tools/ci/model-hooks-build-constraints.txt](tools/ci/model-hooks-build-constraints.txt) fixes by hash. It is run and never linked; no codespell source is redistributed here.",
+      "standing": "The model's spelling check, reading [model/.codespellrc](model/.codespellrc). The reviewed `v${codespell_89_0}` revision `${codespell_90_0}` of `codespell-project/codespell` has `COPYING`, blob `d159169d1050894d3ea3b98e1c965c4058208fe1`, the GNU General Public License version 2, and its `pyproject.toml` declares `GPL-2.0-only` and no runtime dependency. uv builds it with the setuptools, setuptools-scm, vcs-versioning and packaging [tools/ci/model-hooks-build-constraints.txt](tools/ci/model-hooks-build-constraints.txt) fixes by hash. It is run and never linked; no codespell source is redistributed here.",
       "reviews": [
         "codespell_89",
         "codespell_90"
@@ -2769,7 +2626,7 @@
       "id": "markdown-link-check",
       "tool": "markdown-link-check",
       "license": "`ISC`",
-      "standing": "The model's link check, reading [model/.markdown-link-check.config](model/.markdown-link-check.config). The reviewed `v${markdown_link_check_91_0}` revision `${markdown_link_check_92_0}` of `tcort/markdown-link-check` has `LICENSE.md`, blob `cc427a30dbef0cdd9b93bf2d0b4435cb9e91d133`, copyright 2016-2024 Thomas Cort. pre-commit installs its npm dependencies from version ranges nothing here locks. No hook source is redistributed here.",
+      "standing": "The model's link check, reading [model/.markdown-link-check.config](model/.markdown-link-check.config). The reviewed `v${markdown_link_check_91_0}` revision `${markdown_link_check_92_0}` of `tcort/markdown-link-check` has `LICENSE.md`, blob `cc427a30dbef0cdd9b93bf2d0b4435cb9e91d133`, copyright 2016-2024 Thomas Cort. Its npm dependencies come from version ranges nothing here locks, and Host CI skips the hook. No hook source is redistributed here.",
       "reviews": [
         "markdown_link_check_91",
         "markdown_link_check_92"
@@ -2778,11 +2635,10 @@
     {
       "id": "The model hooks' PyPI dependencies",
       "tool": "The model hooks' PyPI dependencies",
-      "license": "`MIT`; setuptools vendors code under `Apache-2.0`, `Apache-2.0 OR BSD-2-Clause`, the LGPL version 3, `MPL-2.0` and `BSD-3-Clause`",
-      "standing": "What pip downloads from PyPI into the model's Python hook environments when Host CI's Model hooks step runs, or a local run given that step's variables. [tools/ci/model-hooks-constraints.txt](tools/ci/model-hooks-constraints.txt) fixes the ruamel.yaml pre-commit-hooks requires and the rapidfuzz Lucas-C's hooks require, and [tools/ci/model-hooks-build-constraints.txt](tools/ci/model-hooks-build-constraints.txt) fixes by hash the build backends: setuptools for every hook package, and setuptools-scm, vcs-versioning and packaging for codespell's. The pinned wheels' license files are byte-identical to their sdists' and, where a blob is given, to the release tags': ruamel.yaml `${the_model_hooks_pypi_dependencies_93_0}` `LICENSE`, SHA-256 `3e7632bb0dc1150f15f8161f5eec48dec8a99aaa1dfc9e8f63c02931e0fba7f8`, copyright 2014-2026 Anthon van der Neut, Ruamel bvba, its source on SourceForge with no Git tag to read; rapidfuzz `v${the_model_hooks_pypi_dependencies_94_0}` `LICENSE`, blob `42c23b2103346d5439dd72582ed6d4a0d8d7b27b`, SHA-256 `f34ccdffdff56fc417785915eedf18601d5479755df3c472b2c754c29802d683`, copyright 2020-present Max Bachmann and 2011 Adam Cohen, the only license file its compiled wheel carries; setuptools `v${the_model_hooks_pypi_dependencies_95_0}` `LICENSE`, blob `1bb5a44356f00884a71ceeefd24ded6caaba2418`, SHA-256 `86da0f01aeae46348a3c3d465195dc1ceccde79f79e87769a64b8da04b2a4741`, the MIT grant with no copyright line, its wheel vendoring importlib_metadata under `Apache-2.0`, packaging under `Apache-2.0 OR BSD-2-Clause`, autocommand under the LGPL version 3 text, jaraco.context, jaraco.functools, jaraco.text, more-itertools, platformdirs, tomli, wheel, zipp and backports.tarfile under `MIT`, and validate-pyproject's generated validator and schemas under `MPL-2.0` with fastjsonschema's code under `BSD-3-Clause`, each with the license file or notice the wheel carries; setuptools-scm `${the_model_hooks_pypi_dependencies_96_0}` `setuptools-scm/LICENSE` at the `setuptools-scm-v${the_model_hooks_pypi_dependencies_97_0}` tag, blob `89de354795ec7a7cdab07c091029653d3618540d`, the MIT grant with no copyright line; vcs-versioning `${the_model_hooks_pypi_dependencies_98_0}` `vcs-versioning/LICENSE.txt` at the `vcs-versioning-v${the_model_hooks_pypi_dependencies_99_0}` tag, blob `5b48e3b8f55287d4d216e35cae477f42003bf61a`, copyright 2023-present Ronny Pfannschmidt; and packaging `${the_model_hooks_pypi_dependencies_100_0}`, whose reading is pre-commit's dependencies row's. They run only in those throwaway environments, and nothing is redistributed here.",
+      "license": "`MIT`; packaging `Apache-2.0 OR BSD-2-Clause`; setuptools vendors code under `Apache-2.0`, `Apache-2.0 OR BSD-2-Clause`, the LGPL version 3, `MPL-2.0` and `BSD-3-Clause`",
+      "standing": "What uv downloads from PyPI into the model's Python hook environments when Host CI's Model hooks step runs, or a local run given that step's variables. [tools/ci/model-hooks-constraints.txt](tools/ci/model-hooks-constraints.txt) fixes by hash the rapidfuzz Lucas-C's hooks require (beside clang-format's wheel, read in its own row above), and [tools/ci/model-hooks-build-constraints.txt](tools/ci/model-hooks-build-constraints.txt) fixes by hash the build backends: setuptools for every hook package, and setuptools-scm, vcs-versioning and packaging for codespell's. The pinned wheels' license files are byte-identical to their sdists' and, where a blob is given, to the release tags': rapidfuzz `v${the_model_hooks_pypi_dependencies_94_0}` `LICENSE`, blob `42c23b2103346d5439dd72582ed6d4a0d8d7b27b`, SHA-256 `f34ccdffdff56fc417785915eedf18601d5479755df3c472b2c754c29802d683`, copyright 2020-present Max Bachmann and 2011 Adam Cohen, the only license file its compiled wheel carries; setuptools `v${the_model_hooks_pypi_dependencies_95_0}` `LICENSE`, blob `1bb5a44356f00884a71ceeefd24ded6caaba2418`, SHA-256 `86da0f01aeae46348a3c3d465195dc1ceccde79f79e87769a64b8da04b2a4741`, the MIT grant with no copyright line, its wheel vendoring importlib_metadata under `Apache-2.0`, packaging under `Apache-2.0 OR BSD-2-Clause`, autocommand under the LGPL version 3 text, jaraco.context, jaraco.functools, jaraco.text, more-itertools, platformdirs, tomli, wheel, zipp and backports.tarfile under `MIT`, and validate-pyproject's generated validator and schemas under `MPL-2.0` with fastjsonschema's code under `BSD-3-Clause`, each with the license file or notice the wheel carries; setuptools-scm `${the_model_hooks_pypi_dependencies_96_0}` `setuptools-scm/LICENSE` at the `setuptools-scm-v${the_model_hooks_pypi_dependencies_97_0}` tag, blob `89de354795ec7a7cdab07c091029653d3618540d`, the MIT grant with no copyright line; vcs-versioning `${the_model_hooks_pypi_dependencies_98_0}` `vcs-versioning/LICENSE.txt` at the `vcs-versioning-v${the_model_hooks_pypi_dependencies_99_0}` tag, blob `5b48e3b8f55287d4d216e35cae477f42003bf61a`, copyright 2023-present Ronny Pfannschmidt; and packaging `${the_model_hooks_pypi_dependencies_100_0}` `LICENSE`, blob `6f62d44e4ef733c0e713afcd2371fed7f2b3de67`, offering `LICENSE.APACHE`, blob `f433b1a53f5b830a205fd2df78e2b34974656c7b`, or `LICENSE.BSD`, blob `42ce7b75c92fb01a3f6ed17eea363f756b7da582`. They run only in those throwaway environments, and nothing is redistributed here.",
       "reviews": [
         "the_model_hooks_pypi_dependencies_100",
-        "the_model_hooks_pypi_dependencies_93",
         "the_model_hooks_pypi_dependencies_94",
         "the_model_hooks_pypi_dependencies_95",
         "the_model_hooks_pypi_dependencies_96",

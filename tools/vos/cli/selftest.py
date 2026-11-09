@@ -1397,7 +1397,8 @@ CASES: list[Case] = [
      _first_match("tools/ci/model-hooks-constraints.txt", r"\Z",
                   lambda _: "unreviewed-dependency==1.0.0\n")),
     ("K-118", "a hook dependency pin a continued marker leaves applying nowhere",
-     _first_match("tools/ci/model-hooks-constraints.txt", r"^([A-Za-z0-9._-]+==[^\s\\]+)\n",
+     _first_match("tools/ci/model-hooks-constraints.txt",
+                  r"^([A-Za-z0-9._-]+==[^\s\\]+(?: \\\n[ \t]+--hash=sha256:[0-9a-f]{64})*)\n",
                   lambda m: f"{m[1]} \\\n    ; sys_platform == \"never\"\n")),
 
     ("K-80", "a component's licence text named at a path the repository does not carry",
