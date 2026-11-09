@@ -2942,6 +2942,12 @@ controls remain required. Run focused `test_runner` and `test_fanout` controls,
 static analysis and the local fanout handoff; the user owns hosted acceptance.
 Implementation starts after this predicate is committed.
 
+Implemented locally: runner failures retain tracebacks and skipped-case reasons;
+binary handoffs retain reviewable identities and exact bytes. Focused runner and
+fanout controls pass. The `tooling-review-20261109` fanout journal records the
+settled local revision, final preparation and full hosted recommendations;
+hosted acceptance remains user-managed and pending.
+
 ## C modernization
 
 Modernize active authored C declarations, initialization and compile-time checks within selected compiler/proof interfaces and the admitted scalar profile. Host acceptance alone does not establish CompCert/Clight target support for VST.

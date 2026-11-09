@@ -63,7 +63,9 @@ full local suite or replace hosted acceptance.
 
 To commit integrator edits through the tool, pass repeatable `--path <file>` with
 `--message <message>` to `finish`. It prints status and selected diffs, stages only
-the named files, and includes them in the checker corpus before repair. If a repair
+the named files, and includes them in the checker corpus before repair. New UTF-8
+files have a text preview; a new file that cannot be decoded as UTF-8 has its byte
+count and SHA-256 shown instead. If a repair
 changes another file, a required co-read is unresolved, or the index already has
 staged changes, resolve that explicitly before resuming. No command performs
 co-read blessing or decides that an external acceptance check passed.

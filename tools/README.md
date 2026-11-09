@@ -676,7 +676,10 @@ the suite, and the evidence sweep sums their tallies.
 in separate spawned processes, isolating their environment overrides, patches and
 redirected output. Workers may run later modules, so tests still restore temporary
 state. Cases within a module remain sequential, and reports
-retain module order, including captured output when a module fails.
+retain module order, including captured output when a module fails. Case and
+module-load failures include their tracebacks. Reports count skipped cases by
+slow/lane restrictions and explicitly identify modules with no selected cases;
+intentional empty shard shares keep their existing successful verdict.
 `test --jobs N` limits concurrent workers; the default uses
 available CPUs up to eight. Imports happen inside each worker, so test callbacks
 may be closures without requiring serialization.
