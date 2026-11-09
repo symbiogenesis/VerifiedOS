@@ -30,9 +30,10 @@ The [composition recipe schema](fixed-composition.schema.json) takes
 artifact root. Each memory region declares its base, size, memory class and
 writable/executable permissions. Composition checks context agreement, alignment,
 address bounds, nonoverlapping package spans and compatible memory placement.
-The emitted ELF's complete loadable contents, physical addresses, permissions
-and entry are checked against the artifacts before atomic publication. The
-transport request and composition recipe run no package scripts.
+The emitted ELF's complete loadable contents, physical addresses and permissions
+are checked against the artifacts before atomic publication. Its entry must equal
+the placed entry of the recipe's selected artifact; another package's valid entry
+is refused. The transport request and composition recipe run no package scripts.
 
 [The admission coordinator](../vos/package_admission.py) separately supports
 package-local proof reuse. Its prior checked set must authenticate to the trusted
@@ -47,7 +48,9 @@ join and resident qualification retain their existing implementation owners.
 Focused controls are `test --only test_package_artifacts`,
 `test --only test_package_admission`, and `test --only test_fixed_composition`.
 They include two layouts from one assembled fixture, a two-package update across
-simulated reboot, stale-context invalidation and corrupt-state/image refusals.
+simulated reboot, selection of either package's entry, peer-entry substitution
+without replacing an existing image, stale-context invalidation and
+corrupt-state/image refusals.
 
 ## Typed graph reference
 
