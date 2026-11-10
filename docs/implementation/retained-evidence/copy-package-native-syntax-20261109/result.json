@@ -1,0 +1,28 @@
+{
+  "command": [
+    "/usr/bin/aarch64-linux-gnu-gcc-15",
+    "-std=c17",
+    "-O1",
+    "-Wall",
+    "-Wextra",
+    "-Wstrict-prototypes",
+    "-Werror",
+    "-pedantic",
+    "-fsyntax-only",
+    "-I",
+    "/root/build/lane-close-20261109-copy/standalone-native-syntax/sources/include",
+    "/root/build/lane-close-20261109-copy/standalone-native-syntax/sources/src/package_unit.c"
+  ],
+  "compiler": "/usr/bin/aarch64-linux-gnu-gcc-15",
+  "compiler_sha256": "5b06a5b85cab901e2af3e8f351a6d4e8e6a93af24797bd8c01e5391ac6b4e63b",
+  "compiler_version": "aarch64-linux-gnu-gcc-15 (Ubuntu 15.2.0-16ubuntu1) 15.2.0\nCopyright (C) 2025 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n",
+  "format": "verifiedos-copy-package-native-syntax-control-1",
+  "production_admission": false,
+  "returncode": 0,
+  "root": "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/close-20261109-copy",
+  "scope": "strict native C syntax only",
+  "source_record_sha256": "97bdfc53cf7ff6caf308f333d22021bd729523d17387ba740ee2a8313ffbbd58",
+  "stderr": "",
+  "stdout": "",
+  "target_emission": false
+}
