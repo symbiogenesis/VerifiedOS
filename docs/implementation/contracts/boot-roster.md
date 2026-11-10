@@ -501,6 +501,17 @@ tests as unrun. These observations supply no complete model qualification,
 qualified compiler, real-roster admission or final target acceptance; other
 target commands retain their complete model-build receipt contracts.
 
+The current-source checkpoint passes capture and replay at both translated
+layouts on emulator SHA-256
+`bb7b378486e54f865e78523dccb685c74ce55f9adaa40390d9e5e52304d44195`.
+The focused receipt is revalidated before and after the observations. With
+assembly disabled after construction, a coherently rebuilt controller that skips
+the worker refuses despite HTIF success, and a changed worker initializer causes
+target failure; neither control replaces reviewed expectations. Native summary
+SHA-256 `69f70e1cc2689206105ef70c0e3c725383b17b1e8674dda3d584e4685425d351`
+and exported receipt/source identities remain with the local fan-out handoff.
+Bundled model tests and complete model qualification remain pending.
+
 ## 7. Exit codes
 
 `0` is a composition or run that met every check. `1` is a refusal this contract names.

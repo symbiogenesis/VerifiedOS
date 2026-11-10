@@ -163,6 +163,56 @@ def _population_and_configuration() -> None:
         ensure(subject.prepare(at.build, at.source, original), "missing prior header allowed reuse")
 
 
+def _optional_tool_selection() -> None:
+    with fixture() as at:
+        cache = at.build / "CMakeCache.txt"
+        baseline = cache.read_text(encoding="utf-8")
+        for name in subject._OPTIONAL_TOOLS:
+            absent = ((None, "", "NOTFOUND", f"{name}-NOTFOUND")
+                      if name in subject._DISCOVERED_TOOLS else (None, ""))
+            for value in absent:
+                cache.write_text(baseline + (f"{name}:FILEPATH={value}\n" if value is not None else ""),
+                                 encoding="utf-8")
+                current = subject.configured(at.build, at.source)
+                ensure(name not in current["tools"], "unselected optional tool became a required input")
+                ensure(str(cache) in current["files"], "optional tool cache was not bound")
+                subject.validate(current)
+            selected = at.root / (name.lower() + ".native")
+            selected.write_bytes(b"\x7fELF" + name.encode())
+            cache.write_text(baseline + f"{name}:FILEPATH={selected}\n", encoding="utf-8")
+            current = subject.configured(at.build, at.source)
+            ensure(current["tools"][name] == str(selected)
+                   and str(selected) in current["files"], "selected optional tool was not bound")
+            before = _change(selected)
+            _refuses(subject.validate, current)
+            selected.write_bytes(before)
+            invalid = ["unavailable-relative-native-tool", str(at.root / "absent-tool")]
+            if name not in subject._DISCOVERED_TOOLS:
+                invalid.extend(("NOTFOUND", f"{name}-NOTFOUND"))
+                sentinel = at.root / "wrapper-NOTFOUND"
+                sentinel.write_bytes(b"\x7fELFlauncher")
+                invalid.append(str(sentinel))
+                literal = at.root / "NOTFOUND"
+                literal.write_bytes(b"\x7fELFliteral launcher")
+                cache.write_text(baseline + f"{name}:FILEPATH={literal}\n", encoding="utf-8")
+                bound = subject.configured(at.build, at.source)
+                ensure(bound["tools"][name] == str(literal) and str(literal) in bound["files"],
+                       "existing literal-NOTFOUND launcher escaped native binding")
+                before = _change(literal)
+                _refuses(subject.validate, bound)
+                literal.write_bytes(before)
+            for value in invalid:
+                cache.write_text(baseline + f"{name}:FILEPATH={value}\n", encoding="utf-8")
+                with patch.object(subject.shutil, "which", return_value=None):
+                    _refuses(subject.configured, at.build, at.source)
+        for name in subject._TOOLS:
+            for value in ("NOTFOUND", f"{name}-NOTFOUND", ""):
+                original = str(at.tools[name])
+                cache.write_text(baseline.replace(f"{name}:FILEPATH={original}\n",
+                                                 f"{name}:FILEPATH={value}\n"), encoding="utf-8")
+                _refuses(subject.configured, at.build, at.source)
+
+
 def _nested_solver_environment() -> None:
     with fixture() as at:
         solver = at.root / "solver-bin"
@@ -282,6 +332,7 @@ def _preferred_native_fixture() -> None:
 def cases() -> list[Case]:
     return [Case("native tools, sources, headers and libraries bind bytes despite old mtimes", _content_and_reuse),
             Case("native dependency population and configured compiler identity", _population_and_configuration),
+            Case("optional CMake tool absence and actual selections remain distinct", _optional_tool_selection),
             Case("nested solver preparation preserves native input identity", _nested_solver_environment),
             Case("malformed native identity and failed discovery refuse", _malformed_and_failed_discovery),
             Case("fresh native builds and generated intermediate ownership", _fresh_and_generated),
