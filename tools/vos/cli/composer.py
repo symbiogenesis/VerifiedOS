@@ -5,7 +5,14 @@ import argparse
 import json
 from pathlib import Path
 
-from vos import composer, composition_staged, corpus, fixed_composition, source_bindings
+from vos import (
+    composer,
+    composition_mmode,
+    composition_staged,
+    corpus,
+    fixed_composition,
+    source_bindings,
+)
 from vos import composition as production
 
 
@@ -110,6 +117,10 @@ def main(argv: list[str] | None = None) -> int:
     products = commands.add_parser("export-staged-boot-products", suggest_on_error=True, help="export inspected normal-stage product identities")
     products.add_argument("source")
     products.add_argument("--output", required=True)
+    mmode = commands.add_parser("export-staged-mmode", suggest_on_error=True, help="export complete retained M-mode stage bytes with unresolved installed mapping")
+    mmode.add_argument("source")
+    mmode.add_argument("--products", required=True)
+    mmode.add_argument("--output", required=True)
     select = commands.add_parser("check-staged-boot-product", suggest_on_error=True, help="replay a retained product selection against actual bytes")
     select.add_argument("source")
     select.add_argument("--products", required=True)
@@ -159,6 +170,12 @@ def main(argv: list[str] | None = None) -> int:
         if args.command == "export-staged-boot-products":
             record = composition_staged.export_boot_products(root, args.source, args.output)
             print(json.dumps({"output": args.output, "products": record["products"],
+                              "production_admission": False, "final_target_acceptance": False}, indent=2))
+            return 0
+        if args.command == "export-staged-mmode":
+            record = composition_mmode.export_mmode(root, args.source, args.products, args.output)
+            print(json.dumps({"output": args.output, "member": record["member"],
+                              "payload": record["payload"], "installed_mapping": record["installed_mapping"],
                               "production_admission": False, "final_target_acceptance": False}, indent=2))
             return 0
         if args.command == "check-staged-boot-product":
