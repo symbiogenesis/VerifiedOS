@@ -55,7 +55,31 @@ static int run_domain(uint32_t slot)
     struct vos_resident_handle handles[VOS_RESIDENT_HOLDERS];
     for (uint32_t h = 0; h < VOS_RESIDENT_HOLDERS; ++h)
         REQUIRE(vos_resident_admit(&owner, h, domain, &identity, 8u * h, 32u,
-                                   1u, 90u, &handles[h]));
+                                   1u, h == 0 ? 4u : 90u, &handles[h]));
+    uint64_t pending[VOS_RESIDENT_HOLDERS] = {0};
+    for (uint32_t h = 0; h < VOS_RESIDENT_HOLDERS; ++h)
+        REQUIRE(vos_resident_begin(&owner, &handles[h], domain, 3u, 16u,
+                                   2u, &pending[h]));
+    REQUIRE(vos_resident_renew(&owner, &handles[0], domain, 2u, 95u));
+    uint8_t renewed_output[16] = {0};
+    size_t renewed_length = 0;
+    REQUIRE(vos_resident_complete(&owner, &handles[0], domain, pending[0], 5u,
+                                  vos_storage_verify_admitted_resident, &receipt,
+                                  renewed_output, sizeof(renewed_output), &renewed_length));
+    REQUIRE(renewed_length == sizeof(renewed_output) &&
+            memcmp(renewed_output, payload + 3u, renewed_length) == 0);
+    const struct vos_resident_handle closed = handles[1];
+    REQUIRE(vos_resident_close(&owner, &closed, domain));
+    renewed_length = 999u;
+    REQUIRE(!vos_resident_complete(&owner, &closed, domain, pending[1], 5u,
+                                   vos_storage_verify_admitted_resident, &receipt,
+                                   renewed_output, sizeof(renewed_output), &renewed_length));
+    REQUIRE(renewed_length == 999u && !owner.pending[1].active && owner.common.occupied);
+    REQUIRE(vos_resident_admit(&owner, 1u, domain, &identity, 8u, 32u,
+                               5u, 90u, &handles[1]));
+    REQUIRE(handles[1].token > closed.token &&
+            !vos_resident_close(&owner, &closed, domain) &&
+            !vos_resident_renew(&owner, &closed, domain, 5u, 95u));
     const struct vos_resident_common common = owner.common;
     for (uint32_t n = 0; n < 24u; ++n) {
         const uint32_t h = n % VOS_RESIDENT_HOLDERS;
@@ -63,8 +87,8 @@ static int run_domain(uint32_t slot)
         uint8_t output[16] = {0};
         size_t length = 0u;
         REQUIRE(vos_resident_begin(&owner, &handles[h], domain, 3u, sizeof(output),
-                                   2u, &sequence));
-        REQUIRE(vos_resident_complete(&owner, &handles[h], domain, sequence, 3u,
+                                   6u, &sequence));
+        REQUIRE(vos_resident_complete(&owner, &handles[h], domain, sequence, 7u,
                                       vos_storage_verify_admitted_resident, &receipt,
                                       output, sizeof(output), &length));
         REQUIRE(length == sizeof(output) &&

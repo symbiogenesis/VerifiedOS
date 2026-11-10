@@ -117,8 +117,35 @@ int vos_resident_admit(struct vos_resident_owner *o, uint32_t holder,
     PUT(o, VOS_RESIDENT_COMMON, c->next_token, h.token);
     PUT(o, VOS_RESIDENT_COMMON, c->reservation[holder].handle, h);
     PUT(o, VOS_RESIDENT_COMMON, c->reservation[holder].expires, expires);
+    PUT(o, VOS_RESIDENT_COMMON, c->reservation[holder].renewed, 0U);
     PUT(o, VOS_RESIDENT_COMMON, c->reservation[holder].live, 1U);
     PUT(o, VOS_RESIDENT_RESPONSE, *output, h);
+    return 1;
+}
+
+int vos_resident_renew(struct vos_resident_owner *o,
+                       const struct vos_resident_handle *h, uint64_t domain,
+                       uint64_t now, uint64_t expires)
+{
+    if (o == 0 || !authority(o, h, domain, now)) return 0;
+    struct vos_resident_reservation *r = &o->common.reservation[h->holder];
+    if (r->renewed >= VOS_RESIDENT_RENEWALS || expires <= r->expires ||
+        expires > o->common.limit) return 0;
+    PUT(o, VOS_RESIDENT_COMMON, r->expires, expires);
+    PUT(o, VOS_RESIDENT_COMMON, r->renewed, r->renewed + 1U);
+    return 1;
+}
+
+int vos_resident_close(struct vos_resident_owner *o,
+                       const struct vos_resident_handle *h, uint64_t domain)
+{
+    if (o == 0 || h == 0 || h->holder >= VOS_RESIDENT_HOLDERS) return 0;
+    const uint32_t holder = h->holder;
+    struct vos_resident_reservation *r = &o->common.reservation[holder];
+    if (!r->live || domain != r->handle.identity.domain ||
+        !handle_equal(h, &r->handle)) return 0;
+    PUT(o, VOS_RESIDENT_PRIVATE, o->pending[holder].active, 0U);
+    PUT(o, VOS_RESIDENT_COMMON, r->live, 0U);
     return 1;
 }
 
