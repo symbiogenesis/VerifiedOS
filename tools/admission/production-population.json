@@ -1,0 +1,40 @@
+{
+  "schema_version": 1,
+  "members": [
+    {
+      "member": "rot-firmware",
+      "route": "bootstrap-release",
+      "requirements": ["R-05-091", "R-06-007"]
+    },
+    {
+      "member": "mmode-firmware",
+      "route": "bootstrap-release",
+      "requirements": ["R-05-091", "R-06-007"]
+    },
+    {
+      "member": "kernel",
+      "route": "tcb-release",
+      "requirements": ["R-06-001", "R-06-004"]
+    },
+    {
+      "member": "supervisor",
+      "route": "unresolved",
+      "requirements": ["R-06-001", "R-06-023"]
+    },
+    {
+      "member": "crypto-core",
+      "route": "tcb-release",
+      "requirements": ["R-06-001", "R-06-003", "R-06-004"]
+    },
+    {
+      "member": "storage",
+      "route": "unresolved",
+      "requirements": ["R-06-005", "R-06-006"]
+    },
+    {
+      "member": "copy-service",
+      "route": "checker-admitted",
+      "requirements": ["R-06-023", "R-12-001"]
+    }
+  ]
+}
