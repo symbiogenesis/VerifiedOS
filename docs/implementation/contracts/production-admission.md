@@ -21,9 +21,9 @@ Before implementation expands, the M7.1 integrator records these owner decisions
 
 | Owner | Decision and handoff needed by M7.1c |
 | --- | --- |
-| M7.1a with M7.1d | Select a real member's final installed objects and export their concrete layout, entry points, initializer, immutable tables and wiring from the same composition/build revision. Identify how that export corresponds to the harness image. |
+| M7.1a with M7.1d | Select a real post-bootstrap member eligible for checker admission and export its final installed objects, concrete layout, entry points, initializer, immutable tables and wiring from the same composition/build revision. Identify how that export corresponds to the harness image. Pre-admission firmware remains a boot/release-proof input under R-05-091, not the first admitted member. |
 | M7.1c, with the R-18-018(b) TAL workstream | Identify the pinned executable `cheri-rv64` profile, its machine-term/decoder identities, complete rule table and checked metatheory; assign and price absent construction before opening it. The language prose and the demo metadata are insufficient inputs. |
-| Each roster member's executable owner, joined by M7.1a | Assign its actual tier, emit the canonical typing derivation for those installed objects, and provide its fixed-artifact source-correspondence theorem, placement contract and required tier evidence. The member's producer owns missing derivation generation; M7.1c owns concrete-layout and package-local checking. |
+| Each eligible admitted member's executable owner, joined by M7.1a | Assign its actual tier, emit the canonical typing derivation for those installed objects, and provide its fixed-artifact source-correspondence theorem, placement contract and required tier evidence. The member's producer owns missing derivation generation; M7.1c owns concrete-layout and package-local checking. Bootstrap/TCB members retain their release-proof route. |
 | M1.4 and Q2c's `artifact-admission` foundation owner | Resolve the covering-instrument decision and actual post-CompCert correspondence records. U-26 scopes a decision and one record's shape; it does not supply the producer or records. |
 | M7.1c integrator | Select the composition-time CIC consumer for actual correspondence/tier terms and the trusted current-state adapter for authenticated verdict reuse, including their committed environment, assumption audit and resource contract. An unrelated successful proof-gate receipt cannot stand for that check or supply a prior-state root. |
 
@@ -122,7 +122,7 @@ Finite comparisons are useful implementation evidence and discharge neither proo
 
 ## Complete retained M-mode export checkpoint
 
-The first byte-export candidate is the complete normal `mmode-firmware` stage
+The retained firmware byte-export candidate is the complete normal `mmode-firmware` stage
 from [the retained chain](../../../firmware/chain/target/manifest.json), owned by
 M3.5 and selected through M7.1d's
 [retained-product adapter](../../../tools/composer/README.md#retained-boot-producer-adapter).
@@ -149,9 +149,12 @@ loads the entire M-mode window as writable and executable. The export preserves
 that actual harness permission observation and reports the installed-object
 mapping as unresolved; it must not silently claim the split text/data permissions
 are those of the loaded window. M7.1a/d must supply a real immutable-image and
-initializer mapping, entry/wiring distribution and final-image connection before
-this candidate becomes the first installed-member admission case. M3.5 retains
-the actual firmware integration, and Q39 retains compiler qualification.
+initializer mapping, entry/wiring distribution and final-image connection for
+the firmware boot/release-proof handoff. R-05-091 places M-mode firmware outside
+the admitted set: completing that mapping cannot make it the first checker-admitted
+member. M3.5 retains actual firmware integration and its Tier-0 proof; Q39 retains
+compiler qualification. The [installed-authority disposition](fixed-packages.md#retained-boot-firmware-and-installed-authority)
+separates loaded permissions from the actual reset and handoff authority.
 
 `composer export-staged-mmode SOURCE --products CATALOG --output REPORT` replays
 the existing historical candidate and product catalog, selecting only the
@@ -189,10 +192,79 @@ of unchanged inputs is byte-identical. These finite host checks establish the
 export only; decoded instruction coverage, concrete TAL/CIC checking, production
 mapping and qualified target acceptance retain the preceding owners.
 
+## First-case eligibility and consumer disposition
+
+The first checker-admitted case must come from the post-bootstrap admitted set.
+[R-05-091](../../requirements-register.md#512-no-ambient-state) explicitly puts the
+pre-admission boot substrate and M-mode firmware outside that set, carrying the
+no-ambient-state obligation as ordinary Tier-0 proof over statically planned
+state. [The TCB boundary](../../spec.md#6-trusted-computing-base-exhaustive)
+likewise excludes a checker-admitted TCB category (R-06-004, R-06-015c). This does
+not remove firmware's binary-level release proofs, source correspondence or
+universal capability restrictions. The complete retained export remains useful
+for its boot and image-construction obligations; its byte availability does not
+supply eligibility for install-path admission.
+
+The [production input join](../../../tools/admission/README.md#production-input-join)
+currently projects every runtime roster member, including boot/TCB members, into
+its metadata request. [Its record constructor](../../../tools/vos/admission_production.py#make_record)
+always emits a refused generation, and even a supplied derivation never becomes
+a checked proof. That refusal is valid input-binding evidence; the projected
+runtime census is not a definition of the checker-admitted set. Before a
+production consumer can accept, M7.1c with the composition owner must separate
+the release/bootstrap proof obligations from the actual checker-admitted
+population under the register. The existing fixture/reference decisions and
+request schema remain unchanged by this eligibility review; that semantic and
+schema connection needs its own landed predicate and controls.
+
+The next actual runtime export request is `copy-service`, owned by M7.1e with
+M7.1a/d owning the standalone installed-object and image join. Its
+[source inventory](../../../tools/composer/packages/copy-service.json) identifies
+the existing core and target adapters, and its
+[executable boundary](../../../copy-service/README.md#executable-boundary)
+retains the caller-owned ring and authority obligations. This is a request for
+that member's missing producer handoff, not selection of an available admitted
+package or a smallest-member claim. The
+[scalar join](../../../tools/vos/scalar_join.py#source) embeds the compiled copy
+stream, atomic/notification adapters and partition entry in a shared kernel and
+supervisor image. The
+[compiled unit](../../../copy-service/test/target_unit.c) also includes the target
+comparison implementation. A symbol-delimited slice of that harness, the source
+inventory alone or a successful component replay does not establish a standalone
+member's complete installed executable population.
+
+Before selecting it as the first case, M7.1e supplies the complete emitted
+member under a declared standalone build recipe, with an explicit disposition of
+comparison-only code and all required runtime adapters. Lawful producer-side dead
+elimination remains permitted by the fixed-package construction contract; the
+export must cover that recipe's entire emitted population rather than select a
+reachable slice of the shared harness after the fact.
+M7.1a/d connect that product's entire code/rodata and initializer extents, entry
+set, immutable tables and initial capability wiring to the final installed image,
+with its source closure and actual producer identity. The same artifact must
+have a supported placement contract before a translated-layout claim is made.
+The composition owner assigns the real assurance tier; the fixture tiers in
+`AdmissionPath.v` supply no assignment. Missing output returns to these owners
+before certificate generation or a production verdict is attempted.
+
+The available consumers have the following concrete boundaries:
+
+| Required input | Source reading and disposition | Next owner |
+| --- | --- | --- |
+| Executable TAL profile, decoder, rule table and metatheory | [The language status](../../languages/typed-assembly-language.md#15-status) leaves the type system, checker and soundness proof unbuilt. [The certificate carrier](../../../proofs/AdmissionPath.v#Cert) contains versions, an artifact binding and judgment/move/facet/site metadata; [the host decision](../../../tools/vos/admission.py#decide) checks that metadata. [The assembler](../../../tools/vos/dialect.py#encode) encodes selected mnemonic rows; [the excluded-mnemonic matcher](../../../tools/vos/decode.py#encoder_rows) does not decode installed bytes. None supplies TAL-045's independent decoder or the rule-table judgment. | R-18-018(b) owns construction and its estimate before M7.1c consumes it. |
+| Concrete member certificate and source correspondence | The inventory and shared-harness product above contain no canonical TAL derivation or theorem connecting the complete installed member to its exact source closure. [The artifact-admission foundation](../../assurance/unassigned-proof-map.md#5-the-closing-proofs) leaves the post-CompCert instrument and per-image records with their named owners; U-26's proposed record shape is not a producer. | M7.1e supplies the member derivation; M1.4/Q2c's artifact-admission owner supplies the correspondence instrument and record; M7.1a/d supply the actual installed mapping. |
+| Actual CIC consumer for package and fresh linkage terms | [The reuse coordinator](../../../tools/vos/package_admission.py#Checkers) receives package, layout, linkage, generation and current-context checks as caller callbacks. [The CIC corpus reader](../../../tools/vos/cic_corpus.py#Constant) records queried declaration metadata and is no proof-term consumer. [The CIC qualification](../../assurance/cic-checker-qualification.md) retains the actual checker, serialized-term connection, assumptions and bounded-refinement requirements. A normal repository proof-gate receipt does not check the required artifact-local proposition on this install path. | M7.1c selects and binds the actual composition-time consumer; M6.2b retains its deferred checker-foundation and native implementation duties. |
+| Authenticated current-state reuse | [CurrentGeneration](../../../tools/vos/package_admission.py#CurrentGeneration) is a protocol for an externally supplied protected root. [Restoration](../../../tools/vos/package_admission.py#restore) verifies saved bytes against that supplied root; it does not obtain the root from an admitted generation or commit a successor transaction. The callbacks and root exercised in the host tests are fixtures. | M7.1c/M6.10 supply the trusted current-generation and authenticated transaction adapters. |
+
+These readings return specific missing inputs. They do not commission the TAL
+foundation, a new proof consumer or a permissive production checker under M7.1c's
+existing integration estimate. The first-case selection stays open until an
+eligible complete member and those consumers are available.
+
 ## First executable case and acceptance
 
-1. Freeze one actual roster member's complete emitted instruction population,
-   installed-object export, assigned tier and certificate inputs. Select the
+1. Freeze one eligible post-bootstrap roster member's complete emitted instruction
+   population, installed-object export, assigned tier and certificate inputs. Select the
    smallest available member whose whole population can be covered; a handwritten
    fixture or selected instructions from a larger member cannot be that case.
 2. Review the profile/decoder/rule and proof-consumer handoff above. If a required
