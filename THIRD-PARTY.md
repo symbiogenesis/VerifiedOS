@@ -651,6 +651,39 @@ instrument is the existing `427291b5` llama.cpp pin above, with the root license
 and applicable dependency notices at that exact checkout. This use
 adds a static comparator, not an admitted inference runtime or a target rate.
 
+### Contained compiler observer
+
+Q39's [private distribution-tool prerequisite](docs/implementation/contracts/contained-checker-observation.md#private-distribution-tool-prerequisite)
+owns the exact Ubuntu archive, signed-index and package identities selected on
+2026-11-09. The checksum-verified packages' own
+`usr/share/doc/<package>/copyright` files were read before executable adoption.
+`linux-perf` 7.0.0-43.43 states GPL version 2, with copyright-file SHA-256
+`4ab34baa23c94237ffef144c80348b982d2d8e814c46b3a6a3538a706ef26114`.
+
+The `libdw1t64`, `libdebuginfod1t64` and `libdebuginfod-common` 0.194-4 notices
+share SHA-256
+`2409860c86675ab33f8ad22480608faf849cbc2559d6478f708c23c508a1dbf2`.
+They give the elfutils libraries, backends, configuration and debuginfod code
+`LGPL-3.0-or-later OR GPL-2.0-or-later`, with the source population's GPL-3.0-or-later,
+glibc-derived headers' LGPL-2.1-or-later, parser's Bison exception and manual's
+GFDL-1.3-or-later without invariant-section notices retained in the reading.
+`libnuma1` 2.0.19-1build1's notice, SHA-256
+`179c34f5e56cd0b6b73dd7970a97357ee784e2236e8293826656c7ebb3bface7`,
+distinguishes the LGPL version 2.1 library from GPL version 2 numactl/demo code.
+`libtraceevent1` 1:1.8.7-1's notice, SHA-256
+`dfe0087e71481d9a146c4edf8caaf57d6b5364d709f4d0b1125976302df93e67`,
+gives the library LGPL-2.1 with separately listed GPL-2.0 build, header and plugin
+files. Package-level notices do not erase these file-level distinctions.
+
+The intended use is a separate native diagnostic executable and its runtime
+libraries, extracted privately under the assigned build lane for the bounded
+independent observation controls. No source, package, executable, library or
+debugger data is conveyed in this tree, linked into an authored deliverable or
+installed into a shared toolchain. Native evidence retains the exact own notices
+and acquisition records. A different package population or distribution requires
+a new reading; these terms supply no unwind, kernel-compatibility or compiler
+qualification verdict.
+
 ## Read ahead of a later milestone
 
 These reviews support future incorporation decisions in the [implementation plan](PLAN.md). No candidate source is vendored or fetched here. Existing RTL and cryptography references are identified in [the submodule table](#pinned-as-submodules). Review the applicable terms at the milestone that would incorporate a component.
