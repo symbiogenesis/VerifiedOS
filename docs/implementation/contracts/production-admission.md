@@ -379,6 +379,24 @@ and evidence obligations. Missing implementation or separation returns to those
 owners for scope and pricing before construction. Until that handoff exists,
 the combined `storage` slot retains `unresolved` and its explicit blocker.
 
+The bound refusal keeps that unresolved slot and separately names the missing
+installed filesystem boundary (M5.3d/M7.1a/d, R-06-006), protected integrity-reader
+boundary (M5.3d/M7.1a/d, R-06-005), and A/B-transactor boundary
+(M5.4/M7.1a/d, R-06-005). Each blocker retains its requirement basis from the
+bound register. Both volume labels must retain the same unresolved classification;
+a volume label, combined artifact or derivation metadata cannot discharge any
+of these populations, entries, roots or authority/wiring obligations. These
+blockers record missing producer inputs and do not construct a subsystem.
+
+Publication writes a distinct sibling temporary, replays the bound refusal and
+rechecks all original input digests and output aliases after the pending bytes
+are complete, then replaces the destination. A partial temporary write, failed
+replacement or intervening input drift preserves the prior record and cleans
+the pending file. Focused controls inject each failure, retain deterministic
+unchanged publication, and replay forged route or removed-role blockers as
+refusals. These checks establish no atomic snapshot of concurrent filesystem
+changes.
+
 ## First executable case and acceptance
 
 1. Freeze one eligible post-bootstrap roster member's complete emitted instruction
