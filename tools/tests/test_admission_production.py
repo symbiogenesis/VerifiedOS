@@ -245,6 +245,43 @@ def _missing_and_forged_evidence() -> None:
         _refused(lambda: _record(root), "stale projection")
 
 
+def _storage_role_obligations() -> None:
+    expected = {
+        "StorageFilesystemBoundaryUnavailable": ("M5.3d/M7.1a/M7.1d", ["R-06-006"]),
+        "StorageIntegrityReaderBoundaryUnavailable": ("M5.3d/M7.1a/M7.1d", ["R-06-005"]),
+        "StorageTransactorBoundaryUnavailable": ("M5.4/M7.1a/M7.1d", ["R-06-005"]),
+    }
+    for volume in ("system-integrity", "user-data"):
+        with _fixture() as (root, raw):
+            source = "derivations/storage.json"
+            path = root / source
+            evidence = json.loads(path.read_bytes())
+            evidence.update(volume=volume, accepted=True, proof_route="tcb-release")
+            path.write_bytes(composer.canonical_bytes(evidence))
+            declaration = next(member for member in raw["members"] if member["id"] == "storage")
+            declaration["derivation"]["source"] = composition.reference(root, source)
+            _write(root, raw)
+            _rebuild(root, raw, source)
+            result = _record(root)
+            member = next(member for member in cast("list[dict[str, Any]]", result["members"])
+                          if member["member"] == "storage")
+            blockers = {blocker["rule"]: blocker for blocker in member["blockers"]}
+            ensure(member["proof_route"] == "unresolved" and "ProofRouteUnresolved" in blockers,
+                   "a volume label and supplied release flags cannot classify a combined installed population")
+            for rule, (owner, requirements) in expected.items():
+                ensure(rule in blockers and blockers[rule]["owner"] == owner
+                       and blockers[rule]["requirements"] == requirements,
+                       "each missing installed role names its separate producer and register basis")
+            ensure(result["decision"] == "refused" and result["generation_accepted"] is False,
+                   "declared storage metadata never supplies release or admission evidence")
+            production.validate_record(root, result)
+            for rule in expected:
+                forged = json.loads(composer.canonical_bytes(result))
+                storage = next(item for item in forged["members"] if item["member"] == "storage")
+                storage["blockers"] = [item for item in storage["blockers"] if item["rule"] != rule]
+                _refused(lambda forged=forged: production.validate_record(root, forged), "differs")
+
+
 def _roster_status() -> None:
     for status in ("fixture", "executable"):
         with _fixture(kernel_status=status) as (root, _raw):
@@ -343,6 +380,95 @@ def _publication_drift() -> None:
             ensure(not (root / "products/admission.json").exists(), "drift publishes no record")
 
 
+def _publication_io_failures() -> None:
+    write = Path.write_bytes
+    for existing in (False, True):
+        for phase in ("write", "replace"):
+            with _fixture() as (root, _raw):
+                result = _record(root)
+                destination = "products/admission.json"
+                output = root / destination
+                if existing:
+                    production.publish_record(root, result, destination)
+                previous = output.read_bytes() if existing else None
+                failure = OSError(f"injected {phase} failure")
+
+                def interrupted_write(path: Path, data: bytes) -> int:
+                    if path.parent == output.parent and path.name.startswith(f".{output.name}."):
+                        write(path, data[:17])
+                        raise failure
+                    return write(path, data)
+
+                control = (patch.object(Path, "write_bytes", interrupted_write) if phase == "write" else
+                           patch.object(Path, "replace", side_effect=failure))
+                with control:
+                    try:
+                        production.publish_record(root, result, destination)
+                    except OSError as error:
+                        ensure(error is failure, "publication preserves the original I/O failure")
+                    else:
+                        raise AssertionError(f"publication ignored {phase} failure")
+                ensure((output.read_bytes() if output.exists() else None) == previous,
+                       "failed publication preserves the previous record or absent destination")
+                ensure(not list(output.parent.glob(f".{output.name}.*.tmp")),
+                       "failed publication removes pending bytes")
+
+
+def _publication_pending_drift() -> None:
+    write = Path.write_bytes
+    for relative in ("derivations/storage.json", production.POPULATION, production.REGISTER, IMAGE):
+        with _fixture() as (root, _raw):
+            result = _record(root)
+            destination = "products/admission.json"
+            output = root / destination
+            production.publish_record(root, result, destination)
+            previous = output.read_bytes()
+            changed = root / relative
+            original = changed.read_bytes()
+
+            def write_then_substitute(path: Path, data: bytes) -> int:
+                count = write(path, data)
+                if path.parent == output.parent and path.name.startswith(f".{output.name}."):
+                    write(changed, original + b"\n")
+                return count
+
+            with patch.object(Path, "write_bytes", write_then_substitute):
+                _refused(lambda: production.publish_record(root, result, destination),
+                         ("stale", "differs", "image"))
+            ensure(output.read_bytes() == previous, "input drift after writing preserves the prior record")
+            ensure(not list(output.parent.glob(f".{output.name}.*.tmp")),
+                   "input drift removes the uncommitted replacement")
+            write(changed, original)
+            production.publish_record(root, result, destination)
+            ensure(output.read_bytes() == previous, "unchanged retry publishes the same deterministic refusal")
+
+
+def _publication_final_recheck() -> None:
+    with _fixture() as (root, _raw):
+        result = _record(root)
+        destination = "products/admission.json"
+        output = root / destination
+        production.publish_record(root, result, destination)
+        previous = output.read_bytes()
+        source = root / "derivations/storage.json"
+        original = source.read_bytes()
+        validate = production.validate_record
+        calls = 0
+
+        def drift_after_validation(root_path: Path, record: object) -> None:
+            nonlocal calls
+            validate(root_path, record)
+            calls += 1
+            if calls == 2:
+                source.write_bytes(original + b"\n")
+
+        with patch.object(production, "validate_record", drift_after_validation):
+            _refused(lambda: production.publish_record(root, result, destination), "stale admission input")
+        ensure(calls == 2 and output.read_bytes() == previous,
+               "the original input fingerprints are checked after the final refusal replay")
+        ensure(not list(output.parent.glob(f".{output.name}.*.tmp")), "late drift cleans pending bytes")
+
+
 def _construction_drift() -> None:
     validate = composition.validate_build_record
     for relative in (IMAGE, GRAPH, "products/storage.bin", "derivations/storage.json",
@@ -386,9 +512,13 @@ def cases() -> list[Case]:
             Case("proof-route policy schema and exact runtime membership refuse malformed declarations", _policy_schema_and_membership),
             Case("proof-route changes rebind and forged classifications cannot replay", _policy_replay),
             Case("missing tiers and derivations remain per-member generation refusals", _missing_and_forged_evidence),
+            Case("both storage volumes retain separate missing installed-role obligations", _storage_role_obligations),
             Case("production status rejects fixtures and retains executable proof obligations", _roster_status),
             Case("image graph artifact derivation and projection substitutions refuse", _stale_joins),
             Case("publication protects consumed bytes and CLI reports a refused generation", _publication_and_cli),
             Case("derivation drift before publication withholds the record", _publication_drift),
+            Case("partial writes and replacement failures preserve prior admission records", _publication_io_failures),
+            Case("input drift after pending bytes refuses before replacement", _publication_pending_drift),
+            Case("original fingerprints recheck after final refusal replay", _publication_final_recheck),
             Case("drift after the build join cannot publish stale owner identities", _construction_drift),
             Case("current checker dependency membership is bound on replay", _current_checker_dependencies)]
