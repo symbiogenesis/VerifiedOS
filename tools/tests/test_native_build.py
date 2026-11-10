@@ -186,12 +186,11 @@ def _optional_tool_selection() -> None:
             before = _change(selected)
             _refuses(subject.validate, current)
             selected.write_bytes(before)
-            invalid = ["unavailable-relative-native-tool", str(at.root / "absent-tool")]
+            sentinel = at.root / "wrapper-NOTFOUND"
+            sentinel.write_bytes(b"\x7fELFconfigured tool")
+            invalid = ["unavailable-relative-native-tool", str(at.root / "absent-tool"), str(sentinel)]
             if name not in subject._DISCOVERED_TOOLS:
                 invalid.extend(("NOTFOUND", f"{name}-NOTFOUND"))
-                sentinel = at.root / "wrapper-NOTFOUND"
-                sentinel.write_bytes(b"\x7fELFlauncher")
-                invalid.append(str(sentinel))
                 literal = at.root / "NOTFOUND"
                 literal.write_bytes(b"\x7fELFliteral launcher")
                 cache.write_text(baseline + f"{name}:FILEPATH={literal}\n", encoding="utf-8")

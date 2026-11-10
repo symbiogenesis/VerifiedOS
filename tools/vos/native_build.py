@@ -240,7 +240,7 @@ def configured(build_dir: Path, source_root: Path, *, known: bool = True) -> Man
     for name in _OPTIONAL_TOOLS:
         value = cache.get(name, "")
         if value and (name not in _DISCOVERED_TOOLS
-                      or (value != "NOTFOUND" and not value.endswith("-NOTFOUND"))):
+                      or value not in ("NOTFOUND", f"{name}-NOTFOUND")):
             tools[name] = str(_path(value, name, search=True))
     selected_ldd = shutil.which("ldd")
     if selected_ldd is None:
