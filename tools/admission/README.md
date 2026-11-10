@@ -68,32 +68,45 @@ input boundaries, and image/graph/artifact mismatch handling.
 consumes the composer's exact regenerated admission request skeleton and replays
 its build record against the published projections, final image, canonical graph
 and every runtime artifact. The build checker owns the graph's actual ELF binding.
-The record preserves each runtime member, package identity, symbolic artifact
-slot, declared tier and derivation source. Exact source, producer, projection,
+The version-2 record preserves each runtime member, package identity, symbolic
+artifact slot, declared tier and derivation source. Exact source, producer, projection,
 build-record, checker, image, graph, artifact and derivation bytes are bound and
 rechecked before returning or publishing the record. Publication cannot replace
 any consumed input, including a hardlinked alias.
 
+The fixed [reviewed population policy](production-population.json) gives each
+runtime member a `proof_route` and requirement citations. The record binds the
+exact policy and requirements-register bytes and refuses missing, extra, duplicate
+or malformed policy declarations. `bootstrap-release` and `tcb-release` members
+retain missing release-proof evidence; their binaries acquire no install-path
+certificate or admission-tier obligation. `checker-admitted` members retain the
+unassigned-tier, missing-derivation and unavailable-checker blockers. `unresolved`
+members retain an explicit proof-boundary blocker. The complete runtime census
+remains present. Its tier and derivation declarations stay bound even when they
+do not apply to the selected route.
+
 This join always emits `scope: production-admission-refusal`, `decision: refused`,
-`generation_accepted: false` and `production_admission: false`. Each member names
-its remaining blockers and owners: an unassigned tier, an absent derivation,
-unaccepted executable roster status where applicable, and the unavailable
-production derivation checker. A supplied derivation source binds its bytes only;
-even complete fixture metadata cannot supply proof checking, artifact-to-proof
-correspondence or Tier-0/1 evidence. The join implements the production input
-boundary while the actual checker and real member evidence remain open.
+`generation_accepted: false` and `production_admission: false`. Every route refuses,
+and unaccepted executable status remains a blocker for every member. A supplied
+derivation source binds its bytes only; a policy citation records review grounds
+and is no checked proof of classification. Complete fixture metadata cannot supply
+release evidence, proof checking, artifact-to-proof correspondence or Tier-0/1
+evidence. The [proof-route predicate](../../docs/implementation/contracts/production-admission.md#production-proof-route-record)
+owns this bounded connection; actual checking and real-member evidence remain open.
 
 `run.py admission check-production-record RECORD` recomputes the complete refusal
 against current inputs. A different image, graph, artifact, derivation, projection,
-build record or checker invalidates the saved record. Duplicate JSON fields and
-forged success flags refuse. Both commands exit `1` for a current, bound generation
+build record, checker, policy or authority invalidates the saved record. Duplicate
+JSON fields, forged classifications, removed blockers and success flags refuse.
+Version-1 refusal records require regeneration. Both commands exit `1` for a current, bound generation
 refusal and `2` for malformed, stale or unreadable inputs. Validity of a saved
 refusal is separate from generation acceptance.
 
 The focused admission tests use synthetic products and derivation references in
 real ELF containers. They check positive identity joins, every absent member's
-blockers, stale identities, drift after build validation, protected publication
-and refusal replay; they establish no production derivation verdict.
+blockers, all proof routes, exact policy membership, stale identities, drift after
+build validation, protected publication and refusal replay; they establish no
+production derivation verdict.
 
 [The production prerequisite handoff](../../docs/implementation/contracts/production-admission.md)
 assigns the installed-object, real-derivation and checker-foundation decisions

@@ -57,7 +57,7 @@ def _fixture(*, evidence: bool = True, kernel_status: str | None = None) -> Gene
                     cells[4] = f" `{kernel_status}` ".encode()
                     lines[index] = b"|".join(cells)
             contract.write_bytes(b"".join(lines))
-        for checker in production.CHECKERS:
+        for checker in (*production.CHECKERS, production.POPULATION, production.REGISTER):
             target = root / checker
             target.parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(ROOT / checker, target)
@@ -105,6 +105,9 @@ def _bound_refusal() -> None:
         ensure([member["member"] for member in members] == expected,
                "independent complete runtime roster remains present in the refusal")
         built = json.loads((root / BUILD).read_bytes())
+        routes = {"rot-firmware": "bootstrap-release", "mmode-firmware": "bootstrap-release",
+                  "kernel": "tcb-release", "crypto-core": "tcb-release",
+                  "supervisor": "unresolved", "storage": "unresolved", "copy-service": "checker-admitted"}
         for member in members:
             declaration = next(item for item in raw["members"] if item["id"] == member["member"])
             ensure(member["artifact"] == built["artifacts"][declaration["artifact_slot"]],
@@ -113,17 +116,100 @@ def _bound_refusal() -> None:
                    and member["derivation"] == declaration["derivation"],
                    "declared tier and source identity survive the join")
             rules = {blocker["rule"] for blocker in member["blockers"]}
-            ensure("DerivationCheckerUnavailable" in rules and "DerivationAbsent" not in rules,
-                   "present metadata is bound but never checked as a real derivation")
+            route = routes[member["member"]]
+            ensure(member["proof_route"] == route and member["route_basis"],
+                   "independent reviewed route expectations and their cited grounds survive")
+            expected_rule = ("DerivationCheckerUnavailable" if route == "checker-admitted" else
+                             "ProofRouteUnresolved" if route == "unresolved" else "ReleaseEvidenceUnavailable")
+            ensure(expected_rule in rules and "DerivationAbsent" not in rules,
+                   "present metadata supplies no passing release, route or admission evidence")
+            ensure(("DerivationCheckerUnavailable" in rules) == (route == "checker-admitted"),
+                   "TCB/bootstrap members acquire no install-path admission obligation")
         ensure(result["image"] == composition.reference(root, IMAGE)
                and result["graph"] == composition.reference(root, GRAPH), "actual image and graph bytes bind")
         inputs = {ref["path"]: ref["sha256"] for ref in cast("list[dict[str, str]]", result["inputs"])}
         for member in members:
             ref = member["derivation"]["source"]
             ensure(inputs[ref["path"]] == ref["sha256"], "exact derivation source bytes bind")
+        ensure(result["schema_version"] == 2 and result["proof_routing"] == {
+            "policy": composition.reference(root, production.POPULATION),
+            "authority": composition.reference(root, production.REGISTER)}, "review policy and authority bytes bind")
         production.validate_record(root, result)
         ensure(composer.canonical_bytes(_record(root)) == composer.canonical_bytes(result),
                "unchanged joined refusal is deterministic")
+
+
+def _rebuild(root: Path, raw: dict[str, Any], changed: str) -> None:
+    """Rebind an intentional fixture edit through its actual composition inputs."""
+    _rebind_inventory_source(root, raw, changed)
+    built = json.loads((root / BUILD).read_bytes())
+    outputs = composition.projections(root)
+    composition.emit(root, composition.EXAMPLE, PROJECTIONS)
+    rebuilt = composition.build_record(root, composition.EXAMPLE, outputs, built["artifacts"],
+                                       composition.reference(root, IMAGE), (root / GRAPH).read_bytes())
+    (root / BUILD).write_bytes(composer.canonical_bytes(rebuilt))
+
+
+def _policy_schema_and_membership() -> None:
+    changes: list[tuple[Callable[[dict[str, Any]], None], str]] = [
+        (lambda policy: policy.update(schema_version=True), "invalid schema"),
+        (lambda policy: policy.update(schema_version=2), "invalid schema"),
+        (lambda policy: policy.update(accepted=True), "invalid schema"),
+        (lambda policy: policy.update(members={}), "invalid schema"),
+        (lambda policy: policy["members"].pop(), "runtime request membership"),
+        (lambda policy: policy["members"].append({"member": "extra", "route": "unresolved",
+                                                "requirements": ["R-06-001"]}), "runtime request membership"),
+        (lambda policy: policy["members"].append(policy["members"][0]), "repeats a member"),
+        (lambda policy: policy["members"][0].update(route="accepted"), "invalid member declaration"),
+        (lambda policy: policy["members"][0].update(requirements=[]), "invalid member declaration"),
+        (lambda policy: policy["members"][0].update(requirements=["R-05-091", "R-05-091"]),
+         "invalid member declaration"),
+        (lambda policy: policy["members"][0].update(requirements=[False]), "invalid member declaration"),
+        (lambda policy: policy["members"][0].update(tier=0), "invalid member declaration"),
+    ]
+    for change, phrase in changes:
+        with _fixture() as (root, raw):
+            output = root / "products/admission.json"
+            production.publish_record(root, _record(root), "products/admission.json")
+            previous = output.read_bytes()
+            path = root / production.POPULATION
+            policy = json.loads(path.read_bytes())
+            change(policy)
+            path.write_bytes(composer.canonical_bytes(policy))
+            _rebuild(root, raw, production.POPULATION)
+            _refused(lambda: _record(root), phrase)
+            ensure(output.read_bytes() == previous, "malformed routing preserves a prior refusal record")
+    with _fixture() as (root, raw):
+        path = root / production.POPULATION
+        path.write_bytes(b'{"schema_version":1,' + path.read_bytes()[1:])
+        _rebuild(root, raw, production.POPULATION)
+        _refused(lambda: _record(root), "duplicate JSON key")
+
+
+def _policy_replay() -> None:
+    with _fixture() as (root, raw):
+        original = _record(root)
+        path = root / production.POPULATION
+        policy = json.loads(path.read_bytes())
+        declaration = next(item for item in policy["members"] if item["member"] == "copy-service")
+        declaration["route"] = "unresolved"
+        path.write_bytes(composer.canonical_bytes(policy))
+        _rebuild(root, raw, production.POPULATION)
+        _refused(lambda: production.validate_record(root, original), "differs")
+        changed = _record(root)
+        member = next(item for item in cast("list[dict[str, Any]]", changed["members"])
+                      if item["member"] == "copy-service")
+        ensure(member["proof_route"] == "unresolved"
+               and "ProofRouteUnresolved" in {item["rule"] for item in member["blockers"]}
+               and changed["generation_accepted"] is False,
+               "a reviewed policy change is visible and cannot make evidence pass")
+    with _fixture() as (root, _raw):
+        result = _record(root)
+        for field, value in (("proof_route", "checker-admitted"), ("blockers", []), ("route_basis", [])):
+            forged = json.loads(composer.canonical_bytes(result))
+            forged["members"][0][field] = value
+            _refused(lambda forged=forged: production.validate_record(root, forged), "differs")
+        _refused(lambda: production.validate_record(root, dict(result, schema_version=1)), "differs")
 
 
 def _missing_and_forged_evidence() -> None:
@@ -131,8 +217,14 @@ def _missing_and_forged_evidence() -> None:
         result = _record(root)
         for member in cast("list[dict[str, Any]]", result["members"]):
             rules = {blocker["rule"] for blocker in member["blockers"]}
-            ensure({"TierUnassigned", "DerivationAbsent", "DerivationCheckerUnavailable"} <= rules,
-                   "each absent member reports its own evidence obligations")
+            if member["proof_route"] == "checker-admitted":
+                ensure({"TierUnassigned", "DerivationAbsent", "DerivationCheckerUnavailable"} <= rules,
+                       "checker-admitted members report absent admission evidence")
+            else:
+                ensure(not {"TierUnassigned", "DerivationAbsent", "DerivationCheckerUnavailable"} & rules,
+                       "release and unresolved routes do not infer admission obligations from the census")
+                ensure(bool({"ReleaseEvidenceUnavailable", "ProofRouteUnresolved"} & rules),
+                       "release and unresolved routes retain missing-evidence blockers")
             ensure(all(blocker["owner"] for blocker in member["blockers"]), "every blocker names its owner")
         for forged in (dict(result, generation_accepted=True), dict(result, production_admission=True),
                        dict(result, decision="accepted"), dict(result, schema_version=True)):
@@ -156,15 +248,17 @@ def _roster_status() -> None:
             rules = {blocker["rule"] for blocker in member["blockers"]}
             ensure(("RosterMemberUnaccepted" in rules) == (status != "executable"),
                    "fixture runtime members are unaccepted by the production boundary")
-            ensure("DerivationCheckerUnavailable" in rules and result["generation_accepted"] is False,
-                   "executable status alone supplies no derivation evidence")
+            ensure("ReleaseEvidenceUnavailable" in rules and result["generation_accepted"] is False,
+                   "executable TCB status alone supplies no release evidence")
 
 
 def _stale_joins() -> None:
     for relative, phrase in ((IMAGE, "image"), (GRAPH, "graph"),
                              ("products/storage.bin", "stale source"),
                              ("derivations/storage.json", "stale source"),
-                             (f"{PROJECTIONS}/manifest.c", "stale projection")):
+                             (f"{PROJECTIONS}/manifest.c", "stale projection"),
+                             (production.POPULATION, ("stale source", "differs")),
+                             (production.REGISTER, ("stale source", "differs"))):
         with _fixture() as (root, _raw):
             result = _record(root)
             path = root / relative
@@ -192,7 +286,8 @@ def _publication_and_cli() -> None:
         result = _record(root)
         protected = [IMAGE, GRAPH, BUILD, composition.EXAMPLE,
                      "products/storage.bin", "derivations/storage.json",
-                     f"{PROJECTIONS}/admission-request.json", *production.CHECKERS]
+                     f"{PROJECTIONS}/admission-request.json", production.POPULATION,
+                     production.REGISTER, *production.CHECKERS]
         for relative in protected:
             before = (root / relative).read_bytes()
             _refused(lambda relative=relative: production.publish_record(root, result, relative), "overwrite")
@@ -200,6 +295,13 @@ def _publication_and_cli() -> None:
         alias = root / "products/alias.json"
         os.link(root / "derivations/storage.json", alias)
         _refused(lambda: production.publish_record(root, result, "products/alias.json"), "overwrite")
+        for index, relative in enumerate((production.POPULATION, production.REGISTER)):
+            route_alias = root / f"products/route-alias-{index}.json"
+            before = (root / relative).read_bytes()
+            os.link(root / relative, route_alias)
+            _refused(lambda route_alias=route_alias: production.publish_record(
+                root, result, route_alias.relative_to(root).as_posix()), "overwrite")
+            ensure((root / relative).read_bytes() == before, "routing input aliases preserve consumed bytes")
         production.publish_record(root, result, "products/admission.json")
         production.validate_record(root, json.loads((root / "products/admission.json").read_bytes()))
         args = ["production-record", composition.EXAMPLE, "--projections", PROJECTIONS,
@@ -225,18 +327,21 @@ def _publication_and_cli() -> None:
 
 
 def _publication_drift() -> None:
-    with _fixture() as (root, _raw):
-        result = _record(root)
-        path = root / "derivations/storage.json"
-        path.write_bytes(b"new purported derivation")
-        _refused(lambda: production.publish_record(root, result, "products/admission.json"), "stale admission input")
-        ensure(not (root / "products/admission.json").exists(), "drift publishes no record")
+    for relative in ("derivations/storage.json", production.POPULATION, production.REGISTER):
+        with _fixture() as (root, _raw):
+            result = _record(root)
+            path = root / relative
+            path.write_bytes(path.read_bytes() + b"\n")
+            _refused(lambda root=root, result=result: production.publish_record(
+                root, result, "products/admission.json"), "stale admission input")
+            ensure(not (root / "products/admission.json").exists(), "drift publishes no record")
 
 
 def _construction_drift() -> None:
     validate = composition.validate_build_record
     for relative in (IMAGE, GRAPH, "products/storage.bin", "derivations/storage.json",
-                     f"{PROJECTIONS}/admission-request.json", BUILD, *production.CHECKERS):
+                     f"{PROJECTIONS}/admission-request.json", BUILD,
+                     production.POPULATION, production.REGISTER, *production.CHECKERS):
         with _fixture() as (root, _raw):
             def substituted_join(root_path: Path, source: str, record: object, outputs: dict[str, bytes],
                                  graph_data: bytes, image_ref: dict[str, str], relative: str = relative) -> None:
@@ -272,6 +377,8 @@ def _current_checker_dependencies() -> None:
 
 def cases() -> list[Case]:
     return [Case("production joins bind every declared identity but refuse unchecked evidence", _bound_refusal),
+            Case("proof-route policy schema and exact runtime membership refuse malformed declarations", _policy_schema_and_membership),
+            Case("proof-route changes rebind and forged classifications cannot replay", _policy_replay),
             Case("missing tiers and derivations remain per-member generation refusals", _missing_and_forged_evidence),
             Case("production status rejects fixtures and retains executable proof obligations", _roster_status),
             Case("image graph artifact derivation and projection substitutions refuse", _stale_joins),

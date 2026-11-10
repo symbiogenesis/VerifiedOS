@@ -261,8 +261,8 @@ eligible complete member and those consumers are available.
 ## Production proof-route record
 
 M7.1c's bounded schema connection is a version-2 refusal record over the complete
-runtime request. A fixed authored JSON policy at
-`tools/admission/production-population.json` owns the reviewed route declaration
+runtime request. A fixed authored
+[JSON policy](../../../tools/admission/production-population.json) owns the reviewed route declaration
 for each member; callers cannot select a different policy. Each declaration names
 the member, one route and the requirements supporting that judgment. The record
 binds the exact policy and [requirements register](../../requirements-register.md)
