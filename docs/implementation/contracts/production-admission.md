@@ -282,11 +282,11 @@ do not apply to the selected route; their presence changes no route or verdict.
 
 The initial policy follows R-05-091 and R-06-007 for the two firmware members and
 R-06-001/R-06-004 for the kernel and crypto core. The first-case request above and
-R-06-023 support the copy service's contained route. Supervisor classification
-remains unresolved pending its concrete installed role. The storage slot remains
-unresolved because its system-integrity and user-data instantiations must expose
-their actual TCB/non-TCB split under R-06-005 and R-06-006. This conservative
-declaration grants no exemption, accepted executable status or completion credit.
+R-06-023 support the copy service's contained route. The supervisor's contained
+route follows the concrete role decision below. The storage slot remains
+unresolved until its installed integrity-reader and filesystem boundaries are
+identified; the names of its two volume instances do not decide that split.
+No declaration grants an exemption, accepted executable status or completion credit.
 
 Before implementing this connection, land this predicate: the fixed policy has a
 closed versioned shape, unique declarations and exact runtime-request membership;
@@ -309,6 +309,75 @@ success flag in a saved record must fail exact recomputation. These controls
 qualify input binding and obligation routing only. Actual release proofs, complete
 standalone products, the role split, TAL/CIC checking, source correspondence,
 authenticated current state and final target/image acceptance remain open.
+
+### Contained supervisor and trusted lifecycle split
+
+The `supervisor` declaration uses `checker-admitted` for the non-ASR request
+publisher specified by [R-12-073 and R-12-074](../../requirements-register.md#1213-service-manager),
+with R-06-001/R-06-023 closing TCB membership. Its trusted lifecycle effects remain
+part of the `kernel` declaration's `tcb-release` route. The
+[context-slot contract](supervisor-context.md#placement-and-publication) fixes
+the authority boundary: the publisher can write its scalar request slots and
+read the separate acknowledgment, snapshot and immutable manifest, without
+holding saved contexts, roots or kernel-private lifecycle state.
+
+The [declared supervisor source inventory](../../../tools/composer/packages/supervisor.json)
+contains the planning core and
+[nonblocking publisher](../../../supervisor/src/context.c#vos_supervisor_context_step)
+with their headers. The publisher writes scalar start/retire requests; it does
+not call trusted effect callbacks. The
+[kernel decoder](../../../kernel/src/lifecycle.c#vos_kernel_lifecycle_prepare)
+validates those requests before
+[kernel-owned retirement](../../../kernel/src/effects.c#vos_kernel_retire) and
+root installation. The existing
+[component image constructor](../../../tools/vos/lifecycle_target.py#source)
+places kernel and supervisor streams in separate bounded text regions, gives
+only the kernel system-register authority, and supplies the publisher with
+read-only manifest/acknowledgment capabilities and a writable request capability.
+These source and component boundaries support the route decision; they are not
+a proof of the final installed package's contents or authority.
+
+Before production admission, M7.1a/b/d must export the complete contained
+supervisor population and its actual installed authority with that same split.
+The privileged boundary consumer and the synchronous effects comparison seam
+cannot be relabeled as contained supervisor code. A shared component image is
+not a standalone supervisor artifact. M7.1c still requires its assigned tier,
+actual derivation and TAL/CIC consumers, source correspondence and final-image
+binding. A missing or violated boundary withholds acceptance; it cannot move
+the supervisor into the exhaustive TCB or extend the kernel's release verdict.
+
+For this bounded policy change, acceptance requires the reviewed policy to route
+the supervisor to `checker-admitted` and the kernel to `tcb-release`, retain
+every runtime member, and preserve the existing whole-generation refusal.
+The existing complete-metadata and missing-evidence controls must now exercise
+the supervisor's admission blockers as well as the copy service's, while saved
+records with the old policy or forged release routes fail exact replay.
+This completes the route decision only; installed-boundary evidence remains a
+producer join rather than a new policy success flag.
+
+### Storage role decision still owed
+
+R-06-005 assigns the small system-integrity reader and A/B transactor to the TCB;
+R-06-006 leaves the entire four-layer filesystem outside it for both system and
+user data. Consequently `system-integrity` versus `user-data` is not the
+trusted/untrusted boundary. Both volumes' filesystem implementations remain
+contained, and a volume label alone cannot exempt either implementation from
+admission.
+
+The [current combined source inventory](../../../tools/composer/packages/storage.json)
+and [publication checkpoint](../storage-recovery-policy.md#early-executable-publication-checkpoint)
+join node/tree codecs, updates, recovery and resident verification. The
+[resident verifier](../../../storage/src/storage_publish.c#vos_storage_verify_resident)
+checks a digest and membership through its store and crypto context; that
+context does not establish an independently protected signed boot-root reader.
+The inventory's transactor statement likewise supplies no separate installed
+transactor. M5.3d/M5.4 and M7.1a/d must identify complete installed populations,
+entries, roots and call/wiring boundaries for the contained filesystem and
+trusted integrity-reader/transactor, with the latter's independent signed-root
+and anti-rollback enforcement. M7.1c then reviews their individual proof routes
+and evidence obligations. Missing implementation or separation returns to those
+owners for scope and pricing before construction. Until that handoff exists,
+the combined `storage` slot retains `unresolved` and its explicit blocker.
 
 ## First executable case and acceptance
 
