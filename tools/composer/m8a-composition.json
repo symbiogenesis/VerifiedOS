@@ -343,7 +343,7 @@
       ],
       "descriptor": {
         "path": "tools/composer/packages/crypto-core.json",
-        "sha256": "880f716f32decacc4616d11771d1dc5481b58ea65c2a14236089907f8c64672c"
+        "sha256": "0f0ccfadcbaab50aa8c2a4c66bfc5aea2e4ab026d9ed3e30a7642def1ed286f1"
       },
       "artifact_slot": "crypto-core-artifact",
       "entry": null,
@@ -375,7 +375,7 @@
       ],
       "descriptor": {
         "path": "tools/composer/packages/storage.json",
-        "sha256": "ca96619214dafb4f3aaeb4c54dabab20167f1252f9661585c3200c95c2b85c8f"
+        "sha256": "c1a93722b1435f01eefaef9271ae99e812288d87a5b949c1804c46e907694715"
       },
       "artifact_slot": "storage-artifact",
       "entry": null,
@@ -462,7 +462,7 @@
         },
         {
           "path": "tools/vos/cli/composer.py",
-          "sha256": "edc4166fb2e437cb49cc30dcd87d6c619e1578ee98c85ac3246a92e11f71d47a"
+          "sha256": "be82751f701b44ba581ba61f737a45c02ab3d38803bef0c1327130991ef51841"
         },
         {
           "path": "tools/composer/fixed-package.schema.json",
@@ -521,6 +521,10 @@
           "sha256": "73783ef15a9a75bbc3f3a749e5ae687a7d6410e119dc5d43bbbe4fc7ec37b73d"
         },
         {
+          "path": "tools/vos/chain_mmode.py",
+          "sha256": "638b0a6974074c41f775b4b1857fd9a7a377c88ec69298ea7597520fbec31eef"
+        },
+        {
           "path": "tools/vos/cli/__init__.py",
           "sha256": "7534add566beaf4238b417f39c85073f72b7be917f42ab6009768fe194d8284f"
         },
@@ -535,6 +539,10 @@
         {
           "path": "tools/vos/compiler_provenance.py",
           "sha256": "f4d823746bb200d3ac0728f31dc4f08f8e8f7d6f6c793f80cf3730775de746f8"
+        },
+        {
+          "path": "tools/vos/composition_mmode.py",
+          "sha256": "553a0bc579feb64a2f18c4be6d76ed8e9a102ae4458f9c75349ceac5a9ce3be4"
         },
         {
           "path": "tools/vos/composition_staged.py",
@@ -647,7 +655,7 @@
       ],
       "descriptor": {
         "path": "tools/composer/packages/composer.json",
-        "sha256": "46d79745b31cb682a8eb4c7dbc7ed2e780f3e54d5e0b9faed577dda4d87bff83"
+        "sha256": "3e4aa5c28b8ed4c6877aa5655b61161a7776792f25d9d00720b7fd93c90c61c4"
       },
       "artifact_slot": "composer-artifact",
       "entry": null,
@@ -835,7 +843,7 @@
       ],
       "descriptor": {
         "path": "tools/composer/packages/admission.json",
-        "sha256": "e1da25bb573ff4d565718ccb3e62f4c6821d2e83eb638811726afa18241c77de"
+        "sha256": "08c6ada3535e758142735f165b0b9dd7cad9db9f198c97c141dfeca9e566705d"
       },
       "artifact_slot": "admission-artifact",
       "entry": null,
