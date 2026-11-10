@@ -76,7 +76,7 @@
     },
     {
       "path": "tools/vos/admission_production.py",
-      "sha256": "6b5c5dd42b6330084525e50df6f754754b8163b701bf38fecdee9132537b23d9"
+      "sha256": "cd76ab14cf5d77c0e58401f849e1b7e5ff81480ecf022b9c4151094bcdf1b4e6"
     },
     {
       "path": "tools/vos/asm.py",
@@ -192,7 +192,7 @@
       "id": "admission-boundary",
       "source": {
         "path": "tools/admission/README.md",
-        "sha256": "7706e13b3f7db2222ec2568367611a8460755df49c045872e77be69d1427bcd4"
+        "sha256": "af99578d05058ca66d08ed9d90a4cb57d6c4fe696f09636f9b004c6107848271"
       }
     },
     {

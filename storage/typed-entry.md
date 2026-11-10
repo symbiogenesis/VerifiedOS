@@ -28,7 +28,7 @@ C/Gallina refinement and target execution remain M5.3d/M5.4 joins.
 
 ## Typed node and routing contract
 
-The next executable M5.3d boundary stores the complete key and extent inline in
+The bounded executable M5.3d boundary stores the complete key and extent inline in
 typed leaves. `VOSTYP01` nodes use the numeric codec's 32-byte header layout:
 magic, little-endian 32-bit kind and count, then little-endian 64-bit node
 identity and generation. A leaf stores `count` consecutive 144-byte entries
@@ -38,7 +38,7 @@ identities. Padding is canonical zero. The selected geometry must fit a full
 leaf at its declared fanout, between two and sixteen. Numeric node bytes and
 the undersized numeric block geometry refuse rather than convert implicitly.
 
-Input and output objects must be disjoint and remain stable for each call.
+Input and output objects must be disjoint; inputs remain unchanged during each call.
 Encoding and decoding validate local shape, identity, generation, references,
 extent coordinates and padding before changing caller output. They preserve
 all six key components and every authentication byte. They do not authenticate

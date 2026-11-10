@@ -359,7 +359,7 @@
       ],
       "descriptor": {
         "path": "tools/composer/packages/crypto-core.json",
-        "sha256": "0f0ccfadcbaab50aa8c2a4c66bfc5aea2e4ab026d9ed3e30a7642def1ed286f1"
+        "sha256": "8f365d57f9b851fdeb74f93af630ecc160260f50ac708024c3cd850993d17f00"
       },
       "artifact_slot": "crypto-core-artifact",
       "entry": null,
@@ -391,7 +391,7 @@
       ],
       "descriptor": {
         "path": "tools/composer/packages/storage.json",
-        "sha256": "c1a93722b1435f01eefaef9271ae99e812288d87a5b949c1804c46e907694715"
+        "sha256": "b7b895b53420cb75f618d4ed9629df78d3645df59a28ed361530c3b33fc93f1b"
       },
       "artifact_slot": "storage-artifact",
       "entry": null,
@@ -1058,7 +1058,7 @@
         },
         {
           "path": "tools/vos/admission_production.py",
-          "sha256": "6b5c5dd42b6330084525e50df6f754754b8163b701bf38fecdee9132537b23d9"
+          "sha256": "cd76ab14cf5d77c0e58401f849e1b7e5ff81480ecf022b9c4151094bcdf1b4e6"
         },
         {
           "path": "tools/vos/asm.py",
@@ -1171,7 +1171,7 @@
       ],
       "descriptor": {
         "path": "tools/composer/packages/admission.json",
-        "sha256": "2078d62d64b1a5b6b6cff977a353b25ada2f284d0456138006ab447be1805ffc"
+        "sha256": "6573122ee96764ce6c3c524c44a97bb2d7c39a47ec4332cf10e10dc2ea21fc74"
       },
       "artifact_slot": "admission-artifact",
       "entry": null,

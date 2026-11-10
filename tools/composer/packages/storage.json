@@ -16,7 +16,7 @@
     },
     {
       "path": "storage/src/resident_reads.c",
-      "sha256": "b957354f7f37de5246c2ba17b326b1afb660bb4417166a5413e4e3530808f618"
+      "sha256": "42a0ccfb62ffc94d1a8713dfae2d80735257df014c0faec6ff633ee23e07b2be"
     },
     {
       "path": "storage/src/resident_scalar.c",
@@ -40,7 +40,7 @@
     },
     {
       "path": "storage/include/vos_resident_reads.h",
-      "sha256": "1218ddf8cc9a5c8392cb11ef6cd8fbf48a8c9c650534b0d3b841ada8c7a382c4"
+      "sha256": "b8d08a0d213e08c78e51d481e2c9b00cbee53af4a6aaf2f15c27adda86ee5526"
     },
     {
       "path": "storage/include/vos_resident_scalar.h",
@@ -77,6 +77,14 @@
     {
       "path": "proofs/ObjectTransactor.v",
       "sha256": "acde93573446388ad8ed1299500799a9ab29e47e45af25bc4fdcf3a8563bd94e"
+    },
+    {
+      "path": "storage/src/typed_tree.c",
+      "sha256": "30e46888641055c79a96f884cca167561f3262bae7aa801de61b57b30b65a266"
+    },
+    {
+      "path": "storage/include/vos_typed_tree.h",
+      "sha256": "12629344f6ac4efe3bf2010f39fb0f3a079c782aa79b336a8aed78bf93fc757f"
     }
   ],
   "interfaces": [
@@ -84,14 +92,14 @@
       "id": "storage-boundary",
       "source": {
         "path": "storage/README.md",
-        "sha256": "f57f952050b6429bc78357cf283d070040b48c9ecc0da21b0a5e80295f2f4d7a"
+        "sha256": "53e719c40c70a0c5e18d6d02c447a79ba5d9b7054b6129dde0acad00e4b069ba"
       }
     },
     {
       "id": "resident-reads-boundary",
       "source": {
         "path": "storage/resident-reads.md",
-        "sha256": "a69689d7389543680906a99cf35e744e89133dd5ca24461059fe74249a87dcdf"
+        "sha256": "67353ff8714673b05e034f0848cfbc56295b5983b7cefd99452a0f1df9a08898"
       }
     },
     {
@@ -119,7 +127,7 @@
       "id": "typed-entry-boundary",
       "source": {
         "path": "storage/typed-entry.md",
-        "sha256": "6ea013d4a893cc62f3a123e616c70d2606d9e8ad641aecb80813a46192e27b26"
+        "sha256": "8f6de263f655bd7b7dc8f0c90ad31275d383865edd3fd29fd26c8cd089e30205"
       }
     }
   ],
