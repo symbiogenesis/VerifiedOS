@@ -18,8 +18,8 @@
     },
     {
       "member": "supervisor",
-      "route": "unresolved",
-      "requirements": ["R-06-001", "R-06-023"]
+      "route": "checker-admitted",
+      "requirements": ["R-06-001", "R-06-023", "R-12-073", "R-12-074"]
     },
     {
       "member": "crypto-core",
