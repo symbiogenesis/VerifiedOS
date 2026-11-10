@@ -126,10 +126,11 @@ are absent from the root toolchain user's command search. The assigned lane's
 identities and the refusal; the fan-out handoff retains that output on retirement.
 
 The installed candidate therefore refuses at its tool precondition. The private
-distribution candidate below supplies a bounded acquisition route, without
-replacing the installed binary. No independent fixture, capture, replay, observer
-implementation or Parser attempt has run. Q39's complete qualification and Q43's
-genuine complete default reuse remain open.
+distribution candidate below has passed acquisition and ELF/dependency preflight
+without replacing the installed binary. Its single bounded independent attempt
+refuses opening the prescribed event before control activation, as the outcome
+below records. No stack-observation qualification or Parser attempt is accepted.
+Q39's complete qualification and Q43's genuine complete default reuse remain open.
 
 ## Private distribution-tool prerequisite
 
@@ -223,3 +224,61 @@ reading, private ELF/dependency validation and independent observer qualificatio
 each retain their own verdict. A future real diagnostic still needs its separate
 landed hypothesis, complete inputs, resource cap and stopping rule; this route
 authorizes none of Q39's complete compiler qualification or Q43's complete reuse.
+
+## Candidate qualification outcome
+
+The frozen archives were obtained from the official
+`https://ports.ubuntu.com/ubuntu-ports/` mirror after the primary archive request
+timed out. Their complete lengths and SHA-256 values match the selected signed
+indices. Their own copyright files were read before executable adoption, with
+the intended local diagnostic use recorded in [THIRD-PARTY.md](../../../THIRD-PARTY.md).
+Private extraction ran no maintainer scripts and changed no installed package,
+tool, shell configuration or kernel setting.
+
+The extracted AArch64 ELF identifies itself as `perf 7.0.14`, SHA-256
+`b9dd15e9fff1f0efbacbcb541ac3f2d8a597f902e4c2e610e8e288f2e7a7be4e`.
+Its complete build-options output enables `dwarf`, `dwarf-unwind`,
+`libdw-dwarf-unwind` and `libelf`. The native preflight binds its loader and
+resolved dynamic-library population by actual path and SHA-256, with child-only
+library paths and debuginfod disabled. This passes the acquisition and
+ELF/dependency preconditions, not the event or stack-observation predicate.
+
+The independently reviewed controller and C/OCaml source identities are retained
+with the attempt. The C control and clock stub compile under strict native C17;
+the OCaml control compiles natively with debug information under the selected
+historical `q39-port` OCaml 4.14.2. Its compiler has CFI support and no frame
+pointers. The experiment records that convention explicitly; transfer to the
+selected checker's exact optimization/debug settings, or to the current tracked
+compiler lock, remains unqualified.
+
+The one bounded attempt refuses before the C control's activation. On kernel
+`6.18.54.1-microsoft-standard-WSL2`, the selected recorder exits 255 opening the
+prescribed `cpu-clock:u`, which its diagnostic renders as `cpu-clock:uH`:
+`PMU Hardware doesn't support sampling/overflow-interrupts`, followed by
+`Failure to open any events for recording.` The only control marker is `ready`.
+Cleanup sends SIGINT to that owned child, observes its actual exit at -2, reaps
+both child and recorder, and observes both owned process groups empty. All bound
+inputs remain unchanged; the raw record is empty.
+
+No OCaml control execution, active-interval sample, replay, active-interval
+interruption or truncation control ran. Malformed-record, lost-record,
+mapping-consistency, changed-control/debug-byte, PID-substitution and
+recorder/replay-failure fixtures also remain unrun. Cleanup after the opening
+failure supplies no active-interruption qualification. The candidate is rejected
+at this event/tool/kernel tuple; kernel-wide sampling support remains undecided.
+No second capture, event substitution, setting change or real checker operation
+is authorized by this outcome.
+
+The checkout export `out/evidence/q39-observer-tool-attempt.json`, SHA-256
+`f8291433168fb883aa379664b7e106be6a97d18743a2c5044fbb763e395b2086`,
+binds selected packages, signed indices, own-license file identities, the native
+preflight and exact reviewed experimental sources. It contains metadata only;
+external license texts, tool/library bytes, complete sources and raw outputs stay
+in the native lane for the local fan-out's retention. The native qualification
+report has SHA-256
+`1b24692a47b417c4bd571d0db1884f0635114240b17f50643b7408fed553d852`;
+the empty record has SHA-256
+`e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`.
+These records supply no compiler/kernel qualification, accepted observation
+adapter or Q39/Q43 completion. A different compatible observation tuple requires
+its own selected prerequisite and independently reviewed bounded predicate.
