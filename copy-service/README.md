@@ -139,6 +139,40 @@ the scalar ABI and the public C signatures, restores `csp` and `cra`, and treats
 all ordinary registers as caller-clobbered. Snapshot helpers are private stages
 of these adapters, not independent untrusted service entry points.
 
+## Standalone source preparation
+
+`python tools/run.py copy-service prepare-package --output out/copy-package`
+prepares a separate source snapshot for M7.1d's real-member producer handoff.
+Add `--check` to replay the record and exact output population without publishing.
+The [standalone recipe contract](../docs/implementation/contracts/fixed-packages.md#standalone-copy-service-source-recipe)
+owns its acceptance boundary.
+
+[The standalone unit](src/package_unit.c) compiles the complete existing core with
+`VOS_COPY_TARGET` and [the shared target layout checks](src/target_layout.c).
+It excludes `test/target_comparison.c`, the host harness and the shared scalar
+supervisor/kernel wrapper. The atomic and notification adapters are included in
+full; the declaration owners generate their constants and the C configuration
+header. No functions are removed by this preparation. The existing target
+comparison uses the same layout-check source.
+
+The deterministic `source-record.json` binds the copied C/headers, declarations,
+model layout inputs and generation helpers, plus every prepared output. Generation
+reads captured declaration/model bytes, then rechecks the live input identities
+before publication. Unexpected includes, aliases and drift refuse; replay also
+refuses missing, substituted or extra outputs. Files are published atomically and
+the record last; a partial publication is not a valid snapshot until replay passes.
+
+The recorded compiler arguments identify the intended target mode and snapshot
+include path. They invoke no compiler. Q39 still owes the qualified producer and
+its standard-header/configuration identity, after which the entire emitted stream
+and both runtime adapters must be retained. Installed activation roots, extents,
+initializer, capability wiring, placement, final image and production proof inputs
+remain open. This source record carries no native object or admission verdict.
+
+`python tools/run.py test --only test_copy_package` checks this source handoff and
+its refusal controls. On Linux it also checks the standalone C syntax with the
+strict native compiler flags; that control supplies no target execution evidence.
+
 ## Notification device adapter
 
 `copy-service notification` accepts the same compiler and model arguments as

@@ -7,7 +7,16 @@
 import argparse
 from pathlib import Path
 
-from vos import cli, copy_notification, copy_partition, copy_service, copy_target, env, scalar_join
+from vos import (
+    cli,
+    copy_notification,
+    copy_package,
+    copy_partition,
+    copy_service,
+    copy_target,
+    env,
+    scalar_join,
+)
 from vos.corpus import find_root
 
 
@@ -42,6 +51,10 @@ def cmd_notification(args: argparse.Namespace) -> int:
 
 
 def target_parser(name: str, parser: argparse.ArgumentParser) -> None:
+    if name == "prepare-package":
+        parser.add_argument("--output", type=Path, required=True)
+        parser.add_argument("--check", action="store_true", help="replay the prepared source record without publishing")
+        return
     if name not in {"target", "notification", "partition", "join"}:
         return
     parser.add_argument("--ccomp", type=Path, required=True)
@@ -76,12 +89,25 @@ def cmd_join(args: argparse.Namespace) -> int:
     return 0 if report["ok"] else 1
 
 
+def cmd_prepare_package(args: argparse.Namespace) -> int:
+    try:
+        operation = copy_package.check if args.check else copy_package.prepare
+        operation(find_root(), args.output)
+    except (OSError, ValueError) as error:
+        print(f"FAIL copy package sources: {error}")
+        return 1
+    print(f"ok copy package sources: {args.output / copy_package.RECORD}")
+    print(copy_package.LIMITS)
+    return 0
+
+
 COMMANDS: cli.Table = {
     "check": (cmd_check, "bounded C and atomic payload controls against the ring reference"),
     "target": (cmd_target, "accepted scalar stages and actual fenced ring adapter"),
     "notification": (cmd_notification, "actual interrupt-file store and ordinary pending load"),
     "partition": (cmd_partition, "confined copy payload, fault and private activation reset"),
     "join": (cmd_join, "scalar supervisor and copy payload/fault/restart checkpoint"),
+    "prepare-package": (cmd_prepare_package, "prepare or replay standalone copy-service sources and adapters"),
 }
 
 
