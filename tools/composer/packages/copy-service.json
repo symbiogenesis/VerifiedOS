@@ -4,7 +4,7 @@
   "sources": [
     {
       "path": "tools/vos/source_bindings.py",
-      "sha256": "1a9048a670e65308926c3170b354ddc261730770cda2d1d129d021d3f4aa54c0"
+      "sha256": "ce4e3825111a8c374f8816a3d4bd821c9f252e4f705e3ee672b0eba85703f5f9"
     },
     {
       "path": "proofs/ProofSupport.v",
@@ -152,7 +152,11 @@
     },
     {
       "path": "tools/vos/copy_package.py",
-      "sha256": "8049cddf7864698fb420bcd1923c8760899ed189faf9419d59349e60cd0de289"
+      "sha256": "ad7dcfe85c5ce28fb9239b86b17e1a0bc47cd4dfc5185a320b8da1d6dce22225"
+    },
+    {
+      "path": "tools/vos/copy_package_sources.py",
+      "sha256": "85ac67a6394c91e40e7f4b19fa1b4b9d5bbd8ab61f74bc3765286cfeb704796f"
     },
     {
       "path": "tools/vos/copy_partition.py",

@@ -8,26 +8,14 @@ import tempfile
 from pathlib import Path
 from typing import Final
 
-from vos import copy_notification, copy_service, copy_target, python_dependencies, sailbundle
+from vos import copy_notification, copy_service, copy_target
 from vos.atomic import atomic_path
+from vos.copy_package_sources import ADAPTERS, C_FILES, DATA_INPUTS, source_paths
 from vos.jsonutil import unique_object
 from vos.receipts import digest
 
 FORMAT: Final = "verifiedos-copy-package-sources-1"
 RECORD: Final = "source-record.json"
-C_FILES: Final = (
-    "src/package_unit.c", "src/copy_service.c", "src/target_layout.c",
-    "include/vos_copy_service.h", "include/vos_copy_atomic.h",
-    "include/vos_copy_notification.h",
-)
-ADAPTERS: Final = ("src/atomic_target.s", "src/notification_target.s")
-DATA_INPUTS: Final = (
-    "interfaces/ring-reference.json", "interfaces/device-registers.json",
-    "interfaces/device-registers.schema.json", "model/config/verifiedos.json",
-    sailbundle.BUNDLE, "model/model/sys/platform.sail", "model/model/sys/rot.sail",
-    "model/model/sys/block_device.sail", "tools/pyproject.toml", "tools/uv.lock",
-)
-ENTRYPOINTS: Final = ("tools/vos/copy_package.py", "tools/vos/cli/copy_service.py")
 LIMITS: Final = (
     "Source preparation only: no target emission, installed activation or wiring, "
     "fixed artifact, correspondence, TAL/CIC or production-admission verdict."
@@ -38,12 +26,6 @@ _COMMENTS: Final = re.compile(r'''(?P<literal>"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*
 
 class PackageError(ValueError):
     """The standalone source preparation cannot be reproduced safely."""
-
-
-def source_paths(root: Path) -> tuple[str, ...]:
-    """The recipe owns non-Python inputs; imports determine local helper closure."""
-    return tuple(sorted({*(f"copy-service/{name}" for name in (*C_FILES, *ADAPTERS)),
-                         *DATA_INPUTS, *python_dependencies.sources(root, ENTRYPOINTS)}))
 
 
 def _capture(root: Path) -> dict[str, bytes]:

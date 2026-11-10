@@ -13,7 +13,7 @@ import json
 from pathlib import Path
 from typing import Any, Final
 
-from vos import python_dependencies
+from vos import copy_package_sources, python_dependencies
 from vos.jsonutil import unique_object
 from vos.receipts import atomic_path, digest
 
@@ -65,9 +65,7 @@ def sources(view: str, *, root: Path | None = None) -> tuple[str, ...]:
             raise SourceBindingError(f"unknown source-binding group: {name}")
         members = GROUPS[name]
         if name == "copy-service-package":
-            from vos import copy_package
-
-            members = (*members, *copy_package.source_paths(root))
+            members = (*members, *copy_package_sources.source_paths(root))
         if not members or len(members) != len(set(members)):
             raise SourceBindingError(f"empty or repeated source-binding group members: {name}")
         for member in members:

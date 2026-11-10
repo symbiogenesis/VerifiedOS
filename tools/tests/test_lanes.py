@@ -50,6 +50,7 @@ from vos import (
     boot_crypto_target,
     composer,
     composition_staged,
+    copy_package_sources,
     fixed_composition,
     kernelrun,
     memory_planner,
@@ -97,9 +98,7 @@ def _trivial_schema(scratch: Path) -> list[str]:
 
 
 def _copy_package_fixture(scratch: Path) -> list[str]:
-    from vos import copy_package
-
-    for relative in copy_package.source_paths(_ROOT):
+    for relative in copy_package_sources.source_paths(_ROOT):
         target = scratch / relative
         target.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(_ROOT / relative, target)

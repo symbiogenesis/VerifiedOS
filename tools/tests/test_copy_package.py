@@ -195,14 +195,18 @@ def _aliases_preserve_inputs_and_record() -> None:
 
 
 def _public_command() -> None:
-    with _fixture() as (root, output), patch.object(cli, "find_root", return_value=root), redirect_stdout(StringIO()):
-        with patch.object(cli.env, "load", side_effect=AssertionError("host preparation must not enter WSL")):
-            ensure(cli.main(["prepare-package", "--output", str(output)]) == 0, "public preparation succeeds")
-            ensure(cli.main(["prepare-package", "--output", str(output), "--check"]) == 0,
-                   "public read-only replay succeeds")
-            (output / "src/atomic_target.s").unlink()
-            ensure(cli.main(["prepare-package", "--output", str(output), "--check"]) == 1,
-                   "public replay refuses a missing adapter")
+    with (
+        _fixture() as (root, output),
+        patch.object(cli, "find_root", return_value=root),
+        redirect_stdout(StringIO()),
+        patch.object(cli.env, "load", side_effect=AssertionError("host preparation must not enter WSL")),
+    ):
+        ensure(cli.main(["prepare-package", "--output", str(output)]) == 0, "public preparation succeeds")
+        ensure(cli.main(["prepare-package", "--output", str(output), "--check"]) == 0,
+               "public read-only replay succeeds")
+        (output / "src/atomic_target.s").unlink()
+        ensure(cli.main(["prepare-package", "--output", str(output), "--check"]) == 1,
+               "public replay refuses a missing adapter")
 
 
 def _native_syntax() -> None:
