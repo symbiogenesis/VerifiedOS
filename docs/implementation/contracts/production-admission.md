@@ -210,12 +210,9 @@ currently projects every runtime roster member, including boot/TCB members, into
 its metadata request. [Its record constructor](../../../tools/vos/admission_production.py#make_record)
 always emits a refused generation, and even a supplied derivation never becomes
 a checked proof. That refusal is valid input-binding evidence; the projected
-runtime census is not a definition of the checker-admitted set. Before a
-production consumer can accept, M7.1c with the composition owner must separate
-the release/bootstrap proof obligations from the actual checker-admitted
-population under the register. The existing fixture/reference decisions and
-request schema remain unchanged by this eligibility review; that semantic and
-schema connection needs its own landed predicate and controls.
+runtime census is not a definition of the checker-admitted set. The
+[proof-route contract](#production-proof-route-record) separates these obligations
+without changing the existing fixture/reference decisions or request schema.
 
 The next actual runtime export request is `copy-service`, owned by M7.1e with
 M7.1a/d owning the standalone installed-object and image join. Its
@@ -260,6 +257,58 @@ These readings return specific missing inputs. They do not commission the TAL
 foundation, a new proof consumer or a permissive production checker under M7.1c's
 existing integration estimate. The first-case selection stays open until an
 eligible complete member and those consumers are available.
+
+## Production proof-route record
+
+M7.1c's bounded schema connection is a version-2 refusal record over the complete
+runtime request. A fixed authored JSON policy at
+`tools/admission/production-population.json` owns the reviewed route declaration
+for each member; callers cannot select a different policy. Each declaration names
+the member, one route and the requirements supporting that judgment. The record
+binds the exact policy and [requirements register](../../requirements-register.md)
+bytes alongside the already checked roster, products and request. A citation
+records the review's grounds; hashing that source does not mechanically decide
+TCB membership, prove a classification correct or assign an assurance tier.
+
+The closed routes are `bootstrap-release`, `tcb-release`, `checker-admitted` and
+`unresolved`. Bootstrap and TCB members retain their missing release-time
+source/binary correspondence, functional-refinement and measured-boot evidence;
+they do not acquire install-path certificate or admission-tier obligations.
+Checker-admitted members retain the tier, derivation and actual TAL/CIC consumer
+obligations. An unresolved member carries an explicit missing-route blocker and
+cannot disappear from the generation's obligations. Existing request tier and
+derivation fields remain bound declarations in the record, including when they
+do not apply to the selected route; their presence changes no route or verdict.
+
+The initial policy follows R-05-091 and R-06-007 for the two firmware members and
+R-06-001/R-06-004 for the kernel and crypto core. The first-case request above and
+R-06-023 support the copy service's contained route. Supervisor classification
+remains unresolved pending its concrete installed role. The storage slot remains
+unresolved because its system-integrity and user-data instantiations must expose
+their actual TCB/non-TCB split under R-06-005 and R-06-006. This conservative
+declaration grants no exemption, accepted executable status or completion credit.
+
+Before implementing this connection, land this predicate: the fixed policy has a
+closed versioned shape, unique declarations and exact runtime-request membership;
+missing, extra, duplicate or unknown-route declarations refuse before publication.
+Every runtime artifact remains in the record, with route-specific missing-evidence
+blockers and its executable owner. Every route still refuses, and the generation
+always has `production_admission: false`, `generation_accepted: false` and
+`decision: refused`. No policy entry, complete fixture metadata, executable status
+or supplied success flag creates a passing release or admission check. Replaying
+an older schema requires regeneration rather than interpreting it as admission.
+
+Focused acceptance uses the existing synthetic complete product/build fixture.
+It checks all four routes, inapplicable certificate/tier declarations on release
+members, explicit unresolved members, full census preservation and deterministic
+replay. Independent missing/extra/duplicate/unknown-role controls must preserve a
+prior output. Policy/register substitutions and drift after the build join or
+before publication must invalidate the record; policy/register output aliases,
+including hardlinks, must preserve consumed bytes. A forged route, blocker or
+success flag in a saved record must fail exact recomputation. These controls
+qualify input binding and obligation routing only. Actual release proofs, complete
+standalone products, the role split, TAL/CIC checking, source correspondence,
+authenticated current state and final target/image acceptance remain open.
 
 ## First executable case and acceptance
 
