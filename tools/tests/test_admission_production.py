@@ -393,7 +393,8 @@ def _publication_io_failures() -> None:
                 previous = output.read_bytes() if existing else None
                 failure = OSError(f"injected {phase} failure")
 
-                def interrupted_write(path: Path, data: bytes) -> int:
+                def interrupted_write(path: Path, data: bytes, output: Path = output,
+                                      failure: OSError = failure) -> int:
                     if path.parent == output.parent and path.name.startswith(f".{output.name}."):
                         write(path, data[:17])
                         raise failure
@@ -426,14 +427,16 @@ def _publication_pending_drift() -> None:
             changed = root / relative
             original = changed.read_bytes()
 
-            def write_then_substitute(path: Path, data: bytes) -> int:
+            def write_then_substitute(path: Path, data: bytes, output: Path = output,
+                                      changed: Path = changed, original: bytes = original) -> int:
                 count = write(path, data)
                 if path.parent == output.parent and path.name.startswith(f".{output.name}."):
                     write(changed, original + b"\n")
                 return count
 
             with patch.object(Path, "write_bytes", write_then_substitute):
-                _refused(lambda: production.publish_record(root, result, destination),
+                _refused(lambda root=root, result=result, destination=destination:
+                         production.publish_record(root, result, destination),
                          ("stale", "differs", "image"))
             ensure(output.read_bytes() == previous, "input drift after writing preserves the prior record")
             ensure(not list(output.parent.glob(f".{output.name}.*.tmp")),
