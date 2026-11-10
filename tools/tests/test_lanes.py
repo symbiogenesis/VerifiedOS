@@ -281,6 +281,14 @@ def _staged_production_fixture(scratch: Path) -> list[str]:
     return [production.EXAMPLE, "--output", "out/historical-composition.json"]
 
 
+def _staged_mmode_fixture(scratch: Path) -> list[str]:
+    _staged_production_fixture(scratch)
+    source, catalog = "out/historical-composition.json", "out/boot-products.json"
+    composition_staged.bind_boot_chain(scratch, production.EXAMPLE, source)
+    composition_staged.export_boot_products(scratch, source, catalog)
+    return [source, "--products", catalog, "--output", "out/mmode-byte-export.json"]
+
+
 def _production_admission_fixture(action: str, scratch: Path) -> list[str]:
     """Reach each production handler with a valid, deliberately refused generation."""
     built = _production_build_fixture(f"admission-{action}", scratch)
@@ -391,6 +399,7 @@ _RUNS: dict[tuple[str, str], Argv] = {
     ("composer", "compare"): lambda _: [],
     ("composer", "project"): partial(_production_fixture, "project"),
     ("composer", "bind-staged-boot-chain"): _staged_production_fixture,
+    ("composer", "export-staged-mmode"): _staged_mmode_fixture,
     ("composer", "check-project"): partial(_production_fixture, "check-project"),
     ("composer", "build-record"): partial(_production_build_fixture, "build-record"),
     ("composer", "check-build-record"): partial(_production_build_fixture, "check-build-record"),
