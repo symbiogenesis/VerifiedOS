@@ -107,7 +107,7 @@ def _bound_refusal() -> None:
         built = json.loads((root / BUILD).read_bytes())
         routes = {"rot-firmware": "bootstrap-release", "mmode-firmware": "bootstrap-release",
                   "kernel": "tcb-release", "crypto-core": "tcb-release",
-                  "supervisor": "unresolved", "storage": "unresolved", "copy-service": "checker-admitted"}
+                  "supervisor": "checker-admitted", "storage": "unresolved", "copy-service": "checker-admitted"}
         for member in members:
             declaration = next(item for item in raw["members"] if item["id"] == member["member"])
             ensure(member["artifact"] == built["artifacts"][declaration["artifact_slot"]],
@@ -191,14 +191,14 @@ def _policy_replay() -> None:
         original = _record(root)
         path = root / production.POPULATION
         policy = json.loads(path.read_bytes())
-        declaration = next(item for item in policy["members"] if item["member"] == "copy-service")
+        declaration = next(item for item in policy["members"] if item["member"] == "supervisor")
         declaration["route"] = "unresolved"
         path.write_bytes(composer.canonical_bytes(policy))
         _rebuild(root, raw, production.POPULATION)
         _refused(lambda: production.validate_record(root, original), "differs")
         changed = _record(root)
         member = next(item for item in cast("list[dict[str, Any]]", changed["members"])
-                      if item["member"] == "copy-service")
+                      if item["member"] == "supervisor")
         ensure(member["proof_route"] == "unresolved"
                and "ProofRouteUnresolved" in {item["rule"] for item in member["blockers"]}
                and changed["generation_accepted"] is False,
@@ -209,6 +209,12 @@ def _policy_replay() -> None:
             forged = json.loads(composer.canonical_bytes(result))
             forged["members"][0][field] = value
             _refused(lambda forged=forged: production.validate_record(root, forged), "differs")
+        forged = json.loads(composer.canonical_bytes(result))
+        supervisor = next(member for member in forged["members"] if member["member"] == "supervisor")
+        kernel = next(member for member in forged["members"] if member["member"] == "kernel")
+        for field in ("proof_route", "route_basis", "blockers"):
+            supervisor[field] = kernel[field]
+        _refused(lambda: production.validate_record(root, forged), "differs")
         _refused(lambda: production.validate_record(root, dict(result, schema_version=1)), "differs")
 
 

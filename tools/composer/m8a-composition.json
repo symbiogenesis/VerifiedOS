@@ -1046,7 +1046,7 @@
         },
         {
           "path": "tools/admission/production-population.json",
-          "sha256": "aa30a8cb44d438199abfd3e9b008b1b53be53afa5b75a4f9c2b29226596c2be1"
+          "sha256": "3a6c4a9c11a550c80e7f05e73141b01c8a49a368b37b95adf9e3460febdb3c75"
         },
         {
           "path": "docs/requirements-register.md",
@@ -1171,7 +1171,7 @@
       ],
       "descriptor": {
         "path": "tools/composer/packages/admission.json",
-        "sha256": "2856c73e669bcba283795360511ab208d6df91cbdf17e23a0cf553bfb8964afa"
+        "sha256": "2078d62d64b1a5b6b6cff977a353b25ada2f284d0456138006ab447be1805ffc"
       },
       "artifact_slot": "admission-artifact",
       "entry": null,

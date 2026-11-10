@@ -64,7 +64,7 @@
     },
     {
       "path": "tools/admission/production-population.json",
-      "sha256": "aa30a8cb44d438199abfd3e9b008b1b53be53afa5b75a4f9c2b29226596c2be1"
+      "sha256": "3a6c4a9c11a550c80e7f05e73141b01c8a49a368b37b95adf9e3460febdb3c75"
     },
     {
       "path": "docs/requirements-register.md",
