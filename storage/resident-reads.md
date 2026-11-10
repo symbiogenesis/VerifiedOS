@@ -6,8 +6,21 @@ request and completion operations over one service-owned immutable backing and
 two independent holders. It copies publication bytes, binds exact owner, domain,
 object, version, root, boot, token and window, and keeps each holder's request
 sequence across retirement and crash. Exhaustion refuses before wrapping. This
-first shape refuses another publication while its backing is retained; it does
-not yet implement CoW predecessors, individual close or reservation renewal.
+first shape refuses another publication while its backing is retained; CoW
+predecessors remain unimplemented.
+
+Individual close cancels exactly one holder's reservation and pending transfer,
+including after expiry or grant/generation invalidation. It retains that holder's
+monotonic request sequence, the peer's reservation and transfer, and the occupied
+backing. Readmission allocates a fresh nonwrapping token, so a delayed old close,
+renewal or completion cannot act on the successor. Close releases no backing and
+supplies no sweep or reuse evidence.
+
+One explicit renewal per admitted reservation may extend expiry up to the
+composition's finite counter limit. Renewal requires the exact live handle and
+current authority; it preserves identity, window, token and any pending transfer.
+Refused renewal writes no owner state. These explicit lifecycle events are
+outside the fixed-reservation repeated-read traffic class.
 
 Matching completion checks current rights and expiry, calls the verifier on an
 isolated snapshot of the whole actual backing, then checks that the owner and
@@ -99,7 +112,12 @@ or safe-reuse proof.
 fixture and every defect before executing it. The pristine fixture exercises both
 root kinds, independent holders, finite repeated/empty reads, current rights,
 identity/window checks, callback drift, quarantine, retirement, reuse, crash and
-counter exhaustion. Executed defects add a common increment/decrement, replacement
+counter exhaustion. Close/renewal controls preserve peer payloads, exact pending
+transfers, failed-operation state and nonwrapping reservation/request identities.
+Their compiled defects omit cancellation or renewal authority/bounds, redirect a
+pending transfer, cancel the peer, accept stale lifecycle handles, release backing
+early or preserve an exhausted renewal count on readmission. Executed traffic
+defects add a common increment/decrement, replacement
 touch or hidden reacquisition, omit domain/authentication/sequence checks, exceed
 the counter bound or zero retained bytes early. A compilation failure is reported
 as stillborn and supplies no kill evidence.
@@ -148,8 +166,10 @@ The [receipt campaign](host/resident_receipt.c), registered by
 `python tools/run.py test --only storage_resident_receipt`, exercises both root
 kinds, independent reader windows, unchanged owner/receipt state, admission
 refusal, backing/checkpoint/identity substitution, lock and Fresh-epoch
-invalidation. This host adapter retains byte authentication. Eliminating that
-hash requires the protected immutable backing and lifetime evidence in the
+invalidation. The same actual verifier serves a pending read past its original
+expiry after renewal, refuses a closed transfer and serves both holders after
+fresh-token readmission. This host adapter retains byte authentication.
+Eliminating that hash requires the protected immutable backing and lifetime evidence in the
 [resident contract](../docs/implementation/contracts/resident-object-reads.md).
 
 `python tools/run.py test --only storage_publish` exercises

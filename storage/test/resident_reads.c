@@ -265,14 +265,145 @@ static int node_image_join(uint32_t kind)
     return 0;
 }
 
+static int lifecycle(uint32_t kind)
+{
+    struct vos_resident_owner o, before;
+    struct observation v;
+    struct authentication a;
+    struct vos_resident_handle h[2], old, bad;
+    uint64_t seq[2], previous;
+    uint8_t output[64];
+    size_t length = 999;
+    fixture(&o, &v, &a, kind, 15);
+    REQUIRE(vos_resident_publish(&o, &a.expected, a.bytes, a.length), "lifecycle publish");
+    REQUIRE(vos_resident_admit(&o, 0, 11, &a.expected, 3, 7, 0, 4, &h[0]) &&
+            vos_resident_admit(&o, 1, 11, &a.expected, 16, 5, 0, 12, &h[1]),
+            "lifecycle admissions");
+    REQUIRE(vos_resident_begin(&o, &h[0], 11, 0, 7, 1, &seq[0]) &&
+            vos_resident_begin(&o, &h[1], 11, 0, 5, 1, &seq[1]), "lifecycle pending readers");
+    memcpy(&before, &o, sizeof(before));
+    bad = h[0]; bad.identity.root[0] ^= 1;
+    v.read = 1;
+    REQUIRE(!vos_resident_renew(&o, &h[0], 12, 2, 9) &&
+            !vos_resident_renew(&o, &bad, 11, 2, 9) &&
+            !vos_resident_renew(&o, &h[0], 11, 4, 9) &&
+            !vos_resident_renew(&o, &h[0], 11, 2, 4) &&
+            !vos_resident_renew(&o, &h[0], 11, 2, 16) &&
+            memcmp(&before, &o, sizeof(before)) == 0 && v.common == 0 &&
+            v.private_writes == 0 && v.output == 0, "renewal refusal preserves both transfers");
+    v.read = 0;
+    REQUIRE(vos_resident_renew(&o, &h[0], 11, 2, 9), "explicit renewal");
+    REQUIRE(o.common.reservation[0].expires == 9 && o.common.reservation[0].renewed == 1 &&
+            memcmp(&before.common.reservation[0].handle,
+                   &o.common.reservation[0].handle, sizeof(h[0])) == 0 &&
+            memcmp(before.pending, o.pending, sizeof(o.pending)) == 0 &&
+            memcmp(&before.common.reservation[1], &o.common.reservation[1],
+                   sizeof(o.common.reservation[1])) == 0 &&
+            o.common.next_token == before.common.next_token,
+            "renewal preserves exact handles and pending transfers");
+    memcpy(&before, &o, sizeof(before));
+    REQUIRE(!vos_resident_renew(&o, &h[0], 11, 3, 10) &&
+            memcmp(&before, &o, sizeof(before)) == 0, "renewal budget");
+    v.read = 1;
+    REQUIRE(vos_resident_complete(&o, &h[0], 11, seq[0], 5, authenticate, &a,
+                                  output, sizeof(output), &length) && length == 7 &&
+            memcmp(output, a.bytes + 3, 7) == 0, "renewed pending payload beyond original expiry");
+    REQUIRE(vos_resident_complete(&o, &h[1], 11, seq[1], 5, authenticate, &a,
+                                  output, sizeof(output), &length) && length == 5 &&
+            memcmp(output, a.bytes + 16, 5) == 0, "independent unrenewed payload");
+    REQUIRE(v.common == 0 && !v.bad_class, "renewed read classified traffic");
+    v.read = 0;
+    REQUIRE(vos_resident_begin(&o, &h[0], 11, 1, 3, 6, &seq[0]) &&
+            vos_resident_begin(&o, &h[1], 11, 2, 2, 6, &seq[1]), "close pending readers");
+    memcpy(&before, &o, sizeof(before));
+    REQUIRE(!vos_resident_close(&o, &bad, 11) && !vos_resident_close(&o, &h[0], 12) &&
+            memcmp(&before, &o, sizeof(before)) == 0, "close identity refusal");
+    old = h[0]; previous = seq[0];
+    REQUIRE(vos_resident_close(&o, &h[0], 11), "explicit close");
+    REQUIRE(!o.common.reservation[0].live && !o.pending[0].active &&
+            o.sequence[0] == previous, "close cancels selected transfer");
+    REQUIRE(memcmp(&before.common.reservation[1], &o.common.reservation[1],
+                   sizeof(o.common.reservation[1])) == 0 &&
+            memcmp(&before.pending[1], &o.pending[1], sizeof(o.pending[1])) == 0 &&
+            o.sequence[1] == before.sequence[1], "close preserves peer");
+    REQUIRE(o.common.occupied && o.common.accepting &&
+            memcmp(o.common.bytes, a.bytes, a.length) == 0,
+            "close retains quarantined backing");
+    length = 999;
+    REQUIRE(!vos_resident_complete(&o, &old, 11, previous, 6, authenticate, &a,
+                                   output, sizeof(output), &length) && length == 999,
+            "closed completion refuses payload");
+    REQUIRE(vos_resident_complete(&o, &h[1], 11, seq[1], 6, authenticate, &a,
+                                  output, sizeof(output), &length) && length == 2 &&
+            memcmp(output, a.bytes + 18, 2) == 0, "peer completes after independent close");
+    REQUIRE(vos_resident_admit(&o, 0, 11, &a.expected, 23, 4, 6, 13, &h[0]) &&
+            h[0].token > old.token && o.common.reservation[0].renewed == 0,
+            "readmission resets renewal bound");
+    REQUIRE(vos_resident_begin(&o, &h[0], 11, 0, 4, 6, &seq[0]) && seq[0] > previous,
+            "request sequence survives individual close");
+    memcpy(&before, &o, sizeof(before));
+    REQUIRE(!vos_resident_close(&o, &old, 11) &&
+            !vos_resident_renew(&o, &old, 11, 6, 14) &&
+            !vos_resident_complete(&o, &old, 11, previous, 6, authenticate, &a,
+                                   output, sizeof(output), &length) &&
+            memcmp(&before, &o, sizeof(before)) == 0, "stale lifecycle cannot rebind successor");
+    REQUIRE(vos_resident_renew(&o, &h[0], 11, 6, 15), "readmitted holder renews once");
+    vos_resident_grants(&o, 2);
+    memcpy(&before, &o, sizeof(before));
+    REQUIRE(!vos_resident_renew(&o, &h[0], 11, 7, 15) &&
+            memcmp(&before, &o, sizeof(before)) == 0, "revoked renewal preserves state");
+    REQUIRE(vos_resident_close(&o, &h[0], 11) && !o.pending[0].active &&
+            o.common.occupied, "revoked holder may close without releasing backing");
+    vos_resident_grants(&o, 0);
+    memcpy(&before, &o, sizeof(before));
+    REQUIRE(!vos_resident_renew(&o, &h[1], 11, 7, 15) &&
+            memcmp(&before, &o, sizeof(before)) == 0, "current renewal authority");
+    if (kind == VOS_RESIDENT_SYSTEM) {
+        vos_resident_grants(&o, 3);
+        vos_resident_generation(&o, 2);
+        memcpy(&before, &o, sizeof(before));
+        REQUIRE(!vos_resident_renew(&o, &h[1], 11, 7, 15) &&
+                memcmp(&before, &o, sizeof(before)) == 0,
+                "generation-invalidated holder cannot renew");
+    }
+    REQUIRE(!vos_resident_begin(&o, &h[1], 11, 0, 1, 12, &seq[1]) &&
+            !vos_resident_renew(&o, &h[1], 11, 12, 15), "expired holder cannot renew or read");
+    REQUIRE(vos_resident_close(&o, &h[1], 11), "expired or invalidated holder may close");
+    REQUIRE(vos_resident_crash(&o, 2) && !vos_resident_close(&o, &h[0], 11) &&
+            !vos_resident_renew(&o, &h[0], 11, 12, 15), "crash invalidates lifecycle handles");
+    return 0;
+}
+
+static int reservation_exhaustion(void)
+{
+    struct vos_resident_owner o, before;
+    struct observation v;
+    struct authentication a;
+    struct vos_resident_handle h;
+    fixture(&o, &v, &a, VOS_RESIDENT_USER, 3);
+    REQUIRE(vos_resident_publish(&o, &a.expected, a.bytes, a.length), "token-bound publish");
+    for (uint64_t token = 1; token <= 3; ++token) {
+        REQUIRE(vos_resident_admit(&o, 0, 11, &a.expected, 0, 1, 0, 1, &h) &&
+                h.token == token && o.common.reservation[0].renewed == 0,
+                "bounded reservation token");
+        REQUIRE(vos_resident_renew(&o, &h, 11, 0, 3) &&
+                vos_resident_close(&o, &h, 11), "bounded renewal and close");
+    }
+    memcpy(&before, &o, sizeof(before));
+    REQUIRE(!vos_resident_admit(&o, 0, 11, &a.expected, 0, 1, 0, 1, &h) &&
+            o.common.next_token == 3 && memcmp(&before, &o, sizeof(before)) == 0,
+            "individual close cannot wrap reservation token");
+    return 0;
+}
+
 int main(void)
 {
     for (uint32_t kind = VOS_RESIDENT_SYSTEM; kind <= VOS_RESIDENT_USER; ++kind)
         for (uint32_t repeats = 1; repeats <= 4; ++repeats)
             if (exercise(kind, repeats)) return 1;
     for (uint32_t kind = VOS_RESIDENT_SYSTEM; kind <= VOS_RESIDENT_USER; ++kind)
-        if (node_image_join(kind)) return 1;
-    if (exhaustion()) return 1;
+        if (node_image_join(kind) || lifecycle(kind)) return 1;
+    if (exhaustion() || reservation_exhaustion()) return 1;
     fprintf(stderr, "ok resident C payload, lifetime and stored-write controls\n");
     return 0;
 }

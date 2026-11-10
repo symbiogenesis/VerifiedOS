@@ -12,6 +12,7 @@
 #define VOS_RESIDENT_COMMON 1U
 #define VOS_RESIDENT_PRIVATE 2U
 #define VOS_RESIDENT_RESPONSE 3U
+#define VOS_RESIDENT_RENEWALS 1U
 
 struct vos_resident_identity {
     uint64_t owner, domain, object, version, generation;
@@ -29,7 +30,7 @@ struct vos_resident_handle {
 struct vos_resident_reservation {
     struct vos_resident_handle handle;
     uint64_t expires;
-    uint32_t live;
+    uint32_t live, renewed;
 };
 
 struct vos_resident_common {
@@ -76,6 +77,18 @@ int vos_resident_admit(struct vos_resident_owner *owner, uint32_t holder,
                        uint64_t domain, const struct vos_resident_identity *identity,
                        size_t start, size_t length, uint64_t now, uint64_t expires,
                        struct vos_resident_handle *handle);
+/* One explicit renewal may extend a live reservation within the composition's
+ * counter limit. Current authority is required. The exact handle and any pending
+ * transfer remain unchanged; a refused renewal writes no owner state. */
+int vos_resident_renew(struct vos_resident_owner *owner,
+                       const struct vos_resident_handle *handle, uint64_t domain,
+                       uint64_t now, uint64_t expires);
+/* Exact-handle close also works after expiry or grant/generation revocation.
+ * It cancels only this holder's reservation and pending transfer, retains its
+ * monotonic request sequence and leaves backing occupied for separate retirement.
+ * A stale handle cannot close a successor reservation in the same holder slot. */
+int vos_resident_close(struct vos_resident_owner *owner,
+                       const struct vos_resident_handle *handle, uint64_t domain);
 int vos_resident_begin(struct vos_resident_owner *owner,
                        const struct vos_resident_handle *handle, uint64_t domain,
                        size_t offset, size_t length, uint64_t now,
