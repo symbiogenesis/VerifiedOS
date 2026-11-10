@@ -310,6 +310,32 @@ the actual retained M-mode product through selection and ordinary production
 projections, with wrong-stage and substituted-file controls. Both acceptance
 fields remain false; unresolved runtime slots still prevent a build record.
 
+### Complete retained M-mode bytes
+
+After the historical candidate and product catalog above are published, run:
+
+```console
+python tools/run.py composer export-staged-mmode out/composer/historical-input.json --products out/composer/boot-products.json --output out/composer/mmode-bytes.json
+```
+
+The [complete-stage contract](../../docs/implementation/contracts/production-admission.md#complete-retained-m-mode-export-checkpoint)
+exports the actual normal M-mode entry and complete compiled body, embedded root,
+initializer, zero gap and slot tag. Joining the exported raw regions exactly
+reproduces the retained signed payload. The report separately inventories the
+external stack and records the main-die harness's actual writable/executable
+window as `unresolved-rwx-window`. It supplies real source-bound bytes for the
+first-member prerequisite while leaving R-13-003's installed-object mapping,
+qualified compiler, tier, TAL derivation and correspondence checks open.
+
+The command replays the inspected catalog and refuses substitutions, different
+reconstructed bytes or loaded permissions, binding drift and output/input aliases.
+Publication is atomic for the one report and preserves an earlier report on
+refusal. The focused `test --only test_composition_mmode` exercises the exact
+retained stage, text/gap/initializer/tag/truncation controls, actual harness
+permissions, stale sources/catalog, publication-time helper drift and hardlinks.
+Neither export nor fixture mutation checks supplies target or production-admission
+acceptance.
+
 ### Placement and build bindings
 
 Image entries may be unresolved; a declared entry follows the boot contract's
