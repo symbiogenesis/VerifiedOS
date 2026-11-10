@@ -430,7 +430,17 @@ name alone is insufficient. Exact executable/source identities, output ownership
 supported stop/cleanup behavior and a wall-time/resource cap belong in that
 adapter's landed predicate before implementation or use.
 
-No new diagnostic cap or attempt allowance is selected while that interface is
-missing. The earlier ninety-second limit is historical. Compiler/prover edits,
+The [external observation qualification contract](contracts/contained-checker-observation.md)
+selects a bounded independent `perf`/DWARF candidate for native stack localization,
+with completed-event, active-nesting, interruption and truncated-capture controls.
+Its read-only tool preflight refuses: the installed `perf` has no supported DWARF
+unwinder or ELF support, and the inspected debugger alternatives are absent.
+The retained checker is native AArch64 with debug information and matches its
+original digest; no checker or independent control was launched. A separately
+selected tool build is the concrete prerequisite before observer implementation
+or qualification. The contract's limits apply only to independent controls.
+
+No checker diagnostic cap or attempt allowance is selected while that interface
+is missing. The earlier ninety-second limit is historical. Compiler/prover edits,
 proof repair, installation, a full audit restart and complete qualification remain
 outside this source review. Q39 and Q43 retain their unchanged acceptance joins.
