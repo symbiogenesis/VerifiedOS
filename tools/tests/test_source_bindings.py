@@ -35,6 +35,13 @@ def _fixture() -> Generator[Path]:
             path = root / name
             path.parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(ROOT / name, path)
+        for relative in bindings.PACKAGE_FILES.values():
+            for interface in json.loads((root / relative).read_bytes())["interfaces"]:
+                name = interface["source"]["path"]
+                target = root / name
+                target.parent.mkdir(parents=True, exist_ok=True)
+                if not target.exists():
+                    shutil.copyfile(ROOT / name, target)
         yield root
 
 
@@ -51,6 +58,10 @@ def _views() -> None:
     ensure(bindings.sources("projection") == composition.PRODUCERS, "projection consumes declaration")
     ensure(bindings.sources("admission-production") == admission_production.CHECKERS,
            "production receipts consume declaration")
+    for path in ("tools/admission/production-population.json", "docs/requirements-register.md"):
+        ensure(path in bindings.sources("admission-package")
+               and path in bindings.sources("admission-production"),
+               f"the package and production consumer bind the proof-route input: {path}")
     for path in ("tools/vos/jsonc.py", "tools/vos/__init__.py", "tools/generated/dialect-table.json",
                  "tools/pyproject.toml", "tools/uv.lock"):
         ensure(path in bindings.sources("projection"), f"actual projection dependency is bound: {path}")
@@ -79,9 +90,11 @@ def _generation() -> None:
             package = json.loads(text)
             ensure(package["sources"] == bindings.references(root, f"{name}-package"),
                    "package list derives from owner")
+            for interface in before["interfaces"]:
+                interface["source"]["sha256"] = digest(root / interface["source"]["path"])
             ensure({key: value for key, value in package.items() if key != "sources"}
                    == {key: value for key, value in before.items() if key != "sources"},
-                   "interface and handler choices remain authored")
+                   "interface identities derive from their authored paths; other choices remain authored")
             (root / relative).write_text(text, encoding="utf-8", newline="")
             ensure(bindings.render(root, relative) == text, "package generation reaches a fixpoint")
         text = bindings.render(root, bindings.COMPOSITION)
@@ -122,6 +135,27 @@ def _shared_dependency() -> None:
                 ensure(before["sha256"] != after["sha256"], f"{view}: substitution changes identity")
             (root / name).unlink()
             _refused(lambda: bindings.references(root, "composer-package"), "new-shared-fixture.py")
+
+
+def _interface_identity() -> None:
+    with _fixture() as root:
+        relative = bindings.PACKAGE_FILES["copy-service"]
+        before = json.loads(bindings.render(root, relative))
+        interface = before["interfaces"][1]
+        target = root / interface["source"]["path"]
+        target.write_bytes(target.read_bytes() + b"\nChanged interface contract.\n")
+        after = json.loads(bindings.render(root, relative))
+        ensure(after["interfaces"][1]["source"]["sha256"] == digest(target)
+               and before["interfaces"][1] != after["interfaces"][1],
+               "an interface change regenerates its identity from the authored source path")
+        raw = json.loads((root / relative).read_bytes())
+        raw["interfaces"][1]["source"]["path"] = relative
+        (root / relative).write_text(json.dumps(raw), encoding="utf-8", newline="")
+        snapshots = {name: (root / name).read_bytes()
+                     for name in (*bindings.PACKAGE_FILES.values(), bindings.COMPOSITION)}
+        _refused(lambda: bindings.emit(root), "aliases another output or bound source")
+        ensure(all((root / name).read_bytes() == data for name, data in snapshots.items()),
+               "a generated destination cannot overwrite an authored interface input")
 
 
 def _current_import_closure() -> None:
@@ -253,6 +287,7 @@ def _linked_destinations() -> None:
 def cases() -> list[Case]:
     return [Case("declared-consumer-views", _views), Case("generated-source-fields", _generation),
             Case("shared-dependency-propagation", _shared_dependency),
+            Case("interface identities regenerate and publication protects their inputs", _interface_identity),
             Case("current transitive imports bind actual checkout bytes", _current_import_closure),
             Case("unreadable and malformed source dependencies refuse", _source_refusals),
             Case("source-declaration-refusals", _declaration_refusals),

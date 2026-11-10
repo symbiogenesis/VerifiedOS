@@ -4,7 +4,7 @@
   "sources": [
     {
       "path": "tools/vos/source_bindings.py",
-      "sha256": "b949d49bafb5c9e738376f053bbbd71754df961e94ed3312b9b4a55f8fc1652f"
+      "sha256": "1a9048a670e65308926c3170b354ddc261730770cda2d1d129d021d3f4aa54c0"
     },
     {
       "path": "proofs/ProofSupport.v",
@@ -135,8 +135,28 @@
       "sha256": "5170e6144e97114abb19a7ac7cdb0a8cd393d836adb6fe3d3f97a56fe67785a6"
     },
     {
+      "path": "tools/vos/copy_notification.py",
+      "sha256": "2dab06d82421fa3e6f77507cc0b1818de3f24422a376c1dfe5954b968dd71ef9"
+    },
+    {
+      "path": "tools/vos/copy_package.py",
+      "sha256": "8049cddf7864698fb420bcd1923c8760899ed189faf9419d59349e60cd0de289"
+    },
+    {
+      "path": "tools/vos/copy_service.py",
+      "sha256": "4ee82618272003d2d5c1ab5e4047e77f65678e6e31b9677c0b7d2393b78937bf"
+    },
+    {
+      "path": "tools/vos/copy_target.py",
+      "sha256": "da6e98d9a288d8e05dd3da58da0a576127c45590dccfec47082ca6e77b25eaa8"
+    },
+    {
       "path": "tools/vos/corpus.py",
       "sha256": "902c15dd9f7f6a8e4e07e837265ba780424923dcd8e75a108eaa7a7df6d55b08"
+    },
+    {
+      "path": "tools/vos/device_registers.py",
+      "sha256": "51bdb5c5954cf20356dff160fe780d9d0f34288e3c0cd0023c094637f4b08aec"
     },
     {
       "path": "tools/vos/dialect.py",
@@ -161,6 +181,10 @@
     {
       "path": "tools/vos/fixed_composition.py",
       "sha256": "f2f57dadad0b48ebcdf9d2a54cdfe2227af3a7dd1b2d610bc62b6a6d14efb78d"
+    },
+    {
+      "path": "tools/vos/gallina.py",
+      "sha256": "3150d45dbc7bb631e4b5f11d571492f5cc386589a64086375fb5cdeb3070f96d"
     },
     {
       "path": "tools/vos/image.py",
@@ -215,6 +239,14 @@
       "sha256": "25bbf0b0288363f3b1fe9b0eff3616839dce7d61720814fe2f350f1fbba8d822"
     },
     {
+      "path": "tools/vos/register.py",
+      "sha256": "b59170d22a2a2074c3cdade9510362c8e1fa0a1086694f89afa1b3d7efe67534"
+    },
+    {
+      "path": "tools/vos/ring.py",
+      "sha256": "3f3bdd1c6992a9f406a57c7dd0265c0d6b26ee9e2964b2bb710442b91064752b"
+    },
+    {
       "path": "tools/vos/rocqterm.py",
       "sha256": "615415810520768480e6e41e3b20bb183bd33f638c5b0321711c37fb5084fa07"
     },
@@ -229,6 +261,14 @@
     {
       "path": "tools/vos/schema.py",
       "sha256": "061fd1d12fa8417f6ba4fea7d61581558c4938118defdecc913524994ca38f11"
+    },
+    {
+      "path": "tools/vos/socmap.py",
+      "sha256": "0c5bcb5b1282e46a4ab50e741f574632b63a87f0d516607f76cb3df0256d744e"
+    },
+    {
+      "path": "tools/vos/supervisor.py",
+      "sha256": "3d207da728c40625a3c533d96228245a8ccb35fbc3070b724f387c6cdb743aa1"
     },
     {
       "path": "tools/vos/trace.py",

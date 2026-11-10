@@ -292,7 +292,7 @@ Sorted reference payload SHA-256: `23b690105f12b96f3ef7a997cf508a5b775e70bcaf077
 
 | Bound input or implementation | SHA-256 |
 | --- | --- |
-| [tools/vos/source_bindings.py](../../tools/vos/source_bindings.py) | `b949d49bafb5c9e738376f053bbbd71754df961e94ed3312b9b4a55f8fc1652f` |
+| [tools/vos/source_bindings.py](../../tools/vos/source_bindings.py) | `1a9048a670e65308926c3170b354ddc261730770cda2d1d129d021d3f4aa54c0` |
 | [proofs/ProofSupport.v](../../proofs/ProofSupport.v) | `21fefa8c275f9a6ee41299d2d59b971974a8f89453cb8749bbec0d7d13e86a22` |
 | [tools/pyproject.toml](../../tools/pyproject.toml) | `48f5ab1bf830b490766df25db52898ffcdcf57e1bf8a99b16fd903539799a4c1` |
 | [tools/uv.lock](../../tools/uv.lock) | `0a470cbea5bb34c291a46053bc4c455f96ddd275adc435c14fab2a0babdbf0e1` |
@@ -300,15 +300,49 @@ Sorted reference payload SHA-256: `23b690105f12b96f3ef7a997cf508a5b775e70bcaf077
 | [proofs/HandlerGraph.v](../../proofs/HandlerGraph.v) | `0f779ec5f3fb93552ea47302f2e71bc0d2d4fd5fbed82c879b3370bf56a2972e` |
 | [tools/vos/math_evidence.py](../../tools/vos/math_evidence.py) | `cbe9e115518178c4ad00db96377ccbd9508544e9b24fbe78055b3d921d700a3c` |
 | [tools/vos/__init__.py](../../tools/vos/__init__.py) | `f4bf65b676335680ed2e74c496374a83a2d37380cb6bc32a0af94d192c788e36` |
+| [tools/vos/admission.py](../../tools/vos/admission.py) | `70e6b9014fb3d2efaf8fcbc3130b7356617b2fe9e4da0303b024c67e1e68fc70` |
+| [tools/vos/asm.py](../../tools/vos/asm.py) | `89aa4fd77963291609a6756bc872c97f26aca61a4815fa0727a54b756da7de0b` |
 | [tools/vos/atomic.py](../../tools/vos/atomic.py) | `384e706e945f8cead1e1b3791f916f6e7f8783a7497c17dd3a551a765e670471` |
+| [tools/vos/boot.py](../../tools/vos/boot.py) | `08774e6c948c9a4ba9fb29f40f8fa578787a70ee5713f8bc73204280125c6246` |
+| [tools/vos/boot_handoff.py](../../tools/vos/boot_handoff.py) | `dd1152c4380264b96338d535c81db5c6274806413fb0da8347d00024138800c2` |
+| [tools/vos/boot_signing.py](../../tools/vos/boot_signing.py) | `eadb69e01c3d98bd58212fafd43abc0e03101c39e15a6a12da0684421e7a2493` |
+| [tools/vos/boot_target.py](../../tools/vos/boot_target.py) | `73783ef15a9a75bbc3f3a749e5ae687a7d6410e119dc5d43bbbe4fc7ec37b73d` |
+| [tools/vos/compiler_component.py](../../tools/vos/compiler_component.py) | `9a38a4c072a013eeabeeacd907ed11b09c7dc38fd9b30ab542cbcc09d1b0a78b` |
+| [tools/vos/compiler_diff.py](../../tools/vos/compiler_diff.py) | `6721079d2d47e5dbdb93e8ac40947b1da7259d65c8b9c7bc1eb9d9daaed0cfca` |
+| [tools/vos/compiler_provenance.py](../../tools/vos/compiler_provenance.py) | `f4d823746bb200d3ac0728f31dc4f08f8e8f7d6f6c793f80cf3730775de746f8` |
+| [tools/vos/composition.py](../../tools/vos/composition.py) | `f3f603801821050ba4b3784ccecf8d4056dff51f2156faccf6a7f928167f6382` |
+| [tools/vos/config.py](../../tools/vos/config.py) | `5170e6144e97114abb19a7ac7cdb0a8cd393d836adb6fe3d3f97a56fe67785a6` |
+| [tools/vos/copy_notification.py](../../tools/vos/copy_notification.py) | `2dab06d82421fa3e6f77507cc0b1818de3f24422a376c1dfe5954b968dd71ef9` |
+| [tools/vos/copy_package.py](../../tools/vos/copy_package.py) | `8049cddf7864698fb420bcd1923c8760899ed189faf9419d59349e60cd0de289` |
+| [tools/vos/copy_service.py](../../tools/vos/copy_service.py) | `4ee82618272003d2d5c1ab5e4047e77f65678e6e31b9677c0b7d2393b78937bf` |
+| [tools/vos/copy_target.py](../../tools/vos/copy_target.py) | `da6e98d9a288d8e05dd3da58da0a576127c45590dccfec47082ca6e77b25eaa8` |
 | [tools/vos/corpus.py](../../tools/vos/corpus.py) | `902c15dd9f7f6a8e4e07e837265ba780424923dcd8e75a108eaa7a7df6d55b08` |
+| [tools/vos/device_registers.py](../../tools/vos/device_registers.py) | `51bdb5c5954cf20356dff160fe780d9d0f34288e3c0cd0023c094637f4b08aec` |
+| [tools/vos/dialect.py](../../tools/vos/dialect.py) | `65fe9d83f372d22b71363759f67884f2fc500c40da6f06739a2bb51314d2ea49` |
+| [tools/vos/dialectgen.py](../../tools/vos/dialectgen.py) | `db3c6a6982fd62e5826e7224e920b50c8409fc64a893110a165063e884e05519` |
+| [tools/vos/encdec.py](../../tools/vos/encdec.py) | `a1ac805757fb2de1b762ff596cbf66910f89907d8a3ead49cf6d44f22007559c` |
 | [tools/vos/env.py](../../tools/vos/env.py) | `c42ed53ffe87480e46decda34c8b80b78f513cf66bbd0d7623055201d0b07be4` |
+| [tools/vos/gallina.py](../../tools/vos/gallina.py) | `3150d45dbc7bb631e4b5f11d571492f5cc386589a64086375fb5cdeb3070f96d` |
+| [tools/vos/image.py](../../tools/vos/image.py) | `00693f7a898025ebeb188d0a91cd4441a3085f918f119249e2ecac6b4ab4418f` |
+| [tools/vos/jsonc.py](../../tools/vos/jsonc.py) | `b2eec47f4fe73284e7cd69799c8b0405053e79a4bed146faa2fabd4d320f0d7a` |
 | [tools/vos/jsonutil.py](../../tools/vos/jsonutil.py) | `651b6cf84e7e3d3af970df71a286b5c700eea9b2b1b88f2db7dd44f572bfd8e5` |
+| [tools/vos/kernel_restore.py](../../tools/vos/kernel_restore.py) | `3fd1d750f3682e6ae6411106114b26d6fe53e52b03a6de08b3547b9111fa8f8d` |
+| [tools/vos/kernelrun.py](../../tools/vos/kernelrun.py) | `85f06df190f9460e7f701f8827f6e81766e31c10292a737ab297480e8229766a` |
+| [tools/vos/openssl.py](../../tools/vos/openssl.py) | `dbe25044d107e0926ca7041b7e7fe369d0335d467c7988dd08dd2a97b68471e9` |
 | [tools/vos/proof_staging.py](../../tools/vos/proof_staging.py) | `ab0615ff765fa486883a2f9846bc7660efe7ef225d562dfe5a0a800addf8d32c` |
 | [tools/vos/proofenv.py](../../tools/vos/proofenv.py) | `1d51bdb83c1f09f675e5eec631016ca25ba16c4001e1dca75ec3ddd30f82b4f1` |
 | [tools/vos/prooflex.py](../../tools/vos/prooflex.py) | `d3cc29a77d0f9b214afeaa4bb7b54a8ffefac77e04bc7881ff5d25f237731913` |
 | [tools/vos/proofs.py](../../tools/vos/proofs.py) | `e97b1c3c7ae00098c9204396b27897eabdfc13cb4636d8daf4361421de51c226` |
 | [tools/vos/python_dependencies.py](../../tools/vos/python_dependencies.py) | `f7fc844fcb85635dd45532ccd510aca2c743ca18b2bd6a55a1f32fe0591fed15` |
 | [tools/vos/receipts.py](../../tools/vos/receipts.py) | `25bbf0b0288363f3b1fe9b0eff3616839dce7d61720814fe2f350f1fbba8d822` |
+| [tools/vos/register.py](../../tools/vos/register.py) | `b59170d22a2a2074c3cdade9510362c8e1fa0a1086694f89afa1b3d7efe67534` |
+| [tools/vos/ring.py](../../tools/vos/ring.py) | `3f3bdd1c6992a9f406a57c7dd0265c0d6b26ee9e2964b2bb710442b91064752b` |
+| [tools/vos/rocqterm.py](../../tools/vos/rocqterm.py) | `615415810520768480e6e41e3b20bb183bd33f638c5b0321711c37fb5084fa07` |
+| [tools/vos/sailbundle.py](../../tools/vos/sailbundle.py) | `d54f4ec96fceba911cd252c8ee666e05aabbc580731322ac2a21025219797acd` |
+| [tools/vos/sailexpr.py](../../tools/vos/sailexpr.py) | `b38f12a59d460398ef5629e1fff4c546df9480120dfd2163dab8d0e7b7b3ef14` |
+| [tools/vos/schema.py](../../tools/vos/schema.py) | `061fd1d12fa8417f6ba4fea7d61581558c4938118defdecc913524994ca38f11` |
+| [tools/vos/socmap.py](../../tools/vos/socmap.py) | `0c5bcb5b1282e46a4ab50e741f574632b63a87f0d516607f76cb3df0256d744e` |
+| [tools/vos/supervisor.py](../../tools/vos/supervisor.py) | `3d207da728c40625a3c533d96228245a8ccb35fbc3070b724f387c6cdb743aa1` |
+| [tools/vos/trace.py](../../tools/vos/trace.py) | `a445fb0a2b225b7bfe621ab9957a9c2131c515dbcade633b27a33e10466ad8b8` |
 
 Before adopting a compact dictionary, name a real consumer, record its table shapes and access trace or justified query distribution, compare sorted arrays and generated perfect hashing, and declare finite byte/work thresholds. Construction and any randomized seed need their own bounds. Timing comparisons and benchmarks run on CI. Dynamic service indexes separately owe update, exhaustion and recovery behavior.

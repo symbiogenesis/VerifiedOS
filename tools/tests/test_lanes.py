@@ -96,6 +96,16 @@ def _trivial_schema(scratch: Path) -> list[str]:
     return [str(schema), str(config)]
 
 
+def _copy_package_fixture(scratch: Path) -> list[str]:
+    from vos import copy_package
+
+    for relative in copy_package.source_paths(_ROOT):
+        target = scratch / relative
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(_ROOT / relative, target)
+    return ["--output", str(scratch / "prepared-copy")]
+
+
 def _placement_export(scratch: Path) -> list[str]:
     (scratch / "proofs").mkdir(exist_ok=True)
     (scratch / "tools" / "generated").mkdir(parents=True, exist_ok=True)
@@ -390,6 +400,7 @@ _RUNS: dict[tuple[str, str], Argv] = {
     ("memory-certificates", "encode"): _memory_encoding,
     ("boot", "roster"): lambda _: [],
     ("boot", "prepare-fixed-fixture"): _fixed_boot_fixture,
+    ("copy-service", "prepare-package"): _copy_package_fixture,
     ("composer", "compose"): _composition_fixture,
     ("composer", "package-store"): lambda scratch: [_fixed_store(scratch)],
     ("composer", "compose-fixed"): lambda scratch: [_fixed_recipe(scratch), "--output", "out/fixed-image.elf"],
@@ -466,7 +477,7 @@ def _declared_subcommands_answer_on_this_lane() -> None:
                     load=lambda fixture=fixture, **_: SimpleNamespace(root=fixture)))
             elif name == "prepare" or (name, sub) == ("boot", "prepare-fixed-fixture"):
                 isolated = patch.object(_MODULES[name], "corpus", SimpleNamespace(find_root=lambda: scratch))
-            elif name == "vector-bitcount":
+            elif name in {"vector-bitcount", "copy-service"}:
                 isolated = patch.object(_MODULES[name], "find_root", lambda: scratch)
             elif name in {"composer", "admission"}:
                 (scratch / "proofs").mkdir(exist_ok=True)

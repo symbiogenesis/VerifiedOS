@@ -20,7 +20,7 @@ from vos.receipts import atomic_path, digest
 OWNER: Final = "tools/vos/source_bindings.py"
 COMPOSITION: Final = "tools/composer/m8a-composition.json"
 PACKAGE_FILES: Final[dict[str, str]] = {
-    name: f"tools/composer/packages/{name}.json" for name in ("composer", "admission")}
+    name: f"tools/composer/packages/{name}.json" for name in ("composer", "admission", "copy-service")}
 
 # Python helpers derive from imports; other inputs remain explicit. Ordered group
 # expansion and sorted Python closures keep source manifests deterministic.
@@ -32,7 +32,9 @@ GROUPS: Final[dict[str, tuple[str, ...]]] = {
                          "tools/composer/fixed-package.schema.json",
                          "tools/composer/fixed-composition.schema.json"),
     "admission-package": ("@admission-reference", "@projection", "tools/vos/cli/admission.py",
-                          "tools/vos/package_admission.py", "tools/composer/fixed-package.schema.json"),
+                          "tools/vos/package_admission.py", "tools/composer/fixed-package.schema.json",
+                          "tools/admission/production-population.json", "docs/requirements-register.md"),
+    "copy-service-package": ("@shared",),
     "projection": ("@composer-reference", "tools/vos/composition.py",
                    "tools/composer/composition.schema.json", "tools/composer/package.schema.json",
                    "tools/generated/dialect-table.json"),
@@ -62,6 +64,10 @@ def sources(view: str, *, root: Path | None = None) -> tuple[str, ...]:
         if name not in GROUPS:
             raise SourceBindingError(f"unknown source-binding group: {name}")
         members = GROUPS[name]
+        if name == "copy-service-package":
+            from vos import copy_package
+
+            members = (*members, *copy_package.source_paths(root))
         if not members or len(members) != len(set(members)):
             raise SourceBindingError(f"empty or repeated source-binding group members: {name}")
         for member in members:
@@ -99,6 +105,19 @@ def _read(root: Path, relative: str) -> dict[str, Any]:
     return raw
 
 
+def _interface_sources(raw: dict[str, Any]) -> list[dict[str, Any]]:
+    interfaces = raw.get("interfaces")
+    if not isinstance(interfaces, list):
+        raise SourceBindingError("source-binding interfaces must be an array")
+    sources: list[dict[str, Any]] = []
+    for interface in interfaces:
+        source = interface.get("source") if isinstance(interface, dict) else None
+        if not isinstance(source, dict) or not isinstance(source.get("path"), str):
+            raise SourceBindingError("source-binding interface must name a source path")
+        sources.append(source)
+    return sources
+
+
 def render(root: Path, relative: str) -> str:
     """Regenerate owned source fields, preserving all other authored choices."""
     raw = _read(root, relative)
@@ -107,6 +126,8 @@ def render(root: Path, relative: str) -> str:
         if raw.get("package_id") != package:
             raise SourceBindingError(f"source-binding package identity disagrees: {relative}")
         raw["sources"] = references(root, f"{package}-package")
+        for source in _interface_sources(raw):
+            source["sha256"] = digest(_path(root, source["path"]))
     elif relative == COMPOSITION:
         for field in ("producers", "members"):
             items = raw.get(field)
@@ -139,6 +160,8 @@ def _destinations(root: Path) -> dict[str, Path]:
     destinations: dict[str, Path] = {}
     views = [*(f"{package}-package" for package in PACKAGE_FILES), *PRODUCER_VIEWS.values()]
     inputs = {_path(root, name) for view in views for name in sources(view, root=root)}
+    inputs.update(_path(root, source["path"]) for relative in PACKAGE_FILES.values()
+                  for source in _interface_sources(_read(root, relative)))
     for name in (*PACKAGE_FILES.values(), COMPOSITION):
         selected = _path(root, name)
         peers = [*destinations.values(), *inputs]
