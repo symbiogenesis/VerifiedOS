@@ -42,8 +42,13 @@ L2 key in order-preserving bytes and an inline extent descriptor with full AEAD
 tag, nonce coordinates and keyed digest. Its geometry calculation refuses the
 numeric instance's undersized blocks. `python tools/run.py test --only
 storage_typed_entry` compares generated full-width tuples and extents with an
-independent byte oracle. Typed-node routing and the production refinement remain
-M5.3d/M5.4 work; the codec does not squeeze this representation into numeric leaves.
+independent byte oracle. [The bounded typed-node codec and readers](typed-entry.md#typed-node-and-routing-contract)
+store these full entries inline, route all six key components and distinguish
+full-tree admission from a root-to-leaf read. `python tools/run.py test --only
+storage_typed_tree` checks independent canonical bytes, retained roots, complete
+extent results, structural refusals and compiled routing/admission defects.
+Typed updates/publication, the production format/refinement and target execution
+remain M5.3d/M5.4 work; typed entries do not fit the numeric leaves.
 
 `python tools/run.py test --only storage_node_image` discovers the focused
 behavioral module. Its native C cases run on Linux, including Host CI's Ubuntu
