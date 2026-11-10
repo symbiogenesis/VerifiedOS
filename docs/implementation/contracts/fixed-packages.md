@@ -106,7 +106,12 @@ Before publication, all destinations must be contained in the output directory a
 disjoint from consumed inputs and each other, including existing hardlinks. Source
 or helper drift while generating, unexpected local C includes, missing required
 adapters, malformed declarations and aliases refuse without replacing a useful
-prior record. A recheck of prepared files refuses changed, missing or added files;
+prior record. The bounded C recipe scans includes after escaped-line splicing and
+comment replacement that preserves newlines and string/character literals. It
+normalizes a leading UTF-8 BOM and CRLF/CR line endings; embedded BOM/NUL and the
+whitespace-before-splice extension refuse. Dynamic/malformed includes, alternate
+include directives, unsupported directives and trigraph or digraph preprocessing
+spellings refuse. A recheck of prepared files refuses changed, missing or added files;
 unchanged preparation is byte-identical. Each file is atomically replaced and the
 record is published last; there is no atomic filesystem snapshot or multi-file
 transaction. A later consumer must replay the whole record before using it.
