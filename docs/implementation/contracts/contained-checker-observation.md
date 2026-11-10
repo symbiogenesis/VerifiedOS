@@ -125,9 +125,101 @@ are absent from the root toolchain user's command search. The assigned lane's
 `out/evidence/q39-observation-preflight.json` retains raw commands, outputs,
 identities and the refusal; the fan-out handoff retains that output on retirement.
 
-The candidate therefore refuses at its tool precondition. No independent fixture,
-capture, replay, observer implementation or Parser attempt has run. Q39 needs a
-separately selected, identity-bound tool build with supported user-stack unwinding
-before this qualification can start. This finding commissions no installation,
-replacement binary, custom unwinder or locked-toolchain change. Q39's complete
-qualification and Q43's genuine complete default reuse remain open.
+The installed candidate therefore refuses at its tool precondition. The private
+distribution candidate below supplies a bounded acquisition route, without
+replacing the installed binary. No independent fixture, capture, replay, observer
+implementation or Parser attempt has run. Q39's complete qualification and Q43's
+genuine complete default reuse remain open.
+
+## Private distribution-tool prerequisite
+
+Select Ubuntu's `linux-perf` **7.0.0-43.43**, from
+`http://archive.ubuntu.com/ubuntu`, `resolute-updates/main`, architecture `arm64`.
+The restored guest is Ubuntu 26.04 AArch64. This candidate uses distribution-built
+DWARF support rather than rebuilding the installed WSL tool, and does not assume
+that a newer userspace tool is compatible with the running WSL kernel. Its actual
+event support, unwind conventions and record/replay tuple must pass the existing
+independent qualification; option or dependency presence alone supplies no pass.
+
+The frozen acquisition population is:
+
+| Package | Version | Architecture | Archive SHA-256 |
+| --- | --- | --- | --- |
+| `linux-perf` | `7.0.0-43.43` | `arm64` | `305d46274edd7f1598c8b728f90954c576067c2f5c897b3cb3bca031c41b7aff` |
+| `libdw1t64` | `0.194-4` | `arm64` | `8f81bc569e72acd97197890fa34e6a91fe601a6d1632d99bc4569791a25c4724` |
+| `libdebuginfod1t64` | `0.194-4` | `arm64` | `536f23845ba4a4b671c3e61a14e6aacfc511b0e4fac4ecd81c7e0215259a06bb` |
+| `libdebuginfod-common` | `0.194-4` | `all` | `151b5cfce8702069ef2caaa09bba3af4e28415fcb87bc948465747a370402b0b` |
+| `libnuma1` | `2.0.19-1build1` | `arm64` | `166bdafa785118f4a1466540fe4abcbba055210c5c31057cdb53c6b76bffda3e` |
+| `libtraceevent1` | `1:1.8.7-1` | `arm64` | `32f50510f8c524795a7e555a1fcce7bb81d0f2f13e0aa5ee7234e7e294af0fdb` |
+
+These pins are a selected candidate population, not installed dependencies or a
+qualification verdict. `linux-perf` is from source package `linux`; the three
+`libdw`/`libdebuginfod` packages are from `elfutils`; the remaining source packages
+are `numactl` and `libtraceevent`. The library/configuration packages are from
+`resolute/main`. Retain the complete package stanzas, including declared dependency
+relations, relative archive paths, lengths and digests, in the lane's native
+selection evidence. Record which declared dependencies are already installed,
+their exact versions and the actual dynamic-library closure. A missing or
+incompatible dependency refuses this candidate; it does not authorize a floating
+package selection, shared installation or compiler/prover change.
+
+The 2026-11-09 metadata reading verifies both local `InRelease` signatures against
+the existing Ubuntu archive keyring, with signing fingerprint
+`F6ECB3762474EDA9D21B7022871920D1991BC93C`, and compares each exact uncompressed
+`main/binary-arm64/Packages` file's length and SHA-256 with its signed entry:
+
+| Suite | `InRelease` SHA-256 | `Packages` SHA-256 |
+| --- | --- | --- |
+| `resolute` | `45f95ce276cdba3e41870516a130e03c58b8b7a79e9546b0efe9e526d255740c` | `f1139a214af70f615388f8d4b377f591767bb52e45adb133679479c27a4dde8c` |
+| `resolute-updates` | `f100a1a2f57a39b2f67a7f34219a462c474d4c275b456a94c2d5f1bccf077f25` | `fa9f96b0fad1d520fee0d545183e30d8ae051381101bc08e44b0bd1188525db3` |
+
+Retain the keyring identity, raw signature-verification output, signed metadata
+and matching package stanzas. If acquisition uses a compressed index, retain its
+own exact bytes and verify its distinct signed digest before decompression, then
+verify the uncompressed digest above. No compressed index was read in this
+selection. A signature on one release cannot authenticate an unrelated cached
+package listing. These retained indices identify the candidate; they make no
+claim about repository freshness after the reading.
+
+Acquisition and use have the following ordered acceptance predicate:
+
+1. Land this prerequisite before acquisition beyond license-only inspection.
+   Download only the frozen archives into a fresh directory under the assigned
+   native lane; require their complete signed-index lengths and SHA-256 values.
+   Bound each archive at 16 MiB, the population at 32 MiB and each network request
+   at fifteen seconds. A timeout, unavailable archive or identity mismatch refuses
+   without substituting another version or executing any fetched bytes.
+2. Inspect each archive's own copyright/license population as data and retain
+   its exact member paths, bytes and digests. Record the selected releases'
+   actual terms and local diagnostic use in [THIRD-PARTY.md](../../../THIRD-PARTY.md)
+   before executable adoption. No package source, executable, library or debugger
+   data is distributed in the tracked repository. The package name or Linux
+   lineage supplies no license inference. An unread or incompatible term stops
+   adoption; license-only inspection grants no permission to run the candidate.
+3. Extract only into a fresh private native lane root, after checking archive
+   entries for containment and refusing escaping links or special files. Never
+   run package maintainer scripts, register packages, alter `PATH`, replace the
+   installed `perf`, write a system configuration or install shell hooks. Retain
+   the package-declared configuration as data; do not activate
+   `libdebuginfod-common`'s shell integration. Use explicit executable/library
+   paths and child-only environment settings, with `DEBUGINFOD_URLS` empty and
+   no symbol downloads. The current inherited system/profile environment remains
+   unchanged.
+4. Bind the selected ELF, its loader and the full resolved dynamic-library
+   population, with real paths, architecture, versions and SHA-256 identities.
+   Retain complete build-options/version output and require an enabled supported
+   DWARF unwinder, ELF support and symbol resolution. Record its distinct tuple
+   rather than inheriting evidence from the installed WSL `perf`. Revalidate the
+   tuple before and after each use; substitution or a missing library refuses.
+5. Only then implement and run the existing independent C and locked-OCaml
+   controls, preserving their sixty-second combined cap and every completion,
+   interruption, truncation, mapping and byte-identity refusal above. No real
+   checker or proof object enters that population. A failed event, unwind or
+   convention check rejects the candidate without changing the locked toolchain,
+   extending a cap or attempting Parser.
+
+Selection closes only the missing tool-choice decision. Acquisition, license
+reading, private ELF/dependency validation and independent observer qualification
+each retain their own verdict. A future real diagnostic still needs its separate
+landed hypothesis, complete inputs, resource cap and stopping rule; this route
+authorizes none of Q39's complete compiler qualification or Q43's complete reuse.
