@@ -173,6 +173,16 @@ remain open. This source record carries no native object or admission verdict.
 its refusal controls. On Linux it also checks the standalone C syntax with the
 strict native compiler flags; that control supplies no target execution evidence.
 
+The [retained strict native standalone C syntax control](../docs/implementation/retained-evidence/copy-package-native-syntax-20261109/manifest.json),
+SHA256 `1931dcd8df3b88980eb0e8e163c29de3790a346d13324dec2490b120c0efb16f`,
+passes on the complete snapshot prepared from the real checkout. The source record
+replays before and after compilation; the result binds that record, the resolved
+native compiler's bytes and version, the exact C17 warning and syntax-only
+arguments, exit status and diagnostics. The focused guest source-handoff controls
+also pass. This closes the native C syntax checkpoint; qualified target emission,
+installed entry and capability wiring, final-image mapping and production
+admission retain their open predicates.
+
 ## Notification device adapter
 
 `copy-service notification` accepts the same compiler and model arguments as

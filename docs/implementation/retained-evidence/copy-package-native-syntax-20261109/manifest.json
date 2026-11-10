@@ -1,0 +1,16 @@
+{
+  "files": {
+    "result.json": {
+      "bytes": 1218,
+      "encoding": "identity",
+      "path": "result.json",
+      "sha256": "6a10985afb03e308b20a8c850df92093379fc75886836adddbbdb125003bf910"
+    },
+    "source-record.json": {
+      "bytes": 9144,
+      "encoding": "identity",
+      "path": "source-record.json",
+      "sha256": "97bdfc53cf7ff6caf308f333d22021bd729523d17387ba740ee2a8313ffbbd58"
+    }
+  }
+}
