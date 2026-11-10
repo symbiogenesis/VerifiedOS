@@ -47,6 +47,41 @@ authority. Proof objects remain in the store and outside executable memory.
 Missing, malformed, substituted or corrupt objects refuse reuse; the store does
 not repair a corrupt object silently under its existing identity.
 
+### Retained boot firmware and installed authority
+
+The [complete M-mode export](production-admission.md#complete-retained-m-mode-export-checkpoint)
+is a measured-boot byte inventory. R-05-091 places the boot substrate and M-mode
+firmware outside the admitted set; their ordinary Tier-0 proofs retain their
+obligations. Exporting this stage does not make it the first TAL-admitted fixed
+package. That case needs an eligible post-bootstrap member under
+[the production admission handoff](production-admission.md#first-executable-case-and-acceptance).
+
+The current stage cannot acquire installed immutability through a report or ELF
+permission change alone. These distinct source boundaries decide that finding:
+
+| Boundary | Current mechanism | Consequence |
+| --- | --- | --- |
+| Loaded bytes | [The main-die composition](../../../tools/vos/chain_mmode.py#compose_main) loads the complete released M-mode window as writable and executable. | The byte export retains this actual harness observation; its reconstructed text and initializer extents are not the loaded window's permissions. |
+| ELF loading | [The emulator's ELF reader](../../../model/c_emulator/elf_loader.cpp) copies physical `PT_LOAD` bytes and zero-fills their memory tails without applying the segment permission flags. | Splitting the window into read-only text and writable data segments changes producer metadata, not the target's store authority. |
+| Physical memory | [The selected configuration](../../../model/config/verifiedos.json) marks the stage's MainMemory writable and executable; [the memory access check](../../../model/model/sys/mem.sail) consumes those configured PMAs. | A read-only ELF segment does not override the configured physical permissions. |
+| Bootstrap grants | [Reset](../../../model/model/postlude/step_ext.sail) gives `c1` the full-address-space [store-side root](../../../model/model/core/cap_common.sail); [the retained entry](../../../firmware/chain/mmode_entry.s) copies it to reserved `c4` before deriving the body's bounded arguments. | The live broad store root can derive writable authority over the firmware text even though it carries no execute permission itself. Narrowing the derived stack or mailbox capability does not narrow `c4`. |
+| Kernel handoff | [The same entry](../../../firmware/chain/mmode_entry.s) derives the declared kernel roots and clears the broad copies before entering through the kernel sentry, under [the boot handoff](boot-handoff.md#6-the-kernel-entry-and-initial-capability-handoff). | The post-bootstrap distribution is a separate acceptance boundary. This source reading supplies no new target execution or proof verdict. |
+
+Broad construction authority during bootstrap is not an admitted-package grant.
+The existing boot contract owns its use and discharge. M3.5 retains the actual
+firmware and root-distribution proof; M7.1a/d retains the real image and handoff
+join. This finding creates no requirement to repackage M-mode firmware or to
+change its frozen bytes before admitting an ordinary member.
+
+For that member, the existing installed-object acceptance still needs exact
+code/rodata and initializer bytes, the actual entry and wiring, and the concrete
+final image. Target authority evidence must distinguish the bootstrap
+construction phase from the installed distribution and show that surviving
+writable capabilities cannot reach installed code. Changing ELF flags or an
+export's mapping label supplies none of those observations. A changed firmware
+distribution requires its own producer-owned contract and new stage evidence;
+the retained export remains historical with its original payload and permissions.
+
 ## Composition without rewriting
 
 The first executable placement path translates one package-relative region
