@@ -274,10 +274,9 @@ any historical receipt. An authenticated relocation connection remains required
 before reuse; a complete kernel audit, its diagnosis and target qualification
 remain open. This inventory runs no compiler, query or checker.
 
-Read-only inspection of the sealed locked profiler and checker sources identifies
-no supported unfinished-event capture route. The handoff retains those source
-identities and the observation's limits; no new diagnostic or root-cause verdict
-is supplied.
+The [capture prerequisite](#capture-prerequisite-at-the-locked-checker) identifies
+the missing observation interface in the retained locked checker. It supplies no
+new diagnostic or root-cause verdict.
 
 ### Explicit relocated-path verification
 
@@ -373,3 +372,65 @@ match before and after. The last printed declaration is
 `Complete.Valid.is_validator_forall_items`. Buffered, truncated profiling output
 identifies no active unfinished event, cause, forward progress or nontermination.
 This diagnostic supplies no kernel acceptance and justifies no unbounded restart.
+
+### Capture prerequisite at the locked checker
+
+The selected diagnostic basis remains the retained
+[Parser-only operation](retained-evidence/q39/bounded-parser-profile-20261013/operation.json):
+the copied `vm-qualified-build-1/compiler/cparser/Parser.vo`, its original
+`compile-seal.json`, and that operation's locked `q39-port` checker. The
+[compressed binding manifest](retained-evidence/q39/bounded-parser-profile-20261013/bindings.json.gz)
+owns their exact identities and those of the inspected `newProfile.ml`,
+`newProfile.mli`, `coqchk_main.ml`, `mod_checking.ml` and `conversion.ml` sources.
+Read-only inspection of the restored files matches those retained identities.
+This is a selected basis for defining a future observation, not a fresh complete
+seal or permission to rerun the operation. A later invocation must still bind and
+revalidate its complete inputs under the
+[continuation handoff](contracts/contained-compiler-reuse.md#continuation-from-an-isolated-public-lane).
+
+The locked [profiler implementation](https://github.com/rocq-prover/rocq/blob/V9.3.0/lib/newProfile.ml)
+queues begin/end records through a `Format.formatter`; `output_event` requests no
+formatter flush. `format_footer` flushes the formatter. The
+[checker entry](https://github.com/rocq-prover/rocq/blob/V9.3.0/checker/coqchk_main.ml)
+registers `NewProfile.finish` and channel closure through `at_exit`. Its inspected
+argument parser exposes profile-file selection, without an unfinished-event
+snapshot or flush command. The retained signal-terminated fragment therefore
+cannot identify the active event from its last unmatched begin record.
+
+The [public profiling interface](https://github.com/rocq-prover/rocq/blob/V9.3.0/lib/newProfile.mli)
+does expose `pause`, `resume`, `finish` and footer formatting. `pause` returns an
+opaque accumulator rather than an active-stack export. In the implementation,
+`finish` leaves a frame under the name `process`; it does not enumerate and label
+all still-active frames. Calling it from a new signal handler cannot be assumed
+to produce an accurate interrupted stack. Such a handler would also be a new
+diagnostic executable/interface needing its own reviewed contract and controls.
+
+Two narrower observation levels remain distinct. `mod_checking.ml` includes the
+constant name in `check_constant` profile arguments; its ordinary progress line
+precedes type and body checking. `conversion.ml` wraps closure conversion in a
+`Conversion` event without term arguments. Even a flushed constant/conversion
+stack would locate activity, not identify the compared terms, a defective
+reduction, forward progress or a completion bound.
+
+| Proposed route | Current disposition |
+| --- | --- |
+| Repeat the retained command with its default signal termination | Refused: the retained run already lacks the unfinished buffered event; no new capture mechanism is supplied. |
+| Enable more profile components | Unselected: extra events do not guarantee that the last active frame is flushed, and `Conversion` carries no compared-term arguments. |
+| Add a signal handler that calls `finish` | Unselected: the inspected API does not establish an interrupted-stack export or safe handler behavior. |
+| Repeat the passive native stack sample | Unselected: the existing symbol sample already establishes closure-conversion activity; it supplies no compared-term identity or progress bound. |
+
+The immediate missing input returns to Q39: a scoped, qualified observation
+adapter or separately justified external capture method. Its acceptance must
+distinguish a completed event, a still-active nested event and a truncated stream
+on a bounded independent control before any real Parser attempt. It must preserve
+the raw event prefix, label interruption explicitly, and never synthesize successful
+event completion. If its hypothesis concerns a particular reduction, it must bind
+the actual term/environment evidence needed to decide that hypothesis; a function
+name alone is insufficient. Exact executable/source identities, output ownership,
+supported stop/cleanup behavior and a wall-time/resource cap belong in that
+adapter's landed predicate before implementation or use.
+
+No new diagnostic cap or attempt allowance is selected while that interface is
+missing. The earlier ninety-second limit is historical. Compiler/prover edits,
+proof repair, installation, a full audit restart and complete qualification remain
+outside this source review. Q39 and Q43 retain their unchanged acceptance joins.

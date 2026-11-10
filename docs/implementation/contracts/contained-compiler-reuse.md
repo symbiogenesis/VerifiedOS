@@ -454,7 +454,13 @@ planning instead of repeating status solely to restate the placement result.
 The next acceptance-releasing work is Q39's bounded diagnosis and complete locked
 qualification. The
 [existing diagnostic](../contained-compiler-port-decisions.md#bounded-parser-diagnostic)
-establishes no root cause, progress bound or supported unfinished-event capture.
+establishes no root cause or progress bound. The
+[locked-source capture review](../contained-compiler-port-decisions.md#capture-prerequisite-at-the-locked-checker)
+selects its exact retained input basis and returns the missing observation
+interface to Q39: the inspected checker CLI and profiling API expose no supported
+unfinished-stack export, and a constant/conversion event alone carries no
+compared-term evidence. Qualification of a proposed observation adapter requires
+its own landed predicate; this review starts no implementation or attempt budget.
 Before another diagnostic, land its exact hypothesis, selected sealed input,
 supported capture method, wall-time/resource cap, stopping rule and decisive
 positive/refusal observations. An unsupported capture method or missing bound
