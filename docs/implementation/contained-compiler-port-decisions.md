@@ -431,14 +431,23 @@ supported stop/cleanup behavior and a wall-time/resource cap belong in that
 adapter's landed predicate before implementation or use.
 
 The [external observation qualification contract](contracts/contained-checker-observation.md)
-selects a bounded independent `perf`/DWARF candidate for native stack localization,
-with completed-event, active-nesting, interruption and truncated-capture controls.
-Its read-only tool preflight refuses: the installed `perf` has no supported DWARF
-unwinder or ELF support, and the inspected debugger alternatives are absent.
-The retained checker is native AArch64 with debug information and matches its
-original digest; no checker or independent control was launched. A separately
-selected tool build is the concrete prerequisite before observer implementation
-or qualification. The contract's limits apply only to independent controls.
+fixes bounded independent `perf`/DWARF controls for native stack localization.
+The installed tool lacks supported DWARF/ELF unwinding. A privately extracted,
+license-reviewed Ubuntu candidate supplies those features without a shared
+installation, but its single bounded run refuses the prescribed `cpu-clock:u`
+sampling event before control activation. The C and historical locked-OCaml
+controls compile; the recorder exits unsuccessfully, both owned process groups
+are empty after cleanup, and bound inputs remain unchanged. No active sample,
+replay, interruption/truncation qualification or complete observer verdict is
+accepted. No real checker or proof object was launched. This rejects the tested
+tool/event/kernel tuple without deciding whether another tuple could work.
+
+A compatible, independently qualified capture tuple remains the prerequisite.
+Changing events, tools or execution environment needs a separately scoped
+selection and predicate; the rejected run authorizes no retry. The historical
+OCaml control also establishes no equivalence to the current compiler lock or
+the selected checker's exact optimization/debug flags. The contract's limits
+apply only to independent controls.
 
 No checker diagnostic cap or attempt allowance is selected while that interface
 is missing. The earlier ninety-second limit is historical. Compiler/prover edits,
