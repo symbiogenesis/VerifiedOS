@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any, Final, TypedDict, cast
 
 from vos import boot, composer, composition, source_bindings
+from vos.atomic import atomic_path
 from vos.jsonutil import unique_object
 from vos.register import REGISTER, REQ_TOKEN_RE
 
@@ -139,7 +140,7 @@ def make_record(root: Path, source: str, projections: str, build_record: str,
     for member in request["payload"]["members"]:
         owner = declared[member["member"]]
         route = routes[owner.id]
-        blockers = []
+        blockers: list[dict[str, object]] = []
         if route["route"] == "checker-admitted":
             if member["tier"] is None:
                 blockers.append({"rule": "TierUnassigned", "owner": "M7.1c",
@@ -155,6 +156,18 @@ def make_record(root: Path, source: str, projections: str, build_record: str,
         else:
             blockers.append({"rule": "ProofRouteUnresolved", "owner": "M7.1c/M7.1d",
                              "detail": "the installed member's release/admission proof boundary is unresolved"})
+            if owner.id == "storage":
+                blockers.extend([
+                    {"rule": "StorageFilesystemBoundaryUnavailable", "owner": "M5.3d/M7.1a/M7.1d",
+                     "requirements": ["R-06-006"],
+                     "detail": "both volumes need the contained filesystem's complete installed population, entries and capability wiring"},
+                    {"rule": "StorageIntegrityReaderBoundaryUnavailable", "owner": "M5.3d/M7.1a/M7.1d",
+                     "requirements": ["R-06-005"],
+                     "detail": "the protected integrity reader needs its own installed population and independent signed, boot-attested root"},
+                    {"rule": "StorageTransactorBoundaryUnavailable", "owner": "M5.4/M7.1a/M7.1d",
+                     "requirements": ["R-06-005"],
+                     "detail": "the A/B transactor needs its own installed population, protected roots, atomic root flip and anti-rollback enforcement"},
+                ])
         if owner.status != "executable":
             blockers.append({"rule": "RosterMemberUnaccepted", "owner": owner.owner,
                              "detail": f"the roster declares {owner.status}"})
@@ -204,9 +217,8 @@ def validate_record(root: Path, record: object) -> None:
         raise ProductionAdmissionError("production admission record differs from current bound refusal")
 
 
-def publish_record(root: Path, record: dict[str, object], destination: str) -> None:
-    """Publish only after protecting and rechecking all consumed input bytes."""
-    output = _path(root, destination)
+def _publication_inputs(root: Path, record: dict[str, object], output: Path) -> None:
+    """Protect the destination and the original bound input snapshots."""
     inputs = _references(record["inputs"])
     for ref in inputs:
         path = _path(root, ref["path"])
@@ -214,6 +226,15 @@ def publish_record(root: Path, record: dict[str, object], destination: str) -> N
             raise ProductionAdmissionError("production admission output would overwrite a consumed input")
         if composition.digest(path.read_bytes()) != ref["sha256"]:
             raise ProductionAdmissionError(f"stale admission input: {ref['path']}")
+
+
+def publish_record(root: Path, record: dict[str, object], destination: str) -> None:
+    """Preserve the prior record until pending bytes and bound inputs revalidate."""
+    output = _path(root, destination)
+    _publication_inputs(root, record, output)
     validate_record(root, record)
     output.parent.mkdir(parents=True, exist_ok=True)
-    output.write_bytes(composer.canonical_bytes(record))
+    with atomic_path(output) as pending:
+        pending.write_bytes(composer.canonical_bytes(record))
+        validate_record(root, record)
+        _publication_inputs(root, record, output)

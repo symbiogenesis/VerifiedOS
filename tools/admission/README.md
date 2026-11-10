@@ -85,6 +85,14 @@ members retain an explicit proof-boundary blocker. The complete runtime census
 remains present. Its tier and derivation declarations stay bound even when they
 do not apply to the selected route.
 
+The combined storage slot separately reports the missing installed filesystem,
+protected integrity reader and A/B transactor boundaries, with their producer
+owners and register requirements. Both volume labels retain those obligations;
+untrusted derivation metadata cannot classify the combined binary as trusted.
+Publication writes a sibling temporary and replays the record and original input
+bindings before replacing the destination. Partial writes, replacement failures
+and input drift preserve the previous record and remove pending bytes.
+
 This join always emits `scope: production-admission-refusal`, `decision: refused`,
 `generation_accepted: false` and `production_admission: false`. Every route refuses,
 and unaccepted executable status remains a blocker for every member. A supplied
