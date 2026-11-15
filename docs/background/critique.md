@@ -505,6 +505,44 @@ Linux's [folio-read proposal](https://kernel.googlesource.com/pub/scm/linux/kern
 
 A narrow contract is worth the retained-capacity and ownership proof cost before that service is completed. R-10-006a requires an executable retained-read path whose successful resident reads add no common lifetime or replacement-metadata writes; R-10-006b requires bounded reservations and safe retirement under eviction, replacement and hostile holders. The [contract](../implementation/contracts/resident-object-reads.md) charges both the avoided traffic and the memory/lifecycle cost, preserves authentication at every read and leaves mutable extent accounting intact. Q44 owns the reference, implementation and traffic/reclamation qualification; M5.3d supplies its storage/target join and M5.4 consumes it on the object-reader path. All remain open. No hardware absence or finite write-count witness establishes linear storage throughput.
 
+## Rust library soundness and runtime boundaries
+
+The [FORGE Rust standard-library analysis](https://forge-blog.github.io/posts/rust-std-memory-safety/)
+identifies panic during a broken invariant, incorrect caller implementations,
+and mismatched assumptions about shared OS/libc state. R-05-100 excludes native
+unwinding and nonlocal recovery; R-05-086 through R-05-092 exclude hidden mutable
+state, and the purecap, no-MMU target has no Unix signal-stack mapping to unmap.
+Those exclusions address the article's concrete panic and Unix mechanisms in
+the specified target, not host development tools or extracted execution.
+Implementation and proof gaps prevent claiming they are already eliminated.
+
+**Safe source and CFI do not establish semantic callback contracts.**
+R-13-013 already rejects a source-lint shortcut, and R-05-031/R-13-012 require
+native library memory safety. Their qualification still needs adversarial
+callbacks: changing borrowed slices, lying lengths, inconsistent comparators,
+search ranges for a different object and false UTF-8 claims. Capability bounds
+alone cannot establish logical length or encoding validity, nor exclude corrupt
+metadata within one backing object. Tier-2 arithmetic scoping does not license
+unchecked capacity arithmetic needed for library safety. R-05-114's callee set
+enumerates reachable calls without proving their semantic postconditions or
+making synchronous reentry safe.
+
+**Crash-only control flow still needs complete retirement.** Removing unwind
+does not discharge an outstanding DMA loan, saved context, peer handle or
+registered reference before reuse, and ordinary destructors can reenter on a
+normal return. Q22a's bounded barrier evidence is not the kernel/pool/supervisor
+implementation join. R-14-013a separately excludes object safety inside Wasm
+linear memory; its native host/import confinement remains mandatory even for
+guest exceptions, cancellation and reentry.
+
+[Q47](../../PLAN.md#q-assessment-actions) owns the linked-closure inventory,
+adversarial qualification and existing proof-owner joins under the
+[runtime-boundary contract](../implementation/contracts/runtime-boundary-hardening.md).
+It stays open until exact native artifacts and checked safety/lifecycle proofs
+meet the predicate. The compiler, TAL, HAL, kernel, pool and interpreter retain
+their implementation duties; documenting this disposition supplies no safety
+verdict and commissions no upstream library import.
+
 ## Redundancy and complexity the documents admit
 
 **Revocation has one mechanism with a completion obligation.** R-08-004 keeps the bitmap/load-filter and background-sweep design. A resident capability can be dereferenced without a fresh capability load, so the bitmap mark cannot itself retire live registers, saved contexts or outstanding loans. Q22a qualifies the bounded completion barrier and reuse predicate; M4.4 and R2 own its single- and multi-hart realization. This preserves the derivation-tree rejection without treating that rejection as a proof of complete revocation.

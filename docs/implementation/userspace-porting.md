@@ -8,6 +8,12 @@ The roster favors **Rust** because a wholly safe dependency closure offers the s
 
 GTK, Qt, Firefox and Chromium would likewise need source re-targeting. The capability libc exposes typed display interfaces, not Wayland wire messages; a Wayland-compatible server would serve no unchanged admissible client. Selecting Rust reduces porting work without adopting upstream protocols.
 
+The [library/runtime qualification contract](contracts/runtime-boundary-hardening.md)
+and Q47 cover the actual linked dependency closure, callback invariants and
+close/restart boundaries. A safe application crate does not establish its
+libraries' soundness; stock Rust/Unix runtime behavior cannot be assumed to
+satisfy the target's no-unwind and explicit-state contracts.
+
 ## Required system userland
 
 [§12](../spec.md#12-system-servers-contained-outside-the-tcb) requires the services needed to boot, unlock, update, obtain consent and render. They include the sole userland TCB component ([§6](../spec.md#6-trusted-computing-base-exhaustive)), Tier-1 cross-domain services with flow theorems ([§13](../spec.md#13-packaging--supply-chain)), and a dedicated-core telemetry monitor. Their dependencies determine the [sequence](#sequencing); application selection remains stageable within the release scope ([§18](../spec.md#18-realization)).

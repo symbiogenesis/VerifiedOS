@@ -450,20 +450,20 @@ These figures cover the priced reference-build, assessment and named hardening b
 <!-- estimate-summary:start -->
 | Measure | Value |
 | --- | --- |
-| Total estimate midpoint h | 4,619.9 |
-| Total estimate range h | 2,997.8–6,242 |
+| Total estimate midpoint h | 4,643.9 |
+| Total estimate range h | 3,013.8–6,274 |
 | Completed scope h | 863.4 |
-| Complete by estimate % | 18.7 |
-| Remaining h | 3,756.5 |
-| Committed remaining h | 2,314.5 |
-| Open class I h | 793.5 |
+| Complete by estimate % | 18.6 |
+| Remaining h | 3,780.5 |
+| Committed remaining h | 2,338.5 |
+| Open class I h | 817.5 |
 | Open class X h | 2,963 |
 | Retained completion estimate h | 261.5 |
 | Unmeasured completed items | 29 |
-| Calibrated total h | 5,634.2 |
+| Calibrated total h | 5,651.3 |
 | Committed M8a open h | 74 |
 | Committed M8b open h | 105.5 |
-| Other committed open h | 2,135 |
+| Other committed open h | 2,159 |
 | Conditional open h | 1,028 |
 | Unfunded option open h | 414 |
 | Committed M8a open class X h | 0 |
@@ -1339,7 +1339,13 @@ Q6's conventional-memory simulators are conditional on a topology comparison nee
 
 No assessment completion automatically increases a performance estimate. For an optimization affecting fraction `f` of runtime by factor `s`, the unchanged-cost bound is `1 / ((1 - f) + f / s)`; added transfers or changed scheduling require a fresh whole-workload comparison. Better packing is not more fabricated capacity, and host performance is not target throughput.
 
-**Q subtotal:** 2,790.4 h · 60% · 251.4 h complete · open range 1,464–3,614 h.
+* [ ] **Q47 · Qualify library callbacks and runtime teardown** · 24 h, range 16–32 · I · after the M8a gate
+  * **Start:** the committed [runtime-boundary hardening contract](docs/implementation/contracts/runtime-boundary-hardening.md), read with the [FORGE disposition](docs/background/critique.md#rust-library-soundness-and-runtime-boundaries), the real package/linker closure and the existing native admission and lifecycle interfaces. Inventory and fixture authoring can precede complete native producers; exact-artifact acceptance cannot.
+  * **Owns:** the build-derived library/runtime boundary inventory, adversarial callback and teardown controls, seeded defects, and the qualification joins. Cover linked libraries and generated glue, changing borrows/lengths, false encoding and range claims, partial initialization, synchronous reentry, native unwind/import refusal, and outstanding users at close/restart. **Execute:** reuse the existing package identities, TAL controls, pool-history generator and revocation holder/barrier model; derive new campaigns from those owners rather than building a parallel admission checker. Audit host tooling separately from the target exclusions and retain Wasm's guest-internal safety limit.
+  * **Check:** the contract's callback and abort/retirement predicates hold on every inventoried boundary through checked safety/lifecycle proofs and exact-native positive/negative controls. Every closure member and caller-controlled assumption has an explained discharge; changing object identity, dropping validation, admitting unwind glue or reusing backing before completion is detected by an executed mutant. Stillborn mutants, survivors, fixture-only evidence and missing native producers leave the affected acceptance open. **Join:** R-18-018(b)'s TAL checker/soundness and certifying-Rust certificate mode, M7.1c's production admission, Q34c's heap refinement, M4.4/R2's actual retirement barrier, the HAL, supervisor and Q34f/Q34g's host/engine proofs. Existing owners retain foundational implementation/proof budgets; missing foundations are assigned and priced before implementation opens.
+  * **Estimate basis:** closure and boundary inventory 3–5 h; callback/representation controls 5–9 h; abort/reentry/retirement controls 5–11 h; proof-owner joins and exact-artifact review 3–7 h. These are integration estimates conditional on accepted producer interfaces, excluding the existing foundational proofs and unattended hosted execution. This contract and article assessment supply no implementation or elimination verdict.
+
+**Q subtotal:** 2,814.4 h · 61% · 251.4 h complete · open range 1,480–3,646 h.
 
 ### M0 · Hardware reference
 
