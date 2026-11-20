@@ -68,7 +68,7 @@
     },
     {
       "path": "docs/requirements-register.md",
-      "sha256": "ca989d46219b4fb2d1224bd395f099ec2fb06988e4b364f6c59c2f9df9f290a6"
+      "sha256": "33809c25019337c2c2862ddb55f4b7609d18dc758db6a9e2518cf5c2cb02fd00"
     },
     {
       "path": "tools/vos/__init__.py",
