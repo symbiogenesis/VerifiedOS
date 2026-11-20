@@ -249,6 +249,21 @@ experiment, not a claim that a universal efficient translation exists. A smaller
 certificate which assumes a conversion result has not met that experiment.
 Likewise [P versus PSPACE](../background/open-math-conjectures.md#p-versus-pspace)
 or a time-to-space simulation supplies no concrete resource proof for PCUIC.
+
+[Pyrosome's verified e-graphs](proof-reuse/languages.md#pyrosome-verified-e-graphs-reflective-equality-saturation-for-modular-compiler-proofs)
+supply a concrete Rocq-native data point on the trade-off between reflective
+verified procedures and producer-supplied proof witnesses: proving an egglog-style
+saturation procedure sound inside Rocq removes per-run certificate generation for
+build-time compiler proofs, at the cost of shifting search time and memory into
+kernel reduction (~800 s and 6.4 GB peak RAM recorded on `PolyCompilers`, using
+`vm_cast_no_check`). In VerifiedOS, heavy reflective saturation belongs off-device
+at build time, whereas the on-device M6.2b-0 checker retains bounded PCUIC
+conversion or compact, canonically encoded producer witnesses verified within the
+bump-arena and cumulative step budgets ([resident working-set limits](../performance/toolchain-residency.md#research-leads-for-bounded-resident-passes)),
+and [`TAL-003`](../languages/typed-assembly-language.md#1-what-the-language-is)
+excludes all search, unification and open-term reduction from the separate
+`CHERI-TAL` checker.
+
 The partial-checker soundness and cumulative-work obligations above remain the
 entry conditions for the implementation refinement.
 

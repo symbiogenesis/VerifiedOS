@@ -5,7 +5,7 @@ VerifiedOS's completed proof artifacts and its remaining proof obligations.
 It records the theorem or proof development, authorship, source edition,
 language, licence, assumptions and the gap to the local obligation. Source
 editions and qualification limits live in the subject records. The latest
-source qualification is dated 2026-10-23. The subject records
+source qualification is dated 2026-11-20. The subject records
 distinguish published results from the contents of a particular code edition,
 and a paper, an archived deposit, a maintained tree and a pen-and-paper
 metatheory beside an unverified implementation are four different findings.
