@@ -191,11 +191,11 @@ SITE_RESIDUE: dict[tuple[str, str], str] = {
        )},
     **{("docs/hardware/cheri-version-matrix.md", ident): reason
        for oid, reason in {
-           "48e02787212371dc1bf28af3ee713d555de9866a":
+           "721256fe7e6da4f04ff7dd19fa465a7a0ff15ee2":
                "the Alliance fork's main comparison, not the riscv/sail-riscv gitlink",
            "7726ab7586de0ef4a4a23e2d37fd4310fd43bedd":
                "the Alliance fork's codasip comparison branch",
-           "937b306b8b1288d0dd16e04be85ffa29ceb0c6d3":
+           "ea45b63d95c6529cc3c51ca1df0d760563998d38":
                "the Alliance QEMU main comparison, not the CTSRD-CHERI oracle gitlink",
            "d847ab5e94692d7edd2402bb0523f4a592396fc9":
                "the Cambridge 0.9.9-upgrade comparison, not the selected master oracle",
