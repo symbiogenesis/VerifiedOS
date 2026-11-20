@@ -89,7 +89,7 @@ Each core has one hardware thread. The [absence contract](docs/hardware/absence-
 
 ### Verified cores and qualified devices
 
-Scalar, vector and matrix [core classes](docs/hardware/isa-profile.md#8-core-classes) share one ISA and capability model. Graphics, software inference and device control run on those cores. An optional [immutable inference module](docs/spec.md#r-04-010b) has a separate device contract and remains qualification work.
+Scalar, vector and matrix [core classes](docs/hardware/isa-profile.md#8-core-classes) share one ISA and capability model. Graphics, optional software inference (ternary quantization recommended when LLMs are involved) and device control run on those cores. An optional Taalas-style plug-and-play [immutable inference module](docs/spec.md#r-04-010b) has a separate device contract and remains qualification work.
 
 ### On-die OpenTitan-class root of trust
 
