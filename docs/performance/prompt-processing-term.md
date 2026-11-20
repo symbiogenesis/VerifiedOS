@@ -1,10 +1,10 @@
 # Prompt-processing term for the inference floor
 
-Status: **proposed contract; target magnitude owed to Q4b**. Q12 defines proposed measurement and refusal rules without amending the register or lowering the release floor. Host throughput supplies no target limit.
+Status: **proposed optional-composition contract (2026-11 note: `R-18-004a(vii)` retired from the mandatory release floor; target magnitude owed to Q4b when optional host inference `R-12-085` is composed)**. Q12 defines proposed measurement and refusal rules for optional software inference (with ternary quantization recommended whenever LLMs are involved) without adding a mandatory release-floor obligation. Host throughput supplies no target limit.
 
 ## The missing quantity
 
-R-18-004a(vii) fixes parameter count, weight format, residence, sustained token
+Where optional host inference (`R-12-085`) is composed (replacing the retired R-18-004a(vii) mandatory floor clause), declarations fix parameter count, weight format (ternary recommended), residence, sustained token
 generation and minimum context. R-12-085 fixes the server's composition-time
 slot, worker set and pools against its memory, context, format, expert, KV and
 bank-grant ceiling. Neither entry supplies a prompt-processing deadline or
@@ -81,12 +81,7 @@ R-11-018 admits. Neither shape is a substitute for the fixed-wheel arm.
 
 ## Weight-format act and acceptance
 
-The [ternary static record](inference-demand/) is a demand comparison, not a
-replacement of R-18-004a(vii)'s four-bit member. Adopting a ternary member would
-jointly amend that entry, the R-18-004d demonstration set and the ternary
-alternative's disposition. It would retain the recorded size, generation,
-context and supply floors, and require Q1's quality decision. A byte saving
-alone confers no quality acceptance or target rate.
+Because R-18-004a(vii)'s mandatory four-bit resident LLM floor is now retired, the [ternary static record](inference-demand/) and [quantization assessment](quantization-assessment.md) serve directly as the recommended optional-LLM quantization baseline (`PQ2_0`, `PTQ1_0`, `BITCOS`) alongside optional `R-04-010b` plug-and-play modules; composing an optional host software LLM binds this prompt-processing contract in `R-12-085` and `R-18-004d` and still requires Q1's quality decision rather than crediting a byte saving alone.
 
 This authorable contract is acceptable when the unbounded-prefix defect is
 identified, the timing interval and workload identity are reproducible, each

@@ -1,13 +1,13 @@
 # Ternary formats on the VerifiedOS inference path
 
-Status: research assessment and proposed comparison for Q4b, reviewed
-2026-11-03. **Compare PQ2_0, PTQ1_0 and BITCOS on the same finalized ternary
-weights, with the same scales and arithmetic.** No format has an implemented
+Status: research assessment and **recommended optional-LLM quantization path** for Q4b, reviewed
+2026-11-03 and aligned with the 2026-11 retirement of R-18-004a(vii). **Recommend ternary quantization whenever LLMs are involved—comparing PQ2_0, PTQ1_0 and BITCOS on the same finalized ternary
+weights, with the same scales and arithmetic** on optional software inference (`R-12-085`) and optional plug-and-play `R-04-010b` modules (preserving general-purpose main-RAM headroom under `R-18-004b` rather than forcing dense 4-bit LLM residency). No format has an implemented
 VerifiedOS kernel or measured target speedup from this assessment. The existing
 [ternary demand record](ternary-static-demand.md) owns the measured baseline.
-The [prompt-processing contract](prompt-processing-term.md) owns the coordinated
-quality, demonstration-set and register act needed to select a ternary release
-member. This assessment adds no ISA instruction or hardware block.
+The [prompt-processing contract](prompt-processing-term.md) owns the optional-composition
+quality, demonstration-set and register act needed to select a ternary
+configuration. This assessment adds no ISA instruction or hardware block.
 
 The [Bonsai 2 and post-training review](bonsai2-assessment.md) covers the
 released size family and experimental Swift Bonsai 2 derivative, including
