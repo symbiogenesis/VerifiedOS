@@ -337,13 +337,16 @@ retains the finite demand and quality decision.
 
 ## Qualification contract
 
-The [e-means assessment](../performance/e-means-assessment.md#consumer-selection-and-acceptance)
-retains clustering/index construction and codebook training as optional later
-workloads for Q30g's selection. A named consumer and a separate bounded, priced
+The [e-means and SuperEMeans assessment](../performance/e-means-assessment.md#consumer-selection-and-acceptance)
+retains clustering/index construction and codebook training, including
+SuperEMeans' dimension-pruned e-means variant, as optional later workloads for
+Q30g's selection. A named consumer and a separate bounded, priced
 implementation item precede any pilot; the frozen Q30b/Q30c reduction, stencil
-and GEMM populations and their estimates remain unchanged. Numerical quality,
-complete target cost and the existing qualification below decide adoption;
-the research's GPU timing supplies no target or admission evidence.
+and GEMM populations and their estimates remain unchanged. Downstream quality
+and cluster balance, exact versus approximate pruning, complete target cost
+(including rotation and scratch) and the existing qualification below decide
+adoption; the research's host GPU and CPU timings supply no fixed-slot WCET,
+target speedup or admission evidence.
 
 The Q30a record fixes exact source/API revisions, candidate implementation
 revisions, feature dispositions, semantic interfaces, finite input domains and
