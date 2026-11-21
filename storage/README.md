@@ -46,9 +46,11 @@ independent byte oracle. [The bounded typed-node codec and readers](typed-entry.
 store these full entries inline, route all six key components and distinguish
 full-tree admission from a root-to-leaf read. `python tools/run.py test --only
 storage_typed_tree` checks independent canonical bytes, retained roots, complete
-extent results, structural refusals and compiled routing/admission defects.
-Typed updates/publication, the production format/refinement and target execution
-remain M5.3d/M5.4 work; typed entries do not fit the numeric leaves.
+extent results, structural refusals and compiled defects. [The typed candidate
+updater](typed-entry.md#bounded-typed-candidate-insert-and-replace) stages
+single-key inserts and replacements and verifies the resulting tree while
+preserving retained roots. Authenticated publication, the production format,
+refinement and target execution remain M5.3d/M5.4 work.
 
 `python tools/run.py test --only storage_node_image` discovers the focused
 behavioral module. Its native C cases run on Linux, including Host CI's Ubuntu
