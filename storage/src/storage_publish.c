@@ -1470,33 +1470,50 @@ int vos_storage_retain_snapshot(struct vos_storage_store *store,
 {
     if (store == NULL || !store->open || store->medium == NULL ||
         store->crypto == NULL || caller_domain != store->domain_id ||
-        generation == 0u || generation > store->committed_generation) {
+        generation == 0u || generation > store->committed_generation ||
+        !matches_active_checkpoint(store)) {
         return 0;
     }
-    struct vos_storage_checkpoint next = store->medium->checkpoint;
-    struct vos_storage_checkpoint *cp = &next;
+    struct vos_storage_medium *medium = store->medium;
+    struct vos_storage_checkpoint next = medium->checkpoint;
     if (!verify_checkpoint_mac(store->crypto, store->crypto_slot,
                                store->domain_id, store->key_epoch,
-                               store->medium->geometry.arena_nodes, cp)) {
+                               medium->geometry.arena_nodes, &next)) {
         return 0;
     }
-    for (uint32_t i = 0u; i < cp->snapshot_count; ++i) {
-        if (cp->snapshots[i] == generation) {
-            return 1;
+    uint32_t index = 0u;
+    while (index < next.snapshot_count && next.snapshots[index] != generation) {
+        ++index;
+    }
+    const int retained = index < next.snapshot_count;
+    if (retained && medium->has_fallback &&
+        equal_bytes_ct(next.checkpoint_mac, medium->fallback_checkpoint.checkpoint_mac,
+                       VOS_CRYPTO_DIGEST_BYTES) &&
+        verify_checkpoint_mac(store->crypto, store->crypto_slot, store->domain_id,
+                              store->key_epoch, medium->geometry.arena_nodes,
+                              &medium->fallback_checkpoint)) {
+        return 1;
+    }
+    if (store->attempt.reserved) {
+        return 0;
+    }
+    if (!retained) {
+        if (generation != store->committed_generation ||
+            next.snapshot_count >= VOS_STORAGE_MAX_SNAPSHOTS) {
+            return 0;
+        }
+        next.snapshots[index] = generation;
+        ++next.snapshot_count;
+        if (!sign_checkpoint(store->crypto, store->crypto_slot, &next)) {
+            return 0;
         }
     }
-    if (generation != store->committed_generation ||
-        cp->snapshot_count >= VOS_STORAGE_MAX_SNAPSHOTS) {
+    medium->checkpoint = next;
+    medium->fallback_checkpoint = next;
+    medium->has_fallback = 1u;
+    if (!persist_store(store)) {
         return 0;
     }
-    cp->snapshots[cp->snapshot_count] = generation;
-    ++cp->snapshot_count;
-    if (!sign_checkpoint(store->crypto, store->crypto_slot, cp)) {
-        return 0;
-    }
-    store->medium->checkpoint = *cp;
-    store->medium->fallback_checkpoint = *cp;
-    store->medium->has_fallback = 1u;
     retain_active_checkpoint(store);
     return 1;
 }

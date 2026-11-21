@@ -275,6 +275,129 @@ bool check_publication_prefixes(const std::string &dir, bool fresh)
     return writes > 0 && tears > 0 && img.close();
 }
 
+bool check_durable_snapshot(const std::string &dir)
+{
+    const std::string path = dir + "/snapshot.blk";
+    const blkdev::geometry device_geometry{128, 64};
+    const struct vos_node_geometry node_geometry = {4u, 16u, 128u};
+    const struct vos_tree_limits limits = {0u, 4u, 64u};
+    static constexpr uint64_t domain = 31u;
+    const uint8_t key[32] = {0x98};
+    struct vos_crypto_core crypto;
+    struct vos_storage_medium medium;
+    struct vos_storage_store store;
+    vos_crypto_core_init(&crypto, 32u);
+    if (!vos_crypto_core_unlock_domain(&crypto, 0u, domain, 1u, key, sizeof(key)) ||
+        !vos_storage_format(&medium, &store, &crypto, 0u, domain, 1u,
+                            &node_geometry, &limits, 1u, 32u)) return false;
+    std::vector<uint8_t> fixture(VOS_STORAGE_BLKDEV_MEDIUM_BYTES);
+    if (!vos_storage_encode_blkdev_medium(&medium, fixture.data())) return false;
+    uint64_t retained_generation = 0;
+    uint64_t retained_root = 0;
+    std::vector<uint8_t> retained_bytes;
+    {
+        blkdev::image img(path, blkdev::image::mode::create, device_geometry, fixture);
+        persistence_bridge bridge{&img, {}};
+        struct vos_storage_tx_spec tx = {};
+        tx.op_kind = VOS_STORAGE_OP_INSERT;
+        tx.commit_mode = VOS_STORAGE_COMMIT_ROLLBACKABLE;
+        tx.key = 9u;
+        tx.value = 90u;
+        uint64_t ack = 0;
+        if (!vos_storage_attach_persistence(&store, persist_storage, &bridge) ||
+            !vos_storage_reserve(&store, domain, &tx) ||
+            !vos_storage_stage(&store, domain) ||
+            !vos_storage_publish(&store, domain, VOS_STORAGE_CUT_NONE, &ack)) return false;
+
+        tx.op_kind = VOS_STORAGE_OP_COMPACT;
+        if (!vos_storage_reserve(&store, domain, &tx)) return false;
+        const auto reserved = img.current_bytes();
+        if (vos_storage_retain_snapshot(&store, domain, ack) ||
+            !vos_storage_stage(&store, domain) ||
+            vos_storage_retain_snapshot(&store, domain, ack) ||
+            img.current_bytes() != reserved || medium.checkpoint.snapshot_count != 0u ||
+            !vos_storage_publish(&store, domain, VOS_STORAGE_CUT_NONE, &ack)) return false;
+
+        retained_generation = ack;
+        retained_root = store.committed_root;
+        const size_t root_offset = static_cast<size_t>(retained_root) * node_geometry.block_bytes;
+        retained_bytes.assign(medium.arena_ciphertext + root_offset,
+                              medium.arena_ciphertext + root_offset + node_geometry.block_bytes);
+        size_t pin_writes = 0;
+        auto previous = img.current_bytes();
+        auto recovers_checkpoint = [&](const std::vector<uint8_t> &bytes) {
+            struct vos_storage_medium recovered;
+            struct vos_storage_store reader;
+            uint64_t value = 0;
+            return vos_storage_decode_blkdev_medium(bytes.data(), &recovered) &&
+                   vos_storage_reopen(&recovered, &reader, &crypto, 0u, domain) &&
+                   reader.committed_generation == retained_generation &&
+                   reader.committed_root == retained_root &&
+                   (recovered.checkpoint.snapshot_count == 0u ||
+                    (recovered.checkpoint.snapshot_count == 1u &&
+                     recovered.checkpoint.snapshots[0] == retained_generation)) &&
+                   vos_storage_lookup(&reader, domain, 9u, &value) == VOS_TREE_FOUND &&
+                   value == 90u;
+        };
+        bridge.after_write = [&]() {
+            ++pin_writes;
+            const auto current = img.current_bytes();
+            if (!recovers_checkpoint(current)) return false;
+            auto torn = current;
+            for (size_t i = 0; i < current.size(); ++i) {
+                const uint8_t mask = i % 2 == 0 ? 0x55 : 0xaa;
+                torn[i] = static_cast<uint8_t>((previous[i] & ~mask) | (current[i] & mask));
+            }
+            previous = current;
+            return recovers_checkpoint(torn);
+        };
+        if (!vos_storage_retain_snapshot(&store, domain, retained_generation) ||
+            pin_writes == 0u) return false;
+        const size_t writes_after_pin = pin_writes;
+        if (!vos_storage_retain_snapshot(&store, domain, retained_generation) ||
+            pin_writes != writes_after_pin) return false;
+        struct vos_storage_medium fallback;
+        struct vos_storage_store reader;
+        if (!vos_storage_decode_blkdev_medium(img.current_bytes().data(), &fallback))
+            return false;
+        fallback.checkpoint.checkpoint_mac[0] ^= 1u;
+        if (!vos_storage_reopen(&fallback, &reader, &crypto, 0u, domain) ||
+            fallback.checkpoint.snapshot_count != 1u ||
+            fallback.checkpoint.snapshots[0] != retained_generation ||
+            !img.close()) return false;
+    }
+    if (!load_from_blkdev(path, "", &medium, &store, &crypto, 0u, domain) ||
+        medium.checkpoint.snapshot_count != 1u ||
+        medium.checkpoint.snapshots[0] != retained_generation) return false;
+
+    const size_t root_offset = static_cast<size_t>(retained_root) * node_geometry.block_bytes;
+    blkdev::image img(path, blkdev::image::mode::open, device_geometry, {});
+    persistence_bridge bridge{&img, {}};
+    struct vos_storage_tx_spec tx = {};
+    tx.op_kind = VOS_STORAGE_OP_INSERT;
+    tx.commit_mode = VOS_STORAGE_COMMIT_ROLLBACKABLE;
+    tx.key = 9u;
+    tx.value = 91u;
+    uint64_t ack = 0;
+    if (!vos_storage_attach_persistence(&store, persist_storage, &bridge) ||
+        !vos_storage_reserve(&store, domain, &tx) ||
+        !vos_storage_stage(&store, domain) ||
+        !vos_storage_publish(&store, domain, VOS_STORAGE_CUT_NONE, &ack)) return false;
+    tx.op_kind = VOS_STORAGE_OP_COMPACT;
+    if (!vos_storage_reserve(&store, domain, &tx) ||
+        !vos_storage_stage(&store, domain) ||
+        !vos_storage_publish(&store, domain, VOS_STORAGE_CUT_NONE, &ack) ||
+        !img.close() ||
+        !load_from_blkdev(path, "", &medium, &store, &crypto, 0u, domain)) return false;
+    uint64_t value = 0;
+    return medium.checkpoint.snapshot_count == 1u &&
+           medium.checkpoint.snapshots[0] == retained_generation &&
+           std::memcmp(retained_bytes.data(), medium.arena_ciphertext + root_offset,
+                       retained_bytes.size()) == 0 &&
+           vos_storage_lookup(&store, domain, 9u, &value) == VOS_TREE_FOUND &&
+           value == 91u;
+}
+
 } // namespace
 
 int main(int argc, char **argv)
@@ -290,6 +413,10 @@ int main(int argc, char **argv)
     }
     if (!check_publication_prefixes(dir, false) || !check_publication_prefixes(dir, true)) {
         std::fprintf(stderr, "storage_blkdev_join: publication prefixes failed\n");
+        return 1;
+    }
+    if (!check_durable_snapshot(dir)) {
+        std::fprintf(stderr, "storage_blkdev_join: durable snapshot failed\n");
         return 1;
     }
     const std::string sys_img_path = dir + "/system.blk";
