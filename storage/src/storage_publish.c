@@ -1464,6 +1464,15 @@ int vos_storage_lookup(const struct vos_storage_store *store,
     return VOS_TREE_REFUSED;
 }
 
+static int checkpoint_retains_snapshot(const struct vos_storage_checkpoint *cp,
+                                       uint64_t generation)
+{
+    for (uint32_t i = 0u; i < cp->snapshot_count; ++i) {
+        if (cp->snapshots[i] == generation) return 1;
+    }
+    return 0;
+}
+
 int vos_storage_retain_snapshot(struct vos_storage_store *store,
                                 uint64_t caller_domain,
                                 uint64_t generation)
@@ -1481,11 +1490,7 @@ int vos_storage_retain_snapshot(struct vos_storage_store *store,
                                medium->geometry.arena_nodes, &next)) {
         return 0;
     }
-    uint32_t index = 0u;
-    while (index < next.snapshot_count && next.snapshots[index] != generation) {
-        ++index;
-    }
-    const int retained = index < next.snapshot_count;
+    const int retained = checkpoint_retains_snapshot(&next, generation);
     if (retained && medium->has_fallback &&
         equal_bytes_ct(next.checkpoint_mac, medium->fallback_checkpoint.checkpoint_mac,
                        VOS_CRYPTO_DIGEST_BYTES) &&
@@ -1502,7 +1507,7 @@ int vos_storage_retain_snapshot(struct vos_storage_store *store,
             next.snapshot_count >= VOS_STORAGE_MAX_SNAPSHOTS) {
             return 0;
         }
-        next.snapshots[index] = generation;
+        next.snapshots[next.snapshot_count] = generation;
         ++next.snapshot_count;
         if (!sign_checkpoint(store->crypto, store->crypto_slot, &next)) {
             return 0;
@@ -1669,6 +1674,9 @@ int vos_storage_admit_resident(const struct vos_storage_store *store,
     }
     const struct vos_storage_resident_receipt admitted = {
         .store = store,
+        .medium = store->medium,
+        .crypto = store->crypto,
+        .crypto_slot = store->crypto_slot,
         .key_context = store->crypto->domain_context[store->crypto_slot],
         .checkpoint = store->medium->checkpoint,
         .identity = *identity,
@@ -1682,17 +1690,42 @@ int vos_storage_admit_resident(const struct vos_storage_store *store,
     return 1;
 }
 
-int vos_storage_verify_admitted_resident(void *verification,
-                                         const struct vos_resident_identity *identity,
-                                         const uint8_t *bytes, size_t length)
+static int verify_resident_predecessor(const struct vos_storage_store *store,
+                                       const struct vos_storage_resident_receipt *receipt)
 {
-    const struct vos_storage_resident_receipt *receipt = verification;
+    const struct vos_storage_checkpoint *old = &receipt->checkpoint;
+    const struct vos_storage_checkpoint *current = &store->medium->checkpoint;
+    if (receipt->identity.kind != VOS_RESIDENT_USER ||
+        receipt->identity.generation != old->generation ||
+        current->generation <= old->generation ||
+        current->generation - old->generation != 1u ||
+        old->commit_mode != VOS_STORAGE_COMMIT_ROLLBACKABLE ||
+        current->commit_mode != VOS_STORAGE_COMMIT_ROLLBACKABLE ||
+        old->sealed_epoch != 0u || current->sealed_epoch != 0u ||
+        (store->crypto->epoch_sealed_mask & (1u << store->crypto_slot)) != 0u ||
+        !verify_checkpoint_mac(store->crypto, store->crypto_slot, store->domain_id,
+                               store->key_epoch, store->medium->geometry.arena_nodes, old) ||
+        !checkpoint_retains_snapshot(old, old->generation) ||
+        !checkpoint_retains_snapshot(current, old->generation)) return 0;
+
+    uint64_t current_value = 0u;
+    return vos_storage_lookup(store, receipt->identity.domain, receipt->identity.object,
+                              &current_value) == VOS_TREE_FOUND;
+}
+
+static int verify_resident_receipt(const struct vos_storage_resident_receipt *receipt,
+                                    const struct vos_resident_identity *identity,
+                                    const uint8_t *bytes, size_t length,
+                                    int allow_predecessor)
+{
     if (receipt == NULL || receipt->valid != 1u || identity == NULL ||
         length != receipt->length || length > VOS_RESIDENT_BYTES ||
         (length != 0u && bytes == NULL)) return 0;
     const struct vos_storage_store *store = receipt->store;
     if (store == NULL || !store->open || store->medium == NULL ||
         store->crypto == NULL || store->crypto_slot >= VOS_CRYPTO_MAX_DOMAINS ||
+        store->medium != receipt->medium || store->crypto != receipt->crypto ||
+        store->crypto_slot != receipt->crypto_slot ||
         identity->owner != receipt->identity.owner ||
         identity->domain != receipt->identity.domain ||
         identity->object != receipt->identity.object ||
@@ -1700,18 +1733,17 @@ int vos_storage_verify_admitted_resident(void *verification,
         identity->generation != receipt->identity.generation ||
         identity->kind != receipt->identity.kind ||
         !equal_bytes_ct(identity->root, receipt->identity.root, VOS_CRYPTO_DIGEST_BYTES) ||
-        store->committed_generation != receipt->checkpoint.generation ||
-        store->committed_root != receipt->checkpoint.root ||
         store->domain_id != receipt->checkpoint.domain_id ||
         store->key_epoch != receipt->checkpoint.key_epoch ||
-        !equal_bytes_ct((const uint8_t *)&store->medium->checkpoint,
-                         (const uint8_t *)&receipt->checkpoint,
-                         sizeof(receipt->checkpoint))) return 0;
-    const struct vos_crypto_domain_slot *slot = &store->crypto->domains[store->crypto_slot];
-    if (store->crypto->domain_context[store->crypto_slot] != receipt->key_context ||
-        !slot->provisioned || slot->domain_id != store->domain_id ||
-        slot->key_epoch != store->key_epoch) return 0;
-    const struct vos_storage_checkpoint *cp = &receipt->checkpoint;
+        store->crypto->domain_context[store->crypto_slot] != receipt->key_context ||
+        !matches_active_checkpoint(store)) return 0;
+
+    const struct vos_storage_checkpoint *cp = &store->medium->checkpoint;
+    const int unchanged = equal_bytes_ct((const uint8_t *)cp,
+                                          (const uint8_t *)&receipt->checkpoint,
+                                          sizeof(*cp));
+    if (!unchanged && (!allow_predecessor || !verify_resident_predecessor(store, receipt)))
+        return 0;
     if ((((store->crypto->epoch_sealed_mask & (1u << store->crypto_slot)) != 0u) ||
          cp->commit_mode == VOS_STORAGE_COMMIT_FRESH || cp->sealed_epoch != 0u) &&
         !vos_crypto_core_verify_epoch(store->crypto, store->crypto_slot,
@@ -1724,6 +1756,20 @@ int vos_storage_verify_admitted_resident(void *verification,
                                     identity->kind, identity->generation,
                                     bytes, length, expected) &&
            equal_bytes_ct(expected, identity->root, VOS_CRYPTO_DIGEST_BYTES);
+}
+
+int vos_storage_verify_admitted_resident(void *verification,
+                                         const struct vos_resident_identity *identity,
+                                         const uint8_t *bytes, size_t length)
+{
+    return verify_resident_receipt(verification, identity, bytes, length, 0);
+}
+
+int vos_storage_verify_retained_resident(void *verification,
+                                         const struct vos_resident_identity *identity,
+                                         const uint8_t *bytes, size_t length)
+{
+    return verify_resident_receipt(verification, identity, bytes, length, 1);
 }
 
 static uint32_t get_le32(const uint8_t *src)

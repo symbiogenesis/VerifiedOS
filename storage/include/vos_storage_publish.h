@@ -183,11 +183,15 @@ struct vos_storage_store {
 };
 
 /* Private to the serialized storage owner. Admission authenticates membership
- * once; a changed checkpoint requires fresh admission. Mutable host bytes are
- * still authenticated at completion. Discard receipts when reopening/replacing
- * their store or crypto-core object. Never accept a caller-authored receipt. */
+ * once. The ordinary verification callback requires the same checkpoint.
+ * Both callbacks authenticate mutable host bytes at completion. Discard receipts
+ * when reopening or replacing their store, medium or crypto core. Never accept
+ * a caller-authored receipt. */
 struct vos_storage_resident_receipt {
     const struct vos_storage_store *store;
+    const struct vos_storage_medium *medium;
+    const struct vos_crypto_core *crypto;
+    uint32_t crypto_slot;
     uint64_t key_context;
     struct vos_storage_checkpoint checkpoint;
     struct vos_resident_identity identity;
@@ -262,6 +266,13 @@ int vos_storage_admit_resident(const struct vos_storage_store *store,
                                struct vos_storage_resident_receipt *receipt);
 
 int vos_storage_verify_admitted_resident(void *verification,
+                                         const struct vos_resident_identity *identity,
+                                         const uint8_t *bytes, size_t length);
+
+/* Also accepts an already admitted, pinned rollbackable user-data predecessor
+ * of the direct successor, while the object still exists and both checkpoints
+ * and the key context remain bound. */
+int vos_storage_verify_retained_resident(void *verification,
                                          const struct vos_resident_identity *identity,
                                          const uint8_t *bytes, size_t length);
 

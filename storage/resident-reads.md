@@ -158,15 +158,15 @@ no equivalence to cryptographic storage authentication.
 [crypto-core compartment](src/crypto_core.c) supply the real cryptographic
 verifier callback `vos_storage_verify_resident` for `vos_resident_complete`
 under [its public header](include/vos_storage_publish.h). Given an open
-`vos_storage_store` (`system-integrity` at `VOS_RESIDENT_ROOT_SIGNED` or
-`user-data` at `VOS_RESIDENT_ROOT_COMMITTED`), `vos_storage_bind_resident_identity`
+`vos_storage_store` (`system-integrity` at `VOS_RESIDENT_SYSTEM` or
+`user-data` at `VOS_RESIDENT_USER`), `vos_storage_bind_resident_identity`
 computes the domain-separated `vos_crypto_core_keyed_digest` (R-10-016) over the
 object bytes and encodes the deterministic B+ tree authenticator entry
 `resident_tree_value(root, version)`. During every `vos_resident_complete` call,
-`vos_storage_verify_resident` checks the store's domain and root kind, verifies
-the checkpoint MAC and any sealed `Fresh` epoch floor (R-10-013e), recomputes
-the domain-separated object digest over the isolated backing snapshot, and looks
-up `identity->object` in the store's authenticated CoW B+ tree (R-10-001,
+`vos_storage_verify_resident` validates the store's domain, root kind, active
+authenticated checkpoint and any sealed `Fresh` epoch floor (R-10-013e). It
+recomputes the domain-separated object digest over the isolated backing snapshot
+and looks up `identity->object` in the store's authenticated CoW B+ tree (R-10-001,
 R-10-003, R-10-006a, R-10-006b). Any tampered backing byte, wrong domain,
 uncommitted object or rolled-back store state refuses before `vos_resident_complete`
 copies a byte to the caller, while repeated reads across independent holders
@@ -175,14 +175,15 @@ record zero writes to `VOS_RESIDENT_COMMON`.
 `vos_storage_admit_resident` authenticates the identity, bytes and tree membership
 once into a receipt held privately by the serialized owner.
 `vos_storage_verify_admitted_resident` reuses that membership while the exact
-checkpoint, domain, key epoch and resident identity remain unchanged. It checks
-key availability, its admitted key-context token and the current Fresh seal and hashes the actual mutable host
-backing on each completion. A checkpoint change requires new admission; a locked
-key, advanced Fresh seal, changed backing, identity or length refuses. Relocking
-and unlocking requires new admission; store/core replacement discards the receipt. Neither
-receipt nor common resident state is written during repeated reads. Corruption of
-external arena blocks after admission does not invalidate already authenticated
-resident bytes; a new storage lookup still detects that corruption. The
+store, medium, crypto slot, checkpoint, key epoch and resident identity remain
+bound. It checks key availability, its admitted key-context token and the current
+`Fresh` seal, and hashes the actual mutable host backing on each completion.
+A checkpoint change requires new admission for this callback. A locked key,
+advanced seal, changed backing, identity or length refuses. Reopening, replacing
+the storage or crypto objects, or cycling the key requires new admission.
+Repeated reads leave the receipt and common resident state unchanged.
+Previously authenticated resident bytes remain valid if only the external arena
+blocks change. A new storage lookup detects that corruption. The
 [persistent-image join](host/storage_blkdev_join.cpp) uses the receipt callback.
 
 The [receipt campaign](host/resident_receipt.c), registered by
@@ -194,6 +195,31 @@ expiry after renewal, refuses a closed transfer and serves both holders after
 fresh-token readmission. This host adapter retains byte authentication.
 Eliminating that hash requires the protected immutable backing and lifetime evidence in the
 [resident contract](../docs/implementation/contracts/resident-object-reads.md).
+
+### Pinned predecessor
+
+`vos_storage_verify_retained_resident` adds a bounded rollbackable user-data
+path for an owner-held receipt issued after pinning its original generation.
+It checks the original authenticated checkpoint and the producer's exact
+active successor checkpoint. The pin must appear in both checkpoints and the
+current authenticated lookup must still find the same object key. Membership
+in the original checkpoint comes from the retained admission. Each completion
+rehashes the actual original backing and checks its exact receipt identity
+under the same key context. The callback refuses a checkpoint beyond the direct
+successor, a changed system generation, and a predecessor under sealed
+`Fresh` state. Receipt disposal and resident reservation invalidation are
+required on reopen, even when the same objects are reused at the same addresses.
+
+The native receipt campaign uses the storage producer to pin, stage and publish
+a replacement for both root kinds. The pending user-data read returns original
+bytes across CoW replacement. The corresponding system-integrity read refuses
+following a generation change. The campaign checks backing and checkpoint
+damage, refusal after deletion or a sealed `Fresh` successor, retirement
+that preserves an independent successor transfer, and invalidation at
+crash/reopen. Compiled controls remove the original pin, original checkpoint MAC,
+current membership, system-generation and `Fresh` checks. Full authenticated
+lifetime correspondence, complete writer observation and target qualification
+remain open.
 
 `python tools/run.py test --only storage_publish` exercises
 `vos_storage_verify_resident` across both storage instances and kills a compiled
