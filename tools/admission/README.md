@@ -77,7 +77,8 @@ any consumed input, including a hardlinked alias.
 The fixed [reviewed population policy](production-population.json) gives each
 runtime member a `proof_route` and requirement citations. The record binds the
 exact policy and requirements-register bytes and refuses missing, extra, duplicate
-or malformed policy declarations. `bootstrap-release` and `tcb-release` members
+or malformed policy declarations. Every route and blocker citation resolves to an
+active entry in the bound register. `bootstrap-release` and `tcb-release` members
 retain missing release-proof evidence; their binaries acquire no install-path
 certificate or admission-tier obligation. `checker-admitted` members retain the
 unassigned-tier, missing-derivation and unavailable-checker blockers. `unresolved`
@@ -90,8 +91,9 @@ protected integrity reader and A/B transactor boundaries, with their producer
 owners and register requirements. Both volume labels retain those obligations;
 untrusted derivation metadata cannot classify the combined binary as trusted.
 Publication writes a sibling temporary and replays the record and original input
-bindings before replacing the destination. Partial writes, replacement failures
-and input drift preserve the previous record and remove pending bytes.
+bindings before comparing the pending bytes with the canonical refusal. Short
+writes, substituted pending bytes, replacement failures and input drift preserve
+the previous record and remove pending bytes.
 
 This join always emits `scope: production-admission-refusal`, `decision: refused`,
 `generation_accepted: false` and `production_admission: false`. Every route refuses,

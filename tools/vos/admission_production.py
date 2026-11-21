@@ -7,12 +7,12 @@ therefore a replayable refusal, identifying each member's remaining obligations.
 
 import json
 from pathlib import Path
-from typing import Any, Final, TypedDict, cast
+from typing import Any, Final, NotRequired, TypedDict, cast
 
-from vos import boot, composer, composition, source_bindings
+from vos import boot, composer, composition, corpus, source_bindings
 from vos.atomic import atomic_path
 from vos.jsonutil import unique_object
-from vos.register import REGISTER, REQ_TOKEN_RE
+from vos.register import REGISTER, REQ_TOKEN_RE, read_register
 
 CHECKERS = source_bindings.sources("admission-production")
 SCOPE = "production-admission-refusal"
@@ -33,6 +33,13 @@ class ProofRoute(TypedDict):
     member: str
     route: str
     requirements: list[str]
+
+
+class Blocker(TypedDict):
+    rule: str
+    owner: str
+    detail: str
+    requirements: NotRequired[list[str]]
 
 
 def _path(root: Path, relative: str) -> Path:
@@ -136,11 +143,16 @@ def make_record(root: Path, source: str, projections: str, build_record: str,
     roster = boot.load_roster(root, roster_ref["path"], snapshot=roster_data)
     declared = roster.by_id()
     routes = _proof_routes(population_data, [member["member"] for member in request["payload"]["members"]])
+    try:
+        authority = corpus.from_text(authority_data.decode("utf-8"), REGISTER)
+    except (UnicodeDecodeError, RuntimeError) as error:
+        raise ProductionAdmissionError(f"unreadable proof-route register: {error}") from error
+    active_requirements = read_register(corpus.Corpus(root, [authority], {}, [REGISTER])).id_set
     members: list[dict[str, object]] = []
     for member in request["payload"]["members"]:
         owner = declared[member["member"]]
         route = routes[owner.id]
-        blockers: list[dict[str, object]] = []
+        blockers: list[Blocker] = []
         if route["route"] == "checker-admitted":
             if member["tier"] is None:
                 blockers.append({"rule": "TierUnassigned", "owner": "M7.1c",
@@ -171,6 +183,13 @@ def make_record(root: Path, source: str, projections: str, build_record: str,
         if owner.status != "executable":
             blockers.append({"rule": "RosterMemberUnaccepted", "owner": owner.owner,
                              "detail": f"the roster declares {owner.status}"})
+        requirements = set(route["requirements"])
+        for blocker in blockers:
+            requirements.update(blocker.get("requirements", ()))
+        inactive = requirements - active_requirements
+        if inactive:
+            citations = ", ".join(sorted(inactive))
+            raise ProductionAdmissionError(f"proof route for {owner.id} cites inactive requirement {citations}")
         members.append({"member": owner.id, "package_id": member["package_id"],
                         "artifact_slot": member["artifact_slot"],
                         "artifact": built["artifacts"][member["artifact_slot"]],
@@ -233,8 +252,11 @@ def publish_record(root: Path, record: dict[str, object], destination: str) -> N
     output = _path(root, destination)
     _publication_inputs(root, record, output)
     validate_record(root, record)
+    expected = composer.canonical_bytes(record)
     output.parent.mkdir(parents=True, exist_ok=True)
     with atomic_path(output) as pending:
-        pending.write_bytes(composer.canonical_bytes(record))
+        pending.write_bytes(expected)
         validate_record(root, record)
         _publication_inputs(root, record, output)
+        if pending.read_bytes() != expected:
+            raise ProductionAdmissionError("pending admission record differs from the canonical refusal")
