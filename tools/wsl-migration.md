@@ -10,9 +10,12 @@ copy that mounted Windows directory.
 ## Current host status
 
 As of **2026-11-21**, the reinstalled Windows host uses a fresh ARM64
-`Ubuntu-26.04` WSL2 distribution. Python 3.14, the [pinned uv](pyproject.toml)
-and native C/C++ tools are installed. `python tools/run.py model lane` dispatches
-from Windows and reports native ext4 build and log roots.
+`Ubuntu-26.04` WSL2 distribution with Python 3.14, [pinned uv](pyproject.toml),
+and native C/C++ tools. The [reviewed opam client](vos/opam_client.py), the
+[pinned solver](vos/env.py#z3_install) and the locked [Sail and Rocq switches](opam/README.md)
+are installed. `python tools/run.py provision --check --only gate` passes, and
+`python tools/run.py model lane` dispatches from Windows and reports native ext4
+build and log roots.
 
 No WSL backup was available. The previous distribution, the private
 `verifiedos-cheri-compcert` checkout and the previously recorded transfer
