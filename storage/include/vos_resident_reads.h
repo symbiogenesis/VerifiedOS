@@ -6,6 +6,7 @@
 #include <stdint.h>
 
 #define VOS_RESIDENT_BYTES 512U
+#define VOS_RESIDENT_BACKINGS 2U
 #define VOS_RESIDENT_HOLDERS 2U
 #define VOS_RESIDENT_SYSTEM 1U
 #define VOS_RESIDENT_USER 2U
@@ -30,16 +31,21 @@ struct vos_resident_handle {
 struct vos_resident_reservation {
     struct vos_resident_handle handle;
     uint64_t expires;
-    uint32_t live, renewed;
+    uint32_t live, renewed, backing;
+};
+
+struct vos_resident_backing {
+    struct vos_resident_identity identity;
+    uint8_t bytes[VOS_RESIDENT_BYTES];
+    size_t length;
+    uint32_t occupied, accepting;
 };
 
 struct vos_resident_common {
-    struct vos_resident_identity identity;
+    struct vos_resident_backing backing[VOS_RESIDENT_BACKINGS];
     struct vos_resident_reservation reservation[VOS_RESIDENT_HOLDERS];
-    uint8_t bytes[VOS_RESIDENT_BYTES];
-    size_t length;
     uint64_t boot, generation, next_token, last_version, limit;
-    uint32_t occupied, accepting, grants;
+    uint32_t current, grants;
 };
 
 struct vos_resident_request {
@@ -68,9 +74,14 @@ struct vos_resident_owner {
 int vos_resident_init(struct vos_resident_owner *owner, uint64_t boot,
                       uint64_t generation, uint64_t counter_limit,
                       vos_resident_observer observe, void *observation);
-/* Publication copies bytes; caller aliases cannot mutate retained backing.
- * This first C shape refuses replacement while its one backing is occupied. */
+/* Initial publication requires an empty owner and copies the supplied bytes. */
 int vos_resident_publish(struct vos_resident_owner *owner,
+                         const struct vos_resident_identity *identity,
+                         const uint8_t *bytes, size_t length);
+/* Replacement copies a new version of the current object into the free slot.
+ * Existing reservations retain their original backing and new admissions
+ * select only the current version. Both slots count against the fixed bound. */
+int vos_resident_replace(struct vos_resident_owner *owner,
                          const struct vos_resident_identity *identity,
                          const uint8_t *bytes, size_t length);
 int vos_resident_admit(struct vos_resident_owner *owner, uint32_t holder,
@@ -109,6 +120,11 @@ void vos_resident_generation(struct vos_resident_owner *owner, uint64_t generati
  * An unavailable barrier quarantines the original bytes. A true barrier is an
  * explicit trusted seam: this adapter supplies no kernel sweep/reuse evidence. */
 int vos_resident_retire(struct vos_resident_owner *owner, int barrier_completed);
+/* Closes and cancels only the exact predecessor. An unavailable barrier
+ * retains its occupied backing and charges it against later replacement. */
+int vos_resident_retire_predecessor(struct vos_resident_owner *owner,
+                                    const struct vos_resident_identity *identity,
+                                    int barrier_completed);
 int vos_resident_crash(struct vos_resident_owner *owner, uint64_t new_boot);
 
 #endif

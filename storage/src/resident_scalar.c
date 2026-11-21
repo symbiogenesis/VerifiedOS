@@ -28,7 +28,8 @@ static int binding_ok(const struct vos_resident_scalar_retirement *a,
         overlap(a, sizeof(*a), o, sizeof(*o)) ||
         overlap(k, sizeof(*k), o, sizeof(*o)) ||
         overlap(k, sizeof(*k), a, sizeof(*a)) ||
-        !o->common.occupied || !k->bound || k->locked || k->retirement_pending ||
+        !o->common.backing[o->common.current].occupied ||
+        !k->bound || k->locked || k->retirement_pending ||
         !vos_supervisor_manifest_ok(&k->manifest) ||
         k->manifest.units > VOS_KERNEL_EFFECT_UNITS ||
         b->epoch != k->epoch || b->epoch == UINT64_MAX ||
@@ -88,11 +89,13 @@ int vos_resident_scalar_finish(struct vos_resident_scalar_retirement *a,
     a->phase = VOS_RESIDENT_SCALAR_REFUSED;
     struct vos_resident_owner *o = a->owner;
     struct vos_kernel_effect_state *k = a->kernel;
-    if (k->epoch != a->epoch || !o->common.occupied || o->common.accepting ||
-        memcmp(&o->common, &a->closed, sizeof(a->closed)) != 0 ||
+    if (k->epoch != a->epoch || memcmp(&o->common, &a->closed, sizeof(a->closed)) != 0 ||
+        !o->common.backing[o->common.current].occupied ||
         memcmp(o->pending, a->pending, sizeof(a->pending)) != 0 ||
         memcmp(o->sequence, a->sequence, sizeof(a->sequence)) != 0)
         return 0;
+    for (uint32_t slot = 0; slot < VOS_RESIDENT_BACKINGS; ++slot)
+        if (o->common.backing[slot].accepting) return 0;
     for (uint32_t i = 0; i < VOS_RESIDENT_HOLDERS; ++i)
         if (o->common.reservation[i].live || o->pending[i].active) return 0;
     if (!vos_kernel_publication(k, a->epoch, a->mask, observed) ||
