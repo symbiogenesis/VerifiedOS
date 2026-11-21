@@ -120,7 +120,7 @@
     },
     {
       "path": "tools/vos/cli/copy_service.py",
-      "sha256": "39f5afa9a71bdf47c92c3c8f42b2abd0d5c0eda96b63df8fe492338d16958761"
+      "sha256": "528817b4c6e1713fe9f7f735c9fe4bb72d80d752783d82b91b0ad25a807a9ebd"
     },
     {
       "path": "tools/vos/compiler_component.py",
@@ -152,7 +152,7 @@
     },
     {
       "path": "tools/vos/copy_package.py",
-      "sha256": "ad7dcfe85c5ce28fb9239b86b17e1a0bc47cd4dfc5185a320b8da1d6dce22225"
+      "sha256": "68733fe286d627d118b5b42e6c6646a43802bf0e44c1ad5c59e8b673278c121f"
     },
     {
       "path": "tools/vos/copy_package_sources.py",
@@ -315,7 +315,7 @@
       "id": "copy-service-boundary",
       "source": {
         "path": "copy-service/README.md",
-        "sha256": "081e3f7b535844d200b2561c587fe8f37c21fad3a3d88a7bc4653aa16b988ef9"
+        "sha256": "3cfc4a258fd002b36069791210efaa9146b7079dedaf1f6b0f4bfd0168e92395"
       }
     }
   ],

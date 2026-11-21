@@ -16,15 +16,15 @@
     },
     {
       "path": "storage/src/resident_reads.c",
-      "sha256": "42a0ccfb62ffc94d1a8713dfae2d80735257df014c0faec6ff633ee23e07b2be"
+      "sha256": "d665a530711eb6a193209cd187b94e61002189a7a07a8263b0ab4c130801720a"
     },
     {
       "path": "storage/src/resident_scalar.c",
-      "sha256": "a151cfaddcd39968f414c40e8b9bdee9c8fe1091f00a55bdc58382cc298d7bbc"
+      "sha256": "10286ffc7037507eac81eca01bab79945fd0bf1e3fe573fedbfc8932dc2e286b"
     },
     {
       "path": "storage/src/storage_publish.c",
-      "sha256": "7e4a2974cac38b56b9cf2c940bb9d0db8953180e9c029861b1c1070181948855"
+      "sha256": "440c0e4e3e723dfd6cc868d4e033f75b3e16afb35e1e6d388c6b324c5c7d5556"
     },
     {
       "path": "storage/include/vos_node_image.h",
@@ -40,7 +40,7 @@
     },
     {
       "path": "storage/include/vos_resident_reads.h",
-      "sha256": "b8d08a0d213e08c78e51d481e2c9b00cbee53af4a6aaf2f15c27adda86ee5526"
+      "sha256": "96920793aecabafef2ef80508b1bea9bcffa7aec1e917a491cb808c6b156ce95"
     },
     {
       "path": "storage/include/vos_resident_scalar.h",
@@ -92,14 +92,14 @@
       "id": "storage-boundary",
       "source": {
         "path": "storage/README.md",
-        "sha256": "53e719c40c70a0c5e18d6d02c447a79ba5d9b7054b6129dde0acad00e4b069ba"
+        "sha256": "da093ac1d06584ee21d7523438f464102cbc374e96396e89f4321dcd892adf57"
       }
     },
     {
       "id": "resident-reads-boundary",
       "source": {
         "path": "storage/resident-reads.md",
-        "sha256": "67353ff8714673b05e034f0848cfbc56295b5983b7cefd99452a0f1df9a08898"
+        "sha256": "ed639dcb6bde2706ebf23928adbeeae30f1b90941864272439df86dbb75f9d03"
       }
     },
     {

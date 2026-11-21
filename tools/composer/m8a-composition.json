@@ -359,7 +359,7 @@
       ],
       "descriptor": {
         "path": "tools/composer/packages/crypto-core.json",
-        "sha256": "8f365d57f9b851fdeb74f93af630ecc160260f50ac708024c3cd850993d17f00"
+        "sha256": "7aae22473a40c932c87f50da8402b5e445d8db9295d4798023678dbf405823ca"
       },
       "artifact_slot": "crypto-core-artifact",
       "entry": null,
@@ -391,7 +391,7 @@
       ],
       "descriptor": {
         "path": "tools/composer/packages/storage.json",
-        "sha256": "b7b895b53420cb75f618d4ed9629df78d3645df59a28ed361530c3b33fc93f1b"
+        "sha256": "219b92a6fb00c630fad1d52725ad854ba79697b9ca1bd27f12b0d2a61f0daec4"
       },
       "artifact_slot": "storage-artifact",
       "entry": null,
@@ -526,7 +526,7 @@
         },
         {
           "path": "tools/vos/cli/copy_service.py",
-          "sha256": "39f5afa9a71bdf47c92c3c8f42b2abd0d5c0eda96b63df8fe492338d16958761"
+          "sha256": "528817b4c6e1713fe9f7f735c9fe4bb72d80d752783d82b91b0ad25a807a9ebd"
         },
         {
           "path": "tools/vos/compiler_component.py",
@@ -558,7 +558,7 @@
         },
         {
           "path": "tools/vos/copy_package.py",
-          "sha256": "ad7dcfe85c5ce28fb9239b86b17e1a0bc47cd4dfc5185a320b8da1d6dce22225"
+          "sha256": "68733fe286d627d118b5b42e6c6646a43802bf0e44c1ad5c59e8b673278c121f"
         },
         {
           "path": "tools/vos/copy_package_sources.py",
@@ -711,7 +711,7 @@
       ],
       "descriptor": {
         "path": "tools/composer/packages/copy-service.json",
-        "sha256": "223e804804cb8749b116a20c7f4689e97e7046c3bbcf7f4f5855dd8271fb99bc"
+        "sha256": "605d7ad929133a4a1687312de641938f3b41c262909d75a54b2f3b13c5a77168"
       },
       "artifact_slot": "copy-service-artifact",
       "entry": null,
