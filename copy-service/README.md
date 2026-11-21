@@ -169,9 +169,13 @@ and both runtime adapters must be retained. Installed activation roots, extents,
 initializer, capability wiring, placement, final image and production proof inputs
 remain open. This source record carries no native object or admission verdict.
 
-`python tools/run.py test --only test_copy_package` checks this source handoff and
-its refusal controls. On Linux it also checks the standalone C syntax with the
-strict native compiler flags; that control supplies no target execution evidence.
+`python tools/run.py copy-service check-package-syntax --prepared out/copy-package`
+runs the strict native C17 syntax check in the guest. It replays the prepared
+population, compiles a private snapshot of the checked bytes, then checks the
+prepared population and compiler identity again. Its JSON on standard output
+records the recipe digest, compiler bytes and version, command, exit status and
+diagnostics. `python tools/run.py test --only test_copy_package` exercises the
+source handoff and refusal controls, including the guest syntax command.
 
 The [retained strict native standalone C syntax control](../docs/implementation/retained-evidence/copy-package-native-syntax-20261109/manifest.json),
 SHA256 `1931dcd8df3b88980eb0e8e163c29de3790a346d13324dec2490b120c0efb16f`,

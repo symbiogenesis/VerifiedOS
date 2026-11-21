@@ -5,6 +5,8 @@
 """
 
 import argparse
+import json
+import subprocess
 from pathlib import Path
 
 from vos import (
@@ -55,6 +57,9 @@ def target_parser(name: str, parser: argparse.ArgumentParser) -> None:
         parser.add_argument("--output", type=Path, required=True)
         parser.add_argument("--check", action="store_true", help="replay the prepared source record without publishing")
         return
+    if name == "check-package-syntax":
+        parser.add_argument("--prepared", type=Path, required=True)
+        return
     if name not in {"target", "notification", "partition", "join"}:
         return
     parser.add_argument("--ccomp", type=Path, required=True)
@@ -101,6 +106,16 @@ def cmd_prepare_package(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_check_package_syntax(args: argparse.Namespace) -> int:
+    try:
+        report = copy_package.check_syntax(find_root(), args.prepared, env.load(toolchain=False).lane_root)
+    except (OSError, ValueError, subprocess.SubprocessError) as error:
+        print(f"FAIL copy package native syntax: {error}")
+        return 1
+    print(json.dumps(report, indent=2, sort_keys=True))
+    return 0 if report["returncode"] == 0 else 1
+
+
 COMMANDS: cli.Table = {
     "check": (cmd_check, "bounded C and atomic payload controls against the ring reference"),
     "target": (cmd_target, "accepted scalar stages and actual fenced ring adapter"),
@@ -108,6 +123,7 @@ COMMANDS: cli.Table = {
     "partition": (cmd_partition, "confined copy payload, fault and private activation reset"),
     "join": (cmd_join, "scalar supervisor and copy payload/fault/restart checkpoint"),
     "prepare-package": (cmd_prepare_package, "prepare or replay standalone copy-service sources and adapters"),
+    "check-package-syntax": (cmd_check_package_syntax, "check and report strict native syntax of a prepared copy service"),
 }
 
 

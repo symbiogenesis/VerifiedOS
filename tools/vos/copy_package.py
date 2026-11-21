@@ -4,6 +4,7 @@
 import hashlib
 import json
 import re
+import subprocess
 import tempfile
 from pathlib import Path
 from typing import Final
@@ -192,8 +193,7 @@ def prepare(root: Path, output: Path) -> dict[str, object]:
     return record
 
 
-def check(root: Path, output: Path) -> dict[str, object]:
-    """Recompute the recipe and refuse any changed input, record or output population."""
+def _checked_sources(root: Path, output: Path) -> tuple[dict[str, object], dict[str, bytes]]:
     root, output = root.resolve(), output.absolute()
     captured = _capture(root)
     names = {*C_FILES, *ADAPTERS, "include/copy_service_config.h", RECORD}
@@ -210,4 +210,52 @@ def check(root: Path, output: Path) -> dict[str, object]:
     _stable(root, captured, verify_closure=True)
     if paths[RECORD].read_bytes() != raw:
         raise PackageError("prepared copy package record changed during checking")
-    return expected
+    return expected, outputs
+
+
+def check(root: Path, output: Path) -> dict[str, object]:
+    """Recompute the recipe and refuse any changed input, record or output population."""
+    record, _ = _checked_sources(root, output)
+    return record
+
+
+def check_syntax(root: Path, prepared: Path, work: Path) -> dict[str, object]:
+    """Check the verified C unit on a private native snapshot and bind the result."""
+    record, outputs = _checked_sources(root, prepared)
+    work = work.resolve()
+    if work.is_relative_to(prepared.resolve()):
+        raise PackageError("native syntax scratch directory is inside the prepared package")
+    selected = copy_service.c_compiler()
+    if selected is None:
+        raise PackageError("native C compiler missing")
+    compiler = Path(selected).resolve(strict=True)
+    compiler_sha = digest(compiler)
+    work.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(prefix="copy-package-syntax-", dir=work) as directory:
+        staged = Path(directory)
+        for relative, raw in outputs.items():
+            path = staged / relative
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_bytes(raw)
+        version = subprocess.run([str(compiler), "--version"], cwd=staged, capture_output=True,
+                                 encoding="utf-8", errors="replace", timeout=60, check=False)
+        if version.returncode != 0 or not version.stdout.strip():
+            raise PackageError("native C compiler version probe failed")
+        command = [str(compiler), *copy_service.CFLAGS, "-fsyntax-only", "-I", "include", "src/package_unit.c"]
+        done = subprocess.run(command, cwd=staged, capture_output=True, encoding="utf-8",
+                              errors="replace", timeout=60, check=False)
+        for relative, raw in outputs.items():
+            if (staged / relative).read_bytes() != raw:
+                raise PackageError(f"native syntax source changed during compilation: {relative}")
+    if digest(compiler) != compiler_sha or check(root, prepared) != record:
+        raise PackageError("native syntax compiler or prepared package changed during compilation")
+    return {
+        "format": "verifiedos-copy-package-native-syntax-control-1",
+        "scope": "strict native C syntax only",
+        "root": str(root.resolve()),
+        "source_record_sha256": hashlib.sha256(_encoded(record)).hexdigest(),
+        "compiler": str(compiler), "compiler_sha256": compiler_sha, "compiler_version": version.stdout,
+        "command": command, "working_directory": str(staged),
+        "returncode": done.returncode, "stdout": done.stdout, "stderr": done.stderr,
+        "target_emission": False, "production_admission": False,
+    }

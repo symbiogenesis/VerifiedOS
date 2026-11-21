@@ -10,12 +10,14 @@ from collections.abc import Callable, Generator
 from contextlib import contextmanager, redirect_stdout
 from io import StringIO
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import patch
 
 from tests.harness import TOOLS, Case, ensure
 from vos import copy_package as package
 from vos import copy_service
 from vos.cli import copy_service as cli
+from vos.receipts import digest
 
 
 @contextmanager
@@ -210,16 +212,49 @@ def _public_command() -> None:
 
 
 def _native_syntax() -> None:
-    compiler = copy_service.c_compiler()
-    ensure(compiler is not None, "native C compiler missing")
-    if compiler is None:
-        return
     with _fixture() as (root, output):
         package.prepare(root, output)
-        done = subprocess.run([compiler, *copy_service.CFLAGS, "-fsyntax-only", "-I", str(output / "include"),
-                               str(output / "src/package_unit.c")], capture_output=True, text=True,
-                              timeout=60, check=False, cwd=output)
-        ensure(done.returncode == 0, done.stderr)
+        report = StringIO()
+        work = output.parent / "native-syntax"
+        with (
+            patch.object(cli, "find_root", return_value=root),
+            patch.object(cli.env, "load", return_value=SimpleNamespace(lane_root=work)) as env_load,
+            redirect_stdout(report),
+        ):
+            code = cli.main(["check-package-syntax", "--prepared", str(output)])
+        ensure(code == 0, report.getvalue())
+        env_load.assert_called_once_with(toolchain=False)
+        receipt = json.loads(report.getvalue())
+        ensure(receipt["source_record_sha256"] == digest(output / package.RECORD), "bound prepared recipe")
+        ensure(receipt["compiler_sha256"] == digest(Path(receipt["compiler"])), "bound compiler bytes")
+        ensure(receipt["command"][1:] == [*copy_service.CFLAGS, "-fsyntax-only", "-I", "include", "src/package_unit.c"],
+               "strict native syntax flags and standalone translation unit")
+        ensure(receipt["target_emission"] is False and receipt["production_admission"] is False,
+               "syntax supplies no target or production verdict")
+
+
+def _syntax_consumes_checked_snapshot() -> None:
+    with _fixture() as (root, output):
+        package.prepare(root, output)
+        record = (output / package.RECORD).read_bytes()
+        source = output / "src/copy_service.c"
+        original = source.read_bytes()
+        compiler = output.parent / "test-compiler"
+        compiler.write_bytes(b"compiler identity control")
+
+        def run(command: list[str], *, cwd: Path, **_options: object) -> subprocess.CompletedProcess[str]:
+            if command[-1] == "--version":
+                source.write_bytes(b"changed prepared source")
+                return subprocess.CompletedProcess(command, 0, "native compiler identity", "")
+            ensure(cwd != output and (cwd / "src/copy_service.c").read_bytes() == original,
+                   "native syntax sees the checked source snapshot despite drift")
+            return subprocess.CompletedProcess(command, 0, "", "")
+
+        with (patch.object(copy_service, "c_compiler", return_value=str(compiler)),
+              patch.object(subprocess, "run", side_effect=run) as invoked):
+            _refuses(lambda: package.check_syntax(root, output, output.parent / "scratch"), "output differs")
+            ensure(invoked.call_count == 2, "drift occurred between replay and the syntax check")
+        ensure((output / package.RECORD).read_bytes() == record, "syntax refusal preserves the prepared record")
 
 
 def cases() -> list[Case]:
@@ -232,4 +267,5 @@ def cases() -> list[Case]:
             Case("replay refuses changed, missing, added or substituted outputs", _output_refusals),
             Case("hardlink aliases preserve inputs and useful prior record", _aliases_preserve_inputs_and_record),
             Case("host public preparation and replay", _public_command),
+            Case("native syntax uses checked bytes and refuses persistent preparation drift", _syntax_consumes_checked_snapshot),
             Case("strict native standalone C syntax", _native_syntax, lane="guest")]
