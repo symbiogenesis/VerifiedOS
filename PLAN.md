@@ -1201,10 +1201,7 @@ Vela language design, parser and elaborator qualification, authoring tooling and
     * **Dispatch. Start:** [The tag-outcome contract](docs/implementation/contracts/canonical-tag-outcomes.md), Q35b's retained whole-term refusal, Q35f's five emulator-memory definitions, the model's two tag primitives and Q35n's immutable support candidate. **Owns:** the generated bindings, monads, results and callers of `read_mem#`, `read_mem_ifetch#`, `read_mem_exclusive#`, `write_mem#`, `write_mem_exclusive#`, `__read_tag` and `__write_tag`; an explicit agreement for any target-only adapter with the existing Sail/emulator behavior. Preserve granule-indexed tags, clearing every overwritten granule, the existing data/metadata branch order and every refusal. **Check:** a minimal emitted reproducer and all seven binding readings, unchanged non-Rocq output, no new assumption or weakened definition, followed by Q35o's syntax/identity checks and Q35b's actual strict whole-term compile, exact closure and compiled size. Stop after twelve candidate checks or thirty active minutes, retaining the current diagnostic; the first unexpected semantic incompatibility returns to its requirement owner rather than becoming a proof repair. **Join:** Q35o and the unchanged production-carriage acceptance; no proof-switch lock change on an isolated adapter result.
     * **Estimate basis:** source extension and old-event forwarding 1–3 h; executable interpretation and emitted-caller agreement 2–6 h; native distinguishing controls and source/output identities 2–4 h; independent review and consumer handoff 1–3 h. This replaces the former adapter allowance with the concrete missing representation and bridge; Q35o's syntax, Q35b's consumer acceptance and Q35n/Q35q's hosted carriage/census retain their owners.
   * [ ] **Q35q · Qualify the native Sail support declaration inventory** · 10 h, range 5–15 · X
-    * **Performance todo:** [Dramatically accelerate Python census validation](tools/performance.md#native-sail-census-validation-todo), targeting a tenfold replay speedup while retaining the complete positive census, every independent corruption check and the full assumption/kernel joins. Full native census generation, validation and retained-evidence replay are [GitHub-hosted Actions only](docs/implementation/contracts/sail-support-census.md#hosted-only-execution); do not restart the interrupted local WSL workload. Profiling, baseline measurements and acceptance comparisons remain hosted.
-    * **Native metadata checkpoint:** [The reusable constructor-based producer](docs/assurance/sail-support-inventory.md#current-native-producer) exports structured type, universe and name metadata for the actual interface and synthetic module shapes at the locked prover. Its three-check budget is exhausted. Complete field accounting, concrete implementation connections, native refusal controls, declaration classification/census and exact hosted assumption/kernel qualification remain owed; the item stays open.
-    * **Census prerequisite:** [The module census contract](docs/implementation/contracts/sail-support-census.md) commissions complete native signature and abstract-functor classification, explicit interface obligations and concrete implementation connections before assumption queries. Its positive/refusal controls preserve the common guard and exact allowed contexts; complete native and hosted qualification remain required. The six-candidate continuation stops before its first callback at an unavailable exported API; the [substitution correction](docs/implementation/contracts/sail-support-census.md#exported-substitution-api-correction) commissions only that repair and its bounded replay, retaining all earlier counters.
-    * **Native provenance checkpoint:** [The bounded native diagnosis](docs/assurance/sail-support-inventory.md) establishes Inhabited's empty kernel-declaration body and abbreviation provenance, resolves the first TypeCasts spelling canonically, and identifies its sealed functor result. The next actual signature-field assumption lookup refuses and names the separately scoped module-signature and abstract-functor census prerequisite. Complete census, exact assumptions, refusal controls and hosted recursive-kernel qualification remain open.
+    * **Checkpoint:** Candidate six passed the full support graph with its native readings and resolver joins, and the independent three-root positive control. All twelve corruption cases still require a complete replay after the interrupted seventh attempt. The [control contract](docs/implementation/contracts/sail-support-census.md#control-only-completion) binds the exact inputs and cumulative limits. The [hosted performance follow-up](#native-sail-census-validation) owns the missing comparison inputs and replay measurement.
     * **Dispatch. Start:** Q35n's retained hosted inventory refusal, its exact 29-module recipe and [the native inventory contract](tools/opam/sail-compatibility.md#native-support-inventory-prerequisite). **Owns:** a native canonical-name and module-membership census and the narrowly qualified support adapter; explicit alias, functor-result, sealed-field and empty-module provenance. **Check:** every printed row is accounted for, every owned declaration receives its exact assumption audit, and real hosted inputs join the recursive kernel check; valid owned and proven alias-only/zero-declaration controls pass, while foreign, ambiguous, missing, duplicate and unproved-empty cases refuse. Keep the common inventory guard, strict flags, exact allowed axioms, locked packages, source semantics, prover and project lock unchanged; do not manufacture a prefix or drop an unrecognized row. The initial three-check/twenty-minute metadata step is exhausted; [the census continuation](docs/implementation/contracts/sail-support-census.md#census-continuation) commissions the remaining bounded native, adapter/control and hosted steps, with retained refusal at its limits or an uncommissioned native form. **Join:** Q35n's cold export/import qualification and Q35b's independently owed canonical consumer acceptance.
     * **Estimate basis:** bounded native provenance diagnosis 1–3 h; adapter and refusal controls 0.5–1.5 h; independent review and hosted handoff 0.5–1.5 h; the module census extension adds native grammar/classification 1–3 h, canonical implementation connections 1–3 h and controls/evidence 1–3 h. The combined range is 5–15 h. Unattended runtime, further unsupported forms and Q35n's snapshot campaign remain outside this estimate; a retained refusal does not close the item.
 * [x] **Q36 · Upgrade the proof switch to Rocq 9.3.0** · 1.6 h actual
@@ -3175,12 +3172,9 @@ accept the complete checker and proof-header runtime improvements, retain smalle
 Markdown gains and inconclusive proof-context timings, and reject slower scanner
 experiments. The [follow-through](#guardrail-performance-follow-through) owns the
 subsequent bounded Markdown workers; other scheduling changes are not selected.
-The native census and control data are restored by the
-[completed host migration](tools/wsl-migration.md#current-host-status). The native
-census comparison still needs the complete controls and readings exported and
-hash-bound for the hosted input descriptor; their absence from tracked inputs is
-separate from migration. Complete qualification remains open below. The stable-tree
-Host and Guest handoff retains the check and join requirements above.
+The [native census follow-up](#native-sail-census-validation) owns the missing
+comparison inputs and hosted replay. The stable-tree Host and Guest handoff
+retains the check and join requirements above.
 
 ## Guardrail performance follow-through
 
@@ -3217,7 +3211,7 @@ retains the check requirements above.
 
 ## Native Sail census validation
 
-Open under [Q35q](PLAN.md). Full native
+Q35q owns native inventory qualification. Full native
 census generation, Python validation and retained-evidence replay are
 [GitHub-hosted Actions only](docs/implementation/contracts/sail-support-census.md#hosted-only-execution).
 Target a tenfold reduction in end-to-end Python replay time without increasing
@@ -3235,10 +3229,10 @@ or comparing replay performance.
   cost and each corruption case on the exact hash-bound support and control
   emissions. Record phase and end-to-end wall time, peak RSS and temporary disk
   use, with runner image, interpreter, source revision and repetitions.
-- Investigate compiling the checked schema once per invocation, resolving schema
-  references in advance, dispatching constructor branches by their discriminators,
-  and building diagnostic paths only on failure. Preserve schema vocabulary
-  refusal, all compatible `oneOf`/`anyOf` branches and every existing constraint.
+- Use the profile to identify remaining costs in the
+  [compiled schema and branch selection](tools/performance.md#october-30-guardrail-algorithms).
+  Preserve schema vocabulary refusal, all compatible `oneOf`/`anyOf` branches
+  and every existing constraint.
 - Reduce redundant parsing, encoding and traversal within an invocation. Preserve
   independent artifact replay, isolated control mutations and complete per-case
   schema/graph validation; introduce no cross-call acceptance cache or omitted
