@@ -2682,21 +2682,22 @@ Implemented: shared YAML workflow/hook populations, structured action reviews ge
 
 Preserve artifact formats, diagnostics and acceptance boundaries. Implement against these contracts; join through typecheck, Windows/Ubuntu Host CI and all Guest dispatches for the settled revision, without waiting for Guest verdicts.
 
-- **Markdown validator installation.** Lychee and rumdl can share one installer.
+- **Markdown validator installation.** Lychee and rumdl share one installer.
   Each adapter owns its reviewed assets, release URL, archive layout and validator
-  arguments. Exercise both through their normal entry points with the same platform
-  selection, archive and executable identities, cache paths, lock settings, atomic
-  publication, Unix permissions and refusal diagnostics. Run each tool's existing
-  independent-process contention, corruption and recovery cases.
-- **Composer projections in K-88.** Each invocation can use one complete emission
-  for the projection set. Keep the ordered per-file index and byte comparisons,
-  diagnostics and repair bytes. Exercise missing members, generator failures,
-  mixed drift and edits between invocations. A fresh check reads its inputs again.
-- **Host evaluation of Sail guard arithmetic.** Evaluate only the selected
-  operation. Zero is valid in addition, subtraction, negation and multiplication.
-  Preserve division and remainder refusals for a zero divisor, exponent bounds,
-  unknown-state propagation and numeric conversion. Regenerate the shipped
-  encoder table byte for byte and refresh the generator's source bindings.
+  arguments. Each tool's controls exercise platform selection, cache paths,
+  archive and executable hashes, locking, atomic publication and refusal through
+  its adapter. Windows contention, corruption and recovery checks pass. Linux
+  permissions and native lock compatibility retain their hosted checks.
+- **Composer projections in K-88.** One successful emission supplies the
+  projection set for each checker run. Each file has its own ordered index and
+  byte comparisons, diagnostics and repair bytes. Focused controls cover missing
+  members, generator failures, mixed drift and edits between invocations.
+- **Host evaluation of Sail guard arithmetic.** The reader evaluates only the
+  selected operation and shares numeric conversion with the encoder generator.
+  Focused controls cover arithmetic at zero, zero-divisor
+  refusals, exponent bounds and unknown machine state. The encoder table
+  reproduces byte for byte. The `simplify-20261121` handoff records local
+  checks and pending hosted validation for these changes.
 - **Ring library extraction. Start:** the declaration reader and emitter in
   `vos/cli/ring.py`. **Owns:** a library module for shared declarations, types,
   register parsing and emission; the CLI retains command dispatch and publication.
