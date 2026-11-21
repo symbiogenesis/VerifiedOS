@@ -77,3 +77,42 @@ including namespace/kind and 64-bit boundaries; malformed lengths, magic and
 nonce coordinates refuse without output changes; and fitted geometry includes
 every inline metadata byte. Native regression and executed malformed inputs are
 focused checks, with hosted acceptance retained by the shared handoff.
+
+## Bounded typed candidate insert and replace
+
+The append-only [numeric candidate contract](tree-update.md) also governs
+single-key insertion and replacement over the typed nodes above. The caller
+supplies the full-capacity arena and expected-generation array, their exact
+lengths and the nonempty allocated prefix. The caller authenticates the
+retained bytes and generation evidence and keeps them stable. The backing
+arrays, key, extent and result are disjoint. Before appending, full admission
+checks every reachable reference against the allocated prefix, including
+off-route nodes, and the existing extent codec checks the new descriptor.
+
+The candidate inserts the complete key in lexicographic order or replaces the
+complete extent at an equal key. Separator equality routes right. The update
+copies only its path into the unused suffix and preserves all other subtree
+identities and generations. Leaf overflow promotes the first key of the right
+half. Branch overflow promotes the separator immediately before the right
+half. Both divide at half the overflowing entry or child count. A root split
+creates a new branch and increases the exact leaf height once. Every appended
+node uses the caller's candidate generation.
+
+Success requires full candidate admission within the returned prefix and a
+lookup of the exact key and complete encoded extent. The prior and candidate
+walks each obey the same visit bound. A root split obeys the declared depth
+bound, and append operations cannot exceed capacity. The retained byte and
+generation prefixes remain unchanged on every result. Only success returns a
+new root, height and allocated length. A refusal can leave suffix bytes and
+generation cells to be overwritten by a later attempt without consuming the
+allocated prefix.
+
+Focused native acceptance compares independently generated tuple-to-extent
+maps and canonical node bytes, including full-width keys, equality replacement,
+leaf, branch and root splits, unchanged sibling references and retained roots
+with mixed generations. Allocation, depth and candidate visit exhaustion,
+invalid descriptors, and a reachable off-route reference into the unallocated
+suffix refuse while preserving the retained prefixes and result. Compiled
+update defects must execute and fail their designated assertions. Authentication,
+durable publication, C/Gallina refinement and two-instance target acceptance
+remain governed by M5.3d's existing joins.
