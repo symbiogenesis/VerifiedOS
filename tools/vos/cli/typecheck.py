@@ -168,20 +168,22 @@ def _target_commands(exe: str, args: list[str], targets: frozenset[str]) -> Iter
     """Batch explicit filenames within `COMMAND_LIMIT` UTF-16 code units."""
     if not targets:
         raise ValueError("the index supplies no Python modules to check")
-    base: list[str] = [exe, *args, "--"]
-    command: list[str] = base.copy()
+    base = [exe, *args, "--"]
+    capacity = COMMAND_LIMIT - len(subprocess.list2cmdline(base).encode("utf-16-le")) // 2
+    remaining = capacity
+    batch: list[str] = []
     for target in sorted(targets):
-        candidate: list[str] = [*command, target]
-        if len(subprocess.list2cmdline(candidate).encode("utf-16-le")) > 2 * COMMAND_LIMIT:
-            if command == base:
-                raise ValueError(f"checker arguments exceed the command limit at {target!r}")
-            yield command
-            command = base.copy()
-            candidate = [*command, target]
-            if len(subprocess.list2cmdline(candidate).encode("utf-16-le")) > 2 * COMMAND_LIMIT:
-                raise ValueError(f"checker arguments exceed the command limit at {target!r}")
-        command = candidate
-    yield command
+        # list2cmdline separates independently quoted arguments with one space.
+        cost = 1 + len(subprocess.list2cmdline([target]).encode("utf-16-le")) // 2
+        if batch and cost > remaining:
+            yield [*base, *batch]
+            batch.clear()
+            remaining = capacity
+        if cost > capacity:
+            raise ValueError(f"checker arguments exceed the command limit at {target!r}")
+        batch.append(target)
+        remaining -= cost
+    yield [*base, *batch]
 
 
 def _run_checker(rep: Reporter, name: str, pin: str, passes: list[Pass], cwd: Path,

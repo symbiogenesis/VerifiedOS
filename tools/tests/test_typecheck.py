@@ -681,6 +681,16 @@ def _explicit_commands_are_bounded() -> None:
            and all(len(subprocess.list2cmdline(command).encode("utf-16-le")) <= 250
                    for command in commands),
            f"every filename appears once and Windows' quoted UTF-16 limit holds: {commands!r}")
+
+    # Measure the actual Windows command at an exact fit, including quoting of a
+    # trailing backslash, an embedded quote, whitespace and a surrogate pair.
+    quoted = ['a "quoted".py', "b\tspace\\", "c-\U0001f642.py"]
+    fit = len(subprocess.list2cmdline([*base, *quoted]).encode("utf-16-le")) // 2
+    for limit, batches in ((fit, [quoted]), (fit - 1, [quoted[:-1], quoted[-1:]])):
+        with patch.object(typecheck, "COMMAND_LIMIT", limit):
+            commands = list(typecheck._target_commands(exe, args, frozenset(quoted)))
+        ensure(commands == [[*base, *batch] for batch in batches],
+               f"quoted commands must split exactly at the UTF-16 limit: {commands!r}")
     for bad in (frozenset(), frozenset({"x" * typecheck.COMMAND_LIMIT})):
         try:
             list(typecheck._target_commands(exe, args, bad))
