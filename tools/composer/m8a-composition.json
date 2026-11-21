@@ -153,7 +153,7 @@
         },
         {
           "path": "tools/vos/dialectgen.py",
-          "sha256": "db3c6a6982fd62e5826e7224e920b50c8409fc64a893110a165063e884e05519"
+          "sha256": "d97272117aeb4e95ca72f02f36e505a81249d919a0fb94fd4ce7e17570d9e743"
         },
         {
           "path": "tools/vos/encdec.py",
@@ -209,7 +209,7 @@
         },
         {
           "path": "tools/vos/sailexpr.py",
-          "sha256": "b38f12a59d460398ef5629e1fff4c546df9480120dfd2163dab8d0e7b7b3ef14"
+          "sha256": "125e0aa51e3ab557c28912cbc0a9507a50f12821be5eee3af8ea7c3e744ff9dc"
         },
         {
           "path": "tools/vos/trace.py",
@@ -391,7 +391,7 @@
       ],
       "descriptor": {
         "path": "tools/composer/packages/storage.json",
-        "sha256": "219b92a6fb00c630fad1d52725ad854ba79697b9ca1bd27f12b0d2a61f0daec4"
+        "sha256": "a201b831234652ed2ce8e40c1131e89543fc44850083de0171ae7182ef0675bd"
       },
       "artifact_slot": "storage-artifact",
       "entry": null,
@@ -590,7 +590,7 @@
         },
         {
           "path": "tools/vos/dialectgen.py",
-          "sha256": "db3c6a6982fd62e5826e7224e920b50c8409fc64a893110a165063e884e05519"
+          "sha256": "d97272117aeb4e95ca72f02f36e505a81249d919a0fb94fd4ce7e17570d9e743"
         },
         {
           "path": "tools/vos/encdec.py",
@@ -682,7 +682,7 @@
         },
         {
           "path": "tools/vos/sailexpr.py",
-          "sha256": "b38f12a59d460398ef5629e1fff4c546df9480120dfd2163dab8d0e7b7b3ef14"
+          "sha256": "125e0aa51e3ab557c28912cbc0a9507a50f12821be5eee3af8ea7c3e744ff9dc"
         },
         {
           "path": "tools/vos/scalar_join.py",
@@ -711,7 +711,7 @@
       ],
       "descriptor": {
         "path": "tools/composer/packages/copy-service.json",
-        "sha256": "605d7ad929133a4a1687312de641938f3b41c262909d75a54b2f3b13c5a77168"
+        "sha256": "c5b09dbcb74485af2d8b9d1bb9e9261a383317908da3fbc106aa08e416ba5b60"
       },
       "artifact_slot": "copy-service-artifact",
       "entry": null,
@@ -874,7 +874,7 @@
         },
         {
           "path": "tools/vos/dialectgen.py",
-          "sha256": "db3c6a6982fd62e5826e7224e920b50c8409fc64a893110a165063e884e05519"
+          "sha256": "d97272117aeb4e95ca72f02f36e505a81249d919a0fb94fd4ce7e17570d9e743"
         },
         {
           "path": "tools/vos/encdec.py",
@@ -954,7 +954,7 @@
         },
         {
           "path": "tools/vos/sailexpr.py",
-          "sha256": "b38f12a59d460398ef5629e1fff4c546df9480120dfd2163dab8d0e7b7b3ef14"
+          "sha256": "125e0aa51e3ab557c28912cbc0a9507a50f12821be5eee3af8ea7c3e744ff9dc"
         },
         {
           "path": "tools/vos/schema.py",
@@ -967,7 +967,7 @@
       ],
       "descriptor": {
         "path": "tools/composer/packages/composer.json",
-        "sha256": "05b2e2b64ff905e25063a683881225e08cb1f1f035bd8948403bca21ca6be00e"
+        "sha256": "343a2c0ea2dc0211244958cbf856a7e95c09e21f34ea876b30fd286e639d129c"
       },
       "artifact_slot": "composer-artifact",
       "entry": null,
@@ -1094,7 +1094,7 @@
         },
         {
           "path": "tools/vos/dialectgen.py",
-          "sha256": "db3c6a6982fd62e5826e7224e920b50c8409fc64a893110a165063e884e05519"
+          "sha256": "d97272117aeb4e95ca72f02f36e505a81249d919a0fb94fd4ce7e17570d9e743"
         },
         {
           "path": "tools/vos/encdec.py",
@@ -1158,7 +1158,7 @@
         },
         {
           "path": "tools/vos/sailexpr.py",
-          "sha256": "b38f12a59d460398ef5629e1fff4c546df9480120dfd2163dab8d0e7b7b3ef14"
+          "sha256": "125e0aa51e3ab557c28912cbc0a9507a50f12821be5eee3af8ea7c3e744ff9dc"
         },
         {
           "path": "tools/vos/schema.py",
@@ -1171,7 +1171,7 @@
       ],
       "descriptor": {
         "path": "tools/composer/packages/admission.json",
-        "sha256": "b0169acf3a7bb4748932c6c4a73b2e869804f48bad72530a1a982970a0e0d7a8"
+        "sha256": "24d306994aebe7014bb71215965b37cac841a9897f94448a6e1a0e2c65017313"
       },
       "artifact_slot": "admission-artifact",
       "entry": null,

@@ -148,7 +148,7 @@
     },
     {
       "path": "tools/vos/dialectgen.py",
-      "sha256": "db3c6a6982fd62e5826e7224e920b50c8409fc64a893110a165063e884e05519"
+      "sha256": "d97272117aeb4e95ca72f02f36e505a81249d919a0fb94fd4ce7e17570d9e743"
     },
     {
       "path": "tools/vos/encdec.py",
@@ -228,7 +228,7 @@
     },
     {
       "path": "tools/vos/sailexpr.py",
-      "sha256": "b38f12a59d460398ef5629e1fff4c546df9480120dfd2163dab8d0e7b7b3ef14"
+      "sha256": "125e0aa51e3ab557c28912cbc0a9507a50f12821be5eee3af8ea7c3e744ff9dc"
     },
     {
       "path": "tools/vos/schema.py",
