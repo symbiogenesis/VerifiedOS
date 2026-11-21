@@ -2695,6 +2695,11 @@ Preserve artifact formats, diagnostics and acceptance boundaries. Implement agai
   for the projection set. Keep the ordered per-file index and byte comparisons,
   diagnostics and repair bytes. Exercise missing members, generator failures,
   mixed drift and edits between invocations. A fresh check reads its inputs again.
+- **Host evaluation of Sail guard arithmetic.** Evaluate only the selected
+  operation. Zero is valid in addition, subtraction, negation and multiplication.
+  Preserve division and remainder refusals for a zero divisor, exponent bounds,
+  unknown-state propagation and numeric conversion. Regenerate the shipped
+  encoder table byte for byte and refresh the generator's source bindings.
 - **Ring library extraction. Start:** the declaration reader and emitter in
   `vos/cli/ring.py`. **Owns:** a library module for shared declarations, types,
   register parsing and emission; the CLI retains command dispatch and publication.
