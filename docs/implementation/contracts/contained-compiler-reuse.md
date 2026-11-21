@@ -251,22 +251,17 @@ dated observation, not a live index or a backup of the contained bytes. Compiler
 sources, objects, executables and installed libraries remain unindexed and
 unpublished under the existing containment rules.
 
-The [host migration is complete](../../../tools/wsl-migration.md#current-host-status).
-Native build roots, installed switches, libraries and logs are restored in
-`VerifiedOS-Restored`; the complete private Git checkout and worktrees are retained
-locally under the ignored `out/migration-retained/20261103/` directory. Access to
-the old host no longer blocks this investigation. Select the retained source and
-driver explicitly for subsequent work. Historical receipts still bind their
-original absolute helper paths: resolve that relocation before an authenticated
-reuse attempt, preserving the receipts and their original verdicts. Migration
-provides data availability, not a new compilation or qualification verdict.
+The [Windows reinstall](../../../tools/wsl-migration.md#current-host-status)
+left the native compilation basis and private checkout unavailable at their
+documented paths. The original receipts still bind the exact source, helper
+paths and installed libraries. Reuse requires those inputs and a successful
+validation of their ancestry.
 
-The catalog's read-only `compiler-build status` operations authenticate the sealed
-VM compilation candidates through the private validator. Their compile phase is
-`reused` and `passed`; queries, kernel and classification are `not_run`. Original
-overall receipts remain `passed: false`. The unsealed final-build records retain
-interrupted kernel-stage exits and supply no authenticated reuse basis. No new
-build or audit was launched and no original producer was changed.
+The catalog records historical read-only `compiler-build status` validation of the
+sealed VM compilation candidates. Its compile verdicts are `reused` and `passed`;
+queries, kernel and classification are `not_run`. Original overall receipts
+remain `passed: false`. The unsealed final-build records retain interrupted
+kernel-stage exits and supply no authenticated reuse basis.
 
 Keep each native root and every recorded `basis.retention_paths` entry at its
 bound location, including historical helper files, original lock, tools and

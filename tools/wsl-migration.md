@@ -9,43 +9,19 @@ copy that mounted Windows directory.
 
 ## Current host status
 
-All data in the transferred WSL filesystem and the accompanying Windows
-repositories was migrated on **2026-11-03**. Migration is complete and no longer
-blocks work. Work previously waiting for that data can continue under its
-existing [plan and acceptance predicates](../PLAN.md).
+As of **2026-11-21**, the reinstalled Windows host uses a fresh ARM64
+`Ubuntu-26.04` WSL2 distribution. Python 3.14, the [pinned uv](pyproject.toml)
+and native C/C++ tools are installed. `python tools/run.py model lane` dispatches
+from Windows and reports native ext4 build and log roots.
 
-The matching ARM64 distribution is restored as `VerifiedOS-Restored` at
-`C:\WSL\VerifiedOS-Restored` and selected as WSL's default. The existing `Ubuntu`
-distribution remains available. Native build roots, installed opam switches and
-libraries, logs, home directories and configuration are retained in the restored
-Linux filesystem. Both transfer archives passed SHA256 verification before
-restoration. The Windows repository files, hardlinks and symlinks were checked
-against their archive, and the retained private Git worktrees keep their recorded
-revisions and are accessible from both Windows and WSL.
+No WSL backup was available. The previous distribution, the private
+`verifiedos-cheri-compcert` checkout and the previously recorded transfer
+package were absent at their documented local paths. The tracked
+[compilation catalog](../docs/implementation/contracts/contained-compiler-reuse.md#retained-incomplete-compilation)
+preserves historical identities and verdicts. Reuse still requires the exact
+sealed native inputs, libraries, helpers and bound paths. Interrupted audits
+have no resumable checkpoint.
 
-The private compiler and old public checkout are retained respectively at
-`out/migration-retained/20261103/verifiedos-cheri-compcert` and
-`out/migration-retained/20261103/VerifiedOS-old-snapshot` in the active checkout.
-They remain ignored, unindexed local data under the
-[containment rules](../COPYRIGHT.md#terms-this-tree-does-not-carry). Their complete
-Git history and worktrees are retained in addition to the native WSL build trees.
-The installed uv and solver match the [tool prerequisite pin](pyproject.toml) and
-[pinned solver recipe](vos/env.py#z3_install), and
-`python tools/run.py model lane` passes through the restored default distribution
-without warnings.
-
-Local verification records are in
-`out/evidence/host-migration-20261103/summary.json` and
-`out/evidence/host-migration-20261103-relocation/verification.json` in the active
-checkout. The original transfer package remains at
-`D:\VerifiedOS-transfer-20261103-uncompressed`. These records establish local
-data restoration. Existing proof, compiler and census verdicts retain their
-original status under the [validation handoff](../AGENTS.md#tool-execution-and-validation).
-
-The [retained compilation catalog](../docs/implementation/contracts/contained-compiler-reuse.md#retained-incomplete-compilation)
-still binds historical absolute helper paths. A future authenticated reuse attempt
-must account for the relocated private checkout and validate its exact inputs;
-old receipts remain unchanged. Interrupted audits have no resumable checkpoint.
 Full native Sail census generation, validation and replay remain
 [GitHub-hosted Actions work](../docs/implementation/contracts/sail-support-census.md#hosted-only-execution).
 

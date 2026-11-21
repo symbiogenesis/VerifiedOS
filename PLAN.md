@@ -17,14 +17,12 @@ retain their own work.
 
 ## Host migration status
 
-The old host's WSL data and retained Windows repositories are fully migrated as
-of 2026-11-03. The [current host status](tools/wsl-migration.md#current-host-status)
-records the restored default distribution, retained locations and verification.
-Work blocked only by access to the old machine's data is ready to continue under
-its existing task contract; migration is no longer an outstanding prerequisite.
-The native census follow-up and retained compiler investigation can resume their
-next actions. Hosted validation, complete input packaging and historical
-absolute-path checks retain their existing acceptance boundaries.
+The [current host status](tools/wsl-migration.md#current-host-status) records the
+fresh WSL distribution after the Windows reinstall. Native host controls can
+continue. Q39's retained compiler investigation and Q43's reuse of that basis
+need their missing private source and native evidence. The
+[native census follow-up](#native-sail-census-validation) retains its hosted
+execution boundary.
 
 ## Priorities and milestones
 
@@ -3210,14 +3208,12 @@ Target a tenfold reduction in end-to-end Python replay time without increasing
 peak memory. No such speedup has been measured; an interrupted local run supplies
 no completed baseline.
 
-The [host migration is complete](tools/wsl-migration.md#current-host-status): the
-checkpoint-recorded native census and control directories are available again.
-This work is ready to continue; access to the old host is no longer a blocker.
-First package and bind the complete restored control emission and readings for
-the [hosted comparison inputs](tools/ci/census-benchmark-inputs.json), then perform
-the profiling and acceptance below on GitHub-hosted Actions. The descriptor's
-unavailable controls still name a tracked-input packaging gap, not an unfinished
-WSL migration.
+The [fresh WSL guest](tools/wsl-migration.md#current-host-status) has no retained
+native census or control directories. Recover the exact original controls from
+retained evidence or generate and bind a replacement baseline on GitHub-hosted
+Actions. Bind the complete control emission and readings for the
+[hosted comparison inputs](tools/ci/census-benchmark-inputs.json) before profiling
+or comparing replay performance.
 
 - Profile parsing, schema traversal, native metadata/resolver joins, control-copy
   cost and each corruption case on the exact hash-bound support and control

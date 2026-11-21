@@ -188,13 +188,9 @@ replace repeated population joins; declaration fallback serialization is lazy.
 Native-effect comparisons retain all resolver effects. Unusual supplied schemas
 retain the original interpreter, including its decisions about whether a malformed
 constraint is visited for the actual value. The
-[host migration is complete](wsl-migration.md#current-host-status), and the native
-census and control data are restored locally. Migration no longer blocks the
-comparison. The next step is to export and hash-bind the complete original control
-emission and readings for the [replay descriptor](ci/census-benchmark-inputs.json).
-Its unavailable controls describe missing tracked/hosted inputs, not missing WSL
-data. Native-sized replay and all measurements remain hosted-only; restored data
-alone supplies no completed comparison evidence. Q35q's
+[native census follow-up](../PLAN.md#native-sail-census-validation) owns recovery
+or replacement of the missing control baseline and its binding to the
+[replay descriptor](ci/census-benchmark-inputs.json). Q35q's
 complete native census, independent positive and corruption controls, assumptions
 and kernel acceptance remain open under their existing contracts.
 
