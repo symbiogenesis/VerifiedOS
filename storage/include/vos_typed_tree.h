@@ -2,7 +2,7 @@
 #ifndef VOS_TYPED_TREE_H
 #define VOS_TYPED_TREE_H
 
-#include "vos_tree_image.h"
+#include "vos_tree_update.h"
 #include "vos_typed_entry.h"
 
 /* [Format and routing acceptance](../typed-entry.md#typed-node-and-routing-contract). */
@@ -36,5 +36,13 @@ int vos_typed_tree_lookup_path(const struct vos_tree_image *image,
                                 const struct vos_tree_limits *limits,
                                 uint64_t root, const struct vos_storage_typed_key *key,
                                 struct vos_storage_extent *output);
+
+/* [Append-only candidate contract](../typed-entry.md#bounded-typed-candidate-insert-and-replace). */
+int vos_typed_tree_insert(const struct vos_tree_arena *arena,
+                           const struct vos_tree_limits *limits,
+                           uint64_t root, uint64_t generation,
+                           const struct vos_storage_typed_key *key,
+                           const struct vos_storage_extent *extent,
+                           struct vos_tree_update_result *output);
 
 #endif

@@ -134,6 +134,23 @@ static int compare(const struct vos_storage_typed_key *a,
     return 0;
 }
 
+static uint32_t branch_route(const struct vos_typed_node *node,
+                             const struct vos_storage_typed_key *key)
+{
+    uint32_t route = 0u;
+    while (route + 1u < node->count && compare(&node->keys[route], key) <= 0) ++route;
+    return route;
+}
+
+static int decode_block(const struct vos_tree_image *image, uint64_t id,
+                        struct vos_typed_node *node)
+{
+    const size_t size = image->geometry.block_bytes;
+    return id < image->geometry.arena_nodes &&
+           vos_typed_node_decode(&image->geometry, id, image->generations[(size_t)id],
+                                 image->bytes + (size_t)id * size, size, node);
+}
+
 struct typed_range {
     struct vos_storage_typed_key lower, upper;
     int has_lower, has_upper;
@@ -158,12 +175,10 @@ static int walk_node(struct typed_walk *walk, uint64_t id, uint32_t height,
                        struct typed_range range, int selected)
 {
     const struct vos_tree_image *image = walk->image;
-    if (walk->remaining == 0u || id >= image->geometry.arena_nodes) return 0;
+    if (walk->remaining == 0u) return 0;
     --walk->remaining;
     struct vos_typed_node node = {0};
-    if (!vos_typed_node_decode(&image->geometry, id, image->generations[(size_t)id],
-                                image->bytes + (size_t)id * image->geometry.block_bytes,
-                                image->geometry.block_bytes, &node)) return 0;
+    if (!decode_block(image, id, &node)) return 0;
     if (node.kind == VOS_NODE_LEAF) {
         if (height != 0u) return 0;
         for (uint32_t i = 0u; i < node.count; ++i) {
@@ -183,8 +198,7 @@ static int walk_node(struct typed_walk *walk, uint64_t id, uint32_t height,
         separators.lower = node.keys[i];
         separators.has_lower = 1;
     }
-    uint32_t route = 0u;
-    while (route + 1u < node.count && compare(&node.keys[route], walk->key) <= 0) ++route;
+    const uint32_t route = branch_route(&node, walk->key);
     for (uint32_t i = 0u; i < node.count; ++i) {
         if (walk->path_only && i != route) continue;
         struct typed_range child = range;
@@ -233,4 +247,177 @@ int vos_typed_tree_lookup_path(const struct vos_tree_image *image,
                                 struct vos_storage_extent *output)
 {
     return lookup(image, limits, root, key, 1, output);
+}
+
+struct typed_update {
+    const struct vos_tree_arena *arena;
+    struct vos_tree_image input;
+    const struct vos_storage_typed_key *key;
+    const struct vos_storage_extent *extent;
+    uint64_t generation;
+    uint64_t next;
+};
+
+struct typed_growth {
+    uint64_t left, right;
+    struct vos_storage_typed_key separator;
+    int split;
+};
+
+struct typed_draft {
+    uint32_t kind, count;
+    struct vos_storage_typed_key keys[VOS_NODE_MAX_FAN + 1u];
+    union {
+        struct vos_storage_extent extents[VOS_NODE_MAX_FAN + 1u];
+        uint64_t children[VOS_NODE_MAX_FAN + 1u];
+    } values;
+};
+
+static int append_node(struct typed_update *update, const struct typed_draft *draft,
+                       uint32_t start, uint32_t count, uint64_t *id)
+{
+    const struct vos_tree_arena *arena = update->arena;
+    if (update->next >= arena->geometry.arena_nodes) return 0;
+    struct vos_typed_node node = {
+        .kind = draft->kind, .count = count, .node_id = update->next,
+        .generation = update->generation
+    };
+    const int leaf = node.kind == VOS_NODE_LEAF;
+    const uint32_t keys = leaf ? count : count - 1u;
+    memcpy(node.keys, draft->keys + start, keys * sizeof(node.keys[0]));
+    if (leaf) {
+        memcpy(node.extents, draft->values.extents + start, count * sizeof(node.extents[0]));
+    } else {
+        memcpy(node.children, draft->values.children + start, count * sizeof(node.children[0]));
+    }
+    const size_t size = arena->geometry.block_bytes;
+    if (!vos_typed_node_encode(&arena->geometry, &node,
+                               arena->bytes + (size_t)update->next * size, size)) return 0;
+    arena->generations[(size_t)update->next] = update->generation;
+    *id = update->next;
+    ++update->next;
+    return 1;
+}
+
+static int append_draft(struct typed_update *update, const struct typed_draft *draft,
+                        struct typed_growth *growth)
+{
+    growth->split = draft->count > update->arena->geometry.fan;
+    if (!growth->split) return append_node(update, draft, 0u, draft->count, &growth->left);
+    const uint32_t cut = draft->count / 2u;
+    growth->separator = draft->keys[draft->kind == VOS_NODE_LEAF ? cut : cut - 1u];
+    return append_node(update, draft, 0u, cut, &growth->left) &&
+           append_node(update, draft, cut, draft->count - cut, &growth->right);
+}
+
+static int update_leaf(struct typed_update *update, const struct vos_typed_node *node,
+                       struct typed_growth *growth)
+{
+    struct typed_draft draft = {.kind = VOS_NODE_LEAF};
+    uint32_t at = 0u;
+    while (at < node->count && compare(&node->keys[at], update->key) < 0) {
+        draft.keys[at] = node->keys[at];
+        draft.values.extents[at] = node->extents[at];
+        ++at;
+    }
+    draft.keys[at] = *update->key;
+    draft.values.extents[at] = *update->extent;
+    const uint32_t replaced = at < node->count && compare(&node->keys[at], update->key) == 0;
+    for (uint32_t i = at + replaced, j = at + 1u; i < node->count; ++i, ++j) {
+        draft.keys[j] = node->keys[i];
+        draft.values.extents[j] = node->extents[i];
+    }
+    draft.count = node->count + 1u - replaced;
+    return append_draft(update, &draft, growth);
+}
+
+static int update_branch(struct typed_update *update, const struct vos_typed_node *node,
+                         uint32_t route, const struct typed_growth *child,
+                         struct typed_growth *growth)
+{
+    const uint32_t added = child->split ? 1u : 0u;
+    struct typed_draft draft = {.kind = VOS_NODE_BRANCH, .count = node->count + added};
+    for (uint32_t i = 0u; i + 1u < node->count; ++i)
+        draft.keys[i + (i < route ? 0u : added)] = node->keys[i];
+    for (uint32_t i = 0u; i < node->count; ++i)
+        draft.values.children[i + (i <= route ? 0u : added)] = node->children[i];
+    draft.values.children[route] = child->left;
+    if (child->split) {
+        draft.keys[route] = child->separator;
+        draft.values.children[route + 1u] = child->right;
+    }
+    return append_draft(update, &draft, growth);
+}
+
+static int update_node(struct typed_update *update, uint64_t id, uint32_t height,
+                       struct typed_growth *growth)
+{
+    struct vos_typed_node node = {0};
+    if (!decode_block(&update->input, id, &node)) return 0;
+    if (node.kind == VOS_NODE_LEAF)
+        return height == 0u && update_leaf(update, &node, growth);
+    if (height == 0u) return 0;
+    const uint32_t route = branch_route(&node, update->key);
+    struct typed_growth child = {0};
+    return update_node(update, node.children[route], height - 1u, &child) &&
+           update_branch(update, &node, route, &child, growth);
+}
+
+static struct vos_tree_image prefix_image(const struct vos_tree_arena *arena, uint64_t used)
+{
+    struct vos_tree_image image = {
+        .geometry = arena->geometry, .bytes = arena->bytes, .generations = arena->generations,
+        .length = (size_t)used * arena->geometry.block_bytes, .generation_count = (size_t)used
+    };
+    image.geometry.arena_nodes = used;
+    return image;
+}
+
+int vos_typed_tree_insert(const struct vos_tree_arena *arena,
+                           const struct vos_tree_limits *limits,
+                           uint64_t root, uint64_t generation,
+                           const struct vos_storage_typed_key *key,
+                           const struct vos_storage_extent *extent,
+                           struct vos_tree_update_result *output)
+{
+    uint8_t expected[VOS_STORAGE_EXTENT_BYTES];
+    if (arena == NULL || limits == NULL || key == NULL || output == NULL ||
+        arena->bytes == NULL || arena->generations == NULL ||
+        !valid_geometry(&arena->geometry) || arena->used == 0u ||
+        arena->used > arena->geometry.arena_nodes ||
+        arena->length % arena->geometry.block_bytes != 0u ||
+        arena->length / arena->geometry.block_bytes != arena->geometry.arena_nodes ||
+        arena->generation_count != arena->geometry.arena_nodes ||
+        !vos_storage_extent_encode(extent, expected, sizeof(expected))) return 0;
+
+    struct typed_update update = {
+        .arena = arena, .input = prefix_image(arena, arena->used),
+        .key = key, .extent = extent, .generation = generation, .next = arena->used
+    };
+    struct vos_storage_extent checked = {0};
+    if (vos_typed_tree_lookup(&update.input, limits, root, key, &checked) == VOS_TREE_REFUSED)
+        return 0;
+    struct typed_growth growth = {0};
+    if (!update_node(&update, root, limits->height, &growth)) return 0;
+
+    struct vos_tree_update_result candidate = {.root = growth.left, .height = limits->height};
+    if (growth.split) {
+        if (candidate.height >= limits->depth_limit) return 0;
+        const struct typed_draft new_root = {
+            .kind = VOS_NODE_BRANCH, .count = 2u, .keys = {growth.separator},
+            .values.children = {growth.left, growth.right}
+        };
+        if (!append_node(&update, &new_root, 0u, 2u, &candidate.root)) return 0;
+        ++candidate.height;
+    }
+    candidate.used = update.next;
+    const struct vos_tree_image image = prefix_image(arena, candidate.used);
+    struct vos_tree_limits candidate_limits = *limits;
+    candidate_limits.height = candidate.height;
+    uint8_t actual[VOS_STORAGE_EXTENT_BYTES];
+    if (vos_typed_tree_lookup(&image, &candidate_limits, candidate.root, key, &checked) != VOS_TREE_FOUND ||
+        !vos_storage_extent_encode(&checked, actual, sizeof(actual)) ||
+        memcmp(actual, expected, sizeof(actual)) != 0) return 0;
+    *output = candidate;
+    return 1;
 }
