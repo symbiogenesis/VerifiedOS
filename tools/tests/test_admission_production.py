@@ -218,6 +218,38 @@ def _policy_replay() -> None:
         _refused(lambda: production.validate_record(root, dict(result, schema_version=1)), "differs")
 
 
+def _proof_route_requirements() -> None:
+    relative = production.REGISTER
+    for change in ("unknown", "retired", "fenced", "storage-blocker"):
+        with _fixture() as (root, raw):
+            destination = "products/admission.json"
+            result = _record(root)
+            production.publish_record(root, result, destination)
+            previous = (root / destination).read_bytes()
+            register = root / relative
+            original = register.read_text(encoding="utf-8")
+            requirement_id = "R-06-005" if change == "storage-blocker" else "R-05-091"
+            requirement = next(line for line in original.splitlines() if line.startswith(f"**{requirement_id}** "))
+            if change == "retired":
+                replacement = f"~~{requirement}~~"
+            elif change == "fenced":
+                replacement = f"```md\n{requirement}\n```"
+            else:
+                replacement = requirement.replace(requirement_id, "R-99-999", 1)
+            register.write_text(original.replace(requirement, replacement, 1), encoding="utf-8")
+            if change == "storage-blocker":
+                policy_file = root / production.POPULATION
+                policy = json.loads(policy_file.read_bytes())
+                storage = next(member for member in policy["members"] if member["member"] == "storage")
+                storage["requirements"].remove(requirement_id)
+                policy_file.write_bytes(composer.canonical_bytes(policy))
+                _rebind_inventory_source(root, raw, production.POPULATION)
+            _rebuild(root, raw, relative)
+            _refused(lambda: _record(root), f"inactive requirement {requirement_id}")
+            ensure((root / destination).read_bytes() == previous,
+                   "an inactive proof-route citation preserves the previous refusal")
+
+
 def _missing_and_forged_evidence() -> None:
     with _fixture(evidence=False) as (root, _raw):
         result = _record(root)
@@ -446,6 +478,34 @@ def _publication_pending_drift() -> None:
             ensure(output.read_bytes() == previous, "unchanged retry publishes the same deterministic refusal")
 
 
+def _publication_pending_bytes() -> None:
+    write = Path.write_bytes
+    for existing in (False, True):
+        for substitute in (False, True):
+            with _fixture() as (root, _raw):
+                result = _record(root)
+                destination = "products/admission.json"
+                output = root / destination
+                if existing:
+                    production.publish_record(root, result, destination)
+                previous = output.read_bytes() if existing else None
+
+                def incomplete_write(path: Path, data: bytes, output: Path = output,
+                                     substitute: bool = substitute) -> int:
+                    if path.parent == output.parent and path.name.startswith(f".{output.name}."):
+                        return write(path, data[:-1] + b" " if substitute else data[:17])
+                    return write(path, data)
+
+                with patch.object(Path, "write_bytes", incomplete_write):
+                    _refused(lambda root=root, result=result, destination=destination:
+                             production.publish_record(root, result, destination),
+                             "pending admission record differs")
+                ensure((output.read_bytes() if output.exists() else None) == previous,
+                       "unexpected pending bytes preserve the previous record or absent destination")
+                ensure(not list(output.parent.glob(f".{output.name}.*.tmp")),
+                       "unexpected pending bytes are removed")
+
+
 def _publication_final_recheck() -> None:
     with _fixture() as (root, _raw):
         result = _record(root)
@@ -514,6 +574,7 @@ def cases() -> list[Case]:
     return [Case("production joins bind every declared identity but refuse unchecked evidence", _bound_refusal),
             Case("proof-route policy schema and exact runtime membership refuse malformed declarations", _policy_schema_and_membership),
             Case("proof-route changes rebind and forged classifications cannot replay", _policy_replay),
+            Case("proof-route citations require active entries in the bound register", _proof_route_requirements),
             Case("missing tiers and derivations remain per-member generation refusals", _missing_and_forged_evidence),
             Case("both storage volumes retain separate missing installed-role obligations", _storage_role_obligations),
             Case("production status rejects fixtures and retains executable proof obligations", _roster_status),
@@ -522,6 +583,7 @@ def cases() -> list[Case]:
             Case("derivation drift before publication withholds the record", _publication_drift),
             Case("partial writes and replacement failures preserve prior admission records", _publication_io_failures),
             Case("input drift after pending bytes refuses before replacement", _publication_pending_drift),
+            Case("short and substituted pending bytes preserve prior admission records", _publication_pending_bytes),
             Case("original fingerprints recheck after final refusal replay", _publication_final_recheck),
             Case("drift after the build join cannot publish stale owner identities", _construction_drift),
             Case("current checker dependency membership is bound on replay", _current_checker_dependencies)]

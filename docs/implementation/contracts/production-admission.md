@@ -267,8 +267,8 @@ for each member; callers cannot select a different policy. Each declaration name
 the member, one route and the requirements supporting that judgment. The record
 binds the exact policy and [requirements register](../../requirements-register.md)
 bytes alongside the already checked roster, products and request. A citation
-records the review's grounds; hashing that source does not mechanically decide
-TCB membership, prove a classification correct or assign an assurance tier.
+must resolve to an active entry in those exact register bytes. Review decides TCB
+membership, whether the requirements support each route, and assurance tier.
 
 The closed routes are `bootstrap-release`, `tcb-release`, `checker-admitted` and
 `unresolved`. Bootstrap and TCB members retain their missing release-time
@@ -389,13 +389,13 @@ of these populations, entries, roots or authority/wiring obligations. These
 blockers record missing producer inputs and do not construct a subsystem.
 
 Publication writes a distinct sibling temporary, replays the bound refusal and
-rechecks all original input digests and output aliases after the pending bytes
-are complete, then replaces the destination. A partial temporary write, failed
-replacement or intervening input drift preserves the prior record and cleans
-the pending file. Focused controls inject each failure, retain deterministic
-unchanged publication, and replay forged route or removed-role blockers as
-refusals. These checks establish no atomic snapshot of concurrent filesystem
-changes.
+rechecks all original input digests and output aliases. It compares the pending
+bytes with the canonical refusal immediately before replacing the destination.
+Short writes, same-length substitutions, failed replacement and detected input
+drift preserve the prior record and clean the pending file. Focused controls
+inject each failure, retain deterministic publication, and reject replay of
+forged routes or records with removed role blockers. Concurrent filesystem
+mutations can occur between the checks and replacement.
 
 ## First executable case and acceptance
 
