@@ -159,6 +159,8 @@ def _three_valued_evaluation() -> None:
     unknown = sailexpr.evaluate(sailexpr.parse("currentlyEnabled(Ext_M)"), env)
     ensure(unknown is sailexpr.UNKNOWN,
            f"Ext_M's enablement is a CSR, so it is machine state, got {unknown!r}")
+    ensure(sailexpr.evaluate(sailexpr.parse("currentlyEnabled(Ext_M) * 0"), env)
+           is sailexpr.UNKNOWN, "arithmetic must propagate unknown machine state")
     decided = sailexpr.evaluate(sailexpr.parse("hartSupports(Ext_Zbc)"), env)
     ensure(decided is False,
            f"no shipped configuration supports Zbc, got {decided!r}")
@@ -167,6 +169,22 @@ def _three_valued_evaluation() -> None:
     except sailexpr.UnresolvedError:
         return
     raise AssertionError("an undefined name answered instead of raising")
+
+
+def _guard_arithmetic() -> None:
+    env = dialectgen._Nothing()
+    for expression, expected in (("5 + 0", 5), ("5 - 0", 5), ("5 * 0", 0),
+                                 ("-0", 0), ("-7 / 2", -4), ("-7 % 2", 1),
+                                 ("5 ^ 0", 1), ("2 ^ 64", 2**64)):
+        result = sailexpr.evaluate(sailexpr.parse(expression), env)
+        ensure(type(result) is int and result == expected,
+               f"{expression} gave {result!r}, expected the integer {expected}")
+    for expression in ("5 / 0", "5 % 0", "2 ^ 65", "2 ^ (-1)", "true + 0"):
+        try:
+            sailexpr.evaluate(sailexpr.parse(expression), env)
+        except sailexpr.UnresolvedError:
+            continue
+        raise AssertionError(f"guard arithmetic accepted {expression}")
 
 
 def _artifact_is_what_the_generator_writes() -> None:
@@ -196,6 +214,7 @@ def cases() -> list[Case]:
         Case("constants-survive-encoding", _constants_survive_encoding),
         Case("requirements-are-the-models-guards", _requirements_are_the_model_s_guards),
         Case("three-valued-evaluation", _three_valued_evaluation),
+        Case("guard-arithmetic", _guard_arithmetic),
         Case("artifact-is-what-the-generator-writes",
              _artifact_is_what_the_generator_writes),
     ]

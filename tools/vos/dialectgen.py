@@ -23,7 +23,7 @@ from typing import Final, override
 from . import config, encdec, sailexpr
 from .jsonc import Json
 from .sailbundle import Bundle
-from .sailexpr import UNKNOWN, Bits, Environment, Sym, UnresolvedError, Value
+from .sailexpr import UNKNOWN, Environment, Sym, UnresolvedError, Value
 
 TABLE = "tools/generated/dialect-table.json"
 
@@ -302,22 +302,10 @@ def _same(left: Value, right: Value) -> bool:
         return left is right
     if isinstance(left, _Unknownish) or isinstance(right, _Unknownish):
         return False
-    return _as_int(left) == _as_int(right)
+    return sailexpr.as_int(left) == sailexpr.as_int(right)
 
 
 _Unknownish = type(UNKNOWN)
-
-
-def _as_int(value: Value) -> int | None:
-    if isinstance(value, bool):
-        return None
-    if isinstance(value, int):
-        return value
-    if isinstance(value, Bits):
-        return value.value
-    if isinstance(value, Sym):
-        return value.ordinal
-    return None
 
 
 class _Nothing(Environment):
@@ -568,7 +556,7 @@ def _against(node: sailexpr.Node, env: _Model,
         if free.kind != "name" or free.text not in names:
             continue
         try:
-            value = _as_int(sailexpr.evaluate(other, env))
+            value = sailexpr.as_int(sailexpr.evaluate(other, env))
         except UnresolvedError:
             return None
         if value is not None:

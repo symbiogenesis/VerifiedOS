@@ -37,7 +37,9 @@ statements, assignment, subscripting or a `let` sequence, and that is the bounda
 corpus is a body that reads machine state, so it is answered before it is parsed.
 """
 
+import operator
 import re
+from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Final, Protocol, override
 
@@ -343,7 +345,8 @@ def _literal(text: str) -> Value:
     return int(body)
 
 
-def _numeric(value: Value) -> int | None:
+def as_int(value: Value) -> int | None:
+    """Read an integer, bit value or enum ordinal for guard evaluation."""
     if isinstance(value, bool):
         return None
     if isinstance(value, int):
@@ -353,6 +356,16 @@ def _numeric(value: Value) -> int | None:
     if isinstance(value, Sym):
         return value.ordinal
     return None
+
+
+_COMPARISONS: Final[dict[str, Callable[[int, int], bool]]] = {
+    "==": operator.eq, "!=": operator.ne, "<": operator.lt, "<=": operator.le,
+    ">": operator.gt, ">=": operator.ge,
+}
+_ARITHMETIC: Final[dict[str, Callable[[int, int], int]]] = {
+    "+": operator.add, "-": operator.sub, "*": operator.mul,
+    "/": operator.floordiv, "%": operator.mod,
+}
 
 
 def _compare(op: str, left: Value, right: Value) -> Value:
@@ -369,17 +382,16 @@ def _compare(op: str, left: Value, right: Value) -> Value:
             raise UnresolvedError(
                 f"{left.enum} is scattered, so `{op}` over its members is a question "
                 f"its declaration does not answer")
-    a, b = _numeric(left), _numeric(right)
+    a, b = as_int(left), as_int(right)
     if a is None or b is None:
         raise UnresolvedError(f"cannot compare {left!r} {op} {right!r}")
-    return {"==": a == b, "!=": a != b, "<": a < b, "<=": a <= b,
-            ">": a > b, ">=": a >= b}[op]
+    return _COMPARISONS[op](a, b)
 
 
 def _arithmetic(op: str, left: Value, right: Value) -> Value:
     if isinstance(left, _Unknown) or isinstance(right, _Unknown):
         return UNKNOWN
-    a, b = _numeric(left), _numeric(right)
+    a, b = as_int(left), as_int(right)
     if a is None or b is None:
         raise UnresolvedError(f"cannot compute {left!r} {op} {right!r}")
     if op in ("/", "%") and b == 0:
@@ -391,8 +403,7 @@ def _arithmetic(op: str, left: Value, right: Value) -> Value:
         if b < 0 or b > 64:
             raise UnresolvedError(f"an exponent of {b}")
         return int(a ** b)
-    return {"+": a + b, "-": a - b, "*": a * b,
-            "/": a // b, "%": a % b}[op]
+    return _ARITHMETIC[op](a, b)
 
 
 def _conjoin(left: Value, right: Value) -> Value:
@@ -469,7 +480,7 @@ def _binary(node: Node, env: Environment) -> Value:
             return True
         return _disjoin(left, evaluate(node.parts[1], env))
     right = evaluate(node.parts[1], env)
-    if node.text in ("==", "!=", "<", "<=", ">", ">="):
+    if node.text in _COMPARISONS:
         return _compare(node.text, left, right)
     return _arithmetic(node.text, left, right)
 
@@ -508,7 +519,7 @@ def _matches_literal(pattern: str, subject: Value) -> bool:
         want = _literal(pattern)
     except ValueError:
         return False
-    got, wanted = _numeric(subject), _numeric(want)
+    got, wanted = as_int(subject), as_int(want)
     return got is not None and got == wanted
 
 
