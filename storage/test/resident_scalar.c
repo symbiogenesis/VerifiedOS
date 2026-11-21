@@ -98,8 +98,8 @@ static int setup(struct fixture *f, uint32_t kind)
 
 static int quarantined(const struct fixture *f)
 {
-    if (!f->owner.common.occupied || f->owner.common.accepting ||
-        memcmp(f->owner.common.bytes, f->bytes, sizeof(f->bytes)) != 0)
+    if (!f->owner.common.backing[0].occupied || f->owner.common.backing[0].accepting ||
+        memcmp(f->owner.common.backing[0].bytes, f->bytes, sizeof(f->bytes)) != 0)
         return 0;
     for (uint32_t i = 0; i < VOS_RESIDENT_HOLDERS; ++i)
         if (f->owner.common.reservation[i].live || f->owner.pending[i].active)
@@ -179,12 +179,12 @@ static int controls(uint32_t kind)
     REQUIRE(setup(&f, kind), "setup epoch");
     f.binding.epoch = 6;
     REQUIRE(!vos_resident_scalar_prepare(&f.attempt, &f.owner, &f.kernel, &f.binding) &&
-            f.owner.common.accepting && !f.kernel.retirement_pending,
+            f.owner.common.backing[0].accepting && !f.kernel.retirement_pending,
             "stale attempt epoch refuses before effects");
     REQUIRE(setup(&f, kind), "setup storage alias");
-    f.kernel.unit[1].owned_bytes = f.owner.common.bytes;
+    f.kernel.unit[1].owned_bytes = f.owner.common.backing[0].bytes;
     REQUIRE(!vos_resident_scalar_prepare(&f.attempt, &f.owner, &f.kernel, &f.binding) &&
-            f.owner.common.accepting, "kernel clear cannot alias retained bytes");
+            f.owner.common.backing[0].accepting, "kernel clear cannot alias retained bytes");
     REQUIRE(setup(&f, kind), "setup active copy");
     f.kernel.unit[1].inflight = 1;
     REQUIRE(!vos_resident_scalar_prepare(&f.attempt, &f.owner, &f.kernel, &f.binding) &&
@@ -221,7 +221,7 @@ static int controls(uint32_t kind)
             "current kernel epoch must match attempt");
     REQUIRE(setup(&f, kind), "setup resident drift");
     mask = vos_resident_scalar_prepare(&f.attempt, &f.owner, &f.kernel, &f.binding);
-    ++f.owner.common.identity.version; f.kernel.resident_clean = 1;
+    ++f.owner.common.backing[0].identity.version; f.kernel.resident_clean = 1;
     REQUIRE(!vos_resident_scalar_finish(&f.attempt, mask) && f.kernel.epoch == 7,
             "changed resident binding cannot complete");
     REQUIRE(setup(&f, kind), "setup late transfer");
@@ -232,10 +232,40 @@ static int controls(uint32_t kind)
     return 0;
 }
 
+static int predecessor_retirement(uint32_t kind)
+{
+    struct fixture f;
+    uint8_t successor_bytes[32];
+    REQUIRE(setup(&f, kind), "setup predecessor retirement");
+    struct vos_resident_identity successor = f.identity;
+    successor.version += 1;
+    successor.root[0] ^= 1U;
+    memset(successor_bytes, 0x4d, sizeof(successor_bytes));
+    REQUIRE(vos_resident_close(&f.owner, &f.handles[1], 11) &&
+            vos_resident_replace(&f.owner, &successor, successor_bytes,
+                                 sizeof(successor_bytes)) &&
+            vos_resident_admit(&f.owner, 1, 11, &successor, 0, 4, 0, 12, &f.handles[1]) &&
+            vos_resident_begin(&f.owner, &f.handles[1], 11, 0, 4, 1, &f.sequences[1]) &&
+            f.owner.pending[0].active && f.owner.pending[1].active,
+            "independent predecessor and successor transfers");
+    const uint64_t mask = vos_resident_scalar_prepare(&f.attempt, &f.owner, &f.kernel, &f.binding);
+    const struct vos_resident_backing *current = &f.owner.common.backing[1];
+    REQUIRE(mask == 7 && quarantined(&f) && current->occupied && !current->accepting &&
+            memcmp(current->bytes, successor_bytes, sizeof(successor_bytes)) == 0,
+            "scalar quarantine contains both backings");
+    f.bitmap |= mask;
+    f.kernel.resident_clean = 1;
+    REQUIRE(vos_resident_scalar_finish(&f.attempt, f.bitmap) &&
+            quarantined(&f) && current->occupied && !current->accepting &&
+            memcmp(current->bytes, successor_bytes, sizeof(successor_bytes)) == 0,
+            "semantic completion retains both backings");
+    return 0;
+}
+
 int main(void)
 {
     for (uint32_t kind = VOS_RESIDENT_SYSTEM; kind <= VOS_RESIDENT_USER; ++kind)
-        if (successful(kind) || controls(kind)) return 1;
+        if (successful(kind) || controls(kind) || predecessor_retirement(kind)) return 1;
     fprintf(stderr, "ok resident scalar actual producer, quarantine and one-attempt controls\n");
     return 0;
 }

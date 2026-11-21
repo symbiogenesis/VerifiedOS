@@ -46,11 +46,12 @@ static void observe(void *opaque, uint32_t kind, const void *address, size_t byt
         else ++v->output;
         v->bytes += bytes;
     }
-    if (contains(o->common.bytes, sizeof(o->common.bytes), address, bytes)) {
-        for (uint32_t holder = 0; holder < VOS_RESIDENT_HOLDERS; ++holder)
-            if (o->pending[holder].active || o->common.reservation[holder].live)
-                v->premature_zero = 1;
-    }
+    for (uint32_t slot = 0; slot < VOS_RESIDENT_BACKINGS; ++slot)
+        if (contains(o->common.backing[slot].bytes, VOS_RESIDENT_BYTES, address, bytes))
+            for (uint32_t holder = 0; holder < VOS_RESIDENT_HOLDERS; ++holder)
+                if (o->common.reservation[holder].backing == slot &&
+                    (o->pending[holder].active || o->common.reservation[holder].live))
+                    v->premature_zero = 1;
 }
 
 static int authenticate(void *opaque, const struct vos_resident_identity *id,
@@ -59,7 +60,9 @@ static int authenticate(void *opaque, const struct vos_resident_identity *id,
     struct authentication *a = opaque;
     ++a->calls;
     if (a->mutate) a->owner->common.grants ^= 1U;
-    return length == a->length && id->kind == a->expected.kind &&
+    return length == a->length && id->owner == a->expected.owner &&
+           id->domain == a->expected.domain && id->object == a->expected.object &&
+           id->version == a->expected.version && id->kind == a->expected.kind &&
            id->generation == a->expected.generation &&
            memcmp(id->root, a->expected.root, 32) == 0 &&
            memcmp(bytes, a->bytes, length) == 0;
@@ -92,7 +95,7 @@ static int exercise(uint32_t kind, uint32_t repetitions)
     memcpy(source, a.bytes, sizeof(source));
     REQUIRE(vos_resident_publish(&o, &a.expected, source, sizeof(source)), "publish");
     source[0] ^= 1;
-    REQUIRE(o.common.bytes[0] == a.bytes[0], "backing owns bytes");
+    REQUIRE(o.common.backing[0].bytes[0] == a.bytes[0], "backing owns bytes");
     REQUIRE(vos_resident_admit(&o, 0, 11, &a.expected, 4, 17, 0, 12, &h[0]), "holder zero");
     REQUIRE(vos_resident_admit(&o, 1, 11, &a.expected, 15, 9, 0, 12, &h[1]), "holder one");
     memcpy(&common, &o.common, sizeof(common));
@@ -126,7 +129,7 @@ static int exercise(uint32_t kind, uint32_t repetitions)
     REQUIRE(a.calls == before_auth && length == 999 && o.pending[0].active,
             "identity refusal preserves transfer");
     REQUIRE(!vos_resident_complete(&o, &h[0], 11, seq[0], 1, authenticate, &a,
-                                   o.common.bytes, 64, &length), "output cannot alias common");
+                                   o.common.backing[0].bytes, 64, &length), "output cannot alias common");
     REQUIRE(!vos_resident_begin(&o, &h[0], 11, 18, 0, 1, &seq[0]), "out of window");
     REQUIRE(vos_resident_complete(&o, &h[0], 11, old, 1, authenticate, &a,
                                   output, sizeof(output), &length), "finish first");
@@ -137,11 +140,11 @@ static int exercise(uint32_t kind, uint32_t repetitions)
     REQUIRE(!vos_resident_complete(&o, &h[0], 11, old, 1, authenticate, &a,
                                    output, sizeof(output), &length) && length == 999 &&
             o.pending[0].active && o.pending[0].sequence == seq[0], "stale completion");
-    o.common.bytes[7] ^= 1; /* Explicit fixture corruption, outside observed owner work. */
+    o.common.backing[0].bytes[7] ^= 1; /* Explicit fixture corruption, outside observed owner work. */
     REQUIRE(!vos_resident_complete(&o, &h[0], 11, seq[0], 1, authenticate, &a,
                                    output, sizeof(output), &length) && length == 999,
             "actual-byte authentication");
-    o.common.bytes[7] ^= 1;
+    o.common.backing[0].bytes[7] ^= 1;
     a.mutate = 1;
     REQUIRE(!vos_resident_complete(&o, &h[0], 11, seq[0], 1, authenticate, &a,
                                    output, sizeof(output), &length) && length == 999,
@@ -165,14 +168,14 @@ static int exercise(uint32_t kind, uint32_t repetitions)
                                        output, sizeof(output), &length), "generation refusal");
     }
     REQUIRE(!vos_resident_retire(&o, 0), "unavailable barrier");
-    REQUIRE(o.common.occupied && !o.common.accepting && !o.pending[0].active &&
+    REQUIRE(o.common.backing[0].occupied && !o.common.backing[0].accepting && !o.pending[0].active &&
             !o.pending[1].active && !o.common.reservation[0].live &&
             !o.common.reservation[1].live &&
-            memcmp(o.common.bytes, a.bytes, a.length) == 0, "quarantined unchanged backing");
+            memcmp(o.common.backing[0].bytes, a.bytes, a.length) == 0, "quarantined unchanged backing");
     REQUIRE(!vos_resident_publish(&o, &a.expected, a.bytes, a.length), "live replacement refuses");
     REQUIRE(vos_resident_retire(&o, 1), "completed barrier");
     REQUIRE(!v.premature_zero, "cancel before backing writes");
-    for (uint32_t n = 0; n < a.length; ++n) REQUIRE(o.common.bytes[n] == 0, "retired bytes zero");
+    for (uint32_t n = 0; n < a.length; ++n) REQUIRE(o.common.backing[0].bytes[n] == 0, "retired bytes zero");
     a.expected.version = 2; a.expected.generation = o.common.generation;
     REQUIRE(vos_resident_publish(&o, &a.expected, a.bytes, a.length), "new version");
     REQUIRE(!vos_resident_begin(&o, &h[0], 11, 0, 1, 1, &seq[0]), "old handle after reuse");
@@ -326,8 +329,8 @@ static int lifecycle(uint32_t kind)
                    sizeof(o.common.reservation[1])) == 0 &&
             memcmp(&before.pending[1], &o.pending[1], sizeof(o.pending[1])) == 0 &&
             o.sequence[1] == before.sequence[1], "close preserves peer");
-    REQUIRE(o.common.occupied && o.common.accepting &&
-            memcmp(o.common.bytes, a.bytes, a.length) == 0,
+    REQUIRE(o.common.backing[0].occupied && o.common.backing[0].accepting &&
+            memcmp(o.common.backing[0].bytes, a.bytes, a.length) == 0,
             "close retains quarantined backing");
     length = 999;
     REQUIRE(!vos_resident_complete(&o, &old, 11, previous, 6, authenticate, &a,
@@ -353,7 +356,7 @@ static int lifecycle(uint32_t kind)
     REQUIRE(!vos_resident_renew(&o, &h[0], 11, 7, 15) &&
             memcmp(&before, &o, sizeof(before)) == 0, "revoked renewal preserves state");
     REQUIRE(vos_resident_close(&o, &h[0], 11) && !o.pending[0].active &&
-            o.common.occupied, "revoked holder may close without releasing backing");
+            o.common.backing[0].occupied, "revoked holder may close without releasing backing");
     vos_resident_grants(&o, 0);
     memcpy(&before, &o, sizeof(before));
     REQUIRE(!vos_resident_renew(&o, &h[1], 11, 7, 15) &&
@@ -371,6 +374,106 @@ static int lifecycle(uint32_t kind)
     REQUIRE(vos_resident_close(&o, &h[1], 11), "expired or invalidated holder may close");
     REQUIRE(vos_resident_crash(&o, 2) && !vos_resident_close(&o, &h[0], 11) &&
             !vos_resident_renew(&o, &h[0], 11, 12, 15), "crash invalidates lifecycle handles");
+    return 0;
+}
+
+static int predecessors(uint32_t kind)
+{
+    struct vos_resident_owner o, before;
+    struct observation v;
+    struct authentication old;
+    struct vos_resident_handle predecessor, current, next;
+    uint64_t old_sequence, current_sequence, next_sequence;
+    uint8_t output[64];
+    size_t length = 999;
+    fixture(&o, &v, &old, kind, 15);
+    REQUIRE(vos_resident_publish(&o, &old.expected, old.bytes, old.length) &&
+            vos_resident_admit(&o, 0, 11, &old.expected, 4, 6, 0, 12, &predecessor) &&
+            vos_resident_begin(&o, &predecessor, 11, 0, 6, 1, &old_sequence),
+            "predecessor pending before replacement");
+    struct authentication newer = old;
+    newer.expected.version = 2;
+    newer.expected.root[0] ^= 1;
+    newer.length = 17;
+    for (size_t i = 0; i < newer.length; ++i) newer.bytes[i] ^= 0xe0;
+    struct vos_resident_identity bad = newer.expected;
+    bad.object += 1;
+    memcpy(&before, &o, sizeof(before));
+    REQUIRE(!vos_resident_replace(&o, &bad, newer.bytes, newer.length) &&
+            !vos_resident_replace(&o, &old.expected, newer.bytes, newer.length) &&
+            !vos_resident_replace(&o, &newer.expected, o.common.backing[0].bytes, newer.length) &&
+            memcmp(&before, &o, sizeof(before)) == 0, "replacement identity and byte refusal");
+    REQUIRE(vos_resident_replace(&o, &newer.expected, newer.bytes, newer.length),
+            "copy-on-write replacement");
+    REQUIRE(!vos_resident_admit(&o, 1, 11, &old.expected, 0, 1, 0, 12, &current) &&
+            vos_resident_admit(&o, 1, 11, &newer.expected, 6, 5, 0, 12, &current) &&
+            vos_resident_begin(&o, &current, 11, 0, 5, 1, &current_sequence),
+            "admit only the current version");
+    v.read = 1;
+    REQUIRE(vos_resident_complete(&o, &predecessor, 11, old_sequence, 1, authenticate, &old,
+                                  output, sizeof(output), &length) && length == 6 &&
+            memcmp(output, old.bytes + 4, length) == 0, "predecessor keeps exact original bytes");
+    REQUIRE(v.common == 0 && old.calls == 1 && !v.bad_class && !v.premature_zero,
+            "predecessor read has no common stores");
+    v.read = 0;
+
+    struct vos_resident_identity third = newer.expected;
+    third.version = 3;
+    third.root[0] ^= 2;
+    REQUIRE(vos_resident_begin(&o, &predecessor, 11, 1, 2, 2, &old_sequence),
+            "existing predecessor can read again");
+    memcpy(&before, &o, sizeof(before));
+    REQUIRE(!vos_resident_replace(&o, &third, newer.bytes, newer.length) &&
+            !vos_resident_retire_predecessor(&o, &third, 1) &&
+            !vos_resident_retire_predecessor(&o, &newer.expected, 1) &&
+            memcmp(&before, &o, sizeof(before)) == 0, "live predecessor quota and exact retirement");
+    REQUIRE(!vos_resident_retire_predecessor(&o, &old.expected, 0) &&
+            !o.pending[0].active && !o.common.reservation[0].live &&
+            memcmp(&before.pending[1], &o.pending[1], sizeof(o.pending[1])) == 0 &&
+            memcmp(&before.common.reservation[1], &o.common.reservation[1],
+                   sizeof(o.common.reservation[1])) == 0, "retire only predecessor holders");
+    REQUIRE(memcmp(o.common.backing[0].bytes, old.bytes, old.length) == 0 &&
+            !vos_resident_replace(&o, &third, newer.bytes, newer.length),
+            "quarantined predecessor keeps bytes and capacity");
+    length = 999;
+    REQUIRE(!vos_resident_complete(&o, &predecessor, 11, old_sequence, 2, authenticate, &old,
+                                   output, sizeof(output), &length) && length == 999,
+            "retired predecessor cannot complete");
+    REQUIRE(vos_resident_retire_predecessor(&o, &old.expected, 1),
+            "barrier releases exact predecessor");
+    for (size_t i = 0; i < old.length; ++i)
+        REQUIRE(o.common.backing[0].bytes[i] == 0, "released predecessor bytes zeroed");
+    REQUIRE(vos_resident_replace(&o, &third, newer.bytes, newer.length) &&
+            vos_resident_admit(&o, 0, 11, &third, 0, 1, 2, 12, &next) &&
+            vos_resident_begin(&o, &next, 11, 0, 1, 2, &next_sequence) &&
+            next_sequence > old_sequence && next.token > predecessor.token,
+            "backing reuse keeps request and reservation identities monotonic");
+    memcpy(&before, &o, sizeof(before));
+    REQUIRE(!vos_resident_retire_predecessor(&o, &old.expected, 1) &&
+            !vos_resident_complete(&o, &predecessor, 11, old_sequence, 2, authenticate, &old,
+                                   output, sizeof(output), &length) &&
+            memcmp(&before, &o, sizeof(before)) == 0, "old identity cannot affect reused backing");
+    v.read = 1;
+    REQUIRE(vos_resident_complete(&o, &current, 11, current_sequence, 2, authenticate, &newer,
+                                  output, sizeof(output), &length) && length == 5 &&
+            memcmp(output, newer.bytes + 6, length) == 0, "peer completes through predecessor reuse");
+    REQUIRE(v.common == 0 && newer.calls == 1 && !v.bad_class && !v.premature_zero,
+            "successor read has no common stores");
+    v.read = 0;
+    if (kind == VOS_RESIDENT_SYSTEM) {
+        vos_resident_generation(&o, 2);
+        REQUIRE(!vos_resident_complete(&o, &next, 11, next_sequence, 2, authenticate, &newer,
+                                       output, sizeof(output), &length) && newer.calls == 1,
+                "generation change invalidates pending system read");
+    }
+    REQUIRE(vos_resident_crash(&o, 2) && !o.pending[0].active &&
+            !o.common.reservation[0].live && !o.common.reservation[1].live &&
+            !o.common.backing[0].accepting && !o.common.backing[1].accepting &&
+            o.common.backing[0].occupied && o.common.backing[1].occupied,
+            "crash retains both backings without authority");
+    REQUIRE(vos_resident_retire(&o, 1) &&
+            !o.common.backing[0].occupied && !o.common.backing[1].occupied,
+            "whole-owner retirement releases both backings");
     return 0;
 }
 
@@ -402,7 +505,7 @@ int main(void)
         for (uint32_t repeats = 1; repeats <= 4; ++repeats)
             if (exercise(kind, repeats)) return 1;
     for (uint32_t kind = VOS_RESIDENT_SYSTEM; kind <= VOS_RESIDENT_USER; ++kind)
-        if (node_image_join(kind) || lifecycle(kind)) return 1;
+        if (node_image_join(kind) || lifecycle(kind) || predecessors(kind)) return 1;
     if (exhaustion() || reservation_exhaustion()) return 1;
     fprintf(stderr, "ok resident C payload, lifetime and stored-write controls\n");
     return 0;

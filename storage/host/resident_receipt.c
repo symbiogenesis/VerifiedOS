@@ -74,7 +74,7 @@ static int run_domain(uint32_t slot)
     REQUIRE(!vos_resident_complete(&owner, &closed, domain, pending[1], 5u,
                                    vos_storage_verify_admitted_resident, &receipt,
                                    renewed_output, sizeof(renewed_output), &renewed_length));
-    REQUIRE(renewed_length == 999u && !owner.pending[1].active && owner.common.occupied);
+    REQUIRE(renewed_length == 999u && !owner.pending[1].active && owner.common.backing[0].occupied);
     REQUIRE(vos_resident_admit(&owner, 1u, domain, &identity, 8u, 32u,
                                5u, 90u, &handles[1]));
     REQUIRE(handles[1].token > closed.token &&
@@ -96,10 +96,10 @@ static int run_domain(uint32_t slot)
     }
     REQUIRE(memcmp(&owner.common, &common, sizeof(common)) == 0);
     REQUIRE(memcmp(&receipt, &before, sizeof(receipt)) == 0);
-    owner.common.bytes[0] ^= 1u;
+    owner.common.backing[0].bytes[0] ^= 1u;
     REQUIRE(!vos_storage_verify_admitted_resident(&receipt, &identity,
-                                                  owner.common.bytes, sizeof(payload)));
-    owner.common.bytes[0] ^= 1u;
+                                                  owner.common.backing[0].bytes, sizeof(payload)));
+    owner.common.backing[0].bytes[0] ^= 1u;
     medium.arena_ciphertext[medium.checkpoint.root * geometry.block_bytes] ^= 1u;
     REQUIRE(!vos_storage_verify_resident(&store, &identity, payload, sizeof(payload)));
     REQUIRE(vos_storage_verify_admitted_resident(&receipt, &identity, payload, sizeof(payload)));

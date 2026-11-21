@@ -2,12 +2,26 @@
 
 [Q44's landed contract](../docs/implementation/contracts/resident-object-reads.md)
 owns acceptance. [The C adapter](src/resident_reads.c) adds executable reservation,
-request and completion operations over one service-owned immutable backing and
-two independent holders. It copies publication bytes, binds exact owner, domain,
+request and completion operations over service-owned immutable backing and two
+independent holders. It copies publication bytes, binds exact owner, domain,
 object, version, root, boot, token and window, and keeps each holder's request
-sequence across retirement and crash. Exhaustion refuses before wrapping. This
-first shape refuses another publication while its backing is retained; CoW
-predecessors remain unimplemented.
+sequence across retirement and crash. Exhaustion refuses before wrapping.
+
+Two fixed slots each reserve up to 512 payload bytes. Initial publication
+requires empty backing. Publication reads payload from outside the owner.
+Explicit CoW replacement copies a newer version of
+the same object into the free slot and admits new reservations only against that
+version. An existing reservation or pending transfer retains its original slot,
+full identity and byte window. Current authority, generation, expiry and the
+per-read verifier still apply. A third version refuses while the predecessor
+occupies its slot, including when the predecessor is closed in quarantine.
+
+Exact-identity predecessor retirement closes its backing and cancels only the
+holders and transfers using it. A completed barrier input allows that slot to
+be zeroed and reused. A missing barrier preserves its bytes and capacity
+charge. The current slot and other holders' transfers stay available. With
+both slots occupied, whole-owner retirement closes both before releasing any
+bytes, and crash closes both while keeping their backing occupied.
 
 Individual close cancels exactly one holder's reservation and pending transfer,
 including after expiry or grant/generation invalidation. It retains that holder's
@@ -83,9 +97,9 @@ the kernel epoch without complete architectural observations. Late transfers,
 changed resident identity and replayed finish calls cannot advance the attempt.
 The adapter has no read entry, so repeated reads introduce no attempt stores.
 
-Even successful semantic completion leaves backing occupied and unchanged in
-quarantine. It does not clear the old revocation masks, replenish roots or
-authorize `vos_resident_retire`'s reuse seam. Post-barrier sweep, complete
+Semantic completion keeps both occupied slots unchanged in quarantine. The
+attempt compares its complete closed snapshot, including both slots, before
+kernel publication. Post-barrier sweep, complete
 sanitization and reuse evidence remain with their machine owners under the
 [retirement qualification order](../docs/implementation/contracts/workflow-formal.md#concrete-retirement-adapters-and-qualification-order).
 Actual bitmap publication/readback, resident-register scrub, exclusive dispatch
@@ -107,6 +121,9 @@ completion, change the retained binding, or release backing on semantic
 completion; each must fail its intended oracle after compiling. This
 source-level campaign supplies no target correspondence, complete writer trace
 or safe-reuse proof.
+The dual-backing case starts independent pending transfers against the
+predecessor and a bounded fixture successor, then verifies whole-owner
+cancellation and retention of both slots through semantic completion.
 
 `python tools/run.py test --only test_resident_reads_c --jobs 1` compiles the native
 fixture and every defect before executing it. The pristine fixture exercises both
@@ -121,6 +138,12 @@ defects add a common increment/decrement, replacement
 touch or hidden reacquisition, omit domain/authentication/sequence checks, exceed
 the counter bound or zero retained bytes early. A compilation failure is reported
 as stillborn and supplies no kill evidence.
+
+The predecessor controls exercise both root kinds, independent expected bytes
+and exact transfers across replacement, closed-quarantine capacity, zeroization
+after a barrier, reuse, system-generation change and crash. Compiled defects
+overwrite an occupied predecessor, read current bytes using a predecessor
+handle, cancel a peer transfer and release the predecessor without a barrier.
 
 The same fixture includes the real [node-image producer](src/node_image.c) and
 decoder under their committed interface. For both root kinds, it independently

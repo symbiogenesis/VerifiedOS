@@ -3,6 +3,8 @@
 
 #include <string.h>
 
+_Static_assert(VOS_RESIDENT_BACKINGS == 2U, "one current backing and one predecessor");
+
 static void stored(struct vos_resident_owner *o, uint32_t kind,
                    const void *address, size_t length)
 {
@@ -23,6 +25,11 @@ static int overlap(const void *a, size_t alen, const void *b, size_t blen)
 static int external(const struct vos_resident_owner *o, const void *p, size_t n)
 {
     return (n == 0 || p != 0) && !overlap(o, sizeof(*o), p, n);
+}
+
+static uint32_t other_backing(uint32_t current)
+{
+    return current == 0U ? 1U : 0U;
 }
 
 static int identity_ok(const struct vos_resident_identity *i)
@@ -53,14 +60,17 @@ static int authority(const struct vos_resident_owner *o,
                      uint64_t domain, uint64_t now)
 {
     const struct vos_resident_common *c = &o->common;
-    if (h == 0 || h->holder >= VOS_RESIDENT_HOLDERS || !c->occupied || !c->accepting ||
-        domain != c->identity.domain || h->boot != c->boot ||
-        (c->grants & (1U << h->holder)) == 0 ||
-        !identity_equal(&h->identity, &c->identity) ||
-        (c->identity.kind == VOS_RESIDENT_SYSTEM &&
-         c->identity.generation != c->generation)) return 0;
+    if (h == 0 || h->holder >= VOS_RESIDENT_HOLDERS) return 0;
     const struct vos_resident_reservation *r = &c->reservation[h->holder];
-    return r->live && now < r->expires && handle_equal(h, &r->handle);
+    if (!r->live || now >= r->expires || !handle_equal(h, &r->handle)) return 0;
+    const struct vos_resident_backing *b = &c->backing[r->backing];
+    if (!b->occupied || !b->accepting ||
+        domain != b->identity.domain || h->boot != c->boot ||
+        (c->grants & (1U << h->holder)) == 0 ||
+        !identity_equal(&h->identity, &b->identity) ||
+        (b->identity.kind == VOS_RESIDENT_SYSTEM &&
+         b->identity.generation != c->generation)) return 0;
+    return 1;
 }
 
 int vos_resident_init(struct vos_resident_owner *o, uint64_t boot,
@@ -75,25 +85,47 @@ int vos_resident_init(struct vos_resident_owner *o, uint64_t boot,
     return 1;
 }
 
-int vos_resident_publish(struct vos_resident_owner *o,
-                         const struct vos_resident_identity *identity,
-                         const uint8_t *bytes, size_t length)
+static int publish_backing(struct vos_resident_owner *o, uint32_t slot,
+                           const struct vos_resident_identity *identity,
+                           const uint8_t *bytes, size_t length)
 {
-    if (o == 0 || !identity_ok(identity) || o->common.occupied ||
-        length > VOS_RESIDENT_BYTES || (length != 0 && bytes == 0) ||
+    struct vos_resident_backing *b = &o->common.backing[slot];
+    if (!identity_ok(identity) || b->occupied ||
+        length > VOS_RESIDENT_BYTES || !external(o, bytes, length) ||
         identity->version <= o->common.last_version ||
         identity->version > o->common.limit ||
         (identity->kind == VOS_RESIDENT_SYSTEM &&
          identity->generation != o->common.generation)) return 0;
     const struct vos_resident_identity id = *identity;
     for (size_t i = 0; i < length; ++i)
-        PUT(o, VOS_RESIDENT_COMMON, o->common.bytes[i], bytes[i]);
-    PUT(o, VOS_RESIDENT_COMMON, o->common.identity, id);
-    PUT(o, VOS_RESIDENT_COMMON, o->common.length, length);
+        PUT(o, VOS_RESIDENT_COMMON, b->bytes[i], bytes[i]);
+    PUT(o, VOS_RESIDENT_COMMON, b->identity, id);
+    PUT(o, VOS_RESIDENT_COMMON, b->length, length);
+    PUT(o, VOS_RESIDENT_COMMON, b->occupied, 1U);
+    PUT(o, VOS_RESIDENT_COMMON, b->accepting, 1U);
     PUT(o, VOS_RESIDENT_COMMON, o->common.last_version, id.version);
-    PUT(o, VOS_RESIDENT_COMMON, o->common.occupied, 1U);
-    PUT(o, VOS_RESIDENT_COMMON, o->common.accepting, 1U);
+    PUT(o, VOS_RESIDENT_COMMON, o->common.current, slot);
     return 1;
+}
+
+int vos_resident_publish(struct vos_resident_owner *o,
+                         const struct vos_resident_identity *identity,
+                         const uint8_t *bytes, size_t length)
+{
+    if (o == 0 || o->common.backing[o->common.current].occupied) return 0;
+    return publish_backing(o, 0, identity, bytes, length);
+}
+
+int vos_resident_replace(struct vos_resident_owner *o,
+                         const struct vos_resident_identity *identity,
+                         const uint8_t *bytes, size_t length)
+{
+    if (o == 0 || identity == 0) return 0;
+    const struct vos_resident_backing *current = &o->common.backing[o->common.current];
+    if (!current->occupied || !current->accepting || identity->owner != current->identity.owner ||
+        identity->domain != current->identity.domain || identity->object != current->identity.object ||
+        identity->kind != current->identity.kind) return 0;
+    return publish_backing(o, other_backing(o->common.current), identity, bytes, length);
 }
 
 int vos_resident_admit(struct vos_resident_owner *o, uint32_t holder,
@@ -105,11 +137,12 @@ int vos_resident_admit(struct vos_resident_owner *o, uint32_t holder,
     if (o == 0 || holder >= VOS_RESIDENT_HOLDERS || output == 0 ||
         !external(o, output, sizeof(*output)) || !identity_ok(identity)) return 0;
     struct vos_resident_common *c = &o->common;
-    if (!c->occupied || !c->accepting || c->reservation[holder].live ||
-        (c->grants & (1U << holder)) == 0 || domain != c->identity.domain ||
-        !identity_equal(identity, &c->identity) ||
+    const struct vos_resident_backing *b = &c->backing[c->current];
+    if (!b->occupied || !b->accepting || c->reservation[holder].live ||
+        (c->grants & (1U << holder)) == 0 || domain != b->identity.domain ||
+        !identity_equal(identity, &b->identity) ||
         (identity->kind == VOS_RESIDENT_SYSTEM && identity->generation != c->generation) ||
-        start > c->length || length > c->length - start ||
+        start > b->length || length > b->length - start ||
         expires <= now || expires > c->limit || c->next_token >= c->limit) return 0;
     memset(&h, 0, sizeof(h));
     h.identity = *identity; h.boot = c->boot; h.token = c->next_token + 1;
@@ -118,6 +151,7 @@ int vos_resident_admit(struct vos_resident_owner *o, uint32_t holder,
     PUT(o, VOS_RESIDENT_COMMON, c->reservation[holder].handle, h);
     PUT(o, VOS_RESIDENT_COMMON, c->reservation[holder].expires, expires);
     PUT(o, VOS_RESIDENT_COMMON, c->reservation[holder].renewed, 0U);
+    PUT(o, VOS_RESIDENT_COMMON, c->reservation[holder].backing, c->current);
     PUT(o, VOS_RESIDENT_COMMON, c->reservation[holder].live, 1U);
     PUT(o, VOS_RESIDENT_RESPONSE, *output, h);
     return 1;
@@ -187,21 +221,23 @@ int vos_resident_complete(struct vos_resident_owner *o,
     if (capacity < r.length || !external(o, output, r.length) ||
         overlap(output, r.length, length, sizeof(*length))) return 0;
     if (!authority(o, h, domain, now) || verify == 0) return 0;
-    const struct vos_resident_identity id = o->common.identity;
-    const size_t resident_length = o->common.length;
+    const struct vos_resident_backing *b = &o->common.backing[o->common.reservation[holder].backing];
+    const struct vos_resident_identity id = b->identity;
+    const size_t resident_length = b->length;
     memcpy(&before, &o->common, sizeof(before));
-    for (size_t i = 0; i < resident_length; ++i) snapshot[i] = o->common.bytes[i];
+    for (size_t i = 0; i < resident_length; ++i) snapshot[i] = b->bytes[i];
     if (!verify(verification, &id, snapshot, resident_length)) return 0;
     /* The callback receives no owner alias. Recheck current state after it;
      * arbitrary external writes through opaque remain outside this observer. */
-    if (!authority(o, h, domain, now) ||
+    if (memcmp(&o->common, &before, sizeof(before)) != 0 ||
+        !handle_equal(h, &o->common.reservation[holder].handle) ||
+        !authority(o, h, domain, now) ||
         o->pending[holder].active != r.active ||
         o->pending[holder].sequence != r.sequence ||
         o->pending[holder].token != r.token ||
         o->pending[holder].offset != r.offset ||
         o->pending[holder].length != r.length ||
-        memcmp(&o->common, &before, sizeof(before)) != 0 ||
-        memcmp(o->common.bytes, snapshot, resident_length) != 0) return 0;
+        memcmp(b->bytes, snapshot, resident_length) != 0) return 0;
     for (size_t i = 0; i < r.length; ++i)
         PUT(o, VOS_RESIDENT_RESPONSE, output[i], snapshot[r.offset + i]);
     PUT(o, VOS_RESIDENT_RESPONSE, *length, r.length);
@@ -221,25 +257,53 @@ void vos_resident_generation(struct vos_resident_owner *o, uint64_t generation)
         PUT(o, VOS_RESIDENT_COMMON, o->common.generation, generation);
 }
 
+static void release_backing(struct vos_resident_owner *o, struct vos_resident_backing *b)
+{
+    for (size_t i = 0; i < b->length; ++i)
+        PUT(o, VOS_RESIDENT_COMMON, b->bytes[i], 0U);
+    PUT(o, VOS_RESIDENT_COMMON, b->occupied, 0U);
+}
+
 int vos_resident_retire(struct vos_resident_owner *o, int barrier_completed)
 {
-    if (o == 0 || !o->common.occupied) return 0;
-    PUT(o, VOS_RESIDENT_COMMON, o->common.accepting, 0U);
+    if (o == 0 || !o->common.backing[o->common.current].occupied) return 0;
+    for (uint32_t slot = 0; slot < VOS_RESIDENT_BACKINGS; ++slot)
+        PUT(o, VOS_RESIDENT_COMMON, o->common.backing[slot].accepting, 0U);
     for (uint32_t holder = 0; holder < VOS_RESIDENT_HOLDERS; ++holder) {
         PUT(o, VOS_RESIDENT_PRIVATE, o->pending[holder].active, 0U);
         PUT(o, VOS_RESIDENT_COMMON, o->common.reservation[holder].live, 0U);
     }
     if (barrier_completed != 1) return 0;
-    for (size_t i = 0; i < o->common.length; ++i)
-        PUT(o, VOS_RESIDENT_COMMON, o->common.bytes[i], 0U);
-    PUT(o, VOS_RESIDENT_COMMON, o->common.occupied, 0U);
+    for (uint32_t slot = 0; slot < VOS_RESIDENT_BACKINGS; ++slot)
+        if (o->common.backing[slot].occupied) release_backing(o, &o->common.backing[slot]);
+    return 1;
+}
+
+int vos_resident_retire_predecessor(struct vos_resident_owner *o,
+                                    const struct vos_resident_identity *identity,
+                                    int barrier_completed)
+{
+    if (o == 0 || identity == 0) return 0;
+    const uint32_t slot = other_backing(o->common.current);
+    struct vos_resident_backing *b = &o->common.backing[slot];
+    if (!b->occupied || !identity_equal(identity, &b->identity)) return 0;
+    PUT(o, VOS_RESIDENT_COMMON, b->accepting, 0U);
+    for (uint32_t holder = 0; holder < VOS_RESIDENT_HOLDERS; ++holder) {
+        struct vos_resident_reservation *r = &o->common.reservation[holder];
+        if (!r->live || r->backing != slot) continue;
+        PUT(o, VOS_RESIDENT_PRIVATE, o->pending[holder].active, 0U);
+        PUT(o, VOS_RESIDENT_COMMON, r->live, 0U);
+    }
+    if (barrier_completed != 1) return 0;
+    release_backing(o, b);
     return 1;
 }
 
 int vos_resident_crash(struct vos_resident_owner *o, uint64_t new_boot)
 {
     if (o == 0 || new_boot <= o->common.boot || new_boot > o->common.limit) return 0;
-    PUT(o, VOS_RESIDENT_COMMON, o->common.accepting, 0U);
+    for (uint32_t slot = 0; slot < VOS_RESIDENT_BACKINGS; ++slot)
+        PUT(o, VOS_RESIDENT_COMMON, o->common.backing[slot].accepting, 0U);
     PUT(o, VOS_RESIDENT_COMMON, o->common.grants, 0U);
     PUT(o, VOS_RESIDENT_COMMON, o->common.boot, new_boot);
     for (uint32_t holder = 0; holder < VOS_RESIDENT_HOLDERS; ++holder) {

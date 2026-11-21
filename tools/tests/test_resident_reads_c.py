@@ -33,7 +33,7 @@ def _variants(source: str) -> list[tuple[str, str, str]]:
         ("hidden-reacquire", changed(TRAFFIC_MARK, TRAFFIC_MARK + "\n"
             "    PUT(o, VOS_RESIDENT_COMMON, o->common.reservation[holder].live, 1U);"),
             "classified traffic"),
-        ("wrong-domain", changed("domain != c->identity.domain || h->boot != c->boot ||",
+        ("wrong-domain", changed("domain != b->identity.domain || h->boot != c->boot ||",
             "((void)domain, h->boot != c->boot) ||"), "wrong domain"),
         ("no-auth", changed("if (!verify(verification, &id, snapshot, resident_length)) return 0;",
             "(void)verify(verification, &id, snapshot, resident_length);"),
@@ -42,9 +42,9 @@ def _variants(source: str) -> list[tuple[str, str, str]]:
             "!r.active || ((void)sequence, 0) || r.token != h->token ||"), "stale completion"),
         ("counter-overrun", changed("o->pending[holder].active || o->sequence[holder] >= o->common.limit",
             "o->pending[holder].active"), "counter exhaustion"),
-        ("premature-zero", changed("PUT(o, VOS_RESIDENT_COMMON, o->common.accepting, 0U);\n    for (uint32_t holder",
-            "PUT(o, VOS_RESIDENT_COMMON, o->common.bytes[0], 0U);\n"
-            "    PUT(o, VOS_RESIDENT_COMMON, o->common.accepting, 0U);\n    for (uint32_t holder"),
+        ("premature-zero", changed("    if (barrier_completed != 1) return 0;\n    for (uint32_t slot",
+            "    PUT(o, VOS_RESIDENT_COMMON, o->common.backing[0].bytes[0], 0U);\n"
+            "    if (barrier_completed != 1) return 0;\n    for (uint32_t slot"),
             "quarantined unchanged backing"),
         ("renew-without-authority", changed(
             "if (o == 0 || !authority(o, h, domain, now)) return 0;",
@@ -59,13 +59,14 @@ def _variants(source: str) -> list[tuple[str, str, str]]:
             "    PUT(o, VOS_RESIDENT_PRIVATE, o->pending[h->holder].token, h->token + 1);"),
             "renewal preserves exact handles and pending transfers"),
         ("close-without-cancellation", changed(
-            "PUT(o, VOS_RESIDENT_PRIVATE, o->pending[holder].active, 0U);\n"
-            "    PUT(o, VOS_RESIDENT_COMMON, r->live, 0U);",
-            "PUT(o, VOS_RESIDENT_COMMON, r->live, 0U);"), "close cancels selected transfer"),
+            "    PUT(o, VOS_RESIDENT_PRIVATE, o->pending[holder].active, 0U);\n"
+            "    PUT(o, VOS_RESIDENT_COMMON, r->live, 0U);\n    return 1;",
+            "    PUT(o, VOS_RESIDENT_COMMON, r->live, 0U);\n    return 1;"),
+            "close cancels selected transfer"),
         ("close-peer-transfer", changed(
-            "PUT(o, VOS_RESIDENT_COMMON, r->live, 0U);",
+            "PUT(o, VOS_RESIDENT_COMMON, r->live, 0U);\n    return 1;",
             "PUT(o, VOS_RESIDENT_COMMON, r->live, 0U);\n"
-            "    PUT(o, VOS_RESIDENT_PRIVATE, o->pending[1U - holder].active, 0U);"),
+            "    PUT(o, VOS_RESIDENT_PRIVATE, o->pending[1U - holder].active, 0U);\n    return 1;"),
             "close preserves peer"),
         ("stale-close", changed(
             "if (!r->live || domain != r->handle.identity.domain ||\n"
@@ -74,13 +75,26 @@ def _variants(source: str) -> list[tuple[str, str, str]]:
             "        !identity_equal(&h->identity, &r->handle.identity)) return 0;"),
             "stale lifecycle cannot rebind successor"),
         ("close-releases-backing", changed(
-            "PUT(o, VOS_RESIDENT_COMMON, r->live, 0U);",
+            "PUT(o, VOS_RESIDENT_COMMON, r->live, 0U);\n    return 1;",
             "PUT(o, VOS_RESIDENT_COMMON, r->live, 0U);\n"
-            "    PUT(o, VOS_RESIDENT_COMMON, o->common.occupied, 0U);"),
+            "    PUT(o, VOS_RESIDENT_COMMON, o->common.backing[r->backing].occupied, 0U);\n"
+            "    return 1;"),
             "close retains quarantined backing"),
         ("readmit-keeps-renewal-count", changed(
             "    PUT(o, VOS_RESIDENT_COMMON, c->reservation[holder].renewed, 0U);\n",
             ""), "readmission resets renewal bound"),
+        ("replace-occupied-backing", changed("!identity_ok(identity) || b->occupied ||",
+            "!identity_ok(identity) ||"), "live predecessor quota and exact retirement"),
+        ("read-current-as-predecessor", changed(
+            "const struct vos_resident_backing *b = &o->common.backing[o->common.reservation[holder].backing];",
+            "const struct vos_resident_backing *b = &o->common.backing[o->common.current];"),
+            "predecessor keeps exact original bytes"),
+        ("retire-peer-reservation", changed("if (!r->live || r->backing != slot) continue;",
+            "if (!r->live) continue;"), "retire only predecessor holders"),
+        ("release-predecessor-without-barrier", changed(
+            "    if (barrier_completed != 1) return 0;\n    release_backing(o, b);",
+            "    release_backing(o, b);\n    if (barrier_completed != 1) return 0;"),
+            "quarantined predecessor keeps bytes and capacity"),
     ]
 
 
