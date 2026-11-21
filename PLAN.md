@@ -2685,6 +2685,16 @@ Implemented: shared YAML workflow/hook populations, structured action reviews ge
 
 Preserve artifact formats, diagnostics and acceptance boundaries. Implement against these contracts; join through typecheck, Windows/Ubuntu Host CI and all Guest dispatches for the settled revision, without waiting for Guest verdicts.
 
+- **Markdown validator installation.** Lychee and rumdl can share one installer.
+  Each adapter owns its reviewed assets, release URL, archive layout and validator
+  arguments. Exercise both through their normal entry points with the same platform
+  selection, archive and executable identities, cache paths, lock settings, atomic
+  publication, Unix permissions and refusal diagnostics. Run each tool's existing
+  independent-process contention, corruption and recovery cases.
+- **Composer projections in K-88.** Each invocation can use one complete emission
+  for the projection set. Keep the ordered per-file index and byte comparisons,
+  diagnostics and repair bytes. Exercise missing members, generator failures,
+  mixed drift and edits between invocations. A fresh check reads its inputs again.
 - **Ring library extraction. Start:** the declaration reader and emitter in
   `vos/cli/ring.py`. **Owns:** a library module for shared declarations, types,
   register parsing and emission; the CLI retains command dispatch and publication.
