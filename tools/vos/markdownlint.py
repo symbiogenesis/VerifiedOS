@@ -2,19 +2,13 @@
 """Standard table syntax validation, separate from semantic-rule mutation replay."""
 
 import json
-import platform
 import re
 import subprocess
-import sys
-import tarfile
 import tomllib
-import zipfile
 from dataclasses import dataclass
 from pathlib import Path
 
-from filelock import FileLock
-
-from vos import corpus, jsonutil, receipts
+from vos import corpus, jsonutil, pinned_binary
 from vos.report import Reporter
 
 VERSION = "0.3.2"
@@ -38,18 +32,8 @@ _DIRECTIVE_RE = re.compile(
 
 
 @dataclass(frozen=True)
-class Asset:
-    target: str
-    archive_hash: str
-    executable_hash: str
-
-    @property
-    def windows(self) -> bool:
-        return self.target.endswith("windows-msvc")
-
-    @property
-    def executable(self) -> str:
-        return "rumdl.exe" if self.windows else "rumdl"
+class Asset(pinned_binary.Asset):
+    name = "rumdl"
 
 
 ASSETS: dict[str, Asset] = {
@@ -66,56 +50,12 @@ ASSETS: dict[str, Asset] = {
 
 
 def asset_for(system: str, machine: str) -> Asset:
-    architecture = machine.lower()
-    if architecture not in {"amd64", "x86_64", "arm64", "aarch64"}:
-        raise ValueError(f"rumdl has no reviewed executable for {system}/{machine}")
-    if system == "win32":
-        return ASSETS["windows"]
-    if system == "linux":
-        return ASSETS["linux-arm64" if architecture in {"arm64", "aarch64"} else "linux-x64"]
-    raise ValueError(f"rumdl has no reviewed executable for {system}/{machine}")
+    return Asset.for_platform(ASSETS, system, machine)
 
 
 def executable() -> Path:
-    """Keep pinned bytes in the managed environment shared by mutant processes."""
-    if sys.prefix == sys.base_prefix:
-        raise ValueError("rumdl requires the project's managed Python environment")
-    asset = asset_for(sys.platform, platform.machine())
-    home = Path(sys.prefix) / f"rumdl-{VERSION}"
-    home.mkdir(parents=True, exist_ok=True)
-    with FileLock(home / ".install.lock", timeout=180,
-                  fallback_to_soft=False, preserve_lock_file=True):
-        return _install(home, asset)
-
-
-def _install(home: Path, asset: Asset) -> Path:
-    """Verify, download and publish under the shared environment's installation lock."""
-    target = home / asset.executable
-    if target.exists():
-        if receipts.digest(target) != asset.executable_hash:
-            raise ValueError(f"{target}: installed rumdl executable hash differs from its pin")
-        return target
-    extension = "zip" if asset.windows else "tar.gz"
-    archive = home / f"rumdl-v{VERSION}-{asset.target}.{extension}"
-    receipts.download(f"{BASE}/{archive.name}", archive, asset.archive_hash)
-    member = asset.executable
-    if asset.windows:
-        with zipfile.ZipFile(archive) as bundle:
-            contents = bundle.read(member)
-    else:
-        with tarfile.open(archive, "r:gz") as bundle:
-            entry = bundle.getmember(member)
-            if not entry.isfile() or (stream := bundle.extractfile(entry)) is None:
-                raise ValueError(f"{archive}: pinned executable is not an ordinary file")
-            with stream:
-                contents = stream.read()
-    with receipts.atomic_path(target) as pending:
-        pending.write_bytes(contents)
-        if receipts.digest(pending) != asset.executable_hash:
-            raise ValueError(f"{archive}: extracted rumdl executable hash differs from its pin")
-        if not asset.windows:
-            pending.chmod(0o755)
-    return target
+    return Asset.install(ASSETS, version=VERSION, base_url=BASE,
+                         archive_prefix=f"rumdl-v{VERSION}", nested=False)
 
 
 def _validate_config(config: Path) -> Path:
