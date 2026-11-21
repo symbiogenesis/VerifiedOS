@@ -2,6 +2,7 @@
 #include "vos_typed_tree.h"
 
 #include <errno.h>
+#include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -16,26 +17,78 @@ static int number(const char *text, uint64_t *value)
     return 1;
 }
 
+static int run_insert(const struct vos_tree_arena *arena, const struct vos_tree_limits *limits,
+                      uint64_t root, uint64_t generation, const struct vos_storage_typed_key *key,
+                      int invalid_extent)
+{
+    uint8_t serialized[VOS_STORAGE_EXTENT_BYTES];
+    struct vos_storage_extent extent = {0};
+    if (arena->used > arena->geometry.arena_nodes ||
+        fread(serialized, 1u, sizeof(serialized), stdin) != sizeof(serialized) ||
+        fgetc(stdin) != EOF ||
+        !vos_storage_extent_decode(serialized, sizeof(serialized), &extent)) return 3;
+    if (invalid_extent) extent.domain_epoch = VOS_NODE_NONCE_MAX_DOMAIN + 1u;
+    const size_t generation_bytes = arena->generation_count * sizeof(arena->generations[0]);
+    uint8_t *bytes_before = malloc(arena->length);
+    uint64_t *generations_before = malloc(generation_bytes);
+    if (bytes_before == NULL || generations_before == NULL) {
+        free(bytes_before);
+        free(generations_before);
+        return 3;
+    }
+    memcpy(bytes_before, arena->bytes, arena->length);
+    memcpy(generations_before, arena->generations, generation_bytes);
+    struct vos_tree_update_result result;
+    memset(&result, 0xa5, sizeof(result));
+    uint8_t result_before[sizeof(result)];
+    memcpy(result_before, &result, sizeof(result));
+    const int admitted = vos_typed_tree_insert(arena, limits, root, generation, key, &extent, &result);
+    const size_t prefix = (size_t)arena->used * arena->geometry.block_bytes;
+    const int preserved = memcmp(bytes_before, arena->bytes, prefix) == 0 &&
+        memcmp(generations_before, arena->generations,
+               (size_t)arena->used * sizeof(arena->generations[0])) == 0;
+    const int staged = memcmp(bytes_before, arena->bytes, arena->length) != 0 ||
+        memcmp(generations_before, arena->generations, generation_bytes) != 0;
+    free(bytes_before);
+    free(generations_before);
+    if (!preserved) return 4;
+    if (!admitted) {
+        if (memcmp(result_before, &result, sizeof(result)) != 0) return 4;
+        printf("%d\n", staged);
+        return 2;
+    }
+    if (result.used <= arena->used || result.used > arena->geometry.arena_nodes) return 4;
+    printf("%" PRIu64 " %" PRIu64 " %" PRIu32 "\n", result.root, result.used, result.height);
+    for (size_t i = (size_t)arena->used; i < (size_t)result.used; ++i)
+        printf("%" PRIu64 " ", arena->generations[i]);
+    printf("\n");
+    const size_t appended = ((size_t)result.used - (size_t)arena->used) * arena->geometry.block_bytes;
+    return fwrite(arena->bytes + prefix, 1u, appended, stdout) == appended ? 0 : 4;
+}
+
 int main(int argc, char **argv)
 {
     const int path_only = argc > 1 && strcmp(argv[1], "--path") == 0;
-    const int offset = 1 + path_only;
-    uint64_t words[13] = {0};
-    if (argc < offset + 13) return 3;
-    for (size_t i = 0u; i < 13u; ++i)
-        if (!number(argv[offset + (int)i], &words[i])) return 3;
+    const int invalid_extent = argc > 1 && strcmp(argv[1], "--insert-invalid-extent") == 0;
+    const int insert = invalid_extent || (argc > 1 && strcmp(argv[1], "--insert") == 0);
+    const int offset = 1 + (path_only || insert);
+    const int parameters = insert ? 15 : 13;
+    uint64_t words[15] = {0};
+    if (argc < offset + parameters) return 3;
+    for (int i = 0; i < parameters; ++i)
+        if (!number(argv[offset + i], &words[i])) return 3;
     const uint64_t count = words[1], size = words[2];
     if (words[0] > UINT32_MAX || words[4] > UINT32_MAX || words[5] > UINT32_MAX ||
         words[6] > UINT32_MAX || count == 0u || count > 4096u || size > 4096u ||
-        size == 0u || argc != offset + 13 + (int)count) return 3;
+        size == 0u || argc != offset + parameters + (int)count) return 3;
     uint64_t *generations = calloc((size_t)count, sizeof(*generations));
     uint8_t *bytes = calloc((size_t)count, (size_t)size);
     uint8_t *encoded = calloc(1u, (size_t)size);
     if (generations == NULL || bytes == NULL || encoded == NULL) return 3;
     for (size_t i = 0u; i < (size_t)count; ++i)
-        if (!number(argv[offset + 13 + (int)i], &generations[i])) return 3;
+        if (!number(argv[offset + parameters + (int)i], &generations[i])) return 3;
     const size_t length = (size_t)count * (size_t)size;
-    if (fread(bytes, 1u, length, stdin) != length || fgetc(stdin) != EOF) return 3;
+    if (fread(bytes, 1u, length, stdin) != length || (!insert && fgetc(stdin) != EOF)) return 3;
     const struct vos_tree_image image = {
         .geometry = {.fan = (uint32_t)words[0], .arena_nodes = count, .block_bytes = (size_t)size},
         .bytes = bytes, .length = length, .generations = generations, .generation_count = (size_t)count
@@ -47,6 +100,17 @@ int main(int argc, char **argv)
         .domain = words[7], .space = words[8], .kind = words[9],
         .object = words[10], .attribute = words[11], .version = words[12]
     };
+    if (insert) {
+        const struct vos_tree_arena arena = {
+            .geometry = image.geometry, .bytes = bytes, .length = length, .generations = generations,
+            .generation_count = (size_t)count, .used = words[13]
+        };
+        const int result = run_insert(&arena, &limits, words[3], words[14], &key, invalid_extent);
+        free(generations);
+        free(bytes);
+        free(encoded);
+        return result;
+    }
     struct vos_storage_extent output;
     memset(&output, 0xa5, sizeof(output));
     uint8_t before[sizeof(output)];
