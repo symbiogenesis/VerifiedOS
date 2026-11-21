@@ -32,7 +32,9 @@ for downstream groups.
 
 import hashlib
 import json
+from collections.abc import Callable
 from dataclasses import dataclass
+from functools import cache
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Protocol
 
@@ -363,15 +365,14 @@ def _command_lanes(root: Path, bundle: sailbundle.Bundle | None) -> str:
     return commands.lane_reference()
 
 
-def _composition_emit(name: str) -> Emitter:
-    """Recheck declarations and source bytes for each explicitly registered output."""
-    def emit(root: Path, bundle: sailbundle.Bundle | None) -> str:
-        del bundle
-        try:
-            return composition.projections(root)[name].decode("utf-8")
-        except (OSError, UnicodeError) as error:
-            raise ValueError(f"production composition input cannot be read: {error}") from error
-    return emit
+def _composition_output(root: Path, name: str, projections: Callable[[Path], dict[str, bytes]]) -> bytes:
+    """Select one UTF-8 artifact from the check's complete projection set."""
+    try:
+        data = projections(root)[name]
+        data.decode("utf-8")
+    except (OSError, UnicodeError) as error:
+        raise ValueError(f"production composition input cannot be read: {error}") from error
+    return data
 
 
 def _source_bindings_emit(relative: str) -> Emitter:
@@ -394,8 +395,8 @@ class Row:
     `guest` row's cannot, so this gate decides the index and the owners and names the
     command that decides the rest. A row is never silently skipped for its lane.
 
-    `emit` is that generator, and it is `None` on a guest row for the reason the lane
-    column exists: there is no host-side function to call. An `external` row holds
+    Host rows name a text emitter or a member of the composer projection set.
+    Guest rows use the generator on their declared lane. An `external` row holds
     a replay receipt whose pinned inputs are intentionally not redistributed.
     Its inspector checks source and result identities without rerunning those inputs.
     """
@@ -407,6 +408,7 @@ class Row:
     checker: str
     emit: Emitter | None = None
     inspect: GuestInspector | None = None
+    projection: str | None = None
 
 
 # The generated artifacts, one row each. Adding one is a row here and nothing else: the
@@ -463,9 +465,8 @@ GENERATED: tuple[Row, ...] = (
     *(Row(path=f"{composition.GENERATED}/{name}",
           generator="run.py composer project tools/composer/m8a-composition.json --output tools/composer/generated",
           lane="host", owners="the typed composition input, real roster and bound source/producer bytes",
-          checker="this gate", emit=_composition_emit(name))
-      for name in ("manifest.json", "manifest.c", "graph-input.json", "recipe-members.json",
-                   "admission-request.json")),
+          checker="this gate", projection=name)
+      for name in composition.OUTPUTS),
     # The SoC address map, in the language the RTL is written in. It reads the frozen
     # composition and nothing else, so it needs neither the bundle nor Sail and its
     # whole claim is decided here; K-65 is what makes reading the primary alone enough,
@@ -619,7 +620,8 @@ def _owners(ctx: Context, row: Row, bundle: sailbundle.Bundle,
     return source_count + len(bundle.compiler_owners()) + libraries, findings
 
 
-def _host_row(ctx: Context, row: Row, bundle: sailbundle.Bundle | None) -> Reading:
+def _host_row(ctx: Context, row: Row, bundle: sailbundle.Bundle | None,
+              projections: Callable[[Path], dict[str, bytes]] = composition.projections) -> Reading:
     """A row whose generator runs here, held against what that generator writes now.
 
     This is what the table's `lane` column is *for*, and it is a stronger reading than
@@ -647,13 +649,16 @@ def _host_row(ctx: Context, row: Row, bundle: sailbundle.Bundle | None) -> Readi
     if row.path == math_evidence.ARTIFACT and math_evidence.MANIFEST not in ctx.corpus.indexed:
         out.findings.append(f"{math_evidence.MANIFEST} is not indexed")
         return out
-    if row.emit is None:
-        out.findings.append(
-            f"{row.path} is a host row and names no generator to run, so this gate "
-            f"decides nothing about it")
-        return out
     try:
-        expected = row.emit(ctx.root, bundle).encode("utf-8")
+        if row.projection is not None:
+            expected = _composition_output(ctx.root, row.projection, projections)
+        elif row.emit is not None:
+            expected = row.emit(ctx.root, bundle).encode("utf-8")
+        else:
+            out.findings.append(
+                f"{row.path} is a host row and names no generator to run, so this gate "
+                f"decides nothing about it")
+            return out
     except (RuntimeError, ValueError, KeyError) as exc:
         out.findings.append(f"the generator for {row.path} raised: {exc}")
         return out
@@ -786,6 +791,9 @@ def run(ctx: Context) -> None:
     with ctx.clock.timing("part", "staged blobs"):
         staged = corpus_mod.staged_blobs(
             ctx.root, (row.path for row in GENERATED if row.lane != "host"))
+    # The composer produces every projection together. Share that emission only
+    # within this run, after the first indexed projection requests it.
+    projections = cache(composition.projections)
     for row in GENERATED:
         # The order of the table is load-bearing here and nowhere else: a host row's
         # generator reads what an earlier row settled on, so the bundle the run has
@@ -794,7 +802,7 @@ def run(ctx: Context) -> None:
         # shares of this group apart.
         with ctx.clock.timing("row", row.path):
             if row.lane == "host":
-                reading = _host_row(ctx, row, settled)
+                reading = _host_row(ctx, row, settled, projections)
             elif row.inspect is not None:
                 reading = row.inspect(ctx, row, staged[row.path])
             else:
