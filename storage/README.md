@@ -166,6 +166,10 @@ instruction-lowering verdict.
   state and otherwise selects the prior valid checkpoint (R-10-013c), replays complete committed redo prefixes
   idempotently while discarding uncommitted suffixes and refusing torn/corrupted
   committed frames (F-460), and reconstructs the authenticated arena.
+- `vos_storage_retain_snapshot` binds the pin to the active checkpoint and
+  persists it in both checkpoint slots before acknowledgment when the store
+  has an attached persistence callback. A reserved transaction excludes new
+  pins. A repeat can return immediately when both slots authenticate the pin.
 - `vos_storage_verify_resident` supplies Q44's real `vos_resident_verifier`
   callback for `vos_resident_complete` (R-10-006a, R-10-006b, R-10-001),
   checking the domain-separated object digest and verifying `(object_id, root, version)`
