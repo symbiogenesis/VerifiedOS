@@ -376,14 +376,14 @@
       "id": "K-52",
       "group": "marks",
       "meaning": "every file whose kind can carry a comment opens with the SPDX identifier `COPYRIGHT.md` states, spelled in that kind's own comment syntax",
-      "ground": "[COPYRIGHT.md](../COPYRIGHT.md); the identifier is read from the map, so the files and the map cannot quietly disagree",
+      "ground": "The fenced declaration in [COPYRIGHT.md](../COPYRIGHT.md#marking-a-new-file) supplies the identifier.",
       "reach": "total"
     },
     {
       "id": "K-53",
       "group": "marks",
       "meaning": "every tracked file kind is either given a comment syntax or refused by name, and every ruling covers a file that exists",
-      "ground": "the same, in both directions; the tool asks for a decision on a kind it does not know. Authored `.ml` sources, `.mll` lexer definitions and compound `.ml.in` and `.v.in` template kinds have explicit OCaml/Gallina comment syntax; `.mly` Menhir grammars use C-style block comments; other `.in` languages remain unruled. Authored `.lus` nodes use Lustre line comments. Resolver-generated `.lock` metadata and byte-preserving `.patch` diffs are refused alongside git metadata on the grounds stated in COPYRIGHT.md. Authored browser `.html` and `.css` assets use HTML and CSS block comments.",
+      "ground": "The [file-kind rules](vos/checks/marks.py) bind comment syntax and exemptions to tracked file kinds.",
       "reach": "total"
     },
     {
