@@ -3,7 +3,7 @@
 
 [COPYRIGHT.md](../../../COPYRIGHT.md) governs Markdown files by path and requires an
 `SPDX-License-Identifier` comment at the head of every other authored file:
-- `K-52` reads the required SPDX identifier from [COPYRIGHT.md](../../../COPYRIGHT.md)
+- `K-52` reads the required SPDX identifier from [COPYRIGHT.md](../../../COPYRIGHT.md#marking-a-new-file)
   and verifies that every file matching `MARKABLE` (outside `REFUSED_TREES`) carries it
   within its first `DEPTH` lines using that file kind's comment syntax. `K-52` is never
   auto-repaired by `--fix` because stamping a license mark asserts authorship/provenance.
@@ -25,6 +25,11 @@ HEADING = "=== marks: every file that can carry a license mark carries one ==="
 
 LICENSE_MAP = "COPYRIGHT.md"
 IDENT_RE = re.compile(r"SPDX-License-Identifier:\s*([A-Za-z0-9.\-+]+)")
+DECLARATION_RE = re.compile(
+    r"^```text\r?\n# SPDX-License-Identifier: ([A-Za-z0-9.\-+]+)\r?\n```\r?$", re.MULTILINE,
+)
+# The source reader normalizes CR and CRLF. These are the remaining splitlines separators.
+LINE_BREAK_RE = re.compile(r"[\n\v\f\x1c-\x1e\x85\u2028\u2029]")
 
 # Maximum 1-based line number at which the SPDX comment may appear.
 DEPTH = 5
@@ -87,8 +92,7 @@ def run(ctx: Context) -> None:
     rep, root = ctx.rep, ctx.root
     rep.line(HEADING)
 
-    ident = IDENT_RE.search(ctx.text(LICENSE_MAP))
-    expected = ident.group(1) if ident else ""
+    declarations = DECLARATION_RE.findall(ctx.text(LICENSE_MAP))
 
     markable: list[str] = []
     unruled: list[str] = []
@@ -107,10 +111,11 @@ def run(ctx: Context) -> None:
 
     # the mark itself
     faults: list[str] = []
-    if not expected:
-        faults.append(f"{LICENSE_MAP} states no SPDX identifier, so there is nothing to "
-                      "hold these files against")
+    expected = ""
+    if len(declarations) != 1:
+        faults.append(f"{LICENSE_MAP} must have exactly one fenced SPDX license declaration")
     else:
+        expected = declarations[0]
         for path in markable:
             fault = _fault(root, path, expected)
             if bool(fault):
@@ -142,8 +147,7 @@ def _fault(root: Path, path: str, expected: str) -> str | None:
     except (OSError, UnicodeDecodeError) as exc:
         return f"{path}: unreadable, so its mark cannot be decided ({exc})"
 
-    lines = text.splitlines()
-    for line in lines[:DEPTH]:
+    for line in LINE_BREAK_RE.split(text, maxsplit=DEPTH)[:DEPTH]:
         if line.strip() == want:
             return None
 
