@@ -213,7 +213,7 @@ It covers bounded services as well as tensor workloads and records the exact
 scope of its MiniMalloc, ExecuTorch and TFLite Micro adapters. Model compatibility,
 API compatibility and acceptable deployment cost are distinct claims. Its
 contract extractor strengthens the modeled coexistence relation; connecting
-that relation to admitted Vela programs and actual device completion remains a
+that relation to admitted HoldFast programs and actual device completion remains a
 compiler and qualification obligation. Q5b owns the real-workload comparison,
 Q22 the reuse boundaries and Q10 the product judgment.
 

@@ -168,7 +168,7 @@ credit semantics, then relate the admitted component contract to actual source
 execution. The current credit model treats returns as supplied protocol facts;
 its arithmetic theorem alone cannot establish correct return identity or physical
 revocation. A subsequent target proof must establish backing, complete footprint
-charges, slot admission and the elapsed bounds used by the report. The full Vela
+charges, slot admission and the elapsed bounds used by the report. The full HoldFast
 language, compiler and target machine are outside these finite models.
 
 ### Research handoff for ordering and prefix bounds

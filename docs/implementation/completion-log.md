@@ -726,7 +726,7 @@ Landed: Tier A.
 
 #### Q20a · Author the combined acceptance and benchmark contract
 
-[The workflow contract](https://github.com/symbiogenesis/VelaLang/blob/main/docs/workflow-contract.md) fixes parser client, held-out service, exits/cases, semantic probes, evidence identities and cost thresholds. Independent/integrated review and host document checks passed with proof/model/interfaces unchanged. The contract is authored; trials are unopened and missing copying baselines remain entry conditions.
+[The workflow contract](https://github.com/symbiogenesis/HoldFast/blob/main/docs/assurance/workflow-contract.md) fixes parser client, held-out service, exits/cases, semantic probes, evidence identities and cost thresholds. Independent/integrated review and host document checks passed with proof/model/interfaces unchanged. The contract is authored; trials are unopened and missing copying baselines remain entry conditions.
 
 Landed: Tier A. The independent read covers the intended outputs, every exit, negative-case obligations, semantic invalidation and full-cost comparison; mechanical document checks cannot decide those contracts, and no Tier-B holder is claimed. The absence of copying baselines is an explicit trial-entry condition, per Q20a's permission to prepare its contract before those implementations exist.
 
@@ -759,7 +759,7 @@ an implemented trial or production theorem.
 
 #### Q21a · Specify the core design and its qualification contract
 
-[The core contract](https://github.com/symbiogenesis/VelaLang/blob/main/docs/core-design.md) rejects at unavailable/unpriced returned-view laws and missing frontend admission. Exit, reborrow, cleanup, source and diagnostic-generation obligations remain. Independent/integrated review accepted corrections; closing review is excluded from calibration. No language refutation or implemented metatheory/frontend qualification is established.
+[The core contract](https://github.com/symbiogenesis/HoldFast/blob/main/docs/language/core-design.md) rejects at unavailable/unpriced returned-view laws and missing frontend admission. Exit, reborrow, cleanup, source and diagnostic-generation obligations remain. Independent/integrated review accepted corrections; closing review is excluded from calibration. No language refutation or implemented metatheory/frontend qualification is established.
 
 Landed: Tier A. The reasoned rejection closes this decision while preserving
 its conditional contract and reopening evidence. No metatheory, frontend
@@ -769,7 +769,7 @@ implementation or executed qualification case is claimed.
 
 #### Q21b · Price the compiler alternatives and define their artifact trial
 
-[The route contract](https://github.com/symbiogenesis/VelaLang/blob/main/docs/compiler-route-contract.md) rejects commissioning without full-endpoint price for contextual foundation, direct producer and maintenance. Independent/integrated review preserves equivalent endpoints/evidence and mandatory duties. Closing review is excluded from calibration; paired budget is conditional/unbooked. Neither route receives a feasibility, performance or production-theorem verdict.
+[The route contract](https://github.com/symbiogenesis/HoldFast/blob/main/docs/assurance/compiler-route-contract.md) rejects commissioning without full-endpoint price for contextual foundation, direct producer and maintenance. Independent/integrated review preserves equivalent endpoints/evidence and mandatory duties. Closing review is excluded from calibration; paired budget is conditional/unbooked. Neither route receives a feasibility, performance or production-theorem verdict.
 
 Landed: Tier A. The read accepts this commissioning rejection and reopening
 contract. It establishes no performance comparison, route infeasibility, licence

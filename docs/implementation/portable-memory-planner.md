@@ -11,7 +11,7 @@ comparison on an actual composed workload, and Q22 owns qualified reuse evidence
 A fixed memory plan can serve unpredictable requests when the number of concurrent
 requests, their sizes and retention are bounded. The request contents and pool
 occupancy can vary while the backing remains fixed. The planner therefore accepts
-an allocation instance rather than requiring a tensor graph, Vela source or CHERI
+an allocation instance rather than requiring a tensor graph, HoldFast source or CHERI
 capabilities. Its placement guarantee is conditional on the supplied instance
 describing every permitted use.
 
