@@ -99,9 +99,9 @@ Its buffers, rotations, layouts, reductions and distance calculations need
 actual V/M lowering and timing evidence. The research supplies no ISA, kernel,
 trust-base or design-space-exploration change.
 
-The prospective [Vela numerical workload](https://github.com/symbiogenesis/VelaLang/blob/main/docs/extensions/numerical-workloads.md)
+The prospective [HoldFast numerical workload](https://github.com/symbiogenesis/HoldFast/blob/main/docs/extensions/numerical-workloads.md)
 can exercise dimensions, explicit mutable storage, finite loops and arithmetic
-proof obligations. Vela's [first-release primitive semantics](https://github.com/symbiogenesis/VelaLang/blob/main/docs/language/first-release.md#primitive-semantics)
+proof obligations. HoldFast's [first-release primitive semantics](https://github.com/symbiogenesis/HoldFast/blob/main/docs/language/first-release.md#primitive-semantics)
 exclude floating-point runtime support. Its numerical semantics and target
 correspondence must be qualified before a faithful runtime example; a
 fixed-point adaptation needs its own accuracy evidence.

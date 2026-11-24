@@ -24,7 +24,7 @@ Design entry points: [release scope](spec.md#r-18-004a),
 
 | Topic | Documents |
 | --- | --- |
-| Vela | [Standalone VelaLang repository](https://github.com/symbiogenesis/VelaLang) |
+| HoldFast | [Standalone HoldFast repository](https://github.com/symbiogenesis/HoldFast) |
 | Interfaces | [IDL profile](languages/idl-profile.md) |
 | Typed assembly | [Language specification and VerifiedOS's CHERI-TAL instantiation](languages/typed-assembly-language.md) |
 | Authored C | [Language profile and modernization](implementation/c-language-profile.md) |
