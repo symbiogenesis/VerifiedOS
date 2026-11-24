@@ -684,6 +684,37 @@ and acquisition records. A different package population or distribution requires
 a new reading; these terms supply no unwind, kernel-compatibility or compiler
 qualification verdict.
 
+The [parent-owned debugger candidate](docs/implementation/contracts/contained-checker-observation.md#private-debugger-acquisition)
+uses seven Ubuntu packages authenticated against the signed resolute index.
+Their archived `usr/share/doc/<package>/copyright` members were read on
+2026-11-24 before adopting executable bytes.
+
+- `gdb` 17.1-2ubuntu1's notice, SHA-256
+  `f086271f518bf68f2bddf1556f753ae2a330a6e0072e33d9dcd0bbd2fa1c5858`,
+  states GPL-3.0-or-later for the general source population. The notice
+  separately lists GPL-2.0-or-later, LGPL-2.0-or-later,
+  LGPL-2.1-or-later, BSD-3-Clause, GPL-3.0-or-later with the GCC Runtime
+  Library Exception 3.1, and the joint GPL-3.0-or-later and
+  LGPL-2.1-or-later terms for `gdb/gdb_proc_service.h`.
+- `libbabeltrace1` 1.5.11-5build1's notice, SHA-256
+  `c8244eb5b320c189de956325580d3314b35a4b6fb566a18b8f96878e12f430b3`,
+  states MIT for the general source population, GPL-2.0-only for tests,
+  LGPL-2.1-only for `include/babeltrace/list.h`, and GPL-3.0-or-later
+  for Debian packaging.
+- `libdebuginfod-common`, `libdebuginfod1t64` and `libdw1t64` 0.194-4
+  carry the byte-identical elfutils notices and terms recorded above.
+- `libsource-highlight-common` and `libsource-highlight4t64`
+  3.1.9-4.3build2 share notice SHA-256
+  `f8305da6853fc5ef976007d88526130c2f011ea100010fecf4c7e6100911e073`.
+  The notice states GPL-3.0-or-later for the general source population
+  and Expat terms for Debian packaging.
+
+The notices reference distribution system copies of GNU license texts. The
+intended use is private, unmodified execution of a separate debugger and its
+runtime dependencies in the assigned native lane. Exact archives, notices and
+debugger data stay in that lane for local diagnostics. The public tree records
+their identities and terms.
+
 ## Read ahead of a later milestone
 
 These reviews support future incorporation decisions in the [implementation plan](PLAN.md). No candidate source is vendored or fetched here. Existing RTL and cryptography references are identified in [the submodule table](#pinned-as-submodules). Review the applicable terms at the milestone that would incorporate a component.
