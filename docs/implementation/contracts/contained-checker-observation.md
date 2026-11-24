@@ -2,11 +2,11 @@
 
 ## Decision and scope
 
-The selected candidate for Q39's independent observation qualification is bounded
-Linux `perf` sampling with DWARF user-stack unwinding, with the explicit tool
-prerequisite below. It changes no locked checker or compiler
-bytes and performs no proof repair. No real Parser diagnostic is authorized by
-this contract. The
+The first candidate for Q39's independent observation qualification used bounded
+Linux `perf` sampling with DWARF user-stack unwinding. The
+[parent-owned debugger candidate](#parent-owned-debugger-candidate) takes up the
+unmet observation prerequisite. Both use unchanged locked checker and compiler
+bytes. A real Parser diagnostic requires its own landed predicate. The
 [locked capture review](../contained-compiler-port-decisions.md#capture-prerequisite-at-the-locked-checker)
 owns the retained input basis and the limits of its buffered profile.
 
@@ -282,3 +282,102 @@ the empty record has SHA-256
 These records supply no compiler/kernel qualification, accepted observation
 adapter or Q39/Q43 completion. A different compatible observation tuple requires
 its own selected prerequisite and independently reviewed bounded predicate.
+
+## Parent-owned debugger candidate
+
+Use GDB/MI on AArch64 to start and interrupt its own inferior. This route
+depends on native parent tracing and debug unwinding. The restored guest reports
+`6.18.58.1-microsoft-standard-WSL2` and has no installed GDB. Read-only ELF
+inspection finds unwind information, debug information and a symbol table in
+the retained checker. The retained `q39-port` switch provides the historical
+native OCaml compiler. Section presence alone establishes no unwind verdict.
+
+The target distinction is conversion under declaration-type inference, body
+inference or final comparison, or during module checking or subtyping. The
+historical sample already finds closure conversion under structure-field
+checking. All four whole audits proceed past the same lemma name in generic
+module contexts and end at its concrete Parser occurrence. The locked checker
+uses distinct phase call sites. A later diagnostic must bind the live caller's
+source site and the declaration or module identity independently of the
+conversion function name. The checker sends its declaration-entry notice through
+a synchronous console feeder with a formatter flush. Before using that notice,
+bind the installed implementation and require a complete drained record from
+the stopped inferior and a matching live frame past the emission site. An
+unresolved frame or site, ambiguous phase or unbound name yields an unresolved
+observation. Repeated snapshots give no compared terms, cause or progress bound.
+[Declaration checking](https://github.com/rocq-prover/rocq/blob/V9.3.0/checker/mod_checking.ml#L51-L103)
+[Module checking](https://github.com/rocq-prover/rocq/blob/V9.3.0/checker/mod_checking.ml#L262-L328)
+[Checker feedback setup](https://github.com/rocq-prover/rocq/blob/V9.3.0/checker/coqchk_main.ml#L435-L440)
+[Feedback implementation](https://ocaml.org/u/4ab63f3d84e8baf8c600d4361ecf7619/rocq-runtime/9.3.0/src/rocq-runtime.lib/feedback.ml.html)
+[Retained audits](../retained-evidence/q39/interrupted-audits-20261012/README.md)
+
+### Private debugger acquisition
+
+Select the following `resolute/main` archives. The cached `InRelease`, SHA-256
+`45f95ce276cdba3e41870516a130e03c58b8b7a79e9546b0efe9e526d255740c`,
+verifies with the Ubuntu archive signing fingerprint
+`F6ECB3762474EDA9D21B7022871920D1991BC93C`. The signed entry binds a
+7,533,190-byte `main/binary-arm64/Packages` index with SHA-256
+`f1139a214af70f615388f8d4b377f591767bb52e45adb133679479c27a4dde8c`.
+The local uncompressed index matches. Simulated dependency resolution with
+recommendations disabled selected this population without upgrades or removals.
+
+| Package | Version | Architecture | Archive SHA-256 |
+| --- | --- | --- | --- |
+| `gdb` | `17.1-2ubuntu1` | `arm64` | `d9191045754c9908eb18e7ef972b27cacae3ddc3f39e635c5514a18a64a2da42` |
+| `libbabeltrace1` | `1.5.11-5build1` | `arm64` | `ee23d538a5afa4fc5b05d0f8f06ef3da7df53a407c3a017f8f00b20f9733c81b` |
+| `libdebuginfod-common` | `0.194-4` | `all` | `151b5cfce8702069ef2caaa09bba3af4e28415fcb87bc948465747a370402b0b` |
+| `libdebuginfod1t64` | `0.194-4` | `arm64` | `536f23845ba4a4b671c3e61a14e6aacfc511b0e4fac4ecd81c7e0215259a06bb` |
+| `libdw1t64` | `0.194-4` | `arm64` | `8f81bc569e72acd97197890fa34e6a91fe601a6d1632d99bc4569791a25c4724` |
+| `libsource-highlight-common` | `3.1.9-4.3build2` | `all` | `9208a5cb2e873ae7bcc458f13d51aaec29a04c563df926cad9145af8a4234bf4` |
+| `libsource-highlight4t64` | `3.1.9-4.3build2` | `arm64` | `017ea387e6210acb241a2dce2fed2da3d7ba7780ea48a440989ee610ecaf1d38` |
+
+Reverify the signature and exact index before acquiring only these archives at
+the signed relative paths from the archive or official ports mirror. Use the
+[prior acquisition procedure](#private-distribution-tool-prerequisite) for
+download bounds, exact lengths, own-license reading, contained extraction and
+ELF/dependency binding. Record each archive's actual terms and intended use in
+[THIRD-PARTY.md](../../../THIRD-PARTY.md) before adopting executable bytes. Bind
+GDB's version, build configuration, interpreter, actual library closure and
+data path. Use explicit paths and child-only settings. Disable startup scripts,
+automatic script loading, symbol downloads, inferior shell startup and
+debugger-induced randomization changes. Keep archives, binaries and extracted
+files in the assigned native lane. [GDB auto-loading](https://sourceware.org/gdb/current/onlinedocs/gdb.html/Auto_002dloading.html)
+
+### Independent debugger controls
+
+The cheapest refusal after acquisition is a single launch and interrupt of a
+tiny owned C child. Require a genuine asynchronous all-stop event for that
+inferior. An opening failure ends the tuple. Then qualify C and native OCaml
+separately. In each language the positive cases mark completion of an earlier
+operation and exercise two distinguishable phases that call the same non-tail
+nested work. Each active interval is delimited by control markers independent
+of GDB, with completion emitted only after returning. Use the historical locked
+OCaml compiler with exact native and debug flags.
+
+Start each phase in a fresh inferior. Bind its PID, the stopped thread, source,
+ELF, mappings and debug bytes. Verify asynchronous execution support. Keep the
+raw MI stream and inferior console separately, including a control that prints
+MI-like text to its own console. Read frames after the matching asynchronous
+stop, following the independently flushed active marker. Require the inner then
+outer frames and the correct phase's caller site even when the nested frames
+are identical across phases. Require actual resumption, completion markers and
+normal exit on the completion case. On a separate interruption case, retain
+the stop, actual exit signal and surviving marker prefix. Check that all owned
+children have exited. Never synthesize completion. [GDB/MI execution](https://sourceware.org/gdb/current/onlinedocs/gdb.html/GDB_002fMI-Program-Execution.html)
+[GDB/MI stack inspection](https://sourceware.org/gdb/current/onlinedocs/gdb.html/GDB_002fMI-Stack-Manipulation.html)
+
+Replay the raw evidence and reject a deliberately truncated copy, wrong phase,
+unresolved frame, missing or duplicate stop, PID or mapping substitution, byte
+drift and unexpected debugger or inferior exits. Preserve a failed capture and
+its actual verdict. Recheck bound identities before returning. Allow one
+three-second wall window per capture, ten seconds per replay, sixty seconds for
+the entire qualification, 512 MiB address space per process and 16 MiB total
+output. On timeout terminate and reap only the recorded owned processes, with
+one second for graceful cleanup before forced termination. Reaching a limit
+refuses the candidate.
+
+These control limits authorize no real Parser run. Land that operation's own
+hypothesis, sealed inputs, source-site and name correlation, resource caps and
+stopping rule after the independent controls pass. Q39's whole-environment
+qualification and Q43's complete-tier default reuse retain their predicates.
