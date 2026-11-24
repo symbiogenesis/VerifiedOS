@@ -18,9 +18,9 @@ retain their own work.
 ## Host migration status
 
 The [current host status](tools/wsl-migration.md#current-host-status) records the
-fresh WSL distribution after the Windows reinstall. Native host controls can
-continue. Q39's retained compiler investigation and Q43's reuse of that basis
-need their missing private source and native evidence. The
+default WSL toolchain and the recovered distribution that contains the native
+Q39 compilation artifacts and Q43 cache metadata. Compiler reuse still requires
+the bound private helpers and validation of the complete input ancestry. The
 [native census follow-up](#native-sail-census-validation) retains its hosted
 execution boundary.
 
@@ -3219,12 +3219,12 @@ Target a tenfold reduction in end-to-end Python replay time without increasing
 peak memory. No such speedup has been measured; an interrupted local run supplies
 no completed baseline.
 
-The [fresh WSL guest](tools/wsl-migration.md#current-host-status) has no retained
-native census or control directories. Recover the exact original controls from
-retained evidence or generate and bind a replacement baseline on GitHub-hosted
-Actions. Bind the complete control emission and readings for the
-[hosted comparison inputs](tools/ci/census-benchmark-inputs.json) before profiling
-or comparing replay performance.
+The original three-root control emission and readings remain unavailable on the
+[current host](tools/wsl-migration.md#current-host-status). Recover the exact
+original controls from retained evidence or generate and bind a replacement
+baseline on GitHub-hosted Actions. Bind the complete control emission and
+readings for the [hosted comparison inputs](tools/ci/census-benchmark-inputs.json)
+before profiling or comparing replay performance.
 
 - Profile parsing, schema traversal, native metadata/resolver joins, control-copy
   cost and each corruption case on the exact hash-bound support and control

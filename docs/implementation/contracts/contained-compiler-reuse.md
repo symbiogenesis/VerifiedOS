@@ -251,11 +251,11 @@ dated observation, not a live index or a backup of the contained bytes. Compiler
 sources, objects, executables and installed libraries remain unindexed and
 unpublished under the existing containment rules.
 
-The [Windows reinstall](../../../tools/wsl-migration.md#current-host-status)
-left the native compilation basis and private checkout unavailable at their
-documented paths. The original receipts still bind the exact source, helper
-paths and installed libraries. Reuse requires those inputs and a successful
-validation of their ancestry.
+The [recovered WSL distribution](../../../tools/wsl-migration.md#current-host-status)
+contains both sealed VM compilation candidates and the compilation-tier index
+and controller receipt at their recorded guest paths. The original receipts bind
+the exact source, private helper paths and installed libraries. Reuse requires
+those inputs and successful validation of their ancestry.
 
 The catalog records historical read-only `compiler-build status` validation of the
 sealed VM compilation candidates. Its compile verdicts are `reused` and `passed`;

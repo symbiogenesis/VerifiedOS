@@ -9,22 +9,29 @@ copy that mounted Windows directory.
 
 ## Current host status
 
-As of **2026-11-21**, the reinstalled Windows host uses a fresh ARM64
-`Ubuntu-26.04` WSL2 distribution with Python 3.14, [pinned uv](pyproject.toml),
-and native C/C++ tools. The [reviewed opam client](vos/opam_client.py), the
+As of **2026-11-24**, ARM64 `Ubuntu-26.04` is the default WSL2 distribution.
+It has Python 3.14, [pinned uv](pyproject.toml), and native C/C++ tools.
+The [reviewed opam client](vos/opam_client.py), the
 [pinned solver](vos/env.py#z3_install) and the locked [Sail and Rocq switches](opam/README.md)
 are installed. `python tools/run.py provision --check --only gate` passes, and
 `python tools/run.py model lane` dispatches from Windows and reports native ext4
 build and log roots.
 
-No WSL backup was available. The previous distribution, the private
-`verifiedos-cheri-compcert` checkout and the previously recorded transfer
-package were absent at their documented local paths. The tracked
-[compilation catalog](../docs/implementation/contracts/contained-compiler-reuse.md#retained-incomplete-compilation)
-preserves historical identities and verdicts. Reuse still requires the exact
-sealed native inputs, libraries, helpers and bound paths. Interrupted audits
-have no resumable checkpoint.
+`VerifiedOS-Restored` is registered as a separate ARM64 WSL2 distribution at
+`C:\Users\symbi\WSL-Recovered-20261124\VerifiedOS-Restored\ext4.vhdx`.
+The copy matched the SHA-256 of the source image on `D:` before registration.
+Read-only inspection found both sealed Q39 VM compilation candidates, the Q43
+controller receipt and cache index, installed opam switches, and build logs.
+The recovered compiler binaries, source archives, locks, seals and Q43 metadata
+match the [compilation catalog and index bundle](../docs/implementation/contracts/contained-compiler-reuse.md#retained-incomplete-compilation).
 
+The recovered private compiler checkout is at
+`C:\Users\symbi\WSL-Recovered-20261124\verifiedos-cheri-compcert`. Its Git
+object store contains the recorded validator commit. Reuse requires validation
+of the sealed inputs, libraries, helpers and their historical path bindings.
+Interrupted audits have no resumable checkpoint.
+
+The original three-root Sail census controls and readings remain unavailable.
 Full native Sail census generation, validation and replay remain
 [GitHub-hosted Actions work](../docs/implementation/contracts/sail-support-census.md#hosted-only-execution).
 
@@ -34,8 +41,7 @@ The commands below run in **PowerShell**. Replace `Ubuntu` with the old
 distribution's exact name and `E:` with a transfer drive that has enough free
 space. Finish active builds and stop applications using that distribution first.
 Keep transfer archives and private compiler data unpublished and outside the
-public Git index; the verified current host uses the ignored retention location
-above.
+public Git index.
 
 ## 1. Export on the old computer
 
@@ -161,10 +167,8 @@ The repository's hosted-only installation and acceptance rules still apply.
 
 Run this after copying the transfer drive to the new computer. To preserve the
 historical absolute-path bindings during a future restore, restore the contained
-compiler to its original path with all its Git metadata. The
-[current host's retained copies](#current-host-status) use the ignored `out/`
-location instead. Refuse an existing destination so a different checkout cannot
-be overwritten.
+compiler to its original path with all its Git metadata. Refuse an existing
+destination so a different checkout cannot be overwritten.
 
 ```powershell
 $privateRepo = 'C:\Users\symbi\source\repos\verifiedos-cheri-compcert'
