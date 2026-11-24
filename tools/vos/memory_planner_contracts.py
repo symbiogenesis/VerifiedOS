@@ -1,7 +1,8 @@
 # SPDX-License-Identifier: Apache-2.0
 """Extract placement conflicts from bounded component protocol contracts.
 
-This is an executable contract IR, not a Vela parser or a proved compiler pass.
+This executable IR takes bounded protocol contracts as input. HoldFast parsing
+and compiler refinement sit outside its scope.
 Every declared control-flow alternative is interpreted; a budget refusal never
 returns a partial conflict graph. Storage remains occupied after lexical release
 until retained values, authority, accepted device work, the post-revocation sweep

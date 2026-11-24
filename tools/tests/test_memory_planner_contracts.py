@@ -69,7 +69,7 @@ def _demo_savings_and_async_refutation() -> None:
         ensure(frozenset((f"phase-a@{slot}", f"phase-b@{slot}")) not in _edge_set(normal),
                "mutually disjoint local phases may share backing")
     ensure("source and target refinement remain assumptions" in normal["evidence"]["scope"],
-           "evidence may not claim a Vela or machine proof")
+           "evidence must state that source and target refinement remain assumptions")
 
 
 def _generated_interleavings() -> None:

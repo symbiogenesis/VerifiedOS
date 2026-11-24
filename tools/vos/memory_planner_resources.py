@@ -9,8 +9,8 @@ wait, scheduling and cleanup; no event count is reported as measured time.
 
 The strong/weak specification pattern is inspired by Verified Sequential
 Malloc/Free; its bin allocator, VST proofs and runtime mechanisms are not imported.
-The accompanying Gallina model proves the credit arithmetic and duration bound,
-not correspondence from Vela source or this Python implementation.
+The accompanying Gallina model proves the credit arithmetic and duration bound.
+Correspondence with HoldFast source and this Python implementation remains open.
 """
 
 import copy
