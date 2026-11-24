@@ -309,7 +309,19 @@ observation. Repeated snapshots give no compared terms, cause or progress bound.
 [Module checking](https://github.com/rocq-prover/rocq/blob/V9.3.0/checker/mod_checking.ml#L262-L328)
 [Checker feedback setup](https://github.com/rocq-prover/rocq/blob/V9.3.0/checker/coqchk_main.ml#L435-L440)
 [Feedback implementation](https://ocaml.org/u/4ab63f3d84e8baf8c600d4361ecf7619/rocq-runtime/9.3.0/src/rocq-runtime.lib/feedback.ml.html)
-[Retained audits](../retained-evidence/q39/interrupted-audits-20261012/README.md)
+[Retained audit logs](../retained-evidence/q39/pending-audits-20261012/README.md)
+
+The retained checker's static call-site map distinguishes type inference, body
+inference and final comparison. The body inference path inlines a wrapper from
+`typeops.ml`, so the displayed file for a caller PC can differ from
+`mod_checking.ml`. Use the exact installed source and emitted call instruction
+with the PIE load bias and return-address convention. The source tag alone
+cannot resolve that caller site. The installed feedback source confirms
+synchronous feeder dispatch and an explicit console formatter flush. The
+executable and both installed source hashes match the
+[retained bindings](../retained-evidence/q39/bounded-parser-profile-20261013/bindings.json.gz).
+This verifies the static discriminator. Live frame recovery remains a separate
+check.
 
 ### Private debugger acquisition
 
@@ -381,3 +393,36 @@ These control limits authorize no real Parser run. Land that operation's own
 hypothesis, sealed inputs, source-site and name correlation, resource caps and
 stopping rule after the independent controls pass. Q39's whole-environment
 qualification and Q43's complete-tier default reuse retain their predicates.
+
+### Restored guest opening checkpoint
+
+The Ubuntu ports mirror supplied the complete selected archive population. The
+acquisition report, SHA-256
+`1df72009a25beb413e92a96c1317a86009e7a0a27209de3ed5c1b7884478805e`, binds the
+signed index, exact package bytes and own-license notices. The
+[license record](../../../THIRD-PARTY.md#contained-compiler-observer) landed
+before private extraction and executable use. The ELF preflight report,
+SHA-256 `f143096257663f61e49ee2c28b57393d9db45b593631c57508052693172c0449`,
+binds GDB 17.1, the explicit AArch64 loader, debugger data and actual shared
+objects. The first entry review refused a relative dangling documentation
+link within the private root before extraction. The containment review then
+accepted the link with its original relative target and kept the complete
+extraction private. GDB's bound version and configuration invocations passed.
+
+The strict C17 opening control compiled and its isolated parser fixtures refused
+stale, duplicate and missing stop records. The single live opening used the
+bound debugger on the restored WSL kernel. GDB accepted the asynchronous MI
+settings and reported creation of the owned inferior. It then reported an
+internal fatal error and `error creating backtrace: mmap: 12` and exited at
+`-11`. The controller observed no active marker, interrupt acknowledgment,
+stop or frames. It confirmed the PID-bound inferior was reaped and rechecked
+unchanged input identities. The inferior's exit status was unavailable.
+
+The opening report, SHA-256
+`c47dc33ce841cc05e9234819c23f3c089fc6600f223e3cabccb91007fa0967b7`, and raw MI,
+stderr and console streams remain in the restored distribution, indexed by the
+`q39-observer-20261124` fan-out's native retention receipt. This refuses the
+tested startup tuple. The failure leaves the cause, parent tracing support and
+OCaml unwind behavior unresolved. A revised preflight must address the startup
+failure under its own bounded predicate. The two-phase controls and real Parser
+operation have no verdict.
