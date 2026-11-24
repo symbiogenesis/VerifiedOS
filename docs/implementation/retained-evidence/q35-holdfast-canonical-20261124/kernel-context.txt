@@ -1,0 +1,55 @@
+
+CONTEXT SUMMARY
+===============
+
+* Theory: Set is predicative
+  
+* Theory: Rewrite rules are not allowed
+  
+* Axioms:
+    rv64d.riscv_i64ToF64
+    rv64d.riscv_i64ToF32
+    rv64d.riscv_ui64ToF64
+    rv64d.riscv_ui64ToF32
+    rv64d.riscv_i32ToF64
+    rv64d.riscv_i32ToF32
+    rv64d.riscv_ui32ToF64
+    rv64d.riscv_ui32ToF32
+    rv64d.riscv_f32ToUi64
+    rv64d.riscv_f32ToUi32
+    rv64d.riscv_f32ToBF16
+    rv64d.riscv_f32MulAdd
+    rv64d.riscv_f64ToI64
+    rv64d.riscv_f64ToI32
+    rv64d.riscv_f64ToF32
+    rv64d.riscv_f64Sqrt
+    rv64d.riscv_f32Sqrt
+    rv64d.riscv_f32ToI64
+    rv64d.riscv_f32ToI32
+    rv64d.riscv_f32ToF64
+    rv64d.riscv_f64Sub
+    rv64d.riscv_f64Mul
+    rv64d.riscv_f64Div
+    rv64d.riscv_f64Add
+    rv64d.riscv_f32Sub
+    rv64d.riscv_f32Mul
+    rv64d.riscv_f32Div
+    rv64d.riscv_f32Add
+    rv64d.riscv_f64ToUi64
+    rv64d.riscv_f64ToUi32
+    rv64d.riscv_f64MulAdd
+  
+* Constants/Inductives relying on type-in-type: <none>
+  
+* Constants/Inductives relying on unsafe (co)fixpoints: <none>
+  
+* Inductives whose positivity is assumed: <none>
+  
+* Inductives relying on indices not mattering:
+    Corelib.Init.Datatypes.eq_true
+    stdpp.base.TCEq
+    Stdlib.btauto.Algebra.null
+    Stdlib.Logic.EqdepFacts.eq_dep
+    Corelib.Init.Logic.eq
+    rv64d_types.Interface.outcome
+  

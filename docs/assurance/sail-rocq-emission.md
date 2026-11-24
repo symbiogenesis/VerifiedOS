@@ -4,14 +4,19 @@ Q35o remains open. The canonical target omits unused `Real`, and its generation
 identity binds the native plugins Sail selects. A private syntax candidate
 preserves the minimal and canonical types' elaborated declarations; the
 handwritten support and candidate types compile strictly without diagnostics.
-The retained main-module compile against the earlier support stops at Q35p's
-tag-write monad mismatch. The main has not been qualified against the
-[memory-binding candidate](sail-memory-bindings.md).
+The [canonical candidate replay](#canonical-candidate-replay) also compiles the
+untouched main with Q35p's [tag-outcome support](sail-memory-bindings.md) and
+reads its recursive kernel context. Complete frozen comparison and production
+support carriage remain open.
 
 ## Retained evidence
 
 Each bundle binds its executed commands, inputs, readings and diagnostics.
 
+- [Canonical candidate replay](../implementation/retained-evidence/q35-holdfast-canonical-20261124/manifest.json),
+  SHA256 `7372aa91c69788edf57e531c9b333ad3ce820cf7432a6f543deca56ea5947188`.
+  Stock and candidate emission identities, strict compilation, the native
+  kernel context, named assumption reconciliation and focused controls.
 - [Handwritten support and canonical types](../implementation/retained-evidence/q35o-handwritten-types-20261023/manifest.json),
   SHA256 `e6d5db45c31b8983a137bfbd0bd04a9ea36a400a9128aecad9f66a6b97bf835d`:
   preserving import repair, native declarations and assumptions, fresh original-plugin
@@ -120,8 +125,28 @@ selected-source membership and lane containment and checks installed sentinels.
 
 Q35p's semantic qualification and Q35q's [native census](sail-support-inventory.md)
 are independent prerequisites. Q35o still owes complete canonical-main frozen
-comparison and hosted immutable-plugin/source qualification. Q35b retains strict
-whole-term compilation, exact assumption closure and compiled size; Q35n retains
-cold production carriage. The handwritten proof-maintenance handoff requires
+comparison and hosted immutable-plugin/source qualification. Q35b consumes the
+compile, closure and size with qualified production support. Q35n owns cold
+production carriage. The handwritten proof-maintenance handoff requires
 cold Guest CI under the existing proof workflow. Hosted execution and verdicts
 remain user-managed under the [validation handoff](../../AGENTS.md#tool-execution-and-validation).
+
+## Canonical candidate replay
+
+At `498127d6`, `model rocq` emitted the frozen hart-0 term with the installed
+plugin and with a private plugin rebuilt from the retained syntax patch. The
+receipts bind the same model source population and configuration, and each
+identifies the plugin population it used. The rebuilt binary has its own digest.
+The candidate uses the locked Sail and Rocq switches, a private stdpp-bitvector
+build and the checksum-bound coq-sail support patches.
+
+Rocq 9.3.0 compiled all 29 selected support modules, the minimal emitted caller
+and its tag controls, and the handwritten support and both canonical modules with
+the strict settings. Both canonical sources were compiled as emitted. The
+resulting `rv64d.vo` is 5,207,215 bytes. Its compile took 69.91 seconds and peaked
+at 1,779,688 KiB. The recursive kernel check took 80.45 seconds and matched the
+31 floating-point axioms by name against both emissions and the
+[classified list](canonical-machine-term.md#the-31-the-emission-declares).
+Its context also records `rv64d_types.Interface.outcome` among the inductives
+elaborated under the checker's default indices policy. F-480 retains the
+R-05-164 decision on the floating-point axioms.

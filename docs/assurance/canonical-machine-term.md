@@ -1,6 +1,6 @@
 # The canonical machine term
 
-*Q35b's record in [the implementation plan](../../PLAN.md#q-assessment-actions), owning [the proof map's](unassigned-proof-map.md#7-the-next-slices) U-21, with Q35f's frozen-profile target and model-side axiom removals and Q35g's support-library changes. R-05-019b makes Sail's emitted Rocq definitions the canonical term shared by the machine logic and RTL refinement; R-05-019c keeps emission downstream of the reviewed model. This record owns generation identity, undeclared axioms, size and tracking. Complete compilation at the locked prover, exact assumption closure and compiled size remain open. [The opam guide](../../tools/opam/README.md) owns library carriage, and [the whole-term refusal](#9-the-whole-term-compile-refusal) owns the semantic blocker.*
+*Q35b's record in [the implementation plan](../../PLAN.md#q-assessment-actions), owning [the proof map's](unassigned-proof-map.md#7-the-next-slices) U-21, with Q35f's frozen-profile target and model-side axiom removals and Q35g's support-library changes. R-05-019b makes Sail's emitted Rocq definitions the canonical term shared by the machine logic and RTL refinement; R-05-019c keeps emission downstream of the reviewed model. This record owns generation identity, undeclared axioms, size and tracking. The [canonical candidate replay](sail-rocq-emission.md#canonical-candidate-replay) records strict compilation, a recursive kernel context and compiled size on private support. [The opam guide](../../tools/opam/README.md) owns production library carriage.*
 
 The retained evidence binds each measurement to its inputs:
 
@@ -98,7 +98,7 @@ Flattened by [the tools' configuration reader](../../tools/vos/config.py), the t
 
 ## 5. Undeclared axioms and how each can leave
 
-This section lists every undeclared axiom and parameter that a source reading, and the probe below, places in the term's closure, and how each that has left did. It is not the closure as the gate reads it: the gate reads the kernel checker's whole-environment summary after compilation, as [the tool guide](../../tools/README.md#current-evidence-and-generated-documentation) states, and that compile is owed. R-05-164's declared set is empty, so the gate refuses every name the term or its support library still declares.
+This section classifies the undeclared axioms and parameters and records the removals. The [canonical candidate replay](sail-rocq-emission.md#canonical-candidate-replay) matches its recursive kernel context against the classified floating-point names below. The gate reads the kernel context from the production compile under [the tool guide](../../tools/README.md#current-evidence-and-generated-documentation). R-05-164's declared set is empty, so the gate refuses every name the term or its support library still declares.
 
 Three classes, following the plan's cell:
 

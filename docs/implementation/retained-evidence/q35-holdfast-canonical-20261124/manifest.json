@@ -1,0 +1,34 @@
+{
+  "files": {
+    "candidate-generation.json": {
+      "bytes": 28248,
+      "encoding": "identity",
+      "path": "candidate-generation.json",
+      "sha256": "de79b0065b4c24208b24025bbaeef81cead7585ab5cc47abf621ec1825d6791b"
+    },
+    "closure-reading.json": {
+      "bytes": 34511,
+      "encoding": "identity",
+      "path": "closure-reading.json",
+      "sha256": "1069c05ee065bed720bc69160888dd074820ad67dde0ff53706476805b1464d2"
+    },
+    "compile-result.json": {
+      "bytes": 5799,
+      "encoding": "identity",
+      "path": "compile-result.json",
+      "sha256": "0a2ba092d2fd3e064963887624624f2c09317e48b6c6fe06dc8d8e1f3ecc74f9"
+    },
+    "kernel-context.txt": {
+      "bytes": 1297,
+      "encoding": "identity",
+      "path": "kernel-context.txt",
+      "sha256": "50718d7209ba9a991d6307d6b75bc5f2596b83cfad539365c5ac1ca236bcc769"
+    },
+    "original-generation.json": {
+      "bytes": 28273,
+      "encoding": "identity",
+      "path": "original-generation.json",
+      "sha256": "a99773bed420a81e16997bea2fd8c21a7faaaa414edbe63f3e3c7de5e1e5f6df"
+    }
+  }
+}

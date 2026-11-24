@@ -1,0 +1,157 @@
+{
+  "checkout": "498127d6be3d1a70581ba4a9cc025c2d923e66f7",
+  "generation_receipt_sha256": "de79b0065b4c24208b24025bbaeef81cead7585ab5cc47abf621ec1825d6791b",
+  "rocq_version": "The Rocq Prover, version 9.3.0\ncompiled with OCaml 5.4.1",
+  "rocq_sha256": "e514e102881b5501b5d4d665e191ac1d0a8429e1a30094a719e73dfb1b545e90",
+  "plugin_sha256": "3f2fb3bdbbc3eb31e9e48afc299f7b1da0f13d9bbbde18b01795c39cf920f821",
+  "support_recipe_sha256": "fe528488ce7e12e077eaee00555cc477325986fc9ee12d5b896e5b651f256d46",
+  "semantic_candidate_sha256": "5c1715e16c89a383e96d61a8c6a74bfa5626b872e027c58d3417b5bdacc992f4",
+  "baseline_equivalence": "unassessed",
+  "kernel_closure": "unassessed",
+  "results": [
+    {
+      "name": "riscv_extras.v",
+      "argv": [
+        "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/bin/rocq",
+        "c",
+        "-boot",
+        "-R",
+        "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/lib/coq/theories",
+        "Corelib",
+        "-Q",
+        "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/lib/coq/user-contrib/Stdlib",
+        "Stdlib",
+        "-Q",
+        "/root/build/lane-holdfast-20261124-canonical/replay-inputs/private/lib/coq/user-contrib/stdpp",
+        "stdpp",
+        "-R",
+        "/root/build/lane-holdfast-20261124-canonical/replay-inputs/canonical-support",
+        "SailStdpp",
+        "-R",
+        "/root/build/lane-holdfast-20261124-canonical/whole-term-diagnostic",
+        "",
+        "-q",
+        "-w",
+        "+default,-abstract-large-number",
+        "-set",
+        "Default Goal Selector=!",
+        "-disallow-sprop",
+        "/root/build/lane-holdfast-20261124-canonical/whole-term-diagnostic/riscv_extras.v"
+      ],
+      "source_sha256": "915b983983421afcacb14a534c50f56619dd85a5bbb35097bb595c3116a9089e",
+      "elapsed_seconds": 0.7330124919999434,
+      "exit": 0,
+      "diagnostics": {
+        "stdout": {
+          "path": "riscv_extras.stdout",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        "stderr": {
+          "path": "riscv_extras.stderr",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        }
+      },
+      "wall_seconds_and_peak_kib": "0.72 461396",
+      "object_bytes": 5456,
+      "object_sha256": "a689c35a9caf234e8b8ad1834dcb1501e6ee674b035c067a57431c8e6df19f62"
+    },
+    {
+      "name": "rv64d_types.v",
+      "argv": [
+        "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/bin/rocq",
+        "c",
+        "-boot",
+        "-R",
+        "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/lib/coq/theories",
+        "Corelib",
+        "-Q",
+        "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/lib/coq/user-contrib/Stdlib",
+        "Stdlib",
+        "-Q",
+        "/root/build/lane-holdfast-20261124-canonical/replay-inputs/private/lib/coq/user-contrib/stdpp",
+        "stdpp",
+        "-R",
+        "/root/build/lane-holdfast-20261124-canonical/replay-inputs/canonical-support",
+        "SailStdpp",
+        "-R",
+        "/root/build/lane-holdfast-20261124-canonical/whole-term-diagnostic",
+        "",
+        "-q",
+        "-w",
+        "+default,-abstract-large-number",
+        "-set",
+        "Default Goal Selector=!",
+        "-disallow-sprop",
+        "/root/build/lane-holdfast-20261124-canonical/whole-term-diagnostic/rv64d_types.v"
+      ],
+      "source_sha256": "776bc8f9e08efa63dbb767726506de988240791e847043d5fe6322c572ab97d8",
+      "elapsed_seconds": 18.989357458000086,
+      "exit": 0,
+      "diagnostics": {
+        "stdout": {
+          "path": "rv64d_types.stdout",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        "stderr": {
+          "path": "rv64d_types.stderr",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        }
+      },
+      "wall_seconds_and_peak_kib": "18.98 1051388",
+      "object_bytes": 4653168,
+      "object_sha256": "e18879a02c648bab5c6f05db6afac4187f9f9e6aef6d8c6cde78c3de519cf2ad"
+    },
+    {
+      "name": "rv64d.v",
+      "argv": [
+        "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/bin/rocq",
+        "c",
+        "-boot",
+        "-R",
+        "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/lib/coq/theories",
+        "Corelib",
+        "-Q",
+        "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/lib/coq/user-contrib/Stdlib",
+        "Stdlib",
+        "-Q",
+        "/root/build/lane-holdfast-20261124-canonical/replay-inputs/private/lib/coq/user-contrib/stdpp",
+        "stdpp",
+        "-R",
+        "/root/build/lane-holdfast-20261124-canonical/replay-inputs/canonical-support",
+        "SailStdpp",
+        "-R",
+        "/root/build/lane-holdfast-20261124-canonical/whole-term-diagnostic",
+        "",
+        "-q",
+        "-w",
+        "+default,-abstract-large-number",
+        "-set",
+        "Default Goal Selector=!",
+        "-disallow-sprop",
+        "/root/build/lane-holdfast-20261124-canonical/whole-term-diagnostic/rv64d.v"
+      ],
+      "source_sha256": "221ee0fcdada1915f17b61fe80b4861e9105a0e11f8b070a54ca1b55f1bb289b",
+      "elapsed_seconds": 69.92450828899973,
+      "exit": 0,
+      "diagnostics": {
+        "stdout": {
+          "path": "rv64d.stdout",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        "stderr": {
+          "path": "rv64d.stderr",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        }
+      },
+      "wall_seconds_and_peak_kib": "69.91 1779688",
+      "object_bytes": 5207215,
+      "object_sha256": "ad2b316fb92d8bb22fb255d92c7526d92125078167599c3e8205aca56e3cb71d"
+    }
+  ]
+}
