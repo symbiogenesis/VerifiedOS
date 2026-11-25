@@ -588,23 +588,20 @@ qualify the refreshed external oracle; target and refinement joins remain open.
 ## Instrument switch route
 
 [instrument-switches.yml](../../.github/workflows/instrument-switches.yml) builds and
-checks QuickChick's switch on GitHub-hosted runners, and this section owns its contract.
-QuickChick's switch is built and checked only on this route: no QuickChick switch is
-built or checked in the local guest, and no QuickChick lock is tracked from a guest
-build. `run.py provision --apply` must not import QuickChick in the local guest,
-as [the lock guide](../opam/README.md) states (F-616).
-CertiRocq builds stay local; no CertiRocq switch is built, checked or dispatched
-on this route. No switch or download cache is used, so every switch a run reports was built in that run
-from its recipe or lock in a fresh root; the uv cache Guest CI saves is read and never
-saved.
+checks QuickChick's switch on GitHub-hosted runners. QuickChick switch builds, checks and lock exports use
+this route exclusively. Use explicit imports for other switches in the local guest
+because the generic provisioner includes QuickChick's import recipe (F-616).
+Each hosted run builds or imports the switch into a fresh opam root with a fresh
+opam download cache. It can restore the uv download cache created by Guest CI.
+The [local switch installation instructions](../opam/README.md#local-switch-installation)
+cover CertiRocq and the other separately installed switches.
 
 **Dispatch and plan.** `run.py instrument-ci dispatch` sends one dispatch with the
 inputs `revision`, `base_revision`, `build` (`install` or `recipe`), `sample` (a whole
-number from 1 to 20, default 20) and `title`, at a `--ref` that defaults to `main`, and
-refuses nothing the plan refuses. It puts a per-dispatch nonce in the run title,
-journals its intent under `out/instrument-ci/dispatches/` before its one POST, and
-recovers an interrupted dispatch with `--resume NONCE` by the run whose title carries
-the nonce, never by posting again. `fanout` never runs it.
+number from 1 to 20, default 20) and `title`, at a `--ref` that defaults to `main`.
+The hosted plan validates those inputs. The dispatcher puts a nonce in the run title
+and records its intent under `out/instrument-ci/dispatches/` before sending the POST.
+`--resume NONCE` recovers the existing run by matching the nonce in its title.
 
 The optional `dispatch --revision-from HEAD` convenience resolves a local Git ref
 to a full lowercase commit SHA, displays it and journals the exact value sent.

@@ -43,8 +43,9 @@ chain campaign from its staged inputs under [the boot-handoff contract](../docs/
 [instrument-switches.yml](../.github/workflows/instrument-switches.yml) builds and
 checks the QuickChick switch on manual dispatch from `main` under
 [the instrument switch route](ci/README.md#instrument-switch-route); `run.py instrument-ci`
-dispatches it and reads its runs back. `run.py provision --apply` must not import
-QuickChick in the local guest (F-616).
+dispatches it and reads its runs back. Follow the
+[local switch installation instructions](opam/README.md#local-switch-installation)
+to keep QuickChick on the hosted route.
 
 **Host CI reports each gate member's result.** `--summary` writes per-member
 verdicts as JSON outside the checkout. After success or failure, the workflow
@@ -172,7 +173,7 @@ independent handler fixtures and help declarations against their usage output.
 | `worktree` | host | Lists registered checkouts, creates a fresh branch at an explicit base under the primary checkout's `.worktrees/`, and verifies assigned worktrees, including host-provisioned locations. `--json` produces handoff data, including each lane's name and `lane_root`, the guest directory its outputs land in. |
 | `retain` | host | Publishes explicitly mapped files into a new contained retained bundle and prints its hash-bound citation. See [retained evidence](../docs/implementation/retained-evidence/README.md) for the command and controls. It neither stages files nor edits the owning note. |
 | `fanout` | host | Records explicit worker handoffs, merges their commits into local `main`, repairs derived facts, records recommended CI scope and retires integrated batch-owned lanes. Never pushes, contacts remote Git or CI, or waits for hosted validation; the user owns publication and CI. See the [completion contract and usage](fanout.md). |
-| `instrument-ci` | host | `dispatch` sends one dispatch of [the instrument switch route](ci/README.md#instrument-switch-route), refusing nothing its plan job refuses, with a nonce in the run title and its intent journalled first; `--resume NONCE` recovers an interrupted dispatch by that nonce without posting again. `read --run ID` follows each artifact's redirect without credentials, extracts it under `out/instrument-ci/<run id>/`, holds its members to the staging allowlist and its inputs to the run, re-joins the run's verdict and says whether the run is closing evidence for a `--closing` commit. `dispatch --revision-from HEAD` resolves and journals a canonical local commit SHA; raw `--revision` remains available for hosted refusal qualification. `fanout` never runs it. |
+| `instrument-ci` | host | `dispatch` records its intent with a nonce before sending one request to [the instrument switch route](ci/README.md#instrument-switch-route). The hosted plan validates the supplied inputs; `--resume NONCE` recovers an interrupted dispatch by that nonce without posting again. `read --run ID` follows each artifact's redirect without credentials, extracts it under `out/instrument-ci/<run id>/`, holds its members to the staging allowlist and its inputs to the run, re-joins the run's verdict and says whether the run is closing evidence for a `--closing` commit. `dispatch --revision-from HEAD` resolves and journals a canonical local commit SHA; raw `--revision` remains available for hosted refusal qualification. `fanout` never runs it. |
 | `proof-search` | host | Retrieves current local proof examples and named Ltac definitions by query words, body tokens or authored requirement references, with bounded excerpts, source locations and SHA-256 identities. `--json` follows the tracked [JSON Schema](proof-search.schema.json). Results are advisory; the [portable workflow](../docs/assurance/proof-assistance.md) defines bounded tactic reuse, repair and the unchanged fresh proof gate. |
 | `rocq-census` | wsl / host help | Runs the [native metadata or census producer](rocq-census/README.md) against an explicit locked switch and copied precompiled inputs in a fresh native lane. Census mode binds native Search requests and emits field classifications and implementation provenance for adapter replay. Hosted exact assumptions, native controls and recursive kernel qualification remain separate acceptance joins. |
 | `sail-context` | host | Retrieves compiler-emitted Sail declarations, scattered clauses and recorded incoming references. Checks the bundle's recorded local source hashes before returning bounded context and SHA-256 identities; omitted sources and the freshness boundary remain explicit. `search`, `symbol` and `references` accept `--json` under the tracked [JSON Schema](sail-context.schema.json). The [portable Sail workflow](../docs/assurance/sail-assistance.md) defines repair, validation and upstream adoption decisions. |
@@ -634,9 +635,8 @@ runs the full bundled CTest suite, so that command is CI-only. QuickChick switch
 checks run only on the [instrument switch route](ci/README.md#instrument-switch-route).
 
 ```console
-$ python tools/run.py provision                  # is this machine the lane, and what is missing
-$ python tools/run.py provision --apply          # and install what this tree states a command for
-$ python tools/run.py provision --only gate      # the rows the three host gates alone want
+$ python tools/run.py provision --check          # report the state of every prerequisite
+$ python tools/run.py provision --only gate      # probe host-gate prerequisites
 $ python tools/run.py model typecheck
 $ python tools/run.py model bundle               # regenerate the model's own bundle
 $ python tools/run.py model bundle --check       # and hold the tracked one against it

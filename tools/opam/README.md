@@ -116,7 +116,10 @@ only on [the instrument switch route](../ci/README.md#instrument-switch-route), 
 CertiRocq's only locally; the remaining experimental switches are imported manually into
 an initialized root.
 
-From the repository root in the guest, register the repositories and import a snapshot into its dedicated switch:
+## Local switch installation
+
+From the repository root in the guest, register the repositories and import the
+snapshot for the switch you need. This example installs Rupicola.
 
 ```console
 $ opam repository add rocq-released https://rocq-prover.org/opam/released --dont-select
@@ -127,7 +130,15 @@ $ opam switch import tools/opam/rupicola.lock \
     --switch=verifiedos-rupicola-9.2.0-ocaml-5.4.1 -y
 ```
 
-Use the corresponding switch and snapshot from the table for the other environments. The Sail switch needs only the default repository. `run.py provision --apply` imports the Sail, proof and QuickChick snapshots through the recipes in [env.py](../vos/env.py), [proofenv.py](../vos/proofenv.py) and [quickchick.py](../vos/cli/quickchick.py); QuickChick's switch is built and checked only on [the instrument switch route](../ci/README.md#instrument-switch-route) (F-616). The [Wasm oracle](../wasm-oracle/README.md) specifies the CertiRocq snapshot's import in both the native recipe and Dockerfile. Creating these switches preserves existing switches and the user's active switch.
+Use the corresponding switch name and snapshot for Sail and the prover. For Sail,
+pass `--repos=default`. These commands preserve existing switches and the active
+switch. Use the [Wasm oracle recipe](../wasm-oracle/README.md#pinned-environment)
+for CertiRocq.
+
+On a local guest, use the explicit imports above. The unrestricted
+`run.py provision --apply` can import QuickChick when its switch is missing
+(F-616). QuickChick builds, checks and lock exports belong to the
+[hosted instrument route](../ci/README.md#instrument-switch-route).
 
 The contained compiler has its own switch and source-containment boundary. Import
 `contained-compiler.lock` by the same create-and-import route, using the switch
@@ -141,7 +152,8 @@ and separate acceptance requirements. Preserve the compiler's original build
 flags and record any `configure` version override when building its contained
 source through this lock.
 
-If an import fails after creating its switch, retry the import command directly, omitting creation. The provisioner checks for an existing switch and skips creation automatically, so `run.py provision --apply` can resume a partial installation.
+If an import fails after creating its switch, retry `opam switch import` against
+the existing switch.
 
 To refresh a resolution, update repository metadata, review `opam upgrade --switch=SWITCH --dry-run`, and apply the compatible upgrade in that project switch. Recheck the compiler and library constraints when newer releases appear. Run the affected model, proof, oracle or lowering checks, then export the tested versions with `opam switch export --switch=SWITCH tools/opam/NAME.lock`. Keep the export and any changed version constants together. Record the package constraint or demonstrated build incompatibility whenever an older dependency is retained.
 
