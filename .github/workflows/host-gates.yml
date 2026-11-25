@@ -53,9 +53,8 @@ on:
 permissions:
   contents: read
 
-# Superseded PR runs are disposable. Main runs share only their tested revision:
-# duplicate push events cancel redundant work; different revisions and explicit
-# manual dispatches keep separate groups, including dispatches of the same revision.
+# A newer commit cancels an earlier run of the same PR. Duplicate main pushes
+# share a group for that SHA. Each manual dispatch has its own group.
 concurrency:
   group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || github.event_name == 'workflow_dispatch' && format('manual-{0}', github.run_id) || format('{0}-{1}', github.event_name, inputs.revision || github.sha) }}
   cancel-in-progress: true
@@ -531,16 +530,12 @@ jobs:
             prek run --config model/.pre-commit-config.yaml --all-files \
             --show-diff-on-failure --color=always
 
-  # fanout_ci.HOST_JOBS in tools/vos/fanout_ci.py owns these job names; renaming one
-  # changes historical evidence validation. No repository ruleset requires them. Both
-  # aggregates require the scope job and every selected job, whatever their platform.
-  # An unselected job must be skipped; a failed/canceled job is never an omission.
-  # They fail together, and fail-fast is off so
-  # that the second to finish reports that failure rather than being cancelled. The
-  # aggregates check out nothing and only read the other jobs' results, so they take
-  # ubuntu-24.04 rather than the shards' ubuntu-26.04, whose queue held them 38-71 s
-  # past the last shard in runs of 2026-09-30 and 2026-10-01, after that image's
-  # general availability and while ubuntu-latest still named ubuntu-24.04.
+  # Historical evidence uses the names in
+  # [HOST_JOBS](../../tools/vos/fanout_ci.py#HOST_JOBS).
+  # Both aggregates require the scope job and every selected job to pass.
+  # An unselected job must be skipped. Disable fail-fast so both jobs report.
+  # These jobs only read other jobs' results. The ubuntu-24.04 runner avoids the
+  # 38-71 s queue delay seen on ubuntu-26.04 in the 2026-09-30 and 2026-10-01 runs.
   host-gates:
     name: host-gates (${{ matrix.platform }})
     needs: [scope, host-gates-shard, docs-checks, model-hooks]
