@@ -135,8 +135,9 @@ reproduced the corresponding prior output byte for byte.
 
 Sail 0.20.3's `--dsequential` selects ordered `List.map` for the internal
 compiler scheduler used by deferred C++ compilation work. The repeated result
-covers that mode and the frozen inputs. The default emitter still fails the
-paired byte comparison required by the tag-outcome contract. [Pinned Sail option](https://github.com/rems-project/sail/blob/3df54034910b31a1e00d948ee965b2e9603d68e0/src/bin/sail.ml#L416) ·
+passes the [emulator isolation check](../implementation/contracts/canonical-tag-outcomes.md#emulator-isolation-check)
+for the frozen inputs. The default runs record variation in the ordinary
+development emitter. [Pinned Sail option](https://github.com/rems-project/sail/blob/3df54034910b31a1e00d948ee965b2e9603d68e0/src/bin/sail.ml#L416) ·
 [Scheduler](https://github.com/rems-project/sail/blob/3df54034910b31a1e00d948ee965b2e9603d68e0/src/lib/parmap.par.ml#L138) ·
 [Deferred compilation](https://github.com/rems-project/sail/blob/3df54034910b31a1e00d948ee965b2e9603d68e0/src/lib/jib_compile.ml#L3042).
 
@@ -153,8 +154,9 @@ The [canonical candidate replay](sail-rocq-emission.md#canonical-candidate-repla
 establishes strict whole-term compilation, recursive kernel context and compiled
 size with private support. Q35p still owes tag-free whole-computation
 conservativity, a complete frozen comparison of support, physical-caller
-coverage beyond plain requests, arbitrary read-data preservation and paired
-full-model non-Rocq regeneration. Q35q owns the support declaration census,
+coverage beyond plain requests and arbitrary read-data preservation. Repeat the
+sequential emulator isolation check if the qualification inputs differ from the
+retained pair. Q35q owns the support declaration census,
 Q35n owns cold production carriage, and Q35b owes replay and closure with
 qualified support.
 The [validation handoff](../../AGENTS.md#tool-execution-and-validation)

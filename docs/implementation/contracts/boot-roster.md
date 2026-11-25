@@ -439,6 +439,21 @@ producing module differs from that revision's bytes. Otherwise `roster_identity`
 and `roster_identity_withheld` says why; withholding it refuses no boot, because the
 digests are the bound bytes' either way.
 
+### Routine boot handoff to RTL
+
+Keep the Sail reference run for M7.1. When R3 accepts the same composed image
+on the versioned RTL and matches the console and event digests under the selected
+trap convention, use that RTL path for routine boot tests within the accepted
+configuration and observation scope. Record the exact RTL, configuration and
+image in the replay evidence. Refresh affected evidence when those inputs change.
+
+Retain Sail for R2's trace comparisons and for regenerating the independently
+reviewed boot expectations used by R3 and M9. At R3 acceptance, review the
+remaining emulator uses and whether a runner derived from the canonical Rocq
+term could supply the same corpus and boot observations at lower cost. Qualify
+any replacement against those observations and the applicable refusal controls.
+Derive expectations from a reference executor separate from the RTL under test.
+
 ### Fixed-package image observation
 
 `boot run-fixed RECIPE` observes an already composed fixed-package ELF without

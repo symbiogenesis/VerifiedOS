@@ -144,19 +144,32 @@ conservative for old events: their payloads, response types, continuations and
 ordered interpretation are preserved when no tag outcome occurs. All other
 existing declarations' meanings, model refusals, dependency axioms and compiler
 acceptance policy must remain unchanged. Audit all new proofs' exact assumptions
-and kernel-check the accepted
-objects under the existing acceptance rules. Record the complete inputs and
-resolved native names. Unchanged Sail bytes must give byte-identical non-Rocq
-outputs in paired regeneration; a single baseline emission is insufficient.
+and kernel-check the accepted objects under the existing acceptance rules.
+Record the complete inputs and resolved native names.
 
 Q35p then joins Q35o's actual-plugin syntax and deterministic-emission checks,
 Q35b's strict whole-term compile, exact closure and compiled size, and Q35n/Q35q's
 unchanged support census and cold production-carriage qualification. Acceptance
 of this contract or an isolated primitive bridge closes none of those predicates.
-The integrator completes Host CI and dispatches every Guest CI lane with
-`cold: true` for accepted proof changes, recording pending Guest CI honestly and
-finishing without waiting for it. Full gates and benchmarks run only on GitHub
-Actions; focused local compilation and controls retain their separate purpose.
+For accepted proof changes, record every Guest CI lane with `cold: true` in the
+[validation handoff](../../../AGENTS.md#tool-execution-and-validation). The user
+owns Host CI and Guest CI dispatch and verdicts.
+
+### Emulator isolation check
+
+Qualify the Rocq plugin change with one paired full-model `--cpp` regeneration
+using Sail's `--dsequential` mode. Use the same model sources, configuration,
+compiler, solver, Sail libraries, other plugins and generator flags on both sides.
+Run the stock and candidate Rocq plugins in their respective populations, each
+with a fresh output directory and empty SMT cache. Require byte agreement for
+`sail_riscv_model.cpp`, `sail_riscv_model.h` and `sail_riscv_config_schema.json`.
+Reuse the [retained pair](../../assurance/sail-memory-bindings.md#paired-emulator-emission)
+at matching input identities and regenerate the pair when those inputs change.
+
+Byte agreement serves this isolation check. Ordinary development builds retain
+their build provenance and behavioral checks. Default parallel C++ emission has
+no byte-reproducibility acceptance criterion. The HoldFast compile-and-prove
+path takes the canonical Rocq term and needs no emulator regeneration per program.
 
 ## Bound and remaining estimate
 
