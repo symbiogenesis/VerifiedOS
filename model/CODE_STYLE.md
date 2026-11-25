@@ -1,9 +1,8 @@
 # Code Style
 
-This document is an incomplete description of the predominant style used in the
-RISC-V Sail model.
-Where something is not specified, please look for existing code similar to what
-is being added and copy the predominant style.
+Follow these conventions in the curated Sail model. When this guide is silent,
+match nearby code and follow the [VerifiedOS model editing
+rules](../AGENTS.md#before-editing-the-model-or-rtl).
 
 For C and C++, the formatting rules should be followed where applicable.
 For other languages, follow the standard style for that language if it exists;
@@ -71,19 +70,14 @@ corresponding elements vertically aligned.
 
 ## Implementation
 
-- Since this is the official model intended to be included as part of the
-  RISC-V specifications, readability is paramount, including to those not
-  already familiar with the details of that field of Computer Science (e.g.
-  floating-point or cryptography)
+- Write instruction semantics so readers can follow the data and control flow.
+  Explain field-specific assumptions that the types and names leave implicit.
 
-- All instructions should be built as part of both the RV32 and RV64 models so
-  as to provide a path to supporting mutable MXL/SXL/UXL; if necessary,
-  constructs like `assert(xlen == 32)` at the start of the body can be
-  used to suppress any type errors that arise as a result
+- Use the [frozen ISA profile](../docs/hardware/isa-profile.md) to determine
+  the instruction's supported configurations, widths and privilege rules.
 
-- Avoid the use of hard-coded constants like 32 even if the instruction is
-  RV32-specific, instead favouring `xlen` or a computed constant to
-  more clearly express the underlying intent
+- Use `xlen` or a derived width for native-width operands. Use a literal width
+  when it is part of the instruction's defined encoding or behavior.
 
 - Local variables should be made immutable whenever possible, but short
   imperative loops with a small amount of local mutable state are preferred
