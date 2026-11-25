@@ -1,0 +1,102 @@
+{
+  "checked": [
+    "bound historical generation receipts",
+    "actual refreshed emission bytes",
+    "paired configuration and source identities",
+    "normalized invocation arguments",
+    "Sail and Z3 tool identities",
+    "ordered plugin names and identities",
+    "Sail library identity",
+    "emitted assumption names"
+  ],
+  "handwritten_support_source_sha256": "915b983983421afcacb14a534c50f56619dd85a5bbb35097bb595c3116a9089e",
+  "historical_comparison_inputs_sha256": "994cb4c2d980138c4160ebccffc6c481caac53d6a27940f0d07622968189b650",
+  "historical_comparison_sha256": "66b5d993dc14ea84e66f5eb79ef4e839b8e60fffdc851a506c41ce527a086837",
+  "historical_hosted_dispatch_revision": "e72c93f260fd025bc9594a983b1459a8e46bed41",
+  "members": {
+    "candidate": {
+      "changed_source": {
+        "historical_sha256": "5de766662e856548a9a4119ae791951c312bd874bd69f1ca184e56a48abf7b80",
+        "path": "model/model/extensions/V/vext_fp_utils_insts.sail",
+        "refreshed_sha256": "075a464d4885cb50dd1f7bacc1fea49f2f4dda86eba4a8b7fb529502493e5dc2"
+      },
+      "historical_configuration": {
+        "path": "model/config/verifiedos.json",
+        "sha256": "7ff6f9dec6fbe0c164d52eea4862cc2cd29fd5d73fe59f498ca6011a1b6f88c2"
+      },
+      "historical_generation_sha256": "de79b0065b4c24208b24025bbaeef81cead7585ab5cc47abf621ec1825d6791b",
+      "historical_outputs": {
+        "rv64d.v": {
+          "bytes": 3898142,
+          "lines": 73451,
+          "sha256": "221ee0fcdada1915f17b61fe80b4861e9105a0e11f8b070a54ca1b55f1bb289b"
+        },
+        "rv64d_types.v": {
+          "bytes": 516607,
+          "lines": 13829,
+          "sha256": "776bc8f9e08efa63dbb767726506de988240791e847043d5fe6322c572ab97d8"
+        }
+      },
+      "historical_source_aggregate": "43bb08299abd380c190b81cec2c0a7ecdcc3207b059c1ad0f0e2d18a14d589a1",
+      "outputs_match": true,
+      "refreshed_generation_sha256": "46c682012c9fc0d3989e2dccbb867468fe7c0e559fee89fd1fe56aa3a211c610",
+      "refreshed_outputs": {
+        "rv64d.v": {
+          "bytes": 3898142,
+          "lines": 73451,
+          "sha256": "221ee0fcdada1915f17b61fe80b4861e9105a0e11f8b070a54ca1b55f1bb289b"
+        },
+        "rv64d_types.v": {
+          "bytes": 516607,
+          "lines": 13829,
+          "sha256": "776bc8f9e08efa63dbb767726506de988240791e847043d5fe6322c572ab97d8"
+        }
+      },
+      "refreshed_source_aggregate": "fab7c3049711d8f35d0e8c012c815944acf89033f6c84e8d24138ace87f8b983"
+    },
+    "original": {
+      "changed_source": {
+        "historical_sha256": "5de766662e856548a9a4119ae791951c312bd874bd69f1ca184e56a48abf7b80",
+        "path": "model/model/extensions/V/vext_fp_utils_insts.sail",
+        "refreshed_sha256": "075a464d4885cb50dd1f7bacc1fea49f2f4dda86eba4a8b7fb529502493e5dc2"
+      },
+      "historical_configuration": {
+        "path": "model/config/verifiedos.json",
+        "sha256": "7ff6f9dec6fbe0c164d52eea4862cc2cd29fd5d73fe59f498ca6011a1b6f88c2"
+      },
+      "historical_generation_sha256": "a99773bed420a81e16997bea2fd8c21a7faaaa414edbe63f3e3c7de5e1e5f6df",
+      "historical_outputs": {
+        "rv64d.v": {
+          "bytes": 3897403,
+          "lines": 73437,
+          "sha256": "3c7d03b0e988733fd945a0cd1be7482666a69fd9524f122139536b02c3d12450"
+        },
+        "rv64d_types.v": {
+          "bytes": 507698,
+          "lines": 12968,
+          "sha256": "0d13f8470a534c6a2af2d81b9bfbf2a5a93cfad9e39e18c49e0c65ab02636dec"
+        }
+      },
+      "historical_source_aggregate": "43bb08299abd380c190b81cec2c0a7ecdcc3207b059c1ad0f0e2d18a14d589a1",
+      "outputs_match": true,
+      "refreshed_generation_sha256": "830425547c6600bcf84518318c7929c1d02b3c11711c1e9bd34fe368195add4b",
+      "refreshed_outputs": {
+        "rv64d.v": {
+          "bytes": 3897403,
+          "lines": 73437,
+          "sha256": "3c7d03b0e988733fd945a0cd1be7482666a69fd9524f122139536b02c3d12450"
+        },
+        "rv64d_types.v": {
+          "bytes": 507698,
+          "lines": 12968,
+          "sha256": "0d13f8470a534c6a2af2d81b9bfbf2a5a93cfad9e39e18c49e0c65ab02636dec"
+        }
+      },
+      "refreshed_source_aggregate": "fab7c3049711d8f35d0e8c012c815944acf89033f6c84e8d24138ace87f8b983"
+    }
+  },
+  "revision": "569951b709aa3550b5543d743111e879c1a538f0",
+  "scope": "Canonical emission identities after the vector rounding-mode comment edit",
+  "status": "identical",
+  "verdict_limit": "Compares canonical emitted source only. No Rocq reading, strict compile, kernel or hosted workflow was repeated by this comparison."
+}

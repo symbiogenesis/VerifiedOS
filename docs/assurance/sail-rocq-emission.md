@@ -14,6 +14,9 @@ Hosted immutable-plugin qualification and production support carriage remain ope
 
 Each bundle binds its executed commands, inputs, readings and diagnostics.
 
+- [Refreshed canonical emission receipts](../implementation/retained-evidence/q35o-holdfast-refresh-20261125/manifest.json), SHA256 `7fc628e8bdd8774e8059faf0713f64e573d70b1b3aa7f46744c7e60a3c00d477`.
+  Stock and patched emission receipts for the updated model source identity,
+  with exact output agreement against both historical receipts.
 - [Canonical main frozen comparison](../implementation/retained-evidence/q35o-holdfast-main-20261125/manifest.json), SHA256 `90c4da2f5d91dde4969e3d70757bf11c3ac3de502effde663aaaef85d634bc25`.
   Common dependency identities, compiler and query commands, stock diagnostics
   and matching per-declaration digests.
@@ -130,14 +133,17 @@ selected-source membership and lane containment and checks installed sentinels.
 Q35p's semantic qualification and Q35q's [native census](sail-support-inventory.md)
 are independent prerequisites. The manual [emitter qualification workflow](../../.github/workflows/sail-emitter-qualification.yml)
 cold-builds the checksum-bound syntax patch, compares stock and candidate canonical
-emission receipts and requires the candidate to repeat byte for byte. It also
-matches the model inputs, arguments, output bytes and emitted axioms of the
-hosted pair to the generation receipts bound by the
+emission receipts and requires the candidate to repeat byte for byte. Its
+current route requires the refreshed model input identities and the exact
+arguments, output bytes and emitted axioms bound to the
 [frozen comparison](#canonical-main-frozen-comparison). The result records the
-digests of the comparison, its input record and both generation receipts.
-The `revision` input selects the exact commit on `main`. Its hosted verdict remains
-due. Q35b consumes the strict compile, closure and size with qualified production
-support. Q35n owns cold production carriage. The handwritten proof-maintenance handoff requires
+digests of the comparison, its input record and both pairs of generation receipts.
+The `revision` input selects the exact commit on `main`.
+Use `e72c93f260fd025bc9594a983b1459a8e46bed41` to qualify the historical input
+pair using the guard stored at that revision. Use a revision carrying the
+refreshed guard and model inputs for current qualification. The hosted verdict
+remains due. Q35b consumes the strict compile, closure and size with qualified
+production support. Q35n owns cold production carriage. The handwritten proof-maintenance handoff requires
 cold Guest CI under the existing proof workflow. Hosted execution and verdicts
 remain user-managed under the [validation handoff](../../AGENTS.md#tool-execution-and-validation).
 
@@ -184,3 +190,9 @@ are byte-identical and include types, declaration metadata and all printed
 executable bodies. The bundle binds both full reading digests and the matching
 field digests for every declaration.
 The complete reads and compiled objects stay in native build storage.
+
+The vector rounding-mode comment in `99659edd` changes one source digest in
+the generation receipts. Paired re-emission at `569951b7` confirms the same
+configuration, arguments, ordered plugin identities and emitted axioms as the
+historical pair. Each refreshed emission reproduces both of its frozen files
+byte for byte. The comparison reuses the readings bound to those bytes.

@@ -2,7 +2,9 @@
 """Fixture controls for the hosted Sail emitter qualification."""
 
 from copy import deepcopy
+from pathlib import Path
 from typing import Any
+from unittest.mock import patch
 
 from ci import sail_emitter_qualification as emitter
 from tests.harness import TOOLS, Case, ensure
@@ -78,16 +80,19 @@ def retained_source_inputs() -> None:
 def frozen_emission_join() -> None:
     root = TOOLS.parent
     stock, candidate = (
-        emitter.load(root / emitter.REPLAY / f"{label}-generation.json")
+        emitter.load(root / emitter.REFRESH / f"{label}-generation.json")
         for label in ("original", "candidate")
     )
     for record in (stock, candidate):
         record["checkout"]["revision"] = REVISION
         record["command"][0] = "/runner/sail/bin/sail"
     bound = emitter.check_frozen_pair(root, stock, candidate)
-    ensure(set(bound) == {"comparison", "inputs", "original", "candidate"},
+    ensure(set(bound) == {"comparison", "inputs", "original", "candidate",
+                          "refreshed_original", "refreshed_candidate"},
            "hosted result omitted frozen comparison inputs")
 
+    stale_stock = deepcopy(stock)
+    stale_stock["inputs"] = emitter.load(root / emitter.REPLAY / "original-generation.json")["inputs"]
     changed_stock = deepcopy(stock)
     changed_stock["outputs"][rocqterm.OUTPUTS[0]]["sha256"] = "different stock"
     changed_candidate = deepcopy(candidate)
@@ -95,6 +100,7 @@ def frozen_emission_join() -> None:
     changed_flags = deepcopy(candidate)
     changed_flags["command"].append("--different")
     for left, right, expected in (
+        (stale_stock, candidate, "hosted original inputs"),
         (changed_stock, candidate, "hosted original outputs"),
         (stock, changed_candidate, "hosted candidate outputs"),
         (stock, changed_flags, "hosted candidate arguments"),
@@ -105,6 +111,23 @@ def frozen_emission_join() -> None:
             ensure(str(error).startswith(expected), f"unexpected refusal: {error}")
         else:
             raise AssertionError(f"accepted changed frozen emission: {expected}")
+
+    # A refresh with different emitted bytes cannot substitute for the frozen readings.
+    load = emitter.load
+
+    def load_changed_refresh(path: Path) -> dict[str, Any]:
+        if path == root / emitter.REFRESH / "candidate-generation.json":
+            return changed_candidate
+        return load(path)
+
+    with patch.object(emitter, "load", side_effect=load_changed_refresh):
+        try:
+            emitter.check_frozen_pair(root, stock, changed_candidate)
+        except ValueError as error:
+            ensure(str(error).startswith("refreshed candidate outputs"),
+                   f"unexpected refusal: {error}")
+        else:
+            raise AssertionError("accepted a refreshed emission with changed output bytes")
 
 
 def cases() -> list[Case]:

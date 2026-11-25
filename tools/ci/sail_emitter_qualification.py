@@ -20,6 +20,7 @@ SCOPED = EVIDENCE / "q35o-scope-20261023"
 INITIAL = EVIDENCE / "close3-q35o-20261013"
 REPLAY = EVIDENCE / "q35-holdfast-canonical-20261124"
 FROZEN = EVIDENCE / "q35o-holdfast-main-20261125"
+REFRESH = EVIDENCE / "q35o-holdfast-refresh-20261125"
 BUILD_TARGET = "src/sail_coq_backend/sail_plugin_coq.cmxs"
 BACKEND_SOURCE = "src/sail_coq_backend/pretty_print_coq.ml"
 PLUGIN = Path(BUILD_TARGET).name
@@ -136,7 +137,7 @@ def check_comparison(stock: dict[str, Any], candidate: dict[str, Any], repeat: d
 
 def check_frozen_pair(checkout: Path, stock: dict[str, Any],
                       candidate: dict[str, Any]) -> dict[str, str]:
-    """Join the hosted emissions to the exact sources read by the frozen comparison."""
+    """Join hosted inputs to the refreshed receipts and output bytes to the frozen readings."""
     directory = checkout / FROZEN
     comparison = evidence_input(directory, "comparison.json")
     inputs = evidence_input(directory, "inputs.json")
@@ -144,17 +145,29 @@ def check_frozen_pair(checkout: Path, stock: dict[str, Any],
         raise ValueError("the retained canonical comparison did not match")
     bound = {"comparison": receipts.digest(comparison), "inputs": receipts.digest(inputs)}
     generation = load(inputs)["generation_receipts"]
+    unchanged = ("format", "target", "outputs", "axioms")
     for label, observed in (("original", stock), ("candidate", candidate)):
-        path = evidence_input(checkout / REPLAY, f"{label}-generation.json")
+        member = f"{label}-generation.json"
+        path = evidence_input(checkout / REPLAY, member)
         bound[label] = receipts.digest(path)
         if bound[label] != generation[label]:
             raise ValueError(f"the retained comparison names a different {label} generation receipt")
         frozen = load(path)
-        for key in ("format", "target", "inputs", "outputs", "axioms"):
-            if observed[key] != frozen[key]:
-                raise ValueError(f"hosted {label} {key} differ from the frozen canonical comparison")
+        refreshed_path = evidence_input(checkout / REFRESH, member)
+        refreshed = load(refreshed_path)
+        bound[f"refreshed_{label}"] = receipts.digest(refreshed_path)
+        for key in unchanged:
+            if refreshed[key] != frozen[key]:
+                raise ValueError(f"refreshed {label} {key} differ from the frozen canonical comparison")
         # The launcher replaces tree/checkout paths. The installed Sail path is host-specific.
-        if observed["command"][1:] != frozen["command"][1:]:
+        if refreshed["command"][1:] != frozen["command"][1:]:
+            raise ValueError(f"refreshed {label} arguments differ from the frozen canonical comparison")
+        if observed["inputs"] != refreshed["inputs"]:
+            raise ValueError(f"hosted {label} inputs differ from the refreshed generation receipt")
+        for key in unchanged:
+            if observed[key] != refreshed[key]:
+                raise ValueError(f"hosted {label} {key} differ from the frozen canonical comparison")
+        if observed["command"][1:] != refreshed["command"][1:]:
             raise ValueError(f"hosted {label} arguments differ from the frozen canonical comparison")
     return bound
 
