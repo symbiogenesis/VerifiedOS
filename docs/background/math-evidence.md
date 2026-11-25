@@ -6,16 +6,92 @@ This validates metadata and finite host/reference behavior. It supplies no theor
 
 | Topic | Evidence stage | Disposition | Inspected |
 | --- | --- | --- | --- |
+| [VP versus VNP and polynomial identity testing](#arithmetic-hierarchy) | source inspection | await workload | 2026-11-25 |
+| [Classical integer factorization and finite-field discrete logarithms](#cogentic-factoring-dlp) | source inspection | monitor security | 2026-11-25 |
+| [Deterministic communication upper bound below square-root rank](#cogentic-logrank) | source inspection | await workload | 2026-11-25 |
 | [Lean Comparator maintenance route](#comparator) | source inspection | evaluate now | 2026-10-20 |
 | [Immutable composer dictionary shapes](#composer-dictionaries) | independent replay | evaluate now | 2026-11-25 |
 | [Disputed DCP attack and MLWE premise](#dcp) | source inspection | monitor security | 2026-10-20 |
-| [Reported ETH refutation by deterministic bounded-width SAT](#eth378) | source inspection | await workload | 2026-10-27 |
-| [Integer multiplication: conditional frontier and Lean artifact](#integer109) | source inspection | await workload | 2026-10-21 |
+| [Riemann hypothesis and Dirichlet GRH](#dirichlet-grh) | supplied replay | await workload | 2026-11-25 |
+| [Reported ETH refutation by deterministic bounded-width SAT](#eth378) | supplied replay | await workload | 2026-11-25 |
+| [Exact finite Fourier transforms](#finite-fourier) | source inspection | await workload | 2026-11-25 |
+| [Forced three-dimensional Navier–Stokes breakdown](#forced-navier-stokes) | supplied replay | await workload | 2026-11-25 |
+| [Integer multiplication on tapes and earlier constructions](#integer109) | source inspection | await workload | 2026-11-25 |
 | [Family 103 logspace derandomization formalization](#logspace103) | source inspection | await workload | 2026-10-20 |
+| [Exact square and rectangular matrix exponents](#matrix-exponent) | source inspection | await workload | 2026-11-25 |
+| [Finite rank of three-by-three multiplication](#rank-three) | source inspection | await workload | 2026-11-25 |
 | [Finite 48-product matrix multiplication](#rank48) | independent replay | await workload | 2026-10-20 |
+| [Strongly polynomial rational LP and polytope diameter](#rational-lp) | source inspection | await workload | 2026-11-25 |
+| [Real-input 3SUM and all-pairs shortest paths](#real-sum-paths) | source inspection | await workload | 2026-11-25 |
 | [Shortest-path implementation evidence scope](#shortest-path) | source inspection | await workload | 2026-10-20 |
+| [DeepMind Signal binary proof and exceptional inputs](#signal-binary) | source inspection | await workload | 2026-11-25 |
 | [Local exact two-stack lifetime placement](#two-stack) | independent replay | evaluate now | 2026-10-20 |
 | [Few-type packing and scheduling](#type-fpt) | source inspection | await workload | 2026-10-20 |
+| [Unforced three-dimensional Navier–Stokes claim](#unforced-navier-stokes) | source inspection | await workload | 2026-11-25 |
+
+## VP versus VNP and polynomial identity testing <a id="arithmetic-hierarchy"></a>
+
+Anthropic and OpenAI report VP strictly contained in VNP over every field. OpenAI also separates VF, VBP and VP. Directed Hamiltonian cycle has superpolynomial arithmetic circuit size in every characteristic and the permanent has this lower bound outside characteristic two.
+
+Evidence stage: **source inspection**. Disposition: **await workload**. Inspected: 2026-11-25.
+
+Selected sources:
+
+- [git](https://github.com/anthropics/formal-math/blob/11b6c7e3c927df2658f513b6b68ea7f8929c62c5/vp-vnp/Statement.lean); identity `11b6c7e3c927df2658f513b6b68ea7f8929c62c5`.
+- [git](https://github.com/openai/math/blob/3344da59991ed94f9ba711217b29c1d760badfa6/lean/ComparatorChallenges/ArithmeticHierarchy.lean); identity `3344da59991ed94f9ba711217b29c1d760badfa6`.
+- [git](https://github.com/openai/math/blob/3344da59991ed94f9ba711217b29c1d760badfa6/lean/docs/379.md); identity `3344da59991ed94f9ba711217b29c1d760badfa6`.
+
+Assumptions and exclusions:
+
+- These are polynomial families and exact arithmetic circuits. Boolean P versus NP and general deterministic polynomial-time identity testing remain open.
+
+Consumer: [docs/implementation/contracts/compute-semantic.md#arithmetic-research-handoff](../implementation/contracts/compute-semantic.md#arithmetic-research-handoff). Owner: Q30d exact arithmetic semantics and proof-producer research.
+
+Local evidence: [docs/background/open-math-conjectures.md#vp-versus-vnp-and-the-arithmetic-hierarchy](open-math-conjectures.md#vp-versus-vnp-and-the-arithmetic-hierarchy); [docs/background/open-math-conjectures.md#deterministic-polynomial-time-polynomial-identity-testing](open-math-conjectures.md#deterministic-polynomial-time-polynomial-identity-testing).
+
+Next action: For a proposed identity test, identify the field, degree bound, input representation and the applicable derandomization bound. Price and check the resulting finite procedure.
+
+## Classical integer factorization and finite-field discrete logarithms <a id="cogentic-factoring-dlp"></a>
+
+Cogentic claims unconditional expected L_N[1/3,105] time for complete integer factorization, deterministic O(exp(3*(ln N)^(3/4))) bit operations to find a nontrivial factor, and expected (pn)^o(log n) time for discrete logarithms in F_(p^n) at fixed p.
+
+Evidence stage: **source inspection**. Disposition: **monitor security**. Inspected: 2026-11-25.
+
+Selected sources:
+
+- [git](https://github.com/google-research/google-research/blob/4a7bc8ab0bc770e71a259b7966c500496b99010a/cogentic_research_papers/integer_factorization/paper.pdf); identity `4a7bc8ab0bc770e71a259b7966c500496b99010a`.
+- [git](https://github.com/google-research/google-research/blob/4a7bc8ab0bc770e71a259b7966c500496b99010a/cogentic_research_papers/deterministic_factoring_l34/paper.pdf); identity `4a7bc8ab0bc770e71a259b7966c500496b99010a`.
+- [git](https://github.com/google-research/google-research/blob/4a7bc8ab0bc770e71a259b7966c500496b99010a/cogentic_research_papers/discrete_logarithm/paper.pdf); identity `4a7bc8ab0bc770e71a259b7966c500496b99010a`.
+
+Assumptions and exclusions:
+
+- The November 25 release describes companion Lean artifacts as forthcoming. The three bounds use different inputs and resources. The finite-field multiplicative-group result supplies no corresponding elliptic-curve group algorithm.
+
+Consumer: [docs/assurance/proof-reuse/crypto.md#research-handoff-for-unfinished-security-proofs](../assurance/proof-reuse/crypto.md#research-handoff-for-unfinished-security-proofs). Owner: Q28 cryptographic premise monitoring.
+
+Local evidence: [docs/background/open-math-conjectures.md#classical-integer-factoring](open-math-conjectures.md#classical-integer-factoring); [docs/background/open-math-conjectures.md#classical-elliptic-curve-discrete-logarithm-and-diffie-hellman-hardness](open-math-conjectures.md#classical-elliptic-curve-discrete-logarithm-and-diffie-hellman-hardness).
+
+Next action: Identify a reduction to an actual configured group or primitive and concrete parameter costs before revising any security estimate. Check the companion statements when published.
+
+## Deterministic communication upper bound below square-root rank <a id="cogentic-logrank"></a>
+
+Cogentic reports an upper bound of 750*2^38*r^(1/2-0.000005) bits for Boolean matrices of real rank r >= 2. The polylogarithmic log-rank conjecture remains open.
+
+Evidence stage: **source inspection**. Disposition: **await workload**. Inspected: 2026-11-25.
+
+Selected sources:
+
+- [git](https://github.com/google-research/google-research/blob/4a7bc8ab0bc770e71a259b7966c500496b99010a/cogentic_research_papers/logrank_conjecture/paper.pdf); identity `4a7bc8ab0bc770e71a259b7966c500496b99010a`.
+
+Assumptions and exclusions:
+
+- The bound concerns deterministic two-party computation of a known Boolean predicate. The published manuscript announces a future Lean release.
+
+Consumer: [docs/assurance/proof-reuse/protocols.md#research-handoff-for-future-communication-proofs](../assurance/proof-reuse/protocols.md#research-handoff-for-future-communication-proofs). Owner: Q23d communication and scheduled traffic.
+
+Local evidence: [docs/background/open-math-conjectures.md#log-rank-conjecture](open-math-conjectures.md#log-rank-conjecture).
+
+Next action: Freeze a predicate, demonstrate its rank bound and charge all rounds, transcript leakage, authentication and padding against its scheduled link slots.
 
 ## Lean Comparator maintenance route <a id="comparator"></a>
 
@@ -82,11 +158,34 @@ Local evidence: [docs/assurance/proof-reuse/crypto.md#what-the-attack-correction
 
 Next action: Acquire the exact October 8 revision and bind its bytes, compare the changed algorithm and advantage argument with the pinned refutation's register, rounding and oracle assumptions, and record a substantive disposition only after that comparison.
 
+## Riemann hypothesis and Dirichlet GRH <a id="dirichlet-grh"></a>
+
+The released Lean proofs cover ordinary RH and critical-strip zeros for all Dirichlet characters of positive modulus. External groups report rebuilding and checking the exports. For an odd prime p this supplies the hypothesis for a least quadratic nonresidue bound of order (log p)^2.
+
+Evidence stage: **supplied replay**. Disposition: **await workload**. Inspected: 2026-11-25.
+
+Selected sources:
+
+- [git](https://github.com/leanprover-community/riemann-hypothesis/blob/40e56bab026552e089d7afcfeff08d2defb9c005/src/Statements.lean); identity `40e56bab026552e089d7afcfeff08d2defb9c005`.
+- [git](https://github.com/leanprover-community/riemann-hypothesis/blob/40e56bab026552e089d7afcfeff08d2defb9c005/src/Main.lean); identity `40e56bab026552e089d7afcfeff08d2defb9c005`.
+- [git](https://github.com/aapolipponen/rh-lean-check-lumi/blob/905943b8950179296a1ab29db5ebf03495e709f1/README.md); identity `905943b8950179296a1ab29db5ebf03495e709f1`.
+- [arxiv](https://arxiv.org/abs/2404.08380v2); identity `2404.08380v2`.
+
+Assumptions and exclusions:
+
+- The replay is external. Other L-functions and simplicity of zeros require separate theorems.
+
+Consumer: [docs/implementation/fiat-crypto-emission.md#research-handoff-for-future-field-and-code-parameters](../implementation/fiat-crypto-emission.md#research-handoff-for-future-field-and-code-parameters). Owner: Field and code parameter generation.
+
+Local evidence: [docs/background/open-math-conjectures.md#generalized-riemann-hypothesis-for-dirichlet-l-functions](open-math-conjectures.md#generalized-riemann-hypothesis-for-dirichlet-l-functions); [docs/implementation/fiat-crypto-emission.md#research-handoff-for-future-field-and-code-parameters](../implementation/fiat-crypto-emission.md#research-handoff-for-future-field-and-code-parameters).
+
+Next action: For a selected odd prime, compare deterministic witness search with the current recipe and check the finite witness at the parameter boundary.
+
 ## Reported ETH refutation by deterministic bounded-width SAT <a id="eth378"></a>
 
-For each fixed k >= 2, the selected Lean target states exact counting and SAT decision on canonical k-CNF with n variables and L encoding bits in (L+1)^O_k(1) * 2^O_k(n*(log log n)^2/sqrt(log n)) time and polynomial all-prefix visited-tape space. This contradicts ETH and standard fixed-width SETH if established. OpenAI reports Lean verification; independent community examination is underway.
+For each fixed k >= 2, the selected Lean target states exact counting and SAT decision on canonical k-CNF with n variables and L encoding bits in (L+1)^O_k(1) * 2^O_k(n*(log log n)^2/sqrt(log n)) time and polynomial all-prefix visited-tape space. This contradicts ETH and standard fixed-width SETH if established. Anthropic independently gives a uniform counting algorithm. An external verifier reports a successful default-kernel comparison of OpenAI’s pinned solution.
 
-Evidence stage: **source inspection**. Disposition: **await workload**. Inspected: 2026-10-27.
+Evidence stage: **supplied replay**. Disposition: **await workload**. Inspected: 2026-11-25.
 
 Selected sources:
 
@@ -94,11 +193,13 @@ Selected sources:
 - [git](https://github.com/openai/math/blob/7ef5c0cc5ca4b0e072b7a050fca09ab24bc6fa3a/lean/ComparatorChallenges/SubexponentialSAT.lean); identity `7ef5c0cc5ca4b0e072b7a050fca09ab24bc6fa3a`.
 - [git](https://github.com/openai/math/blob/7ef5c0cc5ca4b0e072b7a050fca09ab24bc6fa3a/lean/ComparatorChallenges/SubexponentialSAT.json); identity `7ef5c0cc5ca4b0e072b7a050fca09ab24bc6fa3a`.
 - [git](https://github.com/openai/math/blob/7ef5c0cc5ca4b0e072b7a050fca09ab24bc6fa3a/lean/OAI/Algorithms/SubexponentialSAT/SqrtLogSpace/Final.lean); identity `7ef5c0cc5ca4b0e072b7a050fca09ab24bc6fa3a`.
+- [git](https://github.com/anthropics/formal-math/blob/11b6c7e3c927df2658f513b6b68ea7f8929c62c5/eth/MainResults.lean); identity `11b6c7e3c927df2658f513b6b68ea7f8929c62c5`.
+- [git](https://github.com/unaltuzun/exponential-time-hypothesis-verify/blob/a775e22cf311787b940577bb5378b4ce7b70b58c/VERIFICATION.md); identity `a775e22cf311787b940577bb5378b4ce7b70b58c`.
 
 Assumptions and exclusions:
 
 - Inspected scope, canonical formula/encoding and primitive-machine definitions, comparator configuration and solution theorem reached through the configured Main module; no transitive proof build, comparator replay or measured dependency audit was performed here. The challenge placeholder is separate from the solution proof.
-- The comparator permits propext, Quot.sound and Classical.choice; this declared allowlist is not a measured axiom closure. The scope note's sharper October 25 manuscript bounds are separate from the selected formal target.
+- The external log reports the measured dependencies propext, Classical.choice and Quot.sound. The verifier used cached Mathlib and the default Lean kernel. The sharper manuscript bounds are separate from this formal target.
 - Clause width is fixed; constants and polynomial degrees may depend on k. Polynomial visited-tape space is not a finite target memory budget, and no practical crossover or implementation speedup is established.
 - The result does not settle P versus NP, independent OV/OMv conjectures, universal proof search or termination, or concrete MLWE/MSIS/hash security. Removing an ETH/SETH premise does not construct faster algorithms for every problem with a conditional lower bound.
 
@@ -106,13 +207,56 @@ Consumer: [docs/implementation/placement-search.md#8-research-handoff-for-future
 
 Local evidence: [docs/background/open-math-conjectures.md#exponential-time-hypothesis-and-strong-exponential-time-hypothesis](open-math-conjectures.md#exponential-time-hypothesis-and-strong-exponential-time-hypothesis); [docs/implementation/contracts/schedule-record.md#research-handoff-for-schedule-synthesis](../implementation/contracts/schedule-record.md#research-handoff-for-schedule-synthesis); [docs/implementation/contracts/wasm-execution.md#mathematical-research-handoff](../implementation/contracts/wasm-execution.md#mathematical-research-handoff).
 
-Next action: Track independent examination and replay status at an immutable revision. For a named bounded-width SAT consumer, prove the reduction and decoded-output relation, count encoding bits and auxiliary variables, declare finite time/workspace limits and compare on CI. Reassess ETH/SETH-only barriers without claiming a faster implementation or accepting solver verdicts as certificates.
+Next action: For a named bounded-width SAT consumer, prove the reduction and decoded-output relation, count encoding bits and auxiliary variables, declare finite time/workspace limits and compare on CI. Reassess ETH/SETH-only barriers without claiming a faster implementation or accepting solver verdicts as certificates.
 
-## Integer multiplication: conditional frontier and Lean artifact <a id="integer109"></a>
+## Exact finite Fourier transforms <a id="finite-fourier"></a>
 
-CrocSwap's selected conditional kappa is 0.0023; partially reviewed archival #4441/#4470 claim 0.00300105/0.00302015 and #4483 retains the latter with sufficient supplier rank 2^2800000000. Separately, platypii's MathlibTM2.mulInTime exports an all-input fixed-machine exact multiplier at kappa = 3299646951/2^46, with no explicit algorithmic/runtime hypothesis. Upstream CI reports a successful build and axiom audits at the pinned revision; no independent Lean replay or practical speedup is established here.
+For finite abelian groups of order n, OpenAI reports a lower bound of order n*sqrt(log n) and an upper bound O_epsilon(n*(log n)^(1/2+epsilon)) on binary linear gates for each fixed positive epsilon.
 
-Evidence stage: **source inspection**. Disposition: **await workload**. Inspected: 2026-10-21.
+Evidence stage: **source inspection**. Disposition: **await workload**. Inspected: 2026-11-25.
+
+Selected sources:
+
+- [git](https://github.com/openai/math/blob/3344da59991ed94f9ba711217b29c1d760badfa6/lean/ComparatorChallenges/ExactFourier.lean); identity `3344da59991ed94f9ba711217b29c1d760badfa6`.
+- [git](https://github.com/openai/math/blob/3344da59991ed94f9ba711217b29c1d760badfa6/lean/docs/379.md); identity `3344da59991ed94f9ba711217b29c1d760badfa6`.
+
+Assumptions and exclusions:
+
+- The field must contain a primitive root of the group exponent and allow division by n. Exact circuit complexity leaves the precision, stability, layout and cost of target kernels open.
+
+Consumer: [docs/implementation/contracts/compute-semantic.md#arithmetic-research-handoff](../implementation/contracts/compute-semantic.md#arithmetic-research-handoff). Owner: Q30g future transform selection.
+
+Local evidence: [docs/background/open-math-conjectures.md#additional-algorithm-leads-in-the-openai-collection](open-math-conjectures.md#additional-algorithm-leads-in-the-openai-collection).
+
+Next action: Select group, field and normalization, and compare a finite executable circuit against a baseline FFT with the required error or equality criterion.
+
+## Forced three-dimensional Navier–Stokes breakdown <a id="forced-navier-stokes"></a>
+
+OpenAI supplies formal counterexamples with smooth forcing on Euclidean space and the periodic torus (Clay alternatives C and D). A third-party record reports matching and checking both statements.
+
+Evidence stage: **supplied replay**. Disposition: **await workload**. Inspected: 2026-11-25.
+
+Selected sources:
+
+- [git](https://github.com/openai/NavierStokesAndEuler/blob/f9e8bc5b38b6e212696e8a30e3e91517af887bbd/formalization.yaml); identity `f9e8bc5b38b6e212696e8a30e3e91517af887bbd`.
+- [git](https://github.com/mary-octavia/navier-stokes-proof/blob/3b01518b6e33ab99b36a582219aa5c605be5268a/navier-stokes-standalone/verification.log); identity `3b01518b6e33ab99b36a582219aa5c605be5268a`.
+- [arxiv](https://arxiv.org/abs/2610.08144v1); identity `2610.08144v1`.
+
+Assumptions and exclusions:
+
+- Forcing and the solution class are part of the declarations. The external replay applies to the formal statements. A critique identifies differences in the manuscript.
+
+Consumer: [docs/assurance/proof-assistance.md#research-handoff-for-future-proof-producers](../assurance/proof-assistance.md#research-handoff-for-future-proof-producers). Owner: Proof-producer statement review.
+
+Local evidence: [docs/background/open-math-conjectures.md#three-dimensional-navierstokes-breakdown](open-math-conjectures.md#three-dimensional-navierstokes-breakdown).
+
+Next action: Use the forced case as a comparison when reviewing a numerical proof. Record the chosen data, forcing, domain and solution class before transferring any claim.
+
+## Integer multiplication on tapes and earlier constructions <a id="integer109"></a>
+
+OpenAI’s November fixed deterministic multitape machine writes the full product of two n-bit integers in n*(log n)^(1/2+o(1)) worst-case steps with O(n) visited cells. Weak ETH gives a lower bound of order n*sqrt(log n) even for the low n bits. The earlier conditional CrocSwap constructions and platypii’s separate end-to-end Lean theorem carry their own evidence.
+
+Evidence stage: **source inspection**. Disposition: **await workload**. Inspected: 2026-11-25.
 
 Selected sources:
 
@@ -130,9 +274,12 @@ Selected sources:
 - [git](https://github.com/platypii/integer-mult-bounds-lean/blob/228513faf7ebca347d345c187687a379bfb5ed8c/.github/workflows/lean.yml); identity `228513faf7ebca347d345c187687a379bfb5ed8c`.
 - [git](https://github.com/platypii/integer-mult-bounds-lean/blob/228513faf7ebca347d345c187687a379bfb5ed8c/lake-manifest.json); identity `228513faf7ebca347d345c187687a379bfb5ed8c`.
 - [git](https://github.com/leanprover-community/mathlib4/blob/d13f23b723b8a846827a245b89c10fc7d3f11612/Mathlib/Computability/TuringMachine/Computable.lean); identity `d13f23b723b8a846827a245b89c10fc7d3f11612`.
+- [git](https://github.com/openai/math/blob/3344da59991ed94f9ba711217b29c1d760badfa6/lean/ComparatorChallenges/NearSquareRootMultiplication.lean); identity `3344da59991ed94f9ba711217b29c1d760badfa6`.
+- [git](https://github.com/openai/math/blob/3344da59991ed94f9ba711217b29c1d760badfa6/lean/ComparatorChallenges/MultitapeWeakETH.lean); identity `3344da59991ed94f9ba711217b29c1d760badfa6`.
 
 Assumptions and exclusions:
 
+- Weak ETH excludes deterministic 3-SAT in 2^O(v^(1-eta))*poly(L) for any fixed 0 < eta < 1. The October subexponential algorithms do not attain this scale. Even under Weak ETH the optimal log exponent is an infimum and exact attainment is open.
 - The selected record, AI-assisted changed-interface review and supplied 23-stage/59-artifact validation receipt were inspected; their verifiers and complete transitive proof stack were not independently replayed or reviewed here.
 - For CrocSwap's selected construction, native producer/movement, fixed-tape execution, precision, fine-prime padding, analytic decomposition and exact recovery remain inherited premises; its larger saving has no complete formal or independent human verification here.
 - Later CrocSwap package statements and intake dispositions were inspected, not independently replayed. Archival merge is not scientific admission; sufficient supplier rank and its exponent reductions are neither a multiplication-input threshold nor a measured speedup.
@@ -143,7 +290,7 @@ Consumer: [docs/performance/toolchain-residency.md#research-leads-for-bounded-re
 
 Local evidence: [docs/background/open-math-conjectures.md#optimal-bit-complexity-of-integer-multiplication](open-math-conjectures.md#optimal-bit-complexity-of-integer-multiplication); [docs/performance/performance-estimates.md#how-to-read-this](../performance/performance-estimates.md#how-to-read-this); [docs/assurance/proof-assistance.md#research-handoff-for-future-proof-producers](../assurance/proof-assistance.md#research-handoff-for-future-proof-producers).
 
-Next action: Keep CrocSwap's selected and archival claims distinct from the separate Lean theorem. Independently replay the pinned Lean statement and axiom closure and review its machine-model correspondence before proof reuse; require source-bound review/replay before promoting a larger CrocSwap saving. Identify a large exact-arithmetic workload and compare complete finite time and storage with simpler algorithms before requesting CI timing.
+Next action: Identify a large exact-arithmetic workload and compare complete finite time and storage with simpler algorithms. Before proof reuse, replay the selected machine statement and its assumptions and justify the mapping to target limbs.
 
 ## Family 103 logspace derandomization formalization <a id="logspace103"></a>
 
@@ -165,6 +312,48 @@ Consumer: [docs/assurance/proof-assistance.md](../assurance/proof-assistance.md)
 Local evidence: [docs/background/open-math-conjectures.md](open-math-conjectures.md).
 
 Next action: Select a concrete randomized resident pass with a stated input/output relation before attempting a reduction or replay; preserve the explicit-machine restrictions and account for concrete compiler and time costs separately.
+
+## Exact square and rectangular matrix exponents <a id="matrix-exponent"></a>
+
+OpenAI reports square exponent 9/4 over every field in the formal polynomial model and dual exponent 1/2. Applied to the tight side-two multiplication tensor, 2^(9/4) exceeds its factor dimension four and contradicts the general tight-tensor rank premise used in a conditional packing algorithm.
+
+Evidence stage: **source inspection**. Disposition: **await workload**. Inspected: 2026-11-25.
+
+Selected sources:
+
+- [git](https://github.com/openai/math/blob/3344da59991ed94f9ba711217b29c1d760badfa6/lean/ComparatorChallenges/MatrixExponent.lean); identity `3344da59991ed94f9ba711217b29c1d760badfa6`.
+- [git](https://github.com/openai/math/blob/3344da59991ed94f9ba711217b29c1d760badfa6/lean/docs/379.md); identity `3344da59991ed94f9ba711217b29c1d760badfa6`.
+- [arxiv](https://arxiv.org/abs/2610.28627v2); identity `2610.28627v2`.
+
+Assumptions and exclusions:
+
+- The exponent is an infimum. Per-size numerical behavior, rounded GEMM outputs and a general bin-packing runtime do not follow. The paper and the Lean statement give different coverage for finite gate lower bounds.
+
+Consumer: [docs/implementation/contracts/compute-semantic.md#arithmetic-research-handoff](../implementation/contracts/compute-semantic.md#arithmetic-research-handoff). Owner: Q30d/Q30e compute kernels and Q5b placement.
+
+Local evidence: [docs/background/open-math-conjectures.md#matrix-multiplication-exponent-equals-two](open-math-conjectures.md#matrix-multiplication-exponent-equals-two); [docs/background/open-math-conjectures.md#asymptotic-rank-conjecture-and-exact-bin-packing](open-math-conjectures.md#asymptotic-rank-conjecture-and-exact-bin-packing); [docs/implementation/placement-search.md#8-research-handoff-for-future-placement-proofs](../implementation/placement-search.md#8-research-handoff-for-future-placement-proofs).
+
+Next action: For an exact arithmetic consumer, freeze shapes, coefficients, workspace and traffic before comparing kernels. For packing, establish the needed rank bound for the particular partition tensors.
+
+## Finite rank of three-by-three multiplication <a id="rank-three"></a>
+
+Tomar reports exact tensor rank 23 for 3-by-3 multiplication over F2. Reduction mod two and Laderman’s integral construction give the same optimum for integer-coefficient bilinear schemes.
+
+Evidence stage: **source inspection**. Disposition: **await workload**. Inspected: 2026-11-25.
+
+Selected sources:
+
+- [arxiv](https://arxiv.org/abs/2610.11823v3); identity `2610.11823v3`.
+
+Assumptions and exclusions:
+
+- The conclusion for integral coefficients does not extend to rational formulas containing denominators divisible by two. The reported kernel-only proof was not replayed here.
+
+Consumer: [docs/implementation/contracts/compute-semantic.md#arithmetic-research-handoff](../implementation/contracts/compute-semantic.md#arithmetic-research-handoff). Owner: Q30g finite exact kernel comparisons.
+
+Local evidence: [docs/background/open-math-conjectures.md#finite-matrix-multiplication-with-48-products](open-math-conjectures.md#finite-matrix-multiplication-with-48-products).
+
+Next action: Use a concrete domain and shape when comparing a rank-23 block against the baseline, including all additions and basis conversions.
 
 ## Finite 48-product matrix multiplication <a id="rank48"></a>
 
@@ -188,6 +377,50 @@ Local evidence: [docs/background/rank48-replay.md](rank48-replay.md); [docs/back
 
 Next action: Choose an arithmetic domain, matrix shape ladder, finite scratch and traffic thresholds and output predicate before a candidate implementation; perform any timing comparison on CI.
 
+## Strongly polynomial rational LP and polytope diameter <a id="rational-lp"></a>
+
+OpenAI reports fixed rational-RAM solvers that return a point, Farkas witness, matching primal/dual optima or an improving ray as appropriate. Its companion result gives bounded simple rational polytopes with superpolynomial edge diameter in the number of facets.
+
+Evidence stage: **source inspection**. Disposition: **await workload**. Inspected: 2026-11-25.
+
+Selected sources:
+
+- [git](https://github.com/openai/math/blob/3344da59991ed94f9ba711217b29c1d760badfa6/lean/ComparatorChallenges/LinearProgramming.lean); identity `3344da59991ed94f9ba711217b29c1d760badfa6`.
+- [git](https://github.com/openai/math/blob/3344da59991ed94f9ba711217b29c1d760badfa6/lean/ComparatorChallenges/Hirsch.lean); identity `3344da59991ed94f9ba711217b29c1d760badfa6`.
+- [git](https://github.com/openai/math/blob/3344da59991ed94f9ba711217b29c1d760badfa6/lean/docs/380.md); identity `3344da59991ed94f9ba711217b29c1d760badfa6`.
+
+Assumptions and exclusions:
+
+- The instruction count depends polynomially on dimensions. Intermediate bit lengths are polynomial in the encoded input. A short computation can use operations other than edge pivots.
+
+Consumer: [docs/implementation/placement-search.md#8-research-handoff-for-future-placement-proofs](../implementation/placement-search.md#8-research-handoff-for-future-placement-proofs). Owner: Q5b offline placement relaxation.
+
+Local evidence: [docs/background/open-math-conjectures.md#strongly-polynomial-linear-programming](open-math-conjectures.md#strongly-polynomial-linear-programming); [docs/background/open-math-conjectures.md#sparse-linear-programs-and-short-circuit-walks](open-math-conjectures.md#sparse-linear-programs-and-short-circuit-walks).
+
+Next action: Exhibit an actual relaxation containing all legal layouts. Check its rational bounds and separately validate each decoded integral candidate. Measure intermediate bit lengths and total storage.
+
+## Real-input 3SUM and all-pairs shortest paths <a id="real-sum-paths"></a>
+
+Deterministic real-RAM reductions give truly subquadratic real 3SUM and truly subcubic real APSP. The earlier machine-checked Word RAM results concern polynomially bounded integers.
+
+Evidence stage: **source inspection**. Disposition: **await workload**. Inspected: 2026-11-25.
+
+Selected sources:
+
+- [arxiv](https://arxiv.org/abs/2610.42012v2); identity `2610.42012v2`.
+- [arxiv](https://arxiv.org/abs/2610.10153v1); identity `2610.10153v1`.
+- [arxiv](https://arxiv.org/abs/2611.04847v1); identity `2611.04847v1`.
+
+Assumptions and exclusions:
+
+- Exact comparisons and arithmetic in the real-RAM model have no implied constant cost on Wasm. The randomized odd-k integer k-SUM result has different quantifiers.
+
+Consumer: [docs/implementation/contracts/wasm-execution.md#mathematical-research-handoff](../implementation/contracts/wasm-execution.md#mathematical-research-handoff). Owner: Q34f/Q34h graph or geometry guest workloads.
+
+Local evidence: [docs/background/open-math-conjectures.md#modern-3sum-conjecture](open-math-conjectures.md#modern-3sum-conjecture); [docs/background/open-math-conjectures.md#weighted-all-pairs-shortest-paths-hypothesis](open-math-conjectures.md#weighted-all-pairs-shortest-paths-hypothesis).
+
+Next action: For a named guest, prove how its numeric representation preserves the reduction and compare all encoding, workspace and arithmetic costs with its baseline.
+
 ## Shortest-path implementation evidence scope <a id="shortest-path"></a>
 
 The selected practical evaluation measures particular implementations of the Duan et al. 2025 sub-sorting shortest-path algorithm. Its measured slowdowns and projected crossover do not measure the later algorithms surveyed.
@@ -208,6 +441,27 @@ Consumer: [docs/background/open-math-conjectures.md](open-math-conjectures.md). 
 Local evidence: [docs/background/open-math-conjectures.md](open-math-conjectures.md).
 
 Next action: Keep Dijkstra as the baseline. For a named graph pass, record its sizes and constraints, select a later algorithm explicitly if appropriate, and compare implementations on CI without assigning earlier measurements to it.
+
+## DeepMind Signal binary proof and exceptional inputs <a id="signal-binary"></a>
+
+The released development relates a particular AArch64 Signal messenger binary to symbolic and classical computational security models under explicit primitive and environment assumptions.
+
+Evidence stage: **source inspection**. Disposition: **await workload**. Inspected: 2026-11-25.
+
+Selected sources:
+
+- [git](https://github.com/google-deepmind/code-verification/blob/8c8d371f1962ac73435c8eb148678991f5c3470d/docs/PAPER_MAP.md); identity `8c8d371f1962ac73435c8eb148678991f5c3470d`.
+- [git](https://github.com/google-deepmind/code-verification/blob/8c8d371f1962ac73435c8eb148678991f5c3470d/README.md); identity `8c8d371f1962ac73435c8eb148678991f5c3470d`.
+
+Assumptions and exclusions:
+
+- The checked interface intercepts panic entries and retains a lattice-sampler exceptional event. Its probability bound has a separate justification outside the Lean proof.
+
+Consumer: [docs/assurance/proof-reuse/protocols.md](../assurance/proof-reuse/protocols.md). Owner: M6.9b/M6.9c and U-20 session proofs.
+
+Local evidence: [docs/background/open-math-conjectures.md#signal-session-security-at-the-binary](open-math-conjectures.md#signal-session-security-at-the-binary); [docs/assurance/pq-reference-contract.md](../assurance/pq-reference-contract.md).
+
+Next action: Compare the implementation-to-protocol relation with the local binary and its actual sampler, finite-fuel refusal paths and observation model before reusing any theorem.
 
 ## Local exact two-stack lifetime placement <a id="two-stack"></a>
 
@@ -252,6 +506,28 @@ Consumer: [docs/implementation/static-memory/scaling.md](../implementation/stati
 Local evidence: [docs/background/open-math-conjectures.md#asymptotic-rank-conjecture-and-exact-bin-packing](open-math-conjectures.md#asymptotic-rank-conjecture-and-exact-bin-packing).
 
 Next action: Count actual distinct item/job and machine types in a declared placement or scheduling instance, state the exact reduction and unsupported constraints, and compare with the retained finite baseline only when the reduction applies.
+
+## Unforced three-dimensional Navier–Stokes claim <a id="unforced-navier-stokes"></a>
+
+Alpöge and Buckmaster claim unforced blow-up in space and on the torus. The selected Lean package derives the conclusions from profile or certificate hypotheses.
+
+Evidence stage: **source inspection**. Disposition: **await workload**. Inspected: 2026-11-25.
+
+Selected sources:
+
+- [git](https://github.com/tristanbuckmaster/navier-stokes/blob/ad53419de079eb8f95f60313473374624a348546/lean/NOTICE); identity `ad53419de079eb8f95f60313473374624a348546`.
+- [git](https://github.com/tristanbuckmaster/navier-stokes/blob/ad53419de079eb8f95f60313473374624a348546/README.md); identity `ad53419de079eb8f95f60313473374624a348546`.
+- [git](https://github.com/tristanbuckmaster/navier-stokes/blob/ad53419de079eb8f95f60313473374624a348546/paper/finite-time-blow-up-navier-stokes.pdf); identity `ad53419de079eb8f95f60313473374624a348546`.
+
+Assumptions and exclusions:
+
+- The selected release omits the numerical witness and interval-arithmetic run and reports the patched package had yet to be rebuilt. VerifiedOS has no fluid-solver workload depending on global smoothness.
+
+Consumer: [docs/assurance/proof-assistance.md#research-handoff-for-future-proof-producers](../assurance/proof-assistance.md#research-handoff-for-future-proof-producers). Owner: Proof-producer certificate review.
+
+Local evidence: [docs/background/open-math-conjectures.md#three-dimensional-navierstokes-breakdown](open-math-conjectures.md#three-dimensional-navierstokes-breakdown).
+
+Next action: Before crediting an end-to-end proof, bind the numerical data, check the interval bounds and replay the implication with its premises discharged.
 
 ## Finite composer dictionary workload
 
@@ -298,7 +574,7 @@ Sorted reference payload SHA-256: `23b690105f12b96f3ef7a997cf508a5b775e70bcaf077
 | [tools/uv.lock](../../tools/uv.lock) | `0a470cbea5bb34c291a46053bc4c455f96ddd275adc435c14fab2a0babdbf0e1` |
 | [tools/vos/composer.py](../../tools/vos/composer.py) | `b96169f76319dd55c7597462472257830370fe9c86c44236ae3379efe34bcd3e` |
 | [proofs/HandlerGraph.v](../../proofs/HandlerGraph.v) | `0a088ecfd1e96010290cffe278da431c5aeab1b5b56a8e8b8a66ee69addfdd07` |
-| [tools/vos/math_evidence.py](../../tools/vos/math_evidence.py) | `cbe9e115518178c4ad00db96377ccbd9508544e9b24fbe78055b3d921d700a3c` |
+| [tools/vos/math_evidence.py](../../tools/vos/math_evidence.py) | `1bafa59074aacfe0b03b81f23e6ce5c9068ba92e0285f0f5956b443b97d13fa6` |
 | [tools/vos/__init__.py](../../tools/vos/__init__.py) | `f4bf65b676335680ed2e74c496374a83a2d37380cb6bc32a0af94d192c788e36` |
 | [tools/vos/atomic.py](../../tools/vos/atomic.py) | `384e706e945f8cead1e1b3791f916f6e7f8783a7497c17dd3a551a765e670471` |
 | [tools/vos/copy_package_sources.py](../../tools/vos/copy_package_sources.py) | `85ac67a6394c91e40e7f4b19fa1b4b9d5bbd8ab61f74bc3765286cfeb704796f` |

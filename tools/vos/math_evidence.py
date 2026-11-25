@@ -20,8 +20,13 @@ from vos.receipts import digest
 
 MANIFEST = "docs/background/math-evidence.json"
 ARTIFACT = "docs/background/math-evidence.md"
-REQUIRED_IDS = frozenset({"dcp", "rank48", "eth378", "type-fpt", "logspace103", "comparator",
-                          "integer109", "shortest-path", "two-stack", "composer-dictionaries"})
+REQUIRED_IDS = frozenset({
+    "dcp", "cogentic-factoring-dlp", "cogentic-logrank", "signal-binary",
+    "rank48", "rank-three", "matrix-exponent", "arithmetic-hierarchy", "finite-fourier", "integer109",
+    "eth378", "real-sum-paths", "type-fpt", "rational-lp", "two-stack", "composer-dictionaries",
+    "dirichlet-grh", "forced-navier-stokes", "unforced-navier-stokes",
+    "logspace103", "comparator", "shortest-path",
+})
 STAGES = ("source inspection", "supplied replay", "independent replay", "production acceptance")
 DISPOSITIONS = ("evaluate now", "await workload", "monitor security")
 SHAPE_SOURCES = source_bindings.sources("math-shapes")
