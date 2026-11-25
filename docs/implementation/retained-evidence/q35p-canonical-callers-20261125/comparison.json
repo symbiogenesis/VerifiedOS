@@ -1,0 +1,163 @@
+{
+  "canonical_refusal_path": "core/phys_mem_interface.sail",
+  "inputs_rechecked": true,
+  "minimal_refusal_path": "bindings.sail",
+  "readings": {
+    "__ReadRAM_Meta": {
+      "canonical_sha256": "3f38c509edb976024e340eaf6fb885b2c40d14f988a00b81b4c637edeec58ab2",
+      "matched_token_count": 143,
+      "minimal_sha256": "3f38c509edb976024e340eaf6fb885b2c40d14f988a00b81b4c637edeec58ab2",
+      "raw_identical": true,
+      "refusal_location_pairs": []
+    },
+    "__WriteRAM_Meta": {
+      "canonical_sha256": "df491ac01870c9b435c2eaeb199dab1659538617cb11bbc0d9d5744392703fa3",
+      "matched_token_count": 263,
+      "minimal_sha256": "df491ac01870c9b435c2eaeb199dab1659538617cb11bbc0d9d5744392703fa3",
+      "raw_identical": true,
+      "refusal_location_pairs": []
+    },
+    "addr_to_tag_addr": {
+      "canonical_sha256": "a83c6a389d64f1e76b342c2c141420c72ab41849d29ae42e315fa648c1a673ba",
+      "matched_token_count": 122,
+      "minimal_sha256": "a83c6a389d64f1e76b342c2c141420c72ab41849d29ae42e315fa648c1a673ba",
+      "raw_identical": true,
+      "refusal_location_pairs": []
+    },
+    "default_meta": {
+      "canonical_sha256": "6798945d3463dd4c9a5a3dbf0aee1710e5b916b25e4107bdae0d071f1d3e0230",
+      "matched_token_count": 5,
+      "minimal_sha256": "6798945d3463dd4c9a5a3dbf0aee1710e5b916b25e4107bdae0d071f1d3e0230",
+      "raw_identical": true,
+      "refusal_location_pairs": []
+    },
+    "log2_cap_size": {
+      "canonical_sha256": "0347b6ce5d673e772179aac7ea032cabcd255740d974d5b6439ef0579fe63751",
+      "matched_token_count": 9,
+      "minimal_sha256": "0347b6ce5d673e772179aac7ea032cabcd255740d974d5b6439ef0579fe63751",
+      "raw_identical": true,
+      "refusal_location_pairs": []
+    },
+    "read_mem_": {
+      "canonical_sha256": "c9f6836288f90696bc528dc9a6ad695c7b07f6dcb5718104a47606a03956b3b4",
+      "matched_token_count": 925,
+      "minimal_sha256": "4426f1914f6c9e5e7d997bfa4121322391d5981addb676db349439f7f1339692",
+      "raw_identical": false,
+      "refusal_location_pairs": [
+        [
+          31,
+          139
+        ]
+      ]
+    },
+    "read_mem_exclusive_": {
+      "canonical_sha256": "6ff126692c16ad1fcb0a2802d2340ee58834f773645b06576f31e2b7139c401d",
+      "matched_token_count": 925,
+      "minimal_sha256": "f3257564487f3bbd3337740b13417350febddf056c884d8c4952a18fbf8ef2a6",
+      "raw_identical": false,
+      "refusal_location_pairs": [
+        [
+          39,
+          147
+        ]
+      ]
+    },
+    "read_mem_ifetch_": {
+      "canonical_sha256": "a6cf5a696492dc8157ef35100fd97233d52099bc2db252e779f09f3589bc7feb",
+      "matched_token_count": 925,
+      "minimal_sha256": "e11ba1d56774bf0113cbf6e34b50055bfb45d48f5d0fbc6be048928d7d176462",
+      "raw_identical": false,
+      "refusal_location_pairs": [
+        [
+          35,
+          143
+        ]
+      ]
+    },
+    "read_ram": {
+      "canonical_sha256": "d8c5da9fe41fb5822427609e9305462449fab9211c15d7b87c21d8819911e3f4",
+      "matched_token_count": 2079,
+      "minimal_sha256": "08316c4d7143093446cda0319e815f61bbbb39c7aa1d9016c7bf5db30adc10ce",
+      "raw_identical": false,
+      "refusal_location_pairs": [
+        [
+          166,
+          274
+        ],
+        [
+          167,
+          275
+        ]
+      ]
+    },
+    "read_tag_bool": {
+      "canonical_sha256": "c1e2d192036b67c6d28e8ee0c3ff1f6be6f7857bab8e8e1791c001b6f7208277",
+      "matched_token_count": 111,
+      "minimal_sha256": "c1e2d192036b67c6d28e8ee0c3ff1f6be6f7857bab8e8e1791c001b6f7208277",
+      "raw_identical": true,
+      "refusal_location_pairs": []
+    },
+    "sail_mem_read": {
+      "canonical_sha256": "ef756e7b2d8ac0c4f172498248b6d596f8e5cf30aa001af5aa0418264d92a701",
+      "matched_token_count": 860,
+      "minimal_sha256": "ef756e7b2d8ac0c4f172498248b6d596f8e5cf30aa001af5aa0418264d92a701",
+      "raw_identical": true,
+      "refusal_location_pairs": []
+    },
+    "sail_mem_write": {
+      "canonical_sha256": "5c59a8b9b529ece866789260636b3fef6962852f3d78222788738eea7237f3b3",
+      "matched_token_count": 573,
+      "minimal_sha256": "5c59a8b9b529ece866789260636b3fef6962852f3d78222788738eea7237f3b3",
+      "raw_identical": true,
+      "refusal_location_pairs": []
+    },
+    "write_mem_": {
+      "canonical_sha256": "5631cc667f8fdebf23c0e61c6e16ac53b6c0aaec712303640ebbf5fc4ebc6e5a",
+      "matched_token_count": 913,
+      "minimal_sha256": "1f4b90e9f2d6304ae4826dda3e5843ddab86ef19a5acf58e53cb93f277128ad1",
+      "raw_identical": false,
+      "refusal_location_pairs": [
+        [
+          43,
+          151
+        ]
+      ]
+    },
+    "write_mem_exclusive_": {
+      "canonical_sha256": "e4c17f2f8cc8e10ee8755d322f6bf896d9e6d79d38c3f3042dcc2438d7f79692",
+      "matched_token_count": 913,
+      "minimal_sha256": "fe17e326f8edbb363376282bf6f6a4e47853bf31d5d798d8cca8b339d5d67b9b",
+      "raw_identical": false,
+      "refusal_location_pairs": [
+        [
+          47,
+          155
+        ]
+      ]
+    },
+    "write_ram": {
+      "canonical_sha256": "797923a69d4cd27ac5f74176e7d718a8f9c79dea71248298769ce882052dc6a3",
+      "matched_token_count": 1795,
+      "minimal_sha256": "3722564ff41000f08b4f16accb1b28f2ba67fafcf28f905c210c4f2aec4dbea7",
+      "raw_identical": false,
+      "refusal_location_pairs": [
+        [
+          125,
+          233
+        ],
+        [
+          126,
+          234
+        ]
+      ]
+    },
+    "write_tag_bool": {
+      "canonical_sha256": "1a21208748576747e28abc1b8060d176e6808d9f03590427f2aab7e86a31c9af",
+      "matched_token_count": 123,
+      "minimal_sha256": "1a21208748576747e28abc1b8060d176e6808d9f03590427f2aab7e86a31c9af",
+      "raw_identical": true,
+      "refusal_location_pairs": []
+    }
+  },
+  "status": "matched_after_explicit_location_substitutions"
+}
