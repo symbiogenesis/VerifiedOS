@@ -9,6 +9,8 @@
   },
   "syntax_plugin_sha256": "bfd722d424936648c244a2a2d42f4eca6d76a0b45fdbf439043844d5a9c28eae",
   "syntax_plugin_source_evidence": "docs/implementation/retained-evidence/q35o-scope-20261023/manifest.json",
+  "retained_replay_evidence": "docs/implementation/retained-evidence/holdfast-q35p-worker-proofs-20261125/emission-relative.json",
+  "retained_library_evidence": "docs/implementation/retained-evidence/q35o-holdfast-main-20261125/library-inputs-before.json",
   "reproducer": "docs/implementation/retained-evidence/close3-q35p-20261013/bindings.sail.txt",
   "reproducer_sha256": "aff11682da08211dc364a767dcec579b008d1ca1603054d8e9ab71c82e0701b4",
   "strict_support_modules": 29,

@@ -17,24 +17,29 @@ production support recipe, prover switch, Sail source or emitter.
   arbitrary successful data replies, tag ordering and exact refusals.
 - `replay.py` reproduces the selected support builds, actual minimal emission,
   repeated output comparison and strict native controls. It copies dependencies
-  privately and inventories both installed prefixes before and after. No installed
-  `.v` dependency is rebuilt. A failure or timeout produces no success verdict.
+  privately and inventories both installed prefixes before and after. The replay
+  of the November input set also checks the recorded Sail and Z3 binaries,
+  plugin population, private stdpp sources and objects, and emitted bytes.
 
 Run from the assigned checkout in the native guest, using expanded absolute inputs
 from the matching Q35n/Q35o qualification. The output must be a new directory under
 this checkout's assigned `/root/build/lane-*` root and must overlap no input. For the
-recorded native inputs, the invocation is:
+retained November inputs, the invocation is:
 
 ```sh
+inputs=/root/build/fanout-retained/4b3b843a3b9fe80d0323/holdfast-20261124-canonical/lane/replay-inputs
+lane=holdfast-replay-20261125
+export PATH=/root/z3-5.3.3/bin:$PATH
 python3 tools/sail-tag-outcomes/replay.py \
-  --source-archive /root/build/lane-reuse-wire-20261023-tags/coq-sail-0.20.3.tar.gz \
-  --stdpp /root/build/lane-reuse-wire-20261023-tags/stdpp \
-  --plugin /root/build/lane-reuse-wire-20261023-tags/plugins/sail_plugin_coq.cmxs \
+  --source-archive "$inputs/coq-sail.tar.gz" \
+  --stdpp "$inputs/private/lib/coq/user-contrib/stdpp" \
+  --plugin "$inputs/plugins/sail_plugin_coq.cmxs" \
   --rocq-prefix /root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1 \
   --sail-prefix /root/.opam/verifiedos-sail-0.20.3-ocaml-5.4.1 \
-  --out /root/build/lane-reuse-wire-20261023-tags/replay
+  --out "/root/build/lane-$lane/replay"
 ```
 
+Set `lane` to the worktree's verified lane name before running.
 The session's fanout retirement may move those native input copies into its retained
 lane archive; select their preserved absolute locations when replaying after
 retirement. `candidate.json` and the retained receipts bind their identities.
@@ -58,6 +63,3 @@ python -m unittest discover -s tools/sail-tag-outcomes -p test_replay.py
 ```
 
 These test path isolation and digest refusal without a native toolchain or gate.
-The driver was reviewed and host-checked separately from the retained native run;
-that run used the retained per-attempt commands. A clean replay of this packaged
-runner has not been claimed.

@@ -7,6 +7,9 @@ canonical-consumer acceptance remains owed.
 
 ## Retained evidence
 
+- [Packaged Q35p isolated replay](../implementation/retained-evidence/q35p-holdfast-frozen-replay-20261125/manifest.json),
+  SHA256 `75aacf6bccc11d27fe4a1503d3bb79b973f531ed1fb6b31f6aa5bddb9d532953`.
+  Frozen inputs, strict compile commands, repeated emission and installed-prefix comparison.
 - [Native V1 conservativity and physical-caller checkpoint](../implementation/retained-evidence/holdfast-q35p-worker-proofs-20261125/manifest.json),
   SHA256 `8e0eb97c3f34a8a0e56bbcf5f1a9cf1856a5c429b7916f9e0fdb806b2edd088c`.
   Frozen source identities, minimal emission repeats and focused proof readings.
@@ -92,10 +95,13 @@ exits zero. Final source identities and installed dependency sentinels agree.
 ## Reusable candidate and independent controls
 
 The separate [reusable V1 candidate](../../tools/sail-tag-outcomes/README.md)
-packages an isolated construction and replay recipe. Focused host controls, Ruff
-and Linux/Windows typing pass; `test_sail_tag_outcomes` includes its host controls.
-The native bundle binds the executed construction, not a clean replay of the
-subsequently packaged runner.
+packages an isolated construction and replay recipe. The November input set binds
+the retained Sail and Z3 binaries, complete selected plugin population and private
+stdpp source and object bytes. The packaged replay strictly compiled the 29 selected
+support modules on each side, both emitted modules and the four authored modules.
+Both emissions reproduced the retained sources exactly. The before/after
+installed-prefix inventories agreed. The declaration comparison between the two
+compiled sides remains due.
 
 [TagInterpreter.v](../../tools/sail-tag-outcomes/TagInterpreter.v) gives a fuelled
 finite-map interpretation with a fixed other-outcome handler and generic frame.
