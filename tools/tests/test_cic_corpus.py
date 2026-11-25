@@ -168,7 +168,7 @@ def _dependencies_refuse_what_they_cannot_place() -> None:
     for diagnostic in ("M.unsafe relies on unchecked sort eliminations.",
                        "M.unsafe relies on unchecked\n  sort eliminations."):
         mixed = _DEPENDENCIES.replace("myax : nat\n", f"myax : nat\n{diagnostic}\n")
-        _refused(lambda: cic_corpus.parse_dependencies(mixed),
+        _refused(lambda report=mixed: cic_corpus.parse_dependencies(report),
                  "unchecked sort eliminations cannot disappear from a mixed report")
 
 
