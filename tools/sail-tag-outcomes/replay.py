@@ -7,13 +7,20 @@ import os
 import shutil
 import subprocess
 import tarfile
-import tempfile
 import time
 from pathlib import Path
 
 
 def sha(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
+    with path.open("rb") as source:
+        return hashlib.file_digest(source, "sha256").hexdigest()
+
+
+def tree_sha(root: Path) -> dict[str, str]:
+    return {
+        path.relative_to(root).as_posix(): sha(path)
+        for path in sorted(root.rglob("*")) if path.is_file() and path.suffix != ".glob"
+    }
 
 
 def absolute(value: str) -> Path:
@@ -42,6 +49,32 @@ def require_sha(path: Path, expected: str) -> None:
     if sha(path) != expected:
         raise ValueError(f"input digest mismatch: {path}")
 
+
+def retained_emission_inputs(
+    evidence: Path, plugin: Path, sail: Path, z3: Path,
+) -> tuple[dict[Path, str], dict[str, str]]:
+    reading = json.loads(evidence.read_text(encoding="utf-8"))
+    if reading["checks"] != {"matched_retained_outputs": True, "unchanged_inputs": True}:
+        raise ValueError("retained emission did not match the frozen inputs and outputs")
+    input_hashes = {Path(name).name: digest for name, digest in reading["input_hashes"].items()}
+    require_sha(plugin, input_hashes["sail_plugin_coq.cmxs"])
+    require_sha(sail, input_hashes["sail"])
+    require_sha(z3, input_hashes["z3"])
+    plugins = {
+        plugin.parent / name: digest for name, digest in input_hashes.items()
+        if name.endswith(".cmxs")
+    }
+    for path, digest in plugins.items():
+        require_sha(path, digest)
+    return plugins, reading["expected"]
+
+
+def retained_stdpp(evidence: Path) -> dict[str, str]:
+    libraries = json.loads(evidence.read_text(encoding="utf-8"))
+    stdpp, = (reading for path, reading in libraries.items() if Path(path).name == "stdpp")
+    return stdpp
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--source-archive", required=True, type=absolute)
@@ -52,8 +85,10 @@ def main() -> None:
     parser.add_argument("--out", required=True)
     args = parser.parse_args()
     repo = Path(__file__).resolve().parents[2]
-    recipe = json.loads((repo / "tools/sail-tag-outcomes/candidate.json").read_text())
-    q = json.loads((repo / "tools/opam/sail-support-qualification.json").read_text())
+    recipe_path = repo / "tools/sail-tag-outcomes/candidate.json"
+    support_recipe = repo / "tools/opam/sail-support-qualification.json"
+    recipe = json.loads(recipe_path.read_text(encoding="utf-8"))
+    q = json.loads(support_recipe.read_text(encoding="utf-8"))
     try:
         out = output_path(args.out, (repo, args.source_archive, args.stdpp, args.plugin,
                                     args.rocq_prefix, args.sail_prefix))
@@ -62,17 +97,41 @@ def main() -> None:
     native = Path("/root/build")
     if not out.is_relative_to(native) or not any(p.name.startswith("lane-") for p in out.parents):
         parser.error("--out must be below the assigned /root/build/lane-* root")
-    for path, expected in [(args.source_archive, q["source"]["sha256"]),
-                           (args.plugin, recipe["syntax_plugin_sha256"])]:
-        require_sha(path, expected)
+    require_sha(args.source_archive, q["source"]["sha256"])
+    plugin_digest = sha(args.plugin)
+    expected_outputs = None
+    expected_stdpp = None
+    solver = None
+    if plugin_digest == recipe["syntax_plugin_sha256"]:
+        plugin_inputs = {args.plugin: plugin_digest}
+    else:
+        z3 = shutil.which("z3", path=str(args.sail_prefix / "bin") + os.pathsep + os.environ["PATH"])
+        if z3 is None:
+            parser.error("the retained plugin population requires the recorded z3 on PATH")
+        solver = Path(z3).resolve(strict=True)
+        plugin_inputs, expected_outputs = retained_emission_inputs(
+            repo / recipe["retained_replay_evidence"], args.plugin,
+            args.sail_prefix / "bin/sail", solver,
+        )
+        expected_stdpp = retained_stdpp(repo / recipe["retained_library_evidence"])
     if out.is_relative_to(args.stdpp):
         parser.error("output may not be inside the dependency input")
     if any(p.is_symlink() and p.is_dir() for p in args.stdpp.rglob("*")):
         parser.error("dependency input may not contain directory symlinks")
     out.mkdir(parents=True)
-    work = Path(tempfile.mkdtemp(prefix="vos-tag-replay-"))
     commands = []
     switches = [args.rocq_prefix, args.sail_prefix]
+    solver_digest = sha(solver) if solver is not None else None
+    inputs = {
+        "replay_driver_sha256": sha(Path(__file__)),
+        "candidate_recipe_sha256": sha(recipe_path),
+        "support_recipe_sha256": sha(support_recipe),
+        "source_archive_sha256": q["source"]["sha256"],
+        "rocq_sha256": sha(args.rocq_prefix / "bin/rocq"),
+        "sail_sha256": sha(args.sail_prefix / "bin/sail"),
+        "plugins_sha256": {path.name: digest for path, digest in plugin_inputs.items()},
+        "z3_sha256": solver_digest,
+    }
 
     def inventory() -> dict[str, dict[str, str]]:
         return {str(prefix): {str(p.relative_to(prefix)): sha(p)
@@ -84,7 +143,7 @@ def main() -> None:
     (out / "installed-before.json").write_text(json.dumps(before, indent=2) + "\n")
 
     def run(label: str, argv: list[str | Path], env: dict[str, str] | None = None,
-            *, cwd: Path = work) -> subprocess.CompletedProcess[str]:
+            *, cwd: Path = out) -> subprocess.CompletedProcess[str]:
         started = time.monotonic()
         result = subprocess.run(list(map(str, argv)), cwd=cwd, env=env,
                                 capture_output=True, text=True, timeout=180, check=False)
@@ -112,6 +171,10 @@ def main() -> None:
         if sha(patch) != recipe["patch"]["sha256"]:
             raise RuntimeError("semantic patch digest mismatch")
         shutil.copytree(args.stdpp, out / "stdpp", symlinks=False)
+        stdpp = tree_sha(out / "stdpp")
+        if expected_stdpp is not None and stdpp != expected_stdpp:
+            raise RuntimeError("private stdpp files do not match the retained library identities")
+        (out / "inputs.json").write_text(json.dumps({**inputs, "stdpp_sha256": stdpp}, indent=2) + "\n")
         for mode in ["baseline", "candidate"]:
             lane = out / mode
             lane.mkdir()
@@ -138,7 +201,11 @@ def main() -> None:
                     raise RuntimeError("strict selected compile emitted a diagnostic")
         plugins = out / "plugins"
         plugins.mkdir()
-        shutil.copy2(args.plugin, plugins / "sail_plugin_coq.cmxs")
+        for plugin_input, digest in plugin_inputs.items():
+            name = "sail_plugin_coq.cmxs" if plugin_input == args.plugin else plugin_input.name
+            staged = plugins / name
+            shutil.copy2(plugin_input, staged)
+            require_sha(staged, digest)
         reproducer = repo / recipe["reproducer"]
         require_sha(reproducer, recipe["reproducer_sha256"])
         env = os.environ.copy()
@@ -157,6 +224,8 @@ def main() -> None:
             outputs.append({p.name: sha(p) for p in lane.glob("bindings*.v")})
         if outputs[0] != outputs[1] or len(outputs[0]) != 2:
             raise RuntimeError("repeat emission changed or omitted an output")
+        if expected_outputs is not None and outputs[0] != expected_outputs:
+            raise RuntimeError("repeat emission does not match the retained output identities")
         authored_modules = ("TagInterpreter", "TagControls", "TagConservativity", "PhysicalCallerBridge")
         for name in authored_modules:
             proof_source = repo / "tools/sail-tag-outcomes" / (name + ".v")
@@ -177,6 +246,8 @@ def main() -> None:
         (out / "installed-comparison.json").write_text(json.dumps(changes, indent=2) + "\n")
         if any(changes.values()):
             raise RuntimeError("installed paths changed; report them and do not self-restore")
+        if solver is not None and sha(solver) != solver_digest:
+            raise RuntimeError("recorded z3 changed during replay")
     print(f"PASS isolated tag candidate: {out}; production acceptance remains open")
 
 

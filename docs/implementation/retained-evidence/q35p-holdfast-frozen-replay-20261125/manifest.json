@@ -1,0 +1,28 @@
+{
+  "files": {
+    "commands.json": {
+      "bytes": 79713,
+      "encoding": "identity",
+      "path": "commands.json",
+      "sha256": "ddf56c892ef1a87a1259a3c18050802487721dfdd982c07fd0dd4b44ae88641a"
+    },
+    "inputs.json": {
+      "bytes": 11710,
+      "encoding": "identity",
+      "path": "inputs.json",
+      "sha256": "17de0d298f80831a0a38d7c9e08f5b602c7b8764b5537a873cf60a3a01d50d42"
+    },
+    "installed-comparison.json": {
+      "bytes": 114,
+      "encoding": "identity",
+      "path": "installed-comparison.json",
+      "sha256": "13e7412be82fae5a11f0ab99d681309ecab4d00583fef29520651fc0166319c8"
+    },
+    "repeat-output-identities.json": {
+      "bytes": 375,
+      "encoding": "identity",
+      "path": "repeat-output-identities.json",
+      "sha256": "3110ea03d056936b7c0561ff54be51ec6401496b6b4a06ca68fa039d25a38d5a"
+    }
+  }
+}

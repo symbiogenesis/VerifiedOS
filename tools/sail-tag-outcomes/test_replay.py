@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 """Focused host controls for qualification output isolation and input identity."""
+import json
 import runpy
 import tempfile
 import unittest
@@ -9,6 +10,7 @@ helpers = runpy.run_path(str(Path(__file__).with_name("replay.py")))
 output_path = helpers["output_path"]
 require_sha = helpers["require_sha"]
 sha = helpers["sha"]
+retained_emission_inputs = helpers["retained_emission_inputs"]
 
 
 class IsolationControls(unittest.TestCase):
@@ -44,6 +46,33 @@ class IsolationControls(unittest.TestCase):
             source.write_bytes(b"changed bytes")
             with self.assertRaises(ValueError):
                 require_sha(source, digest)
+
+    def test_retained_emission_binds_other_plugins_and_solver(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="vos-tag-host-") as directory:
+            root = Path(directory)
+            plugin, companion, sail, z3 = (
+                root / name for name in ("sail_plugin_coq.cmxs", "sail_plugin_c.cmxs", "sail", "z3")
+            )
+            inputs = (plugin, companion, sail, z3)
+            for path in inputs:
+                path.write_text(path.name, encoding="utf-8")
+            expected = {"bindings.v": "recorded digest"}
+            evidence = root / "reading.json"
+            evidence.write_text(json.dumps({
+                "checks": {"matched_retained_outputs": True, "unchanged_inputs": True},
+                "input_hashes": {f"/old/location/{path.name}": sha(path) for path in inputs},
+                "expected": expected,
+            }), encoding="utf-8")
+            self.assertEqual(
+                retained_emission_inputs(evidence, plugin, sail, z3),
+                ({plugin: sha(plugin), companion: sha(companion)}, expected),
+            )
+            for path in (companion, z3):
+                with self.subTest(path=path):
+                    path.write_bytes(b"different")
+                    with self.assertRaisesRegex(ValueError, path.name):
+                        retained_emission_inputs(evidence, plugin, sail, z3)
+                    path.write_text(path.name, encoding="utf-8")
 
 
 if __name__ == "__main__":
