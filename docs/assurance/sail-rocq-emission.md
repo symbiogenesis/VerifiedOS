@@ -137,6 +137,13 @@ support. Q35n owns cold production carriage. The handwritten proof-maintenance h
 cold Guest CI under the existing proof workflow. Hosted execution and verdicts
 remain user-managed under the [validation handoff](../../AGENTS.md#tool-execution-and-validation).
 
+At the next qualified compiler comparison, exercise the direct and nested
+effectful top-level value definitions from [Sail PR 1790](https://github.com/rems-project/sail/pull/1790)
+and the numeric unification and cast regression from [Sail PR 1795](https://github.com/rems-project/sail/pull/1795).
+Compare emitted declarations, transparent bodies and exact assumptions on the
+then-qualified support. The frozen replay below binds the existing Sail 0.20.3
+emitter and its syntax patch.
+
 ## Canonical candidate replay
 
 At `498127d6`, `model rocq` emitted the frozen hart-0 term with the installed

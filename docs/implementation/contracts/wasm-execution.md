@@ -419,16 +419,17 @@ or a change to another application's reservation.
 
 ### Shared upstream corpus
 
-Source readings here are dated 2026-09-24; these are candidate revisions,
-not incorporated dependencies or local qualification evidence.
-
-- [Official Core tests and generators](https://github.com/WebAssembly/spec/tree/608711107b7f1edb13efd57b7d79b49477462d36/test/core)
-  and the [reference interpreter](https://github.com/WebAssembly/spec/tree/608711107b7f1edb13efd57b7d79b49477462d36/interpreter)
-  supply test syntax, expected behavior and SIMD case generation. The selected
-  [test licence](https://github.com/WebAssembly/spec/blob/608711107b7f1edb13efd57b7d79b49477462d36/test/LICENSE)
-  and [interpreter licence](https://github.com/WebAssembly/spec/blob/608711107b7f1edb13efd57b7d79b49477462d36/interpreter/LICENSE)
-  are Apache-2.0. Filter the exact Core 3.0 snapshot explicitly; a newer tree
-  is not the pinned semantic edition merely because its tests run.
+- Start Q34g's upstream qualification at the [Core 3.0 source](https://github.com/WebAssembly/spec/tree/e7a9df7cdd351df9d8d8546a53248669d51c1aa8/specification/wasm-3.0),
+  [official tests and generators](https://github.com/WebAssembly/spec/tree/e7a9df7cdd351df9d8d8546a53248669d51c1aa8/test/core)
+  and [reference interpreter](https://github.com/WebAssembly/spec/tree/e7a9df7cdd351df9d8d8546a53248669d51c1aa8/interpreter)
+  at the merge of [PR 2318](https://github.com/WebAssembly/spec/pull/2318).
+  This revision carries the signed-zero multiplication rules and
+  [prose correction](https://github.com/WebAssembly/spec/pull/2308), and the
+  independent relaxed-dot-add choice in [PR 2312](https://github.com/WebAssembly/spec/pull/2312).
+  The [test licence](https://github.com/WebAssembly/spec/blob/e7a9df7cdd351df9d8d8546a53248669d51c1aa8/test/LICENSE)
+  and [interpreter licence](https://github.com/WebAssembly/spec/blob/e7a9df7cdd351df9d8d8546a53248669d51c1aa8/interpreter/LICENSE)
+  are Apache-2.0. Filter the fixtures against the exact Core 3.0 feature set and
+  record the selected semantic and corpus revisions with the results.
 - [wasm-tools](https://github.com/bytecodealliance/wasm-tools/tree/fe12b7d36b0ec7c79ff6a51e838617a0a2ae25cc)
   supplies `json-from-wast`, `smith`, `mutate` and `shrink`, avoiding a new test
   syntax reader, random module generator and reducer. Its
@@ -448,6 +449,16 @@ producers, never native admission dependencies. Their agreement establishes
 neither complete coverage nor either engine theorem. Qualification, feature
 mapping, local refusal cases and full semantic proofs remain charged to their
 existing owners; SpecTec and WasmCert receive no second reuse discount.
+
+In the same manifest, distinguish the generation's `R_idot` and `R_idot_add`
+choices with intermediate overflow and nonzero accumulator cases. Require the
+selected DET result for each case. Check fixed-dot modular accumulation and
+signed-zero multiplication in both operand orders and floating widths, including
+applicable SIMD. Verify decoded memory and table index widths for the 64-bit
+fixtures and include mixed-width invalid modules under the coverage gap tracked
+in [PR 2177](https://github.com/WebAssembly/spec/pull/2177). Qualify nested frame
+and explicit return typing under the semantic gap tracked in
+[PR 2226](https://github.com/WebAssembly/spec/pull/2226).
 
 ### Target measurements
 

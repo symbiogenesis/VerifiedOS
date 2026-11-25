@@ -151,7 +151,28 @@ work; none is discharged by this receipt.
 
 The continuation scope, prerequisites and review/pricing conditions are
 maintained in [PLAN.md](../../PLAN.md#machine-logic-compatibility-continuation).
-The trial result and reproduction evidence remain in this document.
+Use the [RecordUpdate merge of PR 68](https://github.com/tchajed/coq-record-update/tree/e0dc9f89edabd9f43370fcf29252aaf5dd391c84)
+as the notation repair candidate against the trial's v0.3.3 source. Its custom
+entry retains level-12 update precedence, with upstream cases for application,
+nested projections, chaining and ordinary printing. The published v0.3.7
+predates the repair. Before carriage, compare the actual Islaris and Lithium
+clients under the same locked toolchain, with strict diagnostics, frozen
+elaborated readings and exact assumption and recursive kernel checks. Katamaran
+has a separate postfix notation. The [trial refusal](#reproduced-incompatibilities)
+still describes the original framework inputs.
+
+A focused native replay used `rocq c -q -w +default,-abstract-large-number
+-set 'Default Goal Selector=!' -disallow-sprop -Q src RecordUpdate` in the
+locked Rocq 9.3.0 switch. The v0.3.3 baseline refused `src/RecordSet.v` at the
+same postfix diagnostic. The merge compiled `RecordEta.v`, `RecordSet.v`,
+`RecordUpdate.v`, `Lens.v` and `tests/NotationPrecedenceTests.v` with zero
+diagnostics and passed its six reflexivity cases. Normalizing the print output
+with the upstream `test-normalizer.sed` reproduced the reference byte for byte.
+The candidate source archive
+SHA-256 was `fae9f4fea8eba7b0b7a5067858f5fbcb40347788b3b1d45b9cb70c0b43c00bbd`.
+The [licence ledger](../../THIRD-PARTY.md#sail-agent-assistance-references)
+records the exact source terms. The Islaris and Lithium client comparison and
+cold carriage remain due.
 
 ## Reproduction and evidence
 

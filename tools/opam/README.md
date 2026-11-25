@@ -221,6 +221,11 @@ The [conditional context-pass retirement](../../PLAN.md#coverage-preserving-tool
 is tracked in the project plan. The current lock and extra pass remain required
 until the comparison and hosted acceptance below pass.
 
+The separate [CIC dependency census](../../docs/assurance/cic-checker-qualification.md#the-published-profile-and-metatheory-decision)
+refuses a native report with an unchecked sort elimination diagnostic from
+[PR 22294](https://github.com/rocq-prover/rocq/pull/22294). Release qualification
+must still compare complete compiler and kernel readings on the selected prover.
+
 PR 22611 records sealed implementation dependencies while collecting context
 output from admitted libraries under `-norec` or `-admit`; admitted terms remain
 unchecked. At adoption, compare those native contexts against the proof gate's
