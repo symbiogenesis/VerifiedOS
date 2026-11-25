@@ -13,10 +13,10 @@
    or digest injectivity; a positive fixture verifier compares against
    independently specified byte and root values.
 
-   Scope: journals enumerate abstract stored-cell writes rather than concrete
-   target memory traces, and the completion barrier is modeled as an explicit
-   external input. Copy-on-write replacement, renewal, crash recovery, and
-   target WCET are covered by their respective storage and timing models.
+   Journals enumerate writes to abstract cells. Retirement takes barrier
+   completion as an external Boolean input. Q44 still requires correspondence
+   to the service and its concrete writes, models of replacement, renewal and
+   crash recovery, and target WCET evidence.
    (*| BEGIN derived: cited entries |*)
    Owner: docs/requirements-register.md
    Requirements: R-10-006a R-10-006b
@@ -94,8 +94,8 @@ Definition bounds_ok (b : Bounds) : bool :=
   (0 <? retention_bound b) && (retention_bound b <=? counter_bound b) &&
   (counter_bound b <=? 255).
 
-(* Invalid/unpublished backing has no read path. This is one backing slot, not
-   an uncharged predecessor list or an allocator. Byte values are range checked. *)
+(* Admission requires a nonempty published backing within the byte budget,
+   with each stored value in the byte range. *)
 Definition resident_ok (b : Bounds) (r : Resident) : bool :=
   bounds_ok b && accepting r && (0 <? length (resident_bytes r)) &&
   (length (resident_bytes r) <=? byte_bound b) &&
@@ -183,8 +183,9 @@ Definition begin_read (b : Bounds) (s : State) (h : Handle) (d : nat)
     end
   else {| begun_state := s; accepted := false; begin_journal := [] |}.
 
-(* verify is a total executable seam called on current backing at every matched
-   completion. Its contract/implementation and target refinement are not assumed. *)
+(* A matched completion checks current authority and the holder before calling
+   the supplied verifier on the backing bytes and root. Verifier soundness is
+   a separate obligation. *)
 Definition complete (verify : list nat -> list nat -> bool)
                     (s : State) (h seq : nat) : Outcome :=
   let unchanged := {| after := s; payload := None; journal := [] |} in
@@ -256,8 +257,8 @@ Definition at_clock (s : State) (now : nat) : State :=
     current_boot := current_boot c; current_generation := current_generation c;
     common_counter := common_counter c |}.
 
-(* Explicit lifecycle boundary: close admission, then cancel both holders before
-   release. Failed modeled barrier retains closed backing and its capacity charge. *)
+(* One transition closes admission and cancels both holders. Retirement keeps
+   the closed backing charged until the supplied barrier result permits release. *)
 Definition cancel_reservations (s : State) : State :=
   let c := common s in
   {| common := {| backing := option_map (fun r =>

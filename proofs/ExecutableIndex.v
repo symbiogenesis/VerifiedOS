@@ -30,18 +30,17 @@
      children), sorted leaves within bounds, and child range invariants.
    - `well_formed` strengthens `admitted` with strict separator monotonicity so
      that splits never produce empty separator intervals (`an_admitted_input_the_check_refuses`).
-   - `at_depth` and `leaves_share_one_depth` enforce the B+ equal-leaf-depth
-     invariant; `insert_gate` and `read_gate` enforce `published` (`well_formed`,
-     equal leaf depth, and height within `depth`).
-   - `seek` distinguishes structural refusals (`None`) from key misses
-     (`Some None`), whereas `lookup` collapses both to `None`.
+   - `published` requires `well_formed` ordering, equal leaf depth, and height
+     and arena size within the declared bounds. `insert_gate` checks it on the
+     new root. `read_gate` checks the height ceiling and follows one key's path
+     through the caller's published root.
+   - `seek` distinguishes a path refusal (`None`) from a key miss (`Some None`).
+     `lookup` returns `None` in both cases.
 
    Non-vacuity (R-05-163, R-05-164, R-05-165, R-05-166):
-   - All theorems are parameterized over an arbitrary `KeyAlgebra` and
-     `Geometry` and instantiated on a concrete witness family covering leaf and
-     root splits, replacements, equal-leaf-depth preservation, skewed-tree
-     rejection, duplicate-separator counterexamples, and arena/depth/cycle
-     refusals.
+   - The index contracts use an abstract `KeyAlgebra` and `Geometry`. Concrete
+     examples exercise leaf and root splits, replacement, equal leaf depth,
+     and refusal of skew, duplicate separators, exhausted bounds and cycles.
    (*| BEGIN derived: cited entries |*)
    Owner: docs/requirements-register.md
    Requirements: R-05-163 R-05-164 R-05-165 R-05-166 R-10-002 R-10-002a R-10-003 R-10-004
@@ -55,9 +54,8 @@ Require Import JournalIndex.
 Import ListNotations.
 
 (* -------------------------------------------------------------------------
-   List helpers over JournalIndex's `take` and `drop`, which this file reuses
-   rather than restating, and the two facts about `all_of` that the arena
-   walks below need and that file does not carry.
+   List lemmas for [JournalIndex's `take`](JournalIndex.v#take) and
+   [`drop`](JournalIndex.v#drop), used by the arena walks and node splits.
    ------------------------------------------------------------------------- *)
 
 Lemma all_of_drop :
@@ -89,10 +87,7 @@ Proof.
     simpl in H. injection H as H. simpl. exact (IH r x m H).
 Qed.
 
-(* Halving, written out rather than taken from the library, so that the two
-   facts the split needs are proved of the same definition the code runs. The
-   numerals are the recursion's own base cases and no composition chooses
-   them. *)
+(* Floor division by two. The bounds below justify the node split index. *)
 Fixpoint halve (n : nat) : nat :=
   match n with
   | 0 => 0
@@ -3733,14 +3728,9 @@ Proof.
   reflexivity.
 Qed.
 
-(* seek distinguishes structural refusal (None) from an absent key (Some
-   None); a hit is Some (Some value). Refusals cover invalid addresses,
-   exhausted walk bounds, missing routed children, and cycles. It follows
-   lookup's route without checking admission.
-
-   lookup discards this distinction. Admitted trees never refuse a read.
-   read_gate uses the published height as the walk bound and rejects
-   heights above the declared depth. *)
+(* Seek follows one routed path. An invalid address, a missing routed child
+   or exhausted fuel returns None. A cycle along that path exhausts fuel.
+   A miss returns Some None and a hit returns Some (Some value). *)
 
 Fixpoint seek (ka : KeyAlgebra) (ar : Arena ka) (fuel b : nat) (k : Key ka)
   : option (option nat) :=
@@ -3758,6 +3748,8 @@ Fixpoint seek (ka : KeyAlgebra) (ar : Arena ka) (fuel b : nat) (k : Key ka)
            end
   end.
 
+(* Check the supplied height ceiling, then use that height as seek's fuel.
+   The caller establishes the published invariant for the full tree. *)
 Definition read_gate (ka : KeyAlgebra) (g : Geometry) (ar : Arena ka) (h root : nat)
                      (k : Key ka) : option (option nat) :=
   if Nat.leb h (depth g) then seek ka ar h root k else None.
