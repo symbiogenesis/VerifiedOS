@@ -1,0 +1,59 @@
+{
+  "changed_input_detail": "Required uv version moved from 0.13.6 to 0.13.10.",
+  "changed_inputs": {
+    "tools/pyproject.toml": {
+      "current_sha256": "7340fd0d1daf7751a80fdf2593831fd4958517d84839422f989752d439638f34",
+      "previous_sha256": "48f5ab1bf830b490766df25db52898ffcdcf57e1bf8a99b16fd903539799a4c1"
+    }
+  },
+  "checkout_revision": "ec14365cfd2fc1deb774cd171034277dd7547202",
+  "checks": [
+    {
+      "command": [
+        "python3",
+        "tools/run.py",
+        "copy-service",
+        "prepare-package",
+        "--output",
+        "/root/build/lane-holdfast-pilot-20261125/copy-package-q25bb"
+      ],
+      "returncode": 0
+    },
+    {
+      "command": [
+        "python3",
+        "tools/run.py",
+        "copy-service",
+        "prepare-package",
+        "--output",
+        "/root/build/lane-holdfast-pilot-20261125/copy-package-q25bb",
+        "--check"
+      ],
+      "returncode": 0
+    },
+    {
+      "command": [
+        "python3",
+        "tools/run.py",
+        "copy-service",
+        "check-package-syntax",
+        "--prepared",
+        "/root/build/lane-holdfast-pilot-20261125/copy-package-q25bb"
+      ],
+      "returncode": 0
+    }
+  ],
+  "current_source_record_sha256": "73a9e4ea58b64831d825fdb0997898381a7d94c453023379e984b6f3660a9bba",
+  "prior_baseline": {
+    "checkout_revision": "498127d6",
+    "retained_source_record": "docs/implementation/retained-evidence/holdfast-q25bb-source-20261124/source-record.json",
+    "source_record_sha256": "a5bd07dabb430f9949cb29c16c106739fe45bbfdfb35e0e2938826e1c3d20dbb"
+  },
+  "production_admission": false,
+  "scope": "HoldFast Q25bb standalone copy-service source baseline refresh",
+  "source_inputs": 74,
+  "strict_c17_result_sha256": "418e4dacc7760c0bbfb7bea0d35cb9d897ecbbb1d596be1581dede12ef7a22cd",
+  "target_emission": false,
+  "unchanged_prepared_outputs": 9,
+  "unchanged_source_inputs": 73
+}
