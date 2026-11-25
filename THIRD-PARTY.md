@@ -316,9 +316,9 @@ Both pins nest `logsem/machine_utils` at the head of its `cerise` branch, and [G
 
 ## Used by the build, not conveyed
 
-The packet-validator pilot runs the external HoldFast first-slice harness and
-its binding checker at the revision in the [pilot plan](PLAN.md#sequencing).
-That revision's [license manifest](https://github.com/symbiogenesis/VelaLang/blob/6bbe6a3d5e4da93c7e03c7bc2b72e73fd77f3868/REUSE.toml)
+The [pilot plan](PLAN.md#sequencing) pins the external HoldFast first-slice
+harness and its binding checker for the packet validator.
+That revision's [license manifest](https://github.com/symbiogenesis/VelaLang/blob/6186a4fc4518e2118ad5136953e120e991dcdae8/REUSE.toml)
 assigns Apache-2.0 to the tools and examples. VerifiedOS retains the two JSON
 reports as development evidence. The HoldFast source, compiled parser,
 generated proofs and executables stay in the external checkout and native
