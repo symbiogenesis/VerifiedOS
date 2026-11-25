@@ -1,11 +1,11 @@
 # Firmware
 
-The boot chain's firmware sources and the harness that checks them. The
-[boot-handoff contract](../docs/implementation/contracts/boot-handoff.md) states
-what they owe and the predicate the harness decides; this page says what each
-file is and what it is not.
+The boot firmware verifies and measures images, records the measurements and
+transfers control to the next stage. The
+[boot-handoff contract](../docs/implementation/contracts/boot-handoff.md)
+defines the staged interfaces and campaign acceptance.
 
-| Path | What it is | What it is not |
+| Path | Role | Scope limit |
 | --- | --- | --- |
 | [include/vos_boot.h](include/vos_boot.h) | The boot image layout, the measurement encoding, the handoff record and the bring-up composition's constants; the implementation owner the contract's tables are checked against | A production composition: the attested devicetree owes the production values |
 | [include/vos_keccak.h](include/vos_keccak.h), [crypto/keccak.c](crypto/keccak.c) | Keccak-f[1600] and SHAKE256 in integer C, the one primitive the release computes | A constant-time, masked or reduction-level artifact; no binary carries those claims |
@@ -50,9 +50,8 @@ owns the scheduled composition and its initialization descriptor; the
 [target-chain contract](../docs/implementation/contracts/boot-handoff.md#9-the-target-chain)
 owns the composed firmware campaign.
 
-The C is written to stay within what the target will need: no allocation, no
-library call in the source and no loop bound read from the image beyond a length
-already checked against the composition. The harness compiles it at `-O2`, where
-the compiler may turn byte loops into `memcpy` or `memset` calls, so the target
-build must add `-ffreestanding -fno-builtin`. Every file here is original and
-carries `Apache-2.0` under [COPYRIGHT.md](../COPYRIGHT.md)'s map.
+The firmware C uses bounded loops and fixed storage. Image-derived lengths
+are checked against the composition before use as loop bounds. The
+[host harness](../tools/vos/boot_handoff.py) compiles its C units at `-O2`
+with `-ffreestanding -fno-builtin`. These files are original Apache-2.0
+artifacts under the [licensing map](../COPYRIGHT.md#the-map).
