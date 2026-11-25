@@ -33,11 +33,9 @@ Implementation begins after this contract is committed. Its acceptance predicate
   JSON contract. Windows and Ubuntu Host CI validate the settled implementation.
   No Gallina, theorem statement, accepted assumption or acceptance policy is
   changed. The command's row sits in [commands.py](../../tools/vos/commands.py),
-  outside the proof gate's import closure, which is that gate's implementation
-  identity, so registration leaves the identity unchanged. When this delivery
-  landed, the command table sat in `vos/cli/__init__.py`, a file the proof gate's
-  recorded inputs listed, so this predicate also required a fresh local guest
-  proof run.
+  outside the import closure that defines the proof gate's implementation
+  identity. Follow the
+  [repository handoff](../../AGENTS.md#tool-execution-and-validation).
 
 This delivery makes no proof-success-rate or time-saving claim. It does not reopen
 or complete Q19a, Q19b, Q19c or Q20b. A live protocol adapter, learned retrieval or
@@ -60,7 +58,8 @@ python tools/run.py proofs headers --show proofs/CopyRingService.v
 ```
 
 The query matches any supplied lexical word in declaration names, statements and
-scripts; tactic filters select script code tokens and requirement filters select
+scripts. Tactic filters select identifier tokens in proof scripts and Ltac
+bodies, which can include identifiers used as terms. Requirement filters select
 authored file-level citations. Repeated tactic or requirement filters require all
 their terms and narrow the results. Exclude the complete target file when selecting
 independent examples; exclusions must name an existing source with exact path
@@ -74,10 +73,9 @@ have been reviewed.
 excerpt from 256 to 16000 characters (default 1600). Truncation is explicit.
 `--json` writes one JSON object to stdout. Errors go to stderr: exit 2 means invalid
 arguments and exit 1 means the source search failed. Zero matches return exit 0.
-The machine contract is
-[proof-search.schema.json](../../tools/proof-search.schema.json). Clients must
-check `version: 1` and `advisory_only: true`, tolerate no invented proof verdict,
-and use the relative path and location to read a result in the same checkout.
+Clients check `version: 1` and `advisory_only: true` against the
+[proof-search schema](../../tools/proof-search.schema.json). Use each result's
+relative path and location to read the declaration in the same checkout.
 UTF-8, ordinary process arguments, exit codes, JSON and JSON Schema are the
 interchange mechanisms. No provider-specific tool configuration is installed.
 SPDX identifiers and the repository's existing licenses cover the authored code.
@@ -211,13 +209,10 @@ percentage is applied to an item or to the checklist total.
    Its retained receipt must match the exact inputs before it can establish proof
    acceptance.
 
-The retry numbers are operating limits, not measurements of the best search policy.
-Active repair time includes candidate editing and candidate-check waits; record the
-final full acceptance pass separately. Once the budget expires, finish the running
-check and start no further candidate. A local kernel pass keeps its ordinary
-completion wait; hosted Guest CI follows the no-wait handoff above. This budget
-does not authorize terminating unrelated jobs.
-No tool enforces this manual planning journal. The proof gate enforces acceptance.
+Count candidate editing and focused-check waits against the active repair
+budget. Record hosted acceptance separately. At budget expiry, collect the
+running check's verdict before handing off the checkpoint. The agent tracks
+this budget in the journal.
 
 A minimal checkpoint is ordinary UTF-8 JSON with these fields; replace the example
 strings and empty lists with the actual task record. Store disposable checkpoints
