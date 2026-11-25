@@ -1,0 +1,168 @@
+{
+  "cases": {
+    "field-and-arena-parameters": {
+      "compile": {
+        "options": [
+          "-S",
+          "case.i",
+          "-o",
+          "case.s"
+        ],
+        "returncode": 2,
+        "stderr": "case.i: error: typed scalar refusal [Clight-source]: typed source pointer operation: comparison requires one retained source allocation or null\n1 error detected.\n",
+        "stdout": ""
+      },
+      "files_sha256": {
+        "case.c": "462a907950ec730f0921ab028bd5c66c240898d34f89e92ff700549c5ae065e2",
+        "case.i": "0627af991eb376d5453970d4a5b153805c27e9014c78aba0ee1af8ae542d50d5"
+      },
+      "preprocess": {
+        "options": [
+          "-E",
+          "case.c",
+          "-o",
+          "case.i"
+        ],
+        "returncode": 0,
+        "stderr": "",
+        "stdout": ""
+      }
+    },
+    "packet-observer-without-pointer-comparison": {
+      "compile": {
+        "options": [
+          "-S",
+          "case.i",
+          "-o",
+          "case.s"
+        ],
+        "returncode": 0,
+        "stderr": "",
+        "stdout": ""
+      },
+      "files_sha256": {
+        "case.c": "3682524b4f4d99c5e1beb5bccda61a5e922c680820943cf4d7292ee7f4ef7e48",
+        "case.i": "9a15928be786ffdb329dfcbb592bc3e02316a2e85c274cf8c4b5194db6f5f9a8",
+        "case.light.c": "1d3794a8bc5cd182c54d1f3b72d43afc2fbbd53f35729e75030d396036c1ca42",
+        "case.s": "703217586e5e69a8a2e50a90957977c829b01323d5a3e00616af885eeac5fc1b"
+      },
+      "preprocess": {
+        "options": [
+          "-E",
+          "case.c",
+          "-o",
+          "case.i"
+        ],
+        "returncode": 0,
+        "stderr": "",
+        "stdout": ""
+      }
+    },
+    "retained-local-field": {
+      "compile": {
+        "options": [
+          "-S",
+          "case.i",
+          "-o",
+          "case.s"
+        ],
+        "returncode": 2,
+        "stderr": "case.i: error: typed scalar refusal [Clight-source]: typed source pointer operation: comparison requires one retained source allocation or null\n1 error detected.\n",
+        "stdout": ""
+      },
+      "files_sha256": {
+        "case.c": "73af91451d62cceb6396380edd24987331e6ab37dcbd210623c675f50fdd9876",
+        "case.i": "0f3aaf23cc2cc77c35450c9b02cfd8267844b5dbced93db7c27c90142af44b08"
+      },
+      "preprocess": {
+        "options": [
+          "-E",
+          "case.c",
+          "-o",
+          "case.i"
+        ],
+        "returncode": 0,
+        "stderr": "",
+        "stdout": ""
+      }
+    },
+    "same-arena-parameter": {
+      "compile": {
+        "options": [
+          "-S",
+          "case.i",
+          "-o",
+          "case.s"
+        ],
+        "returncode": 0,
+        "stderr": "",
+        "stdout": ""
+      },
+      "files_sha256": {
+        "case.c": "9263390003b4eedf39504f58bc41956328796f13c195f589775cc69211caa628",
+        "case.i": "e67e11405669263bc87bfb68825adf93512be594956fe8a086cad2e8b7afc3e0",
+        "case.light.c": "c126dfda4a17992c38dad345a4d5b843a3b8d7c84c005f113af4c3a389f1ea6b",
+        "case.s": "a98d902c226d6b502599d08bd541d70dfdda7ec632d646365ff8948da6058ccb"
+      },
+      "preprocess": {
+        "options": [
+          "-E",
+          "case.c",
+          "-o",
+          "case.i"
+        ],
+        "returncode": 0,
+        "stderr": "",
+        "stdout": ""
+      }
+    },
+    "same-local-allocation": {
+      "compile": {
+        "options": [
+          "-S",
+          "case.i",
+          "-o",
+          "case.s"
+        ],
+        "returncode": 0,
+        "stderr": "",
+        "stdout": ""
+      },
+      "files_sha256": {
+        "case.c": "933896f1687af162b8f5df6cda962cd11c529a384c51d9b6ec522c78ae5d28e2",
+        "case.i": "1741ced1ab8f94154c59db2844073859d60f18d098a035de93d9eda4a6c9cb07",
+        "case.light.c": "54333318ebeb9a6ab363b815e3628b21ca356f5847b0145a80ccd60a47e76825",
+        "case.s": "b414e8a0b4a41a4fc43ce8c61ea4b5ecdafdf856b5089a1fd45e1999b5aa23b4"
+      },
+      "preprocess": {
+        "options": [
+          "-E",
+          "case.c",
+          "-o",
+          "case.i"
+        ],
+        "returncode": 0,
+        "stderr": "",
+        "stdout": ""
+      }
+    }
+  },
+  "compiler_command": [
+    "/root/build/lane-checklist-20261010-c/q39/final-build-1/compiler/ccomp",
+    "-conf",
+    "/root/build/lane-checklist-20261010-c/q39/final-build-1/compiler/compcert.ini",
+    "-fverifiedos-typed",
+    "-dclight"
+  ],
+  "compiler_revision": "7093854d8ce8799826618024ee4847cf248766ea",
+  "holdfast_revision": "6bbe6a3d5e4da93c7e03c7bc2b72e73fd77f3868",
+  "pilot_acceptance": "open",
+  "q39_qualification": "open",
+  "retained_inputs_sha256": {
+    "/root/build/lane-checklist-20261010-c/q39/final-build-1/compiler/ccomp": "3dae6ac7bd5a074053130fdcaaab84c42030bdc24be9fff6a4b244db272252f8",
+    "/root/build/lane-checklist-20261010-c/q39/final-build-1/compiler/compcert.ini": "e0efcb8f02d749b406ed243e21408307f2189af136ae562a48b0d2044581550f",
+    "/root/build/lane-holdfast-verifiedos-head-20261125/holdfast-first-slice/slice-gr068xl7/first_slice.c": "de01ba3419108fd691911076bde01c015ddca38ff82c7db7b35e749a2bf26f43"
+  },
+  "scope": "HoldFast Q25ba typed scalar compiler source-origin diagnosis",
+  "verifiedos_revision": "569951b709aa3550b5543d743111e879c1a538f0"
+}

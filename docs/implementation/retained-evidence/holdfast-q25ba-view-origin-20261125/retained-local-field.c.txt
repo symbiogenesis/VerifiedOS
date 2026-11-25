@@ -1,0 +1,13 @@
+struct view {
+    unsigned char *ptr;
+};
+
+int compare(unsigned long offset)
+{
+    unsigned char arena[8] = {0};
+    if (offset >= sizeof(arena)) {
+        return 0;
+    }
+    struct view view = {.ptr = arena + offset};
+    return view.ptr == arena + 4;
+}
