@@ -13,16 +13,10 @@
    nothing, so the counterexample QuickChick prints is the point it happened
    to draw and not a minimal one.
 
-   **A set is drawn here only where its domain outruns the draws.**
-   QuickChick spends 10,000 draws on a set, and a domain holding no more
-   points than that is one a draw that size samples without covering. Each
-   such set is decided at every point of its domain by Walks.v beside this
-   file, which loads Stdlib alone, over the statements IPCProperties.v holds
-   for both halves. The size of each domain left here is stated beside its
-   `QuickChick` command, counted as Walks.v counts one: `choose (a, b)` holds
-   b - a + 1 points, `elems_ d l` the members of l, `vectorOf n g` the
-   n-length lists over g's points, and a generator binding several their
-   product.
+   [Walks.v](Walks.v) enumerates the smaller domains because random draws
+   can revisit a point and miss another. Both harnesses use the shared
+   properties in [IPCProperties.v](IPCProperties.v). The comments beside
+   each `QuickChick` command describe its generator's domain.
 
    **What a run extracts is fixed in this file, so a verdict replays.** Two
    sentences below the imports replace two of QuickChick's own extraction

@@ -127,10 +127,10 @@ The following is an authored traceability map, not a generated enumeration of th
 
 This predicate is proposed with the specification. It has not received the independent review required by R-05-150 and R-08-028. A later reviewer can reject either its coverage or its thresholds.
 
-1. With the intended files tracked, `python tools/run.py proofs --jobs 2` compiles the artifact, enumerates its constants and claimed theorem types, audits assumptions and record witnesses, and completes kernel rechecking. Every explicit theorem premise remains visible in the compiled type; global axiom freedom alone does not discharge it.
+1. The hosted proof lane compiles the tracked artifact, enumerates its constants and claimed theorem types, audits assumptions and record witnesses, and completes kernel rechecking. Review the explicit premises in each compiled type alongside the global assumption audit. Follow the [validation handoff](../../AGENTS.md#tool-execution-and-validation).
 2. `python tools/run.py proofs headers --file proofs/SecurityPolicyModel.v` and `python tools/run.py check` pass. Any shared-baseline disagreement is resolved before integration is accepted.
 3. `python tools/run.py seed coq --file proofs/SecurityPolicyModel.v --region live --region licensed --region witnessed --region wellformed --jobs 2` runs the complete generated population for those contract regions. Its report names killed, stillborn and surviving mutants separately. Each survivor must be repaired or individually explained with a semantic equivalence or a stated missing obligation; a compilation failure is never reported as a live kill. This focused population does not claim exhaustive mutation coverage of the whole artifact.
-4. A reviewer checks the evidence index against the actual propositions, reads each negative example and its positive counterpart, and verifies that the three requested refusals are present: invalid labelling, wider-than-consented release and an expired edge.
+4. The reviewer checks the evidence index against the actual propositions and reads the positive and negative examples together. The specification must refuse invalid labelling, release beyond the consented object and an expired edge.
 5. Independent specification review resolves or explicitly retains each [open item in PLAN.md](../../PLAN.md#security-policy-realization-and-review), with inventory status reflecting the retained work. Passing tools does not satisfy this clause.
 
 The remaining implementation and review obligations are maintained in

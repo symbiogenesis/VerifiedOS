@@ -72,8 +72,7 @@ Proof. intros P. apply Nat.leb_le. exact (pm_two P). Qed.
 Lemma modulus_positive : forall P : Modulus, 0 < pm_mod P.
 Proof. intros P. pose proof (modulus_at_least_two P). lia. Qed.
 
-(* `primeb` is a decision about divisors and this is what it decides, so a
-   later reader is not asked to take the name for the property. *)
+(* The trial divisor list contains every candidate in [2, p). *)
 (*| discharges: R-05-166 |*)
 Theorem primeb_refuses_every_proper_divisor :
   forall (p d : nat), primeb p = true -> 2 <= d -> d < p -> Nat.modulo p d <> 0.

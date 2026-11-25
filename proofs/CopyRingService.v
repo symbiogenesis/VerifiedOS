@@ -454,9 +454,8 @@ Theorem the_wire_index_separates_a_live_window :
          (upto ring_index_span) = true.
 Proof. vm_reflexivity. Qed.
 
-(* A slot is reused exactly a capacity later, which is the whole content of
-   "the producer never overwrites an unconsumed entry": every distance strictly
-   inside the capacity lands on a different slot. *)
+(* Slot aliasing is impossible for a positive sequence distance below capacity.
+   At exactly one capacity of distance the same slot is reused. *)
 (*| discharges: R-12-091, R-12-095 |*)
 Theorem the_producer_never_writes_a_live_slot :
   all_of (fun base =>
@@ -891,8 +890,8 @@ Theorem every_producer_weakening_is_refused :
          (all_weakenings spec_producer_chain act_stage) = true.
 Proof. vm_reflexivity. Qed.
 
-(* And again per family, so that a family emptied by an edit says so where it
-   is rather than one theorem later. *)
+(* Check each mutation family's size beside its refusal result. An empty
+   family would otherwise pass the universal check vacuously. *)
 Theorem no_consumer_transposition_is_a_well_formed_chain :
   andb (Nat.eqb (count_of (transpositions spec_consumer_chain)) 3)
        (all_of (fun c => negb (consumer_chain_ok c))

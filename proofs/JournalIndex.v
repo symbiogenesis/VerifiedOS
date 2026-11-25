@@ -48,10 +48,10 @@
       [RotFirmware.v](RotFirmware.v).
 
    Non-vacuity (R-05-163, R-05-164, R-05-165, R-05-166):
-   - Every obligation is proved for the specification and refuted on mutated
-     constructions generated over crash cuts (`cuts`), torn records (`tear_at`),
-     replay permutations (`swap_at`, `replay_prefix`, `replay_suffix`), key
-     orderings (`drop_at`, `suffix_at`, `insert_at`), and invalid commit plans.
+   - Theorems state the journal, commit and index properties under explicit
+     premises. Counterexample families exercise crash cuts (`cuts`), torn
+     records (`tear_at`), reordered and truncated replays, changed key
+     orderings and invalid commit plans.
    (*| BEGIN derived: cited entries |*)
    Owner: docs/requirements-register.md
    Requirements: R-05-163 R-05-164 R-05-165 R-05-166 R-08-007a R-10-001a R-10-002 R-10-002a
@@ -688,9 +688,9 @@ Qed.
 
 Definition Recovery : Type := list Rec -> Store -> Store.
 
-(* A discipline's own recovery: replay what it admits, under the commit set
-   that same admission decides. Every arm below is an instance of this, so
-   what separates two recoveries is the discipline and never the replay. *)
+(* Build the transaction-closure index once from the admitted records, then
+   replay those records in order. The scan and sieve variants share this
+   replay and differ only in which records they admit. *)
 Definition recover_under (cut : Discipline) : Recovery :=
   fun j s => let prefix := cut j in
     apply_all prefix (indexed_commits (commit_index prefix)) s.

@@ -2,7 +2,7 @@
 
 *Non-normative guidance for an independent reviewer familiar with formal methods and new to this repository. The [requirements register](../requirements-register.md) governs; this guide states no obligation and supplies no review evidence (R-05-150a).*
 
-## 1. What is being reviewed, and what is not
+## 1. Scope of review
 
 The gate audits **the register**, entry by entry (R-05-150, R-05-152). Review records cite requirement IDs.
 
@@ -28,13 +28,13 @@ Counts and collected sets belong to their defining artifacts. Use the checker to
 
 Resolve section references by reading their targets. K-12 checks that each linked heading or anchor exists; it cannot decide whether the sentence meant that section.
 
-## 4. The co-read ledger, and what blessing means
+## 4. Co-read ledger
 
 The ledger records that a register entry and its cited prose were read together. Editing either side makes the pair stale, and K-61 reports the reading owed. The [`coread` command](../../tools/README.md#running-them) shows the pair and records a blessing.
 
-**Blessing records a judgment; `--fix` cannot supply it.** As a reviewer, inspect the two texts for agreement rather than treating a recorded reading as proof that they agree. A green checker establishes that no reading is stale under this mechanism, not that the recorded judgments were correct. Reviewers need not bless entries themselves.
+A blessing records a reader's judgment for the current text. K-61 detects changes since that reading. Reviewers assess the pair's agreement independently of the recorded judgment.
 
-## 5. What the machinery cannot decide, and where you come in
+## 5. Questions for the reviewer
 
 The checker checks references, membership and arithmetic. It cannot decide whether an obligation is the right one. Read the [critique](../background/critique.md) for existing concerns, including criteria that check only the presence of a claim, enumerations whose completeness is assumed, and proofs against an inadequate specification. State where your assessment differs or what additional defect you find.
 
