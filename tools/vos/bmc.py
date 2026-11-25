@@ -57,18 +57,23 @@ SCOPE: Final = frozenset({
 # In-scope mnemonics whose upstream `riscv-formal` model is absent or defective.
 _UNSIGNED = ("the generated model computes the signed result inside a conditional whose "
              "other arms are unsigned, so outside riscv-formal's alternative-operations "
-             "mode, which this core does not have, it divides unsigned (YosysHQ/riscv-"
-             "formal issue 30)")
-_CORRECTED = "; owed: a pin whose model corrects this, or a model the wrapper supplies"
+             "mode it evaluates the operands as unsigned (YosysHQ/riscv-formal issue 30)")
+_WORD_ZERO_TEST = ("checks all 64 divisor bits for zero, so a zero low word can reach "
+                   "a remainder by zero and produce an unknown Verilog result")
+_PERMUTATION = ("the generated model shifts by an unscaled element index, selecting "
+                "the wrong bit slice and potentially returning nonzero out of range "
+                "(YosysHQ/riscv-formal PR 51)")
+_CORRECTED = ". The wrapper or a qualified corrected upstream pin must supply a reference"
 _ABSENT = ("riscv-formal carries no model for it; owed: a model the wrapper supplies, "
            "written from the dialect's execute clause")
 MODELS_OWED: Final = {
     "div": _UNSIGNED + _CORRECTED,
     "divw": _UNSIGNED + _CORRECTED,
     "rem": _UNSIGNED + _CORRECTED,
-    "remw": _UNSIGNED + ", and its zero test reads all 64 bits of the divisor, so a zero "
-                        "low word reaches a remainder by zero, whose Verilog result is "
-                        "x" + _CORRECTED,
+    "remw": _UNSIGNED + ". The model also " + _WORD_ZERO_TEST + _CORRECTED,
+    "remuw": "the generated model " + _WORD_ZERO_TEST + _CORRECTED,
+    "xperm4": _PERMUTATION + _CORRECTED,
+    "xperm8": _PERMUTATION + _CORRECTED,
     "czero.eqz": _ABSENT,
     "czero.nez": _ABSENT,
 }
