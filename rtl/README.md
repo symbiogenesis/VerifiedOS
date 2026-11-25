@@ -32,20 +32,34 @@ The additional scalar and device sources have these scoped owners:
 | [vos_device_regs_pkg.sv](vos_device_regs_pkg.sv) | generated | UART and block register constants emitted by `rtl device-regs` from the Mocha gitlink's UART owners, the logical block contract and the model's block bounds. K-88 holds its index bytes and recorded Mocha revision and decides every byte but the UART values on the host; `rtl devicescheck` decides the whole package where Mocha is populated |
 | [generated/device_registers_pkg.sv](generated/device_registers_pkg.sv) | generated | Relative register offsets and field shifts, widths and masks of the modeled MMIO surface, emitted by `run.py device-registers emit` from [the register declarations](../interfaces/device-registers.json); K-88 holds it against what that generator writes, on the host |
 
-`rtl device-regs` emits the tracked register package from the pinned UART
-owners, the logical block contract and the model's block bounds. [The device contracts](../docs/hardware/platform-device-contracts.md)
-own these interfaces. Standalone lint and simulation supply no complete SoC,
-physical storage/UART or RTL/Sail refinement result.
+The [platform device contracts](../docs/hardware/platform-device-contracts.md)
+define the standalone UART, block-device and routing acceptance. Whole-SoC
+integration, physical device behavior and RTL/Sail refinement have separate
+acceptance predicates.
 
-One instrument that reads this tree is deliberately not in it. The cross-check below drives the capability package from a SystemVerilog testbench that reads a file, which is a checking harness and not something this repository would synthesize, so it lives beside the tool that runs it in [tools/cheri-equiv/](../tools/cheri-equiv/).
+The [capability cross-check testbench](../tools/cheri-equiv/) replays
+Sail-generated vectors through the authored capability package.
 
 ## 3. What each has been held to, and what it has not
 
 No file here is verified and none claims to be. What has been run is stated per file so that a reader does not have to infer it:
 
-- **The curated configuration elaborates, which settles names, members and widths and is not a whole-core success.** The current build combines the frozen capability adapter with guarded width, metadata, exception, permission and mode staging. Standalone checks pass, and `rtl elaborate` completes both arms: the curated arm lacks the eleven structures its disabling parameters remove and carries no unexplained or inert structure. The staging contract records [the warnings the curated arm still carries](../docs/hardware/scalar-width-transform-contract.md#acceptance-evidence) and [the layer it leaves open](../docs/hardware/scalar-width-transform-contract.md#the-next-layer), raw readings of register-width values and the decoder's encodings, so the staged core does not yet compute a correct PC, jump target, data address or integer CSR value; it also names [the deletions it leaves](../docs/hardware/scalar-width-transform-contract.md#seam-4-decisions) to [the delta's](../docs/hardware/rtl-reparameterization-delta.md) own rows. Historical configuration-only receipts are retained in the implementation completion evidence and cannot qualify this changed source set.
+- **Curated elaboration.** The [accepted run](../docs/hardware/scalar-width-transform-contract.md#acceptance-evidence)
+  completed the baseline and curated arms at its recorded pins. It observed the
+  intended configured removals and no unexplained or inert structures. The
+  same record identifies the older warning inventory and the remaining need
+  for a current one. [Register-width reads and capability encodings](../docs/hardware/scalar-width-transform-contract.md#the-next-layer)
+  remain open before the staged core can compute the required PC, jump target,
+  data address and integer CSR values.
 - **The address map is a function of the composition and nothing here decides a placement.** Every base, every size and every permission in the map package is read out of [the frozen profile's composition](../model/config/verifiedos.json), which is what R-15-002b makes the artifact that fixes them; K-88 holds the tracked bytes against what the emitter writes, on the host, at every landing. Its apertures are found by shape rather than by a list of names, so a window a composition gains arrives without an edit, which is the defect K-94 already reports one language over in the model's own whole-map check. One declared window is outside it: the revocation sidecar's extent is a model constant rather than a configuration key, so it is carried as a base alone and named as such.
-- **The decode module lints and decides three questions of four.** It answers which region contains a whole access, whether that region's own PMA permits it, and which aperture claims it, at the same reading `pmaCheck` takes in the model (`model/model/sys/mem.sail`): a fetch against `executable`, a load against `readable`, a store against `writable`. Its kind input encodes those three and nothing else, and the encoding that names none of them, both bits asserted at once, is **refused rather than decided**: a main-memory region is executable and writable together, so a decode reading the malformed input as a conjunction of the two permissions would admit it wherever the kernel's own code and data live. The fourth, unclaimed device-region routing, is owned by the platform device contract and implemented by `vos_device_route`: ordinary DTB reads in the composed lower ROM interval reach ROM; other unclaimed IO errors. The decoder itself continues to report the case. Sail fallback alignment and the complete SoC comparison remain open.
+- **Address decode and routing.** The decoder reports complete-access region
+  containment, PMA permission and aperture containment independently. Fetch,
+  load and store select the executable, readable and writable bits,
+  respectively. Simultaneous fetch and store signals deny permission.
+  [The route contract](../docs/hardware/platform-device-contracts.md#unclaimed-io-and-the-attested-device-tree)
+  assigns permitted unclaimed ordinary reads within the composed device-tree
+  interval to its image and refuses other unclaimed IO. Sail fallback alignment
+  and the SoC comparison remain open.
 - **The capability package lints, and it runs.** It compiles clean under every warning a package can answer, and [`tools/run.py rtl crosscheck`](../tools/vos/cli/rtl.py) builds it under Verilator behind a testbench that replays the model's own vectors, so the functions the vectors name are executed rather than merely compiled. Five are named by no vector, and each is a one-line wrapper over one that is: `set_cap_perms`, `clear_tag`, `clear_tag_if_sealed`, `get_cap_base` and `update_cap_with_integer_pc`. The curated build selects the package, and its elaboration decides no instruction's semantics.
 - **The capability package's declared parameters are held against the model, and its functions are held against the model's own answers.** Rule K-79 reads the frozen format out of `cap_format.sail` and `cap_common.sail` and holds every width, every derived figure and both packings against it, on the host, before anything is built. The cross-check decides the rest: the model is compiled with a generator that calls its capability functions and prints what they return, and this package has to reproduce every line, the vectors crossing as text so that no adapter sits between the two implementations. Two of its sweeps are exhaustive over their own domain rather than sampled, decode over the whole 19-bit bounds encoding and the narrowing search over every mask a permission bitmap can take.
 - **The adapter and scalar-width package pass their standalone checks.** The curated-only substitution and transformation contracts bind exact selected inputs and retain source-to-staged diffs. The scalar probe checks the transport/register/PCC widths and every bit/lane of store rotation. No compatibility alias fills the remaining functional interfaces; instruction refinement remains open.
