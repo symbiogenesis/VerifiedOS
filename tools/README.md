@@ -4,7 +4,7 @@ The tools use Python on the Windows host and in the WSL guest. Use
 `python tools/run.py <command>` on Windows and `python3 tools/run.py <command>`
 on Linux; the dispatcher sends guest commands to WSL when needed.
 
-## One language, and what forced it
+## Python environment
 
 Python spans both execution environments. Command modules use the supported version
 declared by [pyproject.toml](pyproject.toml) and the checker targets. The bootstrap,
@@ -43,8 +43,9 @@ chain campaign from its staged inputs under [the boot-handoff contract](../docs/
 [instrument-switches.yml](../.github/workflows/instrument-switches.yml) builds and
 checks the QuickChick switch on manual dispatch from `main` under
 [the instrument switch route](ci/README.md#instrument-switch-route); `run.py instrument-ci`
-dispatches it and reads its runs back. `run.py provision --apply` must not import
-QuickChick in the local guest (F-616).
+dispatches it and reads its runs back. Follow the
+[local switch installation instructions](opam/README.md#local-switch-installation)
+to keep QuickChick on the hosted route.
 
 **Host CI reports each gate member's result.** `--summary` writes per-member
 verdicts as JSON outside the checkout. After success or failure, the workflow
@@ -120,9 +121,8 @@ selection and verdict path from environment variables. Aggregate checks are name
 each platform rather than its runner image; `HOST_JOBS` in
 [vos/fanout_ci.py](vos/fanout_ci.py) owns those names for historical Host CI evidence
 validation, and [test_fanout_ci.py](tests/test_fanout_ci.py) checks the workflow
-against them. The aggregate checks require every shard, unpartitioned job and
-model-hooks job to succeed, rejecting skipped or canceled jobs. The unsharded command
-runs the complete suite and is reserved for GitHub Actions.
+against them. The aggregates require the scope job and every job it selects to pass. Jobs outside
+the selected scope must be skipped. Reserve complete suites for GitHub Actions.
 
 <a id="workflow-analysis"></a>**Ubuntu's unpartitioned job analyzes workflows and local actions** in a
 dedicated step that runs regardless of the gate verdict and fails the job on any
@@ -172,7 +172,7 @@ independent handler fixtures and help declarations against their usage output.
 | `worktree` | host | Lists registered checkouts, creates a fresh branch at an explicit base under the primary checkout's `.worktrees/`, and verifies assigned worktrees, including host-provisioned locations. `--json` produces handoff data, including each lane's name and `lane_root`, the guest directory its outputs land in. |
 | `retain` | host | Publishes explicitly mapped files into a new contained retained bundle and prints its hash-bound citation. See [retained evidence](../docs/implementation/retained-evidence/README.md) for the command and controls. It neither stages files nor edits the owning note. |
 | `fanout` | host | Records explicit worker handoffs, merges their commits into local `main`, repairs derived facts, records recommended CI scope and retires integrated batch-owned lanes. Never pushes, contacts remote Git or CI, or waits for hosted validation; the user owns publication and CI. See the [completion contract and usage](fanout.md). |
-| `instrument-ci` | host | `dispatch` sends one dispatch of [the instrument switch route](ci/README.md#instrument-switch-route), refusing nothing its plan job refuses, with a nonce in the run title and its intent journalled first; `--resume NONCE` recovers an interrupted dispatch by that nonce without posting again. `read --run ID` follows each artifact's redirect without credentials, extracts it under `out/instrument-ci/<run id>/`, holds its members to the staging allowlist and its inputs to the run, re-joins the run's verdict and says whether the run is closing evidence for a `--closing` commit. `dispatch --revision-from HEAD` resolves and journals a canonical local commit SHA; raw `--revision` remains available for hosted refusal qualification. `fanout` never runs it. |
+| `instrument-ci` | host | `dispatch` records its intent with a nonce before sending one request to [the instrument switch route](ci/README.md#instrument-switch-route). The hosted plan validates the supplied inputs; `--resume NONCE` recovers an interrupted dispatch by that nonce without posting again. `read --run ID` follows each artifact's redirect without credentials, extracts it under `out/instrument-ci/<run id>/`, holds its members to the staging allowlist and its inputs to the run, re-joins the run's verdict and says whether the run is closing evidence for a `--closing` commit. `dispatch --revision-from HEAD` resolves and journals a canonical local commit SHA; raw `--revision` remains available for hosted refusal qualification. `fanout` never runs it. |
 | `proof-search` | host | Retrieves current local proof examples and named Ltac definitions by query words, body tokens or authored requirement references, with bounded excerpts, source locations and SHA-256 identities. `--json` follows the tracked [JSON Schema](proof-search.schema.json). Results are advisory; the [portable workflow](../docs/assurance/proof-assistance.md) defines bounded tactic reuse, repair and the unchanged fresh proof gate. |
 | `rocq-census` | wsl / host help | Runs the [native metadata or census producer](rocq-census/README.md) against an explicit locked switch and copied precompiled inputs in a fresh native lane. Census mode binds native Search requests and emits field classifications and implementation provenance for adapter replay. Hosted exact assumptions, native controls and recursive kernel qualification remain separate acceptance joins. |
 | `sail-context` | host | Retrieves compiler-emitted Sail declarations, scattered clauses and recorded incoming references. Checks the bundle's recorded local source hashes before returning bounded context and SHA-256 identities; omitted sources and the freshness boundary remain explicit. `search`, `symbol` and `references` accept `--json` under the tracked [JSON Schema](sail-context.schema.json). The [portable Sail workflow](../docs/assurance/sail-assistance.md) defines repair, validation and upstream adoption decisions. |
@@ -634,9 +634,8 @@ runs the full bundled CTest suite, so that command is CI-only. QuickChick switch
 checks run only on the [instrument switch route](ci/README.md#instrument-switch-route).
 
 ```console
-$ python tools/run.py provision                  # is this machine the lane, and what is missing
-$ python tools/run.py provision --apply          # and install what this tree states a command for
-$ python tools/run.py provision --only gate      # the rows the three host gates alone want
+$ python tools/run.py provision --check          # report the state of every prerequisite
+$ python tools/run.py provision --only gate      # probe host-gate prerequisites
 $ python tools/run.py model typecheck
 $ python tools/run.py model bundle               # regenerate the model's own bundle
 $ python tools/run.py model bundle --check       # and hold the tracked one against it
@@ -738,7 +737,11 @@ restoring executable toolchains; historical evidence still requires revalidation
 
 Each checkout has a **lane** with separate build outputs, using the shared WSL toolchain. `run.py model lane` reports its paths, filesystems and active builds.
 
-Git's unique administrative name for a linked worktree determines its lane. Its `.git` file points to that administrative directory under the primary checkout's `.git/worktrees/`. Linked worktrees build under `/root/build/lane-<name>/`; the primary checkout keeps its existing paths. All lanes share only the M0.4 oracle tree, which contains pinned stock upstream sources unaffected by local curation.
+Each linked worktree's `.git` file points to its administrative directory under the
+primary checkout's `.git/worktrees/`. That directory's name identifies the lane and
+its build root, `/root/build/lane-<name>/`. The primary checkout keeps its own build
+paths. Lanes share the installed toolchains and the M0.4 oracle tree. The oracle
+uses pinned stock upstream sources and a separate build lock.
 
 The bounded distribution keepalive runs from its native pidfile directory. It
 does not inherit a checkout directory whose handle would prevent Windows from
@@ -750,7 +753,11 @@ Sharing a build tree causes three failures: CMake refuses a cache configured for
 
 A build holds a `flock` lock for its lifetime and refuses a concurrent build in the same lane. Background builds inherit the lock; the kernel releases it when the build exits or dies. `run.py model wait` waits for release, then checks the log and, if its stages passed, the build receipt. A missing, malformed, unsuccessful or incomplete receipt fails the wait, with its recorded refusal reason when available. Changes to bound sources, tools, options, artifacts or logs make the receipt stale and also fail the wait.
 
-Other stateful commands also name and refuse conflicting owners. `emit` shares the build lock because it uses the same CMake tree. `typecheck` locks its lane's SMT memo cache, which Sail rewrites at exit. `oracle` locks the shared oracle tree; `trace-diff` holds a shared lock while running its simulator, preventing sync or `--resync` from replacing live inputs. `corpus` writes images into its lane so separate lanes cannot overwrite one ELF path.
+Other stateful commands check for conflicting owners. `emit` takes the build lock
+for the CMake tree it uses. `typecheck` locks its lane's SMT memo cache, which Sail
+rewrites at exit. `oracle` takes an exclusive lock on the shared oracle tree for
+updates. `trace-diff` holds a shared lock while using its simulator to protect live
+inputs. `corpus` writes ELF images into its own lane.
 
 On first use, `build`, `emit` and `bundle` seed a lane before configuration. They copy riscv-tests only when it matches the manifest recorded during download verification ([THIRD-PARTY.md](../THIRD-PARTY.md#fetched-at-build-time)). They also copy the build, property-test, typecheck and `smt` memo caches. Caches are **copied, never shared**, because Sail rewrites them; `vos/cli/model.py`'s `_seed_smt_cache` implements this rule.
 
@@ -830,9 +837,17 @@ Every mutant run classifies each mutant into one of four disjoint verdicts via [
 - **Survived:** Compiled and left the oracle's verdict unchanged. This is a finding: the oracle does not cover the mutated site.
 - **Undecided:** A Gallina compile or QuickChick execution hit a per-file timeout, died on a signal (such as OOM), or terminated with an unclassifiable runner status. Undecided mutants are journaled with their cause and fail the run because the population was not fully decided.
 
-**A killed population tests the theorem statements, not whether definitions match the register.** Killing every mutant shows that the file's theorems constrain its definitions, but an artifact can achieve a 100% mutation score and pass the proof gate while still resolving an open register question by fiat or encoding a stronger assumption than the register warrants. During proof review, check each cited entry against the register for three common defects: numeric literals not fixed by any requirement, definition shapes that over-constrain open choices (such as a queue where the register specifies only readiness, or a total function where the register admits refusal), and bounds stated as equalities.
+Gallina mutation scores measure how often the proof or executable oracle detects
+changes to definitions. During proof review, compare each definition with its
+cited register entries. Check for arbitrary numeric constants, a queue where the
+register specifies only readiness, a total function where the register permits
+refusal, and equalities that replace bounds.
 
-**[run.py selftest](vos/cli/selftest.py) reuses [seeded.py](vos/seeded.py)'s vocabulary for authored checker mutants.** Because checker mutants are authored per rule in `check-registry.json` rather than generated from source syntax, a mutation whose target text no longer exists in the corpus is reported as **unseeded** (a failing verdict) rather than stillborn. Table-driven rules such as K-88 should carry a mutant case for each distinct reader row so newly added rows cannot pass unexercised.
+`run.py selftest` uses mutants authored per rule in `check-registry.json`. If a
+mutation's target text is missing from the corpus, selftest reports a failing
+**unseeded** verdict. Table-driven rules such as K-88 need a mutant for each distinct
+reader row so that new rows receive the same coverage. See [selftest](vos/cli/selftest.py)
+and [the common verdicts](vos/seeded.py).
 
 `seed`'s three subcommands reflect their compilation cost: `seed coq` runs the prover on a Gallina file, `seed sail` compiles a small subset of Sail files for an oracle spec, and `seed properties` re-emits and recompiles the full C simulator. **`run.py seed properties` temporarily mutates `model/` in place**, verifying byte-for-byte restoration after each mutant and rebuilding the lane's build tree before exiting. **Nothing else may read or write the checkout while `seed properties` runs**, or concurrent `git add`, `check.py`, or `selftest` invocations will observe a mutated `model/` tree.
 

@@ -190,13 +190,9 @@ def run(ctx: Context) -> None:
 
     # --- the fail-closed seam register --------------------------------------------
     #
-    # Here the collection is not a separate document but the R-17-030 seam entries,
-    # each naming the requirements whose refusal it composes (R-17-030r). Both
-    # directions are owed and they fail differently: a conferral no seam collects is a
-    # refusal booked correctly in its own section and absent from the composition,
-    # which R-03-008 already calls a review-gate finding and nothing enforced until
-    # now; a seam collecting no conferral is the register composing a refusal no
-    # requirement specifies.
+    # The R-17-030 seam entries name the requirements whose refusals they compose.
+    # Every conferred refusal needs a seam, and every seam needs at least one
+    # requirement that confers a refusal.
     fc_seams = [i for i in reg.ids if _FC_SEAM_RE.search(reg.body[i])]
     fc_confer = list(reg.confers.get("Fail-closed", {}))
     fc_cited: dict[str, str] = {}

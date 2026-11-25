@@ -98,7 +98,9 @@ and the byte-identical re-export. The remaining commit pins are listed below.
 | `coq-quickchick` | [QuickChick/QuickChick](https://github.com/QuickChick/QuickChick) | `3d4d6c0e9f72172a9f0b26db61c5496ec8e0f568` | 2.2.0, the latest release, cannot install: the latest release of its `coq-simple-io` dependency, 1.11.0, caps Coq below 9.2. The commit, one past 2.2.0, is the one Rocq V9.3.0's own CI overlay builds, and adapts the plugin to [rocq#22207](https://github.com/rocq-prover/rocq/pull/22207)'s record syntax | the first `coq-quickchick` release admitting Rocq 9.3.0 |
 | `coq-simple-io` | [Lysxia/rocq-simple-io](https://github.com/Lysxia/rocq-simple-io) | `d035c0a85f0bde4ad56c31a9fa9ef3cb5e8d0f18` | 1.11.0, the latest release, caps Coq below 9.2 and dune below 3.22. The commit, the overlay's, states neither cap | the first `coq-simple-io` release admitting Rocq 9.3.0 |
 
-The recipe takes dune 3.23.1, below the proof switch's 3.24.2, because `rocq-elpi` 3.5.1, which QuickChick's `coq-mathcomp-ssreflect` dependency reaches through `rocq-mathcomp-ssreflect`, `rocq-mathcomp-boot` and `rocq-hierarchy-builder`, requires dune 3.13 or later and below 3.24.
+The QuickChick recipe uses dune 3.23.1. Its MathComp dependency brings in
+`rocq-elpi` 3.5.1 through `rocq-hierarchy-builder`. That version of Elpi requires
+dune 3.13 or later and below 3.24.
 
 The Rupicola switch uses Rocq 9.2.0 because the released `coq-bedrock2` 0.0.9, which the bedrock2 compiler and Rupicola packages require, does not build against Rocq 9.3.0. The released lowering packages, `coq-coqutil` 0.0.7, `coq-riscv` 0.0.6, `coq-bedrock2` and `coq-bedrock2-compiler` 0.0.9 and `coq-rupicola` 0.0.11, set no upper bound on the prover; their tagged commits date from 2025-09-05 to 2025-10-02, and their GitHub releases were published on 2025-10-06. The `master` branches of mit-plv's bedrock2 and coqutil later adapted sources those packages build to three changes milestoned for Rocq 9.3+rc1, [rocq#21849](https://github.com/rocq-prover/rocq/pull/21849), [#21987](https://github.com/rocq-prover/rocq/pull/21987) and [#21478](https://github.com/rocq-prover/rocq/pull/21478): bedrock2's for #21849 and #21987, coqutil's for #21987 and #21478. No tagged release carries those adaptations. Measured on 2026-09-30 in a private opam root on the guest, in a switch created with `--repos=rocq-released,default --packages=ocaml-base-compiler.5.4.1`, `opam install -j2 ocamlfind.1.9.8 rocq-core.9.3.0 coq.9.3.0 coq-coqutil.0.0.7 coq-riscv.0.0.6 coq-bedrock2.0.0.9 coq-bedrock2-compiler.0.0.9 coq-rupicola.0.0.11` installs coqutil and riscv-coq beside `rocq-stdlib` 9.2.0 and fails first at `coq-bedrock2` 0.0.9: Rocq 9.3.0 refuses line 3 of `bedrock2/src/bedrock2/SuppressibleWarnings.v`, `Arguments warning_marker {T} msg%message_scope.`, because #21849 makes the `argument-scope-delimiter` deprecation an error by default, and the build passes no warning flag. The bedrock2 compiler and Rupicola packages were not reached.
 
@@ -116,7 +118,10 @@ only on [the instrument switch route](../ci/README.md#instrument-switch-route), 
 CertiRocq's only locally; the remaining experimental switches are imported manually into
 an initialized root.
 
-From the repository root in the guest, register the repositories and import a snapshot into its dedicated switch:
+## Local switch installation
+
+From the repository root in the guest, register the repositories and import the
+snapshot for the switch you need. This example installs Rupicola.
 
 ```console
 $ opam repository add rocq-released https://rocq-prover.org/opam/released --dont-select
@@ -127,7 +132,15 @@ $ opam switch import tools/opam/rupicola.lock \
     --switch=verifiedos-rupicola-9.2.0-ocaml-5.4.1 -y
 ```
 
-Use the corresponding switch and snapshot from the table for the other environments. The Sail switch needs only the default repository. `run.py provision --apply` imports the Sail, proof and QuickChick snapshots through the recipes in [env.py](../vos/env.py), [proofenv.py](../vos/proofenv.py) and [quickchick.py](../vos/cli/quickchick.py); QuickChick's switch is built and checked only on [the instrument switch route](../ci/README.md#instrument-switch-route) (F-616). The [Wasm oracle](../wasm-oracle/README.md) specifies the CertiRocq snapshot's import in both the native recipe and Dockerfile. Creating these switches preserves existing switches and the user's active switch.
+Use the corresponding switch name and snapshot for Sail and the prover. For Sail,
+pass `--repos=default`. These commands preserve existing switches and the active
+switch. Use the [Wasm oracle recipe](../wasm-oracle/README.md#pinned-environment)
+for CertiRocq.
+
+On a local guest, use the explicit imports above. The unrestricted
+`run.py provision --apply` can import QuickChick when its switch is missing
+(F-616). QuickChick builds, checks and lock exports belong to the
+[hosted instrument route](../ci/README.md#instrument-switch-route).
 
 The contained compiler has its own switch and source-containment boundary. Import
 `contained-compiler.lock` by the same create-and-import route, using the switch
@@ -141,7 +154,8 @@ and separate acceptance requirements. Preserve the compiler's original build
 flags and record any `configure` version override when building its contained
 source through this lock.
 
-If an import fails after creating its switch, retry the import command directly, omitting creation. The provisioner checks for an existing switch and skips creation automatically, so `run.py provision --apply` can resume a partial installation.
+If an import fails after creating its switch, retry `opam switch import` against
+the existing switch.
 
 To refresh a resolution, update repository metadata, review `opam upgrade --switch=SWITCH --dry-run`, and apply the compatible upgrade in that project switch. Recheck the compiler and library constraints when newer releases appear. Run the affected model, proof, oracle or lowering checks, then export the tested versions with `opam switch export --switch=SWITCH tools/opam/NAME.lock`. Keep the export and any changed version constants together. Record the package constraint or demonstrated build incompatibility whenever an older dependency is retained.
 

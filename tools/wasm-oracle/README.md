@@ -33,9 +33,12 @@ wrapper's invalid optional executable lookup is preserved separately from its
 successful installation; corrected qualification reused that installation.
 The complete-vector M1.2f comparison below remains a separate acceptance check.
 
-`run.py provision --apply` does not install this switch automatically; use the manual recipe below (`provision` checks the oracle row only when the declared switch is present).
+Install the switch with the recipe below. The provisioner reports an absent
+switch and checks the installed package and source provenance against the lock.
 
-Two environments install the same opam package: the Docker container (for `linux/amd64`) and the native opam switch (used on `arm64` hosts because `rocq/rocq-prover` publishes 9.1 images for `linux/amd64` only).
+Both the `linux/amd64` Docker recipe and the native recipe import the same opam
+snapshot. For the native recipe, start at the assigned checkout and set `lane_root`
+to the absolute guest build directory reported by `run.py worktree list --json`.
 
 ```console
 $ docker build -t wasm-oracle -f tools/wasm-oracle/Dockerfile tools
@@ -52,9 +55,10 @@ $ opam switch create verifiedos-certirocq-0.9.1-ocaml-4.14.4 \
 $ opam switch import tools/opam/certirocq.lock \
     --switch=verifiedos-certirocq-0.9.1-ocaml-4.14.4 -y
 $ eval $(opam env --switch=verifiedos-certirocq-0.9.1-ocaml-4.14.4 --set-switch)
-$ mkdir -p out/wasm-oracle
-$ cp tools/wasm-oracle/demo.v tools/wasm-oracle/run_demo.mjs tools/wasm-oracle/node.sh out/wasm-oracle/
-$ cd out/wasm-oracle
+$ work="$lane_root/wasm-oracle"
+$ mkdir -p "$work"
+$ cp tools/wasm-oracle/demo.v tools/wasm-oracle/run_demo.mjs tools/wasm-oracle/node.sh "$work/"
+$ cd "$work"
 $ rocq c demo.v && sh node.sh --stack-size=10000000 run_demo.mjs demo.oracle_demo.wasm
 true
 ```
@@ -141,14 +145,17 @@ the remaining backend and refinement joins retain their existing owners.
 
 ## Keeping the VM under a long build
 
-WSL2 tears the utility VM down 60 s after its last instance stops, taking `dockerd` and every container with it, so a build left running between two commands dies with it, and the opam install above is long enough to be that build whichever environment runs it. The repository's answer is a bounded keepalive process rather than the global `[wsl2] vmIdleTimeout=-1` in `%USERPROFILE%\.wslconfig`; start it from the repository root before a long build:
+An idle WSL utility VM can stop while a detached build or container is running.
+Start a bounded keepalive from the checkout before a long standalone build.
 
 ```console
 $ python tools/run.py model keepalive
 KEEPALIVE pid=... hours=8 pidfile=/tmp/vos-keepalive.pid
 ```
 
-It is idempotent, expires on its own, and stops early with `run.py model keepalive --stop`; see the keepalive section of [tools/vos/env.py](../vos/env.py) for why it is a process and not a setting. Every model loop takes the same lease, so a build started with `run.py model build` needs no separate call. The `certicoq-oracle` container carries `--restart unless-stopped` so it also comes back by itself after a teardown that happens anyway.
+Repeated calls reuse an active keepalive. It expires automatically, and
+`run.py model keepalive --stop` ends it early. Toolchain commands under `model`
+acquire the lease on launch. See the [keepalive implementation](../vos/env.py#keepalive).
 
 ## Corporate-network note
 

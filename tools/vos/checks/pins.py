@@ -403,8 +403,8 @@ def _sources(ctx: Context, named: list[tuple[str, str, pins_mod.Pin]]) -> Iterat
                 text = corpus_mod.gzip_contents(blob).decode("utf-8")
             else:
                 text = corpus_mod.scan_bytes(ctx.root, rel).decode("utf-8")
-            # Preserve read_text's universal-newline behavior for these files,
-            # including retained text now stored as lossless gzip evidence.
+            # Apply the same universal-newline normalization to plain and
+            # decompressed text before scanning for pins.
             text = text.replace("\r\n", "\n").replace("\r", "\n")
         except OSError, UnicodeDecodeError, EOFError, ValueError, zlib.error:
             continue
