@@ -80,7 +80,7 @@
     },
     {
       "path": "tools/generated/sail_riscv_model.json",
-      "sha256": "bb875c62d66454338790d1d1ed8e023d849384e50c5d3a526cf6e563884191e2"
+      "sha256": "eec7c532e375dec80cc9ac80093c3964d90f9d098a6ab2138811b2c1adfe12cf"
     },
     {
       "path": "tools/vos/__init__.py",
@@ -315,7 +315,7 @@
       "id": "copy-service-boundary",
       "source": {
         "path": "copy-service/README.md",
-        "sha256": "3cfc4a258fd002b36069791210efaa9146b7079dedaf1f6b0f4bfd0168e92395"
+        "sha256": "0b6f763fec0a5b1e547dc0a299a140faaaf964bd563b6e476d9073a05d86eaf5"
       }
     }
   ],

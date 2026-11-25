@@ -24,7 +24,7 @@
     },
     {
       "path": "proofs/HandlerGraph.v",
-      "sha256": "0f779ec5f3fb93552ea47302f2e71bc0d2d4fd5fbed82c879b3370bf56a2972e"
+      "sha256": "0a088ecfd1e96010290cffe278da431c5aeab1b5b56a8e8b8a66ee69addfdd07"
     },
     {
       "path": "tools/vos/composition.py",

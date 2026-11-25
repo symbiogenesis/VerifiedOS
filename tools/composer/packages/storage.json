@@ -52,11 +52,11 @@
     },
     {
       "path": "proofs/ExecutableIndex.v",
-      "sha256": "f917d2ac2fd7aa6cb406e9cf6b94a5392df58073ffd15b3c536f45a86c172454"
+      "sha256": "8cd64b4a152081b0b5d6f4f9b06266bdca0924be0f3340432268f391750f5d19"
     },
     {
       "path": "proofs/JournalIndex.v",
-      "sha256": "e22588c37c223cfab65b6bbb151cdd712c7f8099aadab89440ce726842179deb"
+      "sha256": "312d6506b7eb853256df8cca2dc0f5749538244b9fd99086c17b00f15a476f36"
     },
     {
       "path": "proofs/StorageRecovery.v",
@@ -92,7 +92,7 @@
       "id": "storage-boundary",
       "source": {
         "path": "storage/README.md",
-        "sha256": "3950afc8cd4e699499a9518b13d06dcfaf81a2809462a6f1ac3415725d963663"
+        "sha256": "3338157e66baeaa59d9f163c3f3fff538d1908d7dc4ee9e2c36b6514e19b73d0"
       }
     },
     {
