@@ -83,14 +83,14 @@ def main() -> None:
     before = inventory()
     (out / "installed-before.json").write_text(json.dumps(before, indent=2) + "\n")
 
-    def run(label: str, argv: list[str | Path],
-            env: dict[str, str] | None = None) -> subprocess.CompletedProcess[str]:
+    def run(label: str, argv: list[str | Path], env: dict[str, str] | None = None,
+            *, cwd: Path = work) -> subprocess.CompletedProcess[str]:
         started = time.monotonic()
-        result = subprocess.run(list(map(str, argv)), cwd=work, env=env,
+        result = subprocess.run(list(map(str, argv)), cwd=cwd, env=env,
                                 capture_output=True, text=True, timeout=180, check=False)
         log = out / (label + ".log")
         log.write_text(result.stdout + result.stderr)
-        commands.append({"label": label, "argv": list(map(str, argv)), "cwd": str(work),
+        commands.append({"label": label, "argv": list(map(str, argv)), "cwd": str(cwd),
                          "exit": result.returncode, "seconds": time.monotonic() - started,
                          "log": log.name, "sha256": sha(log)})
         if result.returncode:
@@ -139,8 +139,8 @@ def main() -> None:
         plugins = out / "plugins"
         plugins.mkdir()
         shutil.copy2(args.plugin, plugins / "sail_plugin_coq.cmxs")
-        require_sha(repo / recipe["reproducer"], recipe["reproducer_sha256"])
-        shutil.copy2(repo / recipe["reproducer"], out / "bindings.sail")
+        reproducer = repo / recipe["reproducer"]
+        require_sha(reproducer, recipe["reproducer_sha256"])
         env = os.environ.copy()
         env["SAIL_PLUGIN_DIR"] = str(plugins)
         env["PATH"] = str(args.sail_prefix / "bin") + os.pathsep + env["PATH"]
@@ -148,10 +148,12 @@ def main() -> None:
         for name in ["emitted", "repeat"]:
             lane = out / name
             lane.mkdir()
+            # Sail includes this input name verbatim in the emitted refusals.
+            shutil.copy2(reproducer, lane / "bindings.sail")
             run(name + "-emit", [args.sail_prefix / "bin/sail", "--rocq", "-D", "CONCURRENCY_INTERFACE",
                 "--rocq-lib-style", "stdpp", "--rocq-alt-modules",
                 "SailStdpp.Base SailStdpp.ConcurrencyInterfaceTypes SailStdpp.ConcurrencyInterface SailStdpp.ConcurrencyInterfaceBuiltins",
-                "--rocq-output-dir", lane, "-o", "bindings", out / "bindings.sail"], env)
+                "--rocq-output-dir", lane, "-o", "bindings", "bindings.sail"], env, cwd=lane)
             outputs.append({p.name: sha(p) for p in lane.glob("bindings*.v")})
         if outputs[0] != outputs[1] or len(outputs[0]) != 2:
             raise RuntimeError("repeat emission changed or omitted an output")
