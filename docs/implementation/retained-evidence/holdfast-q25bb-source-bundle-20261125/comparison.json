@@ -1,0 +1,52 @@
+{
+  "scope": "HoldFast Q25bb standalone copy-service source baseline replay",
+  "checkout_revision": "569951b709aa3550b5543d743111e879c1a538f0",
+  "checked_source_inputs": 74,
+  "unchanged_source_inputs": 73,
+  "changed_input": {
+    "path": "tools/generated/sail_riscv_model.json",
+    "previous_sha256": "bb875c62d66454338790d1d1ed8e023d849384e50c5d3a526cf6e563884191e2",
+    "current_sha256": "eec7c532e375dec80cc9ac80093c3964d90f9d098a6ab2138811b2c1adfe12cf",
+    "source_change": "99659edd explains the vector rounding modes in Sail comments and regenerates the bound model bundle."
+  },
+  "unchanged_prepared_outputs": 9,
+  "previous_source_record": {
+    "revision": "ec14365cfd2fc1deb774cd171034277dd7547202",
+    "path": "docs/implementation/retained-evidence/holdfast-q25bb-source-20261125/source-record.json",
+    "sha256": "73a9e4ea58b64831d825fdb0997898381a7d94c453023379e984b6f3660a9bba"
+  },
+  "frozen_source_record": {
+    "revision": "498127d6be3d1a70581ba4a9cc025c2d923e66f7",
+    "path": "docs/implementation/retained-evidence/holdfast-q25bb-source-20261124/source-record.json",
+    "sha256": "a5bd07dabb430f9949cb29c16c106739fe45bbfdfb35e0e2938826e1c3d20dbb"
+  },
+  "current_source_record_sha256": "e6991359da24d4aaf459fb262ebbd906b2bb858ee61538337df88ec649945205",
+  "strict_c17_result_sha256": "2c2861b70f6a305c7d62f3ea7899339fc1fefad5933cefb0e9f3a43c062cb31c",
+  "checks": [
+    {
+      "command": [
+        "python3",
+        "tools/run.py",
+        "copy-service",
+        "prepare-package",
+        "--output",
+        "/root/build/lane-holdfast-baseline-20261125-c/copy-package-q25bb"
+      ],
+      "returncode": 0
+    },
+    {
+      "command": [
+        "python3",
+        "tools/run.py",
+        "copy-service",
+        "check-package-syntax",
+        "--prepared",
+        "/root/build/lane-holdfast-baseline-20261125-c/copy-package-q25bb"
+      ],
+      "returncode": 0,
+      "source_recipe_replayed_before_and_after": true
+    }
+  ],
+  "target_emission": false,
+  "production_admission": false
+}

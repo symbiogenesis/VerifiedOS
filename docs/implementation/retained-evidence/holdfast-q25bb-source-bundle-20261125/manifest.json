@@ -1,0 +1,22 @@
+{
+  "files": {
+    "comparison.json": {
+      "bytes": 2030,
+      "encoding": "identity",
+      "path": "comparison.json",
+      "sha256": "00d0f26fccd128648fdda9893907b094607e4cb4e7cdab3f69d7461bd68a6417"
+    },
+    "source-record.json": {
+      "bytes": 9144,
+      "encoding": "identity",
+      "path": "source-record.json",
+      "sha256": "e6991359da24d4aaf459fb262ebbd906b2bb858ee61538337df88ec649945205"
+    },
+    "syntax.json": {
+      "bytes": 1188,
+      "encoding": "identity",
+      "path": "syntax.json",
+      "sha256": "2c2861b70f6a305c7d62f3ea7899339fc1fefad5933cefb0e9f3a43c062cb31c"
+    }
+  }
+}
