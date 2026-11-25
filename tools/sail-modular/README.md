@@ -1,25 +1,25 @@
 # Optional generated Sail static libraries
 
-`python tools/run.py sail-modular qualify` derives four method translation units
-and a single shared owner from the full C++ model the pinned Sail emits, then builds
-them as static libraries with an isolated CMake overlay. On Linux use `python3`.
-Run `model build` first to obtain the current lane's successful baseline receipt.
-`--partitions` accepts 2 through 16; `--json` prints the complete report conforming
-to [the schema](report.schema.json).
+`python3 tools/run.py sail-modular qualify` partitions the C++ emitted by the
+pinned Sail compiler and builds static libraries with an isolated CMake overlay.
+It uses four method translation units by default and one translation unit that
+owns shared state. `--partitions` accepts 2 through 16. `--json` prints the
+complete report conforming to [the schema](report.schema.json).
+
+Run the complete qualification on GitHub Actions. The same checkout and native
+lane must first complete `python3 tools/run.py model build` to obtain the baseline
+receipt. Both commands run the full CTest suite, and qualification also measures
+build performance. See the [validation handoff](../../AGENTS.md#tool-execution-and-validation).
 
 The optional native prerequisite is LLVM/libclang 21.1.8, read through its stable
 C API with authored Python standard-library `ctypes` bindings. No Python binding,
 compiler upgrade or automatic package installation is involved. Its license is
 [Apache-2.0 with LLVM exceptions](https://github.com/llvm/llvm-project/blob/llvmorg-21.1.8/LICENSE.TXT).
-Provision the library explicitly alongside the existing Clang toolchain. The
-qualification host uses Ubuntu's `libclang1-21` package version
-`1:21.1.8-6ubuntu1`; on that distribution the explicit provisioning command is
-`sudo apt-get install libclang1-21=1:21.1.8-6ubuntu1`. Other supported native
-images must supply the same LLVM 21.1.8 library explicitly; the command refuses
-other versions and never runs a package manager. LLVM 23.1.3 is the current
-upstream release, but the supported Ubuntu image supplies no `libclang1-23`
-package. Its available 22.1.2 library has not passed this adapter's AST and
-partitioning qualification, so the exact qualified 21.1.8 prerequisite remains.
+Provision the library alongside the existing Clang toolchain. The qualified
+Ubuntu package is `libclang1-21` version `1:21.1.8-6ubuntu1`. Install it with
+`sudo apt-get install libclang1-21=1:21.1.8-6ubuntu1` where that package is
+available. Other native images must supply libclang 21.1.8. The adapter checks
+that exact version before using the library.
 The model's [supported CMake baseline](../../model/CMakeLists.txt), with the Linux
 RESCAN link-group feature, is required. Stage resource
 measurements use the operating system's `wait4`, with no timing-tool dependency.
