@@ -3366,6 +3366,12 @@ that route's build boundary. Keep Rocq 9.3.0 and the other dependency versions
 fixed for the [RecordUpdate comparison](docs/assurance/machine-logic-dependency-trial.md#separately-scoped-unpriced-continuation).
 This continuation preserves strict diagnostics and the exact assumption policy.
 
+The RecordUpdate packaging check uses an immutable opam pin in a private
+qualification switch at the locked compiler and Rocq versions. It requires the
+strict notation regression to import the installed package and reproduce the
+upstream print reference. The packaging result precedes the frozen client
+comparison and cold carriage checks below.
+
 The machine-logic foundation owner and opam carriage owner must review and price
 one source-compatibility continuation before dispatch. Its identified work is:
 

@@ -174,6 +174,15 @@ The [licence ledger](../../THIRD-PARTY.md#sail-agent-assistance-references)
 records the exact source terms. The Islaris and Lithium client comparison and
 cold carriage remain due.
 
+### RecordUpdate through opam
+
+Pin `coq-record-update` to the merge in a private qualification switch with the
+locked OCaml, Rocq and Stdlib versions. The packaged regression must import
+`RecordUpdate` from that switch with the trial's strict flags and reproduce the
+upstream normalized print reference. The client comparison uses the installed
+package. A released opam package can replace the pin after it contains the fix
+and passes the same checks.
+
 ## Reproduction and evidence
 
 The authored [trial client](../../tools/machine-logic-trial/trial.py) uses the
