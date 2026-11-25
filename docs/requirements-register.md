@@ -4251,8 +4251,8 @@ Each entry states one atomic obligation with an acceptance criterion a reviewer 
 
 ### 15.8 Adopted extensions
 
-**R-15-053** IS: `Zkt` + `Zvkt` is the keystone: the architectural contract that a listed instruction set runs in data-independent latency. The leakage model it fixes is a crown-jewel spec: constant-time soundness is proved against the model, and a model weaker than the silicon verifies perfectly and leaks.
-· Accept: the list is (a) the architectural leakage model constant-time verification is stated against, the probing-model statement (R-15-053a) standing beside it for the R-05-004a masking obligations, and (b) an RTL-against-Sail proof obligation.
+**R-15-053** IS: `Zkt` and `Zvkt` specify data-independent latency for listed instructions. The architectural leakage model is a crown-jewel specification for constant-time soundness. It observes instruction latency and emitted addresses (R-15-053b).
+· Accept: use the lists for the latency component of the architectural leakage model and prove their data-independent latency in the RTL refinement of Sail. Use R-15-053a's separate probing model for R-05-004a's masking obligations.
 · Trace: CJ-LEAK, CJ-RTL-SAIL
 
 **R-15-053a** MUST: A second leakage statement stands beside the architectural one: the probing model, a glitch- and transition-extended *d*-probing statement over the crypto core's dedicated masked datapath (R-05-004a) with an explicit composition notion, the model the R-05-004a masking obligations are verified against. The statement it fixes is a crown-jewel spec beside the `Zkt`/`Zvkt` one, and it is an axiom about the silicon in the R-06-011 sense rather than a theorem over the Sail model: a physical model the die does not satisfy verifies perfectly and leaks, and a glitch-only extension is known too weak, transitions alone halving effective order, so both extensions are in the statement and what neither carries (delay imbalance, coupling, layout) stays booked at R-17-058a.

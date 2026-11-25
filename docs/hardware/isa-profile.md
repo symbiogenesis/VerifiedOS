@@ -419,9 +419,9 @@ Only an **active** element raises a capability exception, and the check is nonet
 
 ## 9. Implementation timing contracts
 
-These are the entries the timing-annotated Sail model carries, and the projection from which the per-instruction latency table is derived (R-18-024).
+The timing model supplies the operation classes for R-18-024's per-instruction latency table. The lookup `timing_cycles` takes an operation class. Memory accesses add a latency for the selected memory class, and partition switches use core-class constants for eager zeroization and the padded fence. [Sail timing definitions](../../model/model/core/timing.sail)
 
-The model carries them as one table of operation classes, in [core/timing.sail](../../model/model/core/timing.sail), read by a function that takes an operation class and takes no operand, no register, no address, and no prior state: data independence is held by what that reader accepts rather than by a rule about it (R-15-053, R-15-095). Two constants are stated per **core** class rather than once, the eager zeroize and the padded fence, because one kernel binary budgets a partition switch on every class it may run on (R-07-012, R-15-220); the rest are one table because the scalar front end is one shared microarchitecture (R-15-112). **The magnitudes in it are placeholders and the table says so**: they are R-17-041's crown-jewel specification, `Zicntr` and `Zihpm` are implemented in no lifecycle state so nothing on this machine can read a cycle (R-15-077), and development measurement rides the lifecycle-gated Debug Module trace on real RTL. What is not there yet is a total map from each instruction to its class, which is what would make the annotation complete and what flips R-17-041's inventory row.
+The table contains provisional values. R-17-041 still needs qualified magnitudes and a complete instruction-to-class map. Development measures RTL with lifecycle-gated Debug Module trace. The ISA omits architectural cycle and performance counters in every lifecycle state (R-15-077).
 
 | Contract | Governing |
 | --- | --- |
