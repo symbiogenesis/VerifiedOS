@@ -1,0 +1,22 @@
+{
+  "files": {
+    "candidate-generation.json": {
+      "bytes": 28693,
+      "encoding": "identity",
+      "path": "candidate-generation.json",
+      "sha256": "46c682012c9fc0d3989e2dccbb867468fe7c0e559fee89fd1fe56aa3a211c610"
+    },
+    "comparison.json": {
+      "bytes": 4529,
+      "encoding": "identity",
+      "path": "comparison.json",
+      "sha256": "ac6c3447cf7aaa7fec8ed8007fc0c165003aac543f47531e38e77b3d37d4d729"
+    },
+    "original-generation.json": {
+      "bytes": 28273,
+      "encoding": "identity",
+      "path": "original-generation.json",
+      "sha256": "830425547c6600bcf84518318c7929c1d02b3c11711c1e9bd34fe368195add4b"
+    }
+  }
+}
