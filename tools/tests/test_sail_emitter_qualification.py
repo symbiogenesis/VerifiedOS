@@ -5,7 +5,7 @@ from copy import deepcopy
 from typing import Any
 
 from ci import sail_emitter_qualification as emitter
-from tests.harness import TOOLS, Case
+from tests.harness import TOOLS, Case, ensure
 from vos import rocqterm
 
 REVISION = "a" * 40
@@ -75,9 +75,42 @@ def retained_source_inputs() -> None:
     emitter.evidence_input(root / emitter.INITIAL, "backend-dune-project.txt")
 
 
+def frozen_emission_join() -> None:
+    root = TOOLS.parent
+    stock, candidate = (
+        emitter.load(root / emitter.REPLAY / f"{label}-generation.json")
+        for label in ("original", "candidate")
+    )
+    for record in (stock, candidate):
+        record["checkout"]["revision"] = REVISION
+        record["command"][0] = "/runner/sail/bin/sail"
+    bound = emitter.check_frozen_pair(root, stock, candidate)
+    ensure(set(bound) == {"comparison", "inputs", "original", "candidate"},
+           "hosted result omitted frozen comparison inputs")
+
+    changed_stock = deepcopy(stock)
+    changed_stock["outputs"][rocqterm.OUTPUTS[0]]["sha256"] = "different stock"
+    changed_candidate = deepcopy(candidate)
+    changed_candidate["outputs"][rocqterm.OUTPUTS[1]]["sha256"] = "different candidate"
+    changed_flags = deepcopy(candidate)
+    changed_flags["command"].append("--different")
+    for left, right, expected in (
+        (changed_stock, candidate, "hosted original outputs"),
+        (stock, changed_candidate, "hosted candidate outputs"),
+        (stock, changed_flags, "hosted candidate arguments"),
+    ):
+        try:
+            emitter.check_frozen_pair(root, left, right)
+        except ValueError as error:
+            ensure(str(error).startswith(expected), f"unexpected refusal: {error}")
+        else:
+            raise AssertionError(f"accepted changed frozen emission: {expected}")
+
+
 def cases() -> list[Case]:
     return [
         Case("paired-canonical-emission", paired_comparison),
         Case("native-plugin-order", native_plugin_order),
         Case("retained-source-inputs", retained_source_inputs),
+        Case("frozen-emission-join", frozen_emission_join),
     ]

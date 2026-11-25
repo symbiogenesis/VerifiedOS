@@ -1,0 +1,31 @@
+{
+  "assumptions": {
+    "read_data_exact_reply": "Closed under the global context",
+    "read_ram_request_order": "Closed under the global context",
+    "read_ram_tag_interpretation": "Closed under the global context",
+    "word_cast_preserves_bits": "Closed under the global context",
+    "write_data_exact_reply": "Closed under the global context",
+    "write_ram_request_order": "Closed under the global context"
+  },
+  "inputs_rechecked": true,
+  "kernel_scope": "CanonicalPhysicalCallerBridge only; dependencies admitted by -norec",
+  "object_sha256": {
+    "CanonicalAssumptions.vo": "3ec7f27289a81d9ba6a71fa632dc23e1a2563bf8f44b6982715e9caa3630af89",
+    "CanonicalPhysicalCallerBridge.vo": "fa03dca02aa34eb66ec36e7deeadbea3e8d6ceed20576144435776db286378c5",
+    "TagInterpreter.vo": "37a46238ce7628c2a357b3ee926087a31922293923798448937c414c16284d3d"
+  },
+  "source_sha256": {
+    "CanonicalAssumptions.v": "a0941f751109d234383a0cecb458f74ab995189ed7a729e6e09a1afd1ee1af34",
+    "CanonicalPhysicalCallerBridge.v": "420b764eef05c2d2cf392975b67afcd7242b82f241bc1100e3b74edad6f51112",
+    "TagInterpreter.v": "6a4d74e55548aeb86647031f24297365233541f2c20991a80f744f636fc24d40"
+  },
+  "status": "strict_scoped_pass",
+  "type_sha256": {
+    "read_data_exact_reply-type.out": "e61562aaccce920f5ee0034792076cd70696b0829d289cbe570e3137bdc3a3e7",
+    "read_ram_request_order-type.out": "6d381d5002c51b604e0b34115b5da0f58409881bf6d2ce55f5b1a865a8386b8a",
+    "read_ram_tag_interpretation-type.out": "c2763414598810d5f784aaf6d07f3e8f85c6b183a2c2428dd60d9959bd26d125",
+    "word_cast_preserves_bits-type.out": "0402a0388ff93e51b9b0b4a252dcf1b48c0eb44955ca9b7ac2585113b17bcc4a",
+    "write_data_exact_reply-type.out": "db46385c6150e9ae0f0e0047cafaabbce8545315eb5a66b33b9eb74838639e90",
+    "write_ram_request_order-type.out": "efa932b471fe2257a6cc9c014ecf205ea1b29ae2ba7c233ef530373f0517dab1"
+  }
+}

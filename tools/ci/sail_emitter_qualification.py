@@ -18,6 +18,8 @@ from vos import env, receipts, rocqterm
 EVIDENCE = Path("docs/implementation/retained-evidence")
 SCOPED = EVIDENCE / "q35o-scope-20261023"
 INITIAL = EVIDENCE / "close3-q35o-20261013"
+REPLAY = EVIDENCE / "q35-holdfast-canonical-20261124"
+FROZEN = EVIDENCE / "q35o-holdfast-main-20261125"
 BUILD_TARGET = "src/sail_coq_backend/sail_plugin_coq.cmxs"
 BACKEND_SOURCE = "src/sail_coq_backend/pretty_print_coq.ml"
 PLUGIN = Path(BUILD_TARGET).name
@@ -132,6 +134,31 @@ def check_comparison(stock: dict[str, Any], candidate: dict[str, Any], repeat: d
         raise ValueError("native plugin population or load order differs beyond the Rocq plugin")
 
 
+def check_frozen_pair(checkout: Path, stock: dict[str, Any],
+                      candidate: dict[str, Any]) -> dict[str, str]:
+    """Join the hosted emissions to the exact sources read by the frozen comparison."""
+    directory = checkout / FROZEN
+    comparison = evidence_input(directory, "comparison.json")
+    inputs = evidence_input(directory, "inputs.json")
+    if load(comparison)["status"] != "identical":
+        raise ValueError("the retained canonical comparison did not match")
+    bound = {"comparison": receipts.digest(comparison), "inputs": receipts.digest(inputs)}
+    generation = load(inputs)["generation_receipts"]
+    for label, observed in (("original", stock), ("candidate", candidate)):
+        path = evidence_input(checkout / REPLAY, f"{label}-generation.json")
+        bound[label] = receipts.digest(path)
+        if bound[label] != generation[label]:
+            raise ValueError(f"the retained comparison names a different {label} generation receipt")
+        frozen = load(path)
+        for key in ("format", "target", "inputs", "outputs", "axioms"):
+            if observed[key] != frozen[key]:
+                raise ValueError(f"hosted {label} {key} differ from the frozen canonical comparison")
+        # The launcher replaces tree/checkout paths. The installed Sail path is host-specific.
+        if observed["command"][1:] != frozen["command"][1:]:
+            raise ValueError(f"hosted {label} arguments differ from the frozen canonical comparison")
+    return bound
+
+
 def qualify(checkout: Path, root: Path, upload: Path) -> None:
     revision = os.environ["TESTED_REVISION"]
     build = load(Path(os.environ["VOS_LOG_DIR"]) / "bootstrap.json")
@@ -176,10 +203,11 @@ def qualify(checkout: Path, root: Path, upload: Path) -> None:
         records.append(record)
     check_comparison(*records, revision=revision, original_plugin=installed[PLUGIN],
                      patched_plugin=receipts.digest(candidate))
+    frozen = check_frozen_pair(checkout, records[0], records[1])
     if receipts.snapshot(plugins, (path for path in plugins.iterdir() if path.is_file())) != installed:
         raise ValueError("installed Sail plugins changed during the emission qualification")
     receipts.write(upload / "result.json", {
-        "schema": "verifiedos-sail-emitter-qualification/1",
+        "schema": "verifiedos-sail-emitter-qualification/2",
         "status": "pass",
         "scope": "immutable source rebuild and paired canonical Rocq emission",
         "revision": revision,
@@ -187,6 +215,7 @@ def qualify(checkout: Path, root: Path, upload: Path) -> None:
         "run_attempt": os.environ["GITHUB_RUN_ATTEMPT"],
         "source_sha256": receipts.digest(upload / "source.json"),
         "sail_bootstrap_sha256": receipts.digest(Path(os.environ["VOS_LOG_DIR"]) / "bootstrap.json"),
+        "frozen_comparison": frozen,
         "emission_receipts": receipts.snapshot(upload, upload.glob("*-receipt.json")),
     })
 

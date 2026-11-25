@@ -130,8 +130,12 @@ selected-source membership and lane containment and checks installed sentinels.
 Q35p's semantic qualification and Q35q's [native census](sail-support-inventory.md)
 are independent prerequisites. The manual [emitter qualification workflow](../../.github/workflows/sail-emitter-qualification.yml)
 cold-builds the checksum-bound syntax patch, compares stock and candidate canonical
-emission receipts and requires the candidate to repeat byte for byte. Its
-`revision` input selects the exact commit on `main`. Its hosted verdict remains
+emission receipts and requires the candidate to repeat byte for byte. It also
+matches the model inputs, arguments, output bytes and emitted axioms of the
+hosted pair to the generation receipts bound by the
+[frozen comparison](#canonical-main-frozen-comparison). The result records the
+digests of the comparison, its input record and both generation receipts.
+The `revision` input selects the exact commit on `main`. Its hosted verdict remains
 due. Q35b consumes the strict compile, closure and size with qualified production
 support. Q35n owns cold production carriage. The handwritten proof-maintenance handoff requires
 cold Guest CI under the existing proof workflow. Hosted execution and verdicts
