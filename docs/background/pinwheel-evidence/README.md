@@ -8,7 +8,8 @@ most `2^(k-1)`. The [counterexample repository](https://github.com/MathIsEvenEas
 proposes `(3,4,5,20,22,36)`; this check recomputes the finite facts it needs
 without using that repository's code or certificates.
 
-From the repository root, with Python 3.10 or later:
+Run the check from the repository root with the Python minor declared in
+[the tools project](../../../tools/pyproject.toml).
 
 ```console
 python docs/background/pinwheel-evidence/check.py

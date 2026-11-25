@@ -13,7 +13,8 @@ redistribute the matrices.
 | [verify.py](verify.py) | Exact verifier and report generator |
 | [verification.json](verification.json) | Deterministic result generated from the manifest and matrix bytes |
 
-From the repository root, with Python 3.10 or later:
+Run both commands from the repository root with the Python minor declared in
+[the tools project](../../../tools/pyproject.toml).
 
 ```console
 python docs/background/hadamard-evidence/verify.py --input-dir out/hadamard-inputs --download
