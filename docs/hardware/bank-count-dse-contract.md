@@ -6,7 +6,7 @@
 
 ## How to read this
 
-Bank granularity on the second class is admitted against three quantities jointly: the island bandwidth ceiling [§11](../requirements-register.md#11-updates) consumes, the read energy per bit that bitline capacitance sets, and the R-15-247g simultaneous-activation envelope. **The droop envelope is a hard admission constraint and the other two are objectives**, which is the asymmetry the whole search turns on: a point outside the envelope is pruned exactly as every candidate failing the five-part admission test is, and is never traded against bandwidth or energy however well it scores on them.
+The search evaluates peak activation current, sustained island bandwidth and read energy per bit. The droop envelope and the release bandwidth floors are hard admission constraints. Among feasible candidates, rank bandwidth above the floors and read energy per bit alongside the array efficiency cost of bank periphery. [Bank-granularity specification](../spec.md#r-15-247p)
 
 The count is item (viii) of R-15-014a's closed final-freeze delta, so this document is an instrument for an act that has not happened. [The freeze-measurement contract](../implementation/contracts/freeze-measurement.md)'s own [§10](../implementation/contracts/freeze-measurement.md#10-what-this-contract-does-not-decide-and-what-it-owes-elsewhere) says why the instrument is separate: the bank count is re-derived from realized macro geometry rather than from a composed image, so no corpus, no composition recipe, and no byte delta there reaches it, and *a freeze report quoting either from this instrument is a finding against this bullet*. This document therefore carries no corpus and no byte threshold, and acquiring either would make it the thing that contract refuses.
 
@@ -14,9 +14,9 @@ The count is item (viii) of R-15-014a's closed final-freeze delta, so this docum
 
 ## 1. The knob
 
-The second class is divided into banks whole-bound to islands: no address interleaving crosses an island boundary, no bank is dynamically allocated, stolen, or donated, and no bank count varies with occupancy or load (R-15-247p). So the count is a composition-time constant with three consumers and no runtime reader at all, which is what makes it searchable off-model.
+Composition binds whole second-class banks to each island and fixes the count (R-15-247p). Address interleaving stays within that binding throughout execution. The Sail sequencer reads the configured count to calculate maintenance phases. [Memory sequencer](../../model/model/sys/memory_sequencer.sail)
 
-The configuration declares **4096 banks** over an 8 GiB second-class region, and it says on its own face that this and every figure beside it is a placeholder: `qualified` is `false` on both classes, and R-15-247m admits no density figure as an architectural input ahead of the measurement it names. **That figure is restated here as an illustration and not as an input.** It is the point the emulator starts from, carried in this document so that [the quarantine's](../../tools/quarantine/README.md) K-58 can hold the two copies of one undecided number together; no column of [§2](#2-what-prunes-and-what-ranks) reads it, no coefficient is filled from it, and the shape arithmetic of [§3](#3-what-the-arithmetic-can-decide-today) scores it as one candidate among the set with no standing the others lack. A report that took it for the answer is BD-1's refusal, and one that filled a coefficient from it is BD-3's. The candidate set is **64 through 65536** banks, the range the model's own `memory_class_banks` type admits intersected with the powers of two an island binding can divide a region into.
+The configuration declares **4096 banks** for the unqualified second-class emulator region. K-58 checks the declaration against that configuration. The shape report scores it alongside the other powers of two. The candidate set is **64 through 65536** banks for the arithmetic sweep. Its upper endpoint exceeds the [Sail type's range](../../model/model/core/memory_class.sail) and serves only as an arithmetic probe. A composition needs a representable bank count and qualification under R-15-247m.
 
 ## 2. What prunes, and what ranks
 
@@ -30,9 +30,9 @@ The configuration declares **4096 banks** over an 8 GiB second-class region, and
 | `split_cycle_critical` | how much of the roster's working set is cycle-critical | ranks | the whole-program plan over R-15-247s's two lists, M1.9 | pending |
 | `tag_ecc_share` | the tag plane and its DECTED code as a share of the array | ranks | R-15-247a | stated |
 
-**Six of the seven are pending and one is stated**, and the one that is stated is the smallest of them. That ratio is this document's main content: the search cannot be run, and what it is missing is not detail but every coefficient that would make it a search rather than an enumeration.
+The pending entries limit the current report to schedule arithmetic. They still need evidence from the macro, schedule and roster owners named in the table.
 
-**The pruning predicate.** A candidate is admissible only where the largest set of banks the composition-fixed schedule ever activates at once draws no more than the delivery network is provisioned for, at the worst corner and with thermal coupling and the power signature admitted on the same footing (R-15-247g). Finer banking lowers peak activation current at the same average throughput, so the predicate is monotone in the count and the search's feasible region is a tail rather than an interval. Both of its coefficients are pending, so **the predicate cannot be evaluated at any candidate**, and no candidate is admitted.
+**Droop admission.** Evaluate the scheduled bank activations at the worst corner against the delivery network's provisioned current. The schedule must also satisfy R-15-247g's thermal and power-signature limits. Peak current depends on the macro geometry and the simultaneous activations in the schedule. Both current coefficients are pending, so the sweep supplies no droop verdict.
 
 **Objective A, island bandwidth.** An island's ceiling is fixed by the TDM schedule and the bank binding rather than regulated at run time (R-15-247p, R-15-050), so it rises with the banks an island is granted and with each bank's own width. Both terms are pending. What the register does state without a coefficient is the shape: *each island's bandwidth ceiling quantizes to its assigned banks or macros and feeds [§11](../requirements-register.md#11-updates) admission* (R-15-228), and a bandwidth-bound island therefore claims several banks rather than a faster one.
 
@@ -44,9 +44,9 @@ The configuration declares **4096 banks** over an 8 GiB second-class region, and
 
 Four figures fall out of the composition with no coefficient at all, and [tools/quarantine/bank-dse.py](../../tools/quarantine/bank-dse.py) computes them per candidate: the bank's own size, the refresh sweep against the deadline the retention floor sets, the mode-exit discharge dwell, and whether the region divides the count exactly. None of them is an objective and none of them admits anything; they are the shape constraints a candidate must satisfy before the pruning predicate would even be asked.
 
-They are not restated here as numbers, because the tool computes them from the configuration and a figure copied into prose is the defect this repository is built to catch. What is worth stating is which of them binds: the refresh sweep is the only one that can fail, and it fails by the count rising until the phases the cadence needs no longer fit inside the retention floor.
+The report checks exact region division and requires the refresh sweep to finish before the deadline. A larger bank count at fixed phase capacity can make the sweep miss that deadline. The bank size and mode-exit dwell are reported for subsequent composition checks.
 
-That deadline is the **only** thing a retention figure may be consumed by. R-15-247c admits no reset, sanitization, or containment guarantee resting on a characterized decay rate, on an upper bound on retention, or on any timing derived from leakage, and states retention figures as lower bounds with the refresh deadline as their one consumer. So the sweep comparison is a use of the floor and never of the ceiling, and a candidate is not "safer" for having margin against it: it either fits or it does not.
+The retention floor determines the refresh deadline. The cold-corner measurement informs the separate power-off [remanence qualification](remanence-threat-decision.md#2-retention-is-not-recoverability). R-15-247c requires reset, sanitization and containment to use confirmed discharge or clearing independently of natural decay.
 
 ## 4. The report
 
