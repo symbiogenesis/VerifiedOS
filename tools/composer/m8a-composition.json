@@ -1050,7 +1050,7 @@
         },
         {
           "path": "docs/requirements-register.md",
-          "sha256": "33809c25019337c2c2862ddb55f4b7609d18dc758db6a9e2518cf5c2cb02fd00"
+          "sha256": "13f0a6b4fd926ec288681f303dcf1dff9e0663c83abe629da72f3bb43fe859ca"
         },
         {
           "path": "tools/vos/__init__.py",
@@ -1171,7 +1171,7 @@
       ],
       "descriptor": {
         "path": "tools/composer/packages/admission.json",
-        "sha256": "dd58f995eacdbf83b910ef10c97df109265d0d561c65071d3a85e2ad24f33015"
+        "sha256": "e0a6a5bb17512915dec19e4c53c28f6fb6703a42607d6da5471e8236fbaa854b"
       },
       "artifact_slot": "admission-artifact",
       "entry": null,
