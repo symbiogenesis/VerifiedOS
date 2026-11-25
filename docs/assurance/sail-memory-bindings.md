@@ -157,6 +157,17 @@ byte when invoked with the relative `bindings.sail` name. The absolute-path
 control changed the embedded refusal locations, which the replay now preserves
 by passing the relative name in each emission directory.
 
+## Canonical caller replay
+
+Strict Rocq readings compare the minimal reproducer with the canonical hart 0
+term on the same private support. The selected bindings and callers agree token
+for token after mapping the recorded refusal source paths and line numbers. The
+canonical bridge uses the exact canonical locations in its refusal statements.
+It compiles under the locked flags, its six lemma contexts are closed, and its
+scoped kernel check passes with dependencies admitted. The comparison, input
+identities and proof results are bound by the [canonical caller replay manifest](../implementation/retained-evidence/q35p-canonical-callers-20261125/manifest.json),
+SHA256 `e1a92981e480aadecdd6baebb1fd4f98d836c2bb3b89039c6599cc36cff1a4d7`.
+
 ## Paired emulator emission
 
 The all-module emulator generator ran with both the stock Sail plugin population
