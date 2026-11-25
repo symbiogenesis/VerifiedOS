@@ -52,9 +52,18 @@ What it does not decide is stated so that the claim stays the size of the artifa
 
 ## Build and run
 
-Install the switch from [the released package snapshot](../opam/README.md). Rocq 9.2 reproduces the recorded [C digests](DIGESTS.md) and the verified exit's 257 instructions. The transcript below retains Q2a's original compiler and timing evidence.
+Install the Rupicola switch following the [local switch installation guide](../opam/README.md#local-switch-installation).
+Rocq 9.2 reproduces the recorded [C digests](DIGESTS.md) and the verified exit's
+257 instructions. From the assigned checkout in the guest, set `lane_root` to
+the absolute build directory reported for that checkout by `run.py worktree list --json`.
+Use a separate stage for each experiment.
 
-Keep the VM up first; a derivation is minutes long and WSL tears the utility VM down between commands, which [the Wasm oracle's README](../wasm-oracle/README.md) explains and prices.
+```sh
+python3 tools/bedrock2-lowering/regenerate.py --stage "$lane_root/q2-descriptor" --check
+```
+
+For long WSL runs, see the [keepalive instructions](../wasm-oracle/README.md#keeping-the-vm-under-a-long-build).
+The original Q2a transcript preserves its stage path, switch and timing evidence.
 
 ```console
 $ python tools/run.py model keepalive
@@ -82,23 +91,29 @@ $ python tools/bedrock2-lowering/regenerate.py --stage /root/q2-stage --check
 check: descriptor_check.c agrees with DIGESTS.md (3d8572128106..)
 ```
 
-From the host the driver re-launches itself in WSL with every Windows path translated; inside WSL it runs as `python3` with the same arguments. `--source` and `--owner` take other files, which is how a probe is run against a modified copy without touching the tree, and `--function` names what that source emits, which is the `Redirect` file the C is cut out of and the name its [DIGESTS.md](DIGESTS.md) row carries. That is how the frame-kernel pair reaches this loop, each in a stage of its own:
+The Windows entry point launches the script in WSL and translates absolute Windows
+paths. For a probe, pass an absolute source path with `--source` or an alternate
+interface with `--owner`. `--function` selects the name used in the `Redirect`
+file, emitted C and digest row. Set `repo` to the assigned checkout's absolute
+guest path and `ccomp` to the contained compiler's absolute guest-native path.
+Check the in-place frame kernel in its own stage.
 
-```console
-$ python tools/bedrock2-lowering/regenerate.py --stage /root/build/lane-<lane>/stage-inplace \
-    --source tools/bedrock2-lowering/FrameKernelInPlace.v \
-    --function frame_kernel_inplace --ccomp /root/build/secomp-m12/ccomp
+```sh
+python3 tools/bedrock2-lowering/regenerate.py --stage "$lane_root/stage-inplace" \
+  --source "$repo/tools/bedrock2-lowering/FrameKernelInPlace.v" \
+  --function frame_kernel_inplace --ccomp "$ccomp" --check
 ```
 
 The `ccomp -S` census the driver prints carries a second line beside the mnemonic one, the loads, the stores and the branches under the predicates [DIGESTS.md](DIGESTS.md) states; the transcript above is Q2a's and predates it.
 
 **Run the `--check` from a second checkout, not only from the one that recorded the digest.** A digest taken and re-checked in one working tree tests the driver and not the loop; the reading that decides is a fresh clone at the same commit, run into a stage of its own, and the record below holds under that reading: the same source at the same commit in a different directory emits a byte-identical file, so the digest is a property of the input and not of the tree it is derived in.
 
-The verified exit is one more compile in the stage, after the driver has left `DescriptorCheck.vo` there:
+Compile the verified exit in the descriptor stage containing `DescriptorCheck.vo`.
 
 ```console
-$ wsl -e bash -lc 'cd /root/q2-stage && eval $(opam env --switch=verifiedos-rupicola-9.2.0-ocaml-5.4.1 --set-switch) \
-    && cp /mnt/c/<repo>/tools/bedrock2-lowering/VerifiedExit.v . && coqc VerifiedExit.v'
+$ cd "$lane_root/q2-descriptor"
+$ cp "$repo/tools/bedrock2-lowering/VerifiedExit.v" .
+$ opam exec --switch=verifiedos-rupicola-9.2.0-ocaml-5.4.1 -- coqc VerifiedExit.v
 === INSTRUCTION COUNT ===
      = 257%nat
 ```
@@ -125,7 +140,7 @@ The bullet's last sentence is therefore confirmed on this program rather than ar
 
 Q2's fourth bullet reserves the choice; this is the comparison and one recommendation, taken as text.
 
-**Arm A, capability-aware lowering through M1.2's backend.** The C reaches the contained `ccomp` today at exit 0, and what comes out bounds the arm: `-S` reaches the stock `riscV/` backend and emits 309 lines of lp64d RV64 over 21 mnemonics with no capability instruction, and `-S -dcapasm` emits a 523-line term carrying **115 `TODO` tokens over 16 distinct arms**, every one of which this program needs: `Pcvtw2l` 32 times and `Psltiul` 23 for the byte-to-word widenings and the comparisons, `Pbnel` 18 and `Pbeql` 15 for the branches, `Pseql` 6, `Psubl` and `Pluil` 4 each, `Psllil` and `Psrlil` 3, `Pbgeul` once, and the six capability loads and stores `PCUlbu`, `PCUlhu`, `PCUlw`, `PCUsb`, `PCUsh`, `PCUsw` once each. That printer is struck at M1.2 and stays struck; the census is the size of this component's gap against the backend M1.2b through M1.2f author, not a proposal to fill the arms. M1.2f is where generated C through `ccomp` to `asm.py`, `image.py` and the golden emulator closes, and it is the arm whose remaining work is already priced and sequenced on the plan.
+**Arm A, capability-aware lowering through M1.2's backend.** The recorded contained `ccomp` invocation exits successfully. `-S` reaches the stock `riscV/` backend and emits 309 lines of lp64d RV64 over 21 mnemonics with no capability instruction, and `-S -dcapasm` emits a 523-line term carrying **115 `TODO` tokens over 16 distinct arms**, every one of which this program needs: `Pcvtw2l` 32 times and `Psltiul` 23 for the byte-to-word widenings and the comparisons, `Pbnel` 18 and `Pbeql` 15 for the branches, `Pseql` 6, `Psubl` and `Pluil` 4 each, `Psllil` and `Psrlil` 3, `Pbgeul` once, and the six capability loads and stores `PCUlbu`, `PCUlhu`, `PCUlw`, `PCUsb`, `PCUsh`, `PCUsw` once each. That printer is struck at M1.2 and stays struck; the census is the size of this component's gap against the backend M1.2b through M1.2f author, not a proposal to fill the arms. M1.2f is where generated C through `ccomp` to `asm.py`, `image.py` and the golden emulator closes, and it is the arm whose remaining work is already priced and sequenced on the plan.
 
 **Arm B, a justified adaptation of the verified backend.** [VerifiedExit.v](VerifiedExit.v) runs `coq-bedrock2-compiler` over this component at the shipped instantiation, `Words32Naive` and `RV32I`, and emits **257 instructions over 11 mnemonics**: `Addi` 70, `Sltiu` 32, `Jal` 29, `Beq` 29, `Add` 20, `Sw` 18, `Lw` 18, `Mul` 17, `Lbu` 17, `Sub` 6, `Jalr` 1. Two things the census settles. The target is the plain RISC-V R-18-002 forbids at either width, the stack pointer an integer register and no capability instruction anywhere, `riscv-coq`'s `InstructionSet` enumerating sixteen constructors with no arm a capability set could be added at without editing the type. And the alphabet is not even RV32I: `compile_op_register` in `FlatToRiscvDef.v` takes no instruction-set argument and maps `bopname.mul` to `Mul`, `mulhuu` to `Mulhu` and `divu` and `remu` to their own, so the seventeen `1 *` index scalings the array access emits, one per load site in the C, come out as seventeen RV32M instructions under an instance declared `RV32I`. Adapting this arm means a fork of the verified backend, `riscv-coq`'s closed instruction type, the compiler's `FlatToRiscv` and its correctness proof, against a machine with no integer-addressed access at all (R-15-001c). M1.6 measured that fork's start as editing a sixteen-constructor type carrying zero capability tokens; nothing here narrows it.
 
