@@ -4,7 +4,7 @@ The tools use Python on the Windows host and in the WSL guest. Use
 `python tools/run.py <command>` on Windows and `python3 tools/run.py <command>`
 on Linux; the dispatcher sends guest commands to WSL when needed.
 
-## One language, and what forced it
+## Python environment
 
 Python spans both execution environments. Command modules use the supported version
 declared by [pyproject.toml](pyproject.toml) and the checker targets. The bootstrap,
@@ -737,7 +737,11 @@ restoring executable toolchains; historical evidence still requires revalidation
 
 Each checkout has a **lane** with separate build outputs, using the shared WSL toolchain. `run.py model lane` reports its paths, filesystems and active builds.
 
-Git's unique administrative name for a linked worktree determines its lane. Its `.git` file points to that administrative directory under the primary checkout's `.git/worktrees/`. Linked worktrees build under `/root/build/lane-<name>/`; the primary checkout keeps its existing paths. All lanes share only the M0.4 oracle tree, which contains pinned stock upstream sources unaffected by local curation.
+Each linked worktree's `.git` file points to its administrative directory under the
+primary checkout's `.git/worktrees/`. That directory's name identifies the lane and
+its build root, `/root/build/lane-<name>/`. The primary checkout keeps its own build
+paths. Lanes share the installed toolchains and the M0.4 oracle tree. The oracle
+uses pinned stock upstream sources and a separate build lock.
 
 The bounded distribution keepalive runs from its native pidfile directory. It
 does not inherit a checkout directory whose handle would prevent Windows from
@@ -749,7 +753,11 @@ Sharing a build tree causes three failures: CMake refuses a cache configured for
 
 A build holds a `flock` lock for its lifetime and refuses a concurrent build in the same lane. Background builds inherit the lock; the kernel releases it when the build exits or dies. `run.py model wait` waits for release, then checks the log and, if its stages passed, the build receipt. A missing, malformed, unsuccessful or incomplete receipt fails the wait, with its recorded refusal reason when available. Changes to bound sources, tools, options, artifacts or logs make the receipt stale and also fail the wait.
 
-Other stateful commands also name and refuse conflicting owners. `emit` shares the build lock because it uses the same CMake tree. `typecheck` locks its lane's SMT memo cache, which Sail rewrites at exit. `oracle` locks the shared oracle tree; `trace-diff` holds a shared lock while running its simulator, preventing sync or `--resync` from replacing live inputs. `corpus` writes images into its lane so separate lanes cannot overwrite one ELF path.
+Other stateful commands check for conflicting owners. `emit` takes the build lock
+for the CMake tree it uses. `typecheck` locks its lane's SMT memo cache, which Sail
+rewrites at exit. `oracle` takes an exclusive lock on the shared oracle tree for
+updates. `trace-diff` holds a shared lock while using its simulator to protect live
+inputs. `corpus` writes ELF images into its own lane.
 
 On first use, `build`, `emit` and `bundle` seed a lane before configuration. They copy riscv-tests only when it matches the manifest recorded during download verification ([THIRD-PARTY.md](../THIRD-PARTY.md#fetched-at-build-time)). They also copy the build, property-test, typecheck and `smt` memo caches. Caches are **copied, never shared**, because Sail rewrites them; `vos/cli/model.py`'s `_seed_smt_cache` implements this rule.
 
@@ -829,9 +837,17 @@ Every mutant run classifies each mutant into one of four disjoint verdicts via [
 - **Survived:** Compiled and left the oracle's verdict unchanged. This is a finding: the oracle does not cover the mutated site.
 - **Undecided:** A Gallina compile or QuickChick execution hit a per-file timeout, died on a signal (such as OOM), or terminated with an unclassifiable runner status. Undecided mutants are journaled with their cause and fail the run because the population was not fully decided.
 
-**A killed population tests the theorem statements, not whether definitions match the register.** Killing every mutant shows that the file's theorems constrain its definitions, but an artifact can achieve a 100% mutation score and pass the proof gate while still resolving an open register question by fiat or encoding a stronger assumption than the register warrants. During proof review, check each cited entry against the register for three common defects: numeric literals not fixed by any requirement, definition shapes that over-constrain open choices (such as a queue where the register specifies only readiness, or a total function where the register admits refusal), and bounds stated as equalities.
+Gallina mutation scores measure how often the proof or executable oracle detects
+changes to definitions. During proof review, compare each definition with its
+cited register entries. Check for arbitrary numeric constants, a queue where the
+register specifies only readiness, a total function where the register permits
+refusal, and equalities that replace bounds.
 
-**[run.py selftest](vos/cli/selftest.py) reuses [seeded.py](vos/seeded.py)'s vocabulary for authored checker mutants.** Because checker mutants are authored per rule in `check-registry.json` rather than generated from source syntax, a mutation whose target text no longer exists in the corpus is reported as **unseeded** (a failing verdict) rather than stillborn. Table-driven rules such as K-88 should carry a mutant case for each distinct reader row so newly added rows cannot pass unexercised.
+`run.py selftest` uses mutants authored per rule in `check-registry.json`. If a
+mutation's target text is missing from the corpus, selftest reports a failing
+**unseeded** verdict. Table-driven rules such as K-88 need a mutant for each distinct
+reader row so that new rows receive the same coverage. See [selftest](vos/cli/selftest.py)
+and [the common verdicts](vos/seeded.py).
 
 `seed`'s three subcommands reflect their compilation cost: `seed coq` runs the prover on a Gallina file, `seed sail` compiles a small subset of Sail files for an oracle spec, and `seed properties` re-emits and recompiles the full C simulator. **`run.py seed properties` temporarily mutates `model/` in place**, verifying byte-for-byte restoration after each mutant and rebuilding the lane's build tree before exiting. **Nothing else may read or write the checkout while `seed properties` runs**, or concurrent `git add`, `check.py`, or `selftest` invocations will observe a mutated `model/` tree.
 
