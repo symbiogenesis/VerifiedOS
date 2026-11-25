@@ -1,0 +1,190 @@
+import hashlib
+import json
+import os
+import resource
+import shutil
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+repo = Path("/mnt/c/Users/symbi/source/repos/VerifiedOS")
+archive = Path("/root/build/fanout-retained/4b3b843a3b9fe80d0323/holdfast-20261124-canonical/lane")
+prefix = Path("/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1")
+out = Path("/root/build/q35o-holdfast-main-20261125-final")
+out.mkdir(exist_ok=False)
+(out / "driver.txt").write_text(driver)
+sys.dont_write_bytecode = True
+sys.path.insert(0, str(repo / "tools"))
+from vos import proofaudit, proofreading
+
+rocq = prefix / "bin/rocq"
+stdlib = prefix / "lib/coq/user-contrib/Stdlib"
+corelib = prefix / "lib/coq/theories"
+stdpp = archive / "replay-inputs/private/lib/coq/user-contrib/stdpp"
+support = archive / "replay-inputs/canonical-support"
+evidence = repo / "docs/implementation/retained-evidence/q35-holdfast-canonical-20261124"
+original = archive / "original-emission"
+candidate = archive / "verifiedos-model/rocq"
+records = []
+comparison = {}
+started = time.monotonic()
+os.chdir(out)
+
+def sha(path):
+    with path.open("rb") as stream:
+        return hashlib.file_digest(stream, "sha256").hexdigest()
+
+def identity(path):
+    return {"bytes": path.stat().st_size, "sha256": sha(path)}
+
+def write(name, value):
+    (out / name).write_text(json.dumps(value, sort_keys=True, indent=2) + "\n")
+
+def library_inputs():
+    return {
+        str(root): {str(p.relative_to(root)): sha(p) for p in sorted(root.rglob("*"))
+                    if p.is_file() and p.suffix in {".v", ".vo", ".cmxs", ".cma", ".cmxa"}}
+        for root in (corelib, stdlib, stdpp, support)
+    }
+
+def limits():
+    resource.setrlimit(resource.RLIMIT_FSIZE, (256 * 1024**2, 256 * 1024**2))
+
+def run(mode, phase, args, *, silent=False):
+    cwd = out / mode
+    stdout = cwd / (phase + ".stdout")
+    stderr = cwd / (phase + ".stderr")
+    argv = [str(rocq), "c", "-q", "-boot", "-R", str(corelib), "Corelib",
+            "-Q", str(stdlib), "Stdlib", "-Q", str(stdpp), "stdpp",
+            "-R", str(support), "SailStdpp", "-R", str(cwd), "", *map(str, args)]
+    at = time.monotonic()
+    print(mode, phase, flush=True)
+    result = {"mode": mode, "phase": phase, "argv": argv, "cwd": str(cwd)}
+    records.append(result)
+    try:
+        with stdout.open("wb") as output, stderr.open("wb") as errors:
+            result["exit"] = subprocess.run(argv, cwd=cwd, stdout=output, stderr=errors,
+                                            timeout=240, preexec_fn=limits).returncode
+    finally:
+        result.update(elapsed_seconds=round(time.monotonic() - at, 3),
+                      stdout=identity(stdout), stderr=identity(stderr))
+        write("commands.json", records)
+    if result["exit"] != 0 or (silent and stderr.stat().st_size):
+        last = stderr.read_bytes()[-5000:].decode(errors="replace")
+        (out / "stop-diagnostic.txt").write_text(last)
+        raise ValueError(f"{mode} {phase}: exit {result['exit']}\n{last}")
+    return stdout
+
+def query(mode, phase, module, body):
+    filename = out / mode / (proofreading.query_module(phase, module) + ".v")
+    filename.write_text(body)
+    return run(mode, phase + "_" + module, [filename], silent=True).read_text()
+
+def read_module(mode, module):
+    names = [item["name"] for item in
+             proofaudit.inventory(query(mode, "Inventory", module, proofaudit.inventory_query(module)), module)]
+    if not names:
+        raise ValueError("native inventory is empty")
+    facts_name = proofreading.query_module("Facts", module)
+    facts = proofreading.answers(
+        query(mode, "Facts", module, proofreading.facts_query(module, names)),
+        [f"{name}|{kind}" for name in names for kind in ("check", "about")],
+    )
+    axioms = {f"{module}.{name}" for name in generations[mode]["axioms"]["names"]}
+    if len(axioms) != 31 or not axioms <= set(names):
+        raise ValueError(f"{mode}: native inventory does not contain the expected 31 emitted axioms")
+    abouts = {name: proofreading.parse_about(
+        name, proofreading.fresh_universes(facts[f"{name}|about"], facts_name))
+        for name in names if name not in axioms}
+    printed = [name for name in names if name in axioms or abouts[name].printed]
+    bodies_name = proofreading.query_module("Bodies", module)
+    bodies = proofreading.answers(
+        query(mode, "Bodies", module, proofreading.bodies_query(module, printed)),
+        [f"{name}|print" for name in printed],
+    )
+    entries = {}
+    for name in names:
+        check = proofreading.fresh_universes(facts[f"{name}|check"], facts_name)
+        body = proofreading.fresh_universes(bodies[f"{name}|print"], bodies_name) if f"{name}|print" in bodies else None
+        if name in axioms:
+            about = proofreading.fresh_universes(facts[f"{name}|about"], facts_name)
+            if f"Expands to: Constant {name}" not in about.splitlines() or body is None or not body.startswith("*** ["):
+                raise ValueError(f"{mode}: expected emitted axiom {name!r}: {about!r}; {body!r}")
+            entries[name] = {"kind": "Axiom", "opacity": "no body", "universes": "see About",
+                             "check": check, "about": "\n".join(line for line in about.splitlines()
+                                                                 if not line.startswith("Declared in ")),
+                             "print": body}
+        else:
+            entries[name] = proofreading.entry(check, abouts[name], body)
+    frozen = out / mode / (module + ".frozen.json")
+    frozen.write_text(json.dumps(entries, sort_keys=True, indent=2) + "\n")
+    comparison[mode] = {"declarations": len(names), "print_targets": len(printed),
+                        "frozen": identity(frozen)}
+    return entries
+
+try:
+    inputs = library_inputs()
+    write("library-inputs-before.json", inputs)
+    compile_receipt = json.loads((evidence / "compile-result.json").read_text())
+    if sha(rocq) != compile_receipt["rocq_sha256"]:
+        raise ValueError("Rocq executable differs from the retained strict compile")
+    generations = {}
+    for mode, origin in (("original", original), ("candidate", candidate)):
+        archived_receipt = origin / "receipt.json"
+        if sha(archived_receipt) != sha(evidence / f"{mode}-generation.json"):
+            raise ValueError(f"{mode} generation receipt differs from committed evidence")
+        generation = json.loads(archived_receipt.read_text())
+        generations[mode] = generation
+        cwd = out / mode
+        cwd.mkdir()
+        handwritten = archive / "whole-term-diagnostic/riscv_extras.v"
+        if sha(handwritten) != compile_receipt["results"][0]["source_sha256"]:
+            raise ValueError("handwritten support source differs from the retained strict compile")
+        shutil.copyfile(handwritten, cwd / handwritten.name)
+        for name in ("rv64d_types.v", "rv64d.v"):
+            path = origin / name
+            if identity(path) != {k: generation["outputs"][name][k] for k in ("bytes", "sha256")}:
+                raise ValueError(f"{mode}: {name} differs from its generation receipt")
+            shutil.copyfile(path, cwd / name)
+    if generations["original"]["inputs"] != generations["candidate"]["inputs"]:
+        raise ValueError("model input identities differ")
+    write("inputs.json", {
+        "scope": "Q35o canonical main only with common private tag support",
+        "generation_receipts": {m: sha(evidence / f"{m}-generation.json") for m in generations},
+        "original_and_candidate_model_inputs_equal": True,
+        "rocq": sha(rocq),
+        "handwritten_source": compile_receipt["results"][0]["source_sha256"],
+        "library_inputs": identity(out / "library-inputs-before.json"),
+        "per_process_bounds": {"seconds": 240, "file_mib": 256},
+    })
+    for mode in generations:
+        for name in ("riscv_extras.v", "rv64d_types.v", "rv64d.v"):
+            run(mode, "compile_" + name, [out / mode / name])
+    before = read_module("original", "rv64d")
+    after = read_module("candidate", "rv64d")
+    differences = {"missing": sorted(before.keys() - after.keys()),
+                   "added": sorted(after.keys() - before.keys()),
+                   "changed": {name: [f for f in proofreading.FIELDS if before[name][f] != after[name][f]]
+                               for name in sorted(before.keys() & after.keys()) if before[name] != after[name]}}
+    comparison["differences"] = differences
+    comparison["object_sha256"] = {
+        mode: {name: sha(out / mode / name) for name in ("riscv_extras.vo", "rv64d_types.vo", "rv64d.vo")}
+        for mode in generations
+    }
+    for mode, reading in (("original", before), ("candidate", after)):
+        write(f"{mode}-reading-digests.json", {
+            name: {field: hashlib.sha256(value.encode("utf-8")).hexdigest() if value is not None else None
+                   for field, value in entry.items()}
+            for name, entry in reading.items()
+        })
+    comparison["status"] = "different" if any(differences.values()) else "identical"
+except Exception as error:
+    comparison["status"] = "stopped"
+    comparison["stop"] = {"type": type(error).__name__, "message": str(error)}
+    raise
+finally:
+    comparison["elapsed_seconds"] = round(time.monotonic() - started, 3)
+    comparison["library_inputs_unchanged"] = library_inputs() == inputs
+    write("comparison.json", comparison)
+    print(comparison["status"], "after", comparison["elapsed_seconds"], "seconds", flush=True)

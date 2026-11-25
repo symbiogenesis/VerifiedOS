@@ -121,10 +121,13 @@ statement. Both constructions retain final readings and diagnostics. Some earlie
 scratch logs were overwritten: recorded commands, exits and digests do not recover
 their bytes or establish complete attempt history.
 
-Remaining joins are tag-free whole-computation conservativity; complete support
-frozen comparison and declaration census; physical-caller coverage beyond plain
-requests and arbitrary read-data preservation; paired full-model non-Rocq
-regeneration; Q35b's strict whole-term compile, closure and size; and Q35n/Q35q's
-cold production carriage. No shared switch or lock changes, or hosted acceptance,
-follow from these checkpoints. The [validation handoff](../../AGENTS.md#tool-execution-and-validation)
+The [canonical candidate replay](sail-rocq-emission.md#canonical-candidate-replay)
+establishes strict whole-term compilation, recursive kernel context and compiled
+size with private support. Q35p still owes tag-free whole-computation
+conservativity, a complete frozen comparison of support, physical-caller
+coverage beyond plain requests, arbitrary read-data preservation and paired
+full-model non-Rocq regeneration. Q35q owns the support declaration census,
+Q35n owns cold production carriage, and Q35b owes replay and closure with
+qualified support.
+The [validation handoff](../../AGENTS.md#tool-execution-and-validation)
 leaves Host CI and cold Guest CI publication, execution and verdicts to the user.

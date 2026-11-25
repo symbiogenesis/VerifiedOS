@@ -1,0 +1,18 @@
+{
+  "generation_receipts": {
+    "candidate": "de79b0065b4c24208b24025bbaeef81cead7585ab5cc47abf621ec1825d6791b",
+    "original": "a99773bed420a81e16997bea2fd8c21a7faaaa414edbe63f3e3c7de5e1e5f6df"
+  },
+  "handwritten_source": "915b983983421afcacb14a534c50f56619dd85a5bbb35097bb595c3116a9089e",
+  "library_inputs": {
+    "bytes": 141850,
+    "sha256": "13571c2dc44e92dd3dc5345f9ff01a11ad44a943dbe0153c4de81f516df13032"
+  },
+  "original_and_candidate_model_inputs_equal": true,
+  "per_process_bounds": {
+    "file_mib": 256,
+    "seconds": 240
+  },
+  "rocq": "e514e102881b5501b5d4d665e191ac1d0a8429e1a30094a719e73dfb1b545e90",
+  "scope": "Q35o canonical main only with common private tag support"
+}

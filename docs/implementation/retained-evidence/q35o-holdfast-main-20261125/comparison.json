@@ -1,0 +1,38 @@
+{
+  "candidate": {
+    "declarations": 3533,
+    "frozen": {
+      "bytes": 169511676,
+      "sha256": "41d3d1af03c13032a86df241b2def925f358503994c51ebbe38f89ca7514e8ef"
+    },
+    "print_targets": 3533
+  },
+  "differences": {
+    "added": [],
+    "changed": {},
+    "missing": []
+  },
+  "elapsed_seconds": 100.142,
+  "library_inputs_unchanged": true,
+  "object_sha256": {
+    "candidate": {
+      "riscv_extras.vo": "4970531b3b73880dadac695c6c830d0ab0b78647400c25b821e171ef76bf7e12",
+      "rv64d.vo": "b3e2f506f61314d928f72ec5b637a9556287a5095a1f92f9314426f239a478e5",
+      "rv64d_types.vo": "082781be9e7e7f15c7c8d785c374d42144a08286c308a10399cdb88703c07014"
+    },
+    "original": {
+      "riscv_extras.vo": "a518e39bd84b8b1de1ccb756bd8e5405017164e33122698380808a5e3c9f0cc6",
+      "rv64d.vo": "0e801ad89cad636fb926f0c13577d7adb8cf1796b47dfbc0eb8da1cde5949f00",
+      "rv64d_types.vo": "bb9ffab0420b7e749877c50ef0a8b1e48a32ecb5355537809253c2f7aed5850d"
+    }
+  },
+  "original": {
+    "declarations": 3533,
+    "frozen": {
+      "bytes": 169511676,
+      "sha256": "41d3d1af03c13032a86df241b2def925f358503994c51ebbe38f89ca7514e8ef"
+    },
+    "print_targets": 3533
+  },
+  "status": "identical"
+}

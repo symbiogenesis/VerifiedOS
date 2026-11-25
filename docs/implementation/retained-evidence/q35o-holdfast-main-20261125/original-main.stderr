@@ -1,0 +1,18 @@
+File "/root/build/q35o-holdfast-main-20261125-final/original/rv64d.v", line 8, characters 0-12:
+Warning: Notation "_ >>= _" was already used.
+[notation-overridden,parsing,default]
+File "/root/build/q35o-holdfast-main-20261125-final/original/rv64d.v", line 8, characters 0-12:
+Warning: Notation "_ >> _" was already used.
+[notation-overridden,parsing,default]
+File "/root/build/q35o-holdfast-main-20261125-final/original/rv64d.v", line 8, characters 0-12:
+Warning: Notation "_ >>$= _" was already used.
+[notation-overridden,parsing,default]
+File "/root/build/q35o-holdfast-main-20261125-final/original/rv64d.v", line 8, characters 0-12:
+Warning: Notation "_ >>$ _" was already used.
+[notation-overridden,parsing,default]
+File "/root/build/q35o-holdfast-main-20261125-final/original/rv64d.v", line 12412, characters 0-3856:
+Warning: This interactive proof is not started by the "Proof" command.
+[missing-proof-command,fragile,default]
+File "/root/build/q35o-holdfast-main-20261125-final/original/rv64d.v", line 12518, characters 0-9799:
+Warning: This interactive proof is not started by the "Proof" command.
+[missing-proof-command,fragile,default]

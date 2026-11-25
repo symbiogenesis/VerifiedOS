@@ -6,13 +6,17 @@ preserves the minimal and canonical types' elaborated declarations; the
 handwritten support and candidate types compile strictly without diagnostics.
 The [canonical candidate replay](#canonical-candidate-replay) also compiles the
 untouched main with Q35p's [tag-outcome support](sail-memory-bindings.md) and
-reads its recursive kernel context. Complete frozen comparison and production
-support carriage remain open.
+reads its recursive kernel context. The [canonical main frozen comparison](#canonical-main-frozen-comparison)
+matches all native declarations between the installed and patched emitters.
+Hosted immutable-plugin qualification and production support carriage remain open.
 
 ## Retained evidence
 
 Each bundle binds its executed commands, inputs, readings and diagnostics.
 
+- [Canonical main frozen comparison](../implementation/retained-evidence/q35o-holdfast-main-20261125/manifest.json), SHA256 `90c4da2f5d91dde4969e3d70757bf11c3ac3de502effde663aaaef85d634bc25`.
+  Common dependency identities, compiler and query commands, stock diagnostics
+  and matching per-declaration digests.
 - [Canonical candidate replay](../implementation/retained-evidence/q35-holdfast-canonical-20261124/manifest.json),
   SHA256 `7372aa91c69788edf57e531c9b333ad3ce820cf7432a6f543deca56ea5947188`.
   Stock and candidate emission identities, strict compilation, the native
@@ -124,9 +128,9 @@ selected-source membership and lane containment and checks installed sentinels.
 ## Remaining acceptance
 
 Q35p's semantic qualification and Q35q's [native census](sail-support-inventory.md)
-are independent prerequisites. Q35o still owes complete canonical-main frozen
-comparison and hosted immutable-plugin/source qualification. Q35b consumes the
-compile, closure and size with qualified production support. Q35n owns cold
+are independent prerequisites. Q35o still owes hosted qualification of the
+immutable plugin and its source. Q35b consumes the compile, closure and size
+with qualified production support. Q35n owns cold
 production carriage. The handwritten proof-maintenance handoff requires
 cold Guest CI under the existing proof workflow. Hosted execution and verdicts
 remain user-managed under the [validation handoff](../../AGENTS.md#tool-execution-and-validation).
@@ -150,3 +154,20 @@ at 1,779,688 KiB. The recursive kernel check took 80.45 seconds and matched the
 Its context also records `rv64d_types.Interface.outcome` among the inductives
 elaborated under the checker's default indices policy. F-480 retains the
 R-05-164 decision on the floating-point axioms.
+
+## Canonical main frozen comparison
+
+The two generation receipts from the [canonical candidate replay](#canonical-candidate-replay)
+bind the untouched stock and patched emissions to the same model inputs.
+Rocq 9.3.0 compiled both emissions at identical original settings, using the
+same private tag-outcome support and the same handwritten support source.
+The stock emissions produce the retained syntax diagnostics. Strict
+compilation of the patched emission is recorded in the candidate replay.
+
+Native inventory, `Check`, `About` and `Print` cover every declaration in
+`rv64d.v`. The reader checks the classified floating-point axioms by name and
+checks that each `Print` shows an axiom declaration. The normalized readings
+are byte-identical and include types, declaration metadata and all printed
+executable bodies. The bundle binds both full reading digests and the matching
+field digests for every declaration.
+The complete reads and compiled objects stay in native build storage.

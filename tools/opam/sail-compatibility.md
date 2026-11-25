@@ -248,10 +248,11 @@ The notation client instantiates the new spelling and proves by reflexivity that
 its result is the original record-field expansion; its kernel context names no
 axiom. This catches an accepted but incorrectly spelled syntax template.
 
-The actual canonical consumer has a separate [semantic compile refusal](../../docs/assurance/canonical-machine-term.md#9-the-whole-term-compile-refusal).
-A successful source-only cold package/export/import campaign does not qualify
-that consumer, authorize production carriage or permit a proof-switch lock
-change while the refusal remains. Q35n's production-carriage part stays open.
+The [canonical candidate replay](../../docs/assurance/sail-rocq-emission.md#canonical-candidate-replay)
+compiles the actual consumer strictly against a private candidate that includes
+Q35p's tag outcomes. This source route still requires the cold
+package/export/import campaign and acceptance of the actual consumer with
+qualified support before production carriage or a proof-switch lock change.
 
 ## Standalone hosted source campaign
 
