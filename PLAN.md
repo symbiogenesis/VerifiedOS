@@ -3366,11 +3366,10 @@ that route's build boundary. Keep Rocq 9.3.0 and the other dependency versions
 fixed for the [RecordUpdate comparison](docs/assurance/machine-logic-dependency-trial.md#separately-scoped-unpriced-continuation).
 This continuation preserves strict diagnostics and the exact assumption policy.
 
-The RecordUpdate packaging check uses an immutable opam pin in a private
-qualification switch at the locked compiler and Rocq versions. It requires the
-strict notation regression to import the installed package and reproduce the
-upstream print reference. The packaging result precedes the frozen client
-comparison and cold carriage checks below.
+The [RecordUpdate packaging check](docs/assurance/machine-logic-dependency-trial.md#recordupdate-through-opam)
+passed at the immutable opam pin in the private qualification switch. The strict
+notation regression imports the installed package and reproduces the upstream
+print reference. Use that package for the frozen client comparison below.
 
 The machine-logic foundation owner and opam carriage owner must review and price
 one source-compatibility continuation before dispatch. Its identified work is:
@@ -3457,7 +3456,7 @@ Candidate IDs link to the [review evidence](docs/implementation/upstream-prs.md)
 | --- | --- | --- | --- | --- | --- |
 | [1](docs/implementation/upstream-prs.md#upstream-1) | `rems-project/coq-sail` — Remove unnecessary Eq_rect_eq dependence | n/a | [#14](https://github.com/rems-project/coq-sail/pull/14) | Open | Track upstream review and validation. Qualify the existing Q35g repair through the paired support carriage route. |
 | [2](docs/implementation/upstream-prs.md#upstream-2) | `rems-project/sail` — Refresh LSP state after dependency edits | n/a | [#1786](https://github.com/rems-project/sail/pull/1786) | Open | Track maintainer review. Before retiring the overlapping local patch, qualify the upstream change with the pinned LSP runtime integration and the local unsaved-dependent, file-removal and project-isolation controls. |
-| [3](docs/implementation/upstream-prs.md#upstream-3) | `tchajed/coq-record-update` — Support Rocq 9.3 postfix update syntax | n/a | [#68](https://github.com/tchajed/coq-record-update/pull/68) | Merged | Compare the tested merge against the frozen Islaris and Lithium clients in the [machine-logic continuation](PLAN.md#machine-logic-compatibility-continuation). Require strict compilation, frozen readings and exact kernel assumption closure before private dependency carriage. |
+| [3](docs/implementation/upstream-prs.md#upstream-3) | `tchajed/coq-record-update` — Support Rocq 9.3 postfix update syntax | n/a | [#68](https://github.com/tchajed/coq-record-update/pull/68) | Merged | Use the [private opam pin](docs/assurance/machine-logic-dependency-trial.md#recordupdate-through-opam) for the frozen Islaris and Lithium client comparison. Require strict compilation, unchanged elaborated readings and exact kernel assumption closure before qualified carriage. |
 | [4](docs/implementation/upstream-prs.md#upstream-4) | `rocq-prover/rocq` — Opt-in axiom-free checker exit status | n/a | [#22609](https://github.com/rocq-prover/rocq/pull/22609) | Merged | At qualified prover adoption, qualify -axiom-free without -o across recursive, -norec, -admit, sealed, primitive and rewrite-permission cases with candidates 10, 21, 22 and 47 before replacing context-summary parsing. |
 | [5](docs/implementation/upstream-prs.md#upstream-5) | `rems-project/sail` — Expose opt-in constructor splitting for C/C++ | n/a | [#1788](https://github.com/rems-project/sail/pull/1788) | Open | Track maintainer review. Qualify the opt-in C/C++ split against the generated model and rerun the upstream test matrix when available. |
 | [6](docs/implementation/upstream-prs.md#upstream-6) | `rems-project/sail` — Bulk physical-memory transfer and raw loading | n/a | [#1789](https://github.com/rems-project/sail/pull/1789) | Open | Track upstream review and CI approval. After runtime qualification, use its bulk read in the local dump path and compare the emitted bytes across sparse holes, chunk boundaries and the last partial chunk. |

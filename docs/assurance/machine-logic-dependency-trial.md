@@ -183,6 +183,35 @@ upstream normalized print reference. The client comparison uses the installed
 package. A released opam package can replace the pin after it contains the fix
 and passes the same checks.
 
+From a guest checkout, prepare the private switch and inspect opam's proposed
+install against the [proof snapshot](../../tools/opam/rocq.lock):
+
+```sh
+recordupdate_switch=verifiedos-recordupdate-9.3.0-20261125
+opam switch create "$recordupdate_switch" --empty --no-switch --repos=rocq-released,default --yes
+opam switch import --switch="$recordupdate_switch" tools/opam/rocq.lock --yes
+opam pin add --switch="$recordupdate_switch" --no-action --yes coq-record-update \
+  'git+https://github.com/tchajed/coq-record-update.git#e0dc9f89edabd9f43370fcf29252aaf5dd391c84'
+opam install --switch="$recordupdate_switch" --dry-run coq-record-update.dev
+```
+
+At the locked resolution, opam proposes two additions, `coq-core.9.3.0`
+for the compatibility binaries and `coq-record-update.dev`. Review that
+transaction before running `opam install --switch="$recordupdate_switch"
+coq-record-update.dev`. Run client checks with `opam exec
+--switch="$recordupdate_switch" -- rocq c` and the strict compiler flags above.
+
+The private switch installed the exact pin as `coq-record-update.dev` and
+`coq-core.9.3.0`, preserving every package version from the imported proof
+snapshot. `Locate Library RecordUpdate.RecordUpdate.` resolved the `.vo` under
+the private switch's `lib/coq/user-contrib/RecordUpdate`. The upstream notation
+regression compiled against that installed library with zero diagnostics,
+passed its six cases and matched the normalized print reference byte for byte.
+The frozen opam export has SHA-256
+`64a68297767b21fbdcb1c7765af8b79b422de319a7cb202bc2722dec847e1950`.
+The shared proof switch's before and after exports matched. The frozen Islaris
+and Lithium client comparison and cold carriage remain due.
+
 ## Reproduction and evidence
 
 The authored [trial client](../../tools/machine-logic-trial/trial.py) uses the

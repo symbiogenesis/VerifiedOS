@@ -44,10 +44,11 @@
       "benefit": "Addresses the measured RecordUpdate notation compatibility blocker in the machine-logic dependency trial.",
       "reviewed_head": "ec90000b354b979f7eb8c221884340ec42bbbc27",
       "review": "Merged custom-entry parser retains level-12 update precedence. The notation probe covers application, nested projections, chaining and ordinary printing. The merged source is newer than published v0.3.7 and the v0.3.3 used by the original Q35m trial.",
-      "next_action": "Compare the tested merge against the frozen Islaris and Lithium clients in the [machine-logic continuation](../../PLAN.md#machine-logic-compatibility-continuation). Require strict compilation, frozen readings and exact kernel assumption closure before private dependency carriage.",
+      "next_action": "Use the [private opam pin](../assurance/machine-logic-dependency-trial.md#recordupdate-through-opam) for the frozen Islaris and Lithium client comparison. Require strict compilation, unchanged elaborated readings and exact kernel assumption closure before qualified carriage.",
       "evidence": [
         "[Merge source](https://github.com/tchajed/coq-record-update/tree/e0dc9f89edabd9f43370fcf29252aaf5dd391c84) at the locked Rocq 9.3.0 compiles all four library modules and the focused notation regression with zero diagnostics. The v0.3.3 trial control refuses the original postfix warning.",
-        "[Focused replay and remaining client qualification](../assurance/machine-logic-dependency-trial.md#separately-scoped-unpriced-continuation) record the source SHA-256, exact flags and matching normalized print output."
+        "[Focused replay and remaining client qualification](../assurance/machine-logic-dependency-trial.md#separately-scoped-unpriced-continuation) record the source SHA-256, exact flags and matching normalized print output.",
+        "[Private opam qualification](../assurance/machine-logic-dependency-trial.md#recordupdate-through-opam) installed the exact merge and repeated the strict notation regression against the installed library."
       ]
     },
     {

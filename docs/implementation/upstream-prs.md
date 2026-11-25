@@ -456,6 +456,7 @@ Merged: `2026-11-22T15:17:38Z`.
 
 - [Merge source](https://github.com/tchajed/coq-record-update/tree/e0dc9f89edabd9f43370fcf29252aaf5dd391c84) at the locked Rocq 9.3.0 compiles all four library modules and the focused notation regression with zero diagnostics. The v0.3.3 trial control refuses the original postfix warning.
 - [Focused replay and remaining client qualification](../assurance/machine-logic-dependency-trial.md#separately-scoped-unpriced-continuation) record the source SHA-256, exact flags and matching normalized print output.
+- [Private opam qualification](../assurance/machine-logic-dependency-trial.md#recordupdate-through-opam) installed the exact merge and repeated the strict notation regression against the installed library.
 
 [Next action in PLAN.md](../../PLAN.md#upstream-contributions-and-adoption).
 
