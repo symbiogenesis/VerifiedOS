@@ -293,9 +293,15 @@ The Sail-generated emulator is the host-side reference for bring-up. S4 measures
 
 - **Logic:** prove/check Gallina with generated campaigns. Reuse executable component oracles, staging new ones only at their consuming tasks; host logic needs no target compiler.
 - **Target** Compile GC-free through the accepted purecap backend and M1.4′ assembler/composer. During bring-up, execution campaigns use the Sail emulator. Reuse a [validated model snapshot](tools/ci/README.md#hosted-model-snapshots) with matching inputs where the consumer accepts its receipt. M3.5 owns measured boot, M4.4 one kernel, M5.3 storage/block device, and M7.1 their userland-spine composition. Implement the roster's devices against reviewed contracts.
-- **RTL** R2 connects curated scalar RTL to RVFI-DII. R3 consumes M7.1's image and console and event digests, then applies the [routine boot handoff](docs/implementation/contracts/boot-roster.md#routine-boot-handoff-to-rtl) at the accepted observation scope.
+- **RTL** R2 connects curated scalar RTL to RVFI-DII. R3 consumes M7.1's image and console and event digests, then applies the [routine boot handoff](#routine-boot-handoff-to-rtl) at the accepted observation scope.
 - **Tests/evidence:** the [differential corpus/trace schema](docs/assurance/differential-corpus.md) owns membership and record meanings. Reuse `run.py model corpus`, `run.py testrig`, `oracle` and `seed`; generate oracle-backed cases and retain minimized disagreements. Component, target and RTL checks share inputs without sharing verdicts.
 - **Staging:** current Sail compositions have one hart; M4.4 accepts one instance, R2 multi-instance checks. Two-class memory/M0.16 sequencing are modeled interfaces, with physical evidence at R5/M9a. Scalar bring-up precedes M10 V/M/FEC and their measured-need gates. Neither multicore Sail harness nor deferred applications block M8a.
+
+### Routine boot handoff to RTL
+
+Keep the Sail reference run for M7.1. When R3 accepts the same composed image on the versioned RTL and matches the [console and event digests under the selected trap convention](docs/implementation/contracts/boot-roster.md#6-the-run-the-event-log-and-the-digests), use that RTL path for routine boot tests within the accepted configuration and observation scope. Record the exact RTL, configuration and image in the replay evidence. Refresh affected evidence when those inputs change.
+
+Retain Sail for R2's trace comparisons and for regenerating the independently reviewed boot expectations used by R3 and M9. At R3 acceptance, review the remaining emulator uses and whether a runner derived from the canonical Rocq term could supply the same corpus and boot observations at lower cost. Qualify any replacement against those observations and the applicable refusal controls. Derive expectations from a reference executor separate from the RTL under test.
 
 ---
 
@@ -2123,7 +2129,7 @@ The RTL track, in parallel from the M0 freeze:
   * **Execute:** Prepare image loading and digest comparison alongside R2/M7.1. Consume their actual accepted artifacts for the final run; do not wait for M7.2/M7.3 to begin the boot comparison. Publish the exact RTL/configuration/image identity so later consumers can reuse its evidence.
   * **Dispatch. Start:** the image and trace contracts for boot-harness preparation. **Owns:** the RTL image-boot comparison and artifact publication. **Check:** the console and event digest criterion below. **Join:** R2's accepted RTL and M7.1's actual composed image and reference digest. M8b has a software-artifact dependency even though it does not wait for the M8a ceremony or M7's separate measurements.
   * The composed purecap image (M7's) boots on the RTL in Verilator to the same console and event digests as the golden emulator; the **RTL artifact of record** ([§11](#11-building-an-fpga-from-it-all)) is versioned and published.
-  * Apply the [routine boot handoff](docs/implementation/contracts/boot-roster.md#routine-boot-handoff-to-rtl) when the exact RTL artifact and comparison are accepted.
+  * Apply the [routine boot handoff](#routine-boot-handoff-to-rtl) when the exact RTL artifact and comparison are accepted.
   * **One risk is recorded here rather than discovered at the freeze**: with M1.8b's ordered act now behind the M8a gate, this artifact is explicitly a pre-freeze artifact, so if the freeze later admits a compressed bundle format its decoder is rework.
 * [x] **R4 · Second-class macro architecture specification** · 1.3 h actual · agent-parallel
   * The macro architecture the five properties imply is authored as the eighth derived view, naming a measurand for every quantity R5 returns and stating no figure. ([note](docs/implementation/completion-log.md#r4-second-class-macro-architecture-specification))
