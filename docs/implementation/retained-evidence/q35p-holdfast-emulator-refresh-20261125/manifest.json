@@ -1,0 +1,30 @@
+{
+  "files": {
+    "comparison.json": {
+      "bytes": 17595,
+      "encoding": "identity",
+      "path": "comparison.json",
+      "sha256": "085bf1bb9c12aa92343fe74694502c211d44752a69645fb240d8d9ce53437c38"
+    },
+    "driver.txt.gz": {
+      "bytes": 9050,
+      "encoding": "gzip",
+      "path": "driver.txt.gz",
+      "sha256": "3c2b5ba3bdd50478ab0c2900927600d03bdcfc4db6e7d92fa05404a369fd8ebb",
+      "stored_bytes": 3161,
+      "stored_sha256": "f3462dcbe7b9ecb9c2c4730b67ebbcdbc0ab3973701aa1210d03fe0d62438e0d"
+    },
+    "patched.json": {
+      "bytes": 13102,
+      "encoding": "identity",
+      "path": "patched.json",
+      "sha256": "1ab6c838f879cbc79a34d4f9e315f5a300169db239c11046bfd97de22f85cbf3"
+    },
+    "stock.json": {
+      "bytes": 12674,
+      "encoding": "identity",
+      "path": "stock.json",
+      "sha256": "65209df73e4f5c6cd9801ebe762a616b5eff7bdaab09f05d421a3732e05f5780"
+    }
+  }
+}

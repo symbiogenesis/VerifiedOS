@@ -13,6 +13,9 @@ canonical-consumer acceptance remains owed.
 - [Native V1 conservativity and physical-caller checkpoint](../implementation/retained-evidence/holdfast-q35p-worker-proofs-20261125/manifest.json),
   SHA256 `8e0eb97c3f34a8a0e56bbcf5f1a9cf1856a5c429b7916f9e0fdb806b2edd088c`.
   Frozen source identities, minimal emission repeats and focused proof readings.
+- [Refreshed sequential emulator isolation](../implementation/retained-evidence/q35p-holdfast-emulator-refresh-20261125/manifest.json),
+  SHA256 `eb6ef7fec1e686543a1b759dabe20c2d087a6830a1387d7cc8035dcc2c1806b6`.
+  Bound source change, paired run commands and exact output comparisons.
 - [Fresh sequential emulator repeat](../implementation/retained-evidence/q35p-holdfast-emulator-repeat-20261125/manifest.json),
   SHA256 `866a62b9da6f484ce28ebae0cc4f5bc6d788078dd4ab2898daaeda5a7490bcec`.
   Exact run commands, frozen identities and comparisons against the prior pair.
@@ -170,23 +173,21 @@ SHA256 `e1a92981e480aadecdd6baebb1fd4f98d836c2bb3b89039c6599cc36cff1a4d7`.
 
 ## Paired emulator emission
 
-The all-module emulator generator ran with both the stock Sail plugin population
-and the population containing the patched Rocq plugin. The source manifest, Sail,
-Z3 and the other plugins matched. Both runs emitted the same configuration schema
-bytes. The paired C++ source and header differed, including generated label names
-and register member declarations. A repeat using the stock plugin population and
-the same generator flags also differed in both C++ files. Each run used its own
-output and SMT cache paths. With Sail's `--dsequential` debug flag, the stock and
-patched plugin populations emitted byte-identical C++ sources, headers and
-schemas. A fresh repeat of each sequential run used its own empty SMT cache
-and output directory. The two new runs agreed on all three files and each
-reproduced the corresponding prior output byte for byte.
+The stock Sail plugin population and the population containing the patched Rocq
+plugin emitted byte-identical all-module C++ source, header and configuration
+schema with `--dsequential`. Each run used a fresh output directory and empty SMT
+cache. The selected source inventory incorporates the vector floating-point
+rounding-mode comment change at `99659edd`. The Sail and Z3 binaries, libraries,
+other plugins, configuration and generator flags match the earlier pair, and
+all three refreshed output hashes match their earlier counterparts. The pair
+passes the [emulator isolation check](../implementation/contracts/canonical-tag-outcomes.md#emulator-isolation-check)
+for the refreshed inputs.
 
 Sail 0.20.3's `--dsequential` selects ordered `List.map` for the internal
-compiler scheduler used by deferred C++ compilation work. The repeated result
-passes the [emulator isolation check](../implementation/contracts/canonical-tag-outcomes.md#emulator-isolation-check)
-for the frozen inputs. The default runs record variation in the ordinary
-development emitter. [Pinned Sail option](https://github.com/rems-project/sail/blob/3df54034910b31a1e00d948ee965b2e9603d68e0/src/bin/sail.ml#L416) ·
+compiler scheduler used by deferred C++ compilation work. On the earlier inputs,
+repeating each sequential run reproduced all three files byte for byte. The
+default-scheduler runs agreed on the schema and varied in both C++ files across
+plugin populations and between stock repeats. [Pinned Sail option](https://github.com/rems-project/sail/blob/3df54034910b31a1e00d948ee965b2e9603d68e0/src/bin/sail.ml#L416) ·
 [Scheduler](https://github.com/rems-project/sail/blob/3df54034910b31a1e00d948ee965b2e9603d68e0/src/lib/parmap.par.ml#L138) ·
 [Deferred compilation](https://github.com/rems-project/sail/blob/3df54034910b31a1e00d948ee965b2e9603d68e0/src/lib/jib_compile.ml#L3042).
 
