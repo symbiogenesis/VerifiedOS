@@ -41,8 +41,11 @@ def _owed_models_are_for_forms_in_scope() -> None:
     for name in ("div", "divw", "rem", "remw"):
         ensure(name in owed, f"riscv-formal's `{name}` divides unsigned outside its "
                              "alternative-operations mode, so a model is owed for it")
-    for name in ("divu", "divuw", "remu", "remuw"):
-        ensure(name not in owed, f"`{name}` is unsigned, as riscv-formal's model computes it")
+    ensure("remuw" in owed, "a model is owed for remuw's word-width divisor zero test")
+    for name in ("xperm4", "xperm8"):
+        ensure(name in owed, f"riscv-formal's `{name}` model does not scale the index")
+    for name in ("divu", "divuw", "remu"):
+        ensure(name in covered - owed, f"`{name}` retains its upstream reference model")
     for name in ("czero.eqz", "czero.nez"):
         ensure(name in owed, f"riscv-formal carries no `{name}` model, so one is owed")
     lost = {name: row for name, row in dialect.TABLE.items() if row.ctor != "ZICOND_RTYPE"}
