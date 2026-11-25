@@ -11,20 +11,22 @@ open under its full acceptance conditions.
 
 ## What is measured, and by which commands
 
-The census runs over the existing [Bedrock2 lowering loop](../../../tools/bedrock2-lowering/README.md),
-whose route is Gallina to bedrock2 by Rupicola's relational compilation, bedrock2
-to C by bedrock2's printer, and C to assembly by the contained CompCert of the
-compiler milestone's lane. Two derivations of one kernel are added to that
-directory and put through the same driver:
+The [Bedrock2 lowering loop](../../../tools/bedrock2-lowering/README.md) uses
+Rupicola to derive bedrock2, prints it as C, and invokes the supplied CompCert
+binary for assembly counts. Use the historical compiler build for comparisons
+with the recorded counts. In the guest, set `vos_lane_root` to the checkout's
+native build directory and `vos_historical_ccomp` to the historical compiler
+binary. The third command checks the in-place variant's C digest independently
+of the compiler.
 
 ```console
-python tools/bedrock2-lowering/regenerate.py --stage /root/build/lane-<lane>/census-retained \
+python3 tools/bedrock2-lowering/regenerate.py --stage "$vos_lane_root/census-retained" \
     --source tools/bedrock2-lowering/FrameKernelRetained.v \
-    --function frame_kernel_retained --ccomp /root/build/secomp-m12/ccomp
-python tools/bedrock2-lowering/regenerate.py --stage /root/build/lane-<lane>/census-inplace \
+    --function frame_kernel_retained --ccomp "$vos_historical_ccomp"
+python3 tools/bedrock2-lowering/regenerate.py --stage "$vos_lane_root/census-inplace" \
     --source tools/bedrock2-lowering/FrameKernelInPlace.v \
-    --function frame_kernel_inplace --ccomp /root/build/secomp-m12/ccomp
-python tools/bedrock2-lowering/regenerate.py --stage /root/build/lane-<lane>/census-inplace \
+    --function frame_kernel_inplace --ccomp "$vos_historical_ccomp"
+python3 tools/bedrock2-lowering/regenerate.py --stage "$vos_lane_root/census-inplace" \
     --source tools/bedrock2-lowering/FrameKernelInPlace.v \
     --function frame_kernel_inplace --check
 ```
@@ -63,20 +65,15 @@ input, and none is claimed.
 
 ## What is not measured
 
-**An image size is not reachable by any path in this tree**, and the census is
-not a proxy for one. No tool here consumes a C compiler's output into an image:
-[vos/asm.py](../../../tools/vos/asm.py) reads this repository's own assembly
-dialect and [vos/image.py](../../../tools/vos/image.py) is not the composer that
-M1.2f joins. The *code-size growth* the research item asks for therefore remains
-unanswered, and an assembly instruction count is not a substitute for it.
+The census stops at assembly. The [accepted purecap compiler comparison](../completion-log.md#m12f-close-the-acceptance-loop-both-ends)
+joins compiler output to the in-tree assembler, composer and Sail. The frame
+kernels in this experiment still need a target-qualified run through that path
+to measure linked code size.
 
-**The target is wrong, by construction.** The contained `ccomp` reaches the
-stock RISC-V backend and emits plain RV64 with the capability arms stubbed.
-[R-18-002](../../requirements-register.md) forbids a plain-RV64 compilation target
-anywhere on this platform, so every figure in this census is a proxy taken on a
-target the platform does not admit. The `-dcapasm` stub count that the loop also
-records is the size of the gap to the backend M1.2b through M1.2f author, not a
-property of either kernel.
+The retained assembly counts come from the historical plain-RV64 backend.
+They measure only that backend's output. The recorded `-dcapasm` TODO counts
+identify stub cases in its old Gallina printer. Current target measurements
+require the [purecap profile](../../spec.md#r-18-002).
 
 **No capability code is produced or measured.** Every address in the emitted C
 is integer arithmetic on the buffer parameter, passed through bedrock2's own
