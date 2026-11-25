@@ -1,0 +1,74 @@
+# SPDX-License-Identifier: Apache-2.0
+name: sail-emitter-qualification
+run-name: sail-emitter-qualification:${{ inputs.revision || github.sha }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      revision:
+        description: Full VerifiedOS commit already on main (empty selects dispatch SHA)
+        type: string
+        default: ""
+
+permissions:
+  contents: read
+
+jobs:
+  qualify:
+    runs-on: ubuntu-26.04
+    timeout-minutes: 175
+    env:
+      TESTED_REVISION: ${{ inputs.revision || github.sha }}
+      PYTHONUTF8: "1"
+      PYTHONUNBUFFERED: "1"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+          submodules: false
+      - name: Verify and select the requested main revision
+        id: dispatch
+        shell: python
+        env:
+          DISPATCH_REF: ${{ github.ref }}
+          DISPATCH_SHA: ${{ github.sha }}
+        run: |
+          import os
+          import re
+          import subprocess
+
+          revision = os.environ["TESTED_REVISION"]
+          if os.environ["DISPATCH_REF"] != "refs/heads/main" or not re.fullmatch(r"[0-9a-f]{40}", revision):
+              raise SystemExit("Dispatch requires main and a full lowercase commit SHA")
+          subprocess.run(["git", "merge-base", "--is-ancestor", revision,
+                          os.environ["DISPATCH_SHA"]], check=True)
+          subprocess.run(["git", "checkout", "--detach", revision], check=True)
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version-file: tools/pyproject.toml
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          version-file: tools/pyproject.toml
+          enable-cache: false
+      - name: Cold provision locked Sail and Z3
+        timeout-minutes: 120
+        shell: bash
+        run: |
+          python3 tools/ci/bootstrap_guest.py --root "$RUNNER_TEMP/sail-emitter-toolchain" \
+            --install-system --toolchain sail --github-env "$GITHUB_ENV" \
+            --github-path "$GITHUB_PATH" 2>&1 | tee "$RUNNER_TEMP/sail-emitter-bootstrap.log"
+      - name: Rebuild and qualify the immutable canonical emitter
+        timeout-minutes: 52
+        run: python3 tools/ci/sail_emitter_qualification.py --root "$RUNNER_TEMP/sail-emitter"
+      - name: Retain source, build and emission identities
+        if: ${{ always() && steps.dispatch.outcome == 'success' }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: sail-emitter-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/sail-emitter-bootstrap.log
+            ${{ runner.temp }}/sail-emitter-toolchain/logs/bootstrap.json
+            ${{ runner.temp }}/sail-emitter/upload/
+          if-no-files-found: warn
