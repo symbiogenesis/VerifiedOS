@@ -79,8 +79,8 @@ def run(ctx: Context) -> None:
 
     owned, moved = _two_class(ctx)
 
-    # the sets no figure counts, each named by what it is rather than where it is read,
-    # so a floor that fails says which reading has moved
+    # These counts need at least one member. Each name identifies the input
+    # that K-47 reports when a reader finds an empty enumeration.
     floors = {
         "prose bookmarks": len(ctx.corpus.anchor_count),
         "licence texts the third-party page locates": sh.get("licence_texts", 0),
@@ -91,17 +91,12 @@ def run(ctx: Context) -> None:
         "core-class table sites the rule can read": sh.get("core_class_sites", 0),
         "VLEN tokens the composition answers": sh.get("vlen_tokens", 0),
         "requirement citations in the model files read": sh.get("model_citations", 0),
-        # The owner record K-88 holds a generated artifact against. It is read out of
-        # the artifact rather than out of a list anybody maintains, which is what makes
-        # it worth a floor: an emitter that stopped recording what it read would leave
-        # that rule reporting that the artifact agrees with every one of no sources.
+        # K-88 reads source owners from the generated bundle. Require a nonempty
+        # owner list so an omitted inventory cannot pass the source comparison.
         "sources the model's generated bundle records": sh.get("bundle_owners", 0),
-        # Five rather than one, because the exclusion rule pairs what the profile writes
-        # against what could answer it, and either side of either pairing emptying leaves
-        # it reporting green over nothing. The profile writes two kinds of thing, a
-        # mnemonic and a Sail constructor, and each is answered by its own reading of the
-        # model: a name by the clauses that spell it and by the encoder table, a
-        # constructor by the names the decode surface decodes to.
+        # The profile excludes mnemonics and Sail constructors. Compare mnemonics
+        # with assembly spellings and encoder rows, and constructors with decode
+        # results. Each input needs its own floor.
         "names the profile's exclusion rows spell": sh.get("exclusion_names", 0),
         "Sail constructors the profile's exclusion rows mark":
             sh.get("exclusion_markers", 0),
@@ -110,46 +105,32 @@ def run(ctx: Context) -> None:
         "names the model's decode surface decodes to": sh.get("decoded_names", 0),
         "rows of the corpus assembler's encoder table": sh.get("encoder_rows", 0),
         "values the shipped configurations state": sh.get("shipped_config_values", 0),
-        # The apertures K-94 places. It is read out of the compositions themselves, one
-        # `platform` sub-object at a time, so a shipped file that stopped declaring any
-        # window would leave that rule reporting that every aperture of none carries a
-        # devicetree node and a validator clause.
+        # K-94 derives apertures from each composition's `platform` object.
+        # The floor catches an empty aperture list even if those comparisons pass.
         "apertures the shipped configurations declare": sh.get("declared_apertures", 0),
-        # The ladder K-78 holds a vectorless composition below. It is the one vector
-        # rung reachable without a configuration key, so a registry this rule can no
-        # longer read would leave it reporting that every geometry is below no rungs
-        # at all.
+        # K-78 checks vectorless geometry against the model's minimum vector
+        # lengths even when there is no configuration key.
         "minimum-vector-length rungs the model declares": sh.get("zvl_rungs", 0),
         "per-class capacity figures the register owns": owned,
         "region classes the placement compound reads": sh.get("placement_terms", 0),
         "physical byte classes the composition is charged":
             sh.get("charged_terms", 0),
-        # Two rather than one, because K-74 pairs a vocabulary against the cells that
-        # spell it: a matrix whose declaring sentence has been rewritten places no mode
-        # at all, and one whose cells have stopped booking residuals leaves the §17 half
-        # deciding nothing while every mode still places.
+        # K-74 checks mode usage and residual coverage independently. Each
+        # check needs a nonempty input.
         "discharge modes the coverage matrix declares": sh.get("cm_modes", 0),
         "coverage cells booking a residual": sh.get("cm_residual", 0),
-        # Two rather than one, because K-95 reaches the inventory by two tables: a
-        # specification row by its target column and a theorem row by the premises it
-        # names. Either reading emptying leaves the cells that reach the inventory
-        # only through it deciding nothing, and the second is the quieter of the two,
-        # a theorem target with no premise being the shape one target takes by design.
+        # K-95 reads specification targets and theorem premises independently.
+        # A theorem target may have no premises, so the floor checks the whole
+        # premise enumeration.
         "inventory rows the coverage cells reach": sh.get("cm_standing_rows", 0),
         "theorem targets the inventory resolves to premise rows":
             sh.get("cm_theorem_premises", 0),
-        # Two rather than one, because K-76 pairs a contract's enumeration against a
-        # record of bindings: a contract whose identifiers have been respelled leaves
-        # the rule holding an empty set against a full one and reporting that every
-        # absence of none is bound, and a record whose tables this rule can no longer
-        # find leaves it reporting the reverse.
+        # K-76 compares the declared absences and their synthesis bindings.
+        # Require members on both sides of the comparison.
         "absences the contract enumerates": sh.get("absence_ids", 0),
         "rows of the synthesis provenance record": sh.get("provenance_rows", 0),
-        # Two rather than one, on the same ground the pair above states: K-79 holds a
-        # definition against the sites that restate it, so a model whose declarations
-        # have moved leaves it reporting that every site agrees with nothing, and a set
-        # of sites this rule can no longer find leaves it reporting that nothing
-        # disagrees with the definition.
+        # K-79 needs both model declarations and their restatements to check
+        # agreement.
         "capability-format parameters the model declares":
             sh.get("cap_format_params", 0),
         "sites restating a capability-format parameter":
@@ -160,49 +141,30 @@ def run(ctx: Context) -> None:
         "rows of the field-bindings view": len(sh.get("row_order", [])),
         "checklist items": len(sh.get("items", [])),
         "checklist subtotals": len(sh.get("sections", [])),
-        # The record K-96 fits the calibration over. It is held total against the
-        # completed attended items, so a record that has emptied is reported there row
-        # by row; the floor is for the reading itself, a heading this rule can no longer
-        # find leaving it holding no rows against every item at once.
+        # K-96 checks rows against completed attended items. The floor also
+        # identifies a missing or unreadable table.
         "rows of the plan's calibration record": sh.get("calibration_rows", 0),
-        # The second record K-96 fits over, floored for the reason the first is and for
-        # one more: it sits under a heading of its own inside the first record's section,
-        # so a heading retitled away leaves the first record swallowing these rows and
-        # reporting each of them as an item it does not recognize, which is loud, while
-        # this reading empties in silence.
+        # K-96 reads the nested agent-parallel table separately. If its heading
+        # stops matching, the calibration reader can consume its rows.
         "rows of the plan's agent-parallel record": sh.get("parallel_rows", 0),
         "dominant terms read from the big table": len(sh.get("ends", [])),
         "differential corpus members": len(sh.get("corpus_members", [])),
-        # One rather than three, and the two §9 tables are the ones left out. Either of
-        # them emptying leaves every kind the schema table declares in neither, which
-        # K-85 reports once per kind, so the comparison is its own floor there. The
-        # schema table is the enumeration the verdict quantifies over, and the state
-        # this floor is under is the one where every reading has emptied together and
-        # each comparison holds over nothing.
+        # K-85 already detects a missing coverage row for each declared kind.
+        # The floor catches an empty schema, which would skip those comparisons.
         "record kinds the commit-trace schema declares":
             sh.get("record kinds the commit-trace schema declares", 0),
         "files that must carry a license mark": len(sh.get("markable", [])),
-        # Two rather than one, on the pair K-76 states above: K-81 holds a record of
-        # pins against the index that owns them and then holds every restatement
-        # against that record, so a record whose table this rule can no longer read
-        # leaves it reporting that every pin of none agrees, and a repository that
-        # has stopped restating any leaves the second half deciding nothing while
-        # the first still passes.
+        # K-81 compares the licence record with the index and checks downstream
+        # restatements against the record. Require both inspected populations.
         "upstream pins the licence record states": sh.get("record_pins", 0),
         "sites restating an upstream pin": sh.get("pin_restatements", 0),
-        # Two rather than one, on the pair ground stated twice above: K-82 holds an
-        # index against the notes it indexes, so a register whose entry shape this
-        # rule can no longer read leaves it reporting that every finding of none is
-        # indexed, and a plan whose findings blocks it can no longer find leaves it
-        # reporting that the register indexes findings nobody records.
+        # K-82 compares the findings index with the maintained findings blocks.
+        # Check both inputs for a change that makes either reader return no rows.
         "findings the register indexes": sh.get("findings the register indexes", 0),
         "findings the plan's notes count":
             sh.get("findings the plan's notes count", 0),
-        # A third for the same rule, since S10b moved the notes into the completion log:
-        # K-82 holds that log's entries total against the plan's landed items, so a log
-        # whose heading shape this rule can no longer read would leave it reporting
-        # every landed item as unrecorded, which is loud, while a plan that has stopped
-        # marking items landed would leave the log's entries held against nothing.
+        # K-82 also checks completion-log entries against landed plan items.
+        # The floor identifies an empty completion-log reading.
         "landed items the completion log carries an entry for":
             sh.get("landed items the completion log carries an entry for", 0),
     }

@@ -234,10 +234,8 @@ def _encode(reading: str) -> int | None:
     return int.from_bytes(data[:4], "little") if len(data) >= 4 else None
 
 
-# §9's two tables, located by their own headings. The section numbers are wildcards
-# for the reason the version heading above gives: renumbering is not this rule's
-# subject, and a heading that no longer answers in the form written today is a finding
-# rather than a table read as empty.
+# Match both coverage-table headings by title. The section numbers may change.
+# An unrecognized title makes the rule report a missing table.
 _MEET_HEADING_RE = re.compile(
     r"(?m)^### (\d+\.\d+) Where the packet and §\d+'s record meet[^\r\n]*$")
 _ELIDE_HEADING_RE = re.compile(r"(?m)^### (\d+\.\d+) Where they do not[ \t]*$")
@@ -247,10 +245,8 @@ _ELIDE_HEADING_RE = re.compile(r"(?m)^### (\d+\.\d+) Where they do not[ \t]*$")
 # and the other two name a count and an ordering rather than a kind.
 _KIND_ROW_RE = re.compile(r"(?m)^\| `([A-Z])` \|")
 
-# One packet with every branch of the projection taken at once: a destination register
-# write, a memory read and a memory write. Nothing here is a trace and no value decides
-# anything; only the branches do, so what this yields is the set of record kinds the
-# projection can emit at all.
+# Enable every optional projection branch to enumerate the emitted record kinds.
+# This fixture supplies a destination register write and both memory masks.
 _MAXIMAL = rvfi.Execution(wire=2, rd_addr=1, mem_rmask=0xFF, mem_wmask=0xFF,
                           integer_present=True, memory_present=True)
 
