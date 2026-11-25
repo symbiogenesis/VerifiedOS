@@ -209,12 +209,9 @@ a representative service, further mechanized refinement or a real composed roste
 | Capacity corpus | A roster carrying the per-pool manifest entries R-08-018b and R-08-018c presuppose; the declared families are synthetic witnesses and cover no measured instance | Q5b and M7.1 |
 | Composition comparison | M7.1's actual roster and the same functional contract and product limits on both sides; ablations that charge each byte once | Q5b and Q10 |
 
-The emitted-image half of the rematerialization row has no path in this tree.
-The Bedrock2 lowering loop stops at C and a plain RV64 assembly census, and the
-one image path that exists reads this repository's own frozen dialect through
-the corpus assembler rather than a C compiler's output, so an image figure
-waits on M1.2f, which the plan makes the item where generated C through
-`ccomp` to `asm.py` and `image.py` closes.
+The [compiled census](census.md#what-is-not-measured) stops at plain-RV64
+assembly. A linked-size comparison for rematerialization still needs a
+target-qualified experiment using the [accepted purecap compiler and image path](../completion-log.md#m12f-close-the-acceptance-loop-both-ends).
 
 The research artifact remains local and replayable in the repository. External
 publication, peer review, additional dependency incorporation and production
