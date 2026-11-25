@@ -316,6 +316,14 @@ Both pins nest `logsem/machine_utils` at the head of its `cerise` branch, and [G
 
 ## Used by the build, not conveyed
 
+The packet-validator pilot runs the external HoldFast first-slice harness and
+its binding checker at the revision in the [pilot plan](PLAN.md#sequencing).
+That revision's [license manifest](https://github.com/symbiogenesis/VelaLang/blob/6bbe6a3d5e4da93c7e03c7bc2b72e73fd77f3868/REUSE.toml)
+assigns Apache-2.0 to the tools and examples. VerifiedOS retains the two JSON
+reports as development evidence. The HoldFast source, compiled parser,
+generated proofs and executables stay in the external checkout and native
+build storage.
+
 ### GMP, linked into the golden emulator
 
 GMP is offered as `LGPL-3.0-or-later OR GPL-2.0-or-later`. The Sail C runtime uses it for arbitrary-precision arithmetic, making `sail_riscv_sim` a Combined Work under the LGPL. The emulator is built for verification. The manual [model snapshot route](tools/ci/README.md#hosted-model-snapshots) conveys an internal CI artifact with the model/dependency/runtime notices, a prominent GMP-use notice, LGPL-3/GPL-3 texts and its dynamic-library inventory; no GMP library binary is included. It requires replaceable dynamic system GMP, permitting a compatible modified library. No emulator binary is tracked or included in a device release here.
