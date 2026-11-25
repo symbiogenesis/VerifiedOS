@@ -33,16 +33,16 @@ mutable lifecycle state.
 `submit` validates generation, operation, live identifier, ring space and both
 length bounds before reading any payload. It copies bytes once into private
 staging before publishing. Scalar length/extent inputs are snapshots by value.
-Consumers only read staging; changing the external buffer after publication
-cannot change its length or bytes. Accessible, disjoint source/destination bounds
-and absence of concurrent source writes during staging are caller obligations:
-ordinary C11 byte accesses otherwise have a data race. An untrusted concurrently
-writable source needs a defined target access adapter or ownership discipline.
-This is no atomic snapshot guarantee; semantic validation must use staging.
-`take` refuses an insufficient destination without advancing or changing output
-arguments, then accepts, consumes all readers, completes and reclaims the slot
-before releasing the tail. Reuse begins a fresh Free-to-Writing lifecycle only
-after that release. Reset/reinitialization requires both endpoints quiescent.
+The caller supplies accessible, disjoint buffers and keeps the source stable
+during the copy. A concurrent source write would race the ordinary C11 byte
+reads. Consumers and semantic validators use the staged bytes and length,
+which remain independent of the external buffer after publication.
+
+An undersized destination makes `take` refuse without advancing the tail or
+changing outputs. On success, `take` copies the payload, finishes its reader
+and reclaims the slot before publishing the new tail. The producer may reuse
+the slot only after observing that release. Reset and reinitialization require
+both endpoints to be quiescent.
 `init_generation` refuses zero and installs the supplied four-byte generation;
 the serialized kernel binding must advance the session generation before reuse
 and refuse a value that cannot fit, never truncate its full-width epoch.
