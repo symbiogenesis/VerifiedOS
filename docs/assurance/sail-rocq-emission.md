@@ -128,10 +128,12 @@ selected-source membership and lane containment and checks installed sentinels.
 ## Remaining acceptance
 
 Q35p's semantic qualification and Q35q's [native census](sail-support-inventory.md)
-are independent prerequisites. Q35o still owes hosted qualification of the
-immutable plugin and its source. Q35b consumes the compile, closure and size
-with qualified production support. Q35n owns cold
-production carriage. The handwritten proof-maintenance handoff requires
+are independent prerequisites. The manual [emitter qualification workflow](../../.github/workflows/sail-emitter-qualification.yml)
+cold-builds the checksum-bound syntax patch, compares stock and candidate canonical
+emission receipts and requires the candidate to repeat byte for byte. Its
+`revision` input selects the exact commit on `main`. Its hosted verdict remains
+due. Q35b consumes the strict compile, closure and size with qualified production
+support. Q35n owns cold production carriage. The handwritten proof-maintenance handoff requires
 cold Guest CI under the existing proof workflow. Hosted execution and verdicts
 remain user-managed under the [validation handoff](../../AGENTS.md#tool-execution-and-validation).
 

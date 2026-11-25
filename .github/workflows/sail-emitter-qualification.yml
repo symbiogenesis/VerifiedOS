@@ -30,21 +30,17 @@ jobs:
           submodules: false
       - name: Verify and select the requested main revision
         id: dispatch
-        shell: python
+        shell: bash
         env:
           DISPATCH_REF: ${{ github.ref }}
           DISPATCH_SHA: ${{ github.sha }}
         run: |
-          import os
-          import re
-          import subprocess
-
-          revision = os.environ["TESTED_REVISION"]
-          if os.environ["DISPATCH_REF"] != "refs/heads/main" or not re.fullmatch(r"[0-9a-f]{40}", revision):
-              raise SystemExit("Dispatch requires main and a full lowercase commit SHA")
-          subprocess.run(["git", "merge-base", "--is-ancestor", revision,
-                          os.environ["DISPATCH_SHA"]], check=True)
-          subprocess.run(["git", "checkout", "--detach", revision], check=True)
+          if [[ "$DISPATCH_REF" != refs/heads/main || ! "$TESTED_REVISION" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "::error::Dispatch requires main and a full lowercase commit SHA"
+            exit 1
+          fi
+          git merge-base --is-ancestor "$TESTED_REVISION" "$DISPATCH_SHA"
+          git checkout --detach "$TESTED_REVISION"
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version-file: tools/pyproject.toml
