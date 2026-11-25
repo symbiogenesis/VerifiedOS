@@ -1,0 +1,58 @@
+{
+  "files": {
+    "candidate-sequential.json": {
+      "bytes": 13076,
+      "encoding": "identity",
+      "path": "candidate-sequential.json",
+      "sha256": "602c38c82a9624e08ab98ee15123ac19fcdaf28a2abb441383037a0be013f8fc"
+    },
+    "candidate.json": {
+      "bytes": 12938,
+      "encoding": "identity",
+      "path": "candidate.json",
+      "sha256": "5ecabc854ac16f525424e5fad7e535c499935f850fd2528a04cf1b0f8c275aca"
+    },
+    "controls-comparison.json": {
+      "bytes": 3283,
+      "encoding": "identity",
+      "path": "controls-comparison.json",
+      "sha256": "6a8eca311c5c63160941712656c6072583df4b1386ea1722ae58a896bcf667b8"
+    },
+    "controls-driver.txt": {
+      "bytes": 8346,
+      "encoding": "identity",
+      "path": "controls-driver.txt",
+      "sha256": "af1b15b90b60935f131ef6a20d39e8f9a61e11294bba8c42975e644800f2381a"
+    },
+    "default-comparison.json": {
+      "bytes": 18840,
+      "encoding": "identity",
+      "path": "default-comparison.json",
+      "sha256": "355bb63699d4087b30dfcd2125aa15b6f4510ea06b8b3b5eced611ac8dd6ad07"
+    },
+    "default-driver.txt": {
+      "bytes": 7719,
+      "encoding": "identity",
+      "path": "default-driver.txt",
+      "sha256": "91d95fbac1d7613be289f880768e028080187ecb1bb6a11794012e8b8b06fce3"
+    },
+    "original-repeat.json": {
+      "bytes": 12615,
+      "encoding": "identity",
+      "path": "original-repeat.json",
+      "sha256": "d5ef8c4d576a33e2572da3fb12c11a9be699ece84d7b2c1b15e717352bea24e5"
+    },
+    "original-sequential.json": {
+      "bytes": 12652,
+      "encoding": "identity",
+      "path": "original-sequential.json",
+      "sha256": "e106e78e3ceeb467215eabe1599343a8ccc42ed56f4c35d75ec18f7f1beed633"
+    },
+    "original.json": {
+      "bytes": 12514,
+      "encoding": "identity",
+      "path": "original.json",
+      "sha256": "c740c73dfd745747e9faf0b2cba0cd768cfad207003bc28245e6188def8f47c2"
+    }
+  }
+}

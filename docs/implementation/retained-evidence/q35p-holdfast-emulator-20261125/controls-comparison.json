@@ -1,0 +1,106 @@
+{
+  "comparison_to_default_original": {
+    "differing_outputs": [
+      "sail_riscv_model.cpp",
+      "sail_riscv_model.h"
+    ],
+    "status": "different"
+  },
+  "initial_comparison": {
+    "bytes": 18840,
+    "sha256": "355bb63699d4087b30dfcd2125aa15b6f4510ea06b8b3b5eced611ac8dd6ad07"
+  },
+  "mode_results": {
+    "candidate-sequential": {
+      "outputs": {
+        "sail_riscv_config_schema.json": {
+          "bytes": 77297,
+          "sha256": "5023d754c30412acdf0f2ba51982b1c2f078547dd6297e8a43c7ca60bc27cd40"
+        },
+        "sail_riscv_model.cpp": {
+          "bytes": 11997688,
+          "sha256": "c28f3e9bb3b4138131664a7453967f06a0c0e18bd41638f95c653ed0741d0b37"
+        },
+        "sail_riscv_model.h": {
+          "bytes": 350310,
+          "sha256": "ae2bf9e918661a2d612cac842c8a3ba075982e066381db9a3b319945a835179c"
+        }
+      },
+      "seconds": 463.86,
+      "status": "complete",
+      "streams": {
+        "stderr": {
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout": {
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      }
+    },
+    "original-repeat": {
+      "outputs": {
+        "sail_riscv_config_schema.json": {
+          "bytes": 77297,
+          "sha256": "5023d754c30412acdf0f2ba51982b1c2f078547dd6297e8a43c7ca60bc27cd40"
+        },
+        "sail_riscv_model.cpp": {
+          "bytes": 12006134,
+          "sha256": "c184df103c429fcb8ea9d4894e9fe759d54b193ec6c26e539c05306deea592cd"
+        },
+        "sail_riscv_model.h": {
+          "bytes": 350310,
+          "sha256": "19907260fb9dad6898a1ef1388008bb1ff404f6101c8fe34b616cadc9eaf5073"
+        }
+      },
+      "seconds": 308.51,
+      "status": "complete",
+      "streams": {
+        "stderr": {
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout": {
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      }
+    },
+    "original-sequential": {
+      "outputs": {
+        "sail_riscv_config_schema.json": {
+          "bytes": 77297,
+          "sha256": "5023d754c30412acdf0f2ba51982b1c2f078547dd6297e8a43c7ca60bc27cd40"
+        },
+        "sail_riscv_model.cpp": {
+          "bytes": 11997688,
+          "sha256": "c28f3e9bb3b4138131664a7453967f06a0c0e18bd41638f95c653ed0741d0b37"
+        },
+        "sail_riscv_model.h": {
+          "bytes": 350310,
+          "sha256": "ae2bf9e918661a2d612cac842c8a3ba075982e066381db9a3b319945a835179c"
+        }
+      },
+      "seconds": 470.053,
+      "status": "complete",
+      "streams": {
+        "stderr": {
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout": {
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      }
+    }
+  },
+  "sequential_plugin_pair": {
+    "differing_outputs": [],
+    "status": "identical"
+  },
+  "status": "complete",
+  "timeout_seconds_per_generation": 600,
+  "unchanged_inputs": "43bb08299abd380c190b81cec2c0a7ecdcc3207b059c1ad0f0e2d18a14d589a1"
+}

@@ -7,6 +7,10 @@ canonical-consumer acceptance remains owed.
 
 ## Retained evidence
 
+- [Paired emulator emission and determinism controls](../implementation/retained-evidence/q35p-holdfast-emulator-20261125/manifest.json),
+  SHA256 `319b746cef4fb0b77ab08190a052f02ce95e1d3eba23be501ab9157d81baeac1`.
+  Build commands, source and tool identities, and exact output comparisons for
+  the default, stock-repeat and sequential runs.
 - [Bounded tag outcomes](../implementation/retained-evidence/q35p-tag-outcomes-20261023/manifest.json),
   SHA256 `975fb21ac24e0e45c07ac5704e16ebe3a6fcdd229837090178173eb80fb74ba2`:
   immutable semantic patch, authored laws/controls, emitted reproducer, native
@@ -111,6 +115,19 @@ different comments and placement. Each reading, assumption and kernel verdict
 belongs to its elaborated candidate; source similarity transfers no verdict.
 Both preserve BSD-2-Clause notices and leave the production recipe, shared switch,
 model and emitter unchanged.
+
+## Paired emulator emission
+
+The all-module emulator generator ran with both the stock Sail plugin population
+and the population containing the patched Rocq plugin. The source manifest, Sail,
+Z3 and the other plugins matched. Both runs emitted the same configuration schema
+bytes. The paired C++ source and header differed, including generated label names
+and register member declarations. A repeat using the stock plugin population and
+the same generator flags also differed in both C++ files. Each run used its own
+output and SMT cache paths. With Sail's `--dsequential` debug flag, the stock and
+patched plugin populations emitted byte-identical C++ sources, headers and
+schemas. The default emitter still fails the paired byte comparison required by
+the tag-outcome contract.
 
 ## Bound and remaining acceptance
 
