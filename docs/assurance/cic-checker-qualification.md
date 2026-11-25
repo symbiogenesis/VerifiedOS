@@ -231,8 +231,11 @@ and [p-optimal proof-system](../background/open-math-conjectures.md#a-p-optimal-
 entries inform the unfinished M6.2b-0/M6.2b-ii certificate comparison. They supply
 no normalization, guard law, serialization theorem or local polynomial bound.
 The restricted 2026 propositional lower bounds do not establish a lower bound
-for this checker or its real exported corpus. Finding a proof, its encoded
-length, translating it, and checking it remain separate costs.
+for this checker or its real exported corpus. The [arithmetic hierarchy result](../background/open-math-conjectures.md#vp-versus-vnp-and-the-arithmetic-hierarchy)
+concerns the size of circuits computing polynomial families. Applying it to
+certificate cost would require a reduction from those circuits to this exact
+certificate representation that preserves size in the required direction.
+Finding a proof, its encoded length, translating it, and checking it remain separate costs.
 
 The survey's September proof-complexity-generator conversion starts from an
 assumed hardness property; its restricted applications retain their stated

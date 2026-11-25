@@ -223,10 +223,13 @@ shape/session descriptor and M6.8's grant-to-rate arithmetic. For an attention
 candidate, first identify the exact or approximate operation, dimension, value
 magnitudes and error regime; an OV-based lower bound needs a reduction preserving
 those parameters. The OnlineOV advance concerns a different preprocessing/query
-model and supplies no general attention improvement. A matrix-multiplication
-construction needs finite rectangular shapes, numerical correctness and concrete
-scratch and transfer counts before comparison. Autoregressive matrix-vector work
-does not inherit a large square GEMM exponent improvement.
+model and supplies no general attention improvement. The reported square exponent `9/4` and rectangular dual exponent `1/2`
+apply to formal field arithmetic. In a prefill comparison, record the actual
+batch, sequence and embedding dimensions and show that the selected finite
+scheme implements the required rounding and accumulation. For single-token
+decoding, weights still cross their scheduled memory path even with batch
+dimension one. Count both this traffic and any intermediate storage before
+recomputing tokens per second.
 
 If a candidate qualifies, M6.6's future proofs consume its actual state and
 per-session bounds, and M6.8 recomputes demand from its complete access schedule,
