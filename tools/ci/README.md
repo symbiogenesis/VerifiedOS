@@ -438,7 +438,7 @@ In the rtl lane:
   store-rotation bit and lane. It reads no gitlink, so the lane still initializes no
   submodule; the checks that read imported cores stay outside this pipeline.
 - `python3 tools/run.py rtl crosscheck` regenerates model vectors and compares RTL
-  answers. Reusing old vectors is not part of this gate.
+  answers.
 
 In the proofs lane:
 

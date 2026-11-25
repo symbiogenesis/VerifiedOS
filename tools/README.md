@@ -121,9 +121,8 @@ selection and verdict path from environment variables. Aggregate checks are name
 each platform rather than its runner image; `HOST_JOBS` in
 [vos/fanout_ci.py](vos/fanout_ci.py) owns those names for historical Host CI evidence
 validation, and [test_fanout_ci.py](tests/test_fanout_ci.py) checks the workflow
-against them. The aggregate checks require every shard, unpartitioned job and
-model-hooks job to succeed, rejecting skipped or canceled jobs. The unsharded command
-runs the complete suite and is reserved for GitHub Actions.
+against them. The aggregates require the scope job and every job it selects to pass. Jobs outside
+the selected scope must be skipped. Reserve complete suites for GitHub Actions.
 
 <a id="workflow-analysis"></a>**Ubuntu's unpartitioned job analyzes workflows and local actions** in a
 dedicated step that runs regardless of the gate verdict and fails the job on any
