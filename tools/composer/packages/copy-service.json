@@ -12,7 +12,7 @@
     },
     {
       "path": "tools/pyproject.toml",
-      "sha256": "48f5ab1bf830b490766df25db52898ffcdcf57e1bf8a99b16fd903539799a4c1"
+      "sha256": "7340fd0d1daf7751a80fdf2593831fd4958517d84839422f989752d439638f34"
     },
     {
       "path": "tools/uv.lock",

@@ -294,7 +294,7 @@ Sorted reference payload SHA-256: `23b690105f12b96f3ef7a997cf508a5b775e70bcaf077
 | --- | --- |
 | [tools/vos/source_bindings.py](../../tools/vos/source_bindings.py) | `ce4e3825111a8c374f8816a3d4bd821c9f252e4f705e3ee672b0eba85703f5f9` |
 | [proofs/ProofSupport.v](../../proofs/ProofSupport.v) | `21fefa8c275f9a6ee41299d2d59b971974a8f89453cb8749bbec0d7d13e86a22` |
-| [tools/pyproject.toml](../../tools/pyproject.toml) | `48f5ab1bf830b490766df25db52898ffcdcf57e1bf8a99b16fd903539799a4c1` |
+| [tools/pyproject.toml](../../tools/pyproject.toml) | `7340fd0d1daf7751a80fdf2593831fd4958517d84839422f989752d439638f34` |
 | [tools/uv.lock](../../tools/uv.lock) | `0a470cbea5bb34c291a46053bc4c455f96ddd275adc435c14fab2a0babdbf0e1` |
 | [tools/vos/composer.py](../../tools/vos/composer.py) | `b96169f76319dd55c7597462472257830370fe9c86c44236ae3379efe34bcd3e` |
 | [proofs/HandlerGraph.v](../../proofs/HandlerGraph.v) | `0f779ec5f3fb93552ea47302f2e71bc0d2d4fd5fbed82c879b3370bf56a2972e` |
