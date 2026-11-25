@@ -352,12 +352,8 @@ Proof.
     + simpl. rewrite (IH H). rewrite Hy. reflexivity.
 Qed.
 
-(* The helpers' own floors, so that the day one of them stops deciding is the
-   day it says so. Each is a base case no check below reaches. *)
-(* Each floor is stated beside the case one step above it, so that the
-   constant the floor happens to carry is read rather than merely written:
-   an empty conjunction holds whatever its predicate says, and a one-member
-   one does not. *)
+(* Exercise collection boundaries directly. For conjunction and disjunction,
+   a one-element input distinguishes the empty default from a constant result. *)
 Example the_empty_conjunction_holds :
   all_of (fun _ : nat => false) nil = true
   /\ all_of (fun _ : nat => false) (cons 0 nil) = false := conj eq_refl eq_refl.
@@ -489,10 +485,8 @@ Inductive ForbiddenIntroduction : Type :=
 | AuthorityBearingPath.
 
 (* R-08-047: "A request to bind a member of a full pool returns a typed
-   `CapacityExhausted(pool)` verdict". The pool is the argument, which is
-   what makes the verdict name the pool that is actually full rather than
-   merely report a shortfall. The same sentence's relevance-grading clause is
-   deferred and the header says to whom. *)
+   `CapacityExhausted(pool)` verdict". The argument identifies the exhausted
+   pool. The file header names the separate owner of relevance grading. *)
 Inductive Verdict : Type :=
 | Bound
 | CapacityExhausted (p : Pool).
