@@ -9,6 +9,7 @@ import subprocess
 import tarfile
 import time
 from pathlib import Path
+from typing import cast
 
 
 def sha(path: Path) -> str:
@@ -56,7 +57,8 @@ def retained_emission_inputs(
     reading = json.loads(evidence.read_text(encoding="utf-8"))
     if reading["checks"] != {"matched_retained_outputs": True, "unchanged_inputs": True}:
         raise ValueError("retained emission did not match the frozen inputs and outputs")
-    input_hashes = {Path(name).name: digest for name, digest in reading["input_hashes"].items()}
+    recorded_hashes = cast(dict[str, str], reading["input_hashes"])
+    input_hashes = {Path(name).name: digest for name, digest in recorded_hashes.items()}
     require_sha(plugin, input_hashes["sail_plugin_coq.cmxs"])
     require_sha(sail, input_hashes["sail"])
     require_sha(z3, input_hashes["z3"])
@@ -66,11 +68,11 @@ def retained_emission_inputs(
     }
     for path, digest in plugins.items():
         require_sha(path, digest)
-    return plugins, reading["expected"]
+    return plugins, cast(dict[str, str], reading["expected"])
 
 
 def retained_stdpp(evidence: Path) -> dict[str, str]:
-    libraries = json.loads(evidence.read_text(encoding="utf-8"))
+    libraries = cast(dict[str, dict[str, str]], json.loads(evidence.read_text(encoding="utf-8")))
     stdpp, = (reading for path, reading in libraries.items() if Path(path).name == "stdpp")
     return stdpp
 

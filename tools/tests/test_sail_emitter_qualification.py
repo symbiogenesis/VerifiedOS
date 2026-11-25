@@ -5,9 +5,8 @@ from copy import deepcopy
 from typing import Any
 
 from ci import sail_emitter_qualification as emitter
-from vos import rocqterm
-
 from tests.harness import TOOLS, Case
+from vos import rocqterm
 
 REVISION = "a" * 40
 
