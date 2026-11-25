@@ -1,0 +1,149 @@
+(* SPDX-License-Identifier: Apache-2.0 *)
+From SailStdpp Require Import Base ConcurrencyInterfaceTypes TypeCasts.
+From stdpp Require Import bitvector.definitions.
+Require Import bindings_types bindings TagInterpreter.
+
+Module I := bindings_types.Interface.
+Module D := bindings_types.Defs.
+Module T := TagInterpreter.TagPlane bindings_types.Arch I.
+Local Open Scope string_scope.
+Local Open Scope Z_scope.
+
+Definition explicit_access variety strength : Access_kind RISCV_strong_access :=
+  AK_explicit {| Explicit_access_kind_variety := variety;
+                 Explicit_access_kind_strength := strength |}.
+
+Definition strong_exclusive : Access_kind RISCV_strong_access :=
+  AK_arch {| RISCV_strong_access_variety := AV_exclusive |}.
+
+Definition read_access (kind : read_kind) : (Access_kind RISCV_strong_access + (Z * string)) :=
+  match kind with
+  | Read_plain => inl (explicit_access AV_plain AS_normal)
+  | Read_ifetch => inl (AK_ifetch tt)
+  | Read_RISCV_acquire => inr (274, "Read_RISCV_acquire is unused")
+  | Read_RISCV_strong_acquire => inr (275, "Read_RISCV_strong_acquire is unused")
+  | Read_RISCV_reserved => inl (explicit_access AV_exclusive AS_normal)
+  | Read_RISCV_reserved_acquire => inl (explicit_access AV_exclusive AS_rel_or_acq)
+  | Read_RISCV_reserved_strong_acquire => inl strong_exclusive
+  end.
+
+Definition write_access (kind : write_kind) : (Access_kind RISCV_strong_access + (Z * string)) :=
+  match kind with
+  | Write_plain => inl (explicit_access AV_plain AS_normal)
+  | Write_RISCV_release => inr (233, "Write_RISCV_release is unused")
+  | Write_RISCV_strong_release => inr (234, "Write_RISCV_strong_release is unused")
+  | Write_RISCV_conditional => inl (explicit_access AV_exclusive AS_normal)
+  | Write_RISCV_conditional_release => inl (explicit_access AV_exclusive AS_rel_or_acq)
+  | Write_RISCV_conditional_strong_release => inl strong_exclusive
+  end.
+
+Definition read_data addr width kind meta : M (mword (8 * width) * bool) :=
+  D.bind (D.sail_mem_read {| Mem_read_request_access_kind := kind;
+                            Mem_read_request_va := None;
+                            Mem_read_request_pa := addr;
+                            Mem_read_request_translation := tt;
+                            Mem_read_request_size := width;
+                            Mem_read_request_tag := false |})
+    (fun reply =>
+       match reply with
+       | Ok (data, _) => I.Ret (data, meta)
+       | Err tt => D.exit tt
+       end).
+
+Definition finish_read addr width kind meta : M (mword (8 * width) * bool) :=
+  match read_access kind with
+  | inl access => read_data addr width access meta
+  | inr (line, message) => D.bind (internal_error "bindings.sail" line message)
+      (fun access => read_data addr width access meta)
+  end.
+
+Definition tag_key (addr : physaddrbits) : mword 64 :=
+  zero_extend' 64 (addr_to_tag_addr addr).
+
+Lemma read_ram_request_order kind addr width read_meta :
+  read_ram kind (Physaddr addr) width read_meta =
+  if read_meta then
+    I.Next (I.TagRead (tag_key addr)) (finish_read addr width kind)
+  else finish_read addr width kind default_meta.
+Proof. destruct kind, read_meta; reflexivity. Qed.
+
+Definition write_data addr width kind (data : mword (8 * width)) meta : M bool :=
+  D.bind (D.sail_mem_write {| Mem_write_request_access_kind := kind;
+                             Mem_write_request_va := None;
+                             Mem_write_request_pa := addr;
+                             Mem_write_request_translation := tt;
+                             Mem_write_request_size := width;
+                             Mem_write_request_value := Some data;
+                             Mem_write_request_tag := None |})
+    (fun reply =>
+       match reply with
+       | Ok _ => D.bind (__WriteRAM_Meta addr width meta) (fun _ => I.Ret true)
+       | Err tt => I.Ret false
+       end).
+
+Lemma write_ram_request_order kind addr width data meta :
+  write_ram kind (Physaddr addr) width data meta =
+  match write_access kind with
+  | inl access => write_data addr width access data meta
+  | inr (line, message) => D.bind (internal_error "bindings.sail" line message)
+      (fun access => write_data addr width access data meta)
+  end.
+Proof. destruct kind; reflexivity. Qed.
+
+Lemma word_cast_preserves_bits n m (data : bv n) (width_eq : n = m) :
+  bv_unsigned (cast_N data width_eq) = bv_unsigned data.
+Proof. destruct width_eq. rewrite cast_N_refl. reflexivity. Qed.
+
+Lemma read_data_exact_reply addr width kind meta :
+  exists resume,
+    read_data addr width kind meta =
+      I.Next (I.MemRead (Z.to_N width)
+                (I.ReadReq.make (Z.to_N width) addr kind None tt false)) resume /\
+    (forall bits request_tag, exists data,
+      bv_unsigned data = bv_unsigned bits /\
+      resume (inl (bits, request_tag)) = I.Ret (data, meta)) /\
+    resume (inr tt) =
+      I.Next (I.GenericFail "exit") (fun impossible => match impossible with end).
+Proof.
+  eexists. split.
+  1: reflexivity.
+  split.
+  1: { intros bits request_tag.
+       exists (cast_N bits (D.sail_mem_read_subproof width)).
+       split.
+       1: apply word_cast_preserves_bits.
+       reflexivity. }
+  reflexivity.
+Qed.
+
+Lemma write_data_exact_reply addr width kind data meta :
+  exists bits : bv (8 * Z.to_N width)%N, exists resume,
+    bv_unsigned bits = bv_unsigned data /\
+    write_data addr width kind data meta =
+      I.Next (I.MemWrite (Z.to_N width)
+                (I.WriteReq.make (Z.to_N width) addr kind bits None tt None)) resume /\
+    (forall status,
+      resume (inl status) = D.bind (__WriteRAM_Meta addr width meta) (fun _ => I.Ret true)) /\
+    resume (inr tt) = I.Ret false.
+Proof.
+  exists (cast_N data (D.sail_mem_write_subproof width)).
+  eexists. split.
+  1: apply word_cast_preserves_bits.
+  split.
+  1: reflexivity.
+  split.
+  1: reflexivity.
+  reflexivity.
+Qed.
+
+Section InterpretedRead.
+Context {Frame : Type}.
+Variable old : forall Response, I.outcome (fun _ => exception) Response ->
+  Frame -> option (Response * Frame).
+
+Lemma read_ram_tag_interpretation fuel kind addr width tags frame :
+  T.run old (S fuel) (read_ram kind (Physaddr addr) width true) tags frame =
+  T.push (I.IEvent (I.TagRead (tag_key addr)) (T.tag_get tags (tag_key addr)))
+    (T.run old fuel (finish_read addr width kind (T.tag_get tags (tag_key addr))) tags frame).
+Proof. rewrite read_ram_request_order. reflexivity. Qed.
+End InterpretedRead.
