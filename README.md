@@ -89,7 +89,7 @@ Each core has one hardware thread. The [absence contract](docs/hardware/absence-
 
 ### Verified cores and qualified devices
 
-Scalar, vector and matrix [core classes](docs/hardware/isa-profile.md#8-core-classes) share one ISA and capability model. Graphics, optional software inference (ternary quantization recommended when LLMs are involved) and device control run on those cores. An optional Taalas-style plug-and-play [immutable inference module](docs/spec.md#r-04-010b) has a separate device contract and remains qualification work.
+Scalar, vector and matrix [core classes](docs/hardware/isa-profile.md#8-core-classes) use the same capability model and expose class-specific instructions. Graphics, optional software inference and device control run on those cores. An optional [immutable inference module](docs/spec.md#r-04-010b) requires separate qualification.
 
 ### On-die OpenTitan-class root of trust
 
@@ -114,8 +114,8 @@ This inventory describes the guarantees targeted by the **full specified stack**
 Four modes target prevention:
 
 - 🕳️ **Absent**: the bug's enabling mechanism is deleted.
-- 🛡️ **Enforced**: the CHERI hardware checks every access.
-- ✋ **Rejected**: a mechanical check refuses the artifact before it installs or ships: CHERI-TAL admission for a binary, the proof gate for a proof artifact.
+- 🛡️ **Enforced** means the running system provides the stated protection, for example through CHERI access checks, fixed-latency execution or authenticated storage reads.
+- ✋ **Rejected** means a mechanical gate refuses an artifact that fails admission or release checks.
 - ✅ **Proved**: the shipped artifact must carry a machine-checked theorem and pass the [proof-artifact gates](#the-proof-artifacts-themselves). The [crown-jewel inventory](docs/assurance/crown-jewels.md) records which specifications and theorems exist today.
 
 Three modes describe detection or remaining obligations:
@@ -128,10 +128,10 @@ Three modes describe detection or remaining obligations:
 
 | Potential bug or attack class | Construction | Mode |
 | --- | --- | --- |
-| Transient-execution attacks, from Spectre and Meltdown to microarchitectural data sampling | No speculative execution, transient state, reorder buffer, or reservation stations exist | **🕳️&nbsp;Absent** |
+| Transient-execution attacks driven by speculative instructions | The in-order design permits static wrong-path fetch and excludes speculative execution, reorder buffers and reservation stations | **🕳️&nbsp;Absent** |
 | Cross-thread SMT leakage and sibling-thread state corruption | One hardware thread per core; there is no second thread context | **🕳️&nbsp;Absent** |
 | Poisoning or aliasing of any dynamic predictor state | Prediction is static-only; BHT/PHT, BTB, and RAS state do not exist | **🕳️&nbsp;Absent** |
-| Cache timing and cache-eviction side channels | Two fixed-speed memory classes replace caches, eliminating hit/miss and eviction timing. Composition fixes each address's memory class. Admitted secret-typed code rejects secret-dependent SRAM bank selection | **🕳️&nbsp;Absent**<br>**✋&nbsp;Rejected** |
+| Cache timing and cache-eviction side channels | The two memory classes have no cache hits, misses or evictions. Composition fixes each address's memory class | **🕳️&nbsp;Absent** |
 | Cache-coherence protocol and stale-cache bugs | With no cached copies there is no coherence protocol to get wrong and no stale line to serve | **🕳️&nbsp;Absent** |
 | Address-translation and paging bugs | Virtual memory, the MMU, page tables, TLBs, walk caches, and the shootdown protocol are deleted | **🕳️&nbsp;Absent** |
 | Privilege-ring confusion and S/U transition bugs | Machine mode is the only mode; privileged operations require an unforgeable CHERI permission on PCC | **🕳️&nbsp;Absent**<br>**🛡️&nbsp;Enforced** |
@@ -141,17 +141,16 @@ Three modes describe detection or remaining obligations:
 | Self-modifying-code and instruction-stream synchronization bugs | Runtime emission into executable memory, writable executable memory, `fence.i`, and writable-to-executable promotion are absent; same-session Wasm apps are interpreted data | **🕳️&nbsp;Absent** |
 | DRAM read-disturbance bit flips on the fast class | An SRAM latch gives Rowhammer and RowPress no leaking capacitor or refresh cycle to disturb; SRAM's far weaker disturb modes are detected faults below | **🕳️&nbsp;Absent** |
 | Read-disturbance on the bulk class | The capacitorless gain cell's disturb behaviour must be measured before qualification. Cell margin, ECC and fixed refresh address the measured faults; an uncorrectable event stops the machine. No access-reactive counter is used | **🔔&nbsp;Detected**<br>**🚩&nbsp;Residual** |
-| Reactive refresh machinery: activation counters, alerts, and back-off | The bulk class is topped up on a schedule fixed when the image is composed, so nothing counts accesses and nothing reacts to them | **🕳️&nbsp;Absent** |
+| Access-dependent refresh timing from activation counters, alerts or back-off | First-class SRAM needs no refresh. Bulk gain cells refresh in slots fixed at composition. Supply-current leakage during bulk refresh remains a [physical residual](docs/spec.md#r-17-058e) | **🕳️&nbsp;Absent**<br>**🚩&nbsp;Residual** |
 | Memory-bus probing and DIMM or module interposition | On-die memory has no external memory bus, module, or die-to-die link to probe; an ensemble link joins two whole machines and carries scheduled frames, never a load or store, so it is not a memory bus either | **🕳️&nbsp;Absent** |
 | Cold-boot remanence | Both memory classes and key storage need construction-specific power-loss qualification. Completed zeroization and authority discharge do not establish erasure after abrupt loss; the [physical residuals](docs/spec.md#r-17-058) remain explicit | **🚩&nbsp;Residual** |
 | History-dependent prefetch channels | Prefetchers are absent | **🕳️&nbsp;Absent** |
 | DVFS and reactive power-control channels | Frequency control and activity-driven control loops are absent | **🕳️&nbsp;Absent** |
-| Refresh-timing channels | DRAM refresh and PRAC activity do not exist to observe | **🕳️&nbsp;Absent** |
-| Interconnect and quality-of-service contention channels | The admission proof emits a static time-division fabric schedule; best-effort arbitration does not exist. The NoC model is unauthored, so this absence is structural, not yet proved | **🕳️&nbsp;Absent**<br>**🚩&nbsp;Residual** |
-| Contention between high-assurance memory islands | A high-assurance island takes a whole SRAM macro or tier and hosts one domain, sharing no path, arbiter, or revocation array with any peer; the unauthored-model residual above applies | **🕳️&nbsp;Absent**<br>**🚩&nbsp;Residual** |
-| Contention between low-sensitivity islands sharing an SRAM macro, or domains sharing an island | Static arbitration assigns island slots and, within a shared island, core sub-slots. Macro periphery, power delivery and thermal mass remain shared, as do bank ports and the atomic stage within an island. The unauthored-model residual above applies | **🚩&nbsp;Residual** |
-| Variable latency on a secret operand | Every secret-reachable operation is fixed-latency (integer divide, the vector FPU including subnormals, atomics), and misaligned accesses trap rather than split | **🛡️&nbsp;Enforced** |
-| Variable-latency `vfdiv`/`vfsqrt` reached by a secret | The one exception to fixed latency is flow-rejected: no admitted crypto kernel uses either instruction | **✋&nbsp;Rejected** |
+| Interconnect and quality-of-service contention channels | The design requires a static time-division fabric schedule with no best-effort arbitration. The isolation model and proof remain open | **🕳️&nbsp;Absent**<br>**🚩&nbsp;Residual** |
+| Contention between high-assurance memory islands | A high-assurance island hosts one domain and occupies a whole SRAM macro or tier. Each island has its own path, arbiter and revocation array. The isolation proof remains open | **🕳️&nbsp;Absent**<br>**🚩&nbsp;Residual** |
+| Contention between low-sensitivity islands sharing an SRAM macro, or domains sharing an island | Static arbitration assigns island slots and core sub-slots. Islands on the same macro share periphery, power delivery and thermal mass. Domains within an island also share bank ports and the atomic stage | **🚩&nbsp;Residual** |
+| Operand-dependent latency on operations admitted for secrets | The ISA requires fixed latency for covered operations, including integer divide, vector floating-point on subnormals, and atomics. Misaligned accesses trap before a split access can occur | **🛡️&nbsp;Enforced** |
+| Variable-latency `vfdiv` or `vfsqrt` on a secret operand | If an implementation leaves either instruction variable-latency, admission requires a flow proof that it receives no secret operand. [Vector floating-point timing](docs/spec.md#r-15-082) | **✋&nbsp;Rejected** |
 | Secret-dependent address timing across SRAM banks | The flow discipline rejects a secret-labeled address, scalar or vector element, in admitted secret-typed code, and the non-work-conserving schedule confines the term to the issuing partition's own slot; no constant-time claim is made outside that code | **✋&nbsp;Rejected** |
 
 The timing rows cover architectural timing. The crypto core's masked datapath addresses power and near-field electromagnetic leakage under a separate probing model; its limits appear in [CHERI-TAL and binary admission](#cheri-tal-and-binary-admission).
@@ -165,7 +164,7 @@ The [microarchitectural absence contract](docs/hardware/absence-contract.md) lis
 | --- | --- | --- |
 | Buffer overflows and out-of-bounds access, down to sub-object fields | Tagged capabilities enforce pointer bounds. The fixed-tier memory plan makes every narrowing exact; installation rejects bounds that would round. Desktop allocations use a composition-fixed size-class table that also permits exact narrowing | **🛡️&nbsp;Enforced**<br>**✋&nbsp;Rejected** |
 | Pointer and device-address forgery | Integers and raw bit patterns cannot create a valid tagged capability; authority must derive from an existing capability | **🛡️&nbsp;Enforced** |
-| Pointer-provenance violations | Capability validity records derivation in hardware; the admitted ISA exposes no integer-to-capability escape | **🛡️&nbsp;Enforced**<br>**🕳️&nbsp;Absent** |
+| Pointer-provenance violations | Hardware preserves the validity tag only through authorized capability operations. The tag attests validity without encoding the derivation history | **🛡️&nbsp;Enforced** |
 | Permission escalation and confused derivation | Bounds and permissions only narrow; derivation cannot add authority | **🛡️&nbsp;Enforced** |
 | Corruption reaching across any isolation boundary | Each object, compartment, and kernel partition is reachable only through bounded capabilities rooted in the static distribution | **🛡️&nbsp;Enforced** |
 | Unsafe-language or compiler-emitted code bypassing spatial checks | Capability checks apply to emitted machine accesses regardless of source language | **🛡️&nbsp;Enforced** |
@@ -299,7 +298,7 @@ These faults can occur. The design detects, corrects or contains them within the
 | Potential bug or fault class | Construction | Mode |
 | --- | --- | --- |
 | Single-event and multi-cell upsets | Every array from the register file to main memory is ECC-corrected, and interleaving separates adjacent-cell strikes | **🔔&nbsp;Detected** |
-| A bit flip forging or destroying capability authority | The validity-tag plane carries stronger DECTED (double-error-correct, triple-error-detect) correction, because a flipped tag changes authority rather than data | **🔔&nbsp;Detected** |
+| A bit flip forging or destroying capability authority | Validity tags use DECTED (double-error correction, triple-error detection) because a changed tag changes authority | **🔔&nbsp;Detected** |
 | Latent errors accumulating past the correction distance | Background scrubbing finds and repairs errors while they are still correctable | **🔔&nbsp;Detected** |
 | An uncorrectable error | The access fails stop rather than returning a value | **🔔&nbsp;Detected** |
 | SRAM disturb and half-select upsets | The same end-to-end ECC corrects these operationally induced flips, the far weaker analogs of the deleted DRAM disturbance classes | **🔔&nbsp;Detected** |
@@ -339,9 +338,7 @@ Every **Proved** claim must pass the checks below. They guard against undeclared
 
 This inventory does **not** claim to eliminate memory leaks, incorrect app intent, specification errors, cryptographic hardness failures, denial of service, social-engineering mistakes, analog or physical attacks, or every protocol flaw. Canonicity covers this platform's encodings. Agreement with an independent peer additionally requires that peer's grammar, interpretation, and implementation correspondence. A cooperating peer can supply artifacts for a bounded equivalence proof; without them, parser differentials remain untrusted evidence and a [recorded residual](docs/spec.md#r-17-016b).
 
-The transferred rows count limits owned elsewhere. The specification's [residual-risks section](docs/spec.md#17-residual-risks-the-honest-ceiling) and [critique.md](docs/background/critique.md) record those limits and open proof work.
-
-This inventory summarizes named archetypes; it is not the coverage claim, because such a list can never be complete. The register-computed [coverage matrix](docs/assurance/coverage-matrix.md), spanning every boundary and property, makes that claim.
+The [coverage matrix](docs/assurance/coverage-matrix.md) traces every registered property and boundary to its coverage claims. The [residual risks](docs/spec.md#17-residual-risks-the-honest-ceiling) and [design critique](docs/background/critique.md) record the remaining limits and open proof work.
 
 ## 📐 Specification <a id="specification"></a>
 
