@@ -20,7 +20,7 @@ import sys
 import tarfile
 import time
 import urllib.request
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from pathlib import Path, PurePosixPath
 from types import SimpleNamespace
 from typing import Any, Protocol, cast
@@ -58,7 +58,8 @@ class CensusAPI(Protocol):
                expected_modules: list[str]) -> dict[str, dict[str, Any]]: ...
 
     def qualify_controls(self, metadata: object, searches: dict[str, str],
-                         readings: dict[str, str]) -> dict[str, Any]: ...
+                         readings: dict[str, str], *,
+                         positive_check: Callable[[dict[str, dict[str, Any]]], None]) -> dict[str, Any]: ...
 
 
 def census_api(side: Path) -> CensusAPI:
@@ -771,8 +772,8 @@ def control_census_join(classified: dict[str, dict[str, Any]], spec: dict[str, A
 def native_controls(campaign: Campaign, mappings: list[str]) -> None:
     api, spec = census_api(campaign.side), control_spec(campaign.side)
     metadata, searches, readings = native_dataset(campaign, api, spec["targets"], mappings, "control")
-    control_census_join(api.census(metadata, searches, readings, expected_modules=spec["targets"]), spec)
-    report = api.qualify_controls(metadata, searches, readings)
+    report = api.qualify_controls(metadata, searches, readings,
+                                  positive_check=lambda classified: control_census_join(classified, spec))
     del metadata, searches, readings
     write(campaign.upload / "control-adapter-verdicts.json", report)
     source = campaign.side / "tools/rocq-census"
@@ -1095,14 +1096,13 @@ def validate_native_qualification(artifact_root: Path, side: Path, revision: str
                 raise ValueError("retained Print reading differs from original native output")
             command = "Print Module " if kind == "module" else "Print Module Type "
             check_query(label, "Require " + " ".join(requested) + ".\n" + proofaudit.SETTINGS + command + name + ".\n")
-        classified = api.census(metadata, searches, readings, expected_modules=requested)
         if prefix == "control":
-            control_census_join(classified, spec)
-            del classified
-            control_report = api.qualify_controls(metadata, searches, readings)
+            control_report = api.qualify_controls(metadata, searches, readings,
+                                                  positive_check=lambda classified: control_census_join(classified, spec))
             if control_report != load(artifact_root / "control-adapter-verdicts.json"):
                 raise ValueError("native adapter control replay differs")
             return control_report
+        classified = api.census(metadata, searches, readings, expected_modules=requested)
         del metadata
         require_canonical_json(artifact_root / "support-census-audit.json", classified)
         for index, module in enumerate(modules):

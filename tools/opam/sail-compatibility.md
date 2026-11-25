@@ -266,6 +266,11 @@ the second imports that same-run snapshot into an empty root, repeats acceptance
 and must re-export identical bytes. The join refuses missing commands, diagnostics,
 changed evidence, a skipped job or a different revision/run/attempt. It retains
 timeout diagnostics and supplies no passed verdict on an incomplete campaign.
+Build, import and join use the locked Python tools environment with a fresh uv
+cache on each runner. Each independently validates the full control population
+and joins the hidden-assumption bindings to its positive census before replaying
+all twelve corruption cases. The final job has a 355-minute bound for downloading
+both artifact sets and independently replaying their support and control graphs.
 
 This source campaign qualifies a support candidate's portability only. The
 project lock and production carriage still require Q35p's semantic agreement,

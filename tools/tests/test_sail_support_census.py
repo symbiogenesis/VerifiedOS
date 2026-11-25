@@ -9,7 +9,7 @@ from collections.abc import Callable, Iterator
 from itertools import permutations, product
 from pathlib import Path
 from typing import Any, Protocol, cast, override
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from jsonschema import Draft202012Validator
 
@@ -753,8 +753,13 @@ class SailSupportCensusTests(unittest.TestCase):
         def full_schema(metadata: object, *, schema: dict[str, Any] | None = None) -> dict[str, Any]:
             validated.append(metadata)
             return validate(metadata, schema=schema)
+        def positive_check(classified: dict[str, dict[str, Any]]) -> None:
+            self.assertEqual(set(classified), {"CensusControls", "SailStdpp.TypeCasts", "SailStdpp.State_monad"})
+            self.assertEqual(len(validated), 1, "join the positive census before validating corruptions")
+        joined = Mock(side_effect=positive_check)
         with patch.dict(qualify.__globals__, {"validate_schema": full_schema}):
-            report = qualify(value, searches, readings)
+            report = qualify(value, searches, readings, positive_check=joined)
+        joined.assert_called_once()
         self.assertEqual(len(validated), 13, "the positive census and every mutated census validate their complete schema")
         self.assertIs(validated[0], value)
         self.assertTrue(all(candidate is not value for candidate in validated[1:]))

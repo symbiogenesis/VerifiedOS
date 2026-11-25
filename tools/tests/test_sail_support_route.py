@@ -736,9 +736,13 @@ def standalone_native_replay() -> None:
                 for module in expected_modules for index, symbol in enumerate(route.proofaudit.inventory(searches[module], module))]
 
         control_report = {"scope": "adapter-over-native-emitted-evidence", "status": "fixture"}
+        def qualify_controls(metadata: dict[str, Any], searches: dict[str, str], readings: dict[str, str], *,
+                             positive_check: Callable[[dict[str, dict[str, Any]]], None]) -> dict[str, Any]:
+            positive_check(api.census(metadata, searches, readings, expected_modules=metadata["requested_roots"]))
+            return deepcopy(control_report)
         api = SimpleNamespace(census=classify, parse_search_requests=requests,
             reading_targets=lambda metadata: [("module", module) for module in metadata["requested_roots"]],
-            qualify_controls=lambda *_args: deepcopy(control_report))
+            qualify_controls=qualify_controls)
         closure_text = "".join(name + " " + version + "\n" for name, version in sorted(route.expected_closure(side, found).items()))
         add("closure", ["list", "--switch=" + route.SWITCH, "--installed", "--short", "--columns=name,version,pin", "--color=never"],
             stdout=closure_text, direct=True)

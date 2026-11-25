@@ -1316,8 +1316,9 @@ def _control_copy(value: dict[str, Any], table: str) -> dict[str, Any]:
     return value | {table: copy.deepcopy(value[table])}
 
 
-def qualify_controls(metadata: object, searches: dict[str, str], readings: dict[str, str]) -> dict[str, Any]:
-    """Adapter controls over retained native emission, distinct from prover refusals."""
+def qualify_controls(metadata: object, searches: dict[str, str], readings: dict[str, str], *,
+                     positive_check: Callable[[dict[str, dict[str, Any]]], None] | None = None) -> dict[str, Any]:
+    """Replay adapter controls and expose the accepted census for a read-only positive join."""
     expected_roots = ["CensusControls", "SailStdpp.TypeCasts", "SailStdpp.State_monad"]
     all_accepted = census(metadata, searches, readings, expected_modules=expected_roots)
     value = cast("dict[str, Any]", metadata)  # The complete public census boundary succeeded without mutation.
@@ -1335,6 +1336,10 @@ def qualify_controls(metadata: object, searches: dict[str, str], readings: dict[
              and named["AliasOnly"]["empty_evidence"] == "native-alias-only"
              and named["HiddenAlias"]["kind"] == "module"
              and named["HiddenAlias"]["implementation"]["kind"] == "Algebraic", "native positive-control shapes differ")
+    if positive_check is not None:
+        positive_check(all_accepted)
+    empty_id = named["Empty"]["id"]
+    del all_accepted, accepted, modules, named
     concrete = next((row for row in value["declarations"] if row["classification"] == "owned" and row["kind"] == "constant"), None)
     interface = next((row for row in value["declarations"] if row["classification"] == "interface"), None)
     if concrete is None or interface is None or not value["resolution_requests"]:
@@ -1364,7 +1369,7 @@ def qualify_controls(metadata: object, searches: dict[str, str], readings: dict[
         "foreign-declaration": ("resolutions", lambda item: item["resolutions"][0]["candidates"][0].update(declaration_id="foreign", abbreviation_id=None)),
         "ambiguous-resolution": ("resolutions", lambda item: item["resolutions"][0]["candidates"].append(copy.deepcopy(item["resolutions"][0]["candidates"][0]))),
         "duplicate-declaration": ("declarations", lambda item: item["declarations"].append(copy.deepcopy(item["declarations"][0]))),
-        "unproved-empty": ("modules", lambda item: next(row for row in item["modules"] if row["id"] == named["Empty"]["id"]).update(empty_evidence="nonempty")),
+        "unproved-empty": ("modules", lambda item: next(row for row in item["modules"] if row["id"] == empty_id).update(empty_evidence="nonempty")),
         "unsupported-native-form": ("fields", lambda item: item["fields"][0].update(kind="rewrite-rule")),
         "reordered-implementation-trace": ("declarations", lambda item: next(row for row in item["declarations"] if row["id"] == concrete_id)["implementation_connection"]["steps"].reverse()),
         "instantiated-metadata-drift": ("declarations", lambda item: next(row for row in item["declarations"] if row["id"] == concrete_id)["implementation_connection"]["instantiated_metadata"].update(inline_code=changed_inline_code)),
