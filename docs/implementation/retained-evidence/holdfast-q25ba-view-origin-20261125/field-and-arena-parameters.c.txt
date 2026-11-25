@@ -1,0 +1,8 @@
+struct view {
+    unsigned char *ptr;
+};
+
+int compare(struct view *view, unsigned char *arena, unsigned long base)
+{
+    return view->ptr == arena + base;
+}
