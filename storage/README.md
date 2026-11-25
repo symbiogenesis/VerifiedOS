@@ -4,9 +4,9 @@
 It serializes a bounded unsigned-64-bit key/value instance of
 [ExecutableIndex.v](../proofs/ExecutableIndex.v)'s `ENode`: a leaf contains ordered
 key/value entries, while a branch contains separators and child arena addresses.
-The codec preserves their order; it does not decide key ordering, separator
-ranges, balance, cycles or tree-wide admission. Those checks belong to the index
-and its eventual checked decoder integration.
+The codec preserves entry order and validates local node shape. The
+[tree-image reader](tree-image.md) checks key order, separator ranges, leaf
+depth and whole-tree admission.
 
 [The public header](include/vos_node_image.h) owns the bounds and API. Composition
 supplies fanout, arena capacity and an exact block length large enough for a full
@@ -177,10 +177,12 @@ instruction-lowering verdict.
   checking the domain-separated object digest and verifying `(object_id, root, version)`
   membership in the store's authenticated B+ tree without mutating common
   owner state.
-- `vos_storage_admit_resident` retains authenticated membership in an owner-held
-  receipt, and `vos_storage_verify_admitted_resident` checks its continued validity
-  and actual host bytes without repeating the tree walk. See the
-  [resident receipt boundary](resident-reads.md#authenticated-storage-and-crypto-verifier-join).
+- `vos_storage_admit_resident` records authenticated membership in an owner-held
+  receipt. `vos_storage_verify_admitted_resident` authenticates the resident
+  bytes against that receipt while the checkpoint stays byte-identical.
+  `vos_storage_verify_retained_resident` also handles a pinned rollbackable
+  user-data predecessor under the [resident receipt
+  boundary](resident-reads.md#authenticated-storage-and-crypto-verifier-join).
 - `vos_storage_encode_blkdev_medium`, `vos_storage_decode_blkdev_medium`,
   `vos_storage_encode_blkdev_image`, `vos_storage_decode_blkdev_image`,
   `vos_storage_reopen_blkdev_image` and `vos_storage_apply_block_tear` map

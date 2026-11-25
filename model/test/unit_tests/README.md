@@ -1,8 +1,8 @@
 # Sail unit tests
 
 `unit_tests` runs the generated harness for the Sail tests in
-[`model/unit_tests`](../../model/unit_tests/). Native C++ harnesses in this
-directory also call the actual generated Sail model:
+[`model/unit_tests`](../../model/unit_tests/). Separate native harnesses
+exercise model integration and individual components:
 
 - `entropy_observer` checks the entropy-root callback boundary.
 - `watchdog_join` drives the RoT watchdog's external slow clock from the
@@ -28,14 +28,16 @@ directory also call the actual generated Sail model:
 - `block_receipt` checks startup, persistence and close failures when a requested
   receipt cannot be written. It checks the host adapter directly, including
   sticky failure and reopening the bytes persisted before a receipt failure.
+- `cli_unsigned_parser` checks the emulator's unsigned argument conversion and
+  exit status without initializing the Sail model.
+- `bf16_nan` checks all BF16 bit patterns against the vendored SoftFloat NaN
+  classification macro.
 
-`block_payload` and `block_reset` implement the scoped
+`block_payload` and `block_reset` cover the finite modeled behavior in the
 [M5.3 prerequisite predicates](../../../docs/implementation/contracts/block-device-prerequisites.md).
-They establish finite modeled behavior, not host-image persistence or complete
-storage acceptance. `block_image` covers host-image persistence for the admitted
-fixture only; it supplies no architectural HTIF case or storage acceptance.
+`block_image` adds host-image persistence evidence for the admitted fixture.
 Every deliberately wrong expectation must be rejected.
 
-From the repository root, run `python tools/run.py model build --background`
-and then `python tools/run.py model wait`. The canonical build registers these
-harnesses with CTest and includes their verdicts in its result.
+The canonical model build records the CTest verdict with its build receipt.
+The [check schedule](../../../tools/README.md#check-scheduling-during-fan-out)
+governs focused local feedback and hosted validation.

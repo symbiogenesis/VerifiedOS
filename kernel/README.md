@@ -25,7 +25,7 @@ retains that acceptance work.
 | File | What it implements | What holds it on the host |
 | --- | --- | --- |
 | [include/vos_kernel.h](include/vos_kernel.h) | The records: slot, frame, executive cursor, CSR roster, machine, context, completion, extent, partition and initialization records, and their build-time capacities | The Gallina records `Slot`, `Frame`, `Machine`, `Context`, `Completion` and `Extent` it mirrors |
-| [include/vos_platform.h](include/vos_platform.h) | The one difference between the two builds: a saved register is a pointer-typed capability slot on the target and a value/tag pair in the host model | `Word * bool` of PartitionContext.v's merged file |
+| [include/vos_platform.h](include/vos_platform.h) | Saved-register representation for both builds. Target builds use pointer-typed slots and the host model uses a value/tag pair | The [merged integer/capability register file](../proofs/PartitionContext.v) uses `Word * bool` |
 | [src/executive.c](src/executive.c) | The table-driven cyclic executive for one table with one tenant per slot: the time-to-slot map, the consumer's structural table checks, and the cursor that releases each table entry at its table instant | Generated `kx` lines for `slot_index_at`, `disjoint`, `pairwise_disjoint`, `total_width` and the in-frame conjunct of `slot_fits`; the release instants are the harness's own expectation from R-11-014a and R-11-014d, since CyclicExecutive.v defines none |
 | [src/context.c](src/context.c) | The image a switch installs and the image a same-label rotation installs; the pending arms; semantic completion; in the host model only, the revocation filter and the sanitized-image dispatch check | Generated `kc`, `kr` and `kq` lines for `canonical_post`, `Switch`, `Rotation`, `pending_written`, `SemanticCompletion`, `filtered` and `ImageIsSanitized` |
 | [src/partition.c](src/partition.c) | Partition root handling over the consumer's initialization record: the refusals the ABI's section 7 names, extent containment, one partition per tenant, and the readability of the declared extents | Generated `ke` lines for `within`, `extent_eqb`, `separated`, `compatible` and `ExtentsAreReadable`; the section 7 refusals, containment and the one-partition-per-tenant refusal only by fixed controls |
@@ -35,7 +35,11 @@ retains that acceptance work.
 | [vos/kernel_restore.py](../tools/vos/kernel_restore.py) | Scalar final restore emission and generated target controls, with distinct setup, restore and dispatch extents | [test_kernel_restore.py](../tools/tests/test_kernel_restore.py) checks assembler acceptance, missing observations, exact write multiplicity and stale build refusal; `kernel restore` checks actual emulator traces and in-program HTIF controls |
 | [include/vos_target.h](include/vos_target.h), [src/target.c](src/target.c), [test/target_unit.c](test/target_unit.c) and [vos/kernel_target.py](../tools/vos/kernel_target.py) | The exact scalar composition, actual byte readers and C switch/executive joined to assembly entry and final restore | `kernel target` runs the signed composition and executable defects on Sail |
 
-`python tools/run.py kernel check` runs the host differential and the trace reader's; `python tools/run.py kernel mutants` runs the authored defects through both and credits each kill to the kind of expectation that decided it: a Gallina vector, a fixed consumer control, or the harness's release expectation. The [tool guide](../tools/README.md) lists the command.
+`python tools/run.py kernel check` runs the host-model and trace-reader
+differentials. `python tools/run.py kernel mutants` classifies each detected
+defect by the expectation it failed, whether a Gallina vector, a fixed consumer
+control or a release expectation. The [tool guide](../tools/README.md) lists
+both commands.
 
 On Linux, `python3 tools/run.py test --only kernelhandoff` compiles the separate
 handoff controls with warnings as errors, AddressSanitizer and UndefinedBehaviorSanitizer.

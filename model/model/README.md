@@ -1,2 +1,4 @@
-The Sail specification modules. `riscv.sail_project` names every one of them and
-the order they are read in.
+# Sail specification modules
+
+The [Sail project file](riscv.sail_project) defines module membership and build
+order.

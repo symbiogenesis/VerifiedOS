@@ -7,8 +7,8 @@ with capability semantics transplanted from
 [sail-cheri-riscv](https://github.com/CTSRD-CHERI/sail-cheri-riscv) for a
 purecap-only machine.
 
-The model specifies assembly language formats of the instructions, the corresponding
-encoders and decoders, and the instruction semantics.
+The model defines assembly syntax, instruction encodings and execution semantics
+for the [VerifiedOS ISA profile](../docs/hardware/isa-profile.md).
 
 ## What is Sail?
 
@@ -30,15 +30,11 @@ these components into a C++ model (`sail_riscv_model.{h,cpp}`), which
 is then wrapped in a C++ harness and compiled into a `sail_riscv_sim`
 executable binary to give an RISC-V emulator.
 
-When running this emulator on a RISC-V ELF binary (`test.elf`), the
-emulator can also be a provided a configuration file in JSON format
-(for example `dut_config.json`, passed with `--config`). If no configuration file is
-provided, a default RV64 configuration is assumed; this default
-configuration can be printed using the `--print-default-config` option
-to the `sail_riscv_sim` emulator. A _template_ for the configuration
-files that are used to test the model is
-[here](config/config.json.in); this template will need to be edited to
-match a desired configuration.
+Pass a JSON configuration to the emulator with `--config FILE`. For the
+VerifiedOS scalar profile, use [`verifiedos.json`](config/verifiedos.json).
+With no configuration file, the emulator uses its compiled-in default.
+Use `--print-default-config` to print that JSON or inspect the
+[CMake configuration template](config/config.json.in).
 
 The Sail compiler also generates a JSON schema
 (`sail_riscv_config_schema.json`) for the configuration file from the
@@ -86,37 +82,23 @@ The simulator can be used to execute small test binaries.
 $ build/c_emulator/sail_riscv_sim <elf-file>
 ```
 
-Test suites targeting RV64 and RVV (RISC-V Vector Extension) are downloaded automatically when enabled.
-`build_simulator.sh` downloads the standard `riscv-tests` suite but registers none of its tests:
-each addresses memory through an integer written into a base register, which on this purecap
-machine is an untagged capability, so its first load or store faults
-(see [`test/CMakeLists.txt`](test/CMakeLists.txt)). The vector and architectural
-test options, such as `-DENABLE_RISCV_VECTOR_TESTS_V256_E64=ON`, register stock
-programs without that exclusion, so they are not a passing suite on this machine;
-no project tool enables them.
-All enabled test suites, the Sail unit tests and the native harnesses can be executed using
-`make test` or `ctest` in the build directory
-(see [`test/unit_tests/README.md`](test/unit_tests/README.md) for more information).
+The [test guide](test/README.md) explains which external programs CMake
+downloads, which it registers with CTest, and why the profile sweep runs the
+stock RV64 suite separately. The model's [Sail unit tests and native
+harnesses](test/unit_tests/README.md) are registered with CTest. Follow the
+[repository check schedule](../tools/README.md#check-scheduling-during-fan-out)
+when selecting local checks.
 
 ### Configuring platform options
 
-The model is configured using a JSON file specifying various tunable
-options. The default configuration used for the model can be examined
-using the `--print-default-config` option. To
-use a custom configuration, save the default configuration into a
-file, edit it as needed, and pass it to the simulator using the
-`--config` option.
-
-To override only a small subset of options while using the default configuration
-or a custom configuration file as a base, the `--config-override` option can be
-used. This option allows one or more additional JSON configuration files to be specified,
-whose fields take precedence over those in the base configuration.
+Use `--config-override FILE` to override selected fields of the compiled-in
+default or the JSON selected by `--config`. Repeat the option to apply multiple
+override files.
 
 ### Attaching a debugger
 
-The simulator can offer a `gdbserver`-like endpoint for debuggers like
-GDB and LLDB. See [here](c_emulator/gdb/README.md) for more
-information.
+See the [remote debugger setup](c_emulator/gdb/README.md) for connecting GDB
+or LLDB to the emulator.
 
 ## Supported RISC-V ISA features
 
@@ -146,7 +128,8 @@ but no extension in these sources reads it.
 
 ## Example RISC-V instruction specifications
 
-These are verbatim excerpts from the model file containing the base instructions, [I/base_insts.sail](model/extensions/I/base_insts.sail), with a few comments added.
+These examples illustrate the instruction declarations in
+[`I/base_insts.sail`](model/extensions/I/base_insts.sail).
 
 ### ITYPE (or ADDI)
 
@@ -286,28 +269,12 @@ Imperas. To date, only sequentially consistent behaviour was observed there.
 
 ## Generating theorem-prover definitions
 
-Sail aims to support the generation of idiomatic theorem prover
-definitions across multiple tools. Of those, this tree builds Rocq alone.
-There is no Isabelle, HOL4 or Lean target and no handwritten Lem or Lean
-library under one, because a dormant target's support is model state that
-goes stale where no typechecker can see it.
-
-These theorem-prover translations can target multiple monads for
-different purposes. The first is a state monad with nondeterminism and
-exceptions, suitable for reasoning in a sequential setting, assuming
-that effectful expressions are executed without interruptions and with
-exclusive access to the state.
-
-For reasoning about concurrency, where instructions execute
-out-of-order, speculatively, and non-atomically, there is a free
-monad over an effect datatype of memory actions. This monad is also
-used as part of upstream's concurrency support via the RMEM
-tool.
-
-The files under [`handwritten_support`](./handwritten_support) provide the library
-definitions Rocq needs. Building the Rocq output also needs the `rocq-sail-stdpp`
-library, which the project's switches do not carry;
-[the opam guide](../tools/opam/README.md) says when to add it back.
+`python tools/run.py model rocq` emits the [canonical machine
+term](../docs/assurance/canonical-machine-term.md) for the frozen scalar
+composition. The [handwritten support module](handwritten_support/riscv_extras.v)
+supplies definitions used by that output. Compiling the emitted term requires
+`rocq-sail-stdpp`. The [opam guide](../tools/opam/README.md) records the package
+qualification and conditions for including it in a locked switch.
 
 ## Directory Structure
 

@@ -1,4 +1,5 @@
-# Sail unit tests. Currently this only runs the default config (RV64D).
+# Generated Sail unit tests and standalone native harnesses. The
+# boot-control harness selects the RoT composition explicitly.
 
 # Exercise the emulator's actual parser without initializing the Sail model.
 # The controller checks CLI11's conversion diagnostic and exit code, so model
@@ -42,12 +43,9 @@ add_executable(watchdog_join "watchdog_join.cpp")
 target_link_libraries(watchdog_join PRIVATE riscv_model default_config)
 add_test(NAME "watchdog_join" COMMAND $<TARGET_FILE:watchdog_join>)
 
-# The two inverted expectations. These are registered by the assertion each one
-# must reach rather than with WILL_FAIL, which accepts any nonzero exit and so
-# would record a crash, or the usage error this harness returns for an
-# unrecognized argument, as the expected failure. PASS_REGULAR_EXPRESSION
-# requires the intended message, and FAIL_REGULAR_EXPRESSION refuses the success
-# line, so a run that both printed the message and claimed to pass is a failure.
+# An inverted expectation must reach its intended assertion. Match that
+# diagnostic and reject the success line so an unrelated nonzero exit or a
+# contradictory result cannot satisfy the test.
 add_test(NAME "watchdog_join_retirement_bites"
     COMMAND $<TARGET_FILE:watchdog_join> --negative-retirement-bites)
 set_tests_properties(watchdog_join_retirement_bites PROPERTIES

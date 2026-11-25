@@ -1,6 +1,10 @@
 # Contributing
 
-When contributing, please follow the [code style](CODE_STYLE.md) in use.
+For work in this curated model, follow the [VerifiedOS repository
+instructions](../AGENTS.md#before-editing-the-model-or-rtl) and the
+[model's code style](CODE_STYLE.md).
+
+## Contributions to upstream Sail RISC-V
 
 Pull requests should be a single set of related changes with a clean commit
 history free from merge commits.

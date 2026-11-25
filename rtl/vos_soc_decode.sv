@@ -1,56 +1,27 @@
 // SPDX-License-Identifier: Apache-2.0
 //
-// The SoC top's address decode, over the map the frozen composition writes.
+// Decode complete physical access intervals against the generated SoC map.
+// Region and aperture hits report geometric containment independently. The
+// permission output applies the matched region's PMA to the access kind.
+// Consumers must check permission before routing a hit.
 //
-// This is the map-facing half of the SoC top and nothing else. Given a physical
-// address, an access width and an access kind, it answers three questions and
-// deliberately refuses a fourth:
-//
-//   1. which declared memory region contains the whole access, if any;
-//   2. whether that region's own PMA permits an access of this kind;
-//   3. which declared MMIO aperture claims the address, if any;
-//   4. and, where the access is inside an IO region that permits it and no aperture
-//      claims it, it says so and stops.
-//
-// The policy is owned by docs/hardware/platform-device-contracts.md and applied
-// by vos_device_route: ordinary DTB reads in the composed lower ROM interval are
-// routed to ROM; all other unclaimed IO is refused. This decoder reports the case
-// without embedding that routing policy. The Sail fallback and the core-facing
-// top still need the corresponding refinement before SoC agreement is claimed.
-//
-// **Nothing here is a device.** No register, no transmit path and no descriptor ring:
-// an aperture index is the whole of what this hands upward, and what sits behind one
-// is the imported reference the milestone brings in through its own gitlink.
-//
-// It is authored rather than generated, where vos_soc_map_pkg.sv beside it is
-// generated: the map is a fact the composition owns and this is a reading of it.
-// Nothing holds this module against the model's own `pmaCheck` today, and a
-// cross-check that did would be this module's counterpart to what
-// `run.py rtl crosscheck` already does for the capability format.
+// For permitted IO with no aperture, the decoder asserts unclaimed_io_o.
+// [The routing contract](../docs/hardware/platform-device-contracts.md#unclaimed-io-and-the-attested-device-tree)
+// assigns that case to [the route module](vos_device_route.sv). SoC agreement
+// still requires Sail fallback alignment and core-facing integration.
 
 module vos_soc_decode
   import vos_soc_map_pkg::*;
 #(
-  // The access-width input's width. Five bits reaches sixteen bytes, which is one
-  // capability-carrying granule pair and above anything the frozen profile's load
-  // and store surface emits; it is a parameter rather than a literal so that a
-  // caller with a wider burst is a parameter change and not an edit here.
+  // Width of the byte-count input. Five bits encodes counts from 0 to 31.
   parameter int unsigned BytesWidth = 5
 ) (
   // The physical address, at the one width R-15-002a fixes.
   input  logic [VosPhysAddrBits-1:0]          addr_i,
-  // How many bytes the access covers, from `addr_i` upward. Zero is no access and
-  // decodes as a miss, so a caller that has not driven this gets a refusal rather
-  // than a hit at address zero.
+  // Number of bytes starting at addr_i. A zero count yields no hit.
   input  logic [BytesWidth-1:0]               bytes_i,
-  // The access kind, as the three this module encodes: a fetch is `fetch_i` alone,
-  // a load is neither, a store is `write_i` alone. Asserting both names no kind at
-  // all, the model's `MemoryAccessType` carrying no constructor that is a fetch and
-  // a store at once, so the decode refuses that encoding outright. It is refused
-  // rather than read as a conjunction of the two permissions because a main-memory
-  // region is executable and writable together, so that conjunction would *admit*
-  // the malformed case wherever the kernel's own code and data live; the refusal is
-  // the same fail-closed reading a zero-byte access and a straddling one already get.
+  // Fetch and store each assert their own bit. A load clears both.
+  // Asserting both bits denies permission even when the interval hits a region.
   input  logic                                fetch_i,
   input  logic                                write_i,
 
@@ -68,10 +39,9 @@ module vos_soc_decode
   output logic                                unclaimed_io_o
 );
 
-  // The access as the interval it is, widened to the width the map is stated at.
-  // Computed over the full 64 bits rather than over `VosPhysAddrBits` so that an
-  // access whose last byte crosses the top of the space compares as the address it
-  // has rather than wrapping into a region that does not hold it.
+  // Compare the half-open interval [access_lo, access_hi) at map width.
+  // Widen before adding so a scalar access across the physical address limit
+  // retains its out-of-range end for the containment checks.
   logic [63:0] access_lo;
   logic [63:0] access_hi;
 
@@ -92,14 +62,9 @@ module vos_soc_decode
           && access_hi <= (VosRegions[i].base + VosRegions[i].size)) begin
         region_hit_o   = 1'b1;
         region_index_o = ($clog2(VosRegionCount))'(i);
-        // One conjunct per asserted kind and the read bit for the kind that
-        // asserts neither, so a fetch is decided by `executable` alone and never
-        // additionally by `readable`, which is the model's own reading
-        // ([pmaCheck](../model/model/sys/mem.sail#pmaCheck)) and not a stricter one on any
-        // of the three kinds it encodes. The leading term is the one place this is
-        // stricter, and what it is stricter about is an input `pmaCheck` has no
-        // constructor for: both bits asserted is refused here rather than decided,
-        // so no well-formed access sees it and a malformed one gets a refusal.
+        // Apply the access-kind permissions selected by
+        // [pmaCheck](../model/model/sys/mem.sail#pmaCheck). A fetch uses the
+        // executable bit alone. The leading term rejects the invalid encoding.
         permitted_o    = ~(fetch_i & write_i)
                        & (~fetch_i | VosRegions[i].executable)
                        & (~write_i | VosRegions[i].writable)
@@ -121,10 +86,8 @@ module vos_soc_decode
     end
   end
 
-  // The one case this module reports and does not resolve. It is not a hypothetical:
-  // the attested devicetree occupies the lower half of the ROM region, is claimed by
-  // no aperture because it is a blob rather than a device, and lands here on every
-  // composed die.
+  // The attested device-tree interval has no aperture. The route module
+  // uses this flag together with the composed interval and access kind.
   assign unclaimed_io_o = region_hit_o & permitted_o & ~aperture_hit_o
                         & VosRegions[region_index_o].io;
 

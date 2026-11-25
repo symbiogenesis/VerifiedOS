@@ -8,14 +8,12 @@ with grants filtered by the current revocation snapshot. The
 [roster contract](../docs/implementation/contracts/boot-roster.md)
 fixes its place as the kernel's first partition.
 
-**This is a host-checked core, not an executable target roster member.** M1.2f's
-accepted backend is available. Trusted M4.4 kernel effect bindings, authenticated
-manifest handoff, and the M7.1a image and boot trace remain integration joins.
-The [bounded producer trial](route/README.md) keeps C as the M8a route after
-the emitted Vélus Clight interface is refused by that backend's C frontend.
-The code does not perform compartment entry, teardown,
-zeroization, revocation or capability derivation. M6.1b retains the Lustre/Vélus
-lowering and its control-plane obligations.
+The C core has host comparisons and a [bounded scalar target
+transport](#contained-target-transport). Authenticated manifest handoff and
+full-roster start, fault and restart observations remain M7.1 integration work.
+The kernel owns compartment entry, teardown, zeroization, revocation and
+capability derivation. C remains the M8a producer. M6.1b owns the separate
+[Lustre/Vélus lowering trials](route/README.md) and control-plane obligations.
 
 ## Manifest source and implementation choices
 
