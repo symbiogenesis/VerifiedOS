@@ -53,5 +53,5 @@ owns the composed firmware campaign.
 The firmware C uses bounded loops and fixed storage. Image-derived lengths
 are checked against the composition before use as loop bounds. The
 [host harness](../tools/vos/boot_handoff.py) compiles its C units at `-O2`
-with `-ffreestanding -fno-builtin`. These files are original Apache-2.0
-artifacts under the [licensing map](../COPYRIGHT.md#the-map).
+with `-ffreestanding -fno-builtin`. The [licensing map](../COPYRIGHT.md#the-map)
+assigns Apache-2.0 to the original firmware sources and CC-BY-4.0 to this guide.
