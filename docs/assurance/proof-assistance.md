@@ -502,6 +502,8 @@ from a complete exclusion argument, and record every computational assumption.
 Neither case selects a Lean dependency, a new checker or a native-evaluation
 exception to the locked Rocq acceptance route.
 
+The [Riemann and Dirichlet GRH release](../background/open-math-conjectures.md#generalized-riemann-hypothesis-for-dirichlet-l-functions) gives an example of independent checks that address both the statement and the proof. Reviewers compared a Mathlib-only challenge to the exports, audited the actual axiom dependencies, reproduced the export in a sandbox and checked it with independent kernels. The [unforced Navier–Stokes release](../background/open-math-conjectures.md#three-dimensional-navierstokes-breakdown) illustrates a separate question for numerical proofs. Its conditional theorem needs a concrete certificate satisfying interval bounds. A review of such a producer must identify the input bytes and the computation that establishes those bounds.
+
 For a new external Lean validation experiment, the [Comparator deprecation
 notice at `865edc14`](https://github.com/leanprover/comparator/blob/865edc14486c3388e9225daa971da8e157488c3e/README.md#deprecation)
 directs users to Lean 4.35.0 or later's `lake comparator` and `lake check`;
