@@ -10,11 +10,11 @@
 // This file implements functions used by vector instructions.
 // ******************************************************************************
 
-// The rounding mode every vector floating-point instruction uses. Rounding is
-// static here (R-15-083): the dynamic `frm` CSR went with scalar floating
-// point (R-15-039) and RVV encodes no rounding-mode field, so round-to-nearest
-// -ties-to-even is the mode, and the conversions that name round-toward-zero
-// architecturally still pass their own mode to the softfloat interface.
+// Vector floating-point operations that use the default rounding mode select
+// round-to-nearest, ties-to-even (R-15-083). Explicit RTZ conversions select
+// round-toward-zero, and vfncvt.rod.f.f.w selects round-to-odd. Each mode
+// is passed directly to SoftFloat. The profile excludes the dynamic rounding
+// mode CSR frm (R-15-039c).
 let fp_static_rm : bits(3) = 0b000 // RNE
 
 // Check for valid floating-point operation types: the element width. The
