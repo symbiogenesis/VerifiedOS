@@ -165,6 +165,11 @@ def _dependencies_refuse_what_they_cannot_place() -> None:
              "an entry before every heading has no category")
     _refused(lambda: cic_corpus.parse_dependencies("@eq nat myax myax\n"),
              "a continuation before every heading belongs to no entry")
+    for diagnostic in ("M.unsafe relies on unchecked sort eliminations.",
+                       "M.unsafe relies on unchecked\n  sort eliminations."):
+        mixed = _DEPENDENCIES.replace("myax : nat\n", f"myax : nat\n{diagnostic}\n")
+        _refused(lambda: cic_corpus.parse_dependencies(mixed),
+                 "unchecked sort eliminations cannot disappear from a mixed report")
 
 
 def _about_states_kind_opacity_and_universes() -> None:

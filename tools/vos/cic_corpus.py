@@ -42,6 +42,10 @@ QUALIFIED = re.compile(r"[\w'][\w']*(?:\.[\w'][\w']*)*")
 # Headings have no space before `:`, whereas dependency entries have `ident :`.
 _HEADING = re.compile(r"^([^\s:](?:[^:]*[^\s:])?):$")
 _ENTRY = re.compile(r"^([\w'][\w']*(?:\.[\w'][\w']*)*)\s+:")
+_UNCHECKED_ELIMINATIONS = re.compile(
+    rf"^[ \t]*({QUALIFIED.pattern})\s+relies\s+on\s+unchecked\s+sort\s+eliminations\.[ \t\r]*$",
+    re.MULTILINE,
+)
 _EXPANDS = re.compile(r"^Expands to:\s+(\w+)\s+(\S+)")
 _WORD = re.compile(r"[\w']+")
 _FIX = re.compile(r"(?<![\w'])fix(?![\w'])")
@@ -163,13 +167,15 @@ def blocks(stdout: str, keys: list[str]) -> dict[str, str]:
 
 
 def parse_dependencies(text: str) -> Dependencies:
-    """Parse `Print All Dependencies` output into `Dependencies`, failing closed on unknown headings or unframed lines."""
+    """Parse dependency groups and refuse declarations relying on unchecked sort eliminations."""
     out = empty_dependencies()
     stripped = text.strip()
     if not stripped:
         raise ParseError("the dependency query printed nothing")
     if stripped == CLOSED:
         return out
+    if unchecked := _UNCHECKED_ELIMINATIONS.search(stripped):
+        raise ParseError(f"{unchecked[1]} relies on unchecked sort eliminations")
     key: str | None = None
     for line in stripped.splitlines():
         body = line.rstrip()
