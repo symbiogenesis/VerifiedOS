@@ -1,0 +1,4 @@
++ timeout 60 /root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/bin/rocq c -q -boot -R /root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/lib/coq/theories Corelib -Q /root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1/lib/coq/user-contrib/Stdlib Stdlib -Q /root/build/fanout-retained/4b3b843a3b9fe80d0323/holdfast-20261124-canonical/lane/replay-inputs/private/lib/coq/user-contrib/stdpp stdpp -R /root/build/fanout-retained/4b3b843a3b9fe80d0323/holdfast-20261124-canonical/lane/replay-inputs/canonical-support SailStdpp -R /root/build/fanout-retained/4b3b843a3b9fe80d0323/holdfast-20261124-canonical/lane/tag-probe-pinned '' -R . '' -w +default,-abstract-large-number -set 'Default Goal Selector=!' -disallow-sprop TagConservativity.v
+File "./TagConservativity.v", line 91, characters 65-67:
+Error: No interpretation for number "42".
+

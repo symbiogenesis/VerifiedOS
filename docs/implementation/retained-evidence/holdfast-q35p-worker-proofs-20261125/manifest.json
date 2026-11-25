@@ -1,0 +1,148 @@
+{
+  "files": {
+    "conservativity/attempt-1.log": {
+      "bytes": 1092,
+      "encoding": "identity",
+      "path": "conservativity/attempt-1.log",
+      "sha256": "3f3b8694217ed7cc29447fe0e382e7fc4b99896086f4b1482a9e2a0c88c231a1"
+    },
+    "conservativity/attempt-1.sha256": {
+      "bytes": 86,
+      "encoding": "identity",
+      "path": "conservativity/attempt-1.sha256",
+      "sha256": "59cca7feafd9c3236fd06b6e9db284ec25ce3742e4280787e8d7661b643d243a"
+    },
+    "conservativity/attempt-2.log": {
+      "bytes": 819,
+      "encoding": "identity",
+      "path": "conservativity/attempt-2.log",
+      "sha256": "0a5a7f71d9ef3fac801a17e4c4ea2850c9b5a63bc1174a654f5c3a901edcb9f3"
+    },
+    "conservativity/attempt-2.sha256": {
+      "bytes": 86,
+      "encoding": "identity",
+      "path": "conservativity/attempt-2.sha256",
+      "sha256": "741929545e409b24d34f8776e945611ecee5f10dfbabfa15537b9a26800a9464"
+    },
+    "conservativity/attempt-3.log": {
+      "bytes": 807,
+      "encoding": "identity",
+      "path": "conservativity/attempt-3.log",
+      "sha256": "2e114488c6a069d5a87c0a2073252f5d0689b25c6b635f027614f194623719c8"
+    },
+    "conservativity/attempt-3.sha256": {
+      "bytes": 86,
+      "encoding": "identity",
+      "path": "conservativity/attempt-3.sha256",
+      "sha256": "389a3683eb0fbbd5f4dfbeff9c0146fb645700a9a4dcdee0e9c4964a70b7512b"
+    },
+    "conservativity/attempt-4.log": {
+      "bytes": 719,
+      "encoding": "identity",
+      "path": "conservativity/attempt-4.log",
+      "sha256": "f16c3007926b5cfda6e56a1d72ecb962f59fea2a661cd1c43b3a827d20a9d5d5"
+    },
+    "conservativity/attempt-4.sha256": {
+      "bytes": 86,
+      "encoding": "identity",
+      "path": "conservativity/attempt-4.sha256",
+      "sha256": "f21bb4fd6e5512a24c7b0e558da00a971652bf361b1c5fc7209f1a76b0f45fb4"
+    },
+    "conservativity/audit-commands.log": {
+      "bytes": 1377,
+      "encoding": "identity",
+      "path": "conservativity/audit-commands.log",
+      "sha256": "d67b92b8ee4373c5b25855d9fade27bb26679f3d003c5bb45d4f08291cb39374"
+    },
+    "conservativity/audit-inputs.sha256": {
+      "bytes": 1081,
+      "encoding": "identity",
+      "path": "conservativity/audit-inputs.sha256",
+      "sha256": "5c04c04675f7cb2d98ac2e8d37c9d1e78037e51e1a85c58bc9c0d42b8190b3fb"
+    },
+    "conservativity/checkpoint.txt": {
+      "bytes": 96,
+      "encoding": "identity",
+      "path": "conservativity/checkpoint.txt",
+      "sha256": "7e8aaf887cb875c1337f8e8c0a12b4782d39d914f55e2c47ea4f955e18bf72ec"
+    },
+    "conservativity/kernel.stderr": {
+      "bytes": 2211,
+      "encoding": "identity",
+      "path": "conservativity/kernel.stderr",
+      "sha256": "ac28ca5d4673242ab11219fe8c2be2d9d6daf4eb68c7ccc55e0cfaaa417e630e"
+    },
+    "conservativity/reading.stdout": {
+      "bytes": 2350,
+      "encoding": "identity",
+      "path": "conservativity/reading.stdout",
+      "sha256": "3acba1b3ba8286229449c0294e25cda7292be909246799305f262afcd577e3a8"
+    },
+    "emission-absolute.json": {
+      "bytes": 4923,
+      "encoding": "identity",
+      "path": "emission-absolute.json",
+      "sha256": "f36e76056048457668a001011827b75bc8555126098c1fdf56763c0acf6d0b52"
+    },
+    "emission-relative.json": {
+      "bytes": 4854,
+      "encoding": "identity",
+      "path": "emission-relative.json",
+      "sha256": "c9b226f8ea8d4fa7076c76cefe5371a114ba6f9bec6c313a222c14293bd0f3b7"
+    },
+    "physical-callers/candidate-1.log": {
+      "bytes": 346,
+      "encoding": "identity",
+      "path": "physical-callers/candidate-1.log",
+      "sha256": "6080a32ba3d43c15c2755d73d26b8f6bfd176b956597241bb2f9ffed20f1711e"
+    },
+    "physical-callers/candidate-2.log": {
+      "bytes": 454,
+      "encoding": "identity",
+      "path": "physical-callers/candidate-2.log",
+      "sha256": "f227c55d5e97e346f6fa989a587ded45ccd8d4c187031f6ea4ac0fd3fbf6a972"
+    },
+    "physical-callers/candidate-3.log": {
+      "bytes": 1852,
+      "encoding": "identity",
+      "path": "physical-callers/candidate-3.log",
+      "sha256": "b748fbb8e810421523d1291534caf8e3b1428a13ac7826225181afe3dc6171b5"
+    },
+    "physical-callers/candidate-4.log": {
+      "bytes": 0,
+      "encoding": "identity",
+      "path": "physical-callers/candidate-4.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "physical-callers/candidate-5.log": {
+      "bytes": 462,
+      "encoding": "identity",
+      "path": "physical-callers/candidate-5.log",
+      "sha256": "3d01bfd805e0e8af095e22fa7ec89ad2b9d557f3d09bc219a20aede7e9599c47"
+    },
+    "physical-callers/checkpoint.json": {
+      "bytes": 10428,
+      "encoding": "identity",
+      "path": "physical-callers/checkpoint.json",
+      "sha256": "fad580959ffb57adddc9e6cdad6851e604162e6411451d8795b04b6b92e81d37"
+    },
+    "physical-callers/reading-and-assumptions.log": {
+      "bytes": 24755,
+      "encoding": "identity",
+      "path": "physical-callers/reading-and-assumptions.log",
+      "sha256": "3211dfc4b53e6f0f7d655420d9d5bb8d23f49590f6ac9e3d6fc8414e65c2a846"
+    },
+    "physical-callers/scoped-kernel.log": {
+      "bytes": 0,
+      "encoding": "identity",
+      "path": "physical-callers/scoped-kernel.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "source-comparison.json": {
+      "bytes": 3629,
+      "encoding": "identity",
+      "path": "source-comparison.json",
+      "sha256": "49db3223aeb95a74365a76443a2d13530b09410ac5cffe0378244019f5829bd8"
+    }
+  }
+}

@@ -157,10 +157,12 @@ def main() -> None:
             outputs.append({p.name: sha(p) for p in lane.glob("bindings*.v")})
         if outputs[0] != outputs[1] or len(outputs[0]) != 2:
             raise RuntimeError("repeat emission changed or omitted an output")
-        for name in ["TagInterpreter.v", "TagControls.v"]:
-            shutil.copy2(repo / "tools/sail-tag-outcomes" / name, out / "emitted" / name)
+        authored_modules = ("TagInterpreter", "TagControls", "TagConservativity", "PhysicalCallerBridge")
+        for name in authored_modules:
+            proof_source = repo / "tools/sail-tag-outcomes" / (name + ".v")
+            shutil.copy2(proof_source, out / "emitted" / proof_source.name)
         maps = [*flags, "-R", out / "candidate", "SailStdpp", "-R", out / "emitted", ""]
-        for name in ["bindings_types", "bindings", "TagInterpreter", "TagControls"]:
+        for name in ("bindings_types", "bindings", *authored_modules):
             result = run("strict-" + name, [args.rocq_prefix / "bin/rocq", "c", *maps,
                          *q["strict_flags"][1:], out / "emitted" / (name + ".v")])
             if result.stdout or result.stderr:

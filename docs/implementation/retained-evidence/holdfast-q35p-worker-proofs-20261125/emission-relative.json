@@ -1,0 +1,79 @@
+{
+  "checks": {
+    "matched_retained_outputs": true,
+    "unchanged_inputs": true
+  },
+  "expected": {
+    "bindings.v": "35a06a8b74e79aba570d7862472b884681da0c0cacf3fb6fd20955518b19b7d3",
+    "bindings_types.v": "60fd1ba423a0ee2b6b62987abdd4bda72324b5e9dd9864b8d3b272cdeb9c2e6d"
+  },
+  "input_hashes": {
+    "/root/.opam/verifiedos-sail-0.20.3-ocaml-5.4.1/bin/sail": "6f97c72944ef83ae40a741d0a94145f4410270e2968dd2b53f420eaab8f86417",
+    "/root/z3-5.3.3/bin/z3": "7b0f9d01672be3bcc973de8081d38df7156b019231f7681d3e1e7f5cfdbac29c",
+    "/mnt/c/Users/symbi/source/repos/VerifiedOS/docs/implementation/retained-evidence/close3-q35p-20261013/bindings.sail.txt": "aff11682da08211dc364a767dcec579b008d1ca1603054d8e9ab71c82e0701b4",
+    "/root/build/fanout-retained/4b3b843a3b9fe80d0323/holdfast-20261124-canonical/lane/replay-inputs/plugins/sail_plugin_c.cmxs": "652eecd4fe77b093e653e0cf154f66633caab8859e06bbb4ed950d3e947ef2b8",
+    "/root/build/fanout-retained/4b3b843a3b9fe80d0323/holdfast-20261124-canonical/lane/replay-inputs/plugins/sail_plugin_coq.cmxs": "3f2fb3bdbbc3eb31e9e48afc299f7b1da0f13d9bbbde18b01795c39cf920f821",
+    "/root/build/fanout-retained/4b3b843a3b9fe80d0323/holdfast-20261124-canonical/lane/replay-inputs/plugins/sail_plugin_doc.cmxs": "8ba51e6dd365ac10eafd897878d064582b81d0a1f1885d42c65af3496c231c98",
+    "/root/build/fanout-retained/4b3b843a3b9fe80d0323/holdfast-20261124-canonical/lane/replay-inputs/plugins/sail_plugin_latex.cmxs": "825543bb3e6f5e255bb79000213a8624592dd0653ad21ce3ea07995afb310569",
+    "/root/build/fanout-retained/4b3b843a3b9fe80d0323/holdfast-20261124-canonical/lane/replay-inputs/plugins/sail_plugin_lean.cmxs": "503386b8aadb4fabbde17565d8d3180e40971af908d38cf40010847306d9ed99",
+    "/root/build/fanout-retained/4b3b843a3b9fe80d0323/holdfast-20261124-canonical/lane/replay-inputs/plugins/sail_plugin_lem.cmxs": "b2d2aa9e4f681b9d3b5412b7f783c07f6865392dc9ecbf0352adfa1c96642070",
+    "/root/build/fanout-retained/4b3b843a3b9fe80d0323/holdfast-20261124-canonical/lane/replay-inputs/plugins/sail_plugin_ocaml.cmxs": "1b7b0643090f8d415108c668df3d7bc926237074a06277a3ddb0f0507b26ddb9",
+    "/root/build/fanout-retained/4b3b843a3b9fe80d0323/holdfast-20261124-canonical/lane/replay-inputs/plugins/sail_plugin_output.cmxs": "e6e831ea6580e6d98ffde493087be978792285012a22e97077bf5fff0a08c1b0",
+    "/root/build/fanout-retained/4b3b843a3b9fe80d0323/holdfast-20261124-canonical/lane/replay-inputs/plugins/sail_plugin_smt.cmxs": "e9885b1ed1f333386e763f200a9b982d297ea543284e54963314f03672d11bd1",
+    "/root/build/fanout-retained/4b3b843a3b9fe80d0323/holdfast-20261124-canonical/lane/replay-inputs/plugins/sail_plugin_sv.cmxs": "3a424c95d1a3d86088734c75e500e75943edb0240072c27d6ee811aea2f83351"
+  },
+  "runs": [
+    {
+      "argv": [
+        "/root/.opam/verifiedos-sail-0.20.3-ocaml-5.4.1/bin/sail",
+        "--rocq",
+        "-D",
+        "CONCURRENCY_INTERFACE",
+        "--rocq-lib-style",
+        "stdpp",
+        "--rocq-alt-modules",
+        "SailStdpp.Base SailStdpp.ConcurrencyInterfaceTypes SailStdpp.ConcurrencyInterface SailStdpp.ConcurrencyInterfaceBuiltins",
+        "--rocq-output-dir",
+        "/root/build/holdfast-q35p-local-repeat-20261125/first",
+        "-o",
+        "bindings",
+        "bindings.sail"
+      ],
+      "cwd": "/root/build/holdfast-q35p-local-repeat-20261125/first",
+      "status": 0,
+      "seconds": 7.536974711001676,
+      "outputs": {
+        "bindings.v": "35a06a8b74e79aba570d7862472b884681da0c0cacf3fb6fd20955518b19b7d3",
+        "bindings_types.v": "60fd1ba423a0ee2b6b62987abdd4bda72324b5e9dd9864b8d3b272cdeb9c2e6d"
+      },
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "argv": [
+        "/root/.opam/verifiedos-sail-0.20.3-ocaml-5.4.1/bin/sail",
+        "--rocq",
+        "-D",
+        "CONCURRENCY_INTERFACE",
+        "--rocq-lib-style",
+        "stdpp",
+        "--rocq-alt-modules",
+        "SailStdpp.Base SailStdpp.ConcurrencyInterfaceTypes SailStdpp.ConcurrencyInterface SailStdpp.ConcurrencyInterfaceBuiltins",
+        "--rocq-output-dir",
+        "/root/build/holdfast-q35p-local-repeat-20261125/repeat",
+        "-o",
+        "bindings",
+        "bindings.sail"
+      ],
+      "cwd": "/root/build/holdfast-q35p-local-repeat-20261125/repeat",
+      "status": 0,
+      "seconds": 12.087019856000552,
+      "outputs": {
+        "bindings.v": "35a06a8b74e79aba570d7862472b884681da0c0cacf3fb6fd20955518b19b7d3",
+        "bindings_types.v": "60fd1ba423a0ee2b6b62987abdd4bda72324b5e9dd9864b8d3b272cdeb9c2e6d"
+      },
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ]
+}

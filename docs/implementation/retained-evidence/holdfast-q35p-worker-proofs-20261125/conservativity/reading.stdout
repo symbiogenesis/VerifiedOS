@@ -1,0 +1,60 @@
+@Old.old_step_preserved ?E ?Frame
+     : forall
+         (old : forall (Y : Type)
+                  (_ : Interface.outcome (fun _ : Type => ?E) Y) 
+                  (_ : ?Frame),
+                option (prod Y ?Frame))
+         (Y : Type) (oc : Interface.outcome (fun _ : Type => ?E) Y)
+         (tags : Old.T.tagmap) (frame : ?Frame) (_ : @Old.old_event ?E Y oc),
+       @eq (option (prod (prod Y Old.T.tagmap) ?Frame))
+         (@Old.T.step ?E ?Frame old Y oc tags frame)
+         match
+           old Y oc frame return option (prod (prod Y Old.T.tagmap) ?Frame)
+         with
+         | @Some _ p =>
+             match p return option (prod (prod Y Old.T.tagmap) ?Frame) with
+             | @pair _ _ response next_frame =>
+                 @Some (prod (prod Y Old.T.tagmap) ?Frame)
+                   (@pair (prod Y Old.T.tagmap) ?Frame
+                      (@pair Y Old.T.tagmap response tags) next_frame)
+             end
+         | @None _ => @None (prod (prod Y Old.T.tagmap) ?Frame)
+         end
+where
+?E : [ |- Type]
+?Frame : [ |- Type]
+@Old.tag_free_run_preserved ?E ?Frame
+     : forall
+         (old : forall (Y : Type)
+                  (_ : Interface.outcome (fun _ : Type => ?E) Y) 
+                  (_ : ?Frame),
+                option (prod Y ?Frame))
+         (X : Type) (fuel : nat)
+         (program : Interface.iMon (fun _ : Type => ?E) X)
+         (tags : Old.T.tagmap) (frame : ?Frame)
+         (_ : @Old.tag_free ?E X program),
+       @eq (option (@Old.T.answer ?E ?Frame X))
+         (@Old.T.run ?E ?Frame old X fuel program tags frame)
+         match
+           @Old.run_old ?E ?Frame old X fuel program frame
+           return option (@Old.T.answer ?E ?Frame X)
+         with
+         | @Some _ r =>
+             @Some (@Old.T.answer ?E ?Frame X)
+               (@Old.T.Answer ?E ?Frame X (@Old.result ?E ?Frame X r) tags
+                  (@Old.frame_after ?E ?Frame X r) 
+                  (@Old.trace ?E ?Frame X r))
+         | @None _ => @None (@Old.T.answer ?E ?Frame X)
+         end
+where
+?E : [ |- Type]
+?Frame : [ |- Type]
+Closed under the global context
+Closed under the global context
+Closed under the global context
+Closed under the global context
+Closed under the global context
+Closed under the global context
+Closed under the global context
+Closed under the global context
+Closed under the global context

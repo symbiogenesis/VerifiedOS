@@ -11,6 +11,10 @@ production support recipe, prover switch, Sail source or emitter.
   for other outcomes, primitive continuation bridges and forwarding lemmas.
 - `TagControls.v` checks the actual emitted metadata and physical-memory callers,
   positive instances and distinguishing refusals.
+- `TagConservativity.v` proves that the tag interpreter preserves legacy requests,
+  responses, event order and refusals for tag-free computations.
+- `PhysicalCallerBridge.v` checks every request kind in the minimal emitted caller,
+  arbitrary successful data replies, tag ordering and exact refusals.
 - `replay.py` reproduces the selected support builds, actual minimal emission,
   repeated output comparison and strict native controls. It copies dependencies
   privately and inventories both installed prefixes before and after. No installed
@@ -37,6 +41,8 @@ retirement. `candidate.json` and the retained receipts bind their identities.
 The replay runner's `PASS` means only these isolated compile controls passed.
 It does not perform the retained native assumption queries or kernel recheck,
 complete package tests, the production census, full canonical acceptance or a gate.
+Each emission runs in a fresh directory and passes `bindings.sail` as the relative
+input name because Sail includes that name in the emitted refusal terms.
 
 The [current qualification](../../docs/assurance/sail-memory-bindings.md)
 records all unmet joins and the immutable evidence. The original bounded search

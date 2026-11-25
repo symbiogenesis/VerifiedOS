@@ -1,0 +1,57 @@
+File "/root/build/lane-holdfast-q35p-callers-20261125/physical-caller-bridge/PhysicalCallerBridge.v", line 110, characters 5-16:
+Error:
+In environment
+addr : Arch.pa
+width : Z
+kind : Access_kind Arch.arch_ak
+meta : bool
+Unable to unify
+ "I.Next
+    (I.MemRead (Z.to_N width)
+       {|
+         I.ReadReq.pa := addr;
+         I.ReadReq.access_kind := kind;
+         I.ReadReq.va := None;
+         I.ReadReq.translation := ();
+         I.ReadReq.tag := false
+       |})
+    (λ reply : bv (8 * Z.to_N width) * option bool + Arch.abort,
+       match reply with
+       | inl (bits, _) => I.Ret (?word bits, meta)
+       | inr () =>
+           I.Next (I.GenericFail "exit")
+             (λ impossible : False,
+                match
+                  impossible
+                  return
+                    I.iMon (λ _ : Type, exception) (mword (8 * width) * bool)
+                with
+                end)
+       end)"
+with
+ "(fix iMon_bind
+     (a b : Type) (ma : Interface.iMon (λ _ : Type, exception) a)
+     (f : a → Interface.iMon (λ _ : Type, exception) b) {struct ma} :
+       Interface.iMon (λ _ : Type, exception) b :=
+     match ma with
+     | Interface.Ret x => f x
+     | @Interface.Next _ _ T oc k =>
+         Interface.Next oc (λ x : T, iMon_bind a b (k x) f)
+     end)
+    (result (mword (8 * width) * option bool) Arch.abort)
+    (mword (8 * width) * bool)%type
+    (D.sail_mem_read
+       {|
+         Mem_read_request_access_kind := kind;
+         Mem_read_request_va := None;
+         Mem_read_request_pa := addr;
+         Mem_read_request_translation := ();
+         Mem_read_request_size := width;
+         Mem_read_request_tag := false
+       |})
+    (λ reply : result (mword (8 * width) * option bool) Arch.abort,
+       match reply with
+       | Ok (data, _) => I.Ret (data, meta)
+       | Err () => D.exit ()
+       end)".
+

@@ -7,6 +7,9 @@ canonical-consumer acceptance remains owed.
 
 ## Retained evidence
 
+- [Native V1 conservativity and physical-caller checkpoint](../implementation/retained-evidence/holdfast-q35p-worker-proofs-20261125/manifest.json),
+  SHA256 `8e0eb97c3f34a8a0e56bbcf5f1a9cf1856a5c429b7916f9e0fdb806b2edd088c`.
+  Frozen source identities, minimal emission repeats and focused proof readings.
 - [Fresh sequential emulator repeat](../implementation/retained-evidence/q35p-holdfast-emulator-repeat-20261125/manifest.json),
   SHA256 `866a62b9da6f484ce28ebae0cc4f5bc6d788078dd4ab2898daaeda5a7490bcec`.
   Exact run commands, frozen identities and comparisons against the prior pair.
@@ -119,6 +122,35 @@ belongs to its elaborated candidate; source similarity transfers no verdict.
 Both preserve BSD-2-Clause notices and leave the production recipe, shared switch,
 model and emitter unchanged.
 
+## Conservativity and physical callers
+
+[TagConservativity.v](../../tools/sail-tag-outcomes/TagConservativity.v) proves
+that, for a V1 computation whose every continuation is tag-free, the tag
+interpreter and the legacy replay with the same old-event handler preserve
+return values, frame updates and ordered typed events at every fuel bound.
+Tags stay unchanged on success. The equality also preserves an old-event
+refusal or fuel exhaustion. The proof classifies every old constructor in the
+extended V1 algebra. The complete frozen native comparison with the separately
+compiled pre-extension support remains due.
+
+[PhysicalCallerBridge.v](../../tools/sail-tag-outcomes/PhysicalCallerBridge.v)
+checks each access kind in the emitted minimal `read_ram` and `write_ram`.
+It preserves the requested tag read before the data request, the supplied tag
+bit in the result and every response data bit through the emitted width cast.
+All three successful write responses call the emitted metadata loop. The write
+refusal returns `false` without that loop. The data-read refusal emits
+`GenericFail "exit"`, and unused access kinds retain their typed `internal_error`
+and continuation.
+
+The locked Rocq 9.3.0 compiled both proof objects under the strict flags. All
+15 assumption queries against the actual emitted interface had closed global
+contexts. The two scoped kernel checks passed with dependencies admitted. The
+source reconstruction matched all 29 selected private support sources.
+Two fresh minimal emissions matched both retained Rocq source files byte for
+byte when invoked with the relative `bindings.sail` name. The absolute-path
+control changed the embedded refusal locations, which the replay now preserves
+by passing the relative name in each emission directory.
+
 ## Paired emulator emission
 
 The all-module emulator generator ran with both the stock Sail plugin population
@@ -152,11 +184,11 @@ their bytes or establish complete attempt history.
 
 The [canonical candidate replay](sail-rocq-emission.md#canonical-candidate-replay)
 establishes strict whole-term compilation, recursive kernel context and compiled
-size with private support. Q35p still owes tag-free whole-computation
-conservativity, a complete frozen comparison of support, physical-caller
-coverage beyond plain requests and arbitrary read-data preservation. Repeat the
-sequential emulator isolation check if the qualification inputs differ from the
-retained pair. Q35q owns the support declaration census,
+size with private support. Q35p still owes the complete frozen comparison of
+support and the recursive closure on the qualified support. Repeat the sequential
+emulator isolation check if the qualification inputs differ from the retained
+pair. Q35q owns the hosted support declaration census and all twelve corruption
+controls, and Q35o still owes hosted qualification of the immutable emitter.
 Q35n owns cold production carriage, and Q35b owes replay and closure with
 qualified support.
 The [validation handoff](../../AGENTS.md#tool-execution-and-validation)

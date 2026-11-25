@@ -1,0 +1,14 @@
+File "/root/build/lane-holdfast-q35p-callers-20261125/physical-caller-bridge/PhysicalCallerBridge.v", line 157, characters 23-66:
+Error:
+In environment
+Response : Type
+event : I.outcome (λ _ : Type, exception) Response
+u : ()
+n : N
+request : I.ReadReq.t n
+u0 : ()
+The term "Some (Z_to_bv (8 * n) 165, Some true, ())" has type
+ "option (bv (8 * n) * option bool * ())"
+while it is expected to have type
+ "option ((bv (8 * n) * option bool + Arch.abort) * ())".
+

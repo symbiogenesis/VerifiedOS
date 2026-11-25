@@ -1,0 +1,9 @@
+File "/root/build/lane-holdfast-q35p-callers-20261125/physical-caller-bridge/PhysicalCallerBridge.v", line 67, characters 33-44:
+Error: In environment
+addr : physaddrbits
+width : Z
+Unable to unify
+ "I.Next (I.TagRead (tag_key addr))
+    (finish_read addr width Read_RISCV_acquire)"
+with "read_ram Read_RISCV_acquire (Physaddr addr) width true".
+
