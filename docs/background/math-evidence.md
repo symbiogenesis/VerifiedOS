@@ -7,7 +7,7 @@ This validates metadata and finite host/reference behavior. It supplies no theor
 | Topic | Evidence stage | Disposition | Inspected |
 | --- | --- | --- | --- |
 | [Lean Comparator maintenance route](#comparator) | source inspection | evaluate now | 2026-10-20 |
-| [Immutable composer dictionary shapes](#composer-dictionaries) | independent replay | evaluate now | 2026-10-30 |
+| [Immutable composer dictionary shapes](#composer-dictionaries) | independent replay | evaluate now | 2026-11-25 |
 | [Disputed DCP attack and MLWE premise](#dcp) | source inspection | monitor security | 2026-10-20 |
 | [Reported ETH refutation by deterministic bounded-width SAT](#eth378) | source inspection | await workload | 2026-10-27 |
 | [Integer multiplication: conditional frontier and Lean artifact](#integer109) | source inspection | await workload | 2026-10-21 |
@@ -42,12 +42,12 @@ Next action: Use the supported core route when a new external Lean evaluation is
 
 The existing host/reference composer supplies a finite synthetic package-ID-to-descriptor-index map. The generated report binds the fixture and implementation, compares an exact packed linear map with a sorted-array lookup baseline and records absent-key behavior without timing.
 
-Evidence stage: **independent replay**. Disposition: **evaluate now**. Inspected: 2026-10-30.
+Evidence stage: **independent replay**. Disposition: **evaluate now**. Inspected: 2026-11-25.
 
 Selected sources:
 
 - [tools/vos/composer.py](../../tools/vos/composer.py); identity `b96169f76319dd55c7597462472257830370fe9c86c44236ae3379efe34bcd3e`.
-- [proofs/HandlerGraph.v](../../proofs/HandlerGraph.v); identity `0f779ec5f3fb93552ea47302f2e71bc0d2d4fd5fbed82c879b3370bf56a2972e`.
+- [proofs/HandlerGraph.v](../../proofs/HandlerGraph.v); identity `0a088ecfd1e96010290cffe278da431c5aeab1b5b56a8e8b8a66ee69addfdd07`.
 
 Assumptions and exclusions:
 
@@ -297,7 +297,7 @@ Sorted reference payload SHA-256: `23b690105f12b96f3ef7a997cf508a5b775e70bcaf077
 | [tools/pyproject.toml](../../tools/pyproject.toml) | `7340fd0d1daf7751a80fdf2593831fd4958517d84839422f989752d439638f34` |
 | [tools/uv.lock](../../tools/uv.lock) | `0a470cbea5bb34c291a46053bc4c455f96ddd275adc435c14fab2a0babdbf0e1` |
 | [tools/vos/composer.py](../../tools/vos/composer.py) | `b96169f76319dd55c7597462472257830370fe9c86c44236ae3379efe34bcd3e` |
-| [proofs/HandlerGraph.v](../../proofs/HandlerGraph.v) | `0f779ec5f3fb93552ea47302f2e71bc0d2d4fd5fbed82c879b3370bf56a2972e` |
+| [proofs/HandlerGraph.v](../../proofs/HandlerGraph.v) | `0a088ecfd1e96010290cffe278da431c5aeab1b5b56a8e8b8a66ee69addfdd07` |
 | [tools/vos/math_evidence.py](../../tools/vos/math_evidence.py) | `cbe9e115518178c4ad00db96377ccbd9508544e9b24fbe78055b3d921d700a3c` |
 | [tools/vos/__init__.py](../../tools/vos/__init__.py) | `f4bf65b676335680ed2e74c496374a83a2d37380cb6bc32a0af94d192c788e36` |
 | [tools/vos/atomic.py](../../tools/vos/atomic.py) | `384e706e945f8cead1e1b3791f916f6e7f8783a7497c17dd3a551a765e670471` |
