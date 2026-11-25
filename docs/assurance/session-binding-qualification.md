@@ -1,10 +1,10 @@
 # Session-attestation qualification
 
-This document carries one part per selected attestation-session construction under
-R-12-015c, each a named member of the crown-jewel row that entry confers. A part
-states its construction, its binding, its assumptions beside what they exclude, and
-the finite classifications [the model](../../tools/vos/session_binding.py) decides;
-none states a protocol theorem, and the parts share one command and one receipt.
+This assessment covers the TLS application binding and the ensemble link under
+R-12-015c. Each uses a bounded symbolic experiment over explicit assumptions.
+One command reports both experiments from the
+[session binding model](../../tools/vos/session_binding.py). The TLS section also
+links the separate conditional Gallina theorem.
 
 ## The TLS 1.3 application binding
 
@@ -207,16 +207,11 @@ execution. Those boundaries remain part of the selected contract.
 
 ## The ensemble link session
 
-Q23c authors the second member of the same inventory row: the construction R-12-015d
-states for an ensemble link (R-15-228b) joining two members of one ensemble
-(R-02-003a). Its appraisal is unit-specific by choice, because a second unit running
-the same image is exactly the substitution an ensemble exists to exclude. The
-disposition matches the TLS part's: the construction is retained for realization and
-proof work that has not started for this ensemble member. The
-[crown-jewel inventory](crown-jewels.md) is partial for the separately authored
-conditional TLS/module scope; this member's model and theorem remain open.
-R-17-049d's record stays open, this design
-having no upstream symbolic analysis of this protocol to curate from.
+Q23c supplies the bounded symbolic reference for a link joining two ensemble
+members (R-02-003a, R-12-015d, R-15-228b). Appraisal binds the specific unit and
+rejects a different unit running the same image. A mechanized session model and
+agreement theorem remain open in the [crown-jewel inventory](crown-jewels.md).
+R-17-049d records the remaining protocol obligation.
 
 The [register](../requirements-register.md) owns the obligations. R-12-015c owns
 session binding and R-12-015d this construction; R-09-025a splits the generation and
@@ -241,14 +236,12 @@ direction is not a link. Key establishment takes the composition-fixed hybrid
 configuration; a second offered configuration terminates establishment rather than
 selecting a path.
 
-Two open siblings bound what this part states. Q23b owns the link contract, so this
-part names no frame field, no width, no public padding and no cadence, and takes a
-frame as its associated-data triple (the link, the session epoch, and the schedule's
-count of that link's slots since the epoch began) over a payload the crypto core
-seals. Q23d owns the slot tables and the composer's self-check, so this part takes
-each end's table as an opaque digest and states only where the digest check decides.
-Establishment traffic, re-establishment cadence and the bounded handler that consumes
-handshake frames belong to those two items and are not qualified here.
+The [ensemble link contract](../hardware/ensemble-link-contract.md) owns the wire
+format and scheduled handshake boundary. The fixture models a protected
+payload with the link, session epoch and schedule-derived slot count as
+associated data. It represents each endpoint's slot table by an opaque digest. Q23d
+owns concrete slot tables, the re-establishment cadence and the composer's
+check that both endpoints receive consistent schedules.
 
 The model reads the device register for the unit identity alone. Which further parts
 of R-09-037's device-register shape a link appraisal should require is not decided by
@@ -390,34 +383,17 @@ refused.
 | The root of trust or its issuance compromised | Accept false registers; authenticated evidence is a premise |
 | The session's keys exposed to a party after establishment | Accept that party's frames; no appraisal revokes frame authority already held |
 
-Run this part with the TLS part, through the shared entry point:
-
-```console
-python tools/run.py session-binding --json
-python tools/run.py test --only session_binding
-```
-
-The JSON output owns the population counts, the two counters and the classifications
-under its `ensemble` key. Exit zero means both parts' finite classifications match,
-while `production_adoption` stays `open`. This is finite host evidence with ideal
-cryptography: no frames, no key exchange, no computational reduction, no prover and
-no target execution.
+The [shared experiment commands](#executable-experiment-and-refusal-cases)
+report this model's counts and classifications under the JSON `ensemble` key.
+The cases exercise symbolic frames and session keys under ideal cryptography.
 
 ### Separately owned model, theorem and foundation work
 
-No protocol proof is claimed here and none is attempted. M6.9a owns protocol
-realization, M6.9b the implementation connection and M6.9c the model and theorem for
-each selected construction, this one as for TLS; their predicates are the checklist's
-and they are not restated here. The proof foundation those children need is the
-[unassigned proof map](unassigned-proof-map.md)'s U-20, and no library the locked
-prover admits is installed today. Until the theorem lands, R-17-049d's open record
-stands and this construction's session security rests where R-17-049 leaves it,
-unnarrowed above the primitive reductions.
-
-Two further things are owed before a stronger claim is available. The construction
-that binds a quote's signing identity to the device-identity secret is undecided in
-the register, so an entry deciding it, or explicit M6.9-series scope for the choice,
-is owed before the first obligation can be discharged rather than assumed. The link
-contract and the slot tables are Q23b's and Q23d's, so the frame grammar, the public
-fields, the establishment path and the tables this part abstracts must exist before
-an implementation can be connected to any of it.
+Ensemble acceptance still requires a construction binding the quote's signing
+identity to the device-identity secret, a checked session-agreement theorem,
+and a correspondence to the implementation. U-20 owns qualification of the
+[protocol proof foundation](unassigned-proof-map.md#7-the-next-slices).
+The [plan](../../PLAN.md#12-build-order-milestones-and-execution-state) assigns
+ensemble schedule emission to Q23d and endpoint RTL to Q23g. The M6.9
+acceptance predicates apply to the TLS session. R-17-049d records the residual
+for ensemble session security.
