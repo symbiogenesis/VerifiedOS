@@ -1,30 +1,23 @@
 (* SPDX-License-Identifier: Apache-2.0 *)
 
 (* =========================================================================
-   The walk harness: the randomized side's property sets whose domain holds
-   no more points than the draws QuickChick would spend on it, each decided
-   at every point of that domain instead.
+   Exhaustive checks for the property sets with small generator domains.
+   Evaluate each property at every enumerated point. A random sample can
+   revisit some points and miss others. The two harnesses share properties
+   defined in [IPCProperties.v](IPCProperties.v).
 
-   QuickChick spends 10,000 draws on a property set. A domain of no more
-   points than that is one a draw of that size samples without covering,
-   repeating some points and missing others, so each set over such a domain
-   is walked here rather than drawn in Properties.v: every point the drawn
-   generator could produce is enumerated and the property is computed at
-   each. The statements are IPCProperties.v's, which Properties.v reads too.
-
-   It loads Stdlib alone and is compiled by tools/vos/gallina.py in
-   QuickChick's switch beside Properties.v, by `run.py quickchick
-   properties` and for every mutant of `run.py seed coq --quickchick`. It
-   ends in a `Compute` over a `list string`, one entry per set:
+   The harness uses Stdlib and local proof modules.
+   [The Gallina runner](../vos/gallina.py#compile_closure) compiles it alongside
+   [the randomized harness](Properties.v) in the QuickChick switch.
+   `run.py quickchick properties` and `run.py seed coq --quickchick` read
+   one `Compute` output entry per set.
 
      name points premise refuted first
 
-   `points` is the domain's size, `premise` how many points meet the set's
-   premise, every point for an unguarded property, `refuted` how many points
-   the property is false at, and `first` the position of the first such
-   point in the walk's order, `-` where none is. A run fails a set any point
-   refutes, a domain holding no point, and a premise no point meets, the
-   last being a property that holds vacuously.
+   `points` counts visits, `premise` counts visits satisfying the premise,
+   and `refuted` counts false property results. `first` is the zero-based
+   index of the first false result, or `-` when every result is true. The
+   runner refuses any refutation, empty walk, or unexercised premise.
 
    **Each domain is the drawn generator's, choice for choice.** `choose (a,
    b)` is every nat from a to b, `elems_ d l` every member of l, and
