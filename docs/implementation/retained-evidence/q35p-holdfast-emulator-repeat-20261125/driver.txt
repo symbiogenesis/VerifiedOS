@@ -1,0 +1,175 @@
+import concurrent.futures
+import hashlib
+import json
+import os
+import shlex
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+repo = Path("/mnt/c/Users/symbi/source/repos/VerifiedOS")
+archive = Path("/root/build/fanout-retained/4b3b843a3b9fe80d0323/holdfast-20261124-canonical/lane")
+out = Path("/root/build/q35p-holdfast-cpp-repeat-20261125")
+out.mkdir(exist_ok=False)
+(out / "driver.txt").write_bytes(Path(__file__).read_bytes())
+sys.dont_write_bytecode = True
+sys.path.insert(0, str(repo / "tools"))
+from vos import rocqterm
+
+evidence = repo / "docs/implementation/retained-evidence/q35-holdfast-canonical-20261124"
+cwd = repo / "model/model"
+outputs = ("sail_riscv_model.cpp", "sail_riscv_model.h", "sail_riscv_config_schema.json")
+
+def digest(path):
+    with path.open("rb") as stream:
+        return hashlib.file_digest(stream, "sha256").hexdigest()
+
+def identity(path):
+    return {"sha256": digest(path), "bytes": path.stat().st_size}
+
+def write(path, value):
+    path.write_text(json.dumps(value, indent=2, sort_keys=True) + "\n")
+
+def require(condition, message):
+    if not condition:
+        raise ValueError(message)
+
+receipts = {mode: json.loads((evidence / f"{mode}-generation.json").read_text())
+            for mode in ("original", "candidate")}
+fixed_inputs = receipts["original"]["inputs"]
+require(fixed_inputs == receipts["candidate"]["inputs"], "generation source identities differ")
+toolchains = {m: receipt["toolchain"] for m, receipt in receipts.items()}
+sail = toolchains["original"]["sail"]["path"]
+z3 = toolchains["original"]["z3"]["path"]
+require(toolchains["original"]["sail"] == toolchains["candidate"]["sail"], "Sail identity differs")
+require(toolchains["original"]["z3"] == toolchains["candidate"]["z3"], "solver identity differs")
+plugin_digests = {m: [(Path(p["path"]).name, p["sha256"]) for p in tools["loaded_plugins"]]
+                  for m, tools in toolchains.items()}
+require([p for p, _ in plugin_digests["original"]] == [p for p, _ in plugin_digests["candidate"]],
+        "plugin name order differs")
+changed = [a[0] for a, b in zip(plugin_digests["original"], plugin_digests["candidate"], strict=True) if a != b]
+require(changed == ["sail_plugin_coq.cmxs"], "a plugin other than the Rocq plugin differs")
+
+ninja = archive / "verifiedos-model/build.ninja"
+lines = ninja.read_text().splitlines()
+start = lines.index("# Custom command for model/cpp.stamp")
+command = next(line.removeprefix("  COMMAND = ") for line in lines[start:start + 8]
+               if line.startswith("  COMMAND = "))
+segments = command.split(" && ")
+require(len(segments) == 4 and segments[0].startswith("cd ") and segments[-1].startswith("/usr/bin/cmake -E touch "),
+        "unexpected CMake emitter command")
+template = shlex.split(segments[2])
+require(template[0] == sail and "--cpp" in template and template[-2:] == ["--all-modules", "riscv.sail_project"],
+        "archived emitter command does not select the full C++ model")
+
+def actual_tools(environment):
+    process = subprocess.run(
+        [sys.executable, "-B", "-c",
+         "from vos import rocqterm; import json,sys; print(json.dumps(rocqterm.toolchain(*sys.argv[1:])))",
+         sail, z3], cwd=cwd, env=environment, text=True, capture_output=True, timeout=90, check=True)
+    return json.loads(process.stdout)
+
+def actual_inputs(environment):
+    cmd = [sail, "riscv.sail_project", "--all-modules", "--list-files-separated", ";"]
+    run = subprocess.run(cmd, cwd=cwd, env=environment, capture_output=True, text=True,
+                         timeout=90, check=True)
+    require(not run.stderr, "native source inventory emitted diagnostics")
+    listed = [rel for rel in run.stdout.strip().split(";") if rel]
+    return rocqterm.inputs(repo, listed, repo / fixed_inputs["configuration"]["path"])
+
+mode_env = {}
+for mode in receipts:
+    environment = os.environ.copy()
+    environment["PATH"] = str(Path(z3).parent) + ":" + environment["PATH"]
+    environment["PYTHONPATH"] = str(repo / "tools")
+    for selector in ("SAIL_NO_PLUGINS", "SAIL_DIR", "DUNE_DIR_LOCATIONS", "SAIL_PLUGIN_DIR"):
+        environment.pop(selector, None)
+    if mode == "candidate":
+        environment["SAIL_PLUGIN_DIR"] = str(archive / "replay-inputs/plugins")
+    tools = actual_tools(environment)
+    require(all(tools[key] == toolchains[mode][key] for key in ("sail", "z3", "library")),
+            f"{mode}: Sail, solver or source library differs from the generation receipt")
+    actual_plugins = [(Path(p["path"]).name, p["sha256"]) for p in tools["loaded_plugins"]]
+    require(actual_plugins == plugin_digests[mode], f"{mode}: plugin identity or loader order changed")
+    require(actual_inputs(environment) == fixed_inputs, f"{mode}: source inputs differ")
+    mode_env[mode] = (environment, tools)
+
+def run(job):
+    mode, plugin, sequential = job
+    environment, tools = mode_env[plugin]
+    lane = out / mode
+    lane.mkdir()
+    command = template.copy()
+    if sequential:
+        command.insert(1, "--dsequential")
+    for flag, path in (("-o", lane / "sail_riscv_model"),
+                       ("--output-schema", lane / outputs[2]), ("--memo-z3-path", lane / "smt-cache")):
+        require(command.count(flag) == 1, f"expected one {flag}")
+        command[command.index(flag) + 1] = str(path)
+    print(mode, "C++ emission started", flush=True)
+    result = {"mode": mode, "plugin": plugin, "sequential": sequential,
+              "argv": command, "cwd": str(cwd), "toolchain": tools}
+    start_time = time.monotonic()
+    try:
+        with (lane / "stdout").open("wb") as stdout, (lane / "stderr").open("wb") as stderr:
+            executed = subprocess.run(command, cwd=cwd, env=environment, stdout=stdout, stderr=stderr,
+                                      timeout=600, check=False)
+            result["exit"] = executed.returncode
+        require(result["exit"] == 0, f"{mode}: compiler exited {result['exit']}")
+        result["outputs"] = {name: identity(lane / name) for name in outputs}
+        require(actual_tools(environment) == tools, f"{mode}: toolchain changed during emission")
+        require(actual_inputs(environment) == fixed_inputs, f"{mode}: sources changed during emission")
+        result["status"] = "complete"
+    except (OSError, ValueError, subprocess.SubprocessError) as error:
+        result["status"] = "stopped"
+        result["diagnostic"] = str(error)
+    finally:
+        result["seconds"] = round(time.monotonic() - start_time, 3)
+        result["streams"] = {name: identity(lane / name) for name in ("stdout", "stderr")}
+        write(lane / "receipt.json", result)
+        print(mode, result["status"], flush=True)
+    return result
+
+
+
+previous = Path("/root/build/q35p-holdfast-cpp-controls-20261125")
+retained = repo / "docs/implementation/retained-evidence/q35p-holdfast-emulator-20261125"
+prior_comparison = json.loads((retained / "controls-comparison.json").read_text())
+roles = ("original-sequential", "candidate-sequential")
+require(prior_comparison["status"] == "complete", "prior controls did not complete")
+require(prior_comparison["unchanged_inputs"] == fixed_inputs["sources"]["aggregate"],
+        "prior controls used different Sail inputs")
+for mode in roles:
+    frozen = prior_comparison["mode_results"][mode]["outputs"]
+    actual = {name: identity(previous / mode / name) for name in outputs}
+    require(frozen == actual, f"prior outputs have changed: {mode}")
+
+jobs = tuple((mode, plugin, True) for mode, plugin in zip(roles, receipts, strict=True))
+with concurrent.futures.ThreadPoolExecutor(max_workers=len(jobs)) as pool:
+    results = dict(zip(roles, pool.map(run, jobs), strict=True))
+
+comparisons = {}
+pairs = {
+    "fresh_plugin_pair": (out / roles[0], out / roles[1]),
+    **{f"{mode}_repeat": (previous / mode, out / mode) for mode in roles},
+}
+for label, (left, right) in pairs.items():
+    comparisons[label] = {
+        name: (left / name).is_file() and (right / name).is_file()
+        and (left / name).read_bytes() == (right / name).read_bytes()
+        for name in outputs
+    }
+passed = all(run["status"] == "complete" for run in results.values()) and all(
+    all(files.values()) for files in comparisons.values()
+)
+write(out / "comparison.json", {
+    "status": "identical" if passed else "refused",
+    "comparisons": comparisons,
+    "prior_manifest": identity(retained / "manifest.json"),
+    "prior_comparison": identity(retained / "controls-comparison.json"),
+    "sources": fixed_inputs,
+})
+print("repeatability", "identical" if passed else "refused", flush=True)
+sys.exit(0 if passed else 1)
+

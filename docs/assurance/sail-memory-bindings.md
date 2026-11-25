@@ -7,6 +7,9 @@ canonical-consumer acceptance remains owed.
 
 ## Retained evidence
 
+- [Fresh sequential emulator repeat](../implementation/retained-evidence/q35p-holdfast-emulator-repeat-20261125/manifest.json),
+  SHA256 `866a62b9da6f484ce28ebae0cc4f5bc6d788078dd4ab2898daaeda5a7490bcec`.
+  Exact run commands, frozen identities and comparisons against the prior pair.
 - [Paired emulator emission and determinism controls](../implementation/retained-evidence/q35p-holdfast-emulator-20261125/manifest.json),
   SHA256 `319b746cef4fb0b77ab08190a052f02ce95e1d3eba23be501ab9157d81baeac1`.
   Build commands, source and tool identities, and exact output comparisons for
@@ -126,8 +129,16 @@ and register member declarations. A repeat using the stock plugin population and
 the same generator flags also differed in both C++ files. Each run used its own
 output and SMT cache paths. With Sail's `--dsequential` debug flag, the stock and
 patched plugin populations emitted byte-identical C++ sources, headers and
-schemas. The default emitter still fails the paired byte comparison required by
-the tag-outcome contract.
+schemas. A fresh repeat of each sequential run used its own empty SMT cache
+and output directory. The two new runs agreed on all three files and each
+reproduced the corresponding prior output byte for byte.
+
+Sail 0.20.3's `--dsequential` selects ordered `List.map` for the internal
+compiler scheduler used by deferred C++ compilation work. The repeated result
+covers that mode and the frozen inputs. The default emitter still fails the
+paired byte comparison required by the tag-outcome contract. [Pinned Sail option](https://github.com/rems-project/sail/blob/3df54034910b31a1e00d948ee965b2e9603d68e0/src/bin/sail.ml#L416) ·
+[Scheduler](https://github.com/rems-project/sail/blob/3df54034910b31a1e00d948ee965b2e9603d68e0/src/lib/parmap.par.ml#L138) ·
+[Deferred compilation](https://github.com/rems-project/sail/blob/3df54034910b31a1e00d948ee965b2e9603d68e0/src/lib/jib_compile.ml#L3042).
 
 ## Bound and remaining acceptance
 
