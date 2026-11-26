@@ -17,17 +17,19 @@ static int number(const char *text, uint64_t *value)
     return 1;
 }
 
-static int run_insert(const struct vos_tree_arena *arena, const struct vos_tree_limits *limits,
+static int run_update(const struct vos_tree_arena *arena, const struct vos_tree_limits *limits,
                       uint64_t root, uint64_t generation, const struct vos_storage_typed_key *key,
-                      int invalid_extent)
+                      int is_delete, int invalid_extent)
 {
-    uint8_t serialized[VOS_STORAGE_EXTENT_BYTES];
     struct vos_storage_extent extent = {0};
-    if (arena->used > arena->geometry.arena_nodes ||
-        fread(serialized, 1u, sizeof(serialized), stdin) != sizeof(serialized) ||
-        fgetc(stdin) != EOF ||
-        !vos_storage_extent_decode(serialized, sizeof(serialized), &extent)) return 3;
-    if (invalid_extent) extent.domain_epoch = VOS_NODE_NONCE_MAX_DOMAIN + 1u;
+    if (arena->used > arena->geometry.arena_nodes) return 3;
+    if (!is_delete) {
+        uint8_t serialized[VOS_STORAGE_EXTENT_BYTES];
+        if (fread(serialized, 1u, sizeof(serialized), stdin) != sizeof(serialized) ||
+            fgetc(stdin) != EOF ||
+            !vos_storage_extent_decode(serialized, sizeof(serialized), &extent)) return 3;
+        if (invalid_extent) extent.domain_epoch = VOS_NODE_NONCE_MAX_DOMAIN + 1u;
+    }
     const size_t generation_bytes = arena->generation_count * sizeof(arena->generations[0]);
     uint8_t *bytes_before = malloc(arena->length);
     uint64_t *generations_before = malloc(generation_bytes);
@@ -42,7 +44,9 @@ static int run_insert(const struct vos_tree_arena *arena, const struct vos_tree_
     memset(&result, 0xa5, sizeof(result));
     uint8_t result_before[sizeof(result)];
     memcpy(result_before, &result, sizeof(result));
-    const int admitted = vos_typed_tree_insert(arena, limits, root, generation, key, &extent, &result);
+    const int admitted = is_delete ?
+        vos_typed_tree_delete(arena, limits, root, generation, key, &result) :
+        vos_typed_tree_insert(arena, limits, root, generation, key, &extent, &result);
     const size_t prefix = (size_t)arena->used * arena->geometry.block_bytes;
     const int preserved = memcmp(bytes_before, arena->bytes, prefix) == 0 &&
         memcmp(generations_before, arena->generations,
@@ -71,8 +75,10 @@ int main(int argc, char **argv)
     const int path_only = argc > 1 && strcmp(argv[1], "--path") == 0;
     const int invalid_extent = argc > 1 && strcmp(argv[1], "--insert-invalid-extent") == 0;
     const int insert = invalid_extent || (argc > 1 && strcmp(argv[1], "--insert") == 0);
-    const int offset = 1 + (path_only || insert);
-    const int parameters = insert ? 15 : 13;
+    const int del = argc > 1 && strcmp(argv[1], "--delete") == 0;
+    const int update = insert || del;
+    const int offset = 1 + (path_only || update);
+    const int parameters = update ? 15 : 13;
     uint64_t words[15] = {0};
     if (argc < offset + parameters) return 3;
     for (int i = 0; i < parameters; ++i)
@@ -100,12 +106,12 @@ int main(int argc, char **argv)
         .domain = words[7], .space = words[8], .kind = words[9],
         .object = words[10], .attribute = words[11], .version = words[12]
     };
-    if (insert) {
+    if (update) {
         const struct vos_tree_arena arena = {
             .geometry = image.geometry, .bytes = bytes, .length = length, .generations = generations,
             .generation_count = (size_t)count, .used = words[13]
         };
-        const int result = run_insert(&arena, &limits, words[3], words[14], &key, invalid_extent);
+        const int result = run_update(&arena, &limits, words[3], words[14], &key, del, invalid_extent);
         free(generations);
         free(bytes);
         free(encoded);

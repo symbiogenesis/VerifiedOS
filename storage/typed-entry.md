@@ -116,3 +116,47 @@ suffix refuse while preserving the retained prefixes and result. Compiled
 update defects must execute and fail their designated assertions. Authentication,
 durable publication, C/Gallina refinement and two-instance target acceptance
 remain governed by M5.3d's existing joins.
+
+## Bounded typed candidate delete
+
+`vos_typed_tree_delete` in [the typed update interface](include/vos_typed_tree.h)
+implements Rodeh-style lazy copy-on-write deletion without sibling underflow
+borrows or merges, matching [the numeric deletion contract](tree-update.md).
+The caller supplies the full-capacity arena and expected-generation array,
+their exact lengths, the nonempty allocated prefix `used`, and stable
+caller-authenticated retained blocks and generations. All backing arrays, key
+and result objects must be disjoint.
+
+Before any suffix write, full prior-tree admission via `vos_typed_tree_lookup`
+checks every reachable reference against the allocated prefix, including
+off-route subtrees. Both structural refusal (`VOS_TREE_REFUSED`) and a missing
+key (`VOS_TREE_MISSING`) refuse (`0`) with zero suffix writes and unchanged
+output.
+
+When the key is found, deletion rewrites only its root-to-leaf path into the
+unused suffix using the caller's `generation` and removes the matching entry
+from its leaf. If a leaf becomes empty, it is pruned from its parent branch,
+shifting surviving children left and dropping `keys[0]` when `route == 0` or
+`keys[route - 1]` when `route > 0`; if a branch loses its last child
+(`count <= 1`), emptiness propagates upward without appending dead nodes. When
+the entire tree becomes empty, deletion allocates an empty `VOS_NODE_LEAF`
+(`count = 0`) at height `0` in `generation`. Otherwise it collapses single-child
+branch roots (`kind == VOS_NODE_BRANCH && count == 1`) while `height > 0`, and
+copies any surviving retained node (`< arena->used`) into the suffix in
+`generation` so every accepted delete yields `used > arena->used`,
+`root == used - 1`, and preserves retained-root generation isolation without
+leaving unreachable appended nodes.
+
+Success requires full candidate admission via `vos_typed_tree_lookup` at the
+candidate height returning `VOS_TREE_MISSING` within `limits->visit_limit`
+before updating `output`. Retained byte and generation prefixes remain
+unchanged on every result.
+
+Focused native acceptance checks missing-key refusals (`staged=False`),
+exact byte-for-byte non-empty leaf shrinks, empty-leaf pruning at `route == 0`
+and `route > 0`, multi-level single-child root collapse (`height 2 -> 1 -> 0`),
+final deletion to an empty leaf root at height `0`, retained-root lookups with
+original extents and mixed generations, bounded allocation/visit exhaustion,
+off-route suffix-reference refusals (`staged=False`), generated full-width
+6-word key sequences deleted in ascending, descending and interleaved orders
+across fanouts `2`, `3`, `4` and `16`, and compiled behavioral mutation controls.
