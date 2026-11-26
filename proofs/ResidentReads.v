@@ -766,3 +766,329 @@ Proof.
     repeat match goal with |- context [if ?b then _ else _] => destruct b end;
     simpl; unfold set; destruct (Nat.eq_dec k h); subst; reflexivity.
 Qed.
+
+(* Explicit close, renewal, crash, and fresh-token readmission lifecycle
+   transitions and proofs (Q44). *)
+Definition close_reservation (s : State) (h : Handle) : State * bool :=
+  let c := common s in
+  if holder h <? 2 then
+    match reservations c (holder h) with
+    | Some held =>
+      if handle_eq_dec h (reserved_handle held) then
+        ({| common := {| backing := backing c;
+                         reservations := set (reservations c) (holder h) None;
+                         authority := authority c;
+                         next_token := next_token c;
+                         clock := clock c;
+                         current_boot := current_boot c;
+                         current_generation := current_generation c;
+                         common_counter := common_counter c |};
+            sessions := set (sessions s) (holder h) (clear_pending (sessions s (holder h))) |},
+         true)
+      else (s, false)
+    | None => (s, false)
+    end
+  else (s, false).
+
+Definition renew_reservation (b : Bounds) (s : State) (h : Handle)
+                             (d : nat) (id : Identity) : State * bool :=
+  let c := common s in
+  if live c h d id && (clock c + retention_bound b <=? counter_bound b) then
+    match reservations c (holder h) with
+    | Some held =>
+      if expires held <? clock c + retention_bound b then
+        let updated := {| reserved_handle := reserved_handle held;
+                          expires := clock c + retention_bound b |} in
+        (set_common s {| backing := backing c;
+                         reservations := set (reservations c) (holder h) (Some updated);
+                         authority := authority c;
+                         next_token := next_token c;
+                         clock := clock c;
+                         current_boot := current_boot c;
+                         current_generation := current_generation c;
+                         common_counter := common_counter c |},
+         true)
+      else (s, false)
+    | None => (s, false)
+    end
+  else (s, false).
+
+Definition crash (s : State) : State :=
+  let c := common s in
+  {| common := {| backing := option_map (fun r =>
+        {| resident_identity := resident_identity r; resident_bytes := resident_bytes r;
+           accepting := false |}) (backing c);
+       reservations := fun _ => None; authority := authority c;
+       next_token := next_token c; clock := clock c;
+       current_boot := S (current_boot c);
+       current_generation := current_generation c; common_counter := common_counter c |};
+     sessions := fun h => clear_pending (sessions s h) |}.
+
+Theorem close_preserves_backing_and_peer : forall s h s' ok,
+  close_reservation s h = (s', ok) ->
+  backing (common s') = backing (common s) /\
+  next_token (common s') = next_token (common s) /\
+  authority (common s') = authority (common s) /\
+  clock (common s') = clock (common s) /\
+  current_boot (common s') = current_boot (common s) /\
+  current_generation (common s') = current_generation (common s) /\
+  common_counter (common s') = common_counter (common s) /\
+  (forall k, sequence (sessions s' k) = sequence (sessions s k)) /\
+  (forall k, k <> holder h ->
+     reservations (common s') k = reservations (common s) k /\
+     sessions s' k = sessions s k).
+Proof.
+  intros s h s' ok H. unfold close_reservation in H.
+  destruct (holder h <? 2);
+    [destruct (reservations (common s) (holder h)) as [held|]|].
+  - destruct (handle_eq_dec h (reserved_handle held));
+      inversion H; subst s' ok; clear H; simpl;
+      repeat split; try reflexivity;
+      try (intros k; unfold set; destruct (Nat.eq_dec k (holder h)); [subst; reflexivity|reflexivity]);
+      try (rewrite set_other by assumption; reflexivity).
+  - inversion H; subst s' ok; clear H; repeat split; try reflexivity;
+      intros; reflexivity.
+  - inversion H; subst s' ok; clear H; repeat split; try reflexivity;
+      intros; reflexivity.
+Qed.
+
+Theorem close_invalidates_handle : forall s h s',
+  close_reservation s h = (s', true) ->
+  holder h < 2 /\
+  reservations (common s') (holder h) = None /\
+  pending (sessions s' (holder h)) = None /\
+  (forall d id, live (common s') h d id = false) /\
+  (forall verify seq, payload (complete verify s' (holder h) seq) = None) /\
+  (forall b d id off len, accepted (begin_read b s' h d id off len) = false).
+Proof.
+  intros s h s' H. unfold close_reservation in H.
+  destruct (holder h <? 2) eqn:Hslot; [|discriminate].
+  destruct (reservations (common s) (holder h)) as [held|]; [|discriminate].
+  destruct (handle_eq_dec h (reserved_handle held)); [|discriminate].
+  inversion H; subst s'; clear H.
+  apply Nat.ltb_lt in Hslot.
+  repeat split.
+  - exact Hslot.
+  - simpl. apply set_same.
+  - simpl. rewrite set_same. reflexivity.
+  - intros d id. unfold live. simpl. rewrite set_same. reflexivity.
+  - intros verify seq. unfold complete. simpl. rewrite set_same.
+    destruct (holder h <? 2); reflexivity.
+  - intros b d id off len. unfold begin_read.
+    destruct (holder h <? 2); [|reflexivity].
+    simpl. rewrite set_same. simpl.
+    unfold live. simpl. rewrite set_same. reflexivity.
+Qed.
+
+Theorem close_refusal_preserves_state : forall s h s',
+  close_reservation s h = (s', false) ->
+  s' = s.
+Proof.
+  intros s h s' H. unfold close_reservation in H.
+  destruct (holder h <? 2);
+    [destruct (reservations (common s) (holder h))|];
+    [destruct (handle_eq_dec h (reserved_handle r))| |];
+    inversion H; reflexivity.
+Qed.
+
+Theorem renew_preserves_sessions_and_peer : forall b s h d id s',
+  renew_reservation b s h d id = (s', true) ->
+  sessions s' = sessions s /\
+  backing (common s') = backing (common s) /\
+  next_token (common s') = next_token (common s) /\
+  authority (common s') = authority (common s) /\
+  clock (common s') = clock (common s) /\
+  current_boot (common s') = current_boot (common s) /\
+  current_generation (common s') = current_generation (common s) /\
+  common_counter (common s') = common_counter (common s) /\
+  (forall k, k <> holder h -> reservations (common s') k = reservations (common s) k) /\
+  live (common s') h d id = true /\
+  exists held held',
+    reservations (common s) (holder h) = Some held /\
+    reservations (common s') (holder h) = Some held' /\
+    reserved_handle held' = reserved_handle held /\
+    expires held < expires held' /\
+    expires held' = clock (common s) + retention_bound b /\
+    expires held' <= counter_bound b.
+Proof.
+  intros b s h d id s' H. unfold renew_reservation in H.
+  destruct (live (common s) h d id && (clock (common s) + retention_bound b <=? counter_bound b))
+    eqn:Hguard; [|discriminate].
+  apply andb_true_iff in Hguard. destruct Hguard as [Hlive Hbound].
+  apply Nat.leb_le in Hbound.
+  destruct (reservations (common s) (holder h)) as [held|] eqn:Hres; [|discriminate].
+  destruct (expires held <? clock (common s) + retention_bound b) eqn:Hext; [|discriminate].
+  apply Nat.ltb_lt in Hext.
+  inversion H; subst s'; clear H.
+  assert (Hlive_copy : live (common s) h d id = true) by exact Hlive.
+  unfold live in Hlive_copy. rewrite Hres in Hlive_copy.
+  destruct (backing (common s)) as [r|] eqn:Hback; [|discriminate].
+  destruct (handle_eq_dec h (reserved_handle held)) as [Hhandle|]; [|discriminate].
+  destruct (identity_eq_dec (handle_identity h) (resident_identity r)) as [Hid1|]; [|discriminate].
+  destruct (identity_eq_dec id (handle_identity h)) as [Hid2|]; [|discriminate].
+  repeat rewrite andb_true_iff in Hlive_copy.
+  destruct Hlive_copy as [[[[[[Hholder Hacc] Hauth] Hdom] Hboot] Hclk] Hroot].
+  apply Nat.ltb_lt in Hclk.
+  assert (Hnew_clk : (clock (common s) <? clock (common s) + retention_bound b) = true).
+  { apply Nat.ltb_lt. lia. }
+  repeat split; try reflexivity.
+  - intros k Hk. simpl. apply set_other. exact Hk.
+  - unfold live. simpl. rewrite set_same. simpl.
+    destruct (handle_eq_dec h (reserved_handle held)); [|contradiction].
+    destruct (identity_eq_dec (handle_identity h) (resident_identity r)); [|contradiction].
+    destruct (identity_eq_dec id (handle_identity h)); [|contradiction].
+    unfold current_root in Hroot |- *. simpl.
+    repeat rewrite andb_true_iff. repeat split; assumption.
+  - exists held, {| reserved_handle := reserved_handle held;
+                    expires := clock (common s) + retention_bound b |}.
+    simpl. rewrite set_same. repeat split; try reflexivity; lia.
+Qed.
+
+Theorem renew_refusal_preserves_state : forall b s h d id s',
+  renew_reservation b s h d id = (s', false) ->
+  s' = s.
+Proof.
+  intros b s h d id s' H. unfold renew_reservation in H.
+  destruct (live (common s) h d id && (clock (common s) + retention_bound b <=? counter_bound b));
+    [destruct (reservations (common s) (holder h)) as [held|]|];
+    [destruct (expires held <? clock (common s) + retention_bound b)| |];
+    inversion H; reflexivity.
+Qed.
+
+Theorem crash_invalidates_all_and_preserves_sequences : forall s,
+  current_boot (common (crash s)) = S (current_boot (common s)) /\
+  (forall k, reservations (common (crash s)) k = None) /\
+  (forall k, pending (sessions (crash s) k) = None) /\
+  (forall k, sequence (sessions (crash s) k) = sequence (sessions s k)) /\
+  (forall h d id, live (common (crash s)) h d id = false) /\
+  (forall verify k seq, payload (complete verify (crash s) k seq) = None) /\
+  (forall b h d id off len, accepted (begin_read b (crash s) h d id off len) = false) /\
+  (forall r, backing (common s) = Some r ->
+     backing (common (crash s)) =
+       Some {| resident_identity := resident_identity r;
+               resident_bytes := resident_bytes r;
+               accepting := false |}) /\
+  (backing (common s) = None -> backing (common (crash s)) = None) /\
+  (forall b h d id start len, admit b (crash s) h d id start len = (crash s, None)).
+Proof.
+  intros s. repeat split; try reflexivity.
+  - intros verify k seq. unfold complete, crash. simpl.
+    destruct (k <? 2); reflexivity.
+  - intros b h d id off len. unfold begin_read, crash. simpl.
+    destruct (holder h <? 2); [|reflexivity].
+    unfold live. simpl. reflexivity.
+  - intros r Hr. unfold crash. simpl. rewrite Hr. reflexivity.
+  - intros Hnone. unfold crash. simpl. rewrite Hnone. reflexivity.
+  - intros b h d id start len. unfold admit, crash. simpl.
+    destruct (backing (common s)) as [r|]; [|reflexivity].
+    simpl. destruct (identity_eq_dec id (resident_identity r)); [|reflexivity].
+    unfold resident_ok. simpl. rewrite andb_false_r. reflexivity.
+Qed.
+
+Theorem readmit_after_close_allocates_fresh_token : forall b s h d id start len s' s'' h',
+  token h <= next_token (common s) ->
+  close_reservation s h = (s', true) ->
+  admit b s' (holder h) d id start len = (s'', Some h') ->
+  token h < token h' /\
+  h <> h' /\
+  close_reservation s'' h = (s'', false) /\
+  (forall d' id', live (common s'') h d' id' = false).
+Proof.
+  intros b s h d id start len s' s'' h' Htok Hclose Hadmit.
+  pose proof (close_preserves_backing_and_peer s h s' true Hclose)
+    as [_ [Hnext _]].
+  pose proof (close_invalidates_handle s h s' Hclose)
+    as [Hslot [Hres' _]].
+  unfold admit in Hadmit.
+  destruct (backing (common s')) as [r|] eqn:Hback'; [|discriminate].
+  rewrite Hres' in Hadmit.
+  destruct (identity_eq_dec id (resident_identity r)); [|discriminate].
+  match type of Hadmit with context [if ?test then _ else _] => destruct test; [|discriminate] end.
+  inversion Hadmit; subst s'' h'; clear Hadmit.
+  assert (Hfresh : token h < S (next_token (common s'))).
+  { rewrite Hnext. lia. }
+  assert (Hneq : h <> {| token := S (next_token (common s'));
+                          boot_epoch := current_boot (common s');
+                          holder := holder h;
+                          handle_identity := id;
+                          window_start := start;
+                          window_length := len |}).
+  { intro Heq. assert (Htok_eq : token h = S (next_token (common s')))
+      by (rewrite Heq; reflexivity). lia. }
+  repeat split.
+  - exact Hfresh.
+  - exact Hneq.
+  - unfold close_reservation. simpl.
+    destruct (holder h <? 2) eqn:Hslot_b;
+      [|apply Nat.ltb_lt in Hslot; rewrite Hslot in Hslot_b; discriminate].
+    rewrite set_same.
+    match goal with
+    | |- (if handle_eq_dec h ?rhs then _ else _) = _ =>
+        destruct (handle_eq_dec h rhs) as [Heq|Hne]; [exfalso; apply Hneq; exact Heq|reflexivity]
+    end.
+  - intros d' id'. unfold live. simpl.
+    rewrite set_same.
+    match goal with
+    | |- (if handle_eq_dec h ?rhs then _ else _) = _ =>
+        destruct (handle_eq_dec h rhs) as [Heq|Hne]; [exfalso; apply Hneq; exact Heq|reflexivity]
+    end.
+Qed.
+
+Example close_preserves_peer_and_allows_readmit_witness : forall kind,
+  let closed := close_reservation (two_pending kind) (fixture_handle kind 0) in
+  let s1 := fst closed in
+  let readmitted := admit fixture_bounds s1 0 7 (fixture_identity kind) 0 3 in
+  let s2 := fst readmitted in
+  snd closed = true /\
+  reservations (common s1) 0 = None /\
+  pending (sessions s1 0) = None /\
+  close_reservation s1 (fixture_handle kind 0) = (s1, false) /\
+  live (common s1) (fixture_handle kind 0) 7 (fixture_identity kind) = false /\
+  payload (complete fixture_verify s1 1 1) = Some [98; 99] /\
+  (exists h_new,
+     snd readmitted = Some h_new /\
+     token h_new = 3 /\
+     close_reservation s2 (fixture_handle kind 0) = (s2, false) /\
+     live (common s2) (fixture_handle kind 0) 7 (fixture_identity kind) = false /\
+     payload (read_once fixture_verify fixture_bounds s2 h_new 7 (fixture_identity kind) 0 3) =
+       Some [97; 98; 99]).
+Proof.
+  intros []; vm_compute; repeat split; try reflexivity.
+  - eexists; repeat split; reflexivity.
+  - eexists; repeat split; reflexivity.
+Qed.
+
+Example renew_extends_pending_transfer_witness : forall kind,
+  let at3 := at_clock (two_pending kind) 3 in
+  let renewed := renew_reservation fixture_bounds at3 (fixture_handle kind 0) 7 (fixture_identity kind) in
+  let s1 := fst renewed in
+  snd renewed = true /\
+  renew_reservation fixture_bounds s1 (fixture_handle kind 0) 7 (fixture_identity kind) = (s1, false) /\
+  renew_reservation fixture_bounds (at_clock (two_pending kind) 4) (fixture_handle kind 0) 7 (fixture_identity kind) =
+    (at_clock (two_pending kind) 4, false) /\
+  payload (complete fixture_verify (at_clock s1 5) 0 1) = Some [97; 98; 99] /\
+  payload (complete fixture_verify (at_clock s1 5) 1 1) = None.
+Proof.
+  intros []; vm_compute; repeat split; reflexivity.
+Qed.
+
+Example crash_retains_backing_and_sequences_witness : forall kind,
+  let crashed := crash (two_pending kind) in
+  current_boot (common crashed) = 1 /\
+  reservations (common crashed) 0 = None /\
+  reservations (common crashed) 1 = None /\
+  pending (sessions crashed 0) = None /\
+  pending (sessions crashed 1) = None /\
+  sequence (sessions crashed 0) = 1 /\
+  sequence (sessions crashed 1) = 1 /\
+  backing (common crashed) =
+    Some {| resident_identity := fixture_identity kind;
+            resident_bytes := [97; 98; 99];
+            accepting := false |} /\
+  live (common crashed) (fixture_handle kind 0) 7 (fixture_identity kind) = false /\
+  payload (complete fixture_verify crashed 0 1) = None /\
+  payload (complete fixture_verify crashed 1 1) = None /\
+  admit fixture_bounds crashed 0 7 (fixture_identity kind) 0 3 = (crashed, None).
+Proof.
+  intros []; vm_compute; repeat split; reflexivity.
+Qed.
