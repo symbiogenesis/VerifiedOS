@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
-/* Shared byte-level controls run unchanged by host and target producers. */
+/* Byte-level controls for the public copy-service calls. */
 static int vos_copy_controls(vos_copy_ring *ring, uint8_t *source, uint8_t *destination)
 {
     uint32_t i, j, request = 91, signal = 92, results[VOS_COPY_MAX_BATCH + 1];
@@ -9,16 +9,18 @@ static int vos_copy_controls(vos_copy_ring *ring, uint8_t *source, uint8_t *dest
     vos_copy_request batch[VOS_COPY_MAX_BATCH];
     uint32_t signals[VOS_COPY_MAX_BATCH];
     vos_copy_init(ring);
+    for (i = 0; i < VOS_COPY_MAX_PAYLOAD + 2; ++i) destination[i] = 0xa5;
     CHECK(!vos_copy_take(ring, destination, VOS_COPY_MAX_PAYLOAD + 2, &length, &request));
     CHECK(length == 93 && request == 91);
+    for (i = 0; i < VOS_COPY_MAX_PAYLOAD + 2; ++i) CHECK(destination[i] == 0xa5);
     for (i = 0; i < VOS_COPY_MAX_PAYLOAD + 1; ++i) source[i] = (uint8_t)(i * 17 + 3);
-    for (i = 0; i < VOS_COPY_MAX_PAYLOAD + 2; ++i) destination[i] = 0xa5;
     CHECK(!vos_copy_stage(destination + 1, VOS_COPY_MAX_PAYLOAD, source, 0, 1));
     CHECK(destination[1] == 0xa5);
     CHECK(!vos_copy_submit(ring, VOS_COPY_GENERATION, 1, 0, NULL,
                             VOS_COPY_MAX_PAYLOAD + 1, VOS_COPY_MAX_PAYLOAD + 1, &signal));
     CHECK(signal == 92 && vos_copy_index_load(&ring->produced) == 0);
     CHECK(!vos_copy_submit(ring, VOS_COPY_GENERATION + 1, 1, 0, source, 1, 1, &signal));
+    CHECK(signal == 92);
     CHECK(!vos_copy_submit(ring, VOS_COPY_GENERATION, 1, VOS_COPY_OPERATION_COUNT,
                             source, 1, 1, &signal));
     CHECK(vos_copy_prepare_sleep(ring));
@@ -26,9 +28,12 @@ static int vos_copy_controls(vos_copy_ring *ring, uint8_t *source, uint8_t *dest
                            VOS_COPY_MAX_PAYLOAD, VOS_COPY_MAX_PAYLOAD, &signal));
     CHECK(signal == 1 && vos_copy_word_load(&ring->armed) == 0);
     CHECK(!vos_copy_prepare_sleep(ring));
+    signal = 92;
     CHECK(!vos_copy_submit(ring, VOS_COPY_GENERATION, 1, 0, source, 1, 1, &signal));
+    CHECK(signal == 92);
     CHECK(!vos_copy_take(ring, destination, 0, &length, &request));
-    CHECK(length == 93 && request == 91 && destination[1] == 0xa5);
+    CHECK(length == 93 && request == 91);
+    for (i = 0; i < VOS_COPY_MAX_PAYLOAD + 2; ++i) CHECK(destination[i] == 0xa5);
     /* Change the external source after publication: only staged bytes survive. */
     for (i = 0; i < VOS_COPY_MAX_PAYLOAD + 1; ++i) source[i] = 0xff;
     CHECK(vos_copy_take(ring, destination + 1, VOS_COPY_MAX_PAYLOAD, &length, &request));
@@ -36,6 +41,24 @@ static int vos_copy_controls(vos_copy_ring *ring, uint8_t *source, uint8_t *dest
     CHECK(destination[0] == 0xa5 && destination[VOS_COPY_MAX_PAYLOAD + 1] == 0xa5);
     for (i = 0; i < VOS_COPY_MAX_PAYLOAD; ++i)
         CHECK(destination[i + 1] == (uint8_t)(i * 17 + 3));
+    /* The serialized caller retains two disjoint views into one allocation. */
+    uint8_t caller[] = {0x11, 0x22, 0x33, 0x44, 0x55, 0x66};
+    CHECK(vos_copy_init_generation(ring, VOS_COPY_GENERATION));
+    CHECK(vos_copy_submit(ring, VOS_COPY_GENERATION, 7, 0, caller, 2, 2, &signal));
+    CHECK(caller[0] == 0x11 && caller[1] == 0x22);
+    CHECK(caller[2] == 0x33 && caller[3] == 0x44 && caller[4] == 0x55 && caller[5] == 0x66);
+    caller[0] = 0x77;
+    caller[1] = 0x88;
+    length = 93;
+    request = 91;
+    CHECK(!vos_copy_take(ring, caller + 2, 1, &length, &request));
+    CHECK(length == 93 && request == 91);
+    CHECK(caller[0] == 0x77 && caller[1] == 0x88);
+    CHECK(caller[2] == 0x33 && caller[3] == 0x44 && caller[4] == 0x55 && caller[5] == 0x66);
+    CHECK(vos_copy_take(ring, caller + 2, sizeof caller - 2, &length, &request));
+    CHECK(length == 2 && request == 7);
+    CHECK(caller[0] == 0x77 && caller[1] == 0x88);
+    CHECK(caller[2] == 0x11 && caller[3] == 0x22 && caller[4] == 0x55 && caller[5] == 0x66);
     /* Every slot, full refusal, exact payload order, and repeated index wrap. */
     for (j = 0; j < 2 * VOS_COPY_INDEX_SPAN / VOS_COPY_CAPACITY + 1; ++j) {
         for (i = 0; i < VOS_COPY_CAPACITY; ++i) {
