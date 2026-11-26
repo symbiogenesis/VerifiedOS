@@ -1,0 +1,36 @@
+{
+  "files": {
+    "archived-notification-envelope.json": {
+      "bytes": 6258,
+      "encoding": "identity",
+      "path": "archived-notification-envelope.json",
+      "sha256": "b6a5aa4b5e0003e14b4b1c25686fe1b6a37672cbc403dcf07a810ecb5705768b"
+    },
+    "driver.py.txt": {
+      "bytes": 18016,
+      "encoding": "identity",
+      "path": "driver.py.txt",
+      "sha256": "1490361e8f471a5d0ece3a4eb7a59ac8f5a0cf04e877ee626c20eafff75c409b"
+    },
+    "extended-envelope.json": {
+      "bytes": 36818,
+      "encoding": "identity",
+      "path": "extended-envelope.json",
+      "sha256": "6e20f532c4e63499cd826263b9fd73f51d90b74f7843f476ababd8f7510238c9"
+    },
+    "extended-trace.log.gz": {
+      "bytes": 74735893,
+      "encoding": "gzip",
+      "path": "extended-trace.log.gz",
+      "sha256": "cc7ec625ff05016a087b9c76ee818a4db47ebf9b6bb17c82dc7a5980149a48ab",
+      "stored_bytes": 7368844,
+      "stored_sha256": "98678f524d0dd25d57baf7adf1238225abac2c70fd2bff7b4ba35f7a4e4f4b91"
+    },
+    "report.json": {
+      "bytes": 1202,
+      "encoding": "identity",
+      "path": "report.json",
+      "sha256": "bac24a5acf6d54b6d5ecbac0df83a2189dfc7af7c683fcbbfc8a69c9f3364a6f"
+    }
+  }
+}

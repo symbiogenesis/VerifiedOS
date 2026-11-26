@@ -1,0 +1,18 @@
+{
+  "archived_notification_envelope_sha256": "b6a5aa4b5e0003e14b4b1c25686fe1b6a37672cbc403dcf07a810ecb5705768b",
+  "archived_trace_sha256": "9b84b47536a3709ca543fdbd8ba6ecc665c262737c78f25b02285ede0538785f",
+  "compcert_ini_sha256": "e0efcb8f02d749b406ed243e21408307f2189af136ae562a48b0d2044581550f",
+  "compiler_sha256": "3dae6ac7bd5a074053130fdcaaab84c42030bdc24be9fff6a4b244db272252f8",
+  "extended_envelope_sha256": "6e20f532c4e63499cd826263b9fd73f51d90b74f7843f476ababd8f7510238c9",
+  "extended_trace_sha256": "51875efcba57199ae93d563412fe83b9f1df6e3a393f2ac1745528c3d8882ff0",
+  "frozen_members_matched": true,
+  "frozen_source_revision": "498127d6be3d1a70581ba4a9cc025c2d923e66f7",
+  "installed_entry": null,
+  "prepared_source_sha256": "e6991359da24d4aaf459fb262ebbd906b2bb858ee61538337df88ec649945205",
+  "production_admission": false,
+  "qualified_producer": false,
+  "qualified_target_entry_producer_refusal": "target requires a successful source-bound contained compiler build",
+  "scope": "Q25bb copy-service standalone target execution envelope and static footprint",
+  "simulator_sha256": "dae7008727781fe22368c8a1dbaa7c387e33af10a3e2613ef6c23fcbec11560f",
+  "trial_acceptance": false
+}

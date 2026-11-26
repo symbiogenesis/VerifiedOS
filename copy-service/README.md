@@ -187,6 +187,16 @@ also pass. This closes the native C syntax checkpoint; qualified target emission
 installed entry and capability wiring, final-image mapping and production
 admission retain their open predicates.
 
+The [Q25bb standalone target execution envelope and static footprint](../docs/implementation/retained-evidence/holdfast-q25bb-target-envelope-20261126/manifest.json),
+SHA256 `16ce192a39c57eaf622e8e090e149e090c5b9c1e781377887bf09c630b8d19f0`,
+measures the frozen `498127d6` standalone compilation (5,436 service text bytes:
+4,808 compiled C, 532 `src/atomic_target.s`, 96 `src/notification_target.s`)
+and its Sail commit-trace per-entry retired-instruction, write-count, and
+`x2`/`csp` stack-frame bounds across all eight public entries on both the
+archived notification trace and an extended legal-plus-refusal workload. These
+development measurements carry no qualified producer, installed entry or
+capability wiring, or production admission.
+
 ## Notification device adapter
 
 `copy-service notification` accepts the same compiler and model arguments as

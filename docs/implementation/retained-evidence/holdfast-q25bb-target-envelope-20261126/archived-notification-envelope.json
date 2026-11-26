@@ -1,0 +1,301 @@
+{
+  "call_accounting": "inclusive",
+  "elf_sha256": "719ba5a237fb79acad5ac8ffddadde179c9f80440de0d4778548b8a8d018da7e",
+  "frozen_source_revision": "498127d6be3d1a70581ba4a9cc025c2d923e66f7",
+  "harness_entry": "0x80000000",
+  "htif_address": "0x80280028",
+  "installed_entry": null,
+  "load_segments": [
+    {
+      "address": "0x80000000",
+      "bytes": 6756,
+      "flags": 5,
+      "sha256": "d58fde3c6e302ee5fd918ed091d9c65f157d2c8b1f557bd58bca232176ea739a"
+    },
+    {
+      "address": "0x80200000",
+      "bytes": 540928,
+      "flags": 6,
+      "sha256": "ec0fc85953d4167af046952c17a21220e1991148d81192bd1908011012473709"
+    }
+  ],
+  "operations": {
+    "vos_copy_init": {
+      "call_count": 1,
+      "entry_pc": "0x80001364",
+      "memory_writes": {
+        "max": 328,
+        "min": 328,
+        "per_call": [
+          328
+        ],
+        "total": 328
+      },
+      "retired_instructions": {
+        "max": 5728,
+        "min": 5728,
+        "per_call": [
+          5728
+        ],
+        "total": 5728
+      },
+      "stack_frame_bytes": {
+        "peak": 32,
+        "per_call": [
+          32
+        ]
+      }
+    },
+    "vos_copy_init_generation": {
+      "call_count": 0,
+      "entry_pc": "0x80001368",
+      "memory_writes": {
+        "max": null,
+        "min": null,
+        "per_call": [],
+        "total": 0
+      },
+      "retired_instructions": {
+        "max": null,
+        "min": null,
+        "per_call": [],
+        "total": 0
+      },
+      "stack_frame_bytes": {
+        "peak": null,
+        "per_call": []
+      }
+    },
+    "vos_copy_notify": {
+      "call_count": 7,
+      "entry_pc": "0x80001578",
+      "memory_writes": {
+        "max": 1,
+        "min": 0,
+        "per_call": [
+          0,
+          0,
+          0,
+          0,
+          1,
+          1,
+          1
+        ],
+        "total": 3
+      },
+      "retired_instructions": {
+        "max": 11,
+        "min": 3,
+        "per_call": [
+          3,
+          5,
+          7,
+          8,
+          11,
+          11,
+          11
+        ],
+        "total": 56
+      },
+      "stack_frame_bytes": {
+        "peak": 0,
+        "per_call": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    },
+    "vos_copy_poll": {
+      "call_count": 7,
+      "entry_pc": "0x800015ac",
+      "memory_writes": {
+        "max": 0,
+        "min": 0,
+        "per_call": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "total": 0
+      },
+      "retired_instructions": {
+        "max": 9,
+        "min": 3,
+        "per_call": [
+          3,
+          5,
+          9,
+          9,
+          9,
+          9,
+          9
+        ],
+        "total": 53
+      },
+      "stack_frame_bytes": {
+        "peak": 0,
+        "per_call": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    },
+    "vos_copy_prepare_sleep": {
+      "call_count": 1,
+      "entry_pc": "0x80001490",
+      "memory_writes": {
+        "max": 1,
+        "min": 1,
+        "per_call": [
+          1
+        ],
+        "total": 1
+      },
+      "retired_instructions": {
+        "max": 10,
+        "min": 10,
+        "per_call": [
+          10
+        ],
+        "total": 10
+      },
+      "stack_frame_bytes": {
+        "peak": 0,
+        "per_call": [
+          0
+        ]
+      }
+    },
+    "vos_copy_submit": {
+      "call_count": 1,
+      "entry_pc": "0x800013ac",
+      "memory_writes": {
+        "max": 61,
+        "min": 61,
+        "per_call": [
+          61
+        ],
+        "total": 61
+      },
+      "retired_instructions": {
+        "max": 527,
+        "min": 527,
+        "per_call": [
+          527
+        ],
+        "total": 527
+      },
+      "stack_frame_bytes": {
+        "peak": 240,
+        "per_call": [
+          240
+        ]
+      }
+    },
+    "vos_copy_submit_batch": {
+      "call_count": 0,
+      "entry_pc": "0x800014b8",
+      "memory_writes": {
+        "max": null,
+        "min": null,
+        "per_call": [],
+        "total": 0
+      },
+      "retired_instructions": {
+        "max": null,
+        "min": null,
+        "per_call": [],
+        "total": 0
+      },
+      "stack_frame_bytes": {
+        "peak": null,
+        "per_call": []
+      }
+    },
+    "vos_copy_take": {
+      "call_count": 1,
+      "entry_pc": "0x80001438",
+      "memory_writes": {
+        "max": 47,
+        "min": 47,
+        "per_call": [
+          47
+        ],
+        "total": 47
+      },
+      "retired_instructions": {
+        "max": 499,
+        "min": 499,
+        "per_call": [
+          499
+        ],
+        "total": 499
+      },
+      "stack_frame_bytes": {
+        "peak": 176,
+        "per_call": [
+          176
+        ]
+      }
+    }
+  },
+  "production_admission": false,
+  "qualified_producer": false,
+  "raw_log_sha256": "232d7310fcf062e4403930e8535806b73262c71535bf3ff05b0c59106130665f",
+  "static_footprint": {
+    "atomic_target_bytes": 532,
+    "compiled_c_bytes": 4808,
+    "members": {
+      "compiled C": {
+        "bytes": 4808,
+        "end_exclusive": "0x80001364",
+        "sha256": "a4d9ebf4439c5237ef4aaf8e8030f589b030bcad488701a036b7d2aacb91ee3a",
+        "start": "0x8000009c"
+      },
+      "src/atomic_target.s": {
+        "bytes": 532,
+        "end_exclusive": "0x80001578",
+        "sha256": "80411cc51436678d7d3c514effc3230b82f247c92a1b74ec26388a100327e46e",
+        "start": "0x80001364"
+      },
+      "src/notification_target.s": {
+        "bytes": 96,
+        "end_exclusive": "0x800015d8",
+        "sha256": "702fa545fd8ef32131913841d6ad19455dec63a406ae8cec8406b6890802d322",
+        "start": "0x80001578"
+      }
+    },
+    "notification_target_bytes": 96,
+    "rw_data_bytes": 540928,
+    "rx_segment_bytes": 6756,
+    "service_text_bytes": 5436
+  },
+  "trace_summary": {
+    "memory_reads": 194,
+    "memory_writes": 445,
+    "records": 14225,
+    "retired_by_origin": {
+      "compiled C": 6681,
+      "harness": 318,
+      "src/atomic_target.s": 83,
+      "src/notification_target.s": 109
+    },
+    "retired_instructions": 7191,
+    "trace_sha256": "9b84b47536a3709ca543fdbd8ba6ecc665c262737c78f25b02285ede0538785f"
+  },
+  "trial_acceptance": false
+}
