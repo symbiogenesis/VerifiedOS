@@ -11,7 +11,7 @@
    (*| BEGIN derived: cited entries |*)
    Owner: docs/requirements-register.md
    Requirements: R-08-006 R-08-047b R-15-007k
-   SHA256: a407f1939593abf05d1115294fa1cd45c99aa6419220bc5e045eaaa69f81ac33
+   SHA256: 626b50df8799150a7a87c3a4e85fab3d74e148629016b0f5f8f583fa4513df22
    (*| END derived |*)
    ========================================================================= *)
 
