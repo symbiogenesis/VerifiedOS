@@ -15,4 +15,5 @@ def cases() -> list[Case]:
         Case("protected-input-overlap-and-aliases", controls.test_overlap_and_aliases),
         Case("relative-and-unexpanded-output-refusal", controls.test_relative_and_unexpanded),
         Case("exact-input-identity-refusal", controls.test_exact_input_identity),
+        Case("frozen-v1-declaration-readings", controls.test_frozen_v1_declarations),
     ]

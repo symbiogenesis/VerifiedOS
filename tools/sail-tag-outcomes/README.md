@@ -16,7 +16,9 @@ production support recipe, prover switch, Sail source or emitter.
 - `PhysicalCallerBridge.v` checks every request kind in the minimal emitted caller,
   arbitrary successful data replies, tag ordering and exact refusals.
 - `replay.py` reproduces the selected support builds, actual minimal emission,
-  repeated output comparison and strict native controls. It copies dependencies
+  repeated output comparison and strict native controls. It compiles the emitted
+  architecture against both support variants and checks each V1 instance reading
+  against its reviewed digest. It copies dependencies
   privately and inventories both installed prefixes before and after. The replay
   of the November input set also checks the recorded Sail and Z3 binaries,
   plugin population, private stdpp sources and objects, and emitted bytes.
@@ -43,7 +45,9 @@ Set `lane` to the worktree's verified lane name before running.
 The session's fanout retirement may move those native input copies into its retained
 lane archive; select their preserved absolute locations when replaying after
 retirement. `candidate.json` and the retained receipts bind their identities.
-The replay runner's `PASS` means only these isolated compile controls passed.
+The replay runner's `PASS` covers the isolated compiles and the two V1 instance readings.
+The fresh normalized declarations are retained in `v1-baseline.json` and
+`v1-candidate.json` for comparison with the frozen bundle.
 It does not perform the retained native assumption queries or kernel recheck,
 complete package tests, the production census, full canonical acceptance or a gate.
 Each emission runs in a fresh directory and passes `bindings.sail` as the relative
@@ -62,4 +66,4 @@ Focused host helper controls run with:
 python -m unittest discover -s tools/sail-tag-outcomes -p test_replay.py
 ```
 
-These test path isolation and digest refusal without a native toolchain or gate.
+These test path isolation, input identities and frozen V1 declaration refusal.

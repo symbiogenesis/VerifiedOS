@@ -186,6 +186,13 @@ The `pure_iTrace` wrapper, the `iTrace_match` relation and the `iMon_equiv`
 definition that uses them have identical native readings on both sides. Complete
 support comparison and the qualified dependency closure remain open.
 
+The [packaged replay](../../tools/sail-tag-outcomes/README.md) compiles the
+minimal architecture against both support variants and queries each compiled
+instance. Each side must reproduce the digest of its complete normalized reading
+in the frozen manifest above. A changed branch body, neighboring declaration or
+inventory member changes the corresponding digest. The replay keeps both fresh
+readings and the query logs in its output directory.
+
 ## Canonical caller replay
 
 Strict Rocq readings compare the minimal reproducer with the canonical hart 0
