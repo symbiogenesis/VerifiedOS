@@ -15,6 +15,10 @@
     "path": "docs/implementation/retained-evidence/q35p-v1-instance-readings-20261125/manifest.json",
     "sha256": "8453b57f4da174533d2b247c0c7d632ba9d0fa0033638b25cb874a0e875e166f"
   },
+  "frozen_support_manifest": {
+    "path": "docs/implementation/retained-evidence/q35p-support-comparison-20261126/manifest.json",
+    "sha256": "904db7c5abd0fbeb80812ad2e7655be28dc5437bfb3e43194d97ab8b5df21d84"
+  },
   "reproducer": "docs/implementation/retained-evidence/close3-q35p-20261013/bindings.sail.txt",
   "reproducer_sha256": "aff11682da08211dc364a767dcec579b008d1ca1603054d8e9ab71c82e0701b4",
   "strict_support_modules": 29,

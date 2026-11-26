@@ -1,0 +1,44 @@
+{
+  "files": {
+    "commands.json": {
+      "bytes": 277956,
+      "encoding": "identity",
+      "path": "commands.json",
+      "sha256": "69cee9e180621c250ebc76018088dba2ddb71a503ce85ee7b393ed2c928f5e2f"
+    },
+    "inputs.json": {
+      "bytes": 12954,
+      "encoding": "identity",
+      "path": "inputs.json",
+      "sha256": "f1900db9bc7ceaa08a51124f7cf620eb25623ffcb8a9e49133e4e98758f1c29b"
+    },
+    "installed-comparison.json": {
+      "bytes": 114,
+      "encoding": "identity",
+      "path": "installed-comparison.json",
+      "sha256": "13e7412be82fae5a11f0ab99d681309ecab4d00583fef29520651fc0166319c8"
+    },
+    "support-baseline.json.gz": {
+      "bytes": 15203977,
+      "encoding": "gzip",
+      "path": "support-baseline.json.gz",
+      "sha256": "fbf69516126e69fb4abdd4a41766b8f7383644de06093de305180d6e0c601183",
+      "stored_bytes": 330165,
+      "stored_sha256": "326abe88357d15299a325e0c398911aac2f6b1b4f4d07f2c7983d67bc5b6c88b"
+    },
+    "support-candidate.json.gz": {
+      "bytes": 15203977,
+      "encoding": "gzip",
+      "path": "support-candidate.json.gz",
+      "sha256": "fbf69516126e69fb4abdd4a41766b8f7383644de06093de305180d6e0c601183",
+      "stored_bytes": 330165,
+      "stored_sha256": "326abe88357d15299a325e0c398911aac2f6b1b4f4d07f2c7983d67bc5b6c88b"
+    },
+    "support-comparison.json": {
+      "bytes": 25960,
+      "encoding": "identity",
+      "path": "support-comparison.json",
+      "sha256": "c57f386a9ae598e9c7bc8cf6feab070c85f671c2c3cd39f8baba4610b1b78053"
+    }
+  }
+}
