@@ -183,18 +183,9 @@ passes on the complete snapshot prepared from the real checkout. The source reco
 replays before and after compilation; the result binds that record, the resolved
 native compiler's bytes and version, the exact C17 warning and syntax-only
 arguments, exit status and diagnostics. The focused guest source-handoff controls
-also pass.
-
-The retained CHERI-CompCert development build compiled the frozen standalone
-unit directly and from its preprocessed input with a typed Clight dump. Both
-routes emitted identical purecap assembly. In the notification test harness
-the assembled C occupies 4,808 bytes, the atomic adapter 532 bytes and the
-notification adapter 96 bytes. Omitting the atomic adapter leaves
-`vos_copy_init` unresolved. Omitting the notification adapter leaves
-`vos_copy_notify` unresolved. The qualified target entry refuses this compiler's
-unsuccessful build receipt. Execution of the standalone bytes, the installed
-entry and wiring, and image-bound admission remain open.
-[Standalone copy-service purecap compile and assembly](../docs/implementation/retained-evidence/holdfast-q25bb-standalone-assembly-20261125/manifest.json), SHA256 `566158ee04d4b70fbd5a54928357a98d1f0945c16da5ffa1f3ba94b5b294d34b`.
+also pass. This closes the native C syntax checkpoint; qualified target emission,
+installed entry and capability wiring, final-image mapping and production
+admission retain their open predicates.
 
 ## Notification device adapter
 
