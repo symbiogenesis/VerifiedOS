@@ -4,8 +4,10 @@
 reservation reference under the
 [resident-object contract](../implementation/contracts/resident-object-reads.md).
 It models one charged immutable backing, two independent holder slots and one
-outstanding request per holder. Q44 remains open: this reference does not yet
-refine the Python service, scalar retirement, storage or a target artifact.
+outstanding request per holder, together with a two-slot predecessor-replacement
+and backing-reuse model (`TwoSlotCommon`, `TwoSlotState`). Q44 remains open:
+this reference does not yet refine the Python service, scalar retirement,
+storage or a target artifact.
 
 ## Proven scope
 
@@ -74,6 +76,45 @@ this lifecycle model:
   `crash_retains_backing_and_sequences_witness`) exercise these transitions and
   refusals for both `SystemImage` and `UserData`.
 
+Two-slot predecessor replacement and backing reuse extend this reference over
+`TwoSlotCommon` and `TwoSlotState` (`BackingSlot`, `slot_backing`,
+`ts_current_root`, `ts_live`, `ts_publish_initial`, `ts_replace_cow`,
+`ts_admit`, `ts_begin_read`, `ts_complete`, `ts_read_once`,
+`ts_retire_predecessor`, `ts_retire_owner`, and `ts_crash`, with closed
+`witness_TwoSlotCommon`, `witness_TwoSlotState`, `witness_TwoSlotBegun`, and
+`witness_TwoSlotOutcome` definitions):
+
+- `ts_replace_refuses_when_predecessor_occupied` proves that a third version is
+  refused whenever `predecessor_backing` is occupied, including closed quarantine.
+- `ts_replace_preserves_predecessor_transfer_and_admits_successor` proves that
+  CoW replacement installs the new current backing, moves the prior backing to
+  `predecessor_backing`, refuses admission against the predecessor identity,
+  preserves in-flight `UserData` predecessor completion, and admits fresh
+  handles against the successor (advancing `ts_current_generation` for
+  `SystemImage`).
+- `ts_retire_predecessor_preserves_current_peer` and
+  `ts_retire_predecessor_quarantine_blocks_third_version` prove that predecessor
+  retirement closes `predecessor_backing` and cancels only
+  predecessor-matching reservations and pending requests while preserving
+  `current_backing`, peer reservations and pending transfers, and all sequence
+  counters; `barrier_completed = true` releases `predecessor_backing` to `None`,
+  while `barrier_completed = false` retains closed quarantine that still blocks
+  a third version.
+- `ts_begin_and_complete_no_common_writes` proves common-state framing and
+  `no_common` write journals for `ts_begin_read`, `ts_complete`, and
+  `ts_read_once`.
+- `ts_crash_closes_both_slots_and_preserves_sequences` proves that `ts_crash`
+  closes both backing slots, advances `ts_current_boot`, clears all reservations
+  and pending requests, preserves all sequence counters, and causes subsequent
+  `ts_live`, `ts_complete`, `ts_begin_read`, `ts_admit`, and `ts_replace_cow`
+  calls to refuse.
+- Concrete executable witnesses (`ts_userdata_cow_quarantine_and_reuse_witness`
+  and `ts_system_image_cow_generation_and_crash_witness`) verify `UserData` CoW
+  replacement, predecessor pending completion, third-version refusal,
+  quarantine refusal, barrier release with peer transfer completion, slot reuse,
+  and `SystemImage` generation advancement, predecessor transfer refusal,
+  successor read completion, and crash closing both slots.
+
 ## Retained proof evidence
 
 [Focused reservation proof evidence](../implementation/retained-evidence/q44-resident-reservation-20261014/manifest.json),
@@ -88,20 +129,22 @@ closed `witness_<Record>` definitions accompany every carrier record.
 
 The retained run used eight of twelve permitted attempts within a thirty-minute
 active-repair budget. Its focused results supply local feedback; the close,
-renewal, crash, and fresh-token readmission extension was likewise verified
-locally under locked Rocq 9.3.0 strict compilation, `Print Assumptions`, and
-`rocqchk`. Fresh hosted proof acceptance remains deferred to user-managed cold
-Guest CI.
+renewal, crash, fresh-token readmission, and two-slot predecessor-replacement
+extensions in `ResidentReads.v` were likewise verified locally under locked Rocq
+9.3.0 strict compilation (`rocq c`), native `Print Assumptions` across all 260
+enumerated symbols (0 non-closed entries), `rocqchk -silent -o`, and record
+witness checks. Fresh hosted proof acceptance remains deferred to user-managed
+cold Guest CI.
 
 ## Remaining qualification
 
-Q44 still owes two-slot predecessor replacement across backing reuse in Gallina,
-Python/C/scalar/storage correspondence, verifier soundness, complete writer
-observation, and full resource/retirement accounting. Finite-counter proofs cover
-admission tokens and request sequences; private read/authentication counters and
-external clock bounds have no general exhaustion theorem here. Compiled production
-defect controls, both real storage instances, the completion/sweep/zeroization
-barrier (Q44/M5.3d joins), and cold hosted Guest CI proof acceptance remain open.
-This reference discharges no complete requirement.
+Q44 still owes Python/C/scalar/storage correspondence, verifier soundness,
+complete writer observation, and full resource/retirement accounting.
+Finite-counter proofs cover admission tokens and request sequences; private
+read/authentication counters and external clock bounds have no general
+exhaustion theorem here. Compiled production defect controls, both real storage
+instances, the completion/sweep/zeroization barrier (Q44/M5.3d joins), and
+cold hosted Guest CI proof acceptance remain open. This reference discharges no
+complete requirement.
 
 This document uses `CC-BY-4.0` under [COPYRIGHT.md](../../COPYRIGHT.md).
