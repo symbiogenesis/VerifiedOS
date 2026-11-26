@@ -136,8 +136,12 @@ cold-builds the checksum-bound syntax patch, compares stock and candidate canoni
 emission receipts and requires the candidate to repeat byte for byte. Its
 current route requires the refreshed model input identities and the exact
 arguments, output bytes and emitted axioms bound to the
-[frozen comparison](#canonical-main-frozen-comparison). The result records the
-digests of the comparison, its input record and both pairs of generation receipts.
+[frozen comparison](#canonical-main-frozen-comparison). The workflow also checks
+the checkout's [handwritten Rocq support](../../model/handwritten_support/riscv_extras.v)
+against the source digest recorded when the frozen declarations were read. A
+change to that file requires fresh readings even if both emissions repeat. The
+result records its digest alongside the comparison, input record and generation
+receipt digests.
 The `revision` input selects the exact commit on `main`.
 Use `e72c93f260fd025bc9594a983b1459a8e46bed41` to qualify the historical input
 pair using the guard stored at that revision. Use a revision carrying the

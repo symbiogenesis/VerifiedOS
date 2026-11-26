@@ -1,8 +1,10 @@
 # SPDX-License-Identifier: Apache-2.0
 """Fixture controls for the hosted Sail emitter qualification."""
 
+import shutil
 from copy import deepcopy
 from pathlib import Path
+from tempfile import TemporaryDirectory
 from typing import Any
 from unittest.mock import patch
 
@@ -87,7 +89,7 @@ def frozen_emission_join() -> None:
         record["checkout"]["revision"] = REVISION
         record["command"][0] = "/runner/sail/bin/sail"
     bound = emitter.check_frozen_pair(root, stock, candidate)
-    ensure(set(bound) == {"comparison", "inputs", "original", "candidate",
+    ensure(set(bound) == {"comparison", "inputs", "handwritten_source", "original", "candidate",
                           "refreshed_original", "refreshed_candidate"},
            "hosted result omitted frozen comparison inputs")
 
@@ -130,10 +132,31 @@ def frozen_emission_join() -> None:
             raise AssertionError("accepted a refreshed emission with changed output bytes")
 
 
+def changed_handwritten_support() -> None:
+    root = TOOLS.parent
+    with TemporaryDirectory() as temporary:
+        checkout = Path(temporary)
+        for directory in (emitter.FROZEN, emitter.REPLAY, emitter.REFRESH):
+            shutil.copytree(root / directory, checkout / directory)
+        source = Path("model/handwritten_support/riscv_extras.v")
+        support = checkout / source
+        support.parent.mkdir(parents=True)
+        support.write_bytes((root / source).read_bytes() + b"\n")
+        stock, candidate = (emitter.load(checkout / emitter.REFRESH / f"{label}-generation.json")
+                            for label in ("original", "candidate"))
+        try:
+            emitter.check_frozen_pair(checkout, stock, candidate)
+        except ValueError as error:
+            ensure(support.name in str(error), f"unexpected refusal: {error}")
+        else:
+            raise AssertionError("reused frozen readings after the handwritten support changed")
+
+
 def cases() -> list[Case]:
     return [
         Case("paired-canonical-emission", paired_comparison),
         Case("native-plugin-order", native_plugin_order),
         Case("retained-source-inputs", retained_source_inputs),
         Case("frozen-emission-join", frozen_emission_join),
+        Case("changed-handwritten-support", changed_handwritten_support),
     ]

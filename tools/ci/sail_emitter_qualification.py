@@ -143,8 +143,11 @@ def check_frozen_pair(checkout: Path, stock: dict[str, Any],
     inputs = evidence_input(directory, "inputs.json")
     if load(comparison)["status"] != "identical":
         raise ValueError("the retained canonical comparison did not match")
-    bound = {"comparison": receipts.digest(comparison), "inputs": receipts.digest(inputs)}
-    generation = load(inputs)["generation_receipts"]
+    frozen_inputs = load(inputs)
+    exact(checkout / "model/handwritten_support/riscv_extras.v", frozen_inputs["handwritten_source"])
+    bound = {"comparison": receipts.digest(comparison), "inputs": receipts.digest(inputs),
+             "handwritten_source": frozen_inputs["handwritten_source"]}
+    generation = frozen_inputs["generation_receipts"]
     unchanged = ("format", "target", "outputs", "axioms")
     for label, observed in (("original", stock), ("candidate", candidate)):
         member = f"{label}-generation.json"
