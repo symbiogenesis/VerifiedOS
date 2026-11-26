@@ -1092,3 +1092,852 @@ Example crash_retains_backing_and_sequences_witness : forall kind,
 Proof.
   intros []; vm_compute; repeat split; reflexivity.
 Qed.
+
+(* =========================================================================
+   Two-Slot Predecessor Replacement & Backing Reuse (Q44)
+   ========================================================================= *)
+
+Inductive BackingSlot : Type := SlotCurrent | SlotPredecessor.
+
+Definition backing_slot_eq_dec (x y : BackingSlot) : {x = y} + {x <> y}.
+Proof. decide equality. Defined.
+
+Record TwoSlotCommon : Type := {
+  current_backing : option Resident;
+  predecessor_backing : option Resident;
+  ts_reservations : nat -> option Reservation;
+  ts_authority : nat -> bool;
+  ts_next_token : nat;
+  ts_clock : nat;
+  ts_current_boot : nat;
+  ts_current_generation : nat;
+  ts_common_counter : nat
+}.
+
+Record TwoSlotState : Type := {
+  ts_common : TwoSlotCommon;
+  ts_sessions : nat -> Session
+}.
+
+Record TwoSlotOutcome : Type := {
+  ts_after : TwoSlotState;
+  ts_payload : option (list nat);
+  ts_journal : list Cell
+}.
+
+Record TwoSlotBegun : Type := {
+  ts_begun_state : TwoSlotState;
+  ts_accepted : bool;
+  ts_begin_journal : list Cell
+}.
+
+Definition ts_set_session (s : TwoSlotState) (h : nat) (v : Session) : TwoSlotState :=
+  {| ts_common := ts_common s; ts_sessions := set (ts_sessions s) h v |}.
+
+Definition ts_set_common (s : TwoSlotState) (c : TwoSlotCommon) : TwoSlotState :=
+  {| ts_common := c; ts_sessions := ts_sessions s |}.
+
+Definition close_resident (r : Resident) : Resident :=
+  {| resident_identity := resident_identity r;
+     resident_bytes := resident_bytes r;
+     accepting := false |}.
+
+Definition root_kind_eqb (a b : RootKind) : bool :=
+  match a, b with
+  | SystemImage, SystemImage => true
+  | UserData, UserData => true
+  | _, _ => false
+  end.
+
+Definition slot_backing (c : TwoSlotCommon) (id : Identity) : option Resident :=
+  match current_backing c with
+  | Some r =>
+      if identity_eq_dec id (resident_identity r) then Some r
+      else match predecessor_backing c with
+           | Some rp => if identity_eq_dec id (resident_identity rp) then Some rp else None
+           | None => None
+           end
+  | None =>
+      match predecessor_backing c with
+      | Some rp => if identity_eq_dec id (resident_identity rp) then Some rp else None
+      | None => None
+      end
+  end.
+
+Definition ts_current_root (c : TwoSlotCommon) (id : Identity) : bool :=
+  match root_kind id with
+  | SystemImage => generation id =? ts_current_generation c
+  | UserData => true
+  end.
+
+Definition ts_live (c : TwoSlotCommon) (h : Handle) (d : nat) (id : Identity) : bool :=
+  match ts_reservations c (holder h), slot_backing c (handle_identity h) with
+  | Some held, Some r =>
+      if handle_eq_dec h (reserved_handle held) then
+      if identity_eq_dec (handle_identity h) (resident_identity r) then
+      if identity_eq_dec id (handle_identity h) then
+        (holder h <? 2) && accepting r && ts_authority c (holder h) &&
+        (d =? domain (handle_identity h)) &&
+        (boot_epoch h =? ts_current_boot c) && (ts_clock c <? expires held) &&
+        ts_current_root c (handle_identity h)
+      else false else false else false
+  | _, _ => false
+  end.
+
+Definition ts_publish_initial (b : Bounds) (s : TwoSlotState) (r : Resident)
+  : TwoSlotState * bool :=
+  let c := ts_common s in
+  match current_backing c, predecessor_backing c with
+  | None, None =>
+      if resident_ok b r && ts_current_root c (resident_identity r) then
+        (ts_set_common s
+          {| current_backing := Some r;
+             predecessor_backing := None;
+             ts_reservations := ts_reservations c;
+             ts_authority := ts_authority c;
+             ts_next_token := ts_next_token c;
+             ts_clock := ts_clock c;
+             ts_current_boot := ts_current_boot c;
+             ts_current_generation := ts_current_generation c;
+             ts_common_counter := ts_common_counter c |}, true)
+      else (s, false)
+  | _, _ => (s, false)
+  end.
+
+Definition ts_replace_cow (b : Bounds) (s : TwoSlotState) (r_new : Resident)
+  : TwoSlotState * bool :=
+  let c := ts_common s in
+  match current_backing c, predecessor_backing c with
+  | Some r_cur, None =>
+      let id_cur := resident_identity r_cur in
+      let id_new := resident_identity r_new in
+      let gen_ok :=
+        match root_kind id_new with
+        | SystemImage => generation id_new =? S (ts_current_generation c)
+        | UserData => true
+        end in
+      if accepting r_cur && resident_ok b r_new &&
+         (owner id_new =? owner id_cur) &&
+         (domain id_new =? domain id_cur) &&
+         (object_id id_new =? object_id id_cur) &&
+         root_kind_eqb (root_kind id_new) (root_kind id_cur) &&
+         (version id_cur <? version id_new) &&
+         gen_ok then
+        let next_gen :=
+          match root_kind id_new with
+          | SystemImage => S (ts_current_generation c)
+          | UserData => ts_current_generation c
+          end in
+        (ts_set_common s
+          {| current_backing := Some r_new;
+             predecessor_backing := Some r_cur;
+             ts_reservations := ts_reservations c;
+             ts_authority := ts_authority c;
+             ts_next_token := ts_next_token c;
+             ts_clock := ts_clock c;
+             ts_current_boot := ts_current_boot c;
+             ts_current_generation := next_gen;
+             ts_common_counter := ts_common_counter c |}, true)
+      else (s, false)
+  | _, _ => (s, false)
+  end.
+
+Definition ts_admit (b : Bounds) (s : TwoSlotState) (h d : nat) (id : Identity)
+                    (start length : nat) : TwoSlotState * option Handle :=
+  let c := ts_common s in
+  match current_backing c, ts_reservations c h with
+  | Some r, None =>
+    if identity_eq_dec id (resident_identity r) then
+    if resident_ok b r && (h <? 2) && ts_authority c h && (d =? domain id) &&
+       ts_current_root c id && (0 <? length) &&
+       interval start length (List.length (resident_bytes r)) &&
+       (ts_clock c + retention_bound b <=? counter_bound b) &&
+       (ts_next_token c <? counter_bound b) then
+      let handle := {| token := S (ts_next_token c); boot_epoch := ts_current_boot c;
+        holder := h; handle_identity := id; window_start := start;
+        window_length := length |} in
+      let held := {| reserved_handle := handle;
+                     expires := ts_clock c + retention_bound b |} in
+      (ts_set_common s {| current_backing := current_backing c;
+        predecessor_backing := predecessor_backing c;
+        ts_reservations := set (ts_reservations c) h (Some held);
+        ts_authority := ts_authority c; ts_next_token := S (ts_next_token c);
+        ts_clock := ts_clock c; ts_current_boot := ts_current_boot c;
+        ts_current_generation := ts_current_generation c;
+        ts_common_counter := ts_common_counter c |},
+       Some handle)
+    else (s, None) else (s, None)
+  | _, _ => (s, None)
+  end.
+
+Definition ts_begin_read (b : Bounds) (s : TwoSlotState) (h : Handle) (d : nat)
+                         (id : Identity) (off len : nat) : TwoSlotBegun :=
+  if holder h <? 2 then
+    let p := ts_sessions s (holder h) in
+    let cleared := ts_set_session s (holder h) (with_response p None) in
+    let writes := [ResponsePublication (holder h)] in
+    match pending p with
+    | Some _ => {| ts_begun_state := cleared; ts_accepted := false; ts_begin_journal := writes |}
+    | None =>
+      if ts_live (ts_common s) h d id && (len <=? read_bound b) &&
+         interval off len (window_length h) && (sequence p <? counter_bound b) then
+        let q := {| request_handle := h; caller_domain := d; supplied_identity := id;
+                    offset := off; count := len; request_sequence := S (sequence p) |} in
+        {| ts_begun_state := ts_set_session s (holder h)
+            {| sequence := S (sequence p); pending := Some q; response := None;
+               reads := reads p; authentications := authentications p |};
+           ts_accepted := true;
+           ts_begin_journal := writes ++ [PrivateSequence (holder h); PrivatePending (holder h);
+                                          RequestPublication (holder h)] |}
+      else {| ts_begun_state := cleared; ts_accepted := false; ts_begin_journal := writes |}
+    end
+  else {| ts_begun_state := s; ts_accepted := false; ts_begin_journal := [] |}.
+
+Definition ts_complete (verify : list nat -> list nat -> bool)
+                       (s : TwoSlotState) (h seq : nat) : TwoSlotOutcome :=
+  let unchanged := {| ts_after := s; ts_payload := None; ts_journal := [] |} in
+  if h <? 2 then
+    let p := ts_sessions s h in
+    match pending p with
+    | None => unchanged
+    | Some q =>
+      if seq =? request_sequence q then
+        let cleared := ts_set_session s h (clear_pending p) in
+        let writes := [ResponsePublication h; PrivatePending h; RequestPublication h] in
+        let refused := {| ts_after := cleared; ts_payload := None; ts_journal := writes |} in
+        if ts_live (ts_common s) (request_handle q) (caller_domain q) (supplied_identity q) &&
+           (holder (request_handle q) =? h) then
+          match slot_backing (ts_common s) (handle_identity (request_handle q)) with
+          | None => refused
+          | Some r =>
+            let checked := {| sequence := sequence p; pending := None; response := None;
+               reads := reads p; authentications := S (authentications p) |} in
+            if verify (resident_bytes r) (root_digest (resident_identity r)) then
+              let bytes := slice (resident_bytes r)
+                (window_start (request_handle q) + offset q) (count q) in
+              {| ts_after := ts_set_session s h
+                   {| sequence := sequence p; pending := None; response := Some bytes;
+                      reads := S (reads p); authentications := S (authentications p) |};
+                 ts_payload := Some bytes;
+                 ts_journal := writes ++ [PrivateAuthentications h; PrivateReads h;
+                                          ResponsePublication h] |}
+            else {| ts_after := ts_set_session s h checked; ts_payload := None;
+                    ts_journal := writes ++ [PrivateAuthentications h] |}
+          end
+        else refused
+      else unchanged
+    end
+  else unchanged.
+
+Definition ts_read_once (verify : list nat -> list nat -> bool) (b : Bounds)
+                        (s : TwoSlotState) (h : Handle) (d : nat) (id : Identity)
+                        (off len : nat) : TwoSlotOutcome :=
+  let begun := ts_begin_read b s h d id off len in
+  if ts_accepted begun then
+    let done := ts_complete verify (ts_begun_state begun) (holder h)
+                 (sequence (ts_sessions (ts_begun_state begun) (holder h))) in
+    {| ts_after := ts_after done; ts_payload := ts_payload done;
+       ts_journal := ts_begin_journal begun ++ ts_journal done |}
+  else {| ts_after := ts_begun_state begun; ts_payload := None;
+          ts_journal := ts_begin_journal begun |}.
+
+Definition ts_retire_predecessor (s : TwoSlotState) (barrier_completed : bool)
+  : TwoSlotState :=
+  let c := ts_common s in
+  match predecessor_backing c with
+  | None => s
+  | Some rp =>
+      let pred_id := resident_identity rp in
+      let next_pred :=
+        if barrier_completed then None else Some (close_resident rp) in
+      let next_res := fun h =>
+        match ts_reservations c h with
+        | Some held =>
+            if identity_eq_dec (handle_identity (reserved_handle held)) pred_id
+            then None else Some held
+        | None => None
+        end in
+      let next_sess := fun h =>
+        let sess := ts_sessions s h in
+        match pending sess with
+        | Some q =>
+            if identity_eq_dec (handle_identity (request_handle q)) pred_id
+            then clear_pending sess else sess
+        | None => sess
+        end in
+      {| ts_common :=
+           {| current_backing := current_backing c;
+              predecessor_backing := next_pred;
+              ts_reservations := next_res;
+              ts_authority := ts_authority c;
+              ts_next_token := ts_next_token c;
+              ts_clock := ts_clock c;
+              ts_current_boot := ts_current_boot c;
+              ts_current_generation := ts_current_generation c;
+              ts_common_counter := ts_common_counter c |};
+         ts_sessions := next_sess |}
+  end.
+
+Definition ts_retire_owner (s : TwoSlotState) (barrier_completed : bool) : TwoSlotState :=
+  let c := ts_common s in
+  {| ts_common :=
+       {| current_backing :=
+            if barrier_completed then None
+            else option_map close_resident (current_backing c);
+          predecessor_backing :=
+            if barrier_completed then None
+            else option_map close_resident (predecessor_backing c);
+          ts_reservations := fun _ => None;
+          ts_authority := ts_authority c;
+          ts_next_token := ts_next_token c;
+          ts_clock := ts_clock c;
+          ts_current_boot := ts_current_boot c;
+          ts_current_generation := ts_current_generation c;
+          ts_common_counter := ts_common_counter c |};
+     ts_sessions := fun h => clear_pending (ts_sessions s h) |}.
+
+Definition ts_crash (s : TwoSlotState) : TwoSlotState :=
+  let c := ts_common s in
+  {| ts_common :=
+       {| current_backing := option_map close_resident (current_backing c);
+          predecessor_backing := option_map close_resident (predecessor_backing c);
+          ts_reservations := fun _ => None;
+          ts_authority := ts_authority c;
+          ts_next_token := ts_next_token c;
+          ts_clock := ts_clock c;
+          ts_current_boot := S (ts_current_boot c);
+          ts_current_generation := ts_current_generation c;
+          ts_common_counter := ts_common_counter c |};
+     ts_sessions := fun h => clear_pending (ts_sessions s h) |}.
+
+Theorem ts_replace_refuses_when_predecessor_occupied : forall b s r_pred r_new,
+  predecessor_backing (ts_common s) = Some r_pred ->
+  ts_replace_cow b s r_new = (s, false).
+Proof.
+  intros b s r_pred r_new Hpred.
+  unfold ts_replace_cow. rewrite Hpred.
+  destruct (current_backing (ts_common s)); reflexivity.
+Qed.
+
+Theorem ts_replace_preserves_predecessor_transfer_and_admits_successor :
+  forall b s r_cur r_new s',
+    current_backing (ts_common s) = Some r_cur ->
+    ts_replace_cow b s r_new = (s', true) ->
+    current_backing (ts_common s') = Some r_new /\
+    predecessor_backing (ts_common s') = Some r_cur /\
+    resident_identity r_cur <> resident_identity r_new /\
+    (forall h d start len,
+       ts_admit b s' h d (resident_identity r_cur) start len = (s', None)) /\
+    (forall verify h_pred q,
+       root_kind (resident_identity r_cur) = UserData ->
+       h_pred < 2 ->
+       pending (ts_sessions s h_pred) = Some q ->
+       holder (request_handle q) = h_pred ->
+       handle_identity (request_handle q) = resident_identity r_cur ->
+       ts_live (ts_common s) (request_handle q) (caller_domain q) (supplied_identity q) = true ->
+       verify (resident_bytes r_cur) (root_digest (resident_identity r_cur)) = true ->
+       ts_payload (ts_complete verify s' h_pred (request_sequence q)) =
+         Some (slice (resident_bytes r_cur) (window_start (request_handle q) + offset q) (count q))) /\
+    (forall h_cur start_cur len_cur,
+       h_cur < 2 ->
+       ts_reservations (ts_common s) h_cur = None ->
+       ts_authority (ts_common s) h_cur = true ->
+       0 < len_cur ->
+       start_cur + len_cur <= length (resident_bytes r_new) ->
+       ts_clock (ts_common s) + retention_bound b <= counter_bound b ->
+       ts_next_token (ts_common s) < counter_bound b ->
+       exists s'' handle_new,
+         ts_admit b s' h_cur (domain (resident_identity r_new)) (resident_identity r_new)
+           start_cur len_cur = (s'', Some handle_new) /\
+         handle_identity handle_new = resident_identity r_new /\
+         ts_live (ts_common s'') handle_new
+           (domain (resident_identity r_new)) (resident_identity r_new) = true).
+Proof.
+  intros b s r_cur r_new s' Hcur Hrep.
+  unfold ts_replace_cow in Hrep. rewrite Hcur in Hrep.
+  destruct (predecessor_backing (ts_common s)) eqn:Hpred; [discriminate|].
+  match type of Hrep with
+  | (if ?test then _ else _) = _ => destruct test eqn:Hcond
+  end; [|discriminate].
+  inversion Hrep; subst s'; clear Hrep.
+  repeat rewrite andb_true_iff in Hcond.
+  destruct Hcond as [[[[[[[Hacc Hres_new] Howner] Hdom] Hobj] Hkind] Hver] Hgen].
+  apply Nat.ltb_lt in Hver.
+  assert (Hneq_id : resident_identity r_cur <> resident_identity r_new).
+  { intro Heq. assert (version (resident_identity r_cur) = version (resident_identity r_new))
+      by (rewrite Heq; reflexivity). lia. }
+  assert (Hroot_new :
+    ts_current_root
+      {| current_backing := Some r_new;
+         predecessor_backing := Some r_cur;
+         ts_reservations := ts_reservations (ts_common s);
+         ts_authority := ts_authority (ts_common s);
+         ts_next_token := ts_next_token (ts_common s);
+         ts_clock := ts_clock (ts_common s);
+         ts_current_boot := ts_current_boot (ts_common s);
+         ts_current_generation :=
+           match root_kind (resident_identity r_new) with
+           | SystemImage => S (ts_current_generation (ts_common s))
+           | UserData => ts_current_generation (ts_common s)
+           end;
+         ts_common_counter := ts_common_counter (ts_common s) |}
+      (resident_identity r_new) = true).
+  { unfold ts_current_root. simpl.
+    destruct (root_kind (resident_identity r_new)); [exact Hgen|reflexivity]. }
+  split; [reflexivity|].
+  split; [reflexivity|].
+  split; [exact Hneq_id|].
+  split; [|split].
+  - intros h d start len. unfold ts_admit. simpl.
+    destruct (ts_reservations (ts_common s) h); [reflexivity|].
+    destruct (identity_eq_dec (resident_identity r_cur) (resident_identity r_new));
+      [contradiction|reflexivity].
+  - intros verify h_pred q Huser Hhp Hq Hholder Hid_q Hlive Hver_ok.
+    unfold ts_complete. simpl.
+    assert (Hhp_b : (h_pred <? 2) = true) by (apply Nat.ltb_lt; exact Hhp).
+    rewrite Hhp_b, Hq, Nat.eqb_refl.
+    assert (Hslot_s : slot_backing (ts_common s) (handle_identity (request_handle q)) = Some r_cur).
+    { unfold slot_backing. rewrite Hcur, Hid_q.
+      destruct (identity_eq_dec (resident_identity r_cur) (resident_identity r_cur));
+        [reflexivity|contradiction]. }
+    assert (Hslot_s' :
+      slot_backing
+        {| current_backing := Some r_new;
+           predecessor_backing := Some r_cur;
+           ts_reservations := ts_reservations (ts_common s);
+           ts_authority := ts_authority (ts_common s);
+           ts_next_token := ts_next_token (ts_common s);
+           ts_clock := ts_clock (ts_common s);
+           ts_current_boot := ts_current_boot (ts_common s);
+           ts_current_generation :=
+             match root_kind (resident_identity r_new) with
+             | SystemImage => S (ts_current_generation (ts_common s))
+             | UserData => ts_current_generation (ts_common s)
+             end;
+           ts_common_counter := ts_common_counter (ts_common s) |}
+        (handle_identity (request_handle q)) = Some r_cur).
+    { unfold slot_backing. simpl. rewrite Hid_q.
+      destruct (identity_eq_dec (resident_identity r_cur) (resident_identity r_new));
+        [contradiction|].
+      destruct (identity_eq_dec (resident_identity r_cur) (resident_identity r_cur));
+        [reflexivity|contradiction]. }
+    assert (Hlive' :
+      ts_live
+        {| current_backing := Some r_new;
+           predecessor_backing := Some r_cur;
+           ts_reservations := ts_reservations (ts_common s);
+           ts_authority := ts_authority (ts_common s);
+           ts_next_token := ts_next_token (ts_common s);
+           ts_clock := ts_clock (ts_common s);
+           ts_current_boot := ts_current_boot (ts_common s);
+           ts_current_generation :=
+             match root_kind (resident_identity r_new) with
+             | SystemImage => S (ts_current_generation (ts_common s))
+             | UserData => ts_current_generation (ts_common s)
+             end;
+           ts_common_counter := ts_common_counter (ts_common s) |}
+        (request_handle q) (caller_domain q) (supplied_identity q) = true).
+    { unfold ts_live in Hlive |- *. simpl. rewrite Hslot_s in Hlive. rewrite Hslot_s'.
+      destruct (ts_reservations (ts_common s) (holder (request_handle q))) as [held|]; [|discriminate].
+      destruct (handle_eq_dec (request_handle q) (reserved_handle held)); [|discriminate].
+      destruct (identity_eq_dec (handle_identity (request_handle q)) (resident_identity r_cur));
+        [|discriminate].
+      destruct (identity_eq_dec (supplied_identity q) (handle_identity (request_handle q)));
+        [|discriminate].
+      unfold ts_current_root in *. simpl. rewrite Hid_q, Huser in Hlive |- *. exact Hlive. }
+    rewrite Hlive', Hholder, Nat.eqb_refl. simpl. rewrite Hslot_s', Hver_ok. reflexivity.
+  - intros h_cur start_cur len_cur Hh Hnone Hauth Hlen_pos Hbounds Hexp Htok.
+    assert (Hbounds_ok : bounds_ok b = true).
+    { unfold resident_ok in Hres_new.
+      repeat rewrite andb_true_iff in Hres_new.
+      destruct Hres_new as [[[[Hbok _] _] _] _]. exact Hbok. }
+    assert (Hret_pos : 0 < retention_bound b).
+    { unfold bounds_ok in Hbounds_ok.
+      repeat rewrite andb_true_iff in Hbounds_ok.
+      destruct Hbounds_ok as [[[[[[_ _] _] _] Hrp] _] _].
+      apply Nat.ltb_lt in Hrp. exact Hrp. }
+    unfold ts_admit. simpl. rewrite Hnone.
+    destruct (identity_eq_dec (resident_identity r_new) (resident_identity r_new));
+      [|contradiction].
+    assert (Hadmit_cond :
+      (resident_ok b r_new && (h_cur <? 2) && ts_authority (ts_common s) h_cur &&
+       (domain (resident_identity r_new) =? domain (resident_identity r_new)) &&
+       ts_current_root
+         {| current_backing := Some r_new;
+            predecessor_backing := Some r_cur;
+            ts_reservations := ts_reservations (ts_common s);
+            ts_authority := ts_authority (ts_common s);
+            ts_next_token := ts_next_token (ts_common s);
+            ts_clock := ts_clock (ts_common s);
+            ts_current_boot := ts_current_boot (ts_common s);
+            ts_current_generation :=
+              match root_kind (resident_identity r_new) with
+              | SystemImage => S (ts_current_generation (ts_common s))
+              | UserData => ts_current_generation (ts_common s)
+              end;
+            ts_common_counter := ts_common_counter (ts_common s) |}
+         (resident_identity r_new) && (0 <? len_cur) &&
+       interval start_cur len_cur (length (resident_bytes r_new)) &&
+       (ts_clock (ts_common s) + retention_bound b <=? counter_bound b) &&
+       (ts_next_token (ts_common s) <? counter_bound b)) = true).
+    { repeat rewrite andb_true_iff. repeat split.
+      - exact Hres_new.
+      - apply Nat.ltb_lt; exact Hh.
+      - exact Hauth.
+      - apply Nat.eqb_refl.
+      - exact Hroot_new.
+      - apply Nat.ltb_lt; exact Hlen_pos.
+      - unfold interval. apply Nat.leb_le; exact Hbounds.
+      - apply Nat.leb_le; exact Hexp.
+      - apply Nat.ltb_lt; exact Htok. }
+    rewrite Hadmit_cond.
+    eexists _, _. repeat split; try reflexivity.
+    unfold ts_live. simpl. rewrite set_same.
+    unfold slot_backing. simpl.
+    repeat match goal with
+    | |- context [if ?d then _ else _] => destruct d; [|contradiction]
+    end.
+    assert (Hacc_new : accepting r_new = true).
+    { unfold resident_ok in Hres_new.
+      repeat rewrite andb_true_iff in Hres_new.
+      destruct Hres_new as [[[[_ Ha] _] _] _]. exact Ha. }
+    repeat rewrite andb_true_iff. repeat split.
+    + apply Nat.ltb_lt; exact Hh.
+    + exact Hacc_new.
+    + exact Hauth.
+    + apply Nat.eqb_refl.
+    + apply Nat.eqb_refl.
+    + apply Nat.ltb_lt. lia.
+    + exact Hroot_new.
+Qed.
+
+Theorem ts_retire_predecessor_preserves_current_peer :
+  forall s r_cur r_pred barrier_completed,
+    current_backing (ts_common s) = Some r_cur ->
+    predecessor_backing (ts_common s) = Some r_pred ->
+    resident_identity r_cur <> resident_identity r_pred ->
+    let s' := ts_retire_predecessor s barrier_completed in
+    current_backing (ts_common s') = Some r_cur /\
+    predecessor_backing (ts_common s') =
+      (if barrier_completed then None else Some (close_resident r_pred)) /\
+    ts_next_token (ts_common s') = ts_next_token (ts_common s) /\
+    ts_authority (ts_common s') = ts_authority (ts_common s) /\
+    ts_clock (ts_common s') = ts_clock (ts_common s) /\
+    ts_current_boot (ts_common s') = ts_current_boot (ts_common s) /\
+    ts_current_generation (ts_common s') = ts_current_generation (ts_common s) /\
+    (forall k, sequence (ts_sessions s' k) = sequence (ts_sessions s k)) /\
+    (forall k held,
+       ts_reservations (ts_common s) k = Some held ->
+       handle_identity (reserved_handle held) = resident_identity r_cur ->
+       ts_reservations (ts_common s') k = Some held) /\
+    (forall k q,
+       pending (ts_sessions s k) = Some q ->
+       handle_identity (request_handle q) = resident_identity r_cur ->
+       ts_sessions s' k = ts_sessions s k) /\
+    (forall h d id,
+       handle_identity h = resident_identity r_cur ->
+       ts_live (ts_common s') h d id = ts_live (ts_common s) h d id) /\
+    (forall k held,
+       ts_reservations (ts_common s) k = Some held ->
+       handle_identity (reserved_handle held) = resident_identity r_pred ->
+       ts_reservations (ts_common s') k = None) /\
+    (forall k q,
+       pending (ts_sessions s k) = Some q ->
+       handle_identity (request_handle q) = resident_identity r_pred ->
+       pending (ts_sessions s' k) = None) /\
+    (forall h d id,
+       handle_identity h = resident_identity r_pred ->
+       ts_live (ts_common s') h d id = false).
+Proof.
+  intros s r_cur r_pred barrier_completed Hcur Hpred Hneq s'.
+  subst s'. unfold ts_retire_predecessor. rewrite Hpred.
+  repeat split; simpl; try reflexivity.
+  - exact Hcur.
+  - intros k. destruct (pending (ts_sessions s k)); [|reflexivity].
+    destruct (identity_eq_dec (handle_identity (request_handle r)) (resident_identity r_pred));
+      reflexivity.
+  - intros k held Hk Hid. rewrite Hk.
+    destruct (identity_eq_dec (handle_identity (reserved_handle held)) (resident_identity r_pred));
+      [congruence|reflexivity].
+  - intros k q Hq Hid. rewrite Hq.
+    destruct (identity_eq_dec (handle_identity (request_handle q)) (resident_identity r_pred));
+      [congruence|reflexivity].
+  - intros h d id Hid. unfold ts_live. simpl.
+    unfold slot_backing. simpl. rewrite Hcur, Hpred, Hid.
+    destruct (identity_eq_dec (resident_identity r_cur) (resident_identity r_cur));
+      [|contradiction].
+    destruct (ts_reservations (ts_common s) (holder h)) as [held|]; [|reflexivity].
+    destruct (identity_eq_dec (handle_identity (reserved_handle held)) (resident_identity r_pred))
+      as [Heq_p|Hne_p].
+    + destruct (handle_eq_dec h (reserved_handle held)) as [Heq_h|];
+        [rewrite Heq_h in Hid; congruence|reflexivity].
+    + reflexivity.
+  - intros k held Hk Hid. rewrite Hk.
+    destruct (identity_eq_dec (handle_identity (reserved_handle held)) (resident_identity r_pred));
+      [reflexivity|contradiction].
+  - intros k q Hq Hid. rewrite Hq.
+    destruct (identity_eq_dec (handle_identity (request_handle q)) (resident_identity r_pred));
+      [reflexivity|contradiction].
+  - intros h d id Hid. unfold ts_live. simpl.
+    destruct (ts_reservations (ts_common s) (holder h)) as [held|]; [|reflexivity].
+    destruct (identity_eq_dec (handle_identity (reserved_handle held)) (resident_identity r_pred))
+      as [Heq_p|Hne_p]; [reflexivity|].
+    destruct (slot_backing _ _); [|reflexivity].
+    destruct (handle_eq_dec h (reserved_handle held)) as [Heq_h|];
+      [rewrite Heq_h in Hid; contradiction|reflexivity].
+Qed.
+
+Theorem ts_retire_predecessor_quarantine_blocks_third_version :
+  forall b s r_pred r_third,
+    predecessor_backing (ts_common s) = Some r_pred ->
+    let s_q := ts_retire_predecessor s false in
+    predecessor_backing (ts_common s_q) = Some (close_resident r_pred) /\
+    ts_replace_cow b s_q r_third = (s_q, false) /\
+    predecessor_backing (ts_common (ts_retire_predecessor s true)) = None.
+Proof.
+  intros b s r_pred r_third Hpred s_q.
+  assert (Hq : predecessor_backing (ts_common s_q) = Some (close_resident r_pred)).
+  { subst s_q. unfold ts_retire_predecessor. rewrite Hpred. reflexivity. }
+  repeat split.
+  - exact Hq.
+  - eapply ts_replace_refuses_when_predecessor_occupied. exact Hq.
+  - unfold ts_retire_predecessor. rewrite Hpred. reflexivity.
+Qed.
+
+Theorem ts_begin_and_complete_no_common_writes : forall verify b s h h_slot d id off len seq,
+  ts_common (ts_begun_state (ts_begin_read b s h d id off len)) = ts_common s /\
+  no_common (ts_begin_journal (ts_begin_read b s h d id off len)) /\
+  ts_common (ts_after (ts_complete verify s h_slot seq)) = ts_common s /\
+  no_common (ts_journal (ts_complete verify s h_slot seq)) /\
+  ts_common (ts_after (ts_read_once verify b s h d id off len)) = ts_common s /\
+  no_common (ts_journal (ts_read_once verify b s h d id off len)).
+Proof.
+  intros verify b s h h_slot d id off len seq.
+  assert (Hbf : forall b0 s0 h0 d0 id0 off0 len0,
+    ts_common (ts_begun_state (ts_begin_read b0 s0 h0 d0 id0 off0 len0)) = ts_common s0).
+  { intros. unfold ts_begin_read. destruct (holder h0 <? 2); [|reflexivity].
+    destruct (pending (ts_sessions s0 (holder h0)));
+      repeat match goal with |- context [if ?t then _ else _] => destruct t end;
+      reflexivity. }
+  assert (Hbj : forall b0 s0 h0 d0 id0 off0 len0,
+    no_common (ts_begin_journal (ts_begin_read b0 s0 h0 d0 id0 off0 len0))).
+  { intros. unfold ts_begin_read. destruct (holder h0 <? 2);
+      [destruct (pending (ts_sessions s0 (holder h0)))|];
+      repeat match goal with |- context [if ?t then _ else _] => destruct t end;
+      repeat constructor. }
+  assert (Hcf : forall verify0 s0 h0 seq0,
+    ts_common (ts_after (ts_complete verify0 s0 h0 seq0)) = ts_common s0).
+  { intros. unfold ts_complete. destruct (h0 <? 2); [|reflexivity].
+    destruct (pending (ts_sessions s0 h0)); [|reflexivity].
+    repeat match goal with |- context [if ?t then _ else _] => destruct t end;
+      try destruct (slot_backing (ts_common s0) _);
+      repeat match goal with |- context [if ?t then _ else _] => destruct t end;
+      reflexivity. }
+  assert (Hcj : forall verify0 s0 h0 seq0,
+    no_common (ts_journal (ts_complete verify0 s0 h0 seq0))).
+  { intros. unfold ts_complete. destruct (h0 <? 2);
+      [destruct (pending (ts_sessions s0 h0))|];
+      repeat match goal with |- context [if ?t then _ else _] => destruct t end;
+      try destruct (slot_backing (ts_common s0) _);
+      repeat match goal with |- context [if ?t then _ else _] => destruct t end;
+      repeat constructor. }
+  repeat split.
+  - apply Hbf.
+  - apply Hbj.
+  - apply Hcf.
+  - apply Hcj.
+  - unfold ts_read_once. destruct (ts_accepted (ts_begin_read b s h d id off len)); simpl.
+    + rewrite Hcf. apply Hbf.
+    + apply Hbf.
+  - unfold ts_read_once. destruct (ts_accepted (ts_begin_read b s h d id off len)); simpl.
+    + apply Forall_app. split; [apply Hbj|apply Hcj].
+    + apply Hbj.
+Qed.
+
+Theorem ts_crash_closes_both_slots_and_preserves_sequences : forall s,
+  ts_current_boot (ts_common (ts_crash s)) = S (ts_current_boot (ts_common s)) /\
+  (forall r, current_backing (ts_common s) = Some r ->
+     current_backing (ts_common (ts_crash s)) = Some (close_resident r)) /\
+  (current_backing (ts_common s) = None ->
+     current_backing (ts_common (ts_crash s)) = None) /\
+  (forall r, predecessor_backing (ts_common s) = Some r ->
+     predecessor_backing (ts_common (ts_crash s)) = Some (close_resident r)) /\
+  (predecessor_backing (ts_common s) = None ->
+     predecessor_backing (ts_common (ts_crash s)) = None) /\
+  (forall k, ts_reservations (ts_common (ts_crash s)) k = None) /\
+  (forall k, pending (ts_sessions (ts_crash s) k) = None) /\
+  (forall k, sequence (ts_sessions (ts_crash s) k) = sequence (ts_sessions s k)) /\
+  (forall h d id, ts_live (ts_common (ts_crash s)) h d id = false) /\
+  (forall verify k seq, ts_payload (ts_complete verify (ts_crash s) k seq) = None) /\
+  (forall b h d id off len, ts_accepted (ts_begin_read b (ts_crash s) h d id off len) = false) /\
+  (forall b h d id start len, ts_admit b (ts_crash s) h d id start len = (ts_crash s, None)) /\
+  (forall b r_new, ts_replace_cow b (ts_crash s) r_new = (ts_crash s, false)).
+Proof.
+  intros s. repeat split; try reflexivity.
+  - intros r Hr. unfold ts_crash. simpl. rewrite Hr. reflexivity.
+  - intros Hnone. unfold ts_crash. simpl. rewrite Hnone. reflexivity.
+  - intros r Hr. unfold ts_crash. simpl. rewrite Hr. reflexivity.
+  - intros Hnone. unfold ts_crash. simpl. rewrite Hnone. reflexivity.
+  - intros verify k seq. unfold ts_complete, ts_crash. simpl.
+    destruct (k <? 2); reflexivity.
+  - intros b h d id off len. unfold ts_begin_read, ts_crash. simpl.
+    destruct (holder h <? 2); [|reflexivity].
+    unfold ts_live. simpl. reflexivity.
+  - intros b h d id start len. unfold ts_admit, ts_crash. simpl.
+    destruct (current_backing (ts_common s)) as [r|]; [|reflexivity].
+    simpl. destruct (identity_eq_dec id (resident_identity r)); [|reflexivity].
+    unfold resident_ok. simpl. rewrite andb_false_r. reflexivity.
+  - intros b r_new. unfold ts_replace_cow, ts_crash. simpl.
+    destruct (current_backing (ts_common s)) as [r_cur|]; [|reflexivity].
+    destruct (predecessor_backing (ts_common s)); reflexivity.
+Qed.
+
+Definition ts_initial (kind : RootKind) : TwoSlotState :=
+  {| ts_common := {| current_backing := None;
+                     predecessor_backing := None;
+                     ts_reservations := fun _ => None;
+                     ts_authority := fun _ => true;
+                     ts_next_token := 0;
+                     ts_clock := 0;
+                     ts_current_boot := 0;
+                     ts_current_generation := 1;
+                     ts_common_counter := 0 |};
+     ts_sessions := fun _ => empty_session |}.
+
+Definition ts_fixture_identity_v (kind : RootKind) (ver gen : nat) (digest : list nat) : Identity :=
+  {| owner := 1; domain := 7; object_id := 1; version := ver;
+     root_kind := kind; generation := gen; root_digest := digest |}.
+
+Definition ts_fixture_resident_v (kind : RootKind) (ver gen : nat)
+                                 (digest bytes : list nat) : Resident :=
+  {| resident_identity := ts_fixture_identity_v kind ver gen digest;
+     resident_bytes := bytes;
+     accepting := true |}.
+
+Definition ts_fixture_verify (bytes digest : list nat) : bool :=
+  if list_eq_dec Nat.eq_dec bytes [97; 98; 99] then
+    if list_eq_dec Nat.eq_dec digest [11; 22] then true else false
+  else if list_eq_dec Nat.eq_dec bytes [100; 101; 102] then
+    if list_eq_dec Nat.eq_dec digest [33; 44] then true else false
+  else if list_eq_dec Nat.eq_dec bytes [103; 104; 105] then
+    if list_eq_dec Nat.eq_dec digest [55; 66] then true else false
+  else false.
+
+Definition witness_TwoSlotCommon : TwoSlotCommon :=
+  ts_common (fst (ts_publish_initial fixture_bounds (ts_initial UserData)
+    (ts_fixture_resident_v UserData 1 1 [11; 22] [97; 98; 99]))).
+Definition witness_TwoSlotState : TwoSlotState :=
+  fst (ts_publish_initial fixture_bounds (ts_initial UserData)
+    (ts_fixture_resident_v UserData 1 1 [11; 22] [97; 98; 99])).
+Definition witness_TwoSlotBegun : TwoSlotBegun :=
+  let s1 := witness_TwoSlotState in
+  let adm := ts_admit fixture_bounds s1 0 7 (ts_fixture_identity_v UserData 1 1 [11; 22]) 0 3 in
+  match snd adm with
+  | Some h => ts_begin_read fixture_bounds (fst adm) h 7 (ts_fixture_identity_v UserData 1 1 [11; 22]) 0 3
+  | None => {| ts_begun_state := s1; ts_accepted := false; ts_begin_journal := [] |}
+  end.
+Definition witness_TwoSlotOutcome : TwoSlotOutcome :=
+  ts_complete ts_fixture_verify (ts_begun_state witness_TwoSlotBegun) 0 1.
+
+Example ts_userdata_cow_quarantine_and_reuse_witness :
+  let id1 := ts_fixture_identity_v UserData 1 1 [11; 22] in
+  let id2 := ts_fixture_identity_v UserData 2 1 [33; 44] in
+  let r1 := ts_fixture_resident_v UserData 1 1 [11; 22] [97; 98; 99] in
+  let r2 := ts_fixture_resident_v UserData 2 1 [33; 44] [100; 101; 102] in
+  let r3 := ts_fixture_resident_v UserData 3 1 [55; 66] [103; 104; 105] in
+  let pub := ts_publish_initial fixture_bounds (ts_initial UserData) r1 in
+  let s1 := fst pub in
+  let adm0 := ts_admit fixture_bounds s1 0 7 id1 0 3 in
+  let s2 := fst adm0 in
+  let h0 := {| token := 1; boot_epoch := 0; holder := 0; handle_identity := id1;
+               window_start := 0; window_length := 3 |} in
+  let beg0 := ts_begin_read fixture_bounds s2 h0 7 id1 0 3 in
+  let s3 := ts_begun_state beg0 in
+  let cow := ts_replace_cow fixture_bounds s3 r2 in
+  let s4 := fst cow in
+  let pred_done := ts_complete ts_fixture_verify s4 0 1 in
+  let s5 := ts_after pred_done in
+  let adm1 := ts_admit fixture_bounds s5 1 7 id2 1 2 in
+  let s6 := fst adm1 in
+  let h1 := {| token := 2; boot_epoch := 0; holder := 1; handle_identity := id2;
+               window_start := 1; window_length := 2 |} in
+  let beg1 := ts_begin_read fixture_bounds s6 h1 7 id2 0 2 in
+  let s7 := ts_begun_state beg1 in
+  let refuse_v3_occupied := ts_replace_cow fixture_bounds s7 r3 in
+  let s_quar := ts_retire_predecessor s7 false in
+  let refuse_v3_quarantine := ts_replace_cow fixture_bounds s_quar r3 in
+  let s_rel := ts_retire_predecessor s_quar true in
+  let cur_done := ts_complete ts_fixture_verify s_rel 1 1 in
+  let s8 := ts_after cur_done in
+  let reuse_v3 := ts_replace_cow fixture_bounds s8 r3 in
+  let s9 := fst reuse_v3 in
+  snd pub = true /\
+  snd adm0 = Some h0 /\
+  ts_accepted beg0 = true /\
+  snd cow = true /\
+  current_backing (ts_common s4) = Some r2 /\
+  predecessor_backing (ts_common s4) = Some r1 /\
+  ts_payload pred_done = Some [97; 98; 99] /\
+  snd adm1 = Some h1 /\
+  ts_accepted beg1 = true /\
+  snd refuse_v3_occupied = false /\
+  predecessor_backing (ts_common s_quar) = Some (close_resident r1) /\
+  ts_reservations (ts_common s_quar) 0 = None /\
+  snd refuse_v3_quarantine = false /\
+  predecessor_backing (ts_common s_rel) = None /\
+  ts_payload cur_done = Some [101; 102] /\
+  snd reuse_v3 = true /\
+  current_backing (ts_common s9) = Some r3 /\
+  predecessor_backing (ts_common s9) = Some r2.
+Proof.
+  vm_compute. repeat split; reflexivity.
+Qed.
+
+Example ts_system_image_cow_generation_and_crash_witness :
+  let id1 := ts_fixture_identity_v SystemImage 1 1 [11; 22] in
+  let id2 := ts_fixture_identity_v SystemImage 2 2 [33; 44] in
+  let r1 := ts_fixture_resident_v SystemImage 1 1 [11; 22] [97; 98; 99] in
+  let r2 := ts_fixture_resident_v SystemImage 2 2 [33; 44] [100; 101; 102] in
+  let r3 := ts_fixture_resident_v SystemImage 3 3 [55; 66] [103; 104; 105] in
+  let pub := ts_publish_initial fixture_bounds (ts_initial SystemImage) r1 in
+  let s1 := fst pub in
+  let adm0 := ts_admit fixture_bounds s1 0 7 id1 0 3 in
+  let s2 := fst adm0 in
+  let h0 := {| token := 1; boot_epoch := 0; holder := 0; handle_identity := id1;
+               window_start := 0; window_length := 3 |} in
+  let beg0 := ts_begin_read fixture_bounds s2 h0 7 id1 0 3 in
+  let s3 := ts_begun_state beg0 in
+  let cow := ts_replace_cow fixture_bounds s3 r2 in
+  let s4 := fst cow in
+  let pred_refused := ts_complete ts_fixture_verify s4 0 1 in
+  let s5 := ts_after pred_refused in
+  let adm1 := ts_admit fixture_bounds s5 1 7 id2 0 3 in
+  let s6 := fst adm1 in
+  let h1 := {| token := 2; boot_epoch := 0; holder := 1; handle_identity := id2;
+               window_start := 0; window_length := 3 |} in
+  let succ_read := ts_read_once ts_fixture_verify fixture_bounds s6 h1 7 id2 0 3 in
+  let s7 := ts_after succ_read in
+  let crashed := ts_crash s7 in
+  snd pub = true /\
+  snd adm0 = Some h0 /\
+  ts_accepted beg0 = true /\
+  snd cow = true /\
+  ts_current_generation (ts_common s4) = 2 /\
+  ts_payload pred_refused = None /\
+  snd adm1 = Some h1 /\
+  ts_payload succ_read = Some [100; 101; 102] /\
+  ts_current_boot (ts_common crashed) = 1 /\
+  current_backing (ts_common crashed) = Some (close_resident r2) /\
+  predecessor_backing (ts_common crashed) = Some (close_resident r1) /\
+  ts_reservations (ts_common crashed) 0 = None /\
+  ts_reservations (ts_common crashed) 1 = None /\
+  pending (ts_sessions crashed 0) = None /\
+  pending (ts_sessions crashed 1) = None /\
+  sequence (ts_sessions crashed 0) = 1 /\
+  sequence (ts_sessions crashed 1) = 1 /\
+  ts_admit fixture_bounds crashed 0 7 id2 0 3 = (crashed, None) /\
+  ts_replace_cow fixture_bounds crashed r3 = (crashed, false).
+Proof.
+  vm_compute. repeat split; reflexivity.
+Qed.
+
