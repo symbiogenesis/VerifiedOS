@@ -1,0 +1,153 @@
+# SPDX-License-Identifier: Apache-2.0
+"""Replay the historical Q25bb development compile with the retained producer."""
+import argparse
+import hashlib
+import json
+import re
+import shlex
+import subprocess
+import sys
+from pathlib import Path
+
+parser = argparse.ArgumentParser()
+parser.add_argument("checkout", type=Path)
+parser.add_argument("prepared", type=Path)
+parser.add_argument("compiler", type=Path)
+parser.add_argument("output", type=Path, help="new native directory")
+args = parser.parse_args()
+root, prepared, compiler, out = (p.resolve() for p in
+                                 (args.checkout, args.prepared, args.compiler, args.output))
+sys.path.insert(0, str(root / "tools"))
+from vos import asm, compiler_diff, compiler_provenance, copy_notification, copy_package, image, receipts
+
+def require(condition, message):
+    if not condition:
+        raise ValueError(message)
+
+def sha(raw):
+    return hashlib.sha256(raw).hexdigest()
+
+def snapshot(paths):
+    return {str(path): receipts.digest(path) for path in paths}
+
+def revision():
+    return subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=root, text=True).strip()
+
+source_revision = revision()
+record = copy_package.check(root, prepared)
+record_path = prepared / copy_package.RECORD
+require(receipts.digest(record_path) == "e6991359da24d4aaf459fb262ebbd906b2bb858ee61538337df88ec649945205",
+        "the prepared record differs from the frozen source replay")
+recipe = record["recipe"]
+unit = recipe["translation_unit"]
+atomic, notification = recipe["assembly_adapters"]
+config = compiler.with_name("compcert.ini")
+compiler_dir = compiler.parent
+receipt = compiler_dir / "build-result.json"
+producer = json.loads(receipt.read_text())
+producer_files = snapshot([compiler, config, receipt, compiler_dir / "build-inputs.json"])
+require(producer_files[str(compiler)] == producer["compiler_sha256"]
+        == "3dae6ac7bd5a074053130fdcaaab84c42030bdc24be9fff6a4b244db272252f8",
+        "retained compiler differs")
+require(producer_files[str(config)] == "e0efcb8f02d749b406ed243e21408307f2189af136ae562a48b0d2044581550f",
+        "retained compiler configuration differs")
+try:
+    compiler_provenance.read(compiler, lock=root / compiler_provenance.LOCK)
+except ValueError as error:
+    producer_diagnostic = str(error)
+    require(producer_diagnostic == "target requires a successful source-bound contained compiler build",
+            "unexpected compiler provenance refusal")
+else:
+    raise ValueError("the historical Q39 refusal no longer applies")
+out.mkdir(parents=True, exist_ok=False)
+processes = []
+
+def run(argv, cwd):
+    done = subprocess.run(argv, cwd=cwd, capture_output=True, check=True, text=True, timeout=180)
+    processes.append({"argv": argv, "cwd": str(cwd), "exit": done.returncode,
+                      "stdout": done.stdout, "stderr": done.stderr})
+    return done
+
+base = [str(compiler), "-conf", str(config)]
+includes = ["-I" + name for name in recipe["include_directories"]]
+assembly = out / "direct.s"
+run([*base, *recipe["compiler_arguments"], *includes, unit, "-o", str(assembly)], prepared)
+pp = out / "package_unit.i"
+pp_args = [*base, "-fverifiedos-typed", "-v", "-E", *includes, unit]
+preprocess = run([*pp_args, "-o", str(pp)], prepared)
+header_paths = {Path(name) for name in re.findall(r'^# \d+ "([^"<>]+)"', pp.read_text(), re.MULTILINE)}
+headers = snapshot(sorted(path for path in header_paths if path.is_absolute()))
+preprocessor = Path(shlex.split(preprocess.stderr.splitlines()[0])[1])
+require(preprocessor.is_absolute(), "preprocessor trace has no absolute executable")
+preprocessor_sha = receipts.digest(preprocessor)
+run([*base, "-fverifiedos-typed", "-dclight", "-S", pp.name, "-o", "replayed.s"], out)
+require(assembly.read_bytes() == (out / "replayed.s").read_bytes(), "split and direct emission differ")
+light = out / "package_unit.light.c"
+require(light.stat().st_size > 0, "typed dump is empty")
+run([*pp_args, "-o", str(out / "replay.i")], prepared)
+require(pp.read_bytes() == (out / "replay.i").read_bytes(), "repeated preprocessing changed bytes")
+driver_parts = [("compiled C", compiler_diff.normalize(assembly.read_text())),
+                (atomic, (prepared / atomic).read_text()),
+                (notification, (prepared / notification).read_text())]
+controls = copy_notification.controls(root)
+
+def assemble(parts):
+    stream = "".join(part for _, part in parts) + controls
+    assembler = asm.Assembler(compiler_diff.compose(stream), "standalone-notification", data_base=0x80200000)
+    sections, symbols, entry = assembler.assemble()
+    return assembler, sections, symbols, entry
+
+assembler, sections, symbols, entry = assemble(driver_parts)
+elf = out / "standalone-notification.elf"
+image.write_elf(elf, sections, symbols, entry)
+text_section, = [section for section in sections if section.name == ".text"]
+members = {}
+line = compiler_diff.PROLOGUE.count("\n") + 1
+for name, part in driver_parts:
+    require(part.endswith("\n"), "member has no final newline")
+    next_line = line + part.count("\n")
+    sites = [site for site in assembler.sites if line <= site.source < next_line]
+    require(sites and all(site.section == ".text" for site in sites), "expected executable member sites")
+    start = sites[0].address
+    end = sites[-1].address + 4
+    require([site.address for site in sites] == list(range(start, end, 4)), "noncontiguous sites")
+    raw = bytes(text_section.data[start - text_section.addr:end - text_section.addr])
+    require(raw == b"".join(site.word.to_bytes(4, "little") for site in sites),
+            "site words differ from emitted text")
+    members[name] = {"start": hex(start), "end_exclusive": hex(end), "bytes": len(raw),
+                     "sha256": sha(raw), "vos_copy_symbols": {name: hex(addr) for name, (section, addr)
+                     in sorted(symbols.items()) if section == ".text" and start <= addr < end
+                     and name.startswith("vos_copy_")}}
+    line = next_line
+omissions = {}
+for omitted in (atomic, notification):
+    try:
+        assemble([part for part in driver_parts if part[0] != omitted])
+    except asm.AsmError as error:
+        message = str(error)
+        require(any(re.search(r"\b" + re.escape(name) + r"\b", message)
+                    for name in members[omitted]["vos_copy_symbols"]),
+                f"omitting {omitted} gave an unrelated error: {message}")
+        omissions[omitted] = message
+    else:
+        raise ValueError(f"omitting {omitted} was accepted")
+
+require(copy_package.check(root, prepared) == record and revision() == source_revision, "source drift")
+require(snapshot([Path(p) for p in producer_files]) == producer_files
+        and receipts.digest(preprocessor) == preprocessor_sha
+        and snapshot([Path(p) for p in headers]) == headers, "producer or system header drift")
+report = {"scope": "Q25bb development compile and link of the frozen standalone copy-service inputs",
+          "checkout_revision": source_revision, "source_record_sha256": receipts.digest(record_path),
+          "producer_revision": producer["revision"], "producer_build_passed": producer["passed"],
+          "qualified_target_entry_producer_refusal": producer_diagnostic, "producer_files": producer_files,
+          "preprocessor": {str(preprocessor): preprocessor_sha}, "system_header_inputs": headers,
+          "processes": processes, "artifacts": snapshot([pp, light, assembly, elf]),
+          "direct_and_split_assembly_identical": True, "preprocessing_repeated_identically": True,
+          "adapters": {name: record["outputs"][name] for name in (atomic, notification)},
+          "control_harness": "copy_notification.controls", "control_source_sha256": sha(controls.encode()),
+          "assembled_member_ranges_in_harness": members, "omitted_adapter_refusals": omissions,
+          "runtime_execution": False, "qualified_producer": False, "installed_entry": None,
+          "production_admission": False}
+(out / "report.json").write_text(json.dumps(report, sort_keys=True, indent=2) + "\n")
+print(json.dumps({"assembled": {k: v["bytes"] for k, v in members.items()},
+                  "omissions": omissions, "report": str(out / "report.json")}))
