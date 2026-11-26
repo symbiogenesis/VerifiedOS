@@ -6,10 +6,16 @@ import json
 import os
 import shutil
 import subprocess
+import sys
 import tarfile
 import time
+from collections.abc import Callable
 from pathlib import Path
 from typing import cast
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from vos import proofaudit, proofreading, python_dependencies
+from vos.jsonutil import unique_object
 
 
 def sha(path: Path) -> str:
@@ -77,6 +83,33 @@ def retained_stdpp(evidence: Path) -> dict[str, str]:
     return stdpp
 
 
+def match_v1_reading(query: Callable[[str, str], str], output: Path, expected: str) -> None:
+    """Measure the instantiated V1 declarations against one side of the frozen comparison."""
+    module = "bindings_types"
+    owners = (f"{module}.Interface", f"{module}.Defs")
+    inventory = query("Inventory", f"Require {module}.\n" + proofaudit.SETTINGS
+                      + f"Print Table Search Blacklist.\nSearch _ inside {' '.join(owners)}.\n")
+    names = [symbol["name"] for symbol in proofaudit.inventory(inventory, module)]
+    prefixes = tuple(owner + "." for owner in owners)
+    if not names or any(not name.startswith(prefixes) for name in names):
+        raise ValueError("empty V1 inventory or unexpected declaration owner")
+
+    facts = proofreading.answers(query("Facts", proofreading.facts_query(module, names)),
+                                 [f"{name}|{field}" for name in names for field in ("check", "about")])
+    abouts = {name: proofreading.parse_about(
+        name, proofreading.fresh_universes(facts[name + "|about"], "Facts")) for name in names}
+    printed = [name for name in names if abouts[name].printed]
+    bodies = proofreading.answers(query("Bodies", proofreading.bodies_query(module, printed)),
+                                  [name + "|print" for name in printed])
+    reading = {name: proofreading.entry(
+        proofreading.fresh_universes(facts[name + "|check"], "Facts"), abouts[name],
+        proofreading.fresh_universes(bodies[name + "|print"], "Bodies") if abouts[name].printed else None,
+    ) for name in names}
+    output.write_text(json.dumps(reading, sort_keys=True, indent=2) + "\n", encoding="utf-8", newline="\n")
+    if sha(output) != expected:
+        raise ValueError(f"V1 declarations differ from the frozen reading: {output}")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--source-archive", required=True, type=absolute)
@@ -91,6 +124,10 @@ def main() -> None:
     support_recipe = repo / "tools/opam/sail-support-qualification.json"
     recipe = json.loads(recipe_path.read_text(encoding="utf-8"))
     q = json.loads(support_recipe.read_text(encoding="utf-8"))
+    frozen = recipe["frozen_v1_manifest"]
+    frozen_manifest = repo / frozen["path"]
+    require_sha(frozen_manifest, frozen["sha256"])
+    members = json.loads(frozen_manifest.read_bytes(), object_pairs_hook=unique_object)["files"]
     try:
         out = output_path(args.out, (repo, args.source_archive, args.stdpp, args.plugin,
                                     args.rocq_prefix, args.sail_prefix))
@@ -126,8 +163,13 @@ def main() -> None:
     solver_digest = sha(solver) if solver is not None else None
     inputs = {
         "replay_driver_sha256": sha(Path(__file__)),
+        "reading_sources_sha256": {
+            name: sha(repo / name) for name in python_dependencies.sources(
+                repo, ("tools/vos/proofaudit.py", "tools/vos/proofreading.py"))
+        },
         "candidate_recipe_sha256": sha(recipe_path),
         "support_recipe_sha256": sha(support_recipe),
+        "frozen_v1_manifest_sha256": frozen["sha256"],
         "source_archive_sha256": q["source"]["sha256"],
         "rocq_sha256": sha(args.rocq_prefix / "bin/rocq"),
         "sail_sha256": sha(args.sail_prefix / "bin/sail"),
@@ -232,12 +274,27 @@ def main() -> None:
         for name in authored_modules:
             proof_source = repo / "tools/sail-tag-outcomes" / (name + ".v")
             shutil.copy2(proof_source, out / "emitted" / proof_source.name)
-        maps = [*flags, "-R", out / "candidate", "SailStdpp", "-R", out / "emitted", ""]
-        for name in ("bindings_types", "bindings", *authored_modules):
-            result = run("strict-" + name, [args.rocq_prefix / "bin/rocq", "c", *maps,
-                         *q["strict_flags"][1:], out / "emitted" / (name + ".v")])
-            if result.stdout or result.stderr:
-                raise RuntimeError("strict probe compile emitted a diagnostic")
+
+        def compile_and_read(mode: str, stage: Path, modules: tuple[str, ...], label: str) -> None:
+            compiler = [args.rocq_prefix / "bin/rocq", "c", *flags, "-R", out / mode, "SailStdpp",
+                        "-R", stage, "", *q["strict_flags"][1:]]
+            for name in modules:
+                result = run(f"{label}-{name}", [*compiler, stage / (name + ".v")], cwd=stage)
+                if result.stdout or result.stderr:
+                    raise RuntimeError("strict probe compile emitted a diagnostic")
+
+            def query(name: str, content: str) -> str:
+                source = stage / (name + ".v")
+                source.write_text(content, encoding="utf-8")
+                result = run(f"{mode}-v1-{name}", [*compiler, source], cwd=stage)
+                if result.stderr:
+                    raise RuntimeError(f"{mode} V1 {name} query emitted a diagnostic")
+                return result.stdout
+
+            match_v1_reading(query, out / f"v1-{mode}.json", members[f"{mode}.json.gz"]["sha256"])
+
+        compile_and_read("baseline", out / "repeat", ("bindings_types",), "strict-baseline")
+        compile_and_read("candidate", out / "emitted", ("bindings_types", "bindings", *authored_modules), "strict")
         (out / "repeat-output-identities.json").write_text(json.dumps(outputs, indent=2) + "\n")
     finally:
         after = inventory()
