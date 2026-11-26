@@ -45,4 +45,11 @@ int vos_typed_tree_insert(const struct vos_tree_arena *arena,
                            const struct vos_storage_extent *extent,
                            struct vos_tree_update_result *output);
 
+/* [Bounded typed candidate delete](../typed-entry.md#bounded-typed-candidate-delete). */
+int vos_typed_tree_delete(const struct vos_tree_arena *arena,
+                           const struct vos_tree_limits *limits,
+                           uint64_t root, uint64_t generation,
+                           const struct vos_storage_typed_key *key,
+                           struct vos_tree_update_result *output);
+
 #endif

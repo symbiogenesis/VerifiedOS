@@ -130,6 +130,18 @@ def _insert(binary: Path, tree: Tree, key: Key, extent: bytes, *, fan: int,
                           capture_output=True, timeout=5, check=False)
 
 
+def _delete(binary: Path, tree: Tree, key: Key, *, fan: int, generation: int,
+            free: int = 8, visits: int = 4096, depth: int = 16,
+            used: int | None = None) -> subprocess.CompletedProcess[bytes]:
+    blocks, generations, root, height = tree
+    size = 32 + 144 * fan
+    arguments = [fan, len(blocks) + free, size, root, height, depth, visits, *key,
+                 len(blocks) if used is None else used, generation, *generations, *([0] * free)]
+    return subprocess.run([str(binary), "--delete", *(str(value) for value in arguments)],
+                          input=b"".join(blocks) + bytes(size * free),
+                          capture_output=True, timeout=5, check=False)
+
+
 def _accepted_update(result: subprocess.CompletedProcess[bytes], tree: Tree, *,
                      fan: int, generation: int) -> Tree:
     ensure(result.returncode == 0, f"valid typed update failed: {result.returncode} {result.stderr!r}")
@@ -275,6 +287,132 @@ def _exercise_update(binary: Path, *, generated: bool) -> None:
                 _answer(_read(binary, current, key, fan=fan), answers[key])
 
 
+def _exercise_delete(binary: Path, *, generated: bool) -> None:
+    k0: Key = (8, 9, 0, 1 << 63, MAXIMUM, 1)
+    k1: Key = (8, 9, 0, 1 << 63, MAXIMUM, 2)
+    k2: Key = (8, 9, 0, 1 << 63, MAXIMUM, 1 << 32)
+    k3: Key = (8, 9, 0, 1 << 63, MAXIMUM, MAXIMUM)
+    missing: Key = (8, 9, 0, 1 << 63, MAXIMUM, 3)
+
+    fan = 3
+    blocks = [
+        _block(0, 10, [k0, k1], [_extent(1), _extent(2)], fan=fan),
+        _block(1, 11, [k2], [_extent(3)], fan=fan),
+        _block(2, 12, [k3], [_extent(4)], fan=fan),
+        _block(3, 13, [k2, k3], [0, 1, 2], fan=fan, branch=True),
+    ]
+    base = (blocks, [10, 11, 12, 13], 3, 1)
+    _update_refusal(_delete(binary, base, missing, fan=fan, generation=20), staged=False)
+
+    # Non-empty leaf shrink preserves sibling leaves and retained root.
+    shrink = _accepted_update(_delete(binary, base, k0, fan=fan, generation=20), base, fan=fan, generation=20)
+    shrink_expected = [
+        _block(4, 20, [k1], [_extent(2)], fan=fan),
+        _block(5, 20, [k2, k3], [4, 1, 2], fan=fan, branch=True),
+    ]
+    ensure(shrink == (blocks + shrink_expected, [10, 11, 12, 13, 20, 20], 5, 1),
+           "exact non-empty leaf shrink bytes disagree")
+    ensure(_candidate_map(shrink, fan=fan) == ({k1: _extent(2), k2: _extent(3), k3: _extent(4)}, {1, 2, 4, 5}),
+           "leaf shrink candidate map or sibling references disagree")
+    _answer(_read(binary, (shrink[0], shrink[1], 3, 1), k0, fan=fan), _extent(1))
+    _answer(_read(binary, shrink, k0, fan=fan), None)
+
+    # Empty-leaf pruning at route == 0 drops keys[0] (k2) and keeps k3.
+    prune_r0 = _accepted_update(_delete(binary, shrink, k1, fan=fan, generation=21), shrink, fan=fan, generation=21)
+    prune_r0_expected = [_block(6, 21, [k3], [1, 2], fan=fan, branch=True)]
+    ensure(prune_r0 == (shrink[0] + prune_r0_expected, shrink[1] + [21], 6, 1),
+           "exact route == 0 empty-leaf pruning bytes disagree")
+    ensure(_candidate_map(prune_r0, fan=fan) == ({k2: _extent(3), k3: _extent(4)}, {1, 2, 6}),
+           "route == 0 pruning map or sibling references disagree")
+    _answer(_read(binary, (prune_r0[0], prune_r0[1], 5, 1), k1, fan=fan), _extent(2))
+    _answer(_read(binary, prune_r0, k2, fan=fan), _extent(3))
+
+    # Empty-leaf pruning at route > 0 drops keys[route - 1] (interior and last child).
+    prune_r1 = _accepted_update(_delete(binary, base, k2, fan=fan, generation=30), base, fan=fan, generation=30)
+    ensure(prune_r1 == ([*blocks, _block(4, 30, [k3], [0, 2], fan=fan, branch=True)], [10, 11, 12, 13, 30], 4, 1),
+           "exact route == 1 empty-leaf pruning bytes disagree")
+    prune_r2 = _accepted_update(_delete(binary, base, k3, fan=fan, generation=31), base, fan=fan, generation=31)
+    ensure(prune_r2 == ([*blocks, _block(4, 31, [k2], [0, 1], fan=fan, branch=True)], [10, 11, 12, 13, 31], 4, 1),
+           "exact route == 2 empty-leaf pruning bytes disagree")
+
+    # Multi-level single-child root collapse (height 2 -> 1 -> 0) promotes retained leaf into suffix.
+    h2_blocks = [
+        _block(0, 1, [k0], [_extent(1)], fan=2),
+        _block(1, 2, [k3], [_extent(4)], fan=2),
+        _block(2, 3, [], [0], fan=2, branch=True),
+        _block(3, 4, [], [1], fan=2, branch=True),
+        _block(4, 5, [k3], [2, 3], fan=2, branch=True),
+    ]
+    h2 = (h2_blocks, [1, 2, 3, 4, 5], 4, 2)
+    collapsed = _accepted_update(_delete(binary, h2, k0, fan=2, generation=9), h2, fan=2, generation=9)
+    ensure(collapsed == ([*h2_blocks, _block(5, 9, [k3], [_extent(4)], fan=2)], [1, 2, 3, 4, 5, 9], 5, 0),
+           "multi-level single-child root collapse bytes disagree")
+    ensure(_candidate_map(collapsed, fan=2) == ({k3: _extent(4)}, {5}),
+           "collapsed root map or reachable node set disagrees")
+    _answer(_read(binary, (collapsed[0], collapsed[1], 4, 2), k0, fan=2), _extent(1))
+    _answer(_read(binary, (collapsed[0], collapsed[1], 4, 2), k3, fan=2), _extent(4))
+    _answer(_read(binary, collapsed, k3, fan=2), _extent(4))
+
+    # Final deletion yields an empty leaf root at height 0 while preserving prior roots.
+    emptied = _accepted_update(_delete(binary, collapsed, k3, fan=2, generation=10), collapsed, fan=2, generation=10)
+    ensure(emptied == ([*collapsed[0], _block(6, 10, [], [], fan=2)], [1, 2, 3, 4, 5, 9, 10], 6, 0),
+           "final deletion to empty leaf root disagrees")
+    ensure(_candidate_map(emptied, fan=2) == ({}, {6}), "empty leaf root map disagrees")
+    _answer(_read(binary, (emptied[0], emptied[1], 5, 0), k3, fan=2), _extent(4))
+    _answer(_read(binary, (emptied[0], emptied[1], 4, 2), k3, fan=2), _extent(4))
+    _answer(_read(binary, emptied, k3, fan=2), None)
+    _update_refusal(_delete(binary, emptied, k3, fan=2, generation=11), staged=False)
+
+    # Exhaustion and off-route suffix-reference refusals.
+    for free, visits, depth in ((0, 4096, 16), (1, 4096, 16), (8, 3, 16), (8, 4096, 0)):
+        _update_refusal(_delete(binary, base, k0, fan=fan, generation=20, free=free, visits=visits, depth=depth))
+    outside_blocks = [*h2_blocks, _block(5, 11, [k3], [_extent(4)], fan=2)]
+    outside_blocks[0] = _block(0, 1, [k0, k1], [_extent(1), _extent(2)], fan=2)
+    outside_blocks[3] = _block(3, 4, [], [5], fan=2, branch=True)
+    outside = (outside_blocks, [1, 2, 3, 4, 5, 11], 4, 2)
+    _update_refusal(_delete(binary, outside, k0, fan=2, generation=9, used=5, free=4), staged=False)
+
+    if generated:
+        keys: list[Key] = []
+        for word in range(6):
+            for value in (0, 1 << 32, MAXIMUM):
+                fields = [7] * 6
+                fields[word] = value
+                keys.append((fields[0], fields[1], fields[2], fields[3], fields[4], fields[5]))
+        unique_keys = sorted(set(keys))
+        for fan in (2, 3, 4, 16):
+            answers: dict[Key, bytes] = {}
+            current = ([_block(0, 0, [], [], fan=fan)], [0], 0, 0)
+            insert_order = list(reversed(unique_keys)) if fan == 2 else list(unique_keys)
+            for i, key in enumerate(insert_order, 1):
+                answers[key] = _extent(i)
+                current = _accepted_update(
+                    _insert(binary, current, key, answers[key], fan=fan, generation=i, free=32),
+                    current, fan=fan, generation=i)
+            if fan == 2:
+                del_order = list(unique_keys)
+            elif fan == 3:
+                del_order = list(reversed(unique_keys))
+            elif fan == 4:
+                del_order = unique_keys[::2] + list(reversed(unique_keys[1::2]))
+            else:
+                del_order = unique_keys[1::2] + unique_keys[::2]
+            for step, key in enumerate(del_order, len(unique_keys) + 1):
+                deleted_extent = answers.pop(key)
+                previous = current
+                current = _accepted_update(
+                    _delete(binary, previous, key, fan=fan, generation=step, free=32),
+                    previous, fan=fan, generation=step)
+                actual, referenced = _candidate_map(current, fan=fan)
+                ensure(actual == answers, "delete disagrees with independent tuple-to-extent map")
+                ensure(all(node in referenced for node in range(len(previous[0]), len(current[0]))),
+                       "delete candidate appended unreachable nodes")
+                _answer(_read(binary, (current[0], current[1], previous[2], previous[3]), key, fan=fan),
+                        deleted_extent)
+                _answer(_read(binary, current, key, fan=fan), None)
+            ensure(current[3] == 0 and answers == {}, "deleting every key must collapse to empty leaf at height 0")
+
+
 def _exercise(binary: Path, *, generated: bool) -> None:
     # Hold all preceding words equal at every component boundary. This catches
     # comparison by object/version alone and accidental truncation to 32 bits.
@@ -372,6 +510,7 @@ def typed_tree() -> None:
         binary = _build(Path(directory))
         _exercise(binary, generated=True)
         _exercise_update(binary, generated=True)
+        _exercise_delete(binary, generated=True)
 
 
 def typed_tree_mutants() -> None:
@@ -432,7 +571,40 @@ def typed_update_mutants() -> None:
             ensure(caught, f"compiled and executed typed update mutant survived: {label}")
 
 
+def typed_delete_mutants() -> None:
+    source = (ROOT / "storage/src/typed_tree.c").read_text(encoding="utf-8")
+    mutations = [
+        ("missing key accepted", "vos_typed_tree_lookup(&del.prior, limits, root, key, &checked) != VOS_TREE_FOUND",
+         "vos_typed_tree_lookup(&del.prior, limits, root, key, &checked) == VOS_TREE_REFUSED"),
+        ("skip key removal in leaf", "if (compare(&node->keys[i], del->key) == 0) continue;", "if (0) continue;"),
+        ("skip empty-subtree pruning", "if (out.count == 0u)", "if (0)"),
+        ("omit single-child root collapse", "while (candidate.height > 0u && candidate.root < arena->used)", "while (0)"),
+        ("wrong separator shift on route == 0", "out.keys[i] = node->keys[i + 1u];",
+         "out.keys[i] = node->keys[i];"),
+        ("wrong separator shift on route > 0", "out.keys[i - 1u] = node->keys[i];",
+         "out.keys[i - 1u] = node->keys[i - 1u];"),
+        ("skip prior off-route admission", "vos_typed_tree_lookup(&del.prior",
+         "vos_typed_tree_lookup_path(&del.prior"),
+        ("overwrite retained prefix on delete", ".cursor = arena->used", ".cursor = 0u"),
+        ("use wrong generation on delete", "node->generation = del->generation;",
+         "node->generation = del->generation - 1u;"),
+    ]
+    work = toolenv.environment(ROOT, sys.platform).parent / "typed-tree-tests"
+    work.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(prefix="typed-delete-mutants-", dir=work) as directory:
+        for index, (label, old, new) in enumerate(mutations):
+            ensure(source.count(old) == 1, f"mutation site drift: {label}")
+            binary = _build(Path(directory) / str(index), source.replace(old, new))
+            caught = False
+            try:
+                _exercise_delete(binary, generated=False)
+            except AssertionError:
+                caught = True
+            ensure(caught, f"compiled and executed typed delete mutant survived: {label}")
+
+
 def cases() -> list[Case]:
     return [Case("complete typed nodes route and update full tuples and preserve inline extents", typed_tree, lane="guest"),
             Case("compiled typed routing and admission defects are detected", typed_tree_mutants, lane="guest"),
-            Case("compiled typed candidate update defects are detected", typed_update_mutants, lane="guest")]
+            Case("compiled typed candidate update defects are detected", typed_update_mutants, lane="guest"),
+            Case("compiled typed candidate delete defects are detected", typed_delete_mutants, lane="guest")]
