@@ -1,0 +1,460 @@
+{
+  "frozen_source_revision": "498127d6be3d1a70581ba4a9cc025c2d923e66f7",
+  "caller_controls_revision": "d13c20b3cdb312784ac6ea152be4d30e354e51ed",
+  "shared_source_sha256": {
+    "copy-service/include/vos_copy_atomic.h": "25d1e540f344f87a45132f2b781b181c3de458588c9ca5bd626414e99ca024fd",
+    "copy-service/include/vos_copy_service.h": "2f7b774dc6c3caacba7988cf0db86d734ca2874bd9e6d22e5df6571bf0b5575f",
+    "copy-service/test/host.c": "bc3977e9085e94398cad6ea74dd27b457673bcf0c4203d0a3364641e2deed99f",
+    "copy-service/src/copy_service.c": "2997ffebcfa67f0bdb10f37470464bbb06750e2a66d3a5b764620132cbb9d85d",
+    "interfaces/ring-reference.json": "96e0d8fc6993846ba43ea85d497132bf4852181a3a48800ba3a94d8c95cd74f0"
+  },
+  "generated_header_sha256": "6ac893cc25b83485f2efb22e83c0f65d863cb4de7a5a37c50ff134ed48b64d77",
+  "compiler": "/usr/bin/aarch64-linux-gnu-gcc-15",
+  "compiler_sha256": "5b06a5b85cab901e2af3e8f351a6d4e8e6a93af24797bd8c01e5391ac6b4e63b",
+  "compiler_version": "aarch64-linux-gnu-gcc-15 (Ubuntu 15.2.0-16ubuntu1) 15.2.0\nCopyright (C) 2025 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n",
+  "generator": "tools/vos/copy_service.py",
+  "generator_sha256": "4ee82618272003d2d5c1ab5e4047e77f65678e6e31b9677c0b7d2393b78937bf",
+  "mutants": {
+    "write_signal_on_stale_generation": {
+      "original": "    if (!vos_copy_submit_snapshot(ring, &input, &view)) return 0;",
+      "replacement": "    if (generation != ring->generation) *signal = 0;\n    if (!vos_copy_submit_snapshot(ring, &input, &view)) return 0;"
+    },
+    "write_signal_on_duplicate_id": {
+      "original": "    if (!vos_copy_submit_snapshot(ring, &input, &view)) return 0;",
+      "replacement": "    if (!vos_copy_submit_snapshot(ring, &input, &view)) {\n        if (vos_copy_occupancy(&view) == 1 && generation == ring->generation\n            && request == ring->slots[view.consumed % VOS_COPY_CAPACITY].life.request) *signal = 0;\n        return 0;\n    }"
+    },
+    "write_last_destination_byte_on_empty_take": {
+      "original": "    if (!vos_copy_view_valid(view) || vos_copy_occupancy(view) == 0)\n        return 0;\n    vos_copy_payload *const slot",
+      "replacement": "    if (vos_copy_occupancy(view) == 0 && capacity > 0) destination[capacity - 1] = 0;\n    if (!vos_copy_view_valid(view) || vos_copy_occupancy(view) == 0)\n        return 0;\n    vos_copy_payload *const slot"
+    },
+    "write_destination_on_undersized_take": {
+      "original": "    if (slot->life.state != VOS_COPY_SUBMITTED || !slot->life.validated",
+      "replacement": "    if (slot->length > capacity && capacity > 0) destination[capacity - 1] = 0;\n    if (slot->life.state != VOS_COPY_SUBMITTED || !slot->life.validated"
+    },
+    "write_first_byte_after_successful_prefix": {
+      "original": "    *length = slot->length;",
+      "replacement": "    if (slot->length < capacity) destination[slot->length] = 0;\n    *length = slot->length;"
+    }
+  },
+  "runs": {
+    "498127d6be3d1a70581ba4a9cc025c2d923e66f7": {
+      "caller_controls_sha256": "fb6bba08093e0e74f7d67af411617248dab3ccae9fa9d80442ed60b41f7febf5",
+      "cases": {
+        "unmodified": {
+          "source_sha256": "2997ffebcfa67f0bdb10f37470464bbb06750e2a66d3a5b764620132cbb9d85d",
+          "binary_sha256": "7901963b696d96b454eae09dbe033c85df93510b4ff0ce966e61d5abc6c4a784",
+          "compile": {
+            "argv": [
+              "/usr/bin/aarch64-linux-gnu-gcc-15",
+              "-std=c17",
+              "-O1",
+              "-Wall",
+              "-Wextra",
+              "-Wstrict-prototypes",
+              "-Werror",
+              "-pedantic",
+              "-I",
+              ".",
+              "copy_service.c",
+              "host.c",
+              "-o",
+              "copy-host"
+            ],
+            "returncode": 0,
+            "stdout": "",
+            "stderr": ""
+          },
+          "execution": {
+            "argv": [
+              "./copy-host",
+              "controls"
+            ],
+            "returncode": 0,
+            "stdout": "",
+            "stderr": "ok fixed consumer controls: bytes, copy-once, refusals, lifecycle, batch, wrap\n"
+          }
+        },
+        "write_signal_on_stale_generation": {
+          "source_sha256": "69cab28c31741cde34c5454ce8b5fd46d6bf34e5eefa0297b70eb3467b51caa2",
+          "binary_sha256": "00086e34848b82557e6dcb780fe02cc07313deb5ff3da308ad3e2c0fac8f3d32",
+          "compile": {
+            "argv": [
+              "/usr/bin/aarch64-linux-gnu-gcc-15",
+              "-std=c17",
+              "-O1",
+              "-Wall",
+              "-Wextra",
+              "-Wstrict-prototypes",
+              "-Werror",
+              "-pedantic",
+              "-I",
+              ".",
+              "copy_service.c",
+              "host.c",
+              "-o",
+              "copy-host"
+            ],
+            "returncode": 0,
+            "stdout": "",
+            "stderr": ""
+          },
+          "execution": {
+            "argv": [
+              "./copy-host",
+              "controls"
+            ],
+            "returncode": 0,
+            "stdout": "",
+            "stderr": "ok fixed consumer controls: bytes, copy-once, refusals, lifecycle, batch, wrap\n"
+          }
+        },
+        "write_signal_on_duplicate_id": {
+          "source_sha256": "73985bfc7cc2b6db187571013c82acf54ad4787eb1ba22980c8634ae95ca45dd",
+          "binary_sha256": "c08d1d3912583292ecf235b837b9208ae491d06e006285c1771e0a76567c355d",
+          "compile": {
+            "argv": [
+              "/usr/bin/aarch64-linux-gnu-gcc-15",
+              "-std=c17",
+              "-O1",
+              "-Wall",
+              "-Wextra",
+              "-Wstrict-prototypes",
+              "-Werror",
+              "-pedantic",
+              "-I",
+              ".",
+              "copy_service.c",
+              "host.c",
+              "-o",
+              "copy-host"
+            ],
+            "returncode": 0,
+            "stdout": "",
+            "stderr": ""
+          },
+          "execution": {
+            "argv": [
+              "./copy-host",
+              "controls"
+            ],
+            "returncode": 0,
+            "stdout": "",
+            "stderr": "ok fixed consumer controls: bytes, copy-once, refusals, lifecycle, batch, wrap\n"
+          }
+        },
+        "write_last_destination_byte_on_empty_take": {
+          "source_sha256": "349d2d3aeb03ef870334cb6764edd9b680b32d1b2939969bd9f5266607061e1e",
+          "binary_sha256": "1d8241c5064b6d41b023985271ce05091077e0abb909d8f8857560c1e9c1d8c5",
+          "compile": {
+            "argv": [
+              "/usr/bin/aarch64-linux-gnu-gcc-15",
+              "-std=c17",
+              "-O1",
+              "-Wall",
+              "-Wextra",
+              "-Wstrict-prototypes",
+              "-Werror",
+              "-pedantic",
+              "-I",
+              ".",
+              "copy_service.c",
+              "host.c",
+              "-o",
+              "copy-host"
+            ],
+            "returncode": 0,
+            "stdout": "",
+            "stderr": ""
+          },
+          "execution": {
+            "argv": [
+              "./copy-host",
+              "controls"
+            ],
+            "returncode": 0,
+            "stdout": "",
+            "stderr": "ok fixed consumer controls: bytes, copy-once, refusals, lifecycle, batch, wrap\n"
+          }
+        },
+        "write_destination_on_undersized_take": {
+          "source_sha256": "104095b103d89ed58d7ef386309233f0c2251d90dc38d2289516fda1235dba73",
+          "binary_sha256": "6495ce8cfdc39db07007ab6ce0c32f2cb3584031aba954dade5b4cd1051da2fc",
+          "compile": {
+            "argv": [
+              "/usr/bin/aarch64-linux-gnu-gcc-15",
+              "-std=c17",
+              "-O1",
+              "-Wall",
+              "-Wextra",
+              "-Wstrict-prototypes",
+              "-Werror",
+              "-pedantic",
+              "-I",
+              ".",
+              "copy_service.c",
+              "host.c",
+              "-o",
+              "copy-host"
+            ],
+            "returncode": 0,
+            "stdout": "",
+            "stderr": ""
+          },
+          "execution": {
+            "argv": [
+              "./copy-host",
+              "controls"
+            ],
+            "returncode": 0,
+            "stdout": "",
+            "stderr": "ok fixed consumer controls: bytes, copy-once, refusals, lifecycle, batch, wrap\n"
+          }
+        },
+        "write_first_byte_after_successful_prefix": {
+          "source_sha256": "e14d138f08090641b59c114d551b50f85ebade9ba1640720d98f62bbc19ff289",
+          "binary_sha256": "a0a0877c8f6f42089570e406469a6979a1dedf1d9009389a3d2556fd2b50b52b",
+          "compile": {
+            "argv": [
+              "/usr/bin/aarch64-linux-gnu-gcc-15",
+              "-std=c17",
+              "-O1",
+              "-Wall",
+              "-Wextra",
+              "-Wstrict-prototypes",
+              "-Werror",
+              "-pedantic",
+              "-I",
+              ".",
+              "copy_service.c",
+              "host.c",
+              "-o",
+              "copy-host"
+            ],
+            "returncode": 0,
+            "stdout": "",
+            "stderr": ""
+          },
+          "execution": {
+            "argv": [
+              "./copy-host",
+              "controls"
+            ],
+            "returncode": 0,
+            "stdout": "",
+            "stderr": "ok fixed consumer controls: bytes, copy-once, refusals, lifecycle, batch, wrap\n"
+          }
+        }
+      }
+    },
+    "d13c20b3cdb312784ac6ea152be4d30e354e51ed": {
+      "caller_controls_sha256": "adb42dbcca35116326e23f47595eeae01a76e752676b0d8afa4357d2907204f2",
+      "cases": {
+        "unmodified": {
+          "source_sha256": "2997ffebcfa67f0bdb10f37470464bbb06750e2a66d3a5b764620132cbb9d85d",
+          "binary_sha256": "a82562ebf63fb1da0cf2c6e3b22fde53c7445ba8f792e64faa387f5aa9cbb34b",
+          "compile": {
+            "argv": [
+              "/usr/bin/aarch64-linux-gnu-gcc-15",
+              "-std=c17",
+              "-O1",
+              "-Wall",
+              "-Wextra",
+              "-Wstrict-prototypes",
+              "-Werror",
+              "-pedantic",
+              "-I",
+              ".",
+              "copy_service.c",
+              "host.c",
+              "-o",
+              "copy-host"
+            ],
+            "returncode": 0,
+            "stdout": "",
+            "stderr": ""
+          },
+          "execution": {
+            "argv": [
+              "./copy-host",
+              "controls"
+            ],
+            "returncode": 0,
+            "stdout": "",
+            "stderr": "ok fixed consumer controls: bytes, copy-once, refusals, lifecycle, batch, wrap\n"
+          }
+        },
+        "write_signal_on_stale_generation": {
+          "source_sha256": "69cab28c31741cde34c5454ce8b5fd46d6bf34e5eefa0297b70eb3467b51caa2",
+          "binary_sha256": "991c7de078ae536c7d26e631c2b5a5a9fda6926e84b4d5b1f0e94a6f22abbc87",
+          "compile": {
+            "argv": [
+              "/usr/bin/aarch64-linux-gnu-gcc-15",
+              "-std=c17",
+              "-O1",
+              "-Wall",
+              "-Wextra",
+              "-Wstrict-prototypes",
+              "-Werror",
+              "-pedantic",
+              "-I",
+              ".",
+              "copy_service.c",
+              "host.c",
+              "-o",
+              "copy-host"
+            ],
+            "returncode": 0,
+            "stdout": "",
+            "stderr": ""
+          },
+          "execution": {
+            "argv": [
+              "./copy-host",
+              "controls"
+            ],
+            "returncode": 1,
+            "stdout": "",
+            "stderr": "control failed at 23\n"
+          }
+        },
+        "write_signal_on_duplicate_id": {
+          "source_sha256": "73985bfc7cc2b6db187571013c82acf54ad4787eb1ba22980c8634ae95ca45dd",
+          "binary_sha256": "b0ec2123cce8152fa91d830249d9b253cd933d459bb45caa9f916e5d66c52f28",
+          "compile": {
+            "argv": [
+              "/usr/bin/aarch64-linux-gnu-gcc-15",
+              "-std=c17",
+              "-O1",
+              "-Wall",
+              "-Wextra",
+              "-Wstrict-prototypes",
+              "-Werror",
+              "-pedantic",
+              "-I",
+              ".",
+              "copy_service.c",
+              "host.c",
+              "-o",
+              "copy-host"
+            ],
+            "returncode": 0,
+            "stdout": "",
+            "stderr": ""
+          },
+          "execution": {
+            "argv": [
+              "./copy-host",
+              "controls"
+            ],
+            "returncode": 1,
+            "stdout": "",
+            "stderr": "control failed at 33\n"
+          }
+        },
+        "write_last_destination_byte_on_empty_take": {
+          "source_sha256": "349d2d3aeb03ef870334cb6764edd9b680b32d1b2939969bd9f5266607061e1e",
+          "binary_sha256": "d08c5d686dbf83206a684f41c7e4cac4a0835128c5fdeac31ccfe9532b2edc6c",
+          "compile": {
+            "argv": [
+              "/usr/bin/aarch64-linux-gnu-gcc-15",
+              "-std=c17",
+              "-O1",
+              "-Wall",
+              "-Wextra",
+              "-Wstrict-prototypes",
+              "-Werror",
+              "-pedantic",
+              "-I",
+              ".",
+              "copy_service.c",
+              "host.c",
+              "-o",
+              "copy-host"
+            ],
+            "returncode": 0,
+            "stdout": "",
+            "stderr": ""
+          },
+          "execution": {
+            "argv": [
+              "./copy-host",
+              "controls"
+            ],
+            "returncode": 1,
+            "stdout": "",
+            "stderr": "control failed at 15\n"
+          }
+        },
+        "write_destination_on_undersized_take": {
+          "source_sha256": "104095b103d89ed58d7ef386309233f0c2251d90dc38d2289516fda1235dba73",
+          "binary_sha256": "9cc8ea1251b9798659b1ea3f8c98b417932f882e05be3193cc03d2903da0503b",
+          "compile": {
+            "argv": [
+              "/usr/bin/aarch64-linux-gnu-gcc-15",
+              "-std=c17",
+              "-O1",
+              "-Wall",
+              "-Wextra",
+              "-Wstrict-prototypes",
+              "-Werror",
+              "-pedantic",
+              "-I",
+              ".",
+              "copy_service.c",
+              "host.c",
+              "-o",
+              "copy-host"
+            ],
+            "returncode": 0,
+            "stdout": "",
+            "stderr": ""
+          },
+          "execution": {
+            "argv": [
+              "./copy-host",
+              "controls"
+            ],
+            "returncode": 1,
+            "stdout": "",
+            "stderr": "control failed at 57\n"
+          }
+        },
+        "write_first_byte_after_successful_prefix": {
+          "source_sha256": "e14d138f08090641b59c114d551b50f85ebade9ba1640720d98f62bbc19ff289",
+          "binary_sha256": "315df0fda151c70ba1b2819eed0c94ce2fd326a3251babf56b50b288fbbaab5d",
+          "compile": {
+            "argv": [
+              "/usr/bin/aarch64-linux-gnu-gcc-15",
+              "-std=c17",
+              "-O1",
+              "-Wall",
+              "-Wextra",
+              "-Wstrict-prototypes",
+              "-Werror",
+              "-pedantic",
+              "-I",
+              ".",
+              "copy_service.c",
+              "host.c",
+              "-o",
+              "copy-host"
+            ],
+            "returncode": 0,
+            "stdout": "",
+            "stderr": ""
+          },
+          "execution": {
+            "argv": [
+              "./copy-host",
+              "controls"
+            ],
+            "returncode": 1,
+            "stdout": "",
+            "stderr": "control failed at 61\n"
+          }
+        }
+      }
+    }
+  },
+  "scope": "Native host C public calls with serialized disjoint extents. Purecap compilation, target execution, client proofs, resource envelopes and admission remain open."
+}
