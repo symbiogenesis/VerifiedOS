@@ -1,0 +1,42 @@
+{
+  "files": {
+    "bindings.json": {
+      "bytes": 713,
+      "encoding": "identity",
+      "path": "bindings.json",
+      "sha256": "14da503a2dec2d07cc198e92f9e93562a615040b3acb2e10fcc3e4275414703a"
+    },
+    "comparison.json": {
+      "bytes": 4498,
+      "encoding": "identity",
+      "path": "comparison.json",
+      "sha256": "f98eedbae3b98bc18d847bd0794fc11e9c4f27223ad0cb4fbd90c50eef88a3da"
+    },
+    "pass.sail.log": {
+      "bytes": 5487,
+      "encoding": "identity",
+      "path": "pass.sail.log",
+      "sha256": "f0ae8b0238a589ae23f4fd45df814030c93f913b45edb7ee5737bc7e273922cd"
+    },
+    "perm-trap.sail.log": {
+      "bytes": 4760,
+      "encoding": "identity",
+      "path": "perm-trap.sail.log",
+      "sha256": "252d666404b672da5d37bc81ba1fb6d4e45d1e5eee3378b68621573e3148ce9d"
+    },
+    "qualification.json.gz": {
+      "bytes": 1086980,
+      "encoding": "gzip",
+      "path": "qualification.json.gz",
+      "sha256": "882dcf59c032637e35907affec3f79e847742981c577cc4cf4c8e9f05dc867c5",
+      "stored_bytes": 286951,
+      "stored_sha256": "77dab1a3f2a54cb1cf69504def74df2144ca8078dff7c31191b5600183239533"
+    },
+    "writable-view.sail.log": {
+      "bytes": 5736,
+      "encoding": "identity",
+      "path": "writable-view.sail.log",
+      "sha256": "6b27535b1e91c3a4f4d95df29df0c930f1039ab76e2928b6eb6e472a95f86b7a"
+    }
+  }
+}

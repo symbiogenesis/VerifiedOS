@@ -1,0 +1,105 @@
+{
+  "bindings_sha256": "14da503a2dec2d07cc198e92f9e93562a615040b3acb2e10fcc3e4275414703a",
+  "carried_compiler_refusal": {
+    "evidence": "Unchanged preprocessed C, compiler and configuration. Typed Clight compilation was not repeated.",
+    "original_report_sha256": "2cbacb97c3d176bda3f9bf093969a3fd92a921f6bec84d8d58996f54a4d0c3ca"
+  },
+  "gallina_sha256": "7c3092c71b53276b894e001b24e23d456e695e784bc020741ad282dda53bda5f",
+  "live_observations": {
+    "pass": {
+      "htif": 0,
+      "instruction": "cgetperm t0, c13",
+      "log_sha256": "f0ae8b0238a589ae23f4fd45df814030c93f913b45edb7ee5737bc7e273922cd",
+      "permissions": 2,
+      "records": [
+        "I 80 0000000080000188 FE0682DB",
+        "X 5 0 0000000000000002"
+      ]
+    },
+    "perm-trap": {
+      "cause": 28,
+      "htif": 284,
+      "instruction": "sb t0, 0(c13)",
+      "log_sha256": "252d666404b672da5d37bc81ba1fb6d4e45d1e5eee3378b68621573e3148ce9d",
+      "preceding_instruction": "I 64 0000000080000148 1A5686DB",
+      "records": [
+        "I 65 000000008000014C 00568023",
+        "S 31 1 E80000008000014C",
+        "C 300 0000000000000000",
+        "C 342 000000000000001C",
+        "C 343 00000000000001B3",
+        "C 341 000000008000014C",
+        "T 0 28"
+      ]
+    },
+    "writable-view": {
+      "htif": 2,
+      "instruction": "cgetperm t0, c13",
+      "log_sha256": "6b27535b1e91c3a4f4d95df29df0c930f1039ab76e2928b6eb6e472a95f86b7a",
+      "permissions": 6,
+      "records": [
+        "I 81 000000008000018C FE0682DB",
+        "X 5 0 0000000000000006"
+      ]
+    }
+  },
+  "lowered_c_sha256": "de01ba3419108fd691911076bde01c015ddca38ff82c7db7b35e749a2bf26f43",
+  "matched_compiler_and_configuration": {
+    "/root/build/lane-checklist-20261010-c/q39/final-build-1/compiler/ccomp": "3dae6ac7bd5a074053130fdcaaab84c42030bdc24be9fff6a4b244db272252f8",
+    "/root/build/lane-checklist-20261010-c/q39/final-build-1/compiler/compcert.ini": "e0efcb8f02d749b406ed243e21408307f2189af136ae562a48b0d2044581550f"
+  },
+  "matched_toolchain_inputs": {
+    "execution_inputs": {
+      "compcert_available": false,
+      "files": {
+        "profile": {
+          "path": "/root/build/verifiedos-model/config/verifiedos.json",
+          "sha256": "7ff6f9dec6fbe0c164d52eea4862cc2cd29fd5d73fe59f498ca6011a1b6f88c2"
+        },
+        "python": {
+          "path": "/usr/bin/python3.14",
+          "sha256": "d1b87c365d0cf5a985cfedfc227ff613a5bc6ff56e841202eb9330d263bbeee9"
+        },
+        "simulator": {
+          "path": "/root/build/verifiedos-model/c_emulator/sail_riscv_sim",
+          "sha256": "c29388da23bb6b2522672e3d7b2667ef0bf34182c953a910a6160f8f190fdd75"
+        }
+      },
+      "python_version": "3.14.4 (main, Aug 20 2026, 10:41:58) [GCC 15.2.0]"
+    },
+    "toolchain": {
+      "binary_sha256": {
+        "ocamlc": "1e17fbb985b286d75695dcb7d76cc7cf22ec494f202bc3d4e6d01c707c044f03",
+        "rocq": "e514e102881b5501b5d4d665e191ac1d0a8429e1a30094a719e73dfb1b545e90",
+        "rocqchk": "46ca9dbc38774ecf6c28393d95756c5680121916302d8261a4c8efec2f672a72"
+      },
+      "ocamlc": "5.4.1",
+      "rocq": "The Rocq Prover, version 9.3.0\ncompiled with OCaml 5.4.1",
+      "switch": "verifiedos-rocq-9.3.0-ocaml-5.4.1"
+    }
+  },
+  "preprocess": {
+    "argv": [
+      "/root/build/lane-checklist-20261010-c/q39/final-build-1/compiler/ccomp",
+      "-conf",
+      "/root/build/lane-checklist-20261010-c/q39/final-build-1/compiler/compcert.ini",
+      "-fverifiedos-typed",
+      "-dclight",
+      "-E",
+      "first_slice.c",
+      "-o",
+      "/root/build/lane-hf-fixed-pilot-1125d/receipt-check/first_slice.i"
+    ],
+    "cwd": "/root/build/lane-packet-permissions-1125d/holdfast-first-slice/slice-3f0769jf",
+    "returncode": 0,
+    "sha256": "771f98a5adb10411f677462827137a55dc86b67b3ba0aa04e84d6afb140ba7da"
+  },
+  "prior_comparison_sha256": "981c04ebf1af08f5dfb6e72bea42751023874f875ea0a1540636d3480ae3ba3b",
+  "prior_qualification_sha256": "8497237c9d934d4791789ae19e13e355b8ad483a675912770996538d7ebe3ea5",
+  "prior_revision": "6186a4fc4518e2118ad5136953e120e991dcdae8",
+  "producer_revision": "bf3a73c8f4d8d73d73076d7d43c09fd238e1aa3a",
+  "qualification_sha256": "882dcf59c032637e35907affec3f79e847742981c577cc4cf4c8e9f05dc867c5",
+  "scope": "Independent comparison of the repaired development pilot and its retained compiler input.",
+  "source_sha256": "d165039ed299a16bf87ec0ede832d76b37ff576f5c59f0ec52a7545c732274c6",
+  "verifiedos_inputs_revision": "cc13409a52e496b0ad61e8a8cd490a0382012a02"
+}
