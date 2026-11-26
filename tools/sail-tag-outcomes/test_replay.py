@@ -18,6 +18,14 @@ check_support_source_diff = helpers["check_support_source_diff"]
 compare_support_readings = helpers["compare_support_readings"]
 verify_support_comparison = helpers["verify_support_comparison"]
 verify_frozen_support = helpers["verify_frozen_support"]
+AUTHORED_MODULES = helpers["AUTHORED_MODULES"]
+VALUES_LEMMAS_AXIOMS = helpers["VALUES_LEMMAS_AXIOMS"]
+authored_inventory_query = helpers["authored_inventory_query"]
+authored_assumption_query = helpers["authored_assumption_query"]
+audit_authored_assumptions = helpers["audit_authored_assumptions"]
+verify_kernel_partition = helpers["verify_kernel_partition"]
+build_kernel_report = helpers["build_kernel_report"]
+verify_frozen_closure = helpers["verify_frozen_closure"]
 
 
 class IsolationControls(unittest.TestCase):
@@ -337,10 +345,345 @@ class IsolationControls(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "source diff mismatch"):
             verify_support_comparison(rep_bad_src)
 
+    def test_authored_assumptions_audit(self) -> None:
+        targets = {
+            "TagInterpreter": ("TagPlaneInst", ["TagPlaneInst.tag_get", "TagPlaneInst.legal_read"]),
+            "TagControls": ("TagControls", ["TagControls.aligned_capability", "TagControls.trace"]),
+            "TagConservativity": ("OldOutcomesInst", ["OldOutcomesInst.tag_free_run_preserved"]),
+            "PhysicalCallerBridge": ("PhysicalCallerBridge", ["PhysicalCallerBridge.read_ram_request_order"]),
+        }
+
+        def make_query(
+            *, empty_mod: str | None = None, axiom_symbol: str | None = None,
+        ) -> object:
+            def query(name: str, content: str) -> str:
+                if name.startswith("AssumptionsInventory_"):
+                    mod = name.removeprefix("AssumptionsInventory_")
+                    target, symbols = targets[mod]
+                    if mod in ("TagInterpreter", "TagConservativity"):
+                        self.assertIn(f"Module {target} :=", content)
+                    self.assertIn(f"Search _ inside {target}.", content)
+                    if mod == empty_mod:
+                        return "Current search blacklist :  is empty.\n"
+                    return (
+                        "Current search blacklist :  is empty.\n"
+                        + "".join(f"{sym}: Prop\n" for sym in symbols)
+                    )
+                if name.startswith("AssumptionsCheck_"):
+                    mod = name.removeprefix("AssumptionsCheck_")
+                    target, symbols = targets[mod]
+                    lines: list[str] = []
+                    for sym in sorted(symbols):
+                        self.assertIn(f"Print Assumptions {sym}.", content)
+                        lines.append(f"VOS_PROOF_AUDIT|{sym}")
+                        if sym == axiom_symbol:
+                            lines.append("Axioms:")
+                            lines.append("Stdlib.Logic.Classical_Prop.classic : forall P : Prop, P \\/ ~ P")
+                        else:
+                            lines.append("Closed under the global context")
+                    return "\n".join(lines) + "\n"
+                self.fail(f"unexpected assumption query {name}")
+                return ""
+            return query
+
+        report = audit_authored_assumptions(AUTHORED_MODULES, make_query())
+        self.assertTrue(report["all_closed"])
+        self.assertEqual(report["total_declarations"], 6)
+        self.assertEqual(report["modules"]["TagInterpreter"]["query_target"], "TagPlaneInst")
+        self.assertTrue(report["modules"]["TagInterpreter"]["instantiated_functor"])
+        self.assertEqual(report["modules"]["TagConservativity"]["query_target"], "OldOutcomesInst")
+        self.assertTrue(report["modules"]["TagConservativity"]["instantiated_functor"])
+        self.assertFalse(report["modules"]["TagControls"]["instantiated_functor"])
+        self.assertFalse(report["modules"]["PhysicalCallerBridge"]["instantiated_functor"])
+
+        with self.assertRaisesRegex(ValueError, "empty native inventory"):
+            audit_authored_assumptions(AUTHORED_MODULES, make_query(empty_mod="TagConservativity"))
+
+        with self.assertRaisesRegex(ValueError, "non-closed declaration"):
+            audit_authored_assumptions(
+                AUTHORED_MODULES,
+                make_query(axiom_symbol="PhysicalCallerBridge.read_ram_request_order"),
+            )
+
+        # Direct helper checks on functor instantiation preambles.
+        target_ti, inv_ti = authored_inventory_query("TagInterpreter")
+        self.assertEqual(target_ti, "TagPlaneInst")
+        self.assertIn("Module TagPlaneInst := TagInterpreter.TagPlane", inv_ti)
+        assump_tc = authored_assumption_query(
+            "TagConservativity",
+            [{"name": "OldOutcomesInst.tag_free_run_preserved", "type": "Prop", "assumptions": [], "claims": []}],
+        )
+        self.assertIn("Module OldOutcomesInst := TagConservativity.OldOutcomes", assump_tc)
+
+    def _kernel_summary(
+        self, axioms: list[str], indices: list[str] | None = None,
+    ) -> str:
+        ax_block = (
+            "* Axioms: <none>"
+            if not axioms
+            else "* Axioms:\n" + "\n".join(f"    {ax}" for ax in axioms)
+        )
+        idx_block = (
+            "* Inductives relying on indices not mattering: <none>"
+            if indices is None or len(indices) == 0
+            else "* Inductives relying on indices not mattering:\n"
+            + "\n".join(f"    {ind}" for ind in indices)
+        )
+        return "\n".join([
+            "",
+            "CONTEXT SUMMARY",
+            "===============",
+            "",
+            "* Theory: Set is predicative",
+            "* Theory: Rewrite rules are not allowed",
+            ax_block,
+            "* Constants/Inductives relying on type-in-type: <none>",
+            "* Constants/Inductives relying on unsafe (co)fixpoints: <none>",
+            "* Inductives whose positivity is assumed: <none>",
+            idx_block,
+            "",
+        ])
+
+    def test_recursive_kernel_partitions_and_refusals(self) -> None:
+        portable_flags = [
+            "-silent", "-o", "-boot",
+            "-R", "<rocq_prefix>/lib/coq/theories", "Corelib",
+            "-Q", "<rocq_prefix>/lib/coq/user-contrib/Stdlib", "Stdlib",
+            "-Q", "<out>/stdpp", "stdpp",
+            "-R", "<out>/candidate", "SailStdpp",
+            "-R", "<out>/emitted", "",
+        ]
+        real_axioms = [
+            "Stdlib.Logic.FunctionalExtensionality.functional_extensionality_dep",
+            "Stdlib.Reals.ClassicalDedekindReals.sig_not_dec",
+            "Stdlib.Reals.ClassicalDedekindReals.sig_forall_dec",
+            "Stdlib.Logic.Classical_Prop.classic",
+        ]
+        base_argv = ["/opt/rocq/bin/rocqchk", *portable_flags]
+        partitions = {
+            "authored_and_emitted": verify_kernel_partition(
+                "authored_and_emitted",
+                [*base_argv, "bindings_types", "bindings", *AUTHORED_MODULES],
+                0, "",
+                self._kernel_summary([], ["bindings_types.Interface.outcome", "Corelib.Init.Logic.eq"]),
+                ["bindings_types", "bindings", *AUTHORED_MODULES],
+                [],
+                portable_flags=portable_flags,
+            ),
+            "support_axiom_free": verify_kernel_partition(
+                "support_axiom_free",
+                [*base_argv, "SailStdpp.Base", "SailStdpp.Values"],
+                0, "",
+                self._kernel_summary([], ["Corelib.Init.Logic.eq"]),
+                ["SailStdpp.Base", "SailStdpp.Values"],
+                [],
+                portable_flags=portable_flags,
+            ),
+            "support_values_lemmas_control": verify_kernel_partition(
+                "support_values_lemmas_control",
+                [*base_argv, "SailStdpp.Values_lemmas"],
+                0, "",
+                self._kernel_summary(list(VALUES_LEMMAS_AXIOMS), ["Stdlib.Logic.JMeq.JMeq"]),
+                ["SailStdpp.Values_lemmas"],
+                list(VALUES_LEMMAS_AXIOMS),
+                portable_flags=portable_flags,
+                note="Values_lemmas Program.Wf control",
+            ),
+            "support_real_control": verify_kernel_partition(
+                "support_real_control",
+                [*base_argv, "SailStdpp.Real"],
+                0, "",
+                self._kernel_summary(real_axioms, ["Corelib.Init.Logic.eq"]),
+                ["SailStdpp.Real"],
+                real_axioms,
+                portable_flags=portable_flags,
+            ),
+        }
+        report = build_kernel_report(partitions)
+        self.assertTrue(report["recursive"])
+        self.assertTrue(report["norec_absent"])
+        self.assertEqual(partitions["support_values_lemmas_control"]["axioms"], sorted(VALUES_LEMMAS_AXIOMS))
+        self.assertEqual(partitions["support_real_control"]["axioms"], sorted(real_axioms))
+
+        # Refuse -norec in argv or portable_flags.
+        with self.assertRaisesRegex(ValueError, "-norec"):
+            verify_kernel_partition(
+                "authored_and_emitted",
+                [*base_argv, "-norec", "bindings_types"],
+                0, "", self._kernel_summary([]),
+                ["bindings_types"], [],
+                portable_flags=portable_flags,
+            )
+        with self.assertRaisesRegex(ValueError, "-norec"):
+            verify_kernel_partition(
+                "authored_and_emitted",
+                [*base_argv, "bindings_types"],
+                0, "", self._kernel_summary([]),
+                ["bindings_types"], [],
+                portable_flags=[*portable_flags, "-norec"],
+            )
+
+        # Refuse unexpected axiom in 0-axiom partition.
+        with self.assertRaisesRegex(ValueError, "axioms mismatch"):
+            verify_kernel_partition(
+                "support_axiom_free",
+                [*base_argv, "SailStdpp.Base"],
+                0, "",
+                self._kernel_summary(["Stdlib.Logic.Eqdep.Eq_rect_eq.eq_rect_eq"]),
+                ["SailStdpp.Base"], [],
+                portable_flags=portable_flags,
+            )
+
+        # Refuse missing axiom in Real or Values_lemmas control.
+        with self.assertRaisesRegex(ValueError, "axioms mismatch"):
+            verify_kernel_partition(
+                "support_real_control",
+                [*base_argv, "SailStdpp.Real"],
+                0, "",
+                self._kernel_summary(real_axioms[:-1]),
+                ["SailStdpp.Real"], real_axioms,
+                portable_flags=portable_flags,
+            )
+        with self.assertRaisesRegex(ValueError, "axioms mismatch"):
+            verify_kernel_partition(
+                "support_values_lemmas_control",
+                [*base_argv, "SailStdpp.Values_lemmas"],
+                0, "",
+                self._kernel_summary(list(VALUES_LEMMAS_AXIOMS[:-1])),
+                ["SailStdpp.Values_lemmas"], list(VALUES_LEMMAS_AXIOMS),
+                portable_flags=portable_flags,
+            )
+
+    def test_frozen_closure_manifest_binding_and_refusals(self) -> None:
+        assumptions_doc = {
+            "schema": "verifiedos-tag-assumptions/1",
+            "all_closed": True,
+            "modules_audited": list(AUTHORED_MODULES),
+            "total_declarations": 4,
+            "modules": {
+                mod: {
+                    "module": mod,
+                    "query_target": mod,
+                    "instantiated_functor": False,
+                    "declaration_count": 1,
+                    "closed_count": 1,
+                    "all_closed": True,
+                    "non_closed": [],
+                    "symbols": [f"{mod}.lem"],
+                }
+                for mod in AUTHORED_MODULES
+            },
+        }
+        portable_flags = ["-silent", "-o", "-boot", "-R", "<out>/emitted", ""]
+        kernel_doc = {
+            "schema": "verifiedos-tag-kernel-check/1",
+            "recursive": True,
+            "norec_absent": True,
+            "partition_order": [
+                "authored_and_emitted",
+                "support_axiom_free",
+                "support_values_lemmas_control",
+                "support_real_control",
+            ],
+            "partitions": {
+                "authored_and_emitted": {
+                    "modules": ["bindings_types"],
+                    "argv": ["/run-1/rocqchk", *portable_flags, "bindings_types"],
+                    "portable_flags": portable_flags,
+                    "norec_present": False,
+                    "exit_code": 0,
+                    "expected_axioms": [],
+                    "axioms": [],
+                    "indices_not_mattering": ["Corelib.Init.Logic.eq"],
+                },
+                "support_axiom_free": {
+                    "modules": ["SailStdpp.Base"],
+                    "argv": ["/run-1/rocqchk", *portable_flags, "SailStdpp.Base"],
+                    "portable_flags": portable_flags,
+                    "norec_present": False,
+                    "exit_code": 0,
+                    "expected_axioms": [],
+                    "axioms": [],
+                    "indices_not_mattering": [],
+                },
+                "support_values_lemmas_control": {
+                    "modules": ["SailStdpp.Values_lemmas"],
+                    "argv": ["/run-1/rocqchk", *portable_flags, "SailStdpp.Values_lemmas"],
+                    "portable_flags": portable_flags,
+                    "norec_present": False,
+                    "exit_code": 0,
+                    "expected_axioms": sorted(VALUES_LEMMAS_AXIOMS),
+                    "axioms": sorted(VALUES_LEMMAS_AXIOMS),
+                    "indices_not_mattering": ["Stdlib.Logic.JMeq.JMeq"],
+                },
+                "support_real_control": {
+                    "modules": ["SailStdpp.Real"],
+                    "argv": ["/run-1/rocqchk", *portable_flags, "SailStdpp.Real"],
+                    "portable_flags": portable_flags,
+                    "norec_present": False,
+                    "exit_code": 0,
+                    "expected_axioms": ["Stdlib.Logic.Classical_Prop.classic"],
+                    "axioms": ["Stdlib.Logic.Classical_Prop.classic"],
+                    "indices_not_mattering": [],
+                },
+            },
+        }
+        with tempfile.TemporaryDirectory(prefix="vos-closure-manifest-") as directory:
+            root = Path(directory)
+            a_bytes = (json.dumps(assumptions_doc, sort_keys=True, indent=2) + "\n").encode("utf-8")
+            k_bytes = (json.dumps(kernel_doc, sort_keys=True, indent=2) + "\n").encode("utf-8")
+            (root / "assumptions.json").write_bytes(a_bytes)
+            (root / "kernel-check.json").write_bytes(k_bytes)
+            manifest = root / "manifest.json"
+            manifest.write_text(json.dumps({
+                "files": {
+                    "assumptions.json": {
+                        "path": "assumptions.json",
+                        "sha256": hashlib.sha256(a_bytes).hexdigest(),
+                        "bytes": len(a_bytes),
+                    },
+                    "kernel-check.json": {
+                        "path": "kernel-check.json",
+                        "sha256": hashlib.sha256(k_bytes).hexdigest(),
+                        "bytes": len(k_bytes),
+                    },
+                },
+            }), encoding="utf-8")
+            manifest_sha = sha(manifest)
+
+            # Different raw argv paths pass when normalized invariants match.
+            fresh_kernel = json.loads(json.dumps(kernel_doc))
+            fresh_kernel["partitions"]["authored_and_emitted"]["argv"] = [
+                "/run-2/rocqchk", *portable_flags, "bindings_types",
+            ]
+            verify_frozen_closure(manifest, manifest_sha, assumptions_doc, fresh_kernel)
+
+            # Manifest digest mismatch refused.
+            with self.assertRaisesRegex(ValueError, "input digest mismatch"):
+                verify_frozen_closure(manifest, "0" * 64, assumptions_doc, fresh_kernel)
+
+            # Assumptions count/symbol mismatch refused.
+            bad_assumptions = json.loads(json.dumps(assumptions_doc))
+            bad_assumptions["total_declarations"] = 3
+            with self.assertRaisesRegex(ValueError, "assumptions total_declarations differs"):
+                verify_frozen_closure(manifest, manifest_sha, bad_assumptions, fresh_kernel)
+
+            # Kernel axiom drift refused.
+            bad_kernel = json.loads(json.dumps(fresh_kernel))
+            bad_kernel["partitions"]["support_axiom_free"]["axioms"] = ["Extra.ax"]
+            with self.assertRaisesRegex(ValueError, "kernel-check support_axiom_free.axioms differs"):
+                verify_frozen_closure(manifest, manifest_sha, assumptions_doc, bad_kernel)
+
+            # -norec in fresh report refused.
+            norec_kernel = json.loads(json.dumps(fresh_kernel))
+            norec_kernel["partitions"]["authored_and_emitted"]["portable_flags"].append("-norec")
+            with self.assertRaisesRegex(ValueError, "violated recursive check invariants"):
+                verify_frozen_closure(manifest, manifest_sha, assumptions_doc, norec_kernel)
+
     def test_candidate_recipe_binds_frozen_manifests(self) -> None:
         repo = Path(__file__).resolve().parents[2]
         recipe = json.loads((repo / "tools/sail-tag-outcomes/candidate.json").read_text(encoding="utf-8"))
-        for key in ("frozen_v1_manifest", "frozen_support_manifest"):
+        for key in ("frozen_v1_manifest", "frozen_support_manifest", "frozen_closure_manifest"):
             entry = recipe[key]
             manifest = repo / entry["path"]
             self.assertTrue(manifest.is_file(), f"missing {key}: {manifest}")
