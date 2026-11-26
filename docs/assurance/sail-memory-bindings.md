@@ -7,6 +7,11 @@ canonical-consumer acceptance remains owed.
 
 ## Retained evidence
 
+- [Complete 29-module Sail support comparison](../implementation/retained-evidence/q35p-support-comparison-20261126/manifest.json),
+  SHA256 `904db7c5abd0fbeb80812ad2e7655be28dc5437bfb3e43194d97ab8b5df21d84`.
+  Full 29-module source diff, compiled objects, normalized top-level elaborated
+  readings (1,868 declarations each), installed-prefix inventories and replay
+  commands.
 - [Packaged Q35p isolated replay](../implementation/retained-evidence/q35p-holdfast-frozen-replay-20261125/manifest.json),
   SHA256 `75aacf6bccc11d27fe4a1503d3bb79b973f531ed1fb6b31f6aa5bddb9d532953`.
   Frozen inputs, strict compile commands, repeated emission and installed-prefix comparison.
@@ -183,8 +188,9 @@ Its source rejects `Choose` and recurses over every other event. Its `Check`
 and `About` readings agree. Its printed body adds exactly the `TagRead` and
 `TagWrite` cases, each recurring on the trace tail. Every previous case agrees.
 The `pure_iTrace` wrapper, the `iTrace_match` relation and the `iMon_equiv`
-definition that uses them have identical native readings on both sides. Complete
-support comparison and the qualified dependency closure remain open.
+definition that uses them have identical native readings on both sides. The
+complete 29-module support comparison is retained below; the qualified
+dependency closure remains open.
 
 At `25cd8283`, the [packaged replay](../../tools/sail-tag-outcomes/README.md)
 compiled the same minimal architecture against each private support build. Its
@@ -194,6 +200,32 @@ both installed-prefix inventories matched before and after. The inputs, commands
 and measured reading and object identities are retained in the
 [packaged replay of both frozen V1 readings](../implementation/retained-evidence/q35p-packaged-v1-20261125/manifest.json),
 SHA256 `f40781dc29683f38a7f0731d996f7e86b4f76f9a16e11b4e7e836348a1dd8f35`.
+
+## Complete 29-module support comparison
+
+The replay driver strictly compiled all 29 selected `SailStdpp` modules on both
+the baseline and candidate support builds over the retained November inputs.
+Across all 29 `.v` sources, only `ConcurrencyInterface.v` and
+`ConcurrencyInterfaceBuiltins.v` differ; all other 27 `.v` files are byte-identical.
+
+Native elaborated readings across all 29 `SailStdpp.<Mod>` modules (`Search`
+with an empty blacklist, `Check`, `About`, and `Print` for transparent constants
+and inductives, with fresh query-local universes normalized) record 1,868
+top-level declarations on both baseline and candidate, with identical normalized
+readings (`support-baseline.json.gz` and `support-candidate.json.gz`, decoded
+SHA-256 `fbf69516126e69fb4abdd4a41766b8f7383644de06093de305180d6e0c601183`).
+Six modules have zero top-level declarations on both sides (`Base`,
+`ConcurrencyInterfaceBuiltins`, `ConcurrencyInterfaceBuiltinsV2`, `Impl_base`,
+`Inhabited`, and `MachineWordInterface`), `ConcurrencyInterface` matches across
+all 4 top-level declarations (`empOutcome`, `empOutcome_rec`, `empOutcome_ind`,
+`empOutcome_rect`), and zero declarations are added, removed, or changed across
+all 29 modules. Both installed opam prefixes (`verifiedos-rocq-9.3.0-ocaml-5.4.1`
+and `verifiedos-sail-0.20.3-ocaml-5.4.1`) recorded zero changes before and after.
+`candidate.json` binds `frozen_support_manifest` to the
+[complete 29-module Sail support comparison](../implementation/retained-evidence/q35p-support-comparison-20261126/manifest.json),
+SHA256 `904db7c5abd0fbeb80812ad2e7655be28dc5437bfb3e43194d97ab8b5df21d84`, and
+re-running the replay driver verified both the 29-module support readings and
+the instantiated V1 readings (`167` baseline vs `171` candidate).
 
 ## Canonical caller replay
 
@@ -237,12 +269,12 @@ their bytes or establish complete attempt history.
 
 The [canonical candidate replay](sail-rocq-emission.md#canonical-candidate-replay)
 establishes strict whole-term compilation, recursive kernel context and compiled
-size with private support. Q35p still owes the complete frozen comparison of
-support and the recursive closure on the qualified support. Repeat the sequential
-emulator isolation check if the qualification inputs differ from the retained
-pair. Q35q owns the hosted support declaration census and all twelve corruption
-controls, and Q35o still owes hosted qualification of the immutable emitter.
-Q35n owns cold production carriage, and Q35b owes replay and closure with
-qualified support.
+size with private support. Q35p's isolated 29-module support comparison and V1
+instance readings are retained; Q35p still owes recursive closure on the
+qualified support, and repeating the sequential emulator isolation check if the
+qualification inputs differ from the retained pair. Q35q owns the hosted support
+declaration census and all twelve corruption controls, and Q35o still owes hosted
+qualification of the immutable emitter. Q35n owns cold production carriage, and
+Q35b owes whole-term replay and closure with qualified support.
 The [validation handoff](../../AGENTS.md#tool-execution-and-validation)
 leaves Host CI and cold Guest CI publication, execution and verdicts to the user.

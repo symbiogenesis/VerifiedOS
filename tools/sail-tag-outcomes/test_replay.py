@@ -13,6 +13,11 @@ require_sha = helpers["require_sha"]
 sha = helpers["sha"]
 retained_emission_inputs = helpers["retained_emission_inputs"]
 match_v1_reading = helpers["match_v1_reading"]
+read_support_module = helpers["read_support_module"]
+check_support_source_diff = helpers["check_support_source_diff"]
+compare_support_readings = helpers["compare_support_readings"]
+verify_support_comparison = helpers["verify_support_comparison"]
+verify_frozen_support = helpers["verify_frozen_support"]
 
 
 class IsolationControls(unittest.TestCase):
@@ -126,6 +131,220 @@ class IsolationControls(unittest.TestCase):
                     with self.assertRaisesRegex(ValueError, path.name):
                         retained_emission_inputs(evidence, plugin, sail, z3)
                     path.write_text(path.name, encoding="utf-8")
+
+    def test_support_comparison_matches_including_empty_modules(self) -> None:
+        modules = ["Base", "ConcurrencyInterface", "ConcurrencyInterfaceBuiltins", "State_monad", "TypeCasts"]
+        alias_sym = "State_monad.NMap.E.t"
+        opaque_sym = "TypeCasts.dummy_value"
+        ci_sym = "ConcurrencyInterface.empOutcome"
+        state_mod = {
+            f"SailStdpp.{alias_sym}": {
+                "check": f"SailStdpp.{alias_sym} : Type@{{?u1}}",
+                "about": (
+                    f"{alias_sym} : Type@{{?u1}}\n\n"
+                    f"{alias_sym} is not universe polymorphic\n"
+                    f"{alias_sym} is transparent\n"
+                    f"Expands to: Constant SailStdpp.{alias_sym} "
+                    f"(syntactically equal to Stdlib.Structures.OrderedTypeEx.N_as_OT.t)"
+                ),
+                "print": f"{alias_sym} = OrderedTypeEx.N_as_OT.t",
+            },
+        }
+        typecasts_mod = {
+            f"SailStdpp.{opaque_sym}": {
+                "check": f"SailStdpp.{opaque_sym} : Prop",
+                "about": (
+                    f"{opaque_sym} : Prop\n\n"
+                    f"{opaque_sym} is not universe polymorphic\n"
+                    f"{opaque_sym} is opaque but may be made transparent\n"
+                    f"Expands to: Constant SailStdpp.{opaque_sym}"
+                ),
+                "print": f"{opaque_sym} = True",
+            },
+        }
+        ci_mod = {
+            f"SailStdpp.{ci_sym}": {
+                "check": f"SailStdpp.{ci_sym} : Prop",
+                "about": (
+                    f"{ci_sym} : Prop\n\n"
+                    f"{ci_sym} is not universe polymorphic\n"
+                    f"{ci_sym} is transparent\n"
+                    f"Expands to: Constant SailStdpp.{ci_sym}"
+                ),
+                "print": f"{ci_sym} = False",
+            },
+        }
+        fixtures = {
+            "Base": {},
+            "ConcurrencyInterfaceBuiltins": {},
+            "ConcurrencyInterface": ci_mod,
+            "State_monad": state_mod,
+            "TypeCasts": typecasts_mod,
+        }
+
+        def make_query(table: dict[str, dict[str, dict[str, str]]]) -> object:
+            def query(phase_mod: str, content: str) -> str:
+                if phase_mod.startswith("VosReadingInventory_"):
+                    mod = phase_mod.removeprefix("VosReadingInventory_")
+                    self.assertIn(f"Search _ inside SailStdpp.{mod}.", content)
+                    rows = "".join(
+                        f"{name.removeprefix('SailStdpp.')}: Prop\n" for name in sorted(table[mod])
+                    )
+                    footer = (
+                        f'(use "About" for full details on the implicit arguments of {alias_sym})\n'
+                        if mod == "State_monad" and table[mod] else ""
+                    )
+                    return "Current search blacklist :  is empty.\n" + rows + footer
+                phase, _, mod = phase_mod.removeprefix("VosReading").partition("_")
+                entries = table[mod]
+                answers = []
+                for name in sorted(entries):
+                    if phase == "Facts":
+                        answers.extend([
+                            (name + "|check", entries[name]["check"].replace("?u1", f"{phase_mod}.1")),
+                            (name + "|about", entries[name]["about"].replace("?u1", f"{phase_mod}.1") + "\nDeclared in library X"),
+                        ])
+                    elif phase == "Bodies":
+                        answers.append((name + "|print", entries[name]["print"]))
+                    else:
+                        self.fail(f"unexpected query phase {phase_mod}")
+                return "".join(f"VOS_PROOF_READING|{key}\n{value}\n" for key, value in answers)
+            return query
+
+        q_fn = make_query(fixtures)
+        baseline_readings = {mod: read_support_module(q_fn, mod) for mod in modules}
+        candidate_readings = {mod: read_support_module(q_fn, mod) for mod in modules}
+        self.assertEqual(baseline_readings["Base"], {})
+        self.assertEqual(baseline_readings["ConcurrencyInterfaceBuiltins"], {})
+        self.assertEqual(
+            baseline_readings["TypeCasts"][f"SailStdpp.{opaque_sym}"]["opacity"],
+            "opaque but may be made transparent",
+        )
+
+        with tempfile.TemporaryDirectory(prefix="vos-support-cmp-") as directory:
+            root = Path(directory)
+            base_dir = root / "baseline"
+            cand_dir = root / "candidate"
+            base_dir.mkdir()
+            cand_dir.mkdir()
+            for mod in modules:
+                (base_dir / f"{mod}.v").write_text(f"(* {mod} *)\n", encoding="utf-8")
+                body = f"(* patched {mod} *)\n" if mod in ("ConcurrencyInterface", "ConcurrencyInterfaceBuiltins") else f"(* {mod} *)\n"
+                (cand_dir / f"{mod}.v").write_text(body, encoding="utf-8")
+            source_diff = check_support_source_diff(base_dir, cand_dir, modules)
+            base_objs = {mod: hashlib.sha256(f"b-{mod}".encode()).hexdigest() for mod in modules}
+            cand_objs = {mod: hashlib.sha256(f"c-{mod}".encode()).hexdigest() for mod in modules}
+            report = compare_support_readings(
+                modules, baseline_readings, candidate_readings, source_diff, base_objs, cand_objs,
+            )
+            verify_support_comparison(report)
+
+            base_payload = (json.dumps(baseline_readings, sort_keys=True, indent=2) + "\n").encode("utf-8")
+            cand_payload = (json.dumps(candidate_readings, sort_keys=True, indent=2) + "\n").encode("utf-8")
+            cmp_bytes = (json.dumps(report, sort_keys=True, indent=2) + "\n").encode("utf-8")
+            frozen_dir = root / "frozen"
+            frozen_dir.mkdir()
+            (frozen_dir / "support-comparison.json").write_bytes(cmp_bytes)
+            manifest = frozen_dir / "manifest.json"
+            manifest.write_text(json.dumps({
+                "files": {
+                    "support-baseline.json.gz": {"path": "support-baseline.json.gz", "sha256": hashlib.sha256(base_payload).hexdigest(), "bytes": len(base_payload)},
+                    "support-candidate.json.gz": {"path": "support-candidate.json.gz", "sha256": hashlib.sha256(cand_payload).hexdigest(), "bytes": len(cand_payload)},
+                    "support-comparison.json": {"path": "support-comparison.json", "sha256": hashlib.sha256(cmp_bytes).hexdigest(), "bytes": len(cmp_bytes)},
+                },
+            }), encoding="utf-8")
+            manifest_sha = sha(manifest)
+            verify_frozen_support(manifest, manifest_sha, base_payload, cand_payload, report)
+            with self.assertRaisesRegex(ValueError, "candidate reading differs"):
+                verify_frozen_support(manifest, manifest_sha, base_payload, b"{}\n", report)
+
+    def test_support_comparison_refusals(self) -> None:
+        modules = ["Base", "ConcurrencyInterface", "ConcurrencyInterfaceBuiltins"]
+        ci_sym = "SailStdpp.ConcurrencyInterface.empOutcome"
+        entry = {
+            "kind": "Constant",
+            "opacity": "transparent",
+            "universes": "monomorphic",
+            "check": f"{ci_sym} : Prop",
+            "about": f"ConcurrencyInterface.empOutcome : Prop\n\nConcurrencyInterface.empOutcome is transparent\nExpands to: Constant {ci_sym}",
+            "print": "ConcurrencyInterface.empOutcome = False",
+        }
+        base_readings = {"Base": {}, "ConcurrencyInterface": {ci_sym: dict(entry)}, "ConcurrencyInterfaceBuiltins": {}}
+        source_diff = {
+            mod: {
+                "baseline_sha256": hashlib.sha256(f"b-{mod}".encode()).hexdigest(),
+                "candidate_sha256": hashlib.sha256(f"{'c' if mod.startswith('ConcurrencyInterface') else 'b'}-{mod}".encode()).hexdigest(),
+                "differs": mod.startswith("ConcurrencyInterface"),
+            }
+            for mod in modules
+        }
+        objs = {mod: hashlib.sha256(mod.encode()).hexdigest() for mod in modules}
+
+        with tempfile.TemporaryDirectory(prefix="vos-support-refuse-") as directory:
+            root = Path(directory)
+            base_dir = root / "baseline"
+            cand_dir = root / "candidate"
+            base_dir.mkdir()
+            cand_dir.mkdir()
+            for mod in modules:
+                (base_dir / f"{mod}.v").write_text("base\n", encoding="utf-8")
+                (cand_dir / f"{mod}.v").write_text("cand\n" if mod.startswith("ConcurrencyInterface") else "base\n", encoding="utf-8")
+            check_support_source_diff(base_dir, cand_dir, modules)
+
+            # Untouched source modified.
+            (cand_dir / "Base.v").write_text("tampered\n", encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "source diff mismatch"):
+                check_support_source_diff(base_dir, cand_dir, modules)
+            (cand_dir / "Base.v").write_text("base\n", encoding="utf-8")
+
+            # Missing source.
+            (cand_dir / "Base.v").unlink()
+            with self.assertRaisesRegex(ValueError, "missing support source"):
+                check_support_source_diff(base_dir, cand_dir, modules)
+
+        # Missing / mismatched module set.
+        with self.assertRaisesRegex(ValueError, "exact selected module set"):
+            compare_support_readings(modules, {"Base": {}}, base_readings, source_diff, objs, objs)
+
+        # Added declaration on candidate.
+        cand_added = {"Base": {"SailStdpp.Base.extra": dict(entry)}, "ConcurrencyInterface": {ci_sym: dict(entry)}, "ConcurrencyInterfaceBuiltins": {}}
+        rep_added = compare_support_readings(modules, base_readings, cand_added, source_diff, objs, objs)
+        with self.assertRaisesRegex(ValueError, "empty top-level support modules disagree"):
+            verify_support_comparison(rep_added)
+
+        # Removed declaration on candidate (from non-empty module).
+        cand_removed = {
+            "Base": {},
+            "ConcurrencyInterface": {ci_sym: dict(entry), "SailStdpp.ConcurrencyInterface.extra": dict(entry)},
+            "ConcurrencyInterfaceBuiltins": {},
+        }
+        rep_removed = compare_support_readings(modules, cand_removed, base_readings, source_diff, objs, objs)
+        with self.assertRaisesRegex(ValueError, "ConcurrencyInterface"):
+            verify_support_comparison(rep_removed)
+
+        # Modified check, about, or print reading.
+        for field in ("check", "about", "print"):
+            with self.subTest(field=field):
+                cand_mod = {"Base": {}, "ConcurrencyInterface": {ci_sym: {**entry, field: "mutated"}}, "ConcurrencyInterfaceBuiltins": {}}
+                rep = compare_support_readings(modules, base_readings, cand_mod, source_diff, objs, objs)
+                self.assertEqual(rep["modules"]["ConcurrencyInterface"]["changed"], {ci_sym: [field]})
+                with self.assertRaisesRegex(ValueError, "ConcurrencyInterface"):
+                    verify_support_comparison(rep)
+
+        # Source outside patched pair marked differing in report.
+        bad_src_diff = {**source_diff, "Base": {**source_diff["Base"], "differs": True}}
+        rep_bad_src = compare_support_readings(modules, base_readings, base_readings, bad_src_diff, objs, objs)
+        with self.assertRaisesRegex(ValueError, "source diff mismatch"):
+            verify_support_comparison(rep_bad_src)
+
+    def test_candidate_recipe_binds_frozen_manifests(self) -> None:
+        repo = Path(__file__).resolve().parents[2]
+        recipe = json.loads((repo / "tools/sail-tag-outcomes/candidate.json").read_text(encoding="utf-8"))
+        for key in ("frozen_v1_manifest", "frozen_support_manifest"):
+            entry = recipe[key]
+            manifest = repo / entry["path"]
+            self.assertTrue(manifest.is_file(), f"missing {key}: {manifest}")
+            require_sha(manifest, entry["sha256"])
 
 
 if __name__ == "__main__":
