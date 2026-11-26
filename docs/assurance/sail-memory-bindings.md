@@ -177,16 +177,14 @@ Every previous name still resolves. The native readings identify
 that change. The printed bodies of `outcome`, `map_extra_iMon` and `try_catch`
 also change, with matching `Check` and `About` readings.
 
-One additional body requires an explicit disposition under the
-[tag-outcome comparison contract](../implementation/contracts/canonical-tag-outcomes.md#source-scope-and-acceptance).
-In the source, `pure_iTrace_aux` rejects `Choose` and recurses over every
-other event. Its `Check` and `About` readings agree. Its elaborated body adds
-precisely the `TagRead` and `TagWrite` cases, each recurring on the trace tail.
-The previous cases agree. The wrapper `pure_iTrace` applies this predicate to
-the event list, and `iMon_equiv` uses it as the premise for equivalence of
-trace matching. Both wrappers have identical type, metadata and body readings.
-The scoped comparison stopped at this additional change. Complete support
-comparison and the qualified dependency closure remain open.
+The additional change to `pure_iTrace_aux` meets the
+[tag-outcome comparison criterion](../implementation/contracts/canonical-tag-outcomes.md#source-scope-and-acceptance).
+Its source rejects `Choose` and recurses over every other event. Its `Check`
+and `About` readings agree. Its printed body adds exactly the `TagRead` and
+`TagWrite` cases, each recurring on the trace tail. Every previous case agrees.
+The `pure_iTrace` wrapper, the `iTrace_match` relation and the `iMon_equiv`
+definition that uses them have identical native readings on both sides. Complete
+support comparison and the qualified dependency closure remain open.
 
 ## Canonical caller replay
 
