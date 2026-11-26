@@ -1,0 +1,447 @@
+# SPDX-License-Identifier: Apache-2.0
+"""Build and measure Q25bb standalone copy-service execution envelopes."""
+
+import argparse
+import gzip
+import hashlib
+import json
+import subprocess
+import sys
+from pathlib import Path
+
+ARCHIVED_ASSEMBLY = Path("docs/implementation/retained-evidence/holdfast-q25bb-standalone-assembly-20261125/report.json")
+ARCHIVED_RUNTIME = Path("docs/implementation/retained-evidence/holdfast-q25bb-standalone-runtime-20261125")
+FROZEN_SOURCE_SHA256 = "e6991359da24d4aaf459fb262ebbd906b2bb858ee61538337df88ec649945205"
+FROZEN_MEMBERS = {
+    "compiled C": (4808, "a4d9ebf4439c5237ef4aaf8e8030f589b030bcad488701a036b7d2aacb91ee3a"),
+    "src/atomic_target.s": (532, "80411cc51436678d7d3c514effc3230b82f247c92a1b74ec26388a100327e46e"),
+    "src/notification_target.s": (96, "702fa545fd8ef32131913841d6ad19455dec63a406ae8cec8406b6890802d322"),
+}
+ARCHIVED_ELF_SHA256 = "719ba5a237fb79acad5ac8ffddadde179c9f80440de0d4778548b8a8d018da7e"
+COMPILER_SHA256 = "3dae6ac7bd5a074053130fdcaaab84c42030bdc24be9fff6a4b244db272252f8"
+COMPCERT_INI_SHA256 = "e0efcb8f02d749b406ed243e21408307f2189af136ae562a48b0d2044581550f"
+
+
+def sha256(raw: bytes) -> str:
+    return hashlib.sha256(raw).hexdigest()
+
+
+def require(cond: bool, msg: str) -> None:
+    if not cond:
+        raise ValueError(msg)
+
+
+def extended_controls(config, imsic_send: int, imsic_pending: int, identities: int) -> str:
+    lines = [
+        ".text",
+        "main:",
+        "    cmove c5, c2",
+        "    cincoffsetimm c2, c2, -16",
+        "    sc c1, 0(c2)",
+        "    sc c5, 8(c2)",
+        "    call vos_copy_target_layout",
+        "    li x5, 1",
+        "    bne x10, x5, env_fail",
+    ]
+    sizes = {
+        "env_ring": 524288,
+        "env_source": config.maximum + 1,
+        "env_destination": config.maximum + 2,
+        "env_signal": 8,
+        "env_length": 8,
+        "env_request": 8,
+        "env_cycles": 8,
+        "env_batch": config.batch * 40,
+        "env_results": config.batch * 4,
+        "env_signals": config.batch * 4,
+    }
+    extents = {name: 1 << (size - 1).bit_length() for name, size in sizes.items()}
+
+    def ptr(reg: int, label: str) -> None:
+        base = label.split(" + ", 1)[0]
+        lines.extend([
+            f"    li x31, {base}",
+            f"    csetaddr c{reg}, c4, x31",
+            f"    li x31, {extents[base]}",
+            f"    csetbounds c{reg}, c{reg}, x31",
+        ])
+        if base != label:
+            lines.extend([f"    li x31, {label}", f"    csetaddr c{reg}, c{reg}, x31"])
+
+    def mmio_ptr(reg: int, addr: int, permissions: int = 7) -> None:
+        lines.extend([
+            f"    li x31, {addr}",
+            f"    csetaddr c{reg}, c4, x31",
+            "    li x31, 8",
+            f"    csetbounds c{reg}, c{reg}, x31",
+            f"    li x31, {permissions}",
+            f"    candperm c{reg}, c{reg}, x31",
+        ])
+
+    def expect(val: int) -> None:
+        lines.extend([f"    li x5, {val}", "    bne x10, x5, env_fail"])
+
+    def read(label: str, val: int, width: str = "lwu", offset: int = 0) -> None:
+        if not -2048 <= offset <= 2047:
+            label, offset = f"{label} + {offset}", 0
+        ptr(5, label)
+        lines.extend([f"    {width} x6, {offset}(c5)", f"    li x7, {val}", "    bne x6, x7, env_fail"])
+
+    def write(label: str, val: int, width: str = "sw", offset: int = 0) -> None:
+        if not -2048 <= offset <= 2047:
+            label, offset = f"{label} + {offset}", 0
+        ptr(5, label)
+        lines.extend([f"    li x6, {val}", f"    {width} x6, {offset}(c5)"])
+
+    def init() -> None:
+        ptr(10, "env_ring")
+        lines.append("    call vos_copy_init")
+
+    def submit(req: int, length: int = 1, *, generation: int | None = None,
+               op: int = 0, extent: int | None = None, answer: int = 1) -> None:
+        ptr(10, "env_ring")
+        lines.extend([
+            f"    li x11, {config.generation if generation is None else generation}",
+            f"    li x12, {req}",
+            f"    li x13, {op}",
+        ])
+        ptr(14, "env_source")
+        lines.extend([
+            f"    li x15, {length if extent is None else extent}",
+            f"    li x16, {length}",
+        ])
+        ptr(17, "env_signal")
+        lines.append("    call vos_copy_submit")
+        expect(answer)
+
+    def take(answer: int = 1, capacity: int | None = None) -> None:
+        ptr(10, "env_ring")
+        ptr(11, "env_destination + 1")
+        lines.append(f"    li x12, {config.maximum if capacity is None else capacity}")
+        ptr(13, "env_length")
+        ptr(14, "env_request")
+        lines.append("    call vos_copy_take")
+        expect(answer)
+
+    def notify(ident: int, req: int, answer: int) -> None:
+        mmio_ptr(10, imsic_send, 7)
+        lines.extend([f"    li x11, {ident}", f"    li x12, {req}", "    call vos_copy_notify"])
+        expect(answer)
+
+    def poll(ident: int, answer: int) -> None:
+        mmio_ptr(10, imsic_pending, 3)
+        lines.extend([f"    li x11, {ident}", "    call vos_copy_poll"])
+        expect(answer)
+
+    # 1. Initialize and test empty/refusal paths
+    init()
+    take(0)
+    submit(1, config.maximum + 1, answer=0)
+    submit(1, 1, generation=config.generation + 1, answer=0)
+    submit(1, 1, op=len(config.payloads), answer=0)
+    submit(1, 8, extent=4, answer=0)
+
+    # 2. prepare_sleep on empty ring -> 1
+    ptr(10, "env_ring")
+    lines.append("    call vos_copy_prepare_sleep")
+    expect(1)
+
+    # 3. Small 1-byte payload submit, duplicate id refusal, too-small dest refusal, take
+    write("env_source", 0x5A, "sb")
+    write("env_destination", 0xA5, "sb")
+    write("env_destination", 0xA5, "sb", config.maximum + 1)
+    submit(10, 1)
+    submit(10, 1, answer=0)
+    take(0, 0)
+    take(1, 1)
+    read("env_length", 1, "ld")
+    read("env_request", 10)
+    read("env_destination", 0x5A, "lbu", 1)
+    read("env_destination", 0xA5, "lbu", 0)
+    read("env_destination", 0xA5, "lbu", config.maximum + 1)
+
+    # 4. Max-payload (4096 bytes) submit, prepare_sleep non-empty -> 0, too-small dest, max take
+    ptr(6, "env_source")
+    lines.extend([
+        "    li x7, 0",
+        f"    li x8, {config.maximum}",
+        "env_fill_max:",
+        "    li x9, 17",
+        "    mul x9, x7, x9",
+        "    addi x9, x9, 3",
+        "    sb x9, 0(c6)",
+        "    cincoffsetimm c6, c6, 1",
+        "    addi x7, x7, 1",
+        "    bltu x7, x8, env_fill_max",
+    ])
+    submit(20, config.maximum)
+    ptr(10, "env_ring")
+    lines.append("    call vos_copy_prepare_sleep")
+    expect(0)
+    take(0, config.maximum - 1)
+    take(1, config.maximum)
+    read("env_length", config.maximum, "ld")
+    read("env_request", 20)
+    ptr(6, "env_destination + 1")
+    lines.extend([
+        "    li x7, 0",
+        f"    li x8, {config.maximum}",
+        "env_check_max:",
+        "    li x9, 17",
+        "    mul x9, x7, x9",
+        "    addi x9, x9, 3",
+        "    andi x9, x9, 255",
+        "    lbu x10, 0(c6)",
+        "    bne x10, x9, env_fail",
+        "    cincoffsetimm c6, c6, 1",
+        "    addi x7, x7, 1",
+        "    bltu x7, x8, env_check_max",
+    ])
+
+    # 5. Full submit refusal & wire wraparound past index_span (5 * 64 = 320 > 256)
+    init()
+    write("env_cycles", config.span // config.capacity + 1)
+    lines.append("env_wrap_cycle:")
+    for idx in range(config.capacity):
+        write("env_source", idx, "sb")
+        submit(idx, 1)
+    submit(config.capacity, 1, answer=0)
+    for idx in range(config.capacity):
+        take(1, 1)
+        read("env_request", idx)
+        read("env_destination", idx, "lbu", 1)
+    ptr(5, "env_cycles")
+    lines.extend([
+        "    lwu x6, 0(c5)",
+        "    addi x6, x6, -1",
+        "    sw x6, 0(c5)",
+        "    beqz x6, env_wrap_done",
+        "    j env_wrap_cycle",
+        "env_wrap_done:",
+    ])
+
+    # 6. submit_batch (invalid count > MAX_BATCH, then valid MAX_BATCH)
+    init()
+    for idx in range(config.batch):
+        ptr(6, f"env_batch + {idx * 40}")
+        lines.extend([
+            f"    li x7, {config.generation}",
+            "    sw x7, 0(c6)",
+            f"    li x7, {100 + idx}",
+            "    sw x7, 4(c6)",
+            "    sw x0, 8(c6)",
+        ])
+        ptr(7, "env_source")
+        lines.extend(["    sc c7, 16(c6)", "    li x7, 1", "    sd x7, 24(c6)", "    sd x7, 32(c6)"])
+    for count, answer in ((config.batch + 1, 0), (config.batch, 1)):
+        ptr(10, "env_ring")
+        ptr(11, "env_batch")
+        lines.append(f"    li x12, {count}")
+        ptr(13, "env_results")
+        ptr(14, "env_signals")
+        lines.append("    call vos_copy_submit_batch")
+        expect(answer)
+    for idx in range(config.batch):
+        read("env_results", 1, offset=idx * 4)
+        take(1, 1)
+        read("env_request", 100 + idx)
+
+    # 7. init_generation (0 refused, gen+1 accepted, old gen refused, new gen accepted)
+    init()
+    ptr(10, "env_ring")
+    lines.extend(["    li x11, 0", "    call vos_copy_init_generation"])
+    expect(0)
+    ptr(10, "env_ring")
+    lines.extend([f"    li x11, {config.generation + 1}", "    call vos_copy_init_generation"])
+    expect(1)
+    submit(200, 1, generation=config.generation, answer=0)
+    submit(200, 1, generation=config.generation + 1, answer=1)
+    take(1, 1)
+    read("env_request", 200)
+
+    # 8. Notification & poll (invalid, zero request, valid coalesced)
+    mmio_ptr(5, imsic_pending, 7)
+    lines.append("    sd x0, 0(c5)")
+    for ident in (0, identities):
+        notify(ident, 1, 0)
+        poll(ident, -1)
+    notify(1, 2, 0)
+    notify(1, 0, 1)
+    poll(1, 0)
+    notify(1, 1, 1)
+    notify(identities - 1, 1, 1)
+    poll(1, 1)
+    poll(identities - 1, 1)
+
+    lines.extend([
+        "    li x10, 0",
+        "    j env_return",
+        "env_fail:",
+        "    li x10, 1",
+        "env_return:",
+        "    lc c1, 0(c2)",
+        "    lc c2, 8(c2)",
+        "    ret",
+        ".data",
+    ])
+    for label, size in extents.items():
+        lines.extend([f"    .balign {size}", f"{label}:", f"    .space {size}"])
+
+    expanded = []
+    for idx, line in enumerate(lines):
+        if line.startswith("    bne ") and line.endswith(", env_fail"):
+            local = f"env_ok_{idx}"
+            expanded.extend([
+                line.replace("bne ", "beq ").replace("env_fail", local),
+                "    j env_fail",
+                f"{local}:",
+            ])
+        else:
+            expanded.append(line)
+    return "\n".join(expanded) + "\n"
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("checkout", type=Path)
+    parser.add_argument("prepared", type=Path)
+    parser.add_argument("compiler", type=Path)
+    parser.add_argument("simulator", type=Path)
+    parser.add_argument("archived_elf", type=Path)
+    parser.add_argument("output", type=Path)
+    args = parser.parse_args()
+
+    root, prepared, compiler, simulator, archived_elf, out = (
+        p.resolve() for p in (args.checkout, args.prepared, args.compiler, args.simulator, args.archived_elf, args.output)
+    )
+    sys.path.insert(0, str(root / "tools"))
+    from vos import asm, compiler_diff, compiler_provenance, copy_envelope, copy_notification, copy_package, copy_service, copy_target, image
+
+    out.mkdir(parents=True, exist_ok=True)
+    record = copy_package.check(root, prepared)
+    require(sha256((prepared / copy_package.RECORD).read_bytes()) == FROZEN_SOURCE_SHA256,
+            "prepared source record differs from frozen 498127d6 snapshot")
+    config_path = compiler.with_name("compcert.ini")
+    require(sha256(compiler.read_bytes()) == COMPILER_SHA256, "retained compiler binary differs")
+    require(sha256(config_path.read_bytes()) == COMPCERT_INI_SHA256, "retained compcert.ini differs")
+    try:
+        compiler_provenance.read(compiler, lock=root / compiler_provenance.LOCK)
+    except ValueError as err:
+        producer_refusal = str(err)
+    else:
+        raise ValueError("expected retained compiler provenance refusal")
+
+    # (a) Archived exact standalone notification ELF + retained trace
+    archived_assembly = json.loads((root / ARCHIVED_ASSEMBLY).read_text(encoding="utf-8"))
+    archived_runtime = json.loads((root / ARCHIVED_RUNTIME / "report.json").read_text(encoding="utf-8"))
+    archived_elf_bytes = archived_elf.read_bytes()
+    require(sha256(archived_elf_bytes) == ARCHIVED_ELF_SHA256, "archived ELF digest differs")
+    archived_trace_bytes = gzip.decompress((root / ARCHIVED_RUNTIME / "standalone-notification.log.gz").read_bytes())
+    archived_envelope = copy_envelope.observe(
+        archived_elf_bytes, archived_trace_bytes, archived_assembly["assembled_member_ranges_in_harness"]
+    )
+    archived_envelope.update({
+        "qualified_producer": False,
+        "production_admission": False,
+        "installed_entry": None,
+        "trial_acceptance": False,
+        "frozen_source_revision": archived_runtime["frozen_source_revision"],
+    })
+    (out / "archived-notification-envelope.json").write_text(
+        json.dumps(archived_envelope, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
+
+    # (b) Extended standalone workload compiled from the frozen prepared package
+    recipe = record["recipe"]
+    direct_s = out / "direct.s"
+    argv = [
+        str(compiler), "-conf", str(config_path), *recipe["compiler_arguments"],
+        *["-I" + d for d in recipe["include_directories"]],
+        recipe["translation_unit"], "-o", str(direct_s),
+    ]
+    subprocess.run(argv, cwd=prepared, check=True, capture_output=True, text=True, timeout=180)
+    parts = [
+        ("compiled C", compiler_diff.normalize(direct_s.read_text(encoding="utf-8"))),
+        ("src/atomic_target.s", (prepared / "src/atomic_target.s").read_text(encoding="utf-8")),
+        ("src/notification_target.s", (prepared / "src/notification_target.s").read_text(encoding="utf-8")),
+    ]
+    cfg = copy_service.configuration(root)
+    imsic_send, imsic_pending, identities = copy_notification.layout(root)
+    controls_s = extended_controls(cfg, imsic_send, imsic_pending, identities)
+    stream = "".join(body for _, body in parts) + controls_s
+    assembler = asm.Assembler(compiler_diff.compose(stream), "extended-envelope", data_base=0x80200000)
+    sections, symbols, entry = assembler.assemble()
+    ext_elf = out / "extended-envelope.elf"
+    image.write_elf(ext_elf, sections, symbols, entry)
+
+    text_sec = next(sec for sec in sections if sec.name == ".text")
+    members = {}
+    cursor = compiler_diff.PROLOGUE.count("\n") + 1
+    for label, body in parts:
+        next_cursor = cursor + body.count("\n")
+        sites = [site for site in assembler.sites if cursor <= site.source < next_cursor]
+        require(bool(sites) and all(site.section == ".text" for site in sites), f"{label} has no text sites")
+        start, end = sites[0].address, sites[-1].address + 4
+        require([site.address for site in sites] == list(range(start, end, 4)), f"{label} noncontiguous")
+        raw_slice = bytes(text_sec.data[start - text_sec.addr : end - text_sec.addr])
+        exp_bytes, exp_sha = FROZEN_MEMBERS[label]
+        require(len(raw_slice) == exp_bytes and sha256(raw_slice) == exp_sha,
+                f"{label} extent differs from frozen 498127d6 build: {len(raw_slice)} {sha256(raw_slice)}")
+        members[label] = {
+            "start": hex(start),
+            "end_exclusive": hex(end),
+            "bytes": len(raw_slice),
+            "sha256": sha256(raw_slice),
+            "vos_copy_symbols": {
+                name: hex(addr)
+                for name, (sec_name, addr) in sorted(symbols.items())
+                if sec_name == ".text" and start <= addr < end and name.startswith("vos_copy_")
+            },
+        }
+        cursor = next_cursor
+
+    sim_run = copy_target.execute(simulator, root / "model/config/verifiedos.json", ext_elf, timeout=300)
+    require(sim_run["verdict"] == "pass" and sim_run["code"] == 0,
+            f"extended standalone execution failed: {sim_run}")
+    raw_ext_log = (out / "extended-envelope.log").read_bytes()
+    (out / "extended-trace.log.gz").write_bytes(gzip.compress(raw_ext_log, mtime=0))
+
+    extended_envelope = copy_envelope.observe(ext_elf.read_bytes(), raw_ext_log, members)
+    extended_envelope.update({
+        "qualified_producer": False,
+        "production_admission": False,
+        "installed_entry": None,
+        "trial_acceptance": False,
+        "frozen_source_revision": archived_runtime["frozen_source_revision"],
+        "runtime_verdict": sim_run["verdict"],
+        "runtime_code": sim_run["code"],
+    })
+    (out / "extended-envelope.json").write_text(
+        json.dumps(extended_envelope, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
+
+    report = {
+        "scope": "Q25bb copy-service standalone target execution envelope and static footprint",
+        "frozen_source_revision": archived_runtime["frozen_source_revision"],
+        "prepared_source_sha256": FROZEN_SOURCE_SHA256,
+        "compiler_sha256": COMPILER_SHA256,
+        "compcert_ini_sha256": COMPCERT_INI_SHA256,
+        "qualified_target_entry_producer_refusal": producer_refusal,
+        "simulator_sha256": sha256(simulator.read_bytes()),
+        "frozen_members_matched": True,
+        "archived_notification_envelope_sha256": sha256((out / "archived-notification-envelope.json").read_bytes()),
+        "extended_envelope_sha256": sha256((out / "extended-envelope.json").read_bytes()),
+        "extended_trace_sha256": extended_envelope["trace_summary"]["trace_sha256"],
+        "archived_trace_sha256": archived_envelope["trace_summary"]["trace_sha256"],
+        "qualified_producer": False,
+        "production_admission": False,
+        "installed_entry": None,
+        "trial_acceptance": False,
+    }
+    (out / "report.json").write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    print(json.dumps(report, indent=2, sort_keys=True))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
