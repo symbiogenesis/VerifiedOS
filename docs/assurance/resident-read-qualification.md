@@ -46,12 +46,40 @@ acknowledgment. If its modeled barrier is unavailable, it retains the bytes in
 closed, charged backing. That abstract barrier supplies no containment, sweep,
 zeroization, physical reuse or retirement-cost evidence.
 
+Explicit reservation close, renewal, crash, and fresh-token readmission extend
+this lifecycle model:
+
+- `close_reservation` releases one holder slot (even if expired, revoked, or
+  generation-changed) and clears that slot's pending request and response via
+  `clear_pending`, preserving backing, `next_token`, authority, clock, boot and
+  generation epochs, all sequence counters, and the peer slot's reservation and
+  session (`close_preserves_backing_and_peer`, `close_invalidates_handle`,
+  `close_refusal_preserves_state`).
+- `readmit_after_close_allocates_fresh_token` proves that closing a handle
+  whose token is at most `next_token` and readmitting the same slot yields a
+  strictly larger token (`token h < token h'`), keeping the closed handle
+  distinct from the new handle and refused by both `close_reservation` and `live`.
+- `renew_reservation` extends a live reservation's expiry to
+  `clock + retention_bound` within `counter_bound` when doing so strictly
+  increases `expires`, preserving `reserved_handle`, backing, `next_token`, peer
+  reservations, and all sessions including pending transfers
+  (`renew_preserves_sessions_and_peer`, `renew_refusal_preserves_state`).
+- `crash` advances `current_boot`, clears all reservations and pending
+  requests, marks occupied backing non-accepting without releasing it, and
+  preserves every holder's sequence counter, causing subsequent `live`,
+  `complete`, `begin_read`, and `admit` checks to refuse
+  (`crash_invalidates_all_and_preserves_sequences`).
+- Executable witnesses (`close_preserves_peer_and_allows_readmit_witness`,
+  `renew_extends_pending_transfer_witness`, and
+  `crash_retains_backing_and_sequences_witness`) exercise these transitions and
+  refusals for both `SystemImage` and `UserData`.
+
 ## Retained proof evidence
 
 [Focused reservation proof evidence](../implementation/retained-evidence/q44-resident-reservation-20261014/manifest.json),
 SHA256 `de0e639612ed7a6b7b4f1f40a637a98462756b9efcbd9943460b884d8949fd0f`,
 binds the generated-header source, compiled object, exact commands and bounded
-candidate journal. At locked Rocq 9.3.0 with the proof gate's strict flags,
+candidate journal for the initial reservation proof increment. At locked Rocq 9.3.0 with the proof gate's strict flags,
 selected-source compilation, native inventory and assumption queries passed;
 every enumerated symbol had a closed global context. Recursive kernel rechecking
 of the module and installed library closure passed without an admitted root or
@@ -59,17 +87,21 @@ covered sealed field. Selected-source non-vacuity found no unbuilt record;
 closed `witness_<Record>` definitions accompany every carrier record.
 
 The retained run used eight of twelve permitted attempts within a thirty-minute
-active-repair budget. Its focused results supply local feedback; fresh hosted
-proof acceptance remains deferred to user-managed cold Guest CI.
+active-repair budget. Its focused results supply local feedback; the close,
+renewal, crash, and fresh-token readmission extension was likewise verified
+locally under locked Rocq 9.3.0 strict compilation, `Print Assumptions`, and
+`rocqchk`. Fresh hosted proof acceptance remains deferred to user-managed cold
+Guest CI.
 
 ## Remaining qualification
 
-Q44 still owes Python/scalar/storage correspondence, verifier soundness,
-replacement, renewal, crash and re-admission across backing reuse, complete writer
+Q44 still owes two-slot predecessor replacement across backing reuse in Gallina,
+Python/C/scalar/storage correspondence, verifier soundness, complete writer
 observation, and full resource/retirement accounting. Finite-counter proofs cover
 admission tokens and request sequences; private read/authentication counters and
 external clock bounds have no general exhaustion theorem here. Compiled production
-defect controls, both real storage instances and the completion/sweep/zeroization
-barrier remain Q44/M5.3d joins. This reference discharges no complete requirement.
+defect controls, both real storage instances, the completion/sweep/zeroization
+barrier (Q44/M5.3d joins), and cold hosted Guest CI proof acceptance remain open.
+This reference discharges no complete requirement.
 
 This document uses `CC-BY-4.0` under [COPYRIGHT.md](../../COPYRIGHT.md).
