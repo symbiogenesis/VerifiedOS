@@ -197,6 +197,22 @@ archived notification trace and an extended legal-plus-refusal workload. These
 development measurements carry no qualified producer, installed entry or
 capability wiring, or production admission.
 
+The [Q25bb purecap HoldFast copy client target run and negative controls](../docs/implementation/retained-evidence/holdfast-q25bb-purecap-client-20261126/manifest.json),
+SHA256 `8084daaa41bf80b9abae83b2a5ab6f5fa509fea9ffb6aaa941b394e7fc9e13fe`,
+executes HoldFast's purecap `holdfast_copy_trial` (`b0e72a54`) against the
+byte-identical `498127d6` copy-service text extents (5,436 service text bytes)
+on the source-bound Sail simulator (`verdict: pass`, 9,490,563 commit-trace
+records, 4,876,085 retired instructions; per-entry bounds across
+`vos_copy_init_generation` [5 calls, 3–5,727 insns, 0–328 writes, 32 B stack],
+`vos_copy_submit` [602 calls, 142–61,955 insns, 26–4,156 writes, 240 B stack],
+and `vos_copy_take` [593 calls, 110–61,924 insns, 19–4,142 writes, 176 B stack])
+and passes all five target-side negative controls (`mutated-payload-limit` exit 14,
+`mutated-snapshot-byte` exit 7, `mutated-suffix-clobber` exit 8,
+`mutated-refusal-output` exit 2, and `mutated-narrow-arena-cap` CHERI bounds
+trap cause 28 / HTIF 284). These development measurements carry no qualified
+producer, installed entry or capability wiring, trial acceptance, or production
+admission.
+
 ## Notification device adapter
 
 `copy-service notification` accepts the same compiler and model arguments as
