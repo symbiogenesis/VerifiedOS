@@ -23,6 +23,10 @@
     "path": "docs/implementation/retained-evidence/q35p-recursive-closure-20261126/manifest.json",
     "sha256": "b47e2e2147e339567e28a762510af6de4f3eb640c2091b3a697254121f156ba1"
   },
+  "frozen_canonical_closure_manifest": {
+    "path": "docs/implementation/retained-evidence/q35p-canonical-closure-20261126/manifest.json",
+    "sha256": "0bebb10f9f6dd53d0af6bb3912fef8dbb0acc715e96a5b21bb38f04dae5dbf26"
+  },
   "reproducer": "docs/implementation/retained-evidence/close3-q35p-20261013/bindings.sail.txt",
   "reproducer_sha256": "aff11682da08211dc364a767dcec579b008d1ca1603054d8e9ab71c82e0701b4",
   "strict_support_modules": 29,
