@@ -147,6 +147,16 @@ acceptance policy must remain unchanged. Audit all new proofs' exact assumptions
 and kernel-check the accepted objects under the existing acceptance rules.
 Record the complete inputs and resolved native names.
 
+The V1 trace predicate `Interface.pure_iTrace_aux` is one reviewed dependency of
+the extended outcome type. It rejects a trace containing `Choose`. Its wildcard
+on other events elaborates into two additional cases for the new constructors.
+Accept precisely `TagRead` and `TagWrite` recursing on the original trace tail,
+with the same predicate type, empty case and every old branch. Compare the
+native bodies of `pure_iTrace`, `iTrace_match` and `iMon_equiv` as well. Trace
+matching still observes the tag request and its response in order. The
+executable tag-map interpretation separately decides the legal response and
+state update.
+
 Q35p then joins Q35o's actual-plugin syntax and deterministic-emission checks,
 Q35b's strict whole-term compile, exact closure and compiled size, and Q35n/Q35q's
 unchanged support census and cold production-carriage qualification. Acceptance
