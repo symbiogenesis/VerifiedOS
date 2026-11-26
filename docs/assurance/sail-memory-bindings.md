@@ -186,12 +186,14 @@ The `pure_iTrace` wrapper, the `iTrace_match` relation and the `iMon_equiv`
 definition that uses them have identical native readings on both sides. Complete
 support comparison and the qualified dependency closure remain open.
 
-The [packaged replay](../../tools/sail-tag-outcomes/README.md) compiles the
-minimal architecture against both support variants and queries each compiled
-instance. Each side must reproduce the digest of its complete normalized reading
-in the frozen manifest above. A changed branch body, neighboring declaration or
-inventory member changes the corresponding digest. The replay keeps both fresh
-readings and the query logs in its output directory.
+At `25cd8283`, the [packaged replay](../../tools/sail-tag-outcomes/README.md)
+compiled the same minimal architecture against each private support build. Its
+fresh readings matched the frozen normalized bytes for all 167 baseline and
+171 candidate declarations. Both minimal emissions repeated byte for byte and
+both installed-prefix inventories matched before and after. The inputs, commands
+and measured reading and object identities are retained in the
+[packaged replay of both frozen V1 readings](../implementation/retained-evidence/q35p-packaged-v1-20261125/manifest.json),
+SHA256 `f40781dc29683f38a7f0731d996f7e86b4f76f9a16e11b4e7e836348a1dd8f35`.
 
 ## Canonical caller replay
 
