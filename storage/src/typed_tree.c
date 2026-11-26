@@ -586,3 +586,381 @@ int vos_typed_tree_delete(const struct vos_tree_arena *arena,
     *output = candidate;
     return 1;
 }
+
+#define VOS_TYPED_BATCH_MAX_ITEMS (VOS_NODE_MAX_FAN + VOS_TREE_MAX_BATCH + 2u)
+
+struct typed_batch_update {
+    const struct vos_tree_arena *arena;
+    struct vos_tree_image input;
+    uint64_t generation;
+    uint64_t append_at;
+};
+
+struct typed_batch_nodes {
+    uint32_t count;
+    uint64_t ids[VOS_TYPED_BATCH_MAX_ITEMS];
+    struct vos_storage_typed_key separators[VOS_TYPED_BATCH_MAX_ITEMS];
+};
+
+static int publish_typed_batch(struct typed_batch_update *batch, uint32_t kind, uint32_t total,
+                               const struct vos_storage_typed_key *keys,
+                               const struct vos_storage_extent *extents,
+                               const uint64_t *children,
+                               struct typed_batch_nodes *out)
+{
+    const uint32_t fan = batch->arena->geometry.fan;
+    if (total == 0u || total > VOS_TYPED_BATCH_MAX_ITEMS) return 0;
+    out->count = 0u;
+    uint32_t offset = 0u;
+    while (offset < total) {
+        const uint32_t rem = total - offset;
+        uint32_t chunk = fan;
+        if (rem <= fan) {
+            chunk = rem;
+        } else if (rem <= 2u * fan) {
+            chunk = rem / 2u;
+        }
+        struct vos_typed_node node = {
+            .kind = kind, .count = chunk, .node_id = batch->append_at,
+            .generation = batch->generation
+        };
+        for (uint32_t i = 0u; i < chunk; ++i) {
+            if (kind == VOS_NODE_LEAF) {
+                node.keys[i] = keys[offset + i];
+                node.extents[i] = extents[offset + i];
+            } else {
+                node.children[i] = children[offset + i];
+                if (i + 1u < chunk) node.keys[i] = keys[offset + i];
+            }
+        }
+        if (out->count > 0u) {
+            out->separators[out->count - 1u] =
+                keys[kind == VOS_NODE_LEAF ? offset : offset - 1u];
+        }
+        if (out->count >= VOS_TYPED_BATCH_MAX_ITEMS ||
+            !emit_arena_node(batch->arena, &batch->append_at, &node, &out->ids[out->count]))
+            return 0;
+        ++out->count;
+        offset += chunk;
+    }
+    return 1;
+}
+
+static int merge_batch_leaf(struct typed_batch_update *batch, const struct vos_typed_node *node,
+                            const struct vos_typed_tree_entry *entries, size_t entry_count,
+                            struct typed_batch_nodes *out)
+{
+    struct vos_storage_typed_key keys[VOS_TYPED_BATCH_MAX_ITEMS];
+    struct vos_storage_extent extents[VOS_TYPED_BATCH_MAX_ITEMS];
+    uint32_t i = 0u;
+    size_t j = 0u;
+    uint32_t total = 0u;
+    while (i < node->count || j < entry_count) {
+        if (total >= VOS_TYPED_BATCH_MAX_ITEMS) return 0;
+        const int cmp = (i < node->count && j < entry_count)
+            ? compare(&node->keys[i], &entries[j].key)
+            : 0;
+        if (j >= entry_count || (i < node->count && cmp < 0)) {
+            keys[total] = node->keys[i];
+            extents[total] = node->extents[i];
+            ++i;
+        } else if (i >= node->count || cmp > 0) {
+            keys[total] = entries[j].key;
+            extents[total] = entries[j].extent;
+            ++j;
+        } else {
+            keys[total] = entries[j].key;
+            extents[total] = entries[j].extent;
+            ++i;
+            ++j;
+        }
+        ++total;
+    }
+    return publish_typed_batch(batch, VOS_NODE_LEAF, total, keys, extents, NULL, out);
+}
+
+static int insert_batch_node(struct typed_batch_update *batch, uint64_t id, uint32_t height,
+                             const struct vos_typed_tree_entry *entries, size_t entry_count,
+                             struct typed_batch_nodes *out)
+{
+    struct vos_typed_node node = {0};
+    if (!decode_block(&batch->input, id, &node)) return 0;
+    if (node.kind == VOS_NODE_LEAF) {
+        return height == 0u && merge_batch_leaf(batch, &node, entries, entry_count, out);
+    }
+    if (height == 0u) return 0;
+    struct vos_storage_typed_key keys[VOS_TYPED_BATCH_MAX_ITEMS];
+    uint64_t children[VOS_TYPED_BATCH_MAX_ITEMS];
+    struct typed_batch_nodes child = {0};
+    uint32_t total = 0u;
+    size_t at = 0u;
+    for (uint32_t i = 0u; i < node.count; ++i) {
+        size_t end = at;
+        while (end < entry_count &&
+               (i + 1u == node.count || compare(&entries[end].key, &node.keys[i]) < 0)) {
+            ++end;
+        }
+        if (end == at) {
+            if (total >= VOS_TYPED_BATCH_MAX_ITEMS) return 0;
+            children[total] = node.children[i];
+            if (i + 1u < node.count) keys[total] = node.keys[i];
+            ++total;
+        } else {
+            if (!insert_batch_node(batch, node.children[i], height - 1u,
+                                   entries + at, end - at, &child) ||
+                total + child.count > VOS_TYPED_BATCH_MAX_ITEMS)
+                return 0;
+            for (uint32_t c = 0u; c < child.count; ++c) {
+                children[total + c] = child.ids[c];
+                if (c + 1u < child.count) keys[total + c] = child.separators[c];
+            }
+            if (i + 1u < node.count) keys[total + child.count - 1u] = node.keys[i];
+            total += child.count;
+        }
+        at = end;
+    }
+    return publish_typed_batch(batch, VOS_NODE_BRANCH, total, keys, NULL, children, out);
+}
+
+int vos_typed_tree_insert_batch(const struct vos_tree_arena *arena,
+                                 const struct vos_tree_limits *limits,
+                                 uint64_t root, uint64_t generation,
+                                 const struct vos_typed_tree_entry *entries,
+                                 size_t entry_count,
+                                 struct vos_tree_update_result *output)
+{
+    uint8_t expected[VOS_STORAGE_EXTENT_BYTES];
+    if (!valid_arena(arena) || limits == NULL || output == NULL || entries == NULL ||
+        entry_count == 0u || entry_count > VOS_TREE_MAX_BATCH)
+        return 0;
+    for (size_t i = 0u; i < entry_count; ++i) {
+        if (!vos_storage_extent_encode(&entries[i].extent, expected, sizeof(expected))) return 0;
+        if (i != 0u && compare(&entries[i - 1u].key, &entries[i].key) >= 0) return 0;
+    }
+
+    struct typed_batch_update batch = {
+        .arena = arena, .input = prefix_image(arena, arena->used),
+        .generation = generation, .append_at = arena->used
+    };
+    struct vos_storage_extent checked = {0};
+    if (vos_typed_tree_lookup(&batch.input, limits, root, &entries[0].key, &checked) ==
+        VOS_TREE_REFUSED)
+        return 0;
+
+    struct typed_batch_nodes current = {0};
+    if (!insert_batch_node(&batch, root, limits->height, entries, entry_count, &current))
+        return 0;
+    struct vos_tree_update_result candidate = {.root = 0u, .height = limits->height};
+    while (current.count > 1u) {
+        struct typed_batch_nodes next_level = {0};
+        if (candidate.height >= limits->depth_limit ||
+            !publish_typed_batch(&batch, VOS_NODE_BRANCH, current.count,
+                                 current.separators, NULL, current.ids, &next_level))
+            return 0;
+        current = next_level;
+        ++candidate.height;
+    }
+    candidate.root = current.ids[0];
+    candidate.used = batch.append_at;
+
+    const struct vos_tree_image batch_image = prefix_image(arena, candidate.used);
+    struct vos_tree_limits batch_limits = *limits;
+    batch_limits.height = candidate.height;
+    for (size_t i = 0u; i < entry_count; ++i) {
+        const int status = (i == 0u)
+            ? vos_typed_tree_lookup(&batch_image, &batch_limits, candidate.root, &entries[i].key, &checked)
+            : vos_typed_tree_lookup_path(&batch_image, &batch_limits, candidate.root, &entries[i].key, &checked);
+        uint8_t actual[VOS_STORAGE_EXTENT_BYTES];
+        if (status != VOS_TREE_FOUND ||
+            !vos_storage_extent_encode(&entries[i].extent, expected, sizeof(expected)) ||
+            !vos_storage_extent_encode(&checked, actual, sizeof(actual)) ||
+            memcmp(actual, expected, sizeof(actual)) != 0)
+            return 0;
+    }
+    *output = candidate;
+    return 1;
+}
+
+struct typed_compact_builder {
+    const struct vos_tree_arena *arena;
+    uint64_t generation;
+    uint64_t next_id;
+    uint32_t max_depth;
+    uint32_t top_level;
+    struct vos_typed_node levels[VOS_TREE_MAX_DEPTH + 1u];
+    struct vos_storage_typed_key min_keys[VOS_TREE_MAX_DEPTH + 1u];
+};
+
+static int count_tree_entries(const struct vos_tree_image *image, uint64_t id,
+                              uint32_t height, uint32_t *remaining, uint64_t *total)
+{
+    if (*remaining == 0u) return 0;
+    --(*remaining);
+    struct vos_typed_node node = {0};
+    if (!decode_block(image, id, &node)) return 0;
+    if (node.kind == VOS_NODE_LEAF) {
+        if (height != 0u) return 0;
+        *total += node.count;
+        return 1;
+    }
+    if (height == 0u) return 0;
+    for (uint32_t i = 0u; i < node.count; ++i) {
+        if (!count_tree_entries(image, node.children[i], height - 1u, remaining, total))
+            return 0;
+    }
+    return 1;
+}
+
+static int compact_append(struct typed_compact_builder *builder, struct vos_typed_node *node,
+                          uint64_t *id)
+{
+    node->node_id = builder->next_id;
+    node->generation = builder->generation;
+    return emit_arena_node(builder->arena, &builder->next_id, node, id);
+}
+
+static int compact_push_branch(struct typed_compact_builder *builder, uint32_t level,
+                               uint64_t child_id, const struct vos_storage_typed_key *child_min)
+{
+    if (level > builder->max_depth) return 0;
+    if (level > builder->top_level) builder->top_level = level;
+    struct vos_typed_node *branch = &builder->levels[level];
+    branch->kind = VOS_NODE_BRANCH;
+    if (branch->count == builder->arena->geometry.fan) {
+        uint64_t branch_id = 0u;
+        const struct vos_storage_typed_key branch_min = builder->min_keys[level];
+        if (!compact_append(builder, branch, &branch_id)) return 0;
+        branch->count = 0u;
+        if (!compact_push_branch(builder, level + 1u, branch_id, &branch_min)) return 0;
+    }
+    if (branch->count == 0u) {
+        builder->min_keys[level] = *child_min;
+    } else {
+        branch->keys[branch->count - 1u] = *child_min;
+    }
+    branch->children[branch->count] = child_id;
+    ++branch->count;
+    return 1;
+}
+
+static int compact_emit_entry(struct typed_compact_builder *builder,
+                              const struct vos_storage_typed_key *key,
+                              const struct vos_storage_extent *extent)
+{
+    struct vos_typed_node *leaf = &builder->levels[0];
+    leaf->kind = VOS_NODE_LEAF;
+    if (leaf->count == builder->arena->geometry.fan) {
+        uint64_t leaf_id = 0u;
+        const struct vos_storage_typed_key leaf_min = builder->min_keys[0];
+        if (!compact_append(builder, leaf, &leaf_id)) return 0;
+        leaf->count = 0u;
+        if (!compact_push_branch(builder, 1u, leaf_id, &leaf_min)) return 0;
+    }
+    if (leaf->count == 0u) builder->min_keys[0] = *key;
+    leaf->keys[leaf->count] = *key;
+    leaf->extents[leaf->count] = *extent;
+    ++leaf->count;
+    return 1;
+}
+
+static int compact_walk(const struct vos_tree_image *input, uint64_t id, uint32_t height,
+                        struct typed_compact_builder *builder)
+{
+    struct vos_typed_node node = {0};
+    if (!decode_block(input, id, &node)) return 0;
+    if (node.kind == VOS_NODE_LEAF) {
+        if (height != 0u) return 0;
+        for (uint32_t i = 0u; i < node.count; ++i) {
+            if (!compact_emit_entry(builder, &node.keys[i], &node.extents[i])) return 0;
+        }
+        return 1;
+    }
+    if (height == 0u) return 0;
+    for (uint32_t i = 0u; i < node.count; ++i) {
+        if (!compact_walk(input, node.children[i], height - 1u, builder)) return 0;
+    }
+    return 1;
+}
+
+int vos_typed_tree_compact(const struct vos_tree_arena *arena,
+                            const struct vos_tree_limits *limits,
+                            uint64_t root, uint64_t generation,
+                            struct vos_tree_update_result *output)
+{
+    if (!valid_arena(arena) || limits == NULL || output == NULL) return 0;
+
+    const struct vos_tree_image prior = prefix_image(arena, arena->used);
+    const struct vos_storage_typed_key zero_key = {0};
+    struct vos_storage_extent checked = {0};
+    if (vos_typed_tree_lookup(&prior, limits, root, &zero_key, &checked) == VOS_TREE_REFUSED)
+        return 0;
+    uint64_t expected_count = 0u;
+    uint32_t prior_remaining = limits->visit_limit;
+    if (!count_tree_entries(&prior, root, limits->height, &prior_remaining, &expected_count))
+        return 0;
+
+    struct typed_compact_builder builder = {
+        .arena = arena,
+        .generation = generation,
+        .next_id = arena->used,
+        .max_depth = limits->depth_limit
+    };
+    if (!compact_walk(&prior, root, limits->height, &builder)) return 0;
+
+    struct vos_tree_update_result candidate = {0};
+    if (builder.top_level == 0u && builder.levels[0].count == 0u) {
+        struct vos_typed_node empty_leaf = {.kind = VOS_NODE_LEAF, .count = 0u};
+        if (!compact_append(&builder, &empty_leaf, &candidate.root)) return 0;
+        candidate.height = 0u;
+    } else if (builder.top_level == 0u) {
+        builder.levels[0].kind = VOS_NODE_LEAF;
+        if (!compact_append(&builder, &builder.levels[0], &candidate.root)) return 0;
+        candidate.height = 0u;
+    } else {
+        if (builder.levels[0].count > 0u) {
+            uint64_t leaf_id = 0u;
+            const struct vos_storage_typed_key leaf_min = builder.min_keys[0];
+            if (!compact_append(&builder, &builder.levels[0], &leaf_id)) return 0;
+            builder.levels[0].count = 0u;
+            if (!compact_push_branch(&builder, 1u, leaf_id, &leaf_min)) return 0;
+        }
+        uint32_t level = 1u;
+        while (level <= builder.top_level) {
+            struct vos_typed_node *branch = &builder.levels[level];
+            if (level == builder.top_level) {
+                if (branch->count == 1u) {
+                    candidate.root = branch->children[0];
+                    candidate.height = level - 1u;
+                } else {
+                    if (!compact_append(&builder, branch, &candidate.root)) return 0;
+                    candidate.height = level;
+                }
+                break;
+            }
+            if (branch->count > 0u) {
+                uint64_t branch_id = 0u;
+                const struct vos_storage_typed_key branch_min = builder.min_keys[level];
+                if (!compact_append(&builder, branch, &branch_id)) return 0;
+                branch->count = 0u;
+                if (!compact_push_branch(&builder, level + 1u, branch_id, &branch_min))
+                    return 0;
+            }
+            ++level;
+        }
+    }
+    candidate.used = builder.next_id;
+
+    const struct vos_tree_image compacted = prefix_image(arena, candidate.used);
+    struct vos_tree_limits compacted_limits = *limits;
+    compacted_limits.height = candidate.height;
+    if (vos_typed_tree_lookup(&compacted, &compacted_limits, candidate.root, &zero_key, &checked) ==
+        VOS_TREE_REFUSED)
+        return 0;
+    uint64_t actual_count = 0u;
+    uint32_t after_remaining = limits->visit_limit;
+    if (!count_tree_entries(&compacted, candidate.root, candidate.height, &after_remaining, &actual_count) ||
+        actual_count != expected_count)
+        return 0;
+    *output = candidate;
+    return 1;
+}

@@ -142,6 +142,34 @@ def _delete(binary: Path, tree: Tree, key: Key, *, fan: int, generation: int,
                           capture_output=True, timeout=5, check=False)
 
 
+def _insert_batch(binary: Path, tree: Tree, entries: list[tuple[Key, bytes]], *, fan: int,
+                  generation: int, free: int = 32, visits: int = 4096, depth: int = 16,
+                  used: int | None = None, invalid_extent: bool = False) -> subprocess.CompletedProcess[bytes]:
+    blocks, generations, root, height = tree
+    size = 32 + 144 * fan
+    arguments = [fan, len(blocks) + free, size, root, height, depth, visits,
+                 0, 0, 0, 0, 0, 0, len(blocks) if used is None else used,
+                 generation, *generations, *([0] * free)]
+    records = b"".join(_key(key) + extent for key, extent in entries)
+    payload = b"".join(blocks) + bytes(size * free) + struct.pack("<I", len(entries)) + records
+    flag = "--insert-batch-invalid-extent" if invalid_extent else "--insert-batch"
+    return subprocess.run([str(binary), flag, *(str(value) for value in arguments)],
+                          input=payload, capture_output=True, timeout=5, check=False)
+
+
+def _compact(binary: Path, tree: Tree, *, fan: int, generation: int,
+             free: int = 64, visits: int = 4096, depth: int = 16,
+             used: int | None = None) -> subprocess.CompletedProcess[bytes]:
+    blocks, generations, root, height = tree
+    size = 32 + 144 * fan
+    arguments = [fan, len(blocks) + free, size, root, height, depth, visits,
+                 0, 0, 0, 0, 0, 0, len(blocks) if used is None else used,
+                 generation, *generations, *([0] * free)]
+    return subprocess.run([str(binary), "--compact", *(str(value) for value in arguments)],
+                          input=b"".join(blocks) + bytes(size * free),
+                          capture_output=True, timeout=5, check=False)
+
+
 def _accepted_update(result: subprocess.CompletedProcess[bytes], tree: Tree, *,
                      fan: int, generation: int) -> Tree:
     ensure(result.returncode == 0, f"valid typed update failed: {result.returncode} {result.stderr!r}")
@@ -503,6 +531,299 @@ def _exercise(binary: Path, *, generated: bool) -> None:
     _refusal(_read(binary, ([small], [3], 0, 0), left, size=128))
 
 
+def _tree_signature(tree: Tree, *, fan: int) -> tuple[int, tuple[object, ...]]:
+    blocks, generations, root, height = tree
+
+    def walk(node: int, depth: int) -> tuple[object, ...]:
+        raw = blocks[node]
+        kind, count, identity, generation = struct.unpack_from("<IIQQ", raw, 8)
+        ensure(identity == node and generation == generations[node] and count <= fan,
+               "signature node identity, generation or occupancy disagrees")
+        if depth == 0:
+            ensure(kind == 0, "expected leaf at depth 0")
+            keys = tuple(struct.unpack_from(">6Q", raw, 32 + 144 * i) for i in range(count))
+            extents = tuple(raw[80 + 144 * i:176 + 144 * i] for i in range(count))
+            return ("L", keys, extents)
+        ensure(kind == 1 and count > 0, "expected branch above depth 0")
+        keys = tuple(struct.unpack_from(">6Q", raw, 32 + 48 * i) for i in range(count - 1))
+        children = struct.unpack_from(f"<{count}Q", raw, 32 + 48 * (count - 1))
+        return ("B", keys, tuple(walk(child, depth - 1) for child in children))
+
+    return height, walk(root, height)
+
+
+def _full_width_keys(extra_seed: int | None = None) -> list[Key]:
+    keys: set[Key] = set()
+    for word in range(6):
+        for value in (0, 1, 1 << 32, MAXIMUM):
+            fields = [7] * 6
+            fields[word] = value
+            keys.add((fields[0], fields[1], fields[2], fields[3], fields[4], fields[5]))
+    if extra_seed is not None:
+        rng = random.Random(extra_seed)  # noqa: S311 - reproducible public tuple vectors
+        keys.update((rng.getrandbits(64), rng.getrandbits(64), rng.getrandbits(64),
+                     rng.getrandbits(64), rng.getrandbits(64), rng.getrandbits(64))
+                    for _ in range(46))
+    return sorted(keys)
+
+
+def _exercise_insert_batch(binary: Path, *, generated: bool) -> None:
+    k0: Key = (1, 0, 0, 0, 0, 1)
+    k1: Key = (1, 0, 0, 0, 0, 1 << 32)
+    k2: Key = (1, 0, 0, 0, 1, 0)
+    k3: Key = (1, 0, 0, 1, 0, 0)
+    k4: Key = (1, 0, MAXIMUM, 0, 0, 0)
+    k5: Key = (MAXIMUM, 0, 0, 0, 0, 1)
+
+    fan = 2
+    base_blocks = [
+        _block(0, 3, [k0], [_extent(1)], fan=fan),
+        _block(1, 5, [k2, k4], [_extent(2), _extent(3)], fan=fan),
+        _block(2, 7, [k2], [0, 1], fan=fan, branch=True),
+    ]
+    base: Tree = (base_blocks, [3, 5, 7], 2, 1)
+    # Mixed replace + insert on the right subtree only: left sibling (node 0, gen 3) is preserved.
+    batch = [(k2, _extent(10)), (k3, _extent(11)), (k5, _extent(12))]
+    updated = _accepted_update(
+        _insert_batch(binary, base, batch, fan=fan, generation=9, free=16, visits=16, depth=4),
+        base, fan=fan, generation=9)
+    expected_map = {k0: _extent(1), k2: _extent(10), k3: _extent(11), k4: _extent(3), k5: _extent(12)}
+    actual_map, referenced = _candidate_map(updated, fan=fan)
+    ensure(actual_map == expected_map and 0 in referenced and 1 not in referenced,
+           "batch insert+replace must preserve untouched sibling subtree and update right subtree")
+    ensure(all(node in referenced for node in range(len(base_blocks), len(updated[0]))),
+           "batch insert appended unreachable nodes")
+    _answer(_read(binary, (updated[0], updated[1], 2, 1), k2, fan=fan), _extent(2))
+    _answer(_read(binary, (updated[0], updated[1], 2, 1), k3, fan=fan), None)
+    _answer(_read(binary, updated, k2, fan=fan), _extent(10))
+
+    # Multi-level root growth from a single empty leaf in one pass (height 0 -> 2 at fan 2).
+    empty: Tree = ([_block(0, 1, [], [], fan=fan)], [1], 0, 0)
+    six = [(k0, _extent(1)), (k1, _extent(2)), (k2, _extent(3)),
+           (k3, _extent(4)), (k4, _extent(5)), (k5, _extent(6))]
+    grown = _accepted_update(
+        _insert_batch(binary, empty, six, fan=fan, generation=2, free=16, visits=32, depth=4),
+        empty, fan=fan, generation=2)
+    ensure(grown[3] == 2 and _candidate_map(grown, fan=fan)[0] == dict(six),
+           "single-pass multi-level batch growth failed")
+
+    # Empty, unsorted, duplicate, oversized, and invalid-extent batch refusals (staged=False).
+    _update_refusal(_insert_batch(binary, base, [], fan=fan, generation=10), staged=False)
+    _update_refusal(_insert_batch(binary, base, [(k3, _extent(1)), (k1, _extent(2))],
+                                  fan=fan, generation=10), staged=False)
+    _update_refusal(_insert_batch(binary, base, [(k1, _extent(1)), (k1, _extent(2))],
+                                  fan=fan, generation=10), staged=False)
+    oversized = [((1, 0, 0, 0, 0, i + 1), _extent(i)) for i in range(65)]
+    _update_refusal(_insert_batch(binary, empty, oversized, fan=fan, generation=10, free=256), staged=False)
+    _update_refusal(_insert_batch(binary, base, batch, fan=fan, generation=10, invalid_extent=True),
+                    staged=False)
+
+    # Bounded allocation, depth, prior visit, and candidate visit exhaustion refusals.
+    _update_refusal(_insert_batch(binary, empty, six, fan=fan, generation=10, free=2))
+    _update_refusal(_insert_batch(binary, empty, six, fan=fan, generation=10, free=16, depth=1))
+    _update_refusal(_insert_batch(binary, base, batch, fan=fan, generation=10, visits=2), staged=False)
+    _update_refusal(_insert_batch(binary, base, batch, fan=fan, generation=10, visits=3))
+
+    # Reachable off-route suffix reference refuses before any suffix write.
+    off_blocks = [*base_blocks, _block(3, 11, [k0], [_extent(1)], fan=fan)]
+    off_blocks[2] = _block(2, 7, [k2], [3, 1], fan=fan, branch=True)
+    off_route: Tree = (off_blocks, [3, 5, 7, 11], 2, 1)
+    _update_refusal(_insert_batch(binary, off_route, [(k5, _extent(20))], fan=fan,
+                                  generation=12, used=3, free=8), staged=False)
+
+    if generated:
+        all_keys = _full_width_keys(0x53DB)
+        for cur_fan in (2, 3, 4, 16):
+            sample = all_keys[:min(40, 2 * cur_fan * cur_fan + 4)]
+            seq_tree: Tree = ([_block(0, 0, [], [], fan=cur_fan)], [0], 0, 0)
+            for idx, key in enumerate(sample, 1):
+                seq_tree = _accepted_update(
+                    _insert(binary, seq_tree, key, _extent(idx), fan=cur_fan, generation=1, free=32),
+                    seq_tree, fan=cur_fan, generation=1)
+            batch_entries = [(key, _extent(idx)) for idx, key in enumerate(sample, 1)]
+            batch_tree = _accepted_update(
+                _insert_batch(binary, ([_block(0, 0, [], [], fan=cur_fan)], [0], 0, 0),
+                              batch_entries, fan=cur_fan, generation=1, free=128),
+                ([_block(0, 0, [], [], fan=cur_fan)], [0], 0, 0), fan=cur_fan, generation=1)
+            ensure(_candidate_map(batch_tree, fan=cur_fan)[0] == _candidate_map(seq_tree, fan=cur_fan)[0],
+                   "batch insert disagrees with sequential insertions")
+            ensure(len(batch_tree[0]) < len(seq_tree[0]),
+                   "single-pass sorted batch must allocate fewer nodes than sequential inserts")
+
+            # Multi-batch with mixed replacements and new keys.
+            first_half = [(key, _extent(idx)) for idx, key in enumerate(all_keys[:32], 1)]
+            second_half = sorted(
+                [(key, _extent(idx + 100)) for idx, key in enumerate(all_keys[:32:2], 1)]
+                + [(key, _extent(idx + 200)) for idx, key in enumerate(all_keys[32:64], 1)],
+                key=lambda item: item[0],
+            )
+            t1 = _accepted_update(
+                _insert_batch(binary, ([_block(0, 0, [], [], fan=cur_fan)], [0], 0, 0),
+                              first_half, fan=cur_fan, generation=10, free=128),
+                ([_block(0, 0, [], [], fan=cur_fan)], [0], 0, 0), fan=cur_fan, generation=10)
+            t2 = _accepted_update(
+                _insert_batch(binary, t1, second_half, fan=cur_fan, generation=20, free=128),
+                t1, fan=cur_fan, generation=20)
+            expected_multi = dict(first_half)
+            expected_multi.update(dict(second_half))
+            actual_multi, referenced_multi = _candidate_map(t2, fan=cur_fan)
+            ensure(actual_multi == expected_multi, "multi-batch insert+replace map disagrees")
+            ensure(all(node in referenced_multi for node in range(len(t1[0]), len(t2[0]))),
+                   "multi-batch appended unreachable nodes")
+            for key, extent in first_half[:4]:
+                _answer(_read(binary, (t2[0], t2[1], t1[2], t1[3]), key, fan=cur_fan), extent)
+            for key, extent in list(expected_multi.items())[::5]:
+                _answer(_read(binary, t2, key, fan=cur_fan), extent)
+
+        # Maximum 64-entry batch on fan=2 (single-pass height 0 -> 5).
+        max_batch = [(key, _extent(idx)) for idx, key in enumerate(all_keys[:64], 1)]
+        max_tree = _accepted_update(
+            _insert_batch(binary, ([_block(0, 0, [], [], fan=2)], [0], 0, 0),
+                          max_batch, fan=2, generation=55, free=128),
+            ([_block(0, 0, [], [], fan=2)], [0], 0, 0), fan=2, generation=55)
+        max_actual, max_ref = _candidate_map(max_tree, fan=2)
+        ensure(max_actual == dict(max_batch) and max_tree[3] == 5 and len(max_tree[0]) == 64,
+               "max-size 64-entry fan=2 batch failed expected layout")
+        ensure(all(node in max_ref for node in range(1, len(max_tree[0]))),
+               "max-size batch appended unreachable nodes")
+
+
+def _exercise_compact(binary: Path, *, generated: bool) -> None:
+    k0: Key = (2, 0, 0, 0, 0, 1)
+    k1: Key = (2, 0, 0, 0, 0, 2)
+    k2: Key = (2, 0, 0, 0, 1, 0)
+    k3: Key = (2, 0, 0, 1, 0, 0)
+    fan = 2
+
+    # Empty leaf compacts to a fresh empty leaf at height 0 in generation.
+    empty: Tree = ([_block(0, 4, [], [], fan=fan)], [4], 0, 0)
+    comp_empty = _accepted_update(_compact(binary, empty, fan=fan, generation=9, free=4),
+                                  empty, fan=fan, generation=9)
+    ensure(comp_empty == ([*empty[0], _block(1, 9, [], [], fan=fan)], [4, 9], 1, 0),
+           "empty tree compaction disagrees")
+
+    # Shared empty-leaf branch collapses to a single empty leaf at height 0.
+    empty_branch: Tree = ([_block(0, 1, [], [], fan=fan),
+                           _block(1, 2, [k1], [0, 0], fan=fan, branch=True)], [1, 2], 1, 1)
+    comp_eb = _accepted_update(_compact(binary, empty_branch, fan=fan, generation=8, free=4),
+                               empty_branch, fan=fan, generation=8)
+    ensure(comp_eb[2:] == (2, 0) and _candidate_map(comp_eb, fan=fan) == ({}, {2}),
+           "empty multi-node tree compaction must collapse to empty leaf at height 0")
+
+    # Single-entry leaf compacts cleanly even at depth_limit == 0.
+    single: Tree = ([_block(0, 3, [k0], [_extent(1)], fan=fan)], [3], 0, 0)
+    comp_single = _accepted_update(_compact(binary, single, fan=fan, generation=7, free=4, depth=0),
+                                   single, fan=fan, generation=7)
+    ensure(comp_single[2:] == (1, 0) and _candidate_map(comp_single, fan=fan) == ({k0: _extent(1)}, {1}),
+           "single-leaf compaction at depth 0 disagrees")
+
+    # Sparse multi-level tree compacts to canonical full-left layout and preserves retained roots.
+    sparse_blocks = [
+        _block(0, 1, [k0], [_extent(1)], fan=fan),
+        _block(1, 2, [k1], [_extent(2)], fan=fan),
+        _block(2, 3, [k2], [_extent(3)], fan=fan),
+        _block(3, 4, [k1], [0, 1], fan=fan, branch=True),
+        _block(4, 5, [], [2], fan=fan, branch=True),
+        _block(5, 6, [k2], [3, 4], fan=fan, branch=True),
+    ]
+    sparse: Tree = (sparse_blocks, [1, 2, 3, 4, 5, 6], 5, 2)
+    comp_sparse = _accepted_update(_compact(binary, sparse, fan=fan, generation=15, free=8),
+                                   sparse, fan=fan, generation=15)
+    expected_sparse = [
+        _block(6, 15, [k0, k1], [_extent(1), _extent(2)], fan=fan),
+        _block(7, 15, [k2], [_extent(3)], fan=fan),
+        _block(8, 15, [k2], [6, 7], fan=fan, branch=True),
+    ]
+    ensure(comp_sparse == (sparse_blocks + expected_sparse, [1, 2, 3, 4, 5, 6, 15, 15, 15], 8, 1),
+           "sparse multi-level tree compaction bytes disagree")
+    _answer(_read(binary, (comp_sparse[0], comp_sparse[1], 5, 2), k0, fan=fan), _extent(1))
+    _answer(_read(binary, comp_sparse, k2, fan=fan), _extent(3))
+
+    # Exhaustion and off-route suffix-reference refusals.
+    _update_refusal(_compact(binary, sparse, fan=fan, generation=15, free=0))
+    _update_refusal(_compact(binary, sparse, fan=fan, generation=15, free=2))
+    _update_refusal(_compact(binary, sparse, fan=fan, generation=15, free=8, depth=0))
+    _update_refusal(_compact(binary, sparse, fan=fan, generation=15, free=8, visits=2), staged=False)
+    off_blocks = [*sparse_blocks, _block(6, 11, [k3], [_extent(4)], fan=fan)]
+    off_blocks[4] = _block(4, 5, [], [6], fan=fan, branch=True)
+    off_route: Tree = (off_blocks, [1, 2, 3, 4, 5, 6, 11], 5, 2)
+    _update_refusal(_compact(binary, off_route, fan=fan, generation=15, used=6, free=8), staged=False)
+    off_order_blocks = [
+        _block(0, 1, [k0, k1], [_extent(1), _extent(2)], fan=fan),
+        _block(1, 2, [k3, k2], [_extent(4), _extent(3)], fan=fan),
+        _block(2, 3, [k2], [0, 1], fan=fan, branch=True),
+    ]
+    off_order: Tree = (off_order_blocks, [1, 2, 3], 2, 1)
+    _update_refusal(_compact(binary, off_order, fan=fan, generation=15, free=8), staged=False)
+
+    if generated:
+        all_keys = _full_width_keys(0xC039AC7)
+        for cur_fan in (2, 3, 4, 16):
+            kept = all_keys[::2][:min(36, 2 * cur_fan * cur_fan + 3)]
+            extra = all_keys[1::2][:cur_fan + 4]
+            answers = {key: _extent(idx) for idx, key in enumerate(kept, 1)}
+
+            # History A: sorted batch inserts with mixed replacements.
+            tree_a: Tree = ([_block(0, 0, [], [], fan=cur_fan)], [0], 0, 0)
+            mid = len(kept) // 2
+            tree_a = _accepted_update(
+                _insert_batch(binary, tree_a, [(k, _extent(999)) for k in kept[:mid]],
+                              fan=cur_fan, generation=1, free=128),
+                tree_a, fan=cur_fan, generation=1)
+            tree_a = _accepted_update(
+                _insert_batch(binary, tree_a, [(k, answers[k]) for k in kept],
+                              fan=cur_fan, generation=2, free=128),
+                tree_a, fan=cur_fan, generation=2)
+
+            # History B: reverse single-key insertions with extra keys, then interleaved deletions.
+            tree_b: Tree = ([_block(0, 0, [], [], fan=cur_fan)], [0], 0, 0)
+            combined = sorted(kept + extra, reverse=True)
+            for step, key in enumerate(combined, 1):
+                ext = answers.get(key, _extent(700 + step))
+                tree_b = _accepted_update(
+                    _insert(binary, tree_b, key, ext, fan=cur_fan, generation=step, free=32),
+                    tree_b, fan=cur_fan, generation=step)
+            del_order = extra[1::2] + extra[::2]
+            for step, key in enumerate(del_order, len(combined) + 1):
+                tree_b = _accepted_update(
+                    _delete(binary, tree_b, key, fan=cur_fan, generation=step, free=32),
+                    tree_b, fan=cur_fan, generation=step)
+
+            comp_a = _accepted_update(_compact(binary, tree_a, fan=cur_fan, generation=777, free=128),
+                                      tree_a, fan=cur_fan, generation=777)
+            comp_b = _accepted_update(_compact(binary, tree_b, fan=cur_fan, generation=777, free=128),
+                                      tree_b, fan=cur_fan, generation=777)
+            map_a, ref_a = _candidate_map(comp_a, fan=cur_fan)
+            map_b, ref_b = _candidate_map(comp_b, fan=cur_fan)
+            ensure(map_a == answers and map_b == answers,
+                   "compaction must preserve exact tuple-to-extent map across histories")
+            ensure(all(n in ref_a for n in range(len(tree_a[0]), len(comp_a[0]))) and
+                   all(n in ref_b for n in range(len(tree_b[0]), len(comp_b[0]))),
+                   "compaction appended unreachable nodes")
+            ensure(_tree_signature(comp_a, fan=cur_fan) == _tree_signature(comp_b, fan=cur_fan),
+                   "compacted typed trees must be strictly history-independent")
+            for probe in (kept[0], kept[len(kept) // 2], kept[-1]):
+                _answer(_read(binary, (comp_a[0], comp_a[1], tree_a[2], tree_a[3]), probe, fan=cur_fan),
+                        answers[probe])
+                _answer(_read(binary, (comp_b[0], comp_b[1], tree_b[2], tree_b[3]), probe, fan=cur_fan),
+                        answers[probe])
+
+            # Pad shorter arena prefix to equal used so newly appended VOSTYP01 bytes match verbatim.
+            equal_used = max(len(tree_a[0]), len(tree_b[0]))
+            pad_size = 32 + 144 * cur_fan
+            eq_a: Tree = (tree_a[0] + [bytes(pad_size)] * (equal_used - len(tree_a[0])),
+                          tree_a[1] + [0] * (equal_used - len(tree_a[1])), tree_a[2], tree_a[3])
+            eq_b: Tree = (tree_b[0] + [bytes(pad_size)] * (equal_used - len(tree_b[0])),
+                          tree_b[1] + [0] * (equal_used - len(tree_b[1])), tree_b[2], tree_b[3])
+            eq_comp_a = _accepted_update(_compact(binary, eq_a, fan=cur_fan, generation=777, free=128),
+                                         eq_a, fan=cur_fan, generation=777)
+            eq_comp_b = _accepted_update(_compact(binary, eq_b, fan=cur_fan, generation=777, free=128),
+                                         eq_b, fan=cur_fan, generation=777)
+            ensure(eq_comp_a[2:] == eq_comp_b[2:] and
+                   eq_comp_a[0][equal_used:] == eq_comp_b[0][equal_used:],
+                   "compacted VOSTYP01 output bytes must be byte-identical across histories")
+
+
 def typed_tree() -> None:
     work = toolenv.environment(ROOT, sys.platform).parent / "typed-tree-tests"
     work.mkdir(parents=True, exist_ok=True)
@@ -511,6 +832,8 @@ def typed_tree() -> None:
         _exercise(binary, generated=True)
         _exercise_update(binary, generated=True)
         _exercise_delete(binary, generated=True)
+        _exercise_insert_batch(binary, generated=True)
+        _exercise_compact(binary, generated=True)
 
 
 def typed_tree_mutants() -> None:
@@ -603,8 +926,85 @@ def typed_delete_mutants() -> None:
             ensure(caught, f"compiled and executed typed delete mutant survived: {label}")
 
 
+def typed_insert_batch_mutants() -> None:
+    source = (ROOT / "storage/src/typed_tree.c").read_text(encoding="utf-8")
+    mutations = [
+        ("accept empty or oversized batch", "entry_count == 0u || entry_count > VOS_TREE_MAX_BATCH",
+         "entry_count > VOS_TREE_MAX_BATCH + 1u"),
+        ("accept unsorted batch keys", "compare(&entries[i - 1u].key, &entries[i].key) >= 0", "0"),
+        ("drop extent metadata in batch leaf merge",
+         "keys[total] = entries[j].key;\n            extents[total] = entries[j].extent;\n            ++j;",
+         "keys[total] = entries[j].key;\n            extents[total] = entries[j].extent;\n"
+         "            extents[total].content_digest[31] ^= 1u;\n            ++j;"),
+        ("wrong branch split separator in publish_typed_batch",
+         "keys[kind == VOS_NODE_LEAF ? offset : offset - 1u]", "keys[offset - 1u]"),
+        ("skip prior off-route admission on batch",
+         "vos_typed_tree_lookup(&batch.input, limits, root, &entries[0].key, &checked)",
+         "vos_typed_tree_lookup_path(&batch.input, limits, root, &entries[0].key, &checked)"),
+        ("skip candidate off-route admission on batch",
+         "? vos_typed_tree_lookup(&batch_image, &batch_limits, candidate.root, &entries[i].key, &checked)",
+         "? vos_typed_tree_lookup_path(&batch_image, &batch_limits, candidate.root, &entries[i].key, &checked)"),
+        ("overwrite retained prefix on batch", ".append_at = arena->used", ".append_at = 0u"),
+        ("use wrong generation on batch", ".generation = batch->generation",
+         ".generation = batch->generation - 1u"),
+    ]
+    work = toolenv.environment(ROOT, sys.platform).parent / "typed-tree-tests"
+    work.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(prefix="typed-batch-mutants-", dir=work) as directory:
+        for index, (label, old, new) in enumerate(mutations):
+            ensure(source.count(old) == 1, f"mutation site drift: {label}")
+            binary = _build(Path(directory) / str(index), source.replace(old, new))
+            caught = False
+            try:
+                _exercise_insert_batch(binary, generated=False)
+            except AssertionError:
+                caught = True
+            ensure(caught, f"compiled and executed typed insert-batch mutant survived: {label}")
+
+
+def typed_compact_mutants() -> None:
+    source = (ROOT / "storage/src/typed_tree.c").read_text(encoding="utf-8")
+    mutations = [
+        ("skip prior off-route admission on compact",
+         "vos_typed_tree_lookup(&prior, limits, root, &zero_key, &checked)",
+         "vos_typed_tree_lookup_path(&prior, limits, root, &zero_key, &checked)"),
+        ("emit empty leaf with nonzero height on compact",
+         "if (!compact_append(&builder, &empty_leaf, &candidate.root)) return 0;\n        candidate.height = 0u;",
+         "if (!compact_append(&builder, &empty_leaf, &candidate.root)) return 0;\n        candidate.height = 1u;"),
+        ("wrong branch separator in compact",
+         "branch->keys[branch->count - 1u] = *child_min;",
+         "branch->keys[branch->count - 1u] = builder->min_keys[level];"),
+        ("skip leaf entry emission in compact",
+         "if (!compact_emit_entry(builder, &node.keys[i], &node.extents[i])) return 0;",
+         "if (i != 0u && !compact_emit_entry(builder, &node.keys[i], &node.extents[i])) return 0;"),
+        ("overwrite retained prefix on compact", ".next_id = arena->used,", ".next_id = 0u,"),
+        ("use wrong generation on compact", "node->generation = builder->generation;",
+         "node->generation = builder->generation - 1u;"),
+        ("wrong leaf key copy in compact",
+         "leaf->keys[leaf->count] = *key;",
+         "leaf->keys[leaf->count] = builder->min_keys[0];"),
+        ("corrupt extent digest on compact",
+         "leaf->extents[leaf->count] = *extent;",
+         "leaf->extents[leaf->count] = *extent; leaf->extents[leaf->count].content_digest[0] ^= 1u;"),
+    ]
+    work = toolenv.environment(ROOT, sys.platform).parent / "typed-tree-tests"
+    work.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(prefix="typed-compact-mutants-", dir=work) as directory:
+        for index, (label, old, new) in enumerate(mutations):
+            ensure(source.count(old) == 1, f"mutation site drift: {label}")
+            binary = _build(Path(directory) / str(index), source.replace(old, new))
+            caught = False
+            try:
+                _exercise_compact(binary, generated=False)
+            except AssertionError:
+                caught = True
+            ensure(caught, f"compiled and executed typed compact mutant survived: {label}")
+
+
 def cases() -> list[Case]:
     return [Case("complete typed nodes route and update full tuples and preserve inline extents", typed_tree, lane="guest"),
             Case("compiled typed routing and admission defects are detected", typed_tree_mutants, lane="guest"),
             Case("compiled typed candidate update defects are detected", typed_update_mutants, lane="guest"),
-            Case("compiled typed candidate delete defects are detected", typed_delete_mutants, lane="guest")]
+            Case("compiled typed candidate delete defects are detected", typed_delete_mutants, lane="guest"),
+            Case("compiled typed batch insert defects are detected", typed_insert_batch_mutants, lane="guest"),
+            Case("compiled typed compact defects are detected", typed_compact_mutants, lane="guest")]

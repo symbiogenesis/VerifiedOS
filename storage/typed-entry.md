@@ -160,3 +160,69 @@ original extents and mixed generations, bounded allocation/visit exhaustion,
 off-route suffix-reference refusals (`staged=False`), generated full-width
 6-word key sequences deleted in ascending, descending and interleaved orders
 across fanouts `2`, `3`, `4` and `16`, and compiled behavioral mutation controls.
+
+## Bounded typed candidate batch insert
+
+`vos_typed_tree_insert_batch` in [the typed update interface](include/vos_typed_tree.h)
+applies a strictly key-sorted batch of `1..VOS_TREE_MAX_BATCH` `(key, extent)`
+entries in a single top-down copy-on-write pass over `VOSTYP01` nodes, matching
+[the numeric batch contract](tree-update.md). The caller supplies the
+full-capacity arena and expected-generation array, their exact lengths, the
+nonempty allocated prefix `used`, and stable caller-authenticated retained
+blocks and generations. Backing arrays, entries, and result objects must be
+disjoint.
+
+Before any suffix write, admission validates the arena and limits,
+`1 <= entry_count <= VOS_TREE_MAX_BATCH`, strictly increasing 6-word keys,
+valid `VOSEXT01` encoding for every batch extent, and full prior-tree admission
+via `vos_typed_tree_lookup` on `entries[0].key` within `limits->visit_limit`.
+Empty, unsorted, duplicate-key, oversized, invalid-extent, or structurally
+malformed inputs (including reachable off-route suffix references) refuse (`0`)
+with zero suffix writes and unchanged `output`.
+
+When admitted, the update partitions the sorted batch across branch separator
+intervals so untouched sibling subtrees are neither decoded nor copied and each
+modified subtree is allocated in `generation` at most once per batch. Leaf merges
+replace equal keys and insert missing keys in lexicographic order. Overflowing
+nodes split via balanced chunking into nodes of at most `fan` items (halving
+the trailing remainder when `fan < rem <= 2 * fan`) within bounded per-frame
+staging (`VOS_TYPED_BATCH_MAX_ITEMS = VOS_NODE_MAX_FAN + VOS_TREE_MAX_BATCH + 2`),
+and multi-level root growth allocates new branches up to `limits->depth_limit`.
+
+Success requires full candidate admission via `vos_typed_tree_lookup` on
+`entries[0].key` and `vos_typed_tree_lookup_path` on `entries[1..entry_count-1]`
+within `limits->visit_limit`, verifying exact 96-byte encoded extent equality
+for every batch entry before updating `output`. Retained byte and generation
+prefixes remain unchanged on every result; capacity, depth, or candidate visit
+exhaustion refuses while preserving retained prefixes and `output`.
+
+## Bounded typed candidate compact
+
+`vos_typed_tree_compact` in [the typed update interface](include/vos_typed_tree.h)
+packs all reachable live `(key, extent)` pairs of a valid `VOSTYP01` tree into a
+canonical, history-independent B+ tree in `generation`, matching
+[the numeric compaction contract](tree-update.md). The caller supplies the
+full-capacity arena, expected-generation array, nonempty allocated prefix
+`used`, and stable caller-authenticated retained blocks and generations, with
+disjoint backing arrays and result.
+
+Before any suffix write, admission validates the arena, limits, and full
+prior-tree admission via `vos_typed_tree_lookup` with a zero key within
+`limits->visit_limit`, together with bounded prior entry counting. Structurally
+malformed trees and off-route suffix references refuse (`0`) with zero suffix
+writes and unchanged `output`.
+
+Compaction traverses reachable leaves in sorted lexicographic order and packs
+all live `(key, extent)` pairs bottom-up into new `VOSTYP01` nodes in
+`generation`, filling leaves and branches to `fan` except along the right spine
+and promoting each child's minimum key as branch separator. An empty tree emits
+one empty `VOS_NODE_LEAF` (`count = 0`) at height `0`; single-child top
+branches collapse so any two valid trees with the same `(key, extent)` map and
+geometry compact to byte-identical node layouts regardless of prior insertion
+or deletion order.
+
+Success requires full candidate admission via `vos_typed_tree_lookup`
+returning `!= VOS_TREE_REFUSED` within `limits->visit_limit` and an exact live
+entry-count match against the prior tree before updating `output`. Retained byte
+and generation prefixes remain unchanged on every result; arena capacity or
+depth exhaustion refuses while preserving retained prefixes and `output`.
