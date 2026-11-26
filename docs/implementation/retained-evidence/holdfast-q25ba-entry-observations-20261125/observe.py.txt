@@ -1,0 +1,230 @@
+# SPDX-License-Identifier: Apache-2.0
+"""Read the Q25ba packet return boundary from the four frozen Sail commit traces.
+
+Usage: python3 observe.py VERIFIEDOS NATIVE_RUN > boundary.json
+NATIVE_RUN contains the generated and three altered image directories from the
+compiled-view report. Run with the project's Python 3.14 and GNU readelf.
+"""
+
+import hashlib
+import json
+import platform
+import operator
+import struct
+import subprocess
+import sys
+from dataclasses import asdict, dataclass, field
+from functools import reduce
+from pathlib import Path
+
+checkout, run = map(Path, sys.argv[1:])
+sys.path.insert(0, str(checkout / "tools"))
+from vos import kernelrun
+
+PRIOR = "docs/implementation/retained-evidence/holdfast-q25ba-compiled-view-20261125/report.json"
+PRIOR_SHA256 = "76642863871fb8f4ad1e35ccb961ba729aa7b3f68963b8860d3819746b731054"
+ARENA_SIZE = 136
+CURSOR_MASK = (1 << 36) - 1
+SPAN = struct.Struct("<QQQIII")
+OUTCOME = struct.Struct("<IIQ")
+CASES = (
+    "empty", "full", "partial", "short", "bad-magic", "oversized",
+    "checksum", "overlap", "bad-flags-and-oversized",
+)
+EXPECTED_ERRORS = (0, 0, 0, 1, 2, 3, 4, 1, 2)
+CONTROLS = {
+    "generated": (9, []),
+    "empty-wrong-cursor": (1, ["view.cursor"]),
+    "full-identical-bytes-wrong-cursor": (2, ["view.cursor"]),
+    "partial-writable-view": (3, ["view.perm_write"]),
+}
+
+
+def require(condition, detail):
+    if not condition:
+        raise ValueError(detail)
+
+
+def bound_bytes(path, digest):
+    raw = path.read_bytes()
+    require(hashlib.sha256(raw).hexdigest() == digest, f"changed input: {path}")
+    return raw
+
+
+def read_bytes(memory, start, size):
+    # A missing write is unknown memory, never an assumed zero initializer.
+    return bytes(memory[i] for i in range(start, start + size))
+
+
+@dataclass(frozen=True)
+class Span:
+    cursor: int
+    base: int
+    length: int
+    tag: int
+    perm_read: int
+    perm_write: int
+
+    @classmethod
+    def read(cls, memory, address):
+        return cls(*SPAN.unpack(read_bytes(memory, address, SPAN.size)))
+
+    def payload(self, memory, arena):
+        require(self.base == self.cursor and self.length <= ARENA_SIZE - self.cursor,
+                "unexpected caller span in the frozen arena")
+        return read_bytes(memory, arena + self.cursor, self.length)
+
+
+def expected(dst, pkt, before, packet):
+    if (dst.length < 8 or pkt.length < 4
+            or max(dst.base, pkt.base) < min(dst.base + dst.length, pkt.base + pkt.length)):
+        return 1, 0, before
+    n = packet[1]
+    if packet[0] != 0x56 or packet[3] != 1:
+        err = 2
+    elif n > 4 or 4 + n > min(dst.length, pkt.length):
+        err = 3
+    elif reduce(operator.xor, packet[4:4 + n], 0x5A ^ n) != packet[2]:
+        err = 4
+    else:
+        return 0, n, packet[:4 + n] + bytes(4 - n) + before[8:]
+    return err, 0, bytes(8) + before[8:]
+
+
+@dataclass
+class Call:
+    ordinal: int
+    return_pc: int
+    arena: int
+    out: int
+    dst_address: int
+    pkt_address: int
+    dst: Span
+    pkt: Span
+    before: bytes
+    packet: bytes
+    reads: set[int] = field(default_factory=set)
+    writes: set[int] = field(default_factory=set)
+    result_stores: set[int] = field(default_factory=set)
+    tagged_result_stores: int = 0
+
+    @classmethod
+    def begin(cls, ordinal, registers, memory):
+        def pointer(reg):
+            tag, bits = registers[reg]
+            require(tag == 1, f"untagged entry register {reg}")
+            return bits & CURSOR_MASK
+
+        arena, out, dst_addr, pkt_addr = map(pointer, (10, 11, 12, 13))
+        dst, pkt = (Span.read(memory, addr) for addr in (dst_addr, pkt_addr))
+        require((dst.tag, dst.perm_read, dst.perm_write) == (1, 1, 1)
+                and (pkt.tag, pkt.perm_read) == (1, 1), "unexpected entry descriptor")
+        return cls(ordinal, pointer(1), arena, out, dst_addr, pkt_addr, dst, pkt,
+                   dst.payload(memory, arena), pkt.payload(memory, arena))
+
+    def access(self, kind, addr, size, tag):
+        for byte in range(addr, addr + size):
+            if self.arena <= byte < self.arena + ARENA_SIZE:
+                (self.reads if kind == "R" else self.writes).add(byte - self.arena)
+            if kind == "W" and self.out <= byte < self.out + OUTCOME.size + SPAN.size:
+                self.result_stores.add(byte - self.out)
+        if kind == "W" and addr < self.out + OUTCOME.size + SPAN.size and self.out < addr + size:
+            self.tagged_result_stores += tag
+
+    def finish(self, memory):
+        err, copied, contents = expected(self.dst, self.pkt, self.before, self.packet)
+        require(err == EXPECTED_ERRORS[self.ordinal], "unexpected packet scenario at entry")
+        require(self.result_stores == set(range(OUTCOME.size + SPAN.size)),
+                "call left result fields from an earlier run")
+        is_ok, code, count = OUTCOME.unpack(read_bytes(memory, self.out, OUTCOME.size))
+        view = Span.read(memory, self.out + OUTCOME.size)
+        dst_after = Span.read(memory, self.dst_address)
+        pkt_after = Span.read(memory, self.pkt_address)
+        after = self.dst.payload(memory, self.arena)
+        checks = {
+            "outcome": (is_ok, code) == (int(err == 0), err),
+            "destination": after == contents,
+            "destination_descriptor": dst_after == self.dst,
+            "input_descriptor": pkt_after == self.pkt,
+            "input_bytes": self.pkt.payload(memory, self.arena) == self.packet,
+            "allowed_backing_writes": self.writes <= set(range(self.dst.cursor, self.dst.cursor + 8)),
+            "framing_before_backing_access": err != 1 or not (self.reads or self.writes),
+        }
+        if err:
+            checks["invalid_error_view"] = (view.tag, view.perm_read, view.perm_write) == (0, 0, 0)
+        else:
+            checks["copied"] = count == copied
+            origin = self.dst.cursor + 4
+            for name, value in asdict(Span(origin, origin, copied, 1, 1, 0)).items():
+                checks["view." + name] = getattr(view, name) == value
+        return {
+            "case": CASES[self.ordinal], "caller_resume_pc": hex(self.return_pc),
+            "argument_addresses": dict(zip(("arena", "result", "dst", "pkt"),
+                                           map(hex, (self.arena, self.out, self.dst_address, self.pkt_address)))),
+            "entry_dst": asdict(self.dst), "entry_pkt": asdict(self.pkt),
+            "packet_hex": self.packet.hex(), "destination_before_hex": self.before.hex(),
+            "destination_after_hex": after.hex(), "expected_destination_hex": contents.hex(),
+            "result": {"ok": is_ok, "error_code": code, "copied_field": count, "view": asdict(view)},
+            "read_arena_offsets": sorted(self.reads), "written_arena_offsets": sorted(self.writes),
+            "tagged_stores_into_result": self.tagged_result_stores,
+            "mismatches": [name for name, ok in checks.items() if not ok],
+        }
+
+
+def measure(label, row):
+    directory = run / label
+    elf = directory / "first_slice.elf"
+    identity = row["artifacts_sha256"][elf.name]
+    bound_bytes(elf, identity)
+    symbols = subprocess.check_output(["readelf", "-Ws", str(elf)], text=True).splitlines()
+    entry, = [int(line.split()[1], 16) for line in symbols
+              if line.split()[-1:] == ["PrepareAndValidatePacket"]]
+    log, = [p for p in row["processes"] if Path(p["log"]).name == "first_slice.sail.log"]
+    raw = bound_bytes(directory / "first_slice.sail.log", log["log_sha256"])
+    registers, memory, observations = {}, {}, []
+    call = None
+    records = kernelrun.read_emulator_trace(raw.decode().splitlines())
+    require(len(records) == row["sail_trace_records"], "wrong commit-record count")
+    for kind, fields in records:
+        if kind == "I":
+            pc = fields[0]
+            if call is not None and pc == call.return_pc:
+                observations.append(call.finish(memory))
+                call = None
+            if pc == entry:
+                require(call is None, "unexpected nested packet call")
+                call = Call.begin(len(observations), registers, memory)
+        elif kind == "X":
+            register, tag, bits = fields
+            registers[register] = (tag, bits)
+        elif kind in ("R", "W"):
+            addr, size, tag, value = fields
+            if call is not None:
+                call.access(kind, addr, size, tag)
+            if kind == "W":
+                for offset, byte in enumerate(value.to_bytes(size, "little")):
+                    memory[addr + offset] = byte
+        elif kind == "T":
+            raise ValueError("unexpected trap in the retained packet comparison")
+    count, final_mismatches = CONTROLS[label]
+    require(call is None and len(observations) == count, f"{label}: incomplete calls")
+    require([row["mismatches"] for row in observations] == [[]] * (count - 1) + [final_mismatches],
+            f"{label}: unexpected mismatches: {[r['mismatches'] for r in observations]}")
+    return {"elf_sha256": identity, "commit_log_sha256": log["log_sha256"],
+            "entry_symbol": "PrepareAndValidatePacket", "entry_pc": hex(entry), "calls": observations}
+
+
+prior = json.loads(bound_bytes(checkout / PRIOR, PRIOR_SHA256))
+print(json.dumps({
+    "scope": "Finite return observations in the compiled development caller",
+    "holdfast_revision": prior["holdfast_revision"], "prior_report_sha256": PRIOR_SHA256,
+    "compiler_revision": prior["compiler_revision"],
+    "reader_inputs_sha256": {
+        name: hashlib.sha256((checkout / name).read_bytes()).hexdigest()
+        for name in ("tools/vos/kernelrun.py", "tools/vos/trace.py")
+    },
+    "python": platform.python_version(),
+    "readelf": subprocess.check_output(["readelf", "--version"], text=True).splitlines()[0],
+    "returned_machine_capability_proved": False, "production_admission": False,
+    "images": {label: measure(label, prior["results"][label]) for label in CONTROLS},
+}, indent=2))
