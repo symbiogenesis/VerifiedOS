@@ -1,0 +1,182 @@
+{
+  "adapters": {
+    "src/atomic_target.s": "876a29600dd43509389014df505276afa297c0076453781da16a10f9ff237449",
+    "src/notification_target.s": "949d971b8ad42f750d76367f1bc235912433d6ddc6cb28a71986efc427711e49"
+  },
+  "artifacts": {
+    "/root/build/lane-hf-copy-1125e/q25bb/standalone-2/direct.s": "252b08f6571b64b155f7581f7d637809b484fbb8bab94a68666eaa113bdf7e3f",
+    "/root/build/lane-hf-copy-1125e/q25bb/standalone-2/package_unit.i": "2663f6076aea7be85cb4100074ea79a7d82d3cacfb1e188ca2c1664d4365348a",
+    "/root/build/lane-hf-copy-1125e/q25bb/standalone-2/package_unit.light.c": "b3957e78bddc1ad121079aeeacdd0cd17a184bb7be5f684bc9aba1446917184e",
+    "/root/build/lane-hf-copy-1125e/q25bb/standalone-2/standalone-notification.elf": "719ba5a237fb79acad5ac8ffddadde179c9f80440de0d4778548b8a8d018da7e"
+  },
+  "assembled_member_ranges_in_harness": {
+    "compiled C": {
+      "bytes": 4808,
+      "end_exclusive": "0x80001364",
+      "sha256": "a4d9ebf4439c5237ef4aaf8e8030f589b030bcad488701a036b7d2aacb91ee3a",
+      "start": "0x8000009c",
+      "vos_copy_symbols": {
+        "vos_copy_activation": "0x800008d4",
+        "vos_copy_advance": "0x800003d4",
+        "vos_copy_batch": "0x80000310",
+        "vos_copy_consumer": "0x800006c0",
+        "vos_copy_init_generation_slots": "0x8000099c",
+        "vos_copy_init_slots": "0x80000b34",
+        "vos_copy_occupancy": "0x8000011c",
+        "vos_copy_payload_limit": "0x8000009c",
+        "vos_copy_producer": "0x80000614",
+        "vos_copy_publish": "0x800001e0",
+        "vos_copy_stage": "0x80000584",
+        "vos_copy_submit_snapshot": "0x80000b5c",
+        "vos_copy_take_index": "0x8000027c",
+        "vos_copy_take_snapshot": "0x80000f90",
+        "vos_copy_target_layout": "0x80001268",
+        "vos_copy_target_ring_bytes": "0x80001244",
+        "vos_copy_view_valid": "0x80000164"
+      }
+    },
+    "src/atomic_target.s": {
+      "bytes": 532,
+      "end_exclusive": "0x80001578",
+      "sha256": "80411cc51436678d7d3c514effc3230b82f247c92a1b74ec26388a100327e46e",
+      "start": "0x80001364",
+      "vos_copy_symbols": {
+        "vos_copy_batch_done": "0x80001560",
+        "vos_copy_batch_loop": "0x800014e8",
+        "vos_copy_batch_refuse": "0x80001570",
+        "vos_copy_init": "0x80001364",
+        "vos_copy_init_generation": "0x80001368",
+        "vos_copy_init_refuse": "0x800013a4",
+        "vos_copy_prepare_sleep": "0x80001490",
+        "vos_copy_submit": "0x800013ac",
+        "vos_copy_submit_batch": "0x800014b8",
+        "vos_copy_submit_return": "0x8000142c",
+        "vos_copy_take": "0x80001438",
+        "vos_copy_take_return": "0x80001484"
+      }
+    },
+    "src/notification_target.s": {
+      "bytes": 96,
+      "end_exclusive": "0x800015d8",
+      "sha256": "702fa545fd8ef32131913841d6ad19455dec63a406ae8cec8406b6890802d322",
+      "start": "0x80001578",
+      "vos_copy_symbols": {
+        "vos_copy_notify": "0x80001578",
+        "vos_copy_notify_done": "0x8000159c",
+        "vos_copy_notify_invalid": "0x800015a4",
+        "vos_copy_notify_store": "0x80001594",
+        "vos_copy_poll": "0x800015ac",
+        "vos_copy_poll_invalid": "0x800015d0"
+      }
+    }
+  },
+  "checkout_revision": "57a9478db06f93547bc72b21317a1f8502a80e11",
+  "control_harness": "copy_notification.controls",
+  "control_source_sha256": "94cbc5637b09a906f13f2dc1be60575d026478e9202be639e9fe5b96a3195bab",
+  "direct_and_split_assembly_identical": true,
+  "installed_entry": null,
+  "omitted_adapter_refusals": {
+    "src/atomic_target.s": "standalone-notification:1560: no symbol vos_copy_init",
+    "src/notification_target.s": "standalone-notification:1607: no symbol vos_copy_notify"
+  },
+  "preprocessing_repeated_identically": true,
+  "preprocessor": {
+    "/usr/bin/clang": "3d91c53a01052091b2d6624ff1008f89748ac45d7cfb2709ad618bf399882eb1"
+  },
+  "processes": [
+    {
+      "argv": [
+        "/root/build/lane-checklist-20261010-c/q39/final-build-1/compiler/ccomp",
+        "-conf",
+        "/root/build/lane-checklist-20261010-c/q39/final-build-1/compiler/compcert.ini",
+        "-S",
+        "-fverifiedos-typed",
+        "-Iinclude",
+        "src/package_unit.c",
+        "-o",
+        "/root/build/lane-hf-copy-1125e/q25bb/standalone-2/direct.s"
+      ],
+      "cwd": "/root/build/lane-hf-copy-1125e/q25bb/prepared",
+      "exit": 0,
+      "stderr": "",
+      "stdout": ""
+    },
+    {
+      "argv": [
+        "/root/build/lane-checklist-20261010-c/q39/final-build-1/compiler/ccomp",
+        "-conf",
+        "/root/build/lane-checklist-20261010-c/q39/final-build-1/compiler/compcert.ini",
+        "-fverifiedos-typed",
+        "-v",
+        "-E",
+        "-Iinclude",
+        "src/package_unit.c",
+        "-o",
+        "/root/build/lane-hf-copy-1125e/q25bb/standalone-2/package_unit.i"
+      ],
+      "cwd": "/root/build/lane-hf-copy-1125e/q25bb/prepared",
+      "exit": 0,
+      "stderr": "+ /usr/bin/clang --target=riscv64-unknown-linux-gnu -mabi=lp64 -march=rv64im -U__GNUC__ -E -std=c99 -I/root/build/lane-checklist-20261010-c/q39/final-build-1/compiler/runtime/include/verifiedos -D__VERIFIEDOS_SCALAR_SOURCE_PROFILE__=1 -D__VERIFIEDOS_NO_POINTER_ROUNDTRIP__=1 -D__COMPCERT__ -D__COMPCERT_MAJOR__=3 -D__COMPCERT_MINOR__=17 -D__COMPCERT_VERSION__=317 -U__STDC_IEC_559_COMPLEX__ -D__STDC_NO_ATOMICS__ -D__STDC_NO_COMPLEX__ -D__STDC_NO_THREADS__ -D__STDC_NO_VLA__ -D__COMPCERT_WCHAR_TYPE__=int -I/root/build/lane-checklist-20261010-c/q39/final-build-1/compiler/../lib/compcert/include -Iinclude src/package_unit.c > /root/build/lane-hf-copy-1125e/q25bb/standalone-2/package_unit.i\n",
+      "stdout": ""
+    },
+    {
+      "argv": [
+        "/root/build/lane-checklist-20261010-c/q39/final-build-1/compiler/ccomp",
+        "-conf",
+        "/root/build/lane-checklist-20261010-c/q39/final-build-1/compiler/compcert.ini",
+        "-fverifiedos-typed",
+        "-dclight",
+        "-S",
+        "package_unit.i",
+        "-o",
+        "replayed.s"
+      ],
+      "cwd": "/root/build/lane-hf-copy-1125e/q25bb/standalone-2",
+      "exit": 0,
+      "stderr": "",
+      "stdout": ""
+    },
+    {
+      "argv": [
+        "/root/build/lane-checklist-20261010-c/q39/final-build-1/compiler/ccomp",
+        "-conf",
+        "/root/build/lane-checklist-20261010-c/q39/final-build-1/compiler/compcert.ini",
+        "-fverifiedos-typed",
+        "-v",
+        "-E",
+        "-Iinclude",
+        "src/package_unit.c",
+        "-o",
+        "/root/build/lane-hf-copy-1125e/q25bb/standalone-2/replay.i"
+      ],
+      "cwd": "/root/build/lane-hf-copy-1125e/q25bb/prepared",
+      "exit": 0,
+      "stderr": "+ /usr/bin/clang --target=riscv64-unknown-linux-gnu -mabi=lp64 -march=rv64im -U__GNUC__ -E -std=c99 -I/root/build/lane-checklist-20261010-c/q39/final-build-1/compiler/runtime/include/verifiedos -D__VERIFIEDOS_SCALAR_SOURCE_PROFILE__=1 -D__VERIFIEDOS_NO_POINTER_ROUNDTRIP__=1 -D__COMPCERT__ -D__COMPCERT_MAJOR__=3 -D__COMPCERT_MINOR__=17 -D__COMPCERT_VERSION__=317 -U__STDC_IEC_559_COMPLEX__ -D__STDC_NO_ATOMICS__ -D__STDC_NO_COMPLEX__ -D__STDC_NO_THREADS__ -D__STDC_NO_VLA__ -D__COMPCERT_WCHAR_TYPE__=int -I/root/build/lane-checklist-20261010-c/q39/final-build-1/compiler/../lib/compcert/include -Iinclude src/package_unit.c > /root/build/lane-hf-copy-1125e/q25bb/standalone-2/replay.i\n",
+      "stdout": ""
+    }
+  ],
+  "producer_build_passed": false,
+  "producer_files": {
+    "/root/build/lane-checklist-20261010-c/q39/final-build-1/compiler/build-inputs.json": "e821c8cae693e000a6988b7f3e449ecfd88340119fd2221ade84bc88de7546a9",
+    "/root/build/lane-checklist-20261010-c/q39/final-build-1/compiler/build-result.json": "21de32af77b2333428b31212ab04feaced723024409bbe5e9deb3fbd6dbfa53a",
+    "/root/build/lane-checklist-20261010-c/q39/final-build-1/compiler/ccomp": "3dae6ac7bd5a074053130fdcaaab84c42030bdc24be9fff6a4b244db272252f8",
+    "/root/build/lane-checklist-20261010-c/q39/final-build-1/compiler/compcert.ini": "e0efcb8f02d749b406ed243e21408307f2189af136ae562a48b0d2044581550f"
+  },
+  "producer_revision": "7093854d8ce8799826618024ee4847cf248766ea",
+  "production_admission": false,
+  "qualified_producer": false,
+  "qualified_target_entry_producer_refusal": "target requires a successful source-bound contained compiler build",
+  "runtime_execution": false,
+  "scope": "Q25bb development compile and link of the frozen standalone copy-service inputs",
+  "source_record_sha256": "e6991359da24d4aaf459fb262ebbd906b2bb858ee61538337df88ec649945205",
+  "system_header_inputs": {
+    "/root/build/lane-checklist-20261010-c/q39/final-build-1/compiler/runtime/include/verifiedos/stdint.h": "65505e3f477d8035b7ca800eb3bb00f1853b675546e168f26fc2aeac51642126",
+    "/usr/lib/llvm-21/lib/clang/21/include/__stddef_header_macro.h": "4cf46e8fbb809df048eecbbd63686fa741da27afa8db4245bd1f61c1fb1611dc",
+    "/usr/lib/llvm-21/lib/clang/21/include/__stddef_null.h": "b1d71b08563ab3d2c22a1e4f8ddf4d9a1111c89e9404b859a45c307e8ebc6c69",
+    "/usr/lib/llvm-21/lib/clang/21/include/__stddef_offsetof.h": "e5f0f4ff8ff5fc6a1cc8b535f5065f1728eadd2bf1e1401f021f803ec7b4222f",
+    "/usr/lib/llvm-21/lib/clang/21/include/__stddef_ptrdiff_t.h": "b4178a57f3711b7013cba747a72a2f178c29fa9364e77d75b2159754072ced43",
+    "/usr/lib/llvm-21/lib/clang/21/include/__stddef_size_t.h": "d86ddc0238da09b385846ebef814ffc50a44e40cf85d4e3793f485952b7e73ad",
+    "/usr/lib/llvm-21/lib/clang/21/include/__stddef_wchar_t.h": "1900d4998aef3698b06399ed686db0c21e26509b08638a25734fb97ae89b1001",
+    "/usr/lib/llvm-21/lib/clang/21/include/stddef.h": "b3e62a046ddf28d09eedebe6eb9461cb7060e47cad2c69964b222c4eea10347e"
+  }
+}
