@@ -1,0 +1,77 @@
+{
+  "cases": {
+    "data-read-only-mask": {
+      "htif_return": 2,
+      "image_sha256": "5f609cc7397c8985945448f5cb90b245a81f35b5d8686b9a92cbfd821069e784",
+      "permissions": 2,
+      "process": {
+        "command": [
+          "/root/build/verifiedos-model/c_emulator/sail_riscv_sim",
+          "--config",
+          "/root/build/verifiedos-model/config/verifiedos.json",
+          "--trace-commit",
+          "--inst-limit",
+          "1000000",
+          "--terminal-log",
+          "/root/build/lane-hf-packet-1125d/returned-view-bitmap/data-read-only-mask.term",
+          "/root/build/lane-hf-packet-1125d/returned-view-bitmap/data-read-only-mask.elf"
+        ],
+        "log": "/root/build/lane-hf-packet-1125d/returned-view-bitmap/data-read-only-mask.sail.log",
+        "log_sha256": "895d32337d940a44a63593c2adbbd33e32212a032fb48bf986704a11ed136ed0",
+        "returncode": 1,
+        "stderr_bytes": 106,
+        "stderr_sha256": "957a9385daa02e4347d62786975aef1b2baf1574b514951e0d5cbf5b406fa714",
+        "stdout_bytes": 5411,
+        "stdout_sha256": "fa75ada98ddf18d0105db50cb08a9eed59c22c34f8842344b0f03d955066131a"
+      },
+      "trace_observation": [
+        "I 80 0000000080000188 FE06855B",
+        "X 10 0 0000000000000002"
+      ],
+      "trace_sha256": "3ebe8ef46ff7f7d4"
+    },
+    "pinned-mask": {
+      "htif_return": 6,
+      "image_sha256": "02c216c90155d73784520e3678d475f2f25a2a12e66fbe37c5d563d4fa9a952f",
+      "permissions": 6,
+      "process": {
+        "command": [
+          "/root/build/verifiedos-model/c_emulator/sail_riscv_sim",
+          "--config",
+          "/root/build/verifiedos-model/config/verifiedos.json",
+          "--trace-commit",
+          "--inst-limit",
+          "1000000",
+          "--terminal-log",
+          "/root/build/lane-hf-packet-1125d/returned-view-bitmap/pinned-mask.term",
+          "/root/build/lane-hf-packet-1125d/returned-view-bitmap/pinned-mask.elf"
+        ],
+        "log": "/root/build/lane-hf-packet-1125d/returned-view-bitmap/pinned-mask.sail.log",
+        "log_sha256": "251a481a345f8f7a3ba6d5178a4d8b242410e8a696dc3630e46fb03859077aa5",
+        "returncode": 1,
+        "stderr_bytes": 98,
+        "stderr_sha256": "607502b8876dd5e4e7cb3f27b742ab60668d0554064f999e974a60592b87fb3a",
+        "stdout_bytes": 5465,
+        "stdout_sha256": "136d6eb3a0e0518b6c4fe59113850886db6602a7e6421b89c72a2311eb2a7466"
+      },
+      "trace_observation": [
+        "I 81 000000008000018C FE06855B",
+        "X 10 0 0000000000000006"
+      ],
+      "trace_sha256": "aab13c66faed4dab"
+    }
+  },
+  "holdfast_revision": "6186a4fc4518e2118ad5136953e120e991dcdae8",
+  "instruction": "cgetperm a0, c13",
+  "original_image_sha256": "3a875e1ef42f7469a8bdc606f329bc2287f9791454cb65df9b3c75950c406fd7",
+  "profile": {
+    "path": "/root/build/verifiedos-model/config/verifiedos.json",
+    "sha256": "7ff6f9dec6fbe0c164d52eea4862cc2cd29fd5d73fe59f498ca6011a1b6f88c2"
+  },
+  "receipt_sha256": "8497237c9d934d4791789ae19e13e355b8ad483a675912770996538d7ebe3ea5",
+  "scope": "architecture permission observation on the handwritten passing control",
+  "simulator": {
+    "path": "/root/build/verifiedos-model/c_emulator/sail_riscv_sim",
+    "sha256": "c29388da23bb6b2522672e3d7b2667ef0bf34182c953a910a6160f8f190fdd75"
+  }
+}

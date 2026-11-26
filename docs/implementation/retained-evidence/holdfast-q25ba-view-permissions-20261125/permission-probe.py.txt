@@ -1,0 +1,63 @@
+# SPDX-License-Identifier: Apache-2.0
+"""Read the live returned-view permission bits in the pinned handwritten control."""
+import hashlib
+import json
+import sys
+from pathlib import Path
+
+root, receipt_path, destination = map(Path, sys.argv[1:])
+sys.path.insert(0, str(root / "tools"))
+from toolchain import compiler_diff, dialect, first_slice
+
+def sha256(path):
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+def once(source, old, new):
+    if source.count(old) != 1:
+        raise ValueError(f"expected one occurrence of {old!r}")
+    return source.replace(old, new)
+
+receipt = json.loads(receipt_path.read_bytes())
+directory = Path(receipt["directory"])
+files = receipt["execution_inputs"]["files"]
+simulator, profile = (Path(files[key]["path"]) for key in ("simulator", "profile"))
+if any(sha256(Path(files[key]["path"])) != files[key]["sha256"] for key in ("simulator", "profile")):
+    raise ValueError("changed simulator or profile")
+destination.mkdir()
+stock = first_slice._purecap_cheri_asm_stream("pass")
+original = directory / "purecap_pass.elf"
+copy = destination / "stock.elf"
+refusals, _ = compiler_diff.assemble(stock, copy.stem, copy)
+if refusals or copy.read_bytes() != original.read_bytes() or sha256(copy) != receipt["artifacts_sha256"][str(original)]:
+    raise ValueError("pinned producer failed to reproduce the receipt's passing image")
+report = {"scope": "architecture permission observation on the handwritten passing control",
+          "holdfast_revision": receipt["producer_revision"], "receipt_sha256": sha256(receipt_path),
+          "original_image_sha256": sha256(original), "simulator": files["simulator"], "profile": files["profile"],
+          "instruction": "cgetperm a0, c13", "cases": {}}
+measure = once(stock, "li      a0, 0", "cgetperm a0, c13")
+for name, source, expected in (
+    ("pinned-mask", measure, 6),
+    ("data-read-only-mask", once(measure, "li      t0, 0xFF7", "li      t0, 0x002"), 2),
+):
+    elf = destination / f"{name}.elf"
+    refusals, _ = compiler_diff.assemble(source, name, elf)
+    if refusals:
+        raise ValueError(f"assembly refused: {refusals}")
+    observations = []
+    run = compiler_diff.run_image([str(simulator)], profile, elf, destination, observations=observations)
+    log = destination / f"{name}.sail.log"
+    # Locate the actual cgetperm a0, c13 using the pinned encoding.
+    row = dialect.TABLE["cgetperm"]
+    insn = row.word | (10 << 7) | (13 << 15)
+    lines = log.read_text().splitlines()
+    sites = [i for i, line in enumerate(lines) if line.startswith("I ") and line.endswith(f" {insn:08X}")]
+    if len(sites) != 1:
+        raise ValueError(f"{name}: permission read count {len(sites)}")
+    observation = lines[sites[0] + 1]
+    if observation != f"X 10 0 {expected:016X}" or run.code != expected or run.verdict != "fail":
+        raise ValueError(f"{name}: expected bitmap {expected}, got {observation}, exit {run.code}")
+    report["cases"][name] = {"image_sha256": sha256(elf), "permissions": expected,
+                             "trace_observation": lines[sites[0]:sites[0]+2],
+                             "trace_sha256": run.digest, "htif_return": run.code, "process": observations[0]}
+(destination / "permissions.json").write_text(json.dumps(report, indent=2, sort_keys=True) + "\n")
+print(json.dumps({name: case["permissions"] for name, case in report["cases"].items()}))
