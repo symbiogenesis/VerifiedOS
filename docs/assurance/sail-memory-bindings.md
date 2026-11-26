@@ -7,6 +7,16 @@ canonical-consumer acceptance remains owed.
 
 ## Retained evidence
 
+- [Canonical hart-0 recursive kernel and native assumption closure](../implementation/retained-evidence/q35p-canonical-closure-20261126/manifest.json),
+  SHA256 `0bebb10f9f6dd53d0af6bb3912fef8dbb0acc715e96a5b21bb38f04dae5dbf26`.
+  Strict compilation of `TagInterpreter.v` and `CanonicalPhysicalCallerBridge.v`
+  against the canonical hart-0 term (`rv64d_types`, `rv64d`, `riscv_extras`),
+  native `Print Assumptions` audit across all `429` enumerated declarations
+  (`122` in `CanonicalTagPlaneInst`, `307` in `CanonicalPhysicalCallerBridge`,
+  all closed under the global context), full recursive `rocqchk -silent -o`
+  (`-norec` absent) on `CanonicalPhysicalCallerBridge` matching the exact `31`
+  classified floating-point axioms, bound inputs, installed-prefix comparison,
+  and replay commands.
 - [Recursive kernel and native assumption closure](../implementation/retained-evidence/q35p-recursive-closure-20261126/manifest.json),
   SHA256 `b47e2e2147e339567e28a762510af6de4f3eb640c2091b3a697254121f156ba1`.
   Native `Print Assumptions` audit across all four authored Q35p modules (`811`
@@ -285,6 +295,26 @@ scoped kernel check passes with dependencies admitted. The comparison, input
 identities and proof results are bound by the [canonical caller replay manifest](../implementation/retained-evidence/q35p-canonical-callers-20261125/manifest.json),
 SHA256 `e1a92981e480aadecdd6baebb1fd4f98d836c2bb3b89039c6599cc36cff1a4d7`.
 
+[The canonical closure driver](../../tools/sail-tag-outcomes/canonical_closure.py)
+extends that scoped check to full recursive kernel and native assumption closure
+against the compiled canonical hart-0 term (`rv64d_types.vo`, `rv64d.vo`,
+`riscv_extras.vo`), all 29 compiled `SailStdpp` candidate objects, and the
+matching private `stdpp` tree. After verifying input source/object digests and
+snapshotting the installed Rocq prefix before and after, it strictly compiles
+`TagInterpreter.v` and `CanonicalPhysicalCallerBridge.v`, enumerates all
+declarations of `CanonicalTagPlaneInst := TagInterpreter.TagPlane rv64d_types.Arch rv64d_types.Interface`
+(`122` declarations) and `CanonicalPhysicalCallerBridge` (`307` declarations)
+under native `Print Assumptions` (all `429` declarations report `Closed under
+the global context`), and runs full recursive `rocqchk -silent -o` (with `-norec`
+absent) on `CanonicalPhysicalCallerBridge`. The recursive kernel check exits
+`0` (`23.228` seconds) and reports only the exact `31` classified floating-point
+axioms in [the canonical machine term](canonical-machine-term.md#the-31-the-emission-declares),
+with `0` `Stdlib.Reals` axioms, `0` `Program.Wf`/`Values_lemmas` axioms, and
+`0` new tag or bridge axioms (`installed-comparison.json` records zero prefix
+changes). `candidate.json` binds `frozen_canonical_closure_manifest` to
+[Canonical hart-0 recursive kernel and native assumption closure](../implementation/retained-evidence/q35p-canonical-closure-20261126/manifest.json),
+SHA256 `0bebb10f9f6dd53d0af6bb3912fef8dbb0acc715e96a5b21bb38f04dae5dbf26`.
+
 ## Paired emulator emission
 
 The stock Sail plugin population and the population containing the patched Rocq
@@ -319,9 +349,13 @@ establishes strict whole-term compilation, recursive kernel context and compiled
 size with private support. Q35p's isolated 29-module support comparison, V1
 instance readings, native `Print Assumptions` audit, and four-partition
 recursive `rocqchk -silent -o` closure checkpoint are retained against the
-November inputs. Q35p remains open for the Q35q hosted support declaration
-census, the Q35o hosted emitter verdict, Q35n cold production carriage, Q35b
-whole-term replay and closure with qualified support, and repeating the
+November inputs, and the canonical hart-0 closure replay extends native
+`Print Assumptions` (`429` closed declarations) and un-admitted recursive
+`rocqchk -silent -o` (`31` classified floating-point axioms, `F-480`) to
+`TagInterpreter` and `CanonicalPhysicalCallerBridge`. Q35p remains open for the
+Q35q hosted support declaration census, the Q35o hosted emitter verdict, Q35n
+cold production carriage, Q35b whole-term replay and closure with qualified
+support, F-480 disposition of the `31` floating-point axioms, and repeating the
 sequential emulator isolation check if qualification inputs differ from the
 retained pair.
 The [validation handoff](../../AGENTS.md#tool-execution-and-validation)
