@@ -1,0 +1,44 @@
+{
+  "files": {
+    "baseline.json.gz": {
+      "bytes": 669244,
+      "encoding": "gzip",
+      "path": "baseline.json.gz",
+      "sha256": "8b20557cfcd3e52bf44f291b03b0aa4cc572ee0cc735fde6a4dd7fcb1ec7a671",
+      "stored_bytes": 28753,
+      "stored_sha256": "dfb3ba27782215e7fab730a374ede650ef072ceb165966419098cca7aaa5d31d"
+    },
+    "candidate.json.gz": {
+      "bytes": 732428,
+      "encoding": "gzip",
+      "path": "candidate.json.gz",
+      "sha256": "849084e8e7f01842add6b315d3149a5ab36205a03ef8e87b466199e8bca364d6",
+      "stored_bytes": 30021,
+      "stored_sha256": "1c0baf90b59dddddba73dd3bc2906c1b0202c309bbc0bfea8bf32728c3e312fc"
+    },
+    "commands.json": {
+      "bytes": 10119,
+      "encoding": "identity",
+      "path": "commands.json",
+      "sha256": "f161d6e0b1fe669398872649eeb2839e6221500c21d5b3b02cb7b214b1948368"
+    },
+    "comparison.json": {
+      "bytes": 1152,
+      "encoding": "identity",
+      "path": "comparison.json",
+      "sha256": "589040fb84d9d8ad7c73a30a9ca5ceabe8d51b59d6b8387724bea715958e0c5c"
+    },
+    "driver.txt": {
+      "bytes": 6276,
+      "encoding": "identity",
+      "path": "driver.txt",
+      "sha256": "69355bf86bc8901bfda9fa182445b95aaed107b9db06ec41b821a8f0a1c35563"
+    },
+    "inputs.json": {
+      "bytes": 46944,
+      "encoding": "identity",
+      "path": "inputs.json",
+      "sha256": "059dba5404265074d0a8a5c2ea3ca54fd1f03a7dcfd7970a623cbc9d1a57d429"
+    }
+  }
+}

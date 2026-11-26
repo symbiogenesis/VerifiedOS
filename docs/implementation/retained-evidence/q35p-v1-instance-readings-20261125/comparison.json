@@ -1,0 +1,51 @@
+{
+  "added": [
+    "bindings_types.Defs.read_tag_bool",
+    "bindings_types.Defs.write_tag_bool",
+    "bindings_types.Interface.TagRead",
+    "bindings_types.Interface.TagWrite"
+  ],
+  "architecture_objects": {
+    "baseline": "5b8953c13ad0f1a9f04f74f83ea07ee8f3137533f7394f35e559c76c30f1574f",
+    "candidate": "4418a355b3d1c1110968dbe09fd79f7c8ff48738030fa67c71b1ccfa0f6ee5c7"
+  },
+  "changed": {
+    "bindings_types.Defs.try_catch": [
+      "print"
+    ],
+    "bindings_types.Interface.map_extra_iMon": [
+      "print"
+    ],
+    "bindings_types.Interface.outcome": [
+      "print"
+    ],
+    "bindings_types.Interface.outcome_ind": [
+      "check",
+      "about",
+      "print"
+    ],
+    "bindings_types.Interface.outcome_rec": [
+      "check",
+      "about",
+      "print"
+    ],
+    "bindings_types.Interface.outcome_rect": [
+      "check",
+      "about",
+      "print"
+    ],
+    "bindings_types.Interface.pure_iTrace_aux": [
+      "print"
+    ]
+  },
+  "inventory_counts": {
+    "baseline": 167,
+    "candidate": 171
+  },
+  "removed": [],
+  "scope": [
+    "bindings_types.Interface",
+    "bindings_types.Defs"
+  ],
+  "unchanged_inputs": true
+}

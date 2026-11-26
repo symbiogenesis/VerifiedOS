@@ -1,0 +1,114 @@
+# SPDX-License-Identifier: Apache-2.0
+"""Compare the two instantiated V1 modules from the retained private support pair."""
+import gzip
+import hashlib
+import json
+import os
+import shutil
+import subprocess
+import sys
+from pathlib import Path
+
+repo, replay, out, prefix = (Path(arg).resolve(strict=True) for arg in sys.argv[1:5])
+sys.path.insert(0, str(repo / "tools"))
+from vos import proofaudit, proofreading
+
+evidence = repo / "docs/implementation/retained-evidence"
+previous = evidence / "q35p-holdfast-frozen-replay-20261125"
+sources = evidence / "holdfast-q35p-worker-proofs-20261125"
+recipe = repo / "tools/opam/sail-support-qualification.json"
+q = json.loads(recipe.read_text())
+prior = json.loads((previous / "inputs.json").read_text())
+candidate = json.loads((sources / "source-comparison.json").read_text())["matched_support_sources"]
+arch = replay / "emitted/bindings_types.v"
+sides = ("baseline", "candidate")
+modules = ("bindings_types.Interface", "bindings_types.Defs")
+work = out / "compared"
+work.mkdir()
+rocq = prefix / "bin/rocq"
+
+def sha(path):
+    with path.open("rb") as stream:
+        return hashlib.file_digest(stream, "sha256").hexdigest()
+
+def record(name, value):
+    (work / name).write_text(json.dumps(value, sort_keys=True, indent=2) + "\n")
+
+def freeze():
+    files = [rocq, recipe, arch, previous / "inputs.json", previous / "commands.json",
+             sources / "source-comparison.json", sources / "emission-relative.json",
+             Path(__file__), repo / "tools/vos/proofaudit.py", repo / "tools/vos/proofreading.py"]
+    files.extend(replay / "stdpp" / name for name in prior["stdpp_sha256"])
+    files.extend(replay / side / (name + suffix)
+                 for side in sides for name in q["support_modules"] for suffix in (".v", ".vo"))
+    return {str(path): sha(path) for path in files}
+
+before = freeze()
+record("inputs.json", before)
+assert sha(rocq) == prior["rocq_sha256"]
+assert sha(recipe) == prior["support_recipe_sha256"]
+assert sha(arch) == json.loads((sources / "emission-relative.json").read_text())["expected"][arch.name]
+assert all(sha(replay / "stdpp" / name) == digest for name, digest in prior["stdpp_sha256"].items())
+assert sha(replay / "inputs.json") == sha(previous / "inputs.json")
+assert sha(replay / "commands.json") == sha(previous / "commands.json")
+assert {name + ".v": sha(replay / "candidate" / (name + ".v")) for name in q["support_modules"]} == candidate
+assert {name for name in candidate if sha(replay / "baseline" / name) != candidate[name]} == {
+    "ConcurrencyInterface.v", "ConcurrencyInterfaceBuiltins.v"}
+records = []
+readings = {}
+for side in sides:
+    stage = work / side
+    stage.mkdir()
+    flags = ["-q", "-boot", "-R", prefix / "lib/coq/theories", "Corelib",
+             "-Q", prefix / "lib/coq/user-contrib/Stdlib", "Stdlib",
+             "-Q", replay / "stdpp", "stdpp", "-R", replay / side, "SailStdpp",
+             "-R", stage, "", *q["strict_flags"][1:]]
+    def compile_source(path):
+        argv = list(map(str, [rocq, "c", *flags, path]))
+        result = subprocess.run(argv, cwd=stage, capture_output=True, timeout=120, check=False)
+        for stream in ("stdout", "stderr"):
+            path.with_suffix("." + stream).write_bytes(getattr(result, stream))
+        records.append({"argv": argv, "cwd": str(stage), "source_sha256": sha(path), "exit": result.returncode,
+                        "stdout_sha256": sha(path.with_suffix(".stdout")), "stderr_sha256": sha(path.with_suffix(".stderr"))})
+        record("commands.json", records)
+        if result.returncode or result.stderr:
+            raise ValueError(result.stderr.decode()[-2000:])
+        return result.stdout.decode()
+    def query(name, content):
+        path = stage / (name + ".v")
+        path.write_text(content)
+        return compile_source(path)
+    target = stage / arch.name
+    shutil.copyfile(arch, target)
+    if compile_source(target):
+        raise ValueError("architecture compile produced output")
+    inventory = query("Inventory", "Require bindings_types.\n" + proofaudit.SETTINGS
+                      + "Print Table Search Blacklist.\nSearch _ inside " + " ".join(modules) + ".\n")
+    names = [row["name"] for row in proofaudit.inventory(inventory, "bindings_types")]
+    if not names or any(not any(name.startswith(mod + ".") for mod in modules) for name in names):
+        raise ValueError("empty inventory or unexpected owner")
+    facts = proofreading.answers(query("Facts", proofreading.facts_query("bindings_types", names)),
+                                 [f"{name}|{field}" for name in names for field in ("check", "about")])
+    about = {name: proofreading.parse_about(name, proofreading.fresh_universes(facts[name+"|about"], "Facts"))
+             for name in names}
+    printed = [name for name in names if about[name].printed]
+    bodies = proofreading.answers(query("Bodies", proofreading.bodies_query("bindings_types", printed)),
+                                  [name + "|print" for name in printed])
+    readings[side] = {
+        name: proofreading.entry(proofreading.fresh_universes(facts[name+"|check"], "Facts"), about[name],
+                                 proofreading.fresh_universes(bodies[name+"|print"], "Bodies") if name in printed else None)
+        for name in names}
+    # The retained payload includes the full normalized text for independent review.
+    (work / (side + ".json.gz")).write_bytes(gzip.compress(
+        (json.dumps(readings[side], sort_keys=True, indent=2) + "\n").encode(), mtime=0))
+old, new = (readings[side] for side in sides)
+report = {"scope": list(modules), "inventory_counts": {side: len(readings[side]) for side in sides},
+          "added": sorted(new.keys() - old.keys()), "removed": sorted(old.keys() - new.keys()),
+          "changed": {name: [field for field in proofreading.FIELDS if old[name][field] != new[name][field]]
+                      for name in sorted(old.keys() & new.keys()) if old[name] != new[name]},
+          "unchanged_inputs": before == freeze(),
+          "architecture_objects": {side: sha(work / side / "bindings_types.vo") for side in sides}}
+record("comparison.json", report)
+print(json.dumps(report, indent=2), flush=True)
+if not report["unchanged_inputs"]:
+    raise ValueError("inputs changed")
