@@ -105,6 +105,65 @@ def _wsl_environments_follow_native_lanes() -> None:
                    "native Linux checkout and CI retain their local environment")
 
 
+def _wsl_bootstrap_isolates_pycache() -> None:
+    """WSL reading a Windows checkout routes guest bytecode onto the native lane."""
+    run_spec = Path(TOOLS / "run.py")
+    ensure('"-B"' in run_spec.read_text(encoding="utf-8"),
+           "tools/run.py GUEST invocation must pass -B before toolenv bootstrap")
+    with tempfile.TemporaryDirectory(prefix="vos-pycache-layout-") as temporary:
+        root = Path(temporary).resolve() / "source"
+        root.mkdir()
+        (root / "tools").mkdir()
+        (root / "tools" / "pyproject.toml").write_text(
+            (_ROOT / pyversion.PROJECT).read_text(encoding="utf-8"), encoding="utf-8")
+        (root / "tools" / "uv.lock").write_text("lock", encoding="utf-8")
+        (root / ".git").write_text("gitdir: C:/repo/.git/worktrees/pyc-lane\n", encoding="utf-8")
+        native = Path("/root/build/pycache-fixture").resolve()
+        expected_env = native / "lane-pyc-lane" / "venv-linux"
+        expected_pyc = str(native / "lane-pyc-lane" / "pycache")
+        launch = Mock(return_value=SimpleNamespace(returncode=0))
+        with (patch.dict(os.environ, {"VOS_BUILD_ROOT": str(native)}, clear=True),
+              patch.object(toolenv.env, "filesystem", side_effect=lambda p:
+                           "9p" if p == root else "ext4"),
+              patch.object(toolenv, "sys", SimpleNamespace(
+                  platform="linux", prefix="other", executable="python")),
+              patch.object(toolenv, "shutil", SimpleNamespace(which=lambda _: "uv")),
+              patch.object(toolenv, "subprocess", SimpleNamespace(run=launch))):
+            ensure(toolenv.bootstrap(root, ["model", "lane"]) == 0,
+                   "guest bootstrap over 9p must succeed")
+            env_passed = launch.call_args.kwargs["env"]
+            ensure(env_passed["UV_PROJECT_ENVIRONMENT"] == str(expected_env)
+                   and env_passed.get("PYTHONPYCACHEPREFIX") == expected_pyc,
+                   f"WSL over 9p must set PYTHONPYCACHEPREFIX={expected_pyc!r}, got {env_passed!r}")
+
+        launch.reset_mock()
+        with (patch.dict(os.environ, {"VOS_BUILD_ROOT": str(native),
+                                      "PYTHONPYCACHEPREFIX": "/custom/pyc"}, clear=True),
+              patch.object(toolenv.env, "filesystem", side_effect=lambda p:
+                           "9p" if p == root else "ext4"),
+              patch.object(toolenv, "sys", SimpleNamespace(
+                  platform="linux", prefix="other", executable="python")),
+              patch.object(toolenv, "shutil", SimpleNamespace(which=lambda _: "uv")),
+              patch.object(toolenv, "subprocess", SimpleNamespace(run=launch))):
+            ensure(toolenv.bootstrap(root, ["model", "lane"]) == 0,
+                   "guest bootstrap with explicit PYTHONPYCACHEPREFIX must succeed")
+            ensure(launch.call_args.kwargs["env"].get("PYTHONPYCACHEPREFIX") == "/custom/pyc",
+                   "caller-supplied PYTHONPYCACHEPREFIX must be preserved")
+
+        for platform, fs_kind in (("win32", "ntfs"), ("linux", "ext4")):
+            launch.reset_mock()
+            with (patch.dict(os.environ, {"VOS_BUILD_ROOT": str(native)}, clear=True),
+                  patch.object(toolenv.env, "filesystem", return_value=fs_kind),
+                  patch.object(toolenv, "sys", SimpleNamespace(
+                      platform=platform, prefix="other", executable="python")),
+                  patch.object(toolenv, "shutil", SimpleNamespace(which=lambda _: "uv")),
+                  patch.object(toolenv, "subprocess", SimpleNamespace(run=launch))):
+                ensure(toolenv.bootstrap(root, ["check"]) == 0,
+                       f"bootstrap on {platform}/{fs_kind} must succeed")
+                ensure("PYTHONPYCACHEPREFIX" not in launch.call_args.kwargs["env"],
+                       f"bootstrap on {platform}/{fs_kind} must not inject PYTHONPYCACHEPREFIX")
+
+
 def _filesystem_probes_take_resolved_paths() -> None:
     """Which side of the OS boundary a path is on is decided against the kernel's own
     mount table, which is keyed on real paths, so every probe is handed one.
@@ -338,6 +397,7 @@ def cases() -> list[Case]:
         Case("locked-bootstrap", _locked_bootstrap),
         Case("settled-children-do-not-sync", _settled_children_do_not_sync),
         Case("wsl-environments-follow-native-lanes", _wsl_environments_follow_native_lanes),
+        Case("wsl-bootstrap-isolates-pycache", _wsl_bootstrap_isolates_pycache),
         Case("filesystem-probes-take-resolved-paths", _filesystem_probes_take_resolved_paths),
         Case("bootstrap-prerequisites", _bootstrap_prerequisites),
         Case("bootstrap-requires-project-interpreter", _bootstrap_requires_project_interpreter),

@@ -78,6 +78,8 @@ def bootstrap(root: Path, argv: list[str]) -> int | None:
     child_env.pop("VIRTUAL_ENV", None)
     child_env["UV_PROJECT_ENVIRONMENT"] = str(target)
     child_env["PYTHONUTF8"] = "1"
+    if sys.platform == "linux" and not target.is_relative_to(root.resolve()):
+        child_env.setdefault("PYTHONPYCACHEPREFIX", str(target.parent / "pycache"))
     child_env[READY] = token
     try:
         return subprocess.run(

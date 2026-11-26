@@ -583,7 +583,10 @@ used by WSL as well as your interactive shell.
 The first command synchronizes [uv.lock](uv.lock), then runs inside the managed
 environment. Windows uses `out/venv-win32`; native Linux checkouts and CI use
 `out/venv-linux`. WSL reading a Windows checkout uses `venv-linux` under the
-Git-derived guest lane root. Each checkout has its own environments. Only the manifest,
+Git-derived guest lane root and routes guest Python bytecode (`PYTHONPYCACHEPREFIX`)
+to `pycache` beside it (with `-B` on the outer `run.py` bootstrap) so host and
+guest never contend over `__pycache__` across 9p. Each checkout has its own
+environments. Only the manifest,
 lockfile, and each OS's uv download cache are shared, never Windows and Linux
 executables. The runner selects an installed interpreter matching the project.
 
@@ -772,7 +775,7 @@ The model command selects donors and records build evidence using that library.
 | What | Where it sits | Who touches it, and from which side |
 | --- | --- | --- |
 | The checkout, and every lane under `.worktrees/` | The Windows filesystem, at the path the editor opens | The editor and the host gates, natively; the guest reads it across `/mnt/<drive>`, once per build, which is the one crossing the layout keeps |
-| The Python environment | Windows: `out/venv-win32`; native Linux checkout: `out/venv-linux`; WSL reading a Windows checkout: `<lane_root>/venv-linux` | That checkout's `run.py` bootstrap, on the filesystem native to its interpreter |
+| The Python environment | Windows: `out/venv-win32`; native Linux checkout: `out/venv-linux`; WSL reading a Windows checkout: `<lane_root>/venv-linux` (and `<lane_root>/pycache` via `PYTHONPYCACHEPREFIX`) | That checkout's `run.py` bootstrap, on the filesystem native to its interpreter |
 | Build trees, fast trees, SMT memo caches, and the work directories of the bundle, oracle, seed, QuickChick, RTL and evidence loops | `/root/build`, in a `lane-<name>` directory per linked worktree | Guest loops only; no host tool opens them |
 | Logs | `/root/logs`, the lane in the file name | Guest loops write them; a person reads them through `run.py model wait`, `run.py rtl wait` or `wsl -e cat`, never through a host tool pointed at the share |
 | The opam switches, the pinned solver, ccache | `/root/.opam`, `/root/z3-<version>`, `/root/.ccache` | The guest toolchain |

@@ -286,7 +286,7 @@ def _guest(record: LaneRecord, batch: str, root: Path) -> dict[str, object]:
             "print(json.dumps(retain_native(**json.load(sys.stdin))))")
     payload = {"lane": record.lane, "lane_root": record.lane_root,
                "log_root": record.log_root, "batch": batch, "peers": peers}
-    done = subprocess.run(["wsl", "-u", "root", "-e", "python3", "-c", code],
+    done = subprocess.run(["wsl", "-u", "root", "-e", "python3", "-B", "-c", code],
                           cwd=root, input=json.dumps(payload), capture_output=True,
                           text=True, check=False, timeout=120)
     if done.returncode:

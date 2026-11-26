@@ -51,8 +51,9 @@ from vos.commands import BY_NAME, COMMANDS, Command
 type Main = Callable[[list[str]], int]
 
 # WSL invocation prefix. Uses the toolchain's default distribution; see
-# [the host selection guidance](README.md#running-them).
-GUEST = ("wsl", "-u", "root", "-e", "python3", "tools/run.py")
+# [the host selection guidance](README.md#running-them). `-B` keeps the outer
+# pre-bootstrap interpreter from writing `.pyc` files back across `/mnt/`.
+GUEST = ("wsl", "-u", "root", "-e", "python3", "-B", "tools/run.py")
 
 
 def _utf8_output() -> None:
