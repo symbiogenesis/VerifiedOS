@@ -1,0 +1,44 @@
+{
+  "files": {
+    "driver.py.txt": {
+      "bytes": 8207,
+      "encoding": "identity",
+      "path": "driver.py.txt",
+      "sha256": "7b8851bcba58af2e1ce11b89da6e367262f6fa399da4c64abf5f9bffaf225edc"
+    },
+    "postflight.json": {
+      "bytes": 436,
+      "encoding": "identity",
+      "path": "postflight.json",
+      "sha256": "b03f731b1fdd82ad6ef9a234257ce28127afd4f54b9cb30b45ab041d4e14534c"
+    },
+    "preflight.json": {
+      "bytes": 436,
+      "encoding": "identity",
+      "path": "preflight.json",
+      "sha256": "b03f731b1fdd82ad6ef9a234257ce28127afd4f54b9cb30b45ab041d4e14534c"
+    },
+    "report.json": {
+      "bytes": 7602,
+      "encoding": "identity",
+      "path": "report.json",
+      "sha256": "b3e2efa0b7f14dae99278a5c2df2fba90c65f3666e30b6e91665ff4fea4719ef"
+    },
+    "simulator-build.json.gz": {
+      "bytes": 904458,
+      "encoding": "gzip",
+      "path": "simulator-build.json.gz",
+      "sha256": "1680c1ec6281102476175f6e84598fe737ef72d7cbb99cd17e7f463e51df6ba5",
+      "stored_bytes": 147624,
+      "stored_sha256": "ffeaf1fdb064ea08c320fd1318ef91b26281a2a801147930f9465c724b188b5c"
+    },
+    "standalone-notification.log.gz": {
+      "bytes": 412110,
+      "encoding": "gzip",
+      "path": "standalone-notification.log.gz",
+      "sha256": "232d7310fcf062e4403930e8535806b73262c71535bf3ff05b0c59106130665f",
+      "stored_bytes": 49450,
+      "stored_sha256": "9871e8bfc25fd39d2336720f4b626891958cc82e8c40e1803e6564be00303c4e"
+    }
+  }
+}
