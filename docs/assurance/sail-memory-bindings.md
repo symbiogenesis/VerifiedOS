@@ -7,6 +7,12 @@ canonical-consumer acceptance remains owed.
 
 ## Retained evidence
 
+- [Recursive kernel and native assumption closure](../implementation/retained-evidence/q35p-recursive-closure-20261126/manifest.json),
+  SHA256 `b47e2e2147e339567e28a762510af6de4f3eb640c2091b3a697254121f156ba1`.
+  Native `Print Assumptions` audit across all four authored Q35p modules (`811`
+  closed declarations) and four-partition recursive `rocqchk -silent -o`
+  context summaries (`-norec` absent), bound inputs, installed-prefix
+  comparison, and replay commands.
 - [Complete 29-module Sail support comparison](../implementation/retained-evidence/q35p-support-comparison-20261126/manifest.json),
   SHA256 `904db7c5abd0fbeb80812ad2e7655be28dc5437bfb3e43194d97ab8b5df21d84`.
   Full 29-module source diff, compiled objects, normalized top-level elaborated
@@ -227,6 +233,47 @@ SHA256 `904db7c5abd0fbeb80812ad2e7655be28dc5437bfb3e43194d97ab8b5df21d84`, and
 re-running the replay driver verified both the 29-module support readings and
 the instantiated V1 readings (`167` baseline vs `171` candidate).
 
+## Recursive kernel and native assumption closure
+
+The replay driver also runs a native `Print Assumptions` audit under the strict
+flags across all four authored Q35p modules, instantiating the two functor-only
+modules against the emitted minimal architecture and interface
+(`TagPlaneInst := TagInterpreter.TagPlane bindings_types.Arch bindings_types.Interface`
+and `OldOutcomesInst := TagConservativity.OldOutcomes bindings_types.Arch bindings_types.Interface`).
+All `811` enumerated declarations (`122` in `TagPlaneInst`, `237` in
+`TagControls`, `145` in `OldOutcomesInst`, and `307` in `PhysicalCallerBridge`)
+report `Closed under the global context` (`assumptions.json`, SHA-256
+`f6aa149e98b71c5cdb1513fe312acecbbf93e2d0af40e2239cf3760aa4e276e2`).
+
+Full recursive `rocqchk -silent -o` (with `-norec` absent) checks four exact
+partitions over the compiled candidate closure (`kernel-check.json`, SHA-256
+`e21c22a248fede46440406e8472d11143dc533fee54419138d8b2c03f28506f7`):
+
+- `authored_and_emitted` (`bindings_types`, `bindings`, `TagInterpreter`,
+  `TagControls`, `TagConservativity`, `PhysicalCallerBridge`): `0` axioms.
+- `support_axiom_free` (`27` `SailStdpp` candidate modules excluding `Real` and
+  `Values_lemmas`): `0` axioms.
+- `support_values_lemmas_control` (`SailStdpp.Values_lemmas`): exact `3`
+  upstream `Stdlib.Program`/`Program.Wf` axioms
+  (`Stdlib.Logic.Eqdep.Eq_rect_eq.eq_rect_eq`,
+  `Stdlib.Logic.FunctionalExtensionality.functional_extensionality_dep`,
+  `Stdlib.Logic.ProofIrrelevance.proof_irrelevance`), arising from
+  `From Stdlib Require Program Program.Wf.` in upstream `src/Values_lemmas.v`.
+  `Values_lemmas` is outside the canonical term's import closure and these
+  three axioms are never admitted into the project allowlist.
+- `support_real_control` (`SailStdpp.Real`): exact `4` axioms matching
+  [sail-support-qualification.json](../../tools/opam/sail-support-qualification.json)
+  (`Stdlib.Logic.FunctionalExtensionality.functional_extensionality_dep`,
+  `Stdlib.Reals.ClassicalDedekindReals.sig_not_dec`,
+  `Stdlib.Reals.ClassicalDedekindReals.sig_forall_dec`,
+  `Stdlib.Logic.Classical_Prop.classic`).
+
+`candidate.json` binds `frozen_closure_manifest` to
+[Recursive kernel and native assumption closure](../implementation/retained-evidence/q35p-recursive-closure-20261126/manifest.json),
+SHA256 `b47e2e2147e339567e28a762510af6de4f3eb640c2091b3a697254121f156ba1`, and
+re-running the replay driver verified unchanged installed prefixes and matching
+normalized invariants across both `assumptions.json` and `kernel-check.json`.
+
 ## Canonical caller replay
 
 Strict Rocq readings compare the minimal reproducer with the canonical hart 0
@@ -269,12 +316,13 @@ their bytes or establish complete attempt history.
 
 The [canonical candidate replay](sail-rocq-emission.md#canonical-candidate-replay)
 establishes strict whole-term compilation, recursive kernel context and compiled
-size with private support. Q35p's isolated 29-module support comparison and V1
-instance readings are retained; Q35p still owes recursive closure on the
-qualified support, and repeating the sequential emulator isolation check if the
-qualification inputs differ from the retained pair. Q35q owns the hosted support
-declaration census and all twelve corruption controls, and Q35o still owes hosted
-qualification of the immutable emitter. Q35n owns cold production carriage, and
-Q35b owes whole-term replay and closure with qualified support.
+size with private support. Q35p's isolated 29-module support comparison, V1
+instance readings, native `Print Assumptions` audit, and four-partition
+recursive `rocqchk -silent -o` closure checkpoint are retained against the
+November inputs. Q35p remains open for the Q35q hosted support declaration
+census, the Q35o hosted emitter verdict, Q35n cold production carriage, Q35b
+whole-term replay and closure with qualified support, and repeating the
+sequential emulator isolation check if qualification inputs differ from the
+retained pair.
 The [validation handoff](../../AGENTS.md#tool-execution-and-validation)
 leaves Host CI and cold Guest CI publication, execution and verdicts to the user.

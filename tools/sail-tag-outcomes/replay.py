@@ -20,6 +20,21 @@ from vos import proofaudit, proofreading, python_dependencies
 from vos.jsonutil import unique_object
 
 PATCHED_SUPPORT_SOURCES = frozenset({"ConcurrencyInterface.v", "ConcurrencyInterfaceBuiltins.v"})
+AUTHORED_MODULES = (
+    "TagInterpreter",
+    "TagControls",
+    "TagConservativity",
+    "PhysicalCallerBridge",
+)
+VALUES_LEMMAS_AXIOMS = (
+    "Stdlib.Logic.Eqdep.Eq_rect_eq.eq_rect_eq",
+    "Stdlib.Logic.FunctionalExtensionality.functional_extensionality_dep",
+    "Stdlib.Logic.ProofIrrelevance.proof_irrelevance",
+)
+VALUES_LEMMAS_NOTE = (
+    "Upstream coq-sail src/Values_lemmas.v imports Stdlib.Program and Stdlib.Program.Wf; "
+    "outside the canonical term import closure and never admitted to the project allowlist."
+)
 _ABOUT_FOOTER = re.compile(
     r'\(use "About" for full details on the implicit arguments of ([^()]+)\)',
 )
@@ -385,6 +400,271 @@ def verify_frozen_support(
                 )
 
 
+def authored_assumption_spec(module: str) -> tuple[str, str]:
+    """Return `(search_target, preamble)` for an authored Q35p module, instantiating functors."""
+    if module == "TagInterpreter":
+        return (
+            "TagPlaneInst",
+            "Require bindings_types TagInterpreter.\n"
+            "Module TagPlaneInst := TagInterpreter.TagPlane "
+            "bindings_types.Arch bindings_types.Interface.\n",
+        )
+    if module == "TagConservativity":
+        return (
+            "OldOutcomesInst",
+            "Require bindings_types TagConservativity.\n"
+            "Module OldOutcomesInst := TagConservativity.OldOutcomes "
+            "bindings_types.Arch bindings_types.Interface.\n",
+        )
+    return module, f"Require {module}.\n"
+
+
+def authored_inventory_query(module: str) -> tuple[str, str]:
+    """Build a `proofaudit.inventory_query` script for `module`, instantiating functor-only sources."""
+    target, preamble = authored_assumption_spec(module)
+    base = proofaudit.inventory_query(target)
+    prefix = f"Require {target}.\n"
+    if not base.startswith(prefix):
+        raise ValueError(f"unexpected inventory_query prefix for {target}")
+    return target, preamble + base[len(prefix):]
+
+
+def authored_assumption_query(module: str, symbols: list[proofaudit.Symbol]) -> str:
+    """Build a `proofaudit.assumption_query` script for `symbols` under `module`."""
+    target, preamble = authored_assumption_spec(module)
+    base = proofaudit.assumption_query(target, symbols)
+    prefix = f"Require {target}.\n"
+    if not base.startswith(prefix):
+        raise ValueError(f"unexpected assumption_query prefix for {target}")
+    return preamble + base[len(prefix):]
+
+
+def audit_module_assumptions(
+    module: str,
+    query: Callable[[str, str], str],
+) -> dict[str, object]:
+    """Enumerate `module` declarations and require `Closed under the global context` on every one."""
+    target, inv_script = authored_inventory_query(module)
+    inv_stdout = query(f"AssumptionsInventory_{module}", inv_script)
+    symbols = proofaudit.inventory(inv_stdout, target)
+    if not symbols:
+        raise ValueError(f"empty native inventory for authored module {module}")
+    assump_script = authored_assumption_query(module, symbols)
+    assump_stdout = query(f"AssumptionsCheck_{module}", assump_script)
+    proofaudit.assumptions(assump_stdout, symbols)
+    non_closed = {
+        symbol["name"]: list(symbol["assumptions"])
+        for symbol in symbols if symbol["assumptions"]
+    }
+    if non_closed:
+        raise ValueError(
+            f"authored module {module} has non-closed declaration(s): {non_closed}",
+        )
+    return {
+        "module": module,
+        "query_target": target,
+        "instantiated_functor": target != module,
+        "declaration_count": len(symbols),
+        "closed_count": len(symbols),
+        "all_closed": True,
+        "non_closed": [],
+        "symbols": [symbol["name"] for symbol in symbols],
+    }
+
+
+def audit_authored_assumptions(
+    modules: tuple[str, ...],
+    query: Callable[[str, str], str],
+) -> dict[str, object]:
+    """Audit native `Print Assumptions` across every module in `modules`."""
+    per_module: dict[str, dict[str, object]] = {
+        mod: audit_module_assumptions(mod, query) for mod in modules
+    }
+    total = sum(cast(int, per_module[mod]["declaration_count"]) for mod in modules)
+    return {
+        "schema": "verifiedos-tag-assumptions/1",
+        "all_closed": True,
+        "modules_audited": list(modules),
+        "total_declarations": total,
+        "modules": per_module,
+    }
+
+
+def parse_kernel_summary(stderr: str) -> tuple[list[str], list[str]]:
+    """Parse `rocqchk -silent -o` summary via `proofaudit.kernel_context`, also returning indices."""
+    axioms = proofaudit.kernel_context(stderr)
+    lines = [line.rstrip() for line in stderr.splitlines() if line.strip()]
+    marker = f"* {proofaudit.KERNEL_INDICES}:"
+    indices: list[str] = []
+    in_indices = False
+    for line in lines:
+        if line.startswith(marker):
+            in_indices = True
+            rest = line[len(marker):].strip()
+            if rest == "<none>":
+                in_indices = False
+            continue
+        if in_indices:
+            if line.startswith("* "):
+                break
+            indices.append(line.strip())
+    return axioms, sorted(indices)
+
+
+def verify_kernel_partition(
+    name: str,
+    argv: list[str],
+    returncode: int,
+    stdout: str,
+    stderr: str,
+    modules: list[str],
+    expected_axioms: list[str],
+    *,
+    portable_flags: list[str],
+    note: str | None = None,
+) -> dict[str, object]:
+    """Validate one recursive `rocqchk -silent -o` partition, refusing `-norec` or axiom mismatch."""
+    if "-norec" in argv or "-norec" in portable_flags:
+        raise ValueError(f"kernel partition {name} must not pass -norec")
+    if "-silent" not in argv or "-o" not in argv:
+        raise ValueError(f"kernel partition {name} requires -silent -o")
+    if returncode != 0 or stdout.strip():
+        diagnostic = (stderr.strip() or stdout.strip()) or "no diagnostic"
+        raise ValueError(
+            f"kernel partition {name} failed (exit {returncode}): {diagnostic}",
+        )
+    axioms, indices = parse_kernel_summary(stderr)
+    if len(axioms) != len(set(axioms)):
+        raise ValueError(f"kernel partition {name} reported duplicate axioms: {axioms}")
+    actual_sorted = sorted(axioms)
+    expected_sorted = sorted(expected_axioms)
+    if actual_sorted != expected_sorted:
+        raise ValueError(
+            f"kernel partition {name} axioms mismatch: "
+            f"expected {expected_sorted}, got {actual_sorted}",
+        )
+    entry: dict[str, object] = {
+        "modules": list(modules),
+        "argv": list(argv),
+        "portable_flags": list(portable_flags),
+        "norec_present": False,
+        "exit_code": returncode,
+        "expected_axioms": expected_sorted,
+        "axioms": actual_sorted,
+        "indices_not_mattering": indices,
+    }
+    if note is not None:
+        entry["note"] = note
+    return entry
+
+
+def build_kernel_report(partitions: dict[str, dict[str, object]]) -> dict[str, object]:
+    """Assemble the four-partition recursive `rocqchk -silent -o` kernel report."""
+    expected_order = [
+        "authored_and_emitted",
+        "support_axiom_free",
+        "support_values_lemmas_control",
+        "support_real_control",
+    ]
+    if list(partitions) != expected_order:
+        raise ValueError(f"unexpected kernel partition order: {list(partitions)}")
+    return {
+        "schema": "verifiedos-tag-kernel-check/1",
+        "recursive": True,
+        "norec_absent": True,
+        "partition_order": expected_order,
+        "partitions": partitions,
+    }
+
+
+def _verify_frozen_assumptions(
+    fresh: dict[str, object],
+    frozen_doc: dict[str, object],
+) -> None:
+    if fresh.get("all_closed") is not True:
+        raise ValueError("fresh assumptions report is not closed")
+    for key in ("schema", "all_closed", "modules_audited", "total_declarations"):
+        if fresh.get(key) != frozen_doc.get(key):
+            raise ValueError(f"assumptions {key} differs from frozen closure bundle")
+    fresh_mods = cast(dict[str, dict[str, object]], fresh["modules"])
+    frozen_mods = cast(dict[str, dict[str, object]], frozen_doc["modules"])
+    if set(fresh_mods) != set(frozen_mods):
+        raise ValueError("assumptions module keys differ from frozen closure bundle")
+    for mod in fresh_mods:
+        f_mod = fresh_mods[mod]
+        r_mod = frozen_mods[mod]
+        if (f_mod.get("all_closed") is not True or f_mod.get("non_closed") != []
+                or cast(int, f_mod.get("declaration_count", 0)) <= 0):
+            raise ValueError(f"fresh assumptions invalid for module {mod}")
+        for field in (
+            "module", "query_target", "instantiated_functor",
+            "declaration_count", "closed_count", "all_closed", "non_closed", "symbols",
+        ):
+            if f_mod.get(field) != r_mod.get(field):
+                raise ValueError(
+                    f"assumptions {mod}.{field} differs from frozen closure bundle",
+                )
+
+
+def _verify_frozen_kernel_check(
+    fresh: dict[str, object],
+    frozen_doc: dict[str, object],
+) -> None:
+    if fresh.get("recursive") is not True or fresh.get("norec_absent") is not True:
+        raise ValueError("fresh kernel-check report must be recursive without -norec")
+    for key in ("schema", "recursive", "norec_absent", "partition_order"):
+        if fresh.get(key) != frozen_doc.get(key):
+            raise ValueError(f"kernel-check {key} differs from frozen closure bundle")
+    fresh_parts = cast(dict[str, dict[str, object]], fresh["partitions"])
+    frozen_parts = cast(dict[str, dict[str, object]], frozen_doc["partitions"])
+    if set(fresh_parts) != set(frozen_parts):
+        raise ValueError("kernel-check partition keys differ from frozen closure bundle")
+    for part in fresh_parts:
+        f_part = fresh_parts[part]
+        r_part = frozen_parts[part]
+        if (f_part.get("norec_present") is not False
+                or "-norec" in cast(list[str], f_part.get("portable_flags", []))
+                or "-norec" in cast(list[str], f_part.get("argv", []))
+                or f_part.get("exit_code") != 0):
+            raise ValueError(f"fresh kernel partition {part} violated recursive check invariants")
+        for field in (
+            "modules", "portable_flags", "norec_present", "exit_code",
+            "expected_axioms", "axioms", "indices_not_mattering",
+        ):
+            if f_part.get(field) != r_part.get(field):
+                raise ValueError(
+                    f"kernel-check {part}.{field} differs from frozen closure bundle",
+                )
+
+
+def verify_frozen_closure(
+    frozen_manifest: Path,
+    expected_manifest_sha: str,
+    assumptions_report: dict[str, object],
+    kernel_report: dict[str, object],
+) -> None:
+    """Verify assumptions.json and kernel-check.json normalized invariants against a frozen manifest."""
+    require_sha(frozen_manifest, expected_manifest_sha)
+    members = cast(
+        dict[str, dict[str, object]],
+        json.loads(frozen_manifest.read_bytes(), object_pairs_hook=unique_object)["files"],
+    )
+    for member_name, fresh, verifier in (
+        ("assumptions.json", assumptions_report, _verify_frozen_assumptions),
+        ("kernel-check.json", kernel_report, _verify_frozen_kernel_check),
+    ):
+        if member_name not in members:
+            raise ValueError(f"frozen closure manifest missing {member_name}")
+        info = members[member_name]
+        member_path = frozen_manifest.parent / cast(str, info["path"])
+        require_sha(member_path, cast(str, info["sha256"]))
+        frozen_doc = cast(
+            dict[str, object],
+            json.loads(member_path.read_text(encoding="utf-8"), object_pairs_hook=unique_object),
+        )
+        verifier(fresh, frozen_doc)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--source-archive", required=True, type=absolute)
@@ -406,6 +686,9 @@ def main() -> None:
     frozen_support = recipe.get("frozen_support_manifest")
     if frozen_support is not None:
         require_sha(repo / frozen_support["path"], frozen_support["sha256"])
+    frozen_closure = recipe.get("frozen_closure_manifest")
+    if frozen_closure is not None:
+        require_sha(repo / frozen_closure["path"], frozen_closure["sha256"])
     try:
         out = output_path(args.out, (repo, args.source_archive, args.stdpp, args.plugin,
                                     args.rocq_prefix, args.sail_prefix))
@@ -451,8 +734,12 @@ def main() -> None:
         "frozen_support_manifest_sha256": (
             frozen_support["sha256"] if frozen_support is not None else None
         ),
+        "frozen_closure_manifest_sha256": (
+            frozen_closure["sha256"] if frozen_closure is not None else None
+        ),
         "source_archive_sha256": q["source"]["sha256"],
         "rocq_sha256": sha(args.rocq_prefix / "bin/rocq"),
+        "rocqchk_sha256": sha(args.rocq_prefix / "bin/rocqchk"),
         "sail_sha256": sha(args.sail_prefix / "bin/sail"),
         "plugins_sha256": {path.name: digest for path, digest in plugin_inputs.items()},
         "z3_sha256": solver_digest,
@@ -612,8 +899,7 @@ def main() -> None:
             raise RuntimeError("repeat emission changed or omitted an output")
         if expected_outputs is not None and outputs[0] != expected_outputs:
             raise RuntimeError("repeat emission does not match the retained output identities")
-        authored_modules = ("TagInterpreter", "TagControls", "TagConservativity", "PhysicalCallerBridge")
-        for name in authored_modules:
+        for name in AUTHORED_MODULES:
             proof_source = repo / "tools/sail-tag-outcomes" / (name + ".v")
             shutil.copy2(proof_source, out / "emitted" / proof_source.name)
 
@@ -636,7 +922,101 @@ def main() -> None:
             match_v1_reading(query, out / f"v1-{mode}.json", members[f"{mode}.json.gz"]["sha256"])
 
         compile_and_read("baseline", out / "repeat", ("bindings_types",), "strict-baseline")
-        compile_and_read("candidate", out / "emitted", ("bindings_types", "bindings", *authored_modules), "strict")
+        compile_and_read("candidate", out / "emitted", ("bindings_types", "bindings", *AUTHORED_MODULES), "strict")
+
+        assump_stage = out / "assumptions-queries"
+        assump_stage.mkdir()
+        assump_compiler = [
+            args.rocq_prefix / "bin/rocq", "c", *flags,
+            "-R", out / "candidate", "SailStdpp",
+            "-R", out / "emitted", "",
+            "-R", assump_stage, "",
+            *q["strict_flags"][1:],
+        ]
+
+        def assumption_query(name: str, content: str) -> str:
+            qsrc = assump_stage / f"{name}.v"
+            qsrc.write_text(content, encoding="utf-8", newline="")
+            res = run(f"assumptions-{name}", [*assump_compiler, qsrc], cwd=assump_stage)
+            if res.stderr:
+                raise RuntimeError(f"assumption query {name} emitted a diagnostic")
+            return res.stdout
+
+        assumptions_report = audit_authored_assumptions(AUTHORED_MODULES, assumption_query)
+        (out / "assumptions.json").write_text(
+            json.dumps(assumptions_report, sort_keys=True, indent=2) + "\n",
+            encoding="utf-8", newline="\n",
+        )
+
+        kernel_base_argv = [
+            str(args.rocq_prefix / "bin/rocqchk"), "-silent", "-o",
+            "-boot",
+            "-R", str(args.rocq_prefix / "lib/coq/theories"), "Corelib",
+            "-Q", str(args.rocq_prefix / "lib/coq/user-contrib/Stdlib"), "Stdlib",
+            "-Q", str(out / "stdpp"), "stdpp",
+            "-R", str(out / "candidate"), "SailStdpp",
+            "-R", str(out / "emitted"), "",
+        ]
+        portable_kernel_flags = [
+            "-silent", "-o",
+            "-boot",
+            "-R", "<rocq_prefix>/lib/coq/theories", "Corelib",
+            "-Q", "<rocq_prefix>/lib/coq/user-contrib/Stdlib", "Stdlib",
+            "-Q", "<out>/stdpp", "stdpp",
+            "-R", "<out>/candidate", "SailStdpp",
+            "-R", "<out>/emitted", "",
+        ]
+        partition_specs: list[tuple[str, list[str], list[str], str | None]] = [
+            (
+                "authored_and_emitted",
+                ["bindings_types", "bindings", *AUTHORED_MODULES],
+                [],
+                None,
+            ),
+            (
+                "support_axiom_free",
+                [f"SailStdpp.{mod}" for mod in support_modules if mod not in ("Real", "Values_lemmas")],
+                [],
+                None,
+            ),
+            (
+                "support_values_lemmas_control",
+                ["SailStdpp.Values_lemmas"],
+                list(VALUES_LEMMAS_AXIOMS),
+                VALUES_LEMMAS_NOTE,
+            ),
+            (
+                "support_real_control",
+                ["SailStdpp.Real"],
+                list(cast(list[str], q["support_axioms"])),
+                None,
+            ),
+        ]
+        kernel_partitions: dict[str, dict[str, object]] = {}
+        for part_name, part_modules, expected_axioms, part_note in partition_specs:
+            part_argv: list[str | Path] = [*kernel_base_argv, *part_modules]
+            res = run(f"kernel-{part_name}", part_argv, cwd=out)
+            kernel_partitions[part_name] = verify_kernel_partition(
+                part_name,
+                list(map(str, part_argv)),
+                res.returncode,
+                res.stdout,
+                res.stderr,
+                part_modules,
+                expected_axioms,
+                portable_flags=portable_kernel_flags,
+                note=part_note,
+            )
+        kernel_report = build_kernel_report(kernel_partitions)
+        (out / "kernel-check.json").write_text(
+            json.dumps(kernel_report, sort_keys=True, indent=2) + "\n",
+            encoding="utf-8", newline="\n",
+        )
+        if frozen_closure is not None:
+            verify_frozen_closure(
+                repo / frozen_closure["path"], frozen_closure["sha256"],
+                assumptions_report, kernel_report,
+            )
         (out / "repeat-output-identities.json").write_text(json.dumps(outputs, indent=2) + "\n")
     finally:
         after = inventory()

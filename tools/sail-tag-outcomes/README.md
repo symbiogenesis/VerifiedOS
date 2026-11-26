@@ -7,8 +7,8 @@ production support recipe, prover switch, Sail source or emitter.
 
 - `candidate.json` binds the immutable semantic patch, existing source recipe,
   unchanged minimal Sail reproducer, qualified private syntax-plugin identity,
-  and both frozen reading manifests (`frozen_v1_manifest` and
-  `frozen_support_manifest`).
+  and all three frozen manifests (`frozen_v1_manifest`,
+  `frozen_support_manifest`, and `frozen_closure_manifest`).
 - `TagInterpreter.v` defines executable finite-map tag legality, a fixed handler
   for other outcomes, primitive continuation bridges and forwarding lemmas.
 - `TagControls.v` checks the actual emitted metadata and physical-memory callers,
@@ -26,7 +26,20 @@ production support recipe, prover switch, Sail source or emitter.
   zero top-level declaration differences (`support-comparison.json`,
   `support-baseline.json.gz`, `support-candidate.json.gz`), and checks both the
   29-module readings and the instantiated V1 instance readings (`167` baseline vs
-  `171` candidate) against their frozen manifests. It compiles the emitted
+  `171` candidate) against their frozen manifests. It also runs a native
+  `Print Assumptions` audit across all four authored Q35p modules (`811`
+  declarations across `TagPlaneInst`, `TagControls`, `OldOutcomesInst`, and
+  `PhysicalCallerBridge`, all closed under the global context ->
+  `assumptions.json`) and full recursive `rocqchk -silent -o` (without `-norec`)
+  across four partitions (`kernel-check.json`): `authored_and_emitted` (`6`
+  modules, `0` axioms), `support_axiom_free` (`27` non-`Real`,
+  non-`Values_lemmas` `SailStdpp` modules, `0` axioms),
+  `support_values_lemmas_control` (`SailStdpp.Values_lemmas`, matching its exact
+  `3` upstream `Stdlib.Program`/`Program.Wf` axioms outside the canonical term's
+  import closure and never admitted to the project allowlist), and
+  `support_real_control` (`SailStdpp.Real`, matching the `4` axioms in
+  `sail-support-qualification.json`), verifying normalized invariants against
+  `frozen_closure_manifest`. It compiles the emitted
   architecture against both support variants, copies dependencies privately, and
   inventories both installed prefixes before and after. The replay of the November
   input set also checks the recorded Sail and Z3 binaries, plugin population,
@@ -56,14 +69,20 @@ lane archive; select their preserved absolute locations when replaying after
 retirement. `candidate.json` and the retained receipts bind their identities.
 The replay runner's `PASS` covers the isolated compiles, the 29-module support
 reading comparison (`1,868` top-level declarations on both sides with zero
-top-level differences), and the two instantiated V1 instance readings (`167` vs
-`171` declarations). The fresh normalized declarations are retained in
-`support-baseline.json.gz`, `support-candidate.json.gz`, `support-comparison.json`,
-`v1-baseline.json`, and `v1-candidate.json` for comparison with the frozen bundles.
-It does not perform the retained native assumption queries or kernel recheck,
-complete package tests, the production census (Q35q), hosted emitter
-qualification (Q35o), cold production carriage (Q35n), whole-term closure on
-qualified support (Q35b), or a gate.
+top-level differences), the two instantiated V1 instance readings (`167` vs
+`171` declarations), the native `Print Assumptions` audit (`811` closed
+declarations across all four authored modules, instantiating `TagPlane` and
+`OldOutcomes` against `bindings_types`), and the four-partition recursive
+`rocqchk -silent -o` checks (`authored_and_emitted` and `27`-module
+`support_axiom_free` at `0` axioms, `SailStdpp.Values_lemmas` at its `3`
+upstream `Program`/`Program.Wf` axioms outside the canonical term's import
+closure, and `SailStdpp.Real` at the `4` qualification axioms). The fresh
+outputs are retained in `support-baseline.json.gz`,
+`support-candidate.json.gz`, `support-comparison.json`, `v1-baseline.json`,
+`v1-candidate.json`, `assumptions.json`, and `kernel-check.json` for comparison
+with the frozen bundles. It does not perform complete package tests, the
+production census (Q35q), hosted emitter qualification (Q35o), cold production
+carriage (Q35n), whole-term closure on qualified support (Q35b), or a gate.
 Each emission runs in a fresh directory and passes `bindings.sail` as the relative
 input name because Sail includes that name in the emitted refusal terms.
 
@@ -81,5 +100,8 @@ python -m unittest discover -s tools/sail-tag-outcomes -p test_replay.py
 ```
 
 These test path isolation, input identities, frozen V1 declaration refusal,
-29-module support source-diff and elaborated-reading comparison/refusal, and
-`candidate.json` manifest bindings.
+29-module support source-diff and elaborated-reading comparison/refusal, native
+`Print Assumptions` closed/empty/axiom refusals, four-partition recursive
+`rocqchk -silent -o` validation and `-norec`/axiom refusals,
+`frozen_closure_manifest` binding/mismatch refusals, and `candidate.json`
+manifest bindings.
