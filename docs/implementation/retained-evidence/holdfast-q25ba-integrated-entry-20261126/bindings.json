@@ -1,0 +1,14 @@
+{
+  "artifact_accepted": false,
+  "missing_deployed_evidence": {
+    "packet_functional_result": "Checked packet outcome and destination byte effects for the exact admitted image and entry point",
+    "returned_view_authority": "Checked descriptor validity at entry and read-only destination view bounds, origin and permissions for the exact admitted image and entry point"
+  },
+  "production_admission": false,
+  "proof_replayed": false,
+  "receipt": "/root/build/lane-hf-q25ba-replay-20261126/build/holdfast-first-slice/qualification.json",
+  "receipt_sha256": "a637c1ea40acf59f0dbf4b19adedf63a83c5a642ce5d730729135ac2f8c67a3b",
+  "schema": 1,
+  "scope": "holdfast-first-slice-binding-check",
+  "status": "matched"
+}
