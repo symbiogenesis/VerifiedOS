@@ -301,7 +301,7 @@ def _configuration_snapshot_binding() -> None:
                                   json.dumps(changed, indent=3)).encode("utf-8")):
             path.write_bytes(data)
             raw["configuration"] = c.reference(root, raw["configuration"]["path"])
-            _write(root, raw)
+            _rebind_inventory_source(root, raw, str(raw["configuration"]["path"]))
             c.load(root)
             recipe = json.loads(c.projections(root)["recipe-members.json"])
             ensure(recipe["binding"]["configuration"]["sha256"] == c.digest(data),

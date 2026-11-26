@@ -47,9 +47,11 @@ store these full entries inline, route all six key components and distinguish
 full-tree admission from a root-to-leaf read. `python tools/run.py test --only
 storage_typed_tree` checks independent canonical bytes, retained roots, complete
 extent results, structural refusals and compiled defects. [The typed candidate
-updater](typed-entry.md#bounded-typed-candidate-insert-and-replace) stages
-single-key inserts and replacements and verifies the resulting tree while
-preserving retained roots. Authenticated publication, the production format,
+updater](typed-entry.md#bounded-typed-candidate-insert-and-replace) and
+[bounded typed lazy deletion](typed-entry.md#bounded-typed-candidate-delete) stage
+single-key inserts, replacements and Rodeh-style lazy CoW deletions with
+empty-subtree pruning and single-child root collapse, verifying the resulting tree
+while preserving retained roots. Authenticated publication, the production format,
 refinement and target execution remain M5.3d/M5.4 work.
 
 `python tools/run.py test --only storage_node_image` discovers the focused
