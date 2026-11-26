@@ -13,6 +13,10 @@ from tests.harness import TOOLS, Case, ensure
 from vos import rocqterm
 
 REVISION = "a" * 40
+PROVISIONED: dict[str, rocqterm.Named] = {
+    name: {"path": str((TOOLS / "fixture" / name).resolve()), "sha256": f"locked-{name}"}
+    for name in ("sail", "z3")
+}
 
 
 def fixture(backend: str, output: str) -> dict[str, Any]:
@@ -23,12 +27,12 @@ def fixture(backend: str, output: str) -> dict[str, Any]:
         "target": rocqterm.TARGET,
         "checkout": {"revision": REVISION, "model_dirty": False},
         "inputs": {"sources": "source", "configuration": "config"},
-        "command": ["/tools/sail", "--rocq"],
+        "command": [PROVISIONED["sail"]["path"], "--rocq"],
         "axioms": {"names": ["fixture"]},
         "outputs": {name: {"sha256": output} for name in rocqterm.OUTPUTS},
         "toolchain": {
-            "sail": "locked-sail",
-            "z3": "locked-z3",
+            "sail": {**PROVISIONED["sail"], "version": "fixture"},
+            "z3": {**PROVISIONED["z3"], "version": "fixture"},
             "library": "locked-library",
             "plugin_directories": ["/private/plugins"],
             "loaded_plugins": [plugin, other],
@@ -40,7 +44,7 @@ def fixture(backend: str, output: str) -> dict[str, Any]:
 def paired_comparison() -> None:
     stock, candidate = fixture("stock", "before"), fixture("patched", "after")
     options = {"revision": REVISION, "original_plugin": "stock", "patched_plugin": "patched"}
-    emitter.check_comparison(stock, candidate, deepcopy(candidate), **options)
+    emitter.check_comparison(stock, candidate, deepcopy(candidate), provisioned=PROVISIONED, **options)
     mutations = (
         ("candidate changed source", "candidate", "inputs", {}),
         ("repeat changed outputs", "repeat", "outputs", stock["outputs"]),
@@ -54,7 +58,8 @@ def paired_comparison() -> None:
         versions = {"stock": deepcopy(stock), "candidate": deepcopy(candidate), "repeat": deepcopy(candidate)}
         versions[label][field] = value
         try:
-            emitter.check_comparison(versions["stock"], versions["candidate"], versions["repeat"], **options)
+            emitter.check_comparison(versions["stock"], versions["candidate"], versions["repeat"],
+                                     provisioned=PROVISIONED, **options)
         except ValueError:
             continue
         raise AssertionError(f"accepted {reason}")
@@ -66,10 +71,30 @@ def native_plugin_order() -> None:
     candidate["toolchain"]["loaded_plugins"].reverse()
     try:
         emitter.check_comparison(stock, candidate, deepcopy(candidate), revision=REVISION,
-                                 original_plugin="stock", patched_plugin="patched")
+                                 original_plugin="stock", patched_plugin="patched", provisioned=PROVISIONED)
     except ValueError:
         return
     raise AssertionError("accepted a native load-order change outside the Rocq plugin bytes")
+
+
+def substituted_producer() -> None:
+    other = str((TOOLS / "elsewhere" / "sail").resolve())
+    for name, field, value in (("command", 0, other), ("sail", "path", other),
+                               ("sail", "sha256", "different Sail"), ("z3", "path", other),
+                               ("z3", "sha256", "different Z3")):
+        stock, candidate = fixture("stock", "before"), fixture("patched", "after")
+        for record in (stock, candidate):
+            if name == "command":
+                record["command"][0] = value
+            else:
+                record["toolchain"][name][field] = value
+        try:
+            emitter.check_comparison(stock, candidate, deepcopy(candidate), revision=REVISION,
+                                     original_plugin="stock", patched_plugin="patched", provisioned=PROVISIONED)
+        except ValueError as error:
+            ensure("bootstrapped" in str(error), f"unexpected refusal: {error}")
+        else:
+            raise AssertionError(f"accepted the same substituted {name} {field} in all three emissions")
 
 
 def retained_source_inputs() -> None:
@@ -89,7 +114,7 @@ def frozen_emission_join() -> None:
         record["checkout"]["revision"] = REVISION
         record["command"][0] = "/runner/sail/bin/sail"
     bound = emitter.check_frozen_pair(root, stock, candidate)
-    ensure(set(bound) == {"comparison", "inputs", "handwritten_source", "original", "candidate",
+    ensure(set(bound) == {"comparison", "inputs", "handwritten_source", "library_inputs", "original", "candidate",
                           "refreshed_original", "refreshed_candidate"},
            "hosted result omitted frozen comparison inputs")
 
@@ -101,11 +126,16 @@ def frozen_emission_join() -> None:
     changed_candidate["outputs"][rocqterm.OUTPUTS[1]]["sha256"] = "different candidate"
     changed_flags = deepcopy(candidate)
     changed_flags["command"].append("--different")
+    changed_library = deepcopy(stock)
+    changed_candidate_library = deepcopy(candidate)
+    for record in (changed_library, changed_candidate_library):
+        record["toolchain"]["library"] = rocqterm.manifest({"replacement.sail": "0" * 64})
     for left, right, expected in (
         (stale_stock, candidate, "hosted original inputs"),
         (changed_stock, candidate, "hosted original outputs"),
         (stock, changed_candidate, "hosted candidate outputs"),
         (stock, changed_flags, "hosted candidate arguments"),
+        (changed_library, changed_candidate_library, "original Sail library"),
     ):
         try:
             emitter.check_frozen_pair(root, left, right)
@@ -132,7 +162,7 @@ def frozen_emission_join() -> None:
             raise AssertionError("accepted a refreshed emission with changed output bytes")
 
 
-def changed_handwritten_support() -> None:
+def changed_reading_inputs() -> None:
     root = TOOLS.parent
     with TemporaryDirectory() as temporary:
         checkout = Path(temporary)
@@ -141,22 +171,43 @@ def changed_handwritten_support() -> None:
         source = Path("model/handwritten_support/riscv_extras.v")
         support = checkout / source
         support.parent.mkdir(parents=True)
-        support.write_bytes((root / source).read_bytes() + b"\n")
+        shutil.copyfile(root / source, support)
         stock, candidate = (emitter.load(checkout / emitter.REFRESH / f"{label}-generation.json")
                             for label in ("original", "candidate"))
-        try:
-            emitter.check_frozen_pair(checkout, stock, candidate)
-        except ValueError as error:
-            ensure(support.name in str(error), f"unexpected refusal: {error}")
-        else:
-            raise AssertionError("reused frozen readings after the handwritten support changed")
+
+        def expect_refusal(diagnostic: str) -> None:
+            try:
+                emitter.check_frozen_pair(checkout, stock, candidate)
+            except ValueError as error:
+                ensure(diagnostic in str(error), f"unexpected refusal: {error}")
+            else:
+                raise AssertionError(f"missing frozen comparison refusal: {diagnostic}")
+
+        comparison = checkout / emitter.FROZEN / "comparison.json"
+        load = emitter.load
+
+        def changed_dependencies(path: Path) -> dict[str, Any]:
+            record = load(path)
+            if path == comparison:
+                record["library_inputs_unchanged"] = False
+            return record
+
+        with patch.object(emitter, "load", side_effect=changed_dependencies):
+            expect_refusal("Rocq library inputs changed")
+
+        for path in (support, checkout / emitter.FROZEN / "library-inputs-before.json"):
+            with path.open("ab") as stream:
+                stream.write(b"\n")
+            expect_refusal(path.name)
+            shutil.copyfile(root / path.relative_to(checkout), path)
 
 
 def cases() -> list[Case]:
     return [
         Case("paired-canonical-emission", paired_comparison),
         Case("native-plugin-order", native_plugin_order),
+        Case("substituted-producer", substituted_producer),
         Case("retained-source-inputs", retained_source_inputs),
         Case("frozen-emission-join", frozen_emission_join),
-        Case("changed-handwritten-support", changed_handwritten_support),
+        Case("changed-reading-inputs", changed_reading_inputs),
     ]

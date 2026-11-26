@@ -101,7 +101,8 @@ def source_candidate(checkout: Path, root: Path, upload: Path,
 
 
 def check_comparison(stock: dict[str, Any], candidate: dict[str, Any], repeat: dict[str, Any], *,
-                     revision: str, original_plugin: str, patched_plugin: str) -> None:
+                     revision: str, original_plugin: str, patched_plugin: str,
+                     provisioned: dict[str, rocqterm.Named]) -> None:
     """Check scope, exact paired inputs and repeat output identities from the native launcher."""
     expected = {"revision": revision, "model_dirty": False}
     for emission in (stock, candidate, repeat):
@@ -119,6 +120,13 @@ def check_comparison(stock: dict[str, Any], candidate: dict[str, Any], repeat: d
         raise ValueError("the syntax candidate did not change either stock emission")
     stock_tools = stock["toolchain"]
     candidate_tools = candidate["toolchain"]
+    invoked = Path(stock["command"][0])
+    if not invoked.is_absolute() or str(invoked.resolve()) != provisioned["sail"]["path"]:
+        raise ValueError("canonical target command did not invoke the bootstrapped Sail")
+    for name in ("sail", "z3"):
+        observed = stock_tools[name]
+        if {"path": observed["path"], "sha256": observed["sha256"]} != provisioned[name]:
+            raise ValueError(f"canonical emission did not use the bootstrapped {name} executable")
     if candidate_tools != repeat["toolchain"]:
         raise ValueError("candidate toolchain changed between emissions")
     if (original_plugin == patched_plugin
@@ -143,12 +151,16 @@ def check_frozen_pair(checkout: Path, stock: dict[str, Any],
     directory = checkout / FROZEN
     comparison = evidence_input(directory, "comparison.json")
     inputs = evidence_input(directory, "inputs.json")
-    if load(comparison)["status"] != "identical":
+    result = load(comparison)
+    if result["status"] != "identical":
         raise ValueError("the retained canonical comparison did not match")
+    if result["library_inputs_unchanged"] is not True:
+        raise ValueError("the Rocq library inputs changed during the frozen comparison")
     frozen_inputs = load(inputs)
     handwritten = exact(checkout / "model/handwritten_support/riscv_extras.v", frozen_inputs["handwritten_source"])
+    library_inputs = exact(directory / "library-inputs-before.json", frozen_inputs["library_inputs"]["sha256"])
     bound = {"comparison": receipts.digest(comparison), "inputs": receipts.digest(inputs),
-             "handwritten_source": handwritten}
+             "handwritten_source": handwritten, "library_inputs": library_inputs}
     generation = frozen_inputs["generation_receipts"]
     unchanged = ("format", "target", "outputs", "axioms")
     for label, observed in (("original", stock), ("candidate", candidate)):
@@ -164,6 +176,9 @@ def check_frozen_pair(checkout: Path, stock: dict[str, Any],
         for key in unchanged:
             if refreshed[key] != frozen[key]:
                 raise ValueError(f"refreshed {label} {key} differ from the frozen canonical comparison")
+        if (refreshed["toolchain"]["library"] != frozen["toolchain"]["library"]
+                or observed["toolchain"]["library"] != refreshed["toolchain"]["library"]):
+            raise ValueError(f"{label} Sail library differs from the frozen canonical comparison")
         # The launcher replaces tree/checkout paths. The installed Sail path is host-specific.
         if refreshed["command"][1:] != frozen["command"][1:]:
             raise ValueError(f"refreshed {label} arguments differ from the frozen canonical comparison")
@@ -191,6 +206,11 @@ def qualify(checkout: Path, root: Path, upload: Path) -> None:
     receipts.write(upload / "source.json", source)
 
     sail = Path(environment["OPAMROOT"]) / env.SAIL_SWITCH / "bin/sail"
+    z3 = Path(environment["VOS_Z3_BIN"]) / "z3"
+    provisioned: dict[str, rocqterm.Named] = {
+        name: {"path": str(path.resolve(strict=True)), "sha256": receipts.digest(path)}
+        for name, path in (("sail", sail), ("z3", z3))
+    }
     share = Path(subprocess.check_output([str(sail), "--dir"], cwd=checkout, env=environment,
                                        text=True, timeout=60).strip())
     if not share.is_absolute():
@@ -220,7 +240,7 @@ def qualify(checkout: Path, root: Path, upload: Path) -> None:
         shutil.copyfile(receipt, upload / f"{run}-receipt.json")
         records.append(record)
     check_comparison(*records, revision=revision, original_plugin=installed[PLUGIN],
-                     patched_plugin=receipts.digest(candidate))
+                     patched_plugin=receipts.digest(candidate), provisioned=provisioned)
     frozen = check_frozen_pair(checkout, records[0], records[1])
     if receipts.snapshot(plugins, (path for path in plugins.iterdir() if path.is_file())) != installed:
         raise ValueError("installed Sail plugins changed during the emission qualification")
@@ -233,6 +253,7 @@ def qualify(checkout: Path, root: Path, upload: Path) -> None:
         "run_attempt": os.environ["GITHUB_RUN_ATTEMPT"],
         "source_sha256": receipts.digest(upload / "source.json"),
         "sail_bootstrap_sha256": receipts.digest(Path(os.environ["VOS_LOG_DIR"]) / "bootstrap.json"),
+        "bootstrapped_executables": provisioned,
         "frozen_comparison": frozen,
         "emission_receipts": receipts.snapshot(upload, upload.glob("*-receipt.json")),
     })

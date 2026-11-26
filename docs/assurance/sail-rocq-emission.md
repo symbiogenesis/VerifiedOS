@@ -134,14 +134,20 @@ Q35p's semantic qualification and Q35q's [native census](sail-support-inventory.
 are independent prerequisites. The manual [emitter qualification workflow](../../.github/workflows/sail-emitter-qualification.yml)
 cold-builds the checksum-bound syntax patch, compares stock and candidate canonical
 emission receipts and requires the candidate to repeat byte for byte. Its
-current route requires the refreshed model input identities and the exact
-arguments, output bytes and emitted axioms bound to the
+driver records the paths and hashes of Sail and Z3 from the runner's cold
+installation before emission.
+Each receipt must identify those executables, and the Sail command selected by
+CMake must resolve to the same installed Sail. The driver also requires the
+refreshed model inputs and the exact Sail library sources, arguments, output
+bytes and emitted axioms bound to the
 [frozen comparison](#canonical-main-frozen-comparison). The workflow also checks
 the checkout's [handwritten Rocq support](../../model/handwritten_support/riscv_extras.v)
 against the source digest recorded when the frozen declarations were read. A
 change to that file requires fresh readings even if both emissions repeat. The
-result records its digest alongside the comparison, input record and generation
-receipt digests.
+driver verifies the retained Rocq library inventory against its digest and
+requires the comparison's final library stability check to have passed. The
+result records the inventory and handwritten source digests alongside the
+comparison, input record and generation receipt digests.
 The `revision` input selects the exact commit on `main`.
 Use `e72c93f260fd025bc9594a983b1459a8e46bed41` to qualify the historical input
 pair using the guard stored at that revision. Use a revision carrying the
