@@ -80,11 +80,11 @@
     },
     {
       "path": "storage/src/typed_tree.c",
-      "sha256": "f6ba534a2af2c43b37ec03402c98a9207e6f68e876347ac8e34f56149aa24bee"
+      "sha256": "2dabca96449c10ea260f482a686bbaf2afa32047ed167355041d4a7bfba62e74"
     },
     {
       "path": "storage/include/vos_typed_tree.h",
-      "sha256": "66034fa0ff15a1e4c432ead3430932e5729970e5f14991e64f0e48b872340e8b"
+      "sha256": "622c3134083580fa312dc8599358a987495addcbd577bfd1c66822b684346fbb"
     }
   ],
   "interfaces": [
@@ -127,7 +127,7 @@
       "id": "typed-entry-boundary",
       "source": {
         "path": "storage/typed-entry.md",
-        "sha256": "2d634b6d98112e188377aa199cb527ec92358e12cad078a522e86701b1153c1f"
+        "sha256": "0d95a50885a95632f466048b639546587de83455d65a43aeacd42cbab014d4f8"
       }
     }
   ],

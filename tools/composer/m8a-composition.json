@@ -295,7 +295,7 @@
       ],
       "descriptor": {
         "path": "tools/composer/packages/kernel.json",
-        "sha256": "42f9be7e77f44e066e55f493e6323d68ccd2bb38012f2330793eadff64fc26f3"
+        "sha256": "3a12b4e515485b9e349893b15b637dd8170888363f49374784483f3cc0cdd445"
       },
       "artifact_slot": "kernel-artifact",
       "entry": null,
@@ -391,7 +391,7 @@
       ],
       "descriptor": {
         "path": "tools/composer/packages/storage.json",
-        "sha256": "c9a990e81eeb662e9f518e95cddc505d82477acf888f96a348cb118654e5d78b"
+        "sha256": "ffd325982df82fcbf0bd7deae1ff3d538e088dbd9d70857f0281630291ae39ea"
       },
       "artifact_slot": "storage-artifact",
       "entry": null,
