@@ -1,0 +1,501 @@
+{
+  "compiler_revision": "7093854d8ce8799826618024ee4847cf248766ea",
+  "controls_insert_after": "holdfast_span_copy_meta(&out->ok.PayloadView, &payloadView);",
+  "deployed_view_authority": "open",
+  "generation_command": [
+    "python3",
+    "tools/run.py",
+    "holdfast-parser",
+    "packet-example",
+    "56026B011122DEAD",
+    "--compile-commands",
+    "/root/build/lane-packet-view-observer-1125/q25ba-observer-bridge"
+  ],
+  "generator_tree_status": "",
+  "holdfast_baseline_revision": "bf3a73c8f4d8d73d73076d7d43c09fd238e1aa3a",
+  "holdfast_revision": "44a4bc799a37105d5ded6f66dcb7493075241277",
+  "inputs_sha256": {
+    "/mnt/c/Users/symbi/source/repos/HoldFast/.worktrees/packet-view-observer-1125/examples/first_slice.hf": "d165039ed299a16bf87ec0ede832d76b37ff576f5c59f0ec52a7545c732274c6",
+    "/mnt/c/Users/symbi/source/repos/HoldFast/.worktrees/packet-view-observer-1125/tools/toolchain/compiler_diff.py": "affc5a7482aa71846e63a4d63a3965f303a22e41b9e979506a31e7b6fbd1ea20",
+    "/mnt/c/Users/symbi/source/repos/HoldFast/.worktrees/packet-view-observer-1125/tools/toolchain/first_slice.py": "aaa50a5ca6ed1d401a06bcdc127de7e50a85a064dbdc78ce53ce0cc5f092ca42",
+    "/root/build/lane-checklist-20261010-c/q39/final-build-1/compiler/ccomp": "3dae6ac7bd5a074053130fdcaaab84c42030bdc24be9fff6a4b244db272252f8",
+    "/root/build/lane-checklist-20261010-c/q39/final-build-1/compiler/compcert.ini": "e0efcb8f02d749b406ed243e21408307f2189af136ae562a48b0d2044581550f",
+    "/root/build/lane-packet-permissions-1125d/holdfast-first-slice/slice-3f0769jf/first_slice.c": "de01ba3419108fd691911076bde01c015ddca38ff82c7db7b35e749a2bf26f43",
+    "/root/build/lane-packet-view-observer-1125/q25ba-observer-bridge/packet.c": "ba4515e89fd6db9b92909aff669b157fccef93b4763cf63ee80b9fb17be31059",
+    "/root/build/verifiedos-model/c_emulator/sail_riscv_sim": "c29388da23bb6b2522672e3d7b2667ef0bf34182c953a910a6160f8f190fdd75",
+    "/root/build/verifiedos-model/config/verifiedos.json": "7ff6f9dec6fbe0c164d52eea4862cc2cd29fd5d73fe59f498ca6011a1b6f88c2"
+  },
+  "producer_qualification": "open",
+  "production_admission": "open",
+  "results": {
+    "empty-wrong-cursor": {
+      "artifacts_sha256": {
+        "first_slice.c": "05c1311b602b6d2885132e8a85c9401a0de47740b6796e67ac44710a005b6460",
+        "first_slice.elf": "44f60da6f080f7715fff8a5b76cd8f7082a0f11a132e454a5d1deeae51bf4136",
+        "first_slice/first_slice.i": "886b27885eee80197d10954940c7db4c961cb02ae7203fd007c6944e9631aa9b",
+        "first_slice/first_slice.light.c": "9807be9f0376f527c49acb6c4349993f6a146f12209420e407009eb16d9b7369",
+        "first_slice/first_slice.s": "b8a5d972015b1841007c62153a04eb859b8486e19e28012ac94bd9174a40a1c4"
+      },
+      "assembly_refusals": [],
+      "detail": "HTIF 4: main returned 4",
+      "expected_exit": 4,
+      "insert_after_returned_view_copy": "if (out->ok.PayloadView.length == 0UL) out->ok.PayloadView.cursor = pkt->cursor + 4UL;",
+      "interpreter_detail": "Time 4728: program terminated (exit code = 4)",
+      "interpreter_exit": 4,
+      "processes": [
+        {
+          "command": [
+            "/root/build/lane-checklist-20261010-c/q39/final-build-1/compiler/ccomp",
+            "-conf",
+            "/root/build/lane-checklist-20261010-c/q39/final-build-1/compiler/compcert.ini",
+            "-fverifiedos-typed",
+            "-dclight",
+            "-E",
+            "first_slice.c",
+            "-o",
+            "/root/build/lane-packet-view-observer-1125/typed-observer-6ae5iwg1/empty-wrong-cursor/first_slice/first_slice.i"
+          ],
+          "cwd": "/root/build/lane-packet-view-observer-1125/typed-observer-6ae5iwg1/empty-wrong-cursor",
+          "log": "/root/build/lane-packet-view-observer-1125/typed-observer-6ae5iwg1/empty-wrong-cursor/first_slice/first_slice.preprocess.log",
+          "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "returncode": 0,
+          "stderr_bytes": 0,
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stdout_bytes": 0,
+          "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "command": [
+            "/root/build/lane-checklist-20261010-c/q39/final-build-1/compiler/ccomp",
+            "-conf",
+            "/root/build/lane-checklist-20261010-c/q39/final-build-1/compiler/compcert.ini",
+            "-fverifiedos-typed",
+            "-dclight",
+            "-S",
+            "first_slice.i",
+            "-o",
+            "first_slice.s"
+          ],
+          "cwd": "/root/build/lane-packet-view-observer-1125/typed-observer-6ae5iwg1/empty-wrong-cursor/first_slice",
+          "log": "/root/build/lane-packet-view-observer-1125/typed-observer-6ae5iwg1/empty-wrong-cursor/first_slice/first_slice.compile.log",
+          "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "returncode": 0,
+          "stderr_bytes": 0,
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stdout_bytes": 0,
+          "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "command": [
+            "/root/build/lane-checklist-20261010-c/q39/final-build-1/compiler/ccomp",
+            "-conf",
+            "/root/build/lane-checklist-20261010-c/q39/final-build-1/compiler/compcert.ini",
+            "-fverifiedos-typed",
+            "-dclight",
+            "-interp",
+            "first_slice.i"
+          ],
+          "cwd": "/root/build/lane-packet-view-observer-1125/typed-observer-6ae5iwg1/empty-wrong-cursor/first_slice.interp",
+          "log": "/root/build/lane-packet-view-observer-1125/typed-observer-6ae5iwg1/empty-wrong-cursor/first_slice.interp/first_slice.interpret.log",
+          "log_sha256": "fb471ac280a6ea1993bf91cdddca0b117a7aa8984d146a4730629e6d219bdcd9",
+          "returncode": 4,
+          "stderr_bytes": 0,
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stdout_bytes": 46,
+          "stdout_sha256": "fb471ac280a6ea1993bf91cdddca0b117a7aa8984d146a4730629e6d219bdcd9"
+        },
+        {
+          "command": [
+            "/root/build/verifiedos-model/c_emulator/sail_riscv_sim",
+            "--config",
+            "/root/build/verifiedos-model/config/verifiedos.json",
+            "--trace-commit",
+            "--inst-limit",
+            "1000000",
+            "--terminal-log",
+            "/root/build/lane-packet-view-observer-1125/typed-observer-6ae5iwg1/empty-wrong-cursor/first_slice.term",
+            "/root/build/lane-packet-view-observer-1125/typed-observer-6ae5iwg1/empty-wrong-cursor/first_slice.elf"
+          ],
+          "log": "/root/build/lane-packet-view-observer-1125/typed-observer-6ae5iwg1/empty-wrong-cursor/first_slice.sail.log",
+          "log_sha256": "49e587cd9d8fcf6721a1181ff108559552dc92b94e263afb81409c6faea8d98f",
+          "returncode": 1,
+          "stderr_bytes": 130,
+          "stderr_sha256": "ba22693c5fa40f99db5074da1f2ab9a59e810f7d8c9433beeec075e3464f0057",
+          "stdout_bytes": 179725,
+          "stdout_sha256": "f10d0958654d136b7b70d72fc7f0f11a1f592362ef43038923e7c65adff325e4"
+        }
+      ],
+      "sail_htif": 4,
+      "sail_trace_digest": "dea7c75e0bf80d16",
+      "sail_trace_records": 6051,
+      "verdict": "fail"
+    },
+    "full-identical-bytes-wrong-cursor": {
+      "artifacts_sha256": {
+        "first_slice.c": "d94f51105d4c2e570b9be547966b036c4557c1b1211e26fba0c3f12823a13734",
+        "first_slice.elf": "92d8d06c29e29c0a640c335f506cb9a67fa7b85b6505eec02d23ff605530ff97",
+        "first_slice/first_slice.i": "6793eaaa50d19e04dd4ff186e5bb197a56c0afa2e53e86f920388dfba4adef8a",
+        "first_slice/first_slice.light.c": "fb32763add3b67228737f6e20224dc7fc1f33b6c6030da7241874715d0ac73eb",
+        "first_slice/first_slice.s": "8f6ee18cb5d0a382b3f80f53c60921c587e3226d24e8dfffd7983ea25a71108a"
+      },
+      "assembly_refusals": [],
+      "detail": "HTIF 6: main returned 6",
+      "expected_exit": 6,
+      "insert_after_returned_view_copy": "if (out->ok.PayloadView.length == 4UL) out->ok.PayloadView.cursor = pkt->cursor + 4UL;",
+      "interpreter_detail": "Time 9693: program terminated (exit code = 6)",
+      "interpreter_exit": 6,
+      "processes": [
+        {
+          "command": [
+            "/root/build/lane-checklist-20261010-c/q39/final-build-1/compiler/ccomp",
+            "-conf",
+            "/root/build/lane-checklist-20261010-c/q39/final-build-1/compiler/compcert.ini",
+            "-fverifiedos-typed",
+            "-dclight",
+            "-E",
+            "first_slice.c",
+            "-o",
+            "/root/build/lane-packet-view-observer-1125/typed-observer-6ae5iwg1/full-identical-bytes-wrong-cursor/first_slice/first_slice.i"
+          ],
+          "cwd": "/root/build/lane-packet-view-observer-1125/typed-observer-6ae5iwg1/full-identical-bytes-wrong-cursor",
+          "log": "/root/build/lane-packet-view-observer-1125/typed-observer-6ae5iwg1/full-identical-bytes-wrong-cursor/first_slice/first_slice.preprocess.log",
+          "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "returncode": 0,
+          "stderr_bytes": 0,
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stdout_bytes": 0,
+          "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "command": [
+            "/root/build/lane-checklist-20261010-c/q39/final-build-1/compiler/ccomp",
+            "-conf",
+            "/root/build/lane-checklist-20261010-c/q39/final-build-1/compiler/compcert.ini",
+            "-fverifiedos-typed",
+            "-dclight",
+            "-S",
+            "first_slice.i",
+            "-o",
+            "first_slice.s"
+          ],
+          "cwd": "/root/build/lane-packet-view-observer-1125/typed-observer-6ae5iwg1/full-identical-bytes-wrong-cursor/first_slice",
+          "log": "/root/build/lane-packet-view-observer-1125/typed-observer-6ae5iwg1/full-identical-bytes-wrong-cursor/first_slice/first_slice.compile.log",
+          "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "returncode": 0,
+          "stderr_bytes": 0,
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stdout_bytes": 0,
+          "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "command": [
+            "/root/build/lane-checklist-20261010-c/q39/final-build-1/compiler/ccomp",
+            "-conf",
+            "/root/build/lane-checklist-20261010-c/q39/final-build-1/compiler/compcert.ini",
+            "-fverifiedos-typed",
+            "-dclight",
+            "-interp",
+            "first_slice.i"
+          ],
+          "cwd": "/root/build/lane-packet-view-observer-1125/typed-observer-6ae5iwg1/full-identical-bytes-wrong-cursor/first_slice.interp",
+          "log": "/root/build/lane-packet-view-observer-1125/typed-observer-6ae5iwg1/full-identical-bytes-wrong-cursor/first_slice.interp/first_slice.interpret.log",
+          "log_sha256": "272e0b74c13bf17dcc8d2564a4499802ad5fd72791b53c47160e053a645b2208",
+          "returncode": 6,
+          "stderr_bytes": 0,
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stdout_bytes": 46,
+          "stdout_sha256": "272e0b74c13bf17dcc8d2564a4499802ad5fd72791b53c47160e053a645b2208"
+        },
+        {
+          "command": [
+            "/root/build/verifiedos-model/c_emulator/sail_riscv_sim",
+            "--config",
+            "/root/build/verifiedos-model/config/verifiedos.json",
+            "--trace-commit",
+            "--inst-limit",
+            "1000000",
+            "--terminal-log",
+            "/root/build/lane-packet-view-observer-1125/typed-observer-6ae5iwg1/full-identical-bytes-wrong-cursor/first_slice.term",
+            "/root/build/lane-packet-view-observer-1125/typed-observer-6ae5iwg1/full-identical-bytes-wrong-cursor/first_slice.elf"
+          ],
+          "log": "/root/build/lane-packet-view-observer-1125/typed-observer-6ae5iwg1/full-identical-bytes-wrong-cursor/first_slice.sail.log",
+          "log_sha256": "353e622732d9e7ce92b670cc9a3e12ad058f2c1d448194ff21aa4c7b36a5a63b",
+          "returncode": 1,
+          "stderr_bytes": 145,
+          "stderr_sha256": "20454eee8b37a928f80b62322b882ef529666745beed8aeaea8995da1edb0a9d",
+          "stdout_bytes": 371535,
+          "stdout_sha256": "dd4bbbb85689aa11d62f71c1f809dfb9f4bf606f3adf465e37bfed2a673a2c24"
+        }
+      ],
+      "sail_htif": 6,
+      "sail_trace_digest": "cdc2c3ad094e965f",
+      "sail_trace_records": 12479,
+      "verdict": "fail"
+    },
+    "generated": {
+      "artifacts_sha256": {
+        "first_slice.c": "ba4515e89fd6db9b92909aff669b157fccef93b4763cf63ee80b9fb17be31059",
+        "first_slice.elf": "93525521d392ea5410de5a990cd9eee05c701726a705740ff20deca533077878",
+        "first_slice/first_slice.i": "82e1e6a4c2bc48b9dbd7a394ef116344632be873f1934b9c3bc81541b2383348",
+        "first_slice/first_slice.light.c": "27ba35386cc89758013c5c61ffaa61942426e38794dfc277082eabb9b39ea00b",
+        "first_slice/first_slice.s": "283b522e51111ced832bf495e026aa761747813eaa22aaa1189a1b133ec43e14"
+      },
+      "assembly_refusals": [],
+      "detail": "HTIF 0",
+      "expected_exit": 0,
+      "insert_after_returned_view_copy": null,
+      "interpreter_detail": "Time 34198: program terminated (exit code = 0)",
+      "interpreter_exit": 0,
+      "processes": [
+        {
+          "command": [
+            "/root/build/lane-checklist-20261010-c/q39/final-build-1/compiler/ccomp",
+            "-conf",
+            "/root/build/lane-checklist-20261010-c/q39/final-build-1/compiler/compcert.ini",
+            "-fverifiedos-typed",
+            "-dclight",
+            "-E",
+            "first_slice.c",
+            "-o",
+            "/root/build/lane-packet-view-observer-1125/typed-observer-6ae5iwg1/generated/first_slice/first_slice.i"
+          ],
+          "cwd": "/root/build/lane-packet-view-observer-1125/typed-observer-6ae5iwg1/generated",
+          "log": "/root/build/lane-packet-view-observer-1125/typed-observer-6ae5iwg1/generated/first_slice/first_slice.preprocess.log",
+          "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "returncode": 0,
+          "stderr_bytes": 0,
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stdout_bytes": 0,
+          "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "command": [
+            "/root/build/lane-checklist-20261010-c/q39/final-build-1/compiler/ccomp",
+            "-conf",
+            "/root/build/lane-checklist-20261010-c/q39/final-build-1/compiler/compcert.ini",
+            "-fverifiedos-typed",
+            "-dclight",
+            "-S",
+            "first_slice.i",
+            "-o",
+            "first_slice.s"
+          ],
+          "cwd": "/root/build/lane-packet-view-observer-1125/typed-observer-6ae5iwg1/generated/first_slice",
+          "log": "/root/build/lane-packet-view-observer-1125/typed-observer-6ae5iwg1/generated/first_slice/first_slice.compile.log",
+          "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "returncode": 0,
+          "stderr_bytes": 0,
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stdout_bytes": 0,
+          "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "command": [
+            "/root/build/lane-checklist-20261010-c/q39/final-build-1/compiler/ccomp",
+            "-conf",
+            "/root/build/lane-checklist-20261010-c/q39/final-build-1/compiler/compcert.ini",
+            "-fverifiedos-typed",
+            "-dclight",
+            "-interp",
+            "first_slice.i"
+          ],
+          "cwd": "/root/build/lane-packet-view-observer-1125/typed-observer-6ae5iwg1/generated/first_slice.interp",
+          "log": "/root/build/lane-packet-view-observer-1125/typed-observer-6ae5iwg1/generated/first_slice.interp/first_slice.interpret.log",
+          "log_sha256": "80ce07cd84ba671ea6af1723b94e08309c2d9417a5bcd30c0b51a35e23050aae",
+          "returncode": 0,
+          "stderr_bytes": 0,
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stdout_bytes": 47,
+          "stdout_sha256": "80ce07cd84ba671ea6af1723b94e08309c2d9417a5bcd30c0b51a35e23050aae"
+        },
+        {
+          "command": [
+            "/root/build/verifiedos-model/c_emulator/sail_riscv_sim",
+            "--config",
+            "/root/build/verifiedos-model/config/verifiedos.json",
+            "--trace-commit",
+            "--inst-limit",
+            "1000000",
+            "--terminal-log",
+            "/root/build/lane-packet-view-observer-1125/typed-observer-6ae5iwg1/generated/first_slice.term",
+            "/root/build/lane-packet-view-observer-1125/typed-observer-6ae5iwg1/generated/first_slice.elf"
+          ],
+          "log": "/root/build/lane-packet-view-observer-1125/typed-observer-6ae5iwg1/generated/first_slice.sail.log",
+          "log_sha256": "9819c5e6b3f98d320cdbf1933a733e11ab5dd39888b3ea8e726305c9d7a67d02",
+          "returncode": 0,
+          "stderr_bytes": 121,
+          "stderr_sha256": "5fc9b49ec854b9d9a11642efdcaae714beab300238659d343c32a4542b233bd8",
+          "stdout_bytes": 1316955,
+          "stdout_sha256": "894f3144c86d02180ce1425b47e4439752551de210904e11a2f522d1ec54d18e"
+        }
+      ],
+      "sail_htif": 0,
+      "sail_trace_digest": "b8217fc422d43dde",
+      "sail_trace_records": 43884,
+      "verdict": "pass"
+    },
+    "original-pointer-field": {
+      "artifacts_sha256": {
+        "first_slice.c": "de01ba3419108fd691911076bde01c015ddca38ff82c7db7b35e749a2bf26f43",
+        "first_slice/first_slice.i": "771f98a5adb10411f677462827137a55dc86b67b3ba0aa04e84d6afb140ba7da"
+      },
+      "assembly_refusals": [],
+      "detail": "ccomp exited 2: first_slice.i: error: typed scalar refusal [Clight-source]: typed source pointer operation: comparison requires one retained source allocation or null\n1 error detected.",
+      "expected_exit": null,
+      "insert_after_returned_view_copy": null,
+      "interpreter_detail": null,
+      "interpreter_exit": null,
+      "processes": [
+        {
+          "command": [
+            "/root/build/lane-checklist-20261010-c/q39/final-build-1/compiler/ccomp",
+            "-conf",
+            "/root/build/lane-checklist-20261010-c/q39/final-build-1/compiler/compcert.ini",
+            "-fverifiedos-typed",
+            "-dclight",
+            "-E",
+            "first_slice.c",
+            "-o",
+            "/root/build/lane-packet-view-observer-1125/typed-observer-6ae5iwg1/original-pointer-field/first_slice/first_slice.i"
+          ],
+          "cwd": "/root/build/lane-packet-view-observer-1125/typed-observer-6ae5iwg1/original-pointer-field",
+          "log": "/root/build/lane-packet-view-observer-1125/typed-observer-6ae5iwg1/original-pointer-field/first_slice/first_slice.preprocess.log",
+          "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "returncode": 0,
+          "stderr_bytes": 0,
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stdout_bytes": 0,
+          "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "command": [
+            "/root/build/lane-checklist-20261010-c/q39/final-build-1/compiler/ccomp",
+            "-conf",
+            "/root/build/lane-checklist-20261010-c/q39/final-build-1/compiler/compcert.ini",
+            "-fverifiedos-typed",
+            "-dclight",
+            "-S",
+            "first_slice.i",
+            "-o",
+            "first_slice.s"
+          ],
+          "cwd": "/root/build/lane-packet-view-observer-1125/typed-observer-6ae5iwg1/original-pointer-field/first_slice",
+          "log": "/root/build/lane-packet-view-observer-1125/typed-observer-6ae5iwg1/original-pointer-field/first_slice/first_slice.compile.log",
+          "log_sha256": "1b180348ff1befa7de3fb3087c987344f1bf5e87af3ff053d62860045c78482d",
+          "returncode": 2,
+          "stderr_bytes": 169,
+          "stderr_sha256": "1b180348ff1befa7de3fb3087c987344f1bf5e87af3ff053d62860045c78482d",
+          "stdout_bytes": 0,
+          "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "sail_htif": null,
+      "sail_trace_digest": null,
+      "sail_trace_records": null,
+      "verdict": "ccomp-refused"
+    },
+    "partial-writable-view": {
+      "artifacts_sha256": {
+        "first_slice.c": "c071aadbf3a3a2bf231a99dc8b4385c5cbd1ed1ebcde49b60b2d9e6dc606e532",
+        "first_slice.elf": "8603b99e1ad6ed73780d40dde859bd148aea9bb4a83df16b56d54c9bd631a322",
+        "first_slice/first_slice.i": "d41d2f33d95f3ff761f5dd30cfd87a76e1eeee6365b9601a7bf3393925a10f3d",
+        "first_slice/first_slice.light.c": "e101c361764c861bcd0458c659c0541656a714841c2dfedaf53a9ed262b2240f",
+        "first_slice/first_slice.s": "086c8036fdbb6df080f10d2576bcabb19966507db6f3ce7e2565fb2323b5fe16"
+      },
+      "assembly_refusals": [],
+      "detail": "HTIF 10: main returned 10",
+      "expected_exit": 10,
+      "insert_after_returned_view_copy": "if (out->ok.PayloadView.length == 2UL) out->ok.PayloadView.perm_write = 1;",
+      "interpreter_detail": "Time 15206: program terminated (exit code = 10)",
+      "interpreter_exit": 10,
+      "processes": [
+        {
+          "command": [
+            "/root/build/lane-checklist-20261010-c/q39/final-build-1/compiler/ccomp",
+            "-conf",
+            "/root/build/lane-checklist-20261010-c/q39/final-build-1/compiler/compcert.ini",
+            "-fverifiedos-typed",
+            "-dclight",
+            "-E",
+            "first_slice.c",
+            "-o",
+            "/root/build/lane-packet-view-observer-1125/typed-observer-6ae5iwg1/partial-writable-view/first_slice/first_slice.i"
+          ],
+          "cwd": "/root/build/lane-packet-view-observer-1125/typed-observer-6ae5iwg1/partial-writable-view",
+          "log": "/root/build/lane-packet-view-observer-1125/typed-observer-6ae5iwg1/partial-writable-view/first_slice/first_slice.preprocess.log",
+          "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "returncode": 0,
+          "stderr_bytes": 0,
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stdout_bytes": 0,
+          "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "command": [
+            "/root/build/lane-checklist-20261010-c/q39/final-build-1/compiler/ccomp",
+            "-conf",
+            "/root/build/lane-checklist-20261010-c/q39/final-build-1/compiler/compcert.ini",
+            "-fverifiedos-typed",
+            "-dclight",
+            "-S",
+            "first_slice.i",
+            "-o",
+            "first_slice.s"
+          ],
+          "cwd": "/root/build/lane-packet-view-observer-1125/typed-observer-6ae5iwg1/partial-writable-view/first_slice",
+          "log": "/root/build/lane-packet-view-observer-1125/typed-observer-6ae5iwg1/partial-writable-view/first_slice/first_slice.compile.log",
+          "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "returncode": 0,
+          "stderr_bytes": 0,
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stdout_bytes": 0,
+          "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "command": [
+            "/root/build/lane-checklist-20261010-c/q39/final-build-1/compiler/ccomp",
+            "-conf",
+            "/root/build/lane-checklist-20261010-c/q39/final-build-1/compiler/compcert.ini",
+            "-fverifiedos-typed",
+            "-dclight",
+            "-interp",
+            "first_slice.i"
+          ],
+          "cwd": "/root/build/lane-packet-view-observer-1125/typed-observer-6ae5iwg1/partial-writable-view/first_slice.interp",
+          "log": "/root/build/lane-packet-view-observer-1125/typed-observer-6ae5iwg1/partial-writable-view/first_slice.interp/first_slice.interpret.log",
+          "log_sha256": "b253c4362d5a8c06ad7bd237e0dc906915a197e227752ee4591b6b497f557155",
+          "returncode": 10,
+          "stderr_bytes": 0,
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stdout_bytes": 48,
+          "stdout_sha256": "b253c4362d5a8c06ad7bd237e0dc906915a197e227752ee4591b6b497f557155"
+        },
+        {
+          "command": [
+            "/root/build/verifiedos-model/c_emulator/sail_riscv_sim",
+            "--config",
+            "/root/build/verifiedos-model/config/verifiedos.json",
+            "--trace-commit",
+            "--inst-limit",
+            "1000000",
+            "--terminal-log",
+            "/root/build/lane-packet-view-observer-1125/typed-observer-6ae5iwg1/partial-writable-view/first_slice.term",
+            "/root/build/lane-packet-view-observer-1125/typed-observer-6ae5iwg1/partial-writable-view/first_slice.elf"
+          ],
+          "log": "/root/build/lane-packet-view-observer-1125/typed-observer-6ae5iwg1/partial-writable-view/first_slice.sail.log",
+          "log_sha256": "0b61b0eba34ad895696c6e280c6125cd98c00e5c3a95c27ba3d63b501617095e",
+          "returncode": 1,
+          "stderr_bytes": 133,
+          "stderr_sha256": "941e230d6e7062f44c87ff379546410095edea6b61e82376debae8baf9225ae2",
+          "stdout_bytes": 582685,
+          "stdout_sha256": "6947fad36c3865b8c1afba3a31f044dd1403ff599bf4f8217a27211bf13991d4"
+        }
+      ],
+      "sail_htif": 10,
+      "sail_trace_digest": "dd8530a2c9554592",
+      "sail_trace_records": 19573,
+      "verdict": "fail"
+    }
+  },
+  "scope": "Finite comparison of the generated Q25ba C and returned-view controls on the retained typed compiler"
+}
