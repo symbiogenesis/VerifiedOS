@@ -1,0 +1,49 @@
+{
+  "assembly_report_sha256": "6cbaac9c23a1df3ab2a458e9609fec4707c9e644941877636ab2fd3800715871",
+  "elf_sha256": "719ba5a237fb79acad5ac8ffddadde179c9f80440de0d4778548b8a8d018da7e",
+  "frozen_source_revision": "498127d6be3d1a70581ba4a9cc025c2d923e66f7",
+  "installed_entry": null,
+  "negative_controls": {
+    "htif_exit": "trace did not end at the passing HTIF write",
+    "retired_word": "retired word at 0x80000000 differs from the ELF"
+  },
+  "observed": {
+    "entry_counts": {
+      "vos_copy_init": 1,
+      "vos_copy_notify": 7,
+      "vos_copy_poll": 7,
+      "vos_copy_prepare_sleep": 1,
+      "vos_copy_submit": 1,
+      "vos_copy_take": 1
+    },
+    "harness_entry": "0x80000000",
+    "htif_address": "0x80280028",
+    "load_segments": [
+      {
+        "address": "0x80000000",
+        "bytes": 6756,
+        "flags": 5,
+        "sha256": "d58fde3c6e302ee5fd918ed091d9c65f157d2c8b1f557bd58bca232176ea739a"
+      },
+      {
+        "address": "0x80200000",
+        "bytes": 540928,
+        "flags": 6,
+        "sha256": "ec0fc85953d4167af046952c17a21220e1991148d81192bd1908011012473709"
+      }
+    ],
+    "retired_by_origin": {
+      "compiled C": 6681,
+      "harness": 318,
+      "src/atomic_target.s": 83,
+      "src/notification_target.s": 109
+    },
+    "retired_instructions": 7191,
+    "trace_records": 14225
+  },
+  "production_admission": false,
+  "qualified_producer": false,
+  "raw_log_sha256": "232d7310fcf062e4403930e8535806b73262c71535bf3ff05b0c59106130665f",
+  "runtime_report_sha256": "b3e2efa0b7f14dae99278a5c2df2fba90c65f3666e30b6e91665ff4fea4719ef",
+  "scope": "independent observation of the archived standalone notification development harness"
+}

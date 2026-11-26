@@ -1,0 +1,202 @@
+# SPDX-License-Identifier: Apache-2.0
+"""Read the exact retained Q25bb development ELF and its recorded commit trace."""
+
+import argparse
+import collections
+import gzip
+import hashlib
+import json
+import struct
+import sys
+from pathlib import Path
+
+ARCHIVE = Path("docs/implementation/retained-evidence")
+ASSEMBLY = ARCHIVE / "holdfast-q25bb-standalone-assembly-20261125/report.json"
+RUNTIME = ARCHIVE / "holdfast-q25bb-standalone-runtime-20261125"
+ASSEMBLY_SHA = "6cbaac9c23a1df3ab2a458e9609fec4707c9e644941877636ab2fd3800715871"
+RUNTIME_SHA = "b3e2efa0b7f14dae99278a5c2df2fba90c65f3666e30b6e91665ff4fea4719ef"
+GROUPS = ("compiled C", "src/atomic_target.s", "src/notification_target.s")
+ENTRIES = {
+    "vos_copy_init": 1,
+    "vos_copy_prepare_sleep": 1,
+    "vos_copy_submit": 1,
+    "vos_copy_take": 1,
+    "vos_copy_notify": 7,
+    "vos_copy_poll": 7,
+}
+
+
+def sha(raw):
+    return hashlib.sha256(raw).hexdigest()
+
+
+def require(condition, diagnostic):
+    if not condition:
+        raise ValueError(diagnostic)
+
+
+def read_image(raw, image):
+    header = struct.unpack_from("<16sHHIQQQIHHHHHH", raw)
+    require(header[0][:7] == b"\x7fELF\x02\x01\x01" and header[1:4] == (
+        image.ET_EXEC, image.EM_RISCV, 1
+    ), "development image must be an ELF64 RISC-V executable")
+    entry, table, item_size, count = header[4], header[5], header[9], header[10]
+    require(item_size == image.PHDR_SIZE and table + item_size * count <= len(raw),
+            "development ELF program table is truncated")
+    loads = []
+    for index in range(count):
+        kind, flags, offset, virtual, address, file_size, memory_size, _ = struct.unpack_from(
+            "<IIQQQQQQ", raw, table + index * item_size)
+        if kind == image.PT_LOAD:
+            require(address == virtual and file_size == memory_size > 0 and offset + file_size <= len(raw),
+                    "unexpected development ELF load extent")
+            loads.append((address, flags, raw[offset:offset + file_size]))
+    loads.sort()
+    require(len(loads) == 2 and loads[0][0] + len(loads[0][2]) <= loads[1][0]
+            and [flags for _, flags, _ in loads] == [image.PF_R | image.PF_X, image.PF_R | image.PF_W],
+            "development harness must have disjoint RX text and RW data")
+    require(entry == loads[0][0], "development entry differs from executable load base")
+    return entry, loads
+
+
+def observe(raw, lines, assembly, runtime, image, trace):
+    entry, loads = read_image(raw, image)
+    text_base, _, body = loads[0]
+    ranges = assembly["assembled_member_ranges_in_harness"]
+    require(set(ranges) == set(GROUPS) and ranges == runtime["assembled_member_ranges"],
+            "development member population differs between receipts")
+    groups = {}
+    symbols = {}
+    previous = text_base
+    for label in GROUPS:
+        item = ranges[label]
+        start, end = (int(item[key], 16) for key in ("start", "end_exclusive"))
+        require(previous <= start < end <= text_base + len(body)
+                and start % 4 == end % 4 == 0, f"{label} has an invalid RX extent")
+        content = body[start - text_base:end - text_base]
+        require(len(content) == item["bytes"] and sha(content) == item["sha256"],
+                f"{label} executable range differs from the assembly receipt")
+        for name, pc in item["vos_copy_symbols"].items():
+            address = int(pc, 16)
+            require(name not in symbols and start <= address < end and address % 4 == 0,
+                    f"symbol {name} falls outside its compiler/adapter extent")
+            symbols[name] = address
+        groups[label] = range(start, end)
+        previous = end
+    entry_pcs = {symbols[name]: name for name in ENTRIES}
+    require(len(entry_pcs) == len(ENTRIES), "development case entry PCs collide")
+    data_base, _, data = loads[1]
+    htif_lines = [line for line in lines if line.startswith("HTIF located at ")]
+    require(len(htif_lines) == 1, "trace must locate the development HTIF word exactly once")
+    htif = int(htif_lines[0].split()[-1], 16)
+    require(htif % 8 == 0 and data_base <= htif <= data_base + len(data) - 8,
+            "trace HTIF address is outside the loaded writable segment")
+
+    counts = collections.Counter()
+    called = collections.Counter()
+    writes = []
+    records = trace.normalize_commit(lines)
+    retired = 0
+    for line in records:
+        if line.startswith("I "):
+            _, pc_hex, word_hex = line.split()
+            pc, word = int(pc_hex, 16), int(word_hex, 16)
+            offset = pc - text_base
+            require(0 <= offset <= len(body) - 4 and offset % 4 == 0,
+                    f"retired PC {pc:#x} is outside the aligned ELF text")
+            require(int.from_bytes(body[offset:offset + 4], "little") == word,
+                    f"retired word at {pc:#x} differs from the ELF")
+            if retired == 0:
+                require(pc == entry, "trace did not start at the ELF entry")
+            retired += 1
+            role = next((name for name, interval in groups.items() if pc in interval), "harness")
+            counts[role] += 1
+            if pc in entry_pcs:
+                called[entry_pcs[pc]] += 1
+        elif line.startswith("W "):
+            _, address, width, tag, value = line.split()
+            if int(address, 16) == htif:
+                writes.append((int(width), int(tag), int(value, 16)))
+        elif line.startswith("T "):
+            raise ValueError("unexpected trap in successful development trace")
+    require(called == ENTRIES, "development trace did not reach the expected service entries")
+    require(writes == [(8, 0, 1)] and lines[-1] == "SUCCESS"
+            and records[-1] == f"W {htif:016X} 8 0 0000000000000001", "trace did not end at the passing HTIF write")
+    require(len(records) == runtime["runtime_observed"]["records"]
+            and sha("\n".join(records).encode()) == runtime["runtime_observed"]["trace_sha256"],
+            "normalized trace differs from the retained execution receipt")
+    return {
+        "harness_entry": hex(entry),
+        "htif_address": hex(htif),
+        "load_segments": [
+            {"address": hex(address), "flags": flags, "bytes": len(blob), "sha256": sha(blob)}
+            for address, flags, blob in loads
+        ],
+        "retired_instructions": retired,
+        "retired_by_origin": dict(counts),
+        "entry_counts": dict(called),
+        "trace_records": len(records),
+    }
+
+
+def refuse(action, expected):
+    try:
+        action()
+    except ValueError as error:
+        require(expected in str(error), f"control refused for a different reason: {error}")
+        return str(error)
+    raise ValueError(f"control was accepted: {expected}")
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("checkout", type=Path)
+    parser.add_argument("elf", type=Path, help="exact archived standalone-notification.elf")
+    args = parser.parse_args()
+    root = args.checkout.resolve()
+    sys.path.insert(0, str(root / "tools"))
+    from vos import image, trace
+
+    assembly_bytes = (root / ASSEMBLY).read_bytes()
+    runtime_bytes = (root / RUNTIME / "report.json").read_bytes()
+    require(sha(assembly_bytes) == ASSEMBLY_SHA and sha(runtime_bytes) == RUNTIME_SHA,
+            "historical assembly or runtime receipt differs")
+    assembly, runtime = json.loads(assembly_bytes), json.loads(runtime_bytes)
+    raw = args.elf.read_bytes()
+    raw_trace = gzip.decompress((root / RUNTIME / "standalone-notification.log.gz").read_bytes())
+    require(sha(raw) == runtime["elf_sha256"] and sha(raw_trace) == runtime["raw_log_sha256"],
+            "development ELF or raw trace differs from the runtime receipt")
+    require(assembly["qualified_producer"] is False and runtime["qualified_producer"] is False
+            and runtime["installed_entry"] is None and runtime["production_admission"] is False,
+            "the archived receipts must describe development evidence")
+    lines = raw_trace.decode("utf-8").splitlines()
+    result = observe(raw, lines, assembly, runtime, image, trace)
+    changed_word = lines.copy()
+    first = next(i for i, line in enumerate(lines) if line.startswith("I "))
+    changed_word[first] = changed_word[first][:-1] + ("1" if changed_word[first][-1] == "0" else "0")
+    wrong_exit = [line.replace("0000000000000001", "0000000000000003")
+                  if line.startswith(f"W {int(result['htif_address'], 16):016X} ") else line
+                  for line in lines]
+    report = {
+        "scope": "independent observation of the archived standalone notification development harness",
+        "frozen_source_revision": runtime["frozen_source_revision"],
+        "elf_sha256": sha(raw),
+        "raw_log_sha256": sha(raw_trace),
+        "assembly_report_sha256": ASSEMBLY_SHA,
+        "runtime_report_sha256": RUNTIME_SHA,
+        "observed": result,
+        "negative_controls": {
+            "retired_word": refuse(
+                lambda: observe(raw, changed_word, assembly, runtime, image, trace), "differs from the ELF"),
+            "htif_exit": refuse(
+                lambda: observe(raw, wrong_exit, assembly, runtime, image, trace), "passing HTIF write"),
+        },
+        "qualified_producer": False,
+        "installed_entry": None,
+        "production_admission": False,
+    }
+    print(json.dumps(report, indent=2, sort_keys=True))
+
+
+if __name__ == "__main__":
+    main()
