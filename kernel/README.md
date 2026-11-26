@@ -16,9 +16,19 @@ checks success before programming the timer or dispatching a successor.
 ASan/UBSan controls on the guest and the host assembly-adapter controls. Its
 executable mutants distinguish compiled defects from compilation failures.
 The changed C and target adapter require fresh contained-compiler/Sail replay;
-the retained target and corpus captures identify their earlier source bytes and
-provide no target verdict for this repair. Q46b in [the plan](../PLAN.md#q-assessment-actions)
-retains that acceptance work.
+the earlier target and corpus captures identify their pre-repair source bytes.
+The [Q46b purecap clock-horizon replay manifest](../docs/implementation/retained-evidence/q46b-kernel-clock-target-20261126/manifest.json), SHA256 `661a74f0b42612a05ecddfc178530d220117ed4ab4912b21f93ed08221f18bde`,
+retains [vos/kernel_clock_target.py](../tools/vos/kernel_clock_target.py)'s
+development CHERI-CompCert (`-fverifiedos-typed`) and source-bound Sail target
+replay: standalone purecap clock-horizon controls (valid `0`/`UINT64_MAX`, table
+order, phase/product/sum/frame-exhaustion/epoch/duration refusals, and four
+compiled C mutants) plus the composed two-slot kernel replay (with `.data` at
+`0xb000`), all fourteen `kernel_target` controls, `adapter-epoch-overflow`
+(HTIF 22 with no `mtimecmp` write or partition entry), and
+`mutated-unguarded-target-release`. This replay records `qualified_producer: false`
+and `production_admission: false` (`qualified_target_entry_producer_refusal`
+present); Q39 qualified-producer acceptance and hosted acceptance remain open in
+[the plan](../PLAN.md#q-assessment-actions).
 
 ## What each file owns
 

@@ -1,0 +1,275 @@
+{
+  "all_controls_passed": true,
+  "kernel_target_controls": [
+    {
+      "decisive": 12,
+      "elf_sha256": "17fa3770eba16ac2c62584bfa96629160d9fbd43481ed7a45c8250a6c9e94f14",
+      "htif": "fail",
+      "htif_code": 12,
+      "matched": true,
+      "name": "missing-timer",
+      "trace_sha256": "c3220bffa38bd235a3dc949661931ad51f225d327d1a4135952df56392949615"
+    },
+    {
+      "decisive": 12,
+      "elf_sha256": "1c9f08546b91fbfcd6f6f6a51ecf7f8655b297b516ac92f48c1c06d4110465d6",
+      "htif": "fail",
+      "htif_code": 12,
+      "matched": true,
+      "name": "wrong-timer-permission",
+      "trace_sha256": "30b1435cfda690f8cb317a17c9da1233299a5f926be722a1d114fcc0647dfb01"
+    },
+    {
+      "decisive": 14,
+      "elf_sha256": "5dfb4fcb690b435456e1a9af7ee8a9273fb5031bad531d4d8a7e3f710fc36973",
+      "htif": "fail",
+      "htif_code": 14,
+      "matched": true,
+      "name": "sealed-execute-root",
+      "trace_sha256": "0d070cad072aeaca2dcb153493c5b39f336c1d327d682fd66e56ed90a8e27d9e"
+    },
+    {
+      "decisive": 19,
+      "elf_sha256": "9fe2b5eb2a9a56c1648f33c3a2566ab41a2993d7cb5dbb08a5966cbb5146caaa",
+      "htif": "fail",
+      "htif_code": 19,
+      "matched": true,
+      "name": "overbroad-stack",
+      "trace_sha256": "983086bbd6ab4c58e956ffcc0dfc463425ad22c16a6c6adee9851701dd6dbf28"
+    },
+    {
+      "decisive": 20,
+      "elf_sha256": "bc17ab4e121a37627a97b2edc6f2bfc3bda81cd5fc0d3069fda4428c308c62b0",
+      "htif": "fail",
+      "htif_code": 20,
+      "matched": true,
+      "name": "overbroad-mtdc",
+      "trace_sha256": "ac0f6ced2aec81668ed20fee9cacb4ff1f2114a2b18330d2757a78ee8e4da194"
+    },
+    {
+      "decisive": 12,
+      "elf_sha256": "35df4dacca0b2756f87b0ea225513eab35cdad6de18e9beb233150157dbfb944",
+      "htif": "fail",
+      "htif_code": 12,
+      "matched": true,
+      "name": "swapped-timers",
+      "trace_sha256": "b64a51d267665349e0213fd9c6bd6562b78b328116a72997d2b6c280d8e4e5b8"
+    },
+    {
+      "decisive": 12,
+      "elf_sha256": "928d9ee516b45616de4a74471106797607c49eaf10d5dc8022dc52d248bc4c68",
+      "htif": "fail",
+      "htif_code": 12,
+      "matched": true,
+      "name": "overbroad-timer",
+      "trace_sha256": "ce09888441344de25c79a4b2c436f222f86b831a8d5b1d2955be1d66c5a1a19f"
+    },
+    {
+      "decisive": 16,
+      "elf_sha256": "41d29d40eb66b56de90af1fe8db348313767d0ede1b93659ec08890a2513bee7",
+      "htif": "fail",
+      "htif_code": 16,
+      "matched": true,
+      "name": "resident-copy",
+      "trace_sha256": "11feb802a79c167ff91921711742321497b01f1d24c5a724c3970e2ca7055aad"
+    },
+    {
+      "decisive": 16,
+      "elf_sha256": "c6eea882e4f49c7f57cf4cf891d69b6ea437ea47791a190f03740b89f292c134",
+      "htif": "fail",
+      "htif_code": 16,
+      "matched": true,
+      "name": "stale-saved-copy",
+      "trace_sha256": "b4747352501e94c215ba4dafe87ff49e95dfc229986619945df2d1edb42ffcef"
+    },
+    {
+      "decisive": 16,
+      "elf_sha256": "df9ff18cb63ef29e80550bbe98c6e02de347d027e93e12f62302bd56885bb034",
+      "htif": "fail",
+      "htif_code": 16,
+      "matched": true,
+      "name": "epoch-only",
+      "trace_sha256": "d060bbbe243d80fbdd835987055733502af19feb49d38b1fd2266b2f1bb99042"
+    },
+    {
+      "decisive": "restore_protocol",
+      "elf_sha256": "bf24700fd7916be0f4e1fde4a4467350e8acfa5392a1b564624561328e1d4340",
+      "htif": "pass",
+      "htif_code": 0,
+      "matched": true,
+      "name": "missing-fence",
+      "trace_sha256": "0aec67244491a427fd8707223c80a625dd7f9c8e35abc668a78e464ec1f14e21"
+    },
+    {
+      "decisive": 18,
+      "elf_sha256": "753f3153bb399c34fb53d6b04c60543192e4ac699e197093ac580f9ddc428296",
+      "htif": "fail",
+      "htif_code": 18,
+      "matched": true,
+      "name": "descriptor-data",
+      "trace_sha256": "18eba5d71fdc01c3ac6c9bf13107b1563648e0f7c5ea70af6e08725d33362612"
+    },
+    {
+      "decisive": 18,
+      "elf_sha256": "69958912145e254cbeaf217b17cc38a295f1b9a760e71034e8a3a165dbb8afd0",
+      "htif": "fail",
+      "htif_code": 18,
+      "matched": true,
+      "name": "descriptor-unequal-width",
+      "trace_sha256": "f27c365135917a8145663620f7530740a0aa7f26e5007a74203286c80a5600ef"
+    },
+    {
+      "decisive": "complete_restores",
+      "elf_sha256": "1038306e7e85d68a619c6e3553787da261c7ba08edc8f71fde5d239a85495c90",
+      "htif": "pass",
+      "htif_code": 0,
+      "matched": true,
+      "name": "wrong-c-switch",
+      "trace_sha256": "6ffeeedcc799d6aa3e6a78d5073d29f85ba70b1cd23d5107da1f7aec8aa1df8d"
+    }
+  ],
+  "part_a_controls": {
+    "mutated-duration-overflow": {
+      "code": 63,
+      "compilation": {
+        "preprocessed_sha256": "d1d8cdb129d40241e11f4c3b8dfd17ecf55427c4baf4e869e238fb7e7f921fd3",
+        "stream_sha256": "1e4dd96bd2075d065bfafcdb3ba9a2ae10e358aeceab50028bb26d11bc05ac58"
+      },
+      "elf_sha256": "e61883d9e56fceab478179173b251da817475f6c84e99f4c3c14c863d3ed3a41",
+      "expected_verdict": "fail",
+      "kind": "c-mutation",
+      "name": "mutated-duration-overflow",
+      "owner": "kernel/src/target.c",
+      "part": "A",
+      "passed": true,
+      "raw_log_sha256": "8d22c2aa3a05ccc03abe2d717267684baf662470495999c6308da11ab3d69e83",
+      "trace_records": 21602,
+      "trace_sha256": "e9ed73e50e7b56d13d4e452438c8265e9cde75d3461f3b1c6fda4557e655c357",
+      "verdict": "fail"
+    },
+    "mutated-frame-index-wrap": {
+      "code": 50,
+      "compilation": {
+        "preprocessed_sha256": "2c449d075ac6935ece2c076ee4f542a0da489faa49a5ca48944361ab1da5c8d7",
+        "stream_sha256": "cb21fe8a8058cf5001d0a781118bff5e98960999fda57453c99643cd4fa96860"
+      },
+      "elf_sha256": "a23951ee7d5c4bebf178ca5bc41292d93b7c5a94c9f5b9998407e931b0660bd5",
+      "expected_verdict": "fail",
+      "kind": "c-mutation",
+      "name": "mutated-frame-index-wrap",
+      "owner": "kernel/src/executive.c",
+      "part": "A",
+      "passed": true,
+      "raw_log_sha256": "831566e30ece28770e42e9ae718ac62daaca22f68c57f6ddf310197e665f9563",
+      "trace_records": 18802,
+      "trace_sha256": "da498cc3f45dc457adab849459e4614ed0bc84b174dabc88bbfb705c714022d3",
+      "verdict": "fail"
+    },
+    "mutated-mul-overflow": {
+      "code": 30,
+      "compilation": {
+        "preprocessed_sha256": "659e4924823cbdba754e45c5d72208d84cb35009b361b752538343a7f57c20cc",
+        "stream_sha256": "7b6dad0fa5d79433ee846d725640dbe65701e328de4124ebf2c62fdb965c21b3"
+      },
+      "elf_sha256": "cce0d89b6a45e958ded8e6251fe7f1b627fd5e3cf296bb31d97d3b6d618edf66",
+      "expected_verdict": "fail",
+      "kind": "c-mutation",
+      "name": "mutated-mul-overflow",
+      "owner": "kernel/src/executive.c",
+      "part": "A",
+      "passed": true,
+      "raw_log_sha256": "57e67cea46dbfa76f43f024c82fd4ec743c6963e3c5c7c7a9fa637facf7e7717",
+      "trace_records": 16198,
+      "trace_sha256": "6df1b586446ad0851b1ee68683ce51d6a09a8a97f458b1d221c14573754ce34f",
+      "verdict": "fail"
+    },
+    "mutated-phase-overflow": {
+      "code": 21,
+      "compilation": {
+        "preprocessed_sha256": "1bea15a546c03d9812541eeae2f347fd69dec03d9d56941e1a931f7c7d33a9da",
+        "stream_sha256": "dd5905253df46f8c33f9dd7f37b84f698f800094c77211d425a1826ca61b44e2"
+      },
+      "elf_sha256": "08fbff86ca3252cb50aea1eebda9665bc97e2392ff16e07042cc09d623badf6d",
+      "expected_verdict": "fail",
+      "kind": "c-mutation",
+      "name": "mutated-phase-overflow",
+      "owner": "kernel/src/executive.c",
+      "part": "A",
+      "passed": true,
+      "raw_log_sha256": "44388e76d41965d0148361bd65ef8b6fa363547457da80f7e2804e5cb82eaf2e",
+      "trace_records": 15432,
+      "trace_sha256": "fcbd0d850403320d1dea7adb11f659947565fd753281abe4995df39127e4032b",
+      "verdict": "fail"
+    }
+  },
+  "part_b_controls": {
+    "adapter-epoch-overflow": {
+      "code": 22,
+      "elf_sha256": "f1fef3251d3af1fee228b9d9d410a02d94344c85ca2430378c51730b5b24c7ed",
+      "expected_code": 22,
+      "expected_verdict": "fail",
+      "kind": "adapter-overflow-control",
+      "mtimecmp_written": false,
+      "name": "adapter-epoch-overflow",
+      "part": "B",
+      "partition_one_entered": false,
+      "partition_two_entered": false,
+      "passed": true,
+      "raw_log_sha256": "88d67496cd4dfc88f240c205795e4c8de38c4c172dbf3ba23b10b5ea09762823",
+      "release": {
+        "chain": "322d0bc362845bc5ac6205de3bedb2f2cbcdd9772686cfb62272fd971536854f",
+        "code": "0",
+        "device": "36ae42ed23c5bc37f69d3afb1d5e1d5451f4dc6777b2a2da91c58fd4179f1e11",
+        "digest_computed": "1",
+        "generation": "65d8b7c4335f942c1c9bac53a71f4a8fc52d2a126034d560d1cb72e98e26c564",
+        "handoff_window_untouched": "0",
+        "image_digest": "752c79e7a7d5ec40027547c6bdfebdec9e50f94cd6b36697d5cbb025df0fe287",
+        "image_window_zero": "0",
+        "log": "1,2,3,5",
+        "payload_length": "61888",
+        "released": "1",
+        "security_version": "2",
+        "verdict": "release"
+      },
+      "trace_records": 50813,
+      "trace_sha256": "cc629b63dab55d14e98fe381519c8e3ecc57bc9c8fdb9725a8cd1ff34e68772c",
+      "verdict": "fail",
+      "vos_target_release_called": true,
+      "vos_target_release_returned_zero": true
+    },
+    "mutated-unguarded-target-release": {
+      "code": 0,
+      "elf_sha256": "e1d3e63ea0ce9f31f4872e2d28eace300a1d9edc1c959b53daaf7d488b7e7a06",
+      "expected_verdict": "detected-unguarded-dispatch",
+      "kind": "assembly-mutation",
+      "mtimecmp_written": true,
+      "name": "mutated-unguarded-target-release",
+      "part": "B",
+      "partition_one_entered": true,
+      "passed": true,
+      "raw_log_sha256": "ddb35d5c838478514eb98d8996b4469410b745da6985d804ae09d32b4471524e",
+      "release": {
+        "chain": "da775f41b18265fe4e434bbf4bfa3e7ced51cfc5ea74e25478bc1872c78ed8e2",
+        "code": "0",
+        "device": "36ae42ed23c5bc37f69d3afb1d5e1d5451f4dc6777b2a2da91c58fd4179f1e11",
+        "digest_computed": "1",
+        "generation": "4309080824c13f613e4ca6ba2c8ba6d3a79699e7560a232724f91cc61f0c0144",
+        "handoff_window_untouched": "0",
+        "image_digest": "d23b43ff0f2793f60be206bb04866a98a85dba144cb8bd0e065673e3dec66fc0",
+        "image_window_zero": "0",
+        "log": "1,2,3,5",
+        "payload_length": "61888",
+        "released": "1",
+        "security_version": "2",
+        "verdict": "release"
+      },
+      "trace_records": 59074,
+      "trace_sha256": "9e27e90c0e431b47e12f53a2f06b2bf81198b383ec6385e893d6592a27f0ca73",
+      "verdict": "pass"
+    }
+  },
+  "production_admission": false,
+  "qualified_producer": false,
+  "scope": "Q46b purecap CHERI-CompCert & source-bound Sail target controls (Part A + Part B)",
+  "trial_acceptance": false
+}
