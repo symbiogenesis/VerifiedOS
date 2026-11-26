@@ -1,0 +1,167 @@
+# SPDX-License-Identifier: Apache-2.0
+"""Run the archived standalone Q25bb development ELF with a focused Sail receipt."""
+import argparse
+import hashlib
+import json
+import shutil
+import subprocess
+import sys
+from collections import Counter
+from pathlib import Path
+
+parser = argparse.ArgumentParser(description=__doc__)
+parser.add_argument("checkout", type=Path)
+parser.add_argument("archive", type=Path, help="retired q25bb lane output containing both builds")
+parser.add_argument("focused_receipt", type=Path)
+parser.add_argument("preflight", type=Path, help="independent validator result from the simulator's source checkout")
+parser.add_argument("output", type=Path, help="fresh native lane directory")
+args = parser.parse_args()
+root, archive, receipt, preflight, out = (path.resolve() for path in (
+    args.checkout, args.archive, args.focused_receipt, args.preflight, args.output))
+sys.path.insert(0, str(root / "tools"))
+
+from vos import copy_package, copy_target, receipts, simulator_build, trace
+
+image_sha = "719ba5a237fb79acad5ac8ffddadde179c9f80440de0d4778548b8a8d018da7e"
+prepared_sha = "e6991359da24d4aaf459fb262ebbd906b2bb858ee61538337df88ec649945205"
+historical_report_sha = "6cbaac9c23a1df3ab2a458e9609fec4707c9e644941877636ab2fd3800715871"
+artifact_name = "standalone-notification.elf"
+original = archive / "standalone-2" / artifact_name
+replica = archive / "standalone-1" / artifact_name
+historical_report = (
+    root / "docs/implementation/retained-evidence/holdfast-q25bb-standalone-assembly-20261125/report.json")
+prepared = archive / "prepared"
+profile = root / "model/config/verifiedos.json"
+simulator = receipt.parent / "build" / simulator_build.ARTIFACT
+dependencies = [
+    original, replica, historical_report, prepared / copy_package.RECORD, profile, simulator, receipt, preflight,
+    root / "tools/vos/copy_package.py", root / "tools/vos/copy_target.py",
+    root / "tools/vos/compiler_diff.py", root / "tools/vos/trace.py",
+    root / "tools/vos/simulator_build.py",
+]
+
+def require(condition, diagnostic):
+    if not condition:
+        raise ValueError(diagnostic)
+
+def image_bytes(path):
+    raw = path.read_bytes()
+    require(hashlib.sha256(raw).hexdigest() == image_sha, "ELF differs from the frozen image")
+    return raw
+
+def validate():
+    focused = json.loads(receipt.read_bytes())
+    identity = focused["identity"]
+    model_inputs = receipts.inputs(root, "model")
+    profile_digest = receipts.digest(profile)
+    require(model_inputs == identity["model_inputs"] and profile_digest == identity["profile_sha256"],
+            "assigned checkout model or profile differs from the focused build")
+    expected = {
+        "verdict": "pass",
+        "validator": "vos.simulator_build.read",
+        "simulator_sha256": receipts.digest(simulator),
+        "simulator_receipt_sha256": receipts.digest(receipt),
+        "profile_sha256": profile_digest,
+        "model_inputs_sha256": hashlib.sha256(json.dumps(
+            model_inputs, sort_keys=True, separators=(",", ":")).encode()).hexdigest(),
+    }
+    actual = json.loads(preflight.read_bytes())
+    require(all(actual.get(key) == value for key, value in expected.items()),
+            "independent simulator validation does not match the executed inputs")
+    return focused
+
+def revision():
+    return subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=root, text=True).strip()
+
+checkout_revision = revision()
+before = {str(path): receipts.digest(path) for path in dependencies}
+require(before[str(historical_report)] == historical_report_sha, "historical build report differs")
+require(before[str(prepared / copy_package.RECORD)] == prepared_sha, "frozen source record differs")
+historical = json.loads(historical_report.read_bytes())
+require(historical["producer_build_passed"] is False and historical["qualified_producer"] is False
+        and historical["runtime_execution"] is False and historical["production_admission"] is False,
+        "historical scope differs")
+require([digest for name, digest in historical["artifacts"].items() if Path(name).name == artifact_name]
+        == [image_sha], "historical report does not identify exactly the frozen ELF")
+record = json.loads((prepared / copy_package.RECORD).read_bytes())
+archive_source_before = {name: receipts.digest(prepared / name) for name in record["outputs"]}
+require(archive_source_before == record["outputs"], "archived prepared output differs")
+elf_raw = image_bytes(original)
+require(image_bytes(replica) == elf_raw, "replica differs from the frozen original")
+focused = validate()
+out.mkdir(parents=True, exist_ok=False)
+staged_source = out / "prepared"
+shutil.copytree(prepared, staged_source, symlinks=True)
+source = copy_package.check(root, staged_source)
+copied = out / artifact_name
+copied.write_bytes(elf_raw)
+require(image_bytes(copied) == elf_raw, "staged image differs")
+observed = copy_target.execute(simulator, profile, copied, 120)
+require(image_bytes(copied) == elf_raw, "staged image changed during execution")
+require(before == {str(path): receipts.digest(path) for path in dependencies}, "input bytes changed")
+require(source == copy_package.check(root, staged_source), "standalone source replay changed")
+require(archive_source_before == {name: receipts.digest(prepared / name) for name in record["outputs"]},
+        "archived prepared output changed")
+require(checkout_revision == revision(), "checkout revision changed")
+require(focused == validate(), "focused simulator receipt validation changed")
+log = copied.with_suffix(".log")
+require(log.is_file(), "raw commit trace absent")
+expected_entries = {
+    "vos_copy_init": 1,
+    "vos_copy_prepare_sleep": 1,
+    "vos_copy_submit": 1,
+    "vos_copy_take": 1,
+    "vos_copy_notify": 7,
+    "vos_copy_poll": 7,
+}
+member_symbols = {
+    name: int(address, 16)
+    for member in historical["assembled_member_ranges_in_harness"].values()
+    for name, address in member["vos_copy_symbols"].items()
+}
+entry_pcs = {member_symbols[name]: name for name in expected_entries}
+require(len(entry_pcs) == len(expected_entries), "entry PCs are ambiguous")
+seen = Counter()
+with log.open(encoding="utf-8") as output:
+    for line in output:
+        for record in trace.normalize_commit([line]):
+            if record.startswith("I "):
+                pc = int(record.split()[1], 16)
+                if pc in entry_pcs:
+                    seen[entry_pcs[pc]] += 1
+entries = {
+    name: {"entry_pc": hex(member_symbols[name]), "expected": expected, "observed": seen[name]}
+    for name, expected in expected_entries.items()
+}
+report = {
+    "scope": "Development execution of the exact archived standalone notification harness",
+    "frozen_source_revision": "498127d6be3d1a70581ba4a9cc025c2d923e66f7",
+    "verifiedos_checkout_revision": checkout_revision,
+    "prepared_source_sha256": prepared_sha,
+    "historical_assembly_report_sha256": historical_report_sha,
+    "matched_elf_replicas": [str(original), str(replica)],
+    "elf_sha256": image_sha,
+    "assembled_member_ranges": historical["assembled_member_ranges_in_harness"],
+    "input_sha256": before,
+    "runner_sha256": receipts.digest(Path(__file__)),
+    "simulator_receipt_profile": focused["profile"],
+    "simulator_version_scope": {
+        "bundled_model_tests": focused["bundled_model_tests"],
+        "full_model_acceptance": focused["full_model_acceptance"],
+    },
+    "bound_simulator_preflight_sha256": before[str(preflight)],
+    "replay_inputs_match_before_and_after": True,
+    "runtime_control": historical["control_harness"],
+    "runtime_expected": {"verdict": "pass", "code": 0},
+    "runtime_observed": observed,
+    "retired_entries": entries,
+    "raw_log_sha256": receipts.digest(log),
+    "qualified_producer": False,
+    "installed_entry": None,
+    "production_admission": False,
+    "trial_acceptance": False,
+}
+(out / "report.json").write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+print(json.dumps({"verdict": observed["verdict"], "code": observed["code"],
+                  "records": observed["records"], "report": str(out / "report.json")}))
+raise SystemExit(observed["verdict"] != "pass" or observed["code"] != 0 or seen != expected_entries)

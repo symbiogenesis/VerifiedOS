@@ -1,0 +1,8 @@
+{
+  "model_inputs_sha256": "d153c870382e7ad3c49e62c0d6f839697f938049514ec6edffae1f108fdcf961",
+  "profile_sha256": "7ff6f9dec6fbe0c164d52eea4862cc2cd29fd5d73fe59f498ca6011a1b6f88c2",
+  "simulator_receipt_sha256": "1680c1ec6281102476175f6e84598fe737ef72d7cbb99cd17e7f463e51df6ba5",
+  "simulator_sha256": "dae7008727781fe22368c8a1dbaa7c387e33af10a3e2613ef6c23fcbec11560f",
+  "validator": "vos.simulator_build.read",
+  "verdict": "pass"
+}

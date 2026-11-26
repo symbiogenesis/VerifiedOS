@@ -1,0 +1,157 @@
+{
+  "assembled_member_ranges": {
+    "compiled C": {
+      "bytes": 4808,
+      "end_exclusive": "0x80001364",
+      "sha256": "a4d9ebf4439c5237ef4aaf8e8030f589b030bcad488701a036b7d2aacb91ee3a",
+      "start": "0x8000009c",
+      "vos_copy_symbols": {
+        "vos_copy_activation": "0x800008d4",
+        "vos_copy_advance": "0x800003d4",
+        "vos_copy_batch": "0x80000310",
+        "vos_copy_consumer": "0x800006c0",
+        "vos_copy_init_generation_slots": "0x8000099c",
+        "vos_copy_init_slots": "0x80000b34",
+        "vos_copy_occupancy": "0x8000011c",
+        "vos_copy_payload_limit": "0x8000009c",
+        "vos_copy_producer": "0x80000614",
+        "vos_copy_publish": "0x800001e0",
+        "vos_copy_stage": "0x80000584",
+        "vos_copy_submit_snapshot": "0x80000b5c",
+        "vos_copy_take_index": "0x8000027c",
+        "vos_copy_take_snapshot": "0x80000f90",
+        "vos_copy_target_layout": "0x80001268",
+        "vos_copy_target_ring_bytes": "0x80001244",
+        "vos_copy_view_valid": "0x80000164"
+      }
+    },
+    "src/atomic_target.s": {
+      "bytes": 532,
+      "end_exclusive": "0x80001578",
+      "sha256": "80411cc51436678d7d3c514effc3230b82f247c92a1b74ec26388a100327e46e",
+      "start": "0x80001364",
+      "vos_copy_symbols": {
+        "vos_copy_batch_done": "0x80001560",
+        "vos_copy_batch_loop": "0x800014e8",
+        "vos_copy_batch_refuse": "0x80001570",
+        "vos_copy_init": "0x80001364",
+        "vos_copy_init_generation": "0x80001368",
+        "vos_copy_init_refuse": "0x800013a4",
+        "vos_copy_prepare_sleep": "0x80001490",
+        "vos_copy_submit": "0x800013ac",
+        "vos_copy_submit_batch": "0x800014b8",
+        "vos_copy_submit_return": "0x8000142c",
+        "vos_copy_take": "0x80001438",
+        "vos_copy_take_return": "0x80001484"
+      }
+    },
+    "src/notification_target.s": {
+      "bytes": 96,
+      "end_exclusive": "0x800015d8",
+      "sha256": "702fa545fd8ef32131913841d6ad19455dec63a406ae8cec8406b6890802d322",
+      "start": "0x80001578",
+      "vos_copy_symbols": {
+        "vos_copy_notify": "0x80001578",
+        "vos_copy_notify_done": "0x8000159c",
+        "vos_copy_notify_invalid": "0x800015a4",
+        "vos_copy_notify_store": "0x80001594",
+        "vos_copy_poll": "0x800015ac",
+        "vos_copy_poll_invalid": "0x800015d0"
+      }
+    }
+  },
+  "bound_simulator_preflight_sha256": "b03f731b1fdd82ad6ef9a234257ce28127afd4f54b9cb30b45ab041d4e14534c",
+  "elf_sha256": "719ba5a237fb79acad5ac8ffddadde179c9f80440de0d4778548b8a8d018da7e",
+  "frozen_source_revision": "498127d6be3d1a70581ba4a9cc025c2d923e66f7",
+  "historical_assembly_report_sha256": "6cbaac9c23a1df3ab2a458e9609fec4707c9e644941877636ab2fd3800715871",
+  "input_sha256": {
+    "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/q25b-vo-review-1125/docs/implementation/retained-evidence/holdfast-q25bb-standalone-assembly-20261125/report.json": "6cbaac9c23a1df3ab2a458e9609fec4707c9e644941877636ab2fd3800715871",
+    "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/q25b-vo-review-1125/model/config/verifiedos.json": "7ff6f9dec6fbe0c164d52eea4862cc2cd29fd5d73fe59f498ca6011a1b6f88c2",
+    "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/q25b-vo-review-1125/tools/vos/compiler_diff.py": "6721079d2d47e5dbdb93e8ac40947b1da7259d65c8b9c7bc1eb9d9daaed0cfca",
+    "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/q25b-vo-review-1125/tools/vos/copy_package.py": "68733fe286d627d118b5b42e6c6646a43802bf0e44c1ad5c59e8b673278c121f",
+    "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/q25b-vo-review-1125/tools/vos/copy_target.py": "da6e98d9a288d8e05dd3da58da0a576127c45590dccfec47082ca6e77b25eaa8",
+    "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/q25b-vo-review-1125/tools/vos/simulator_build.py": "0147bbbcd0ff94dfb155b426d5a45cdf5957d69019f9712968d43d30bb385b8d",
+    "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/q25b-vo-review-1125/tools/vos/trace.py": "a445fb0a2b225b7bfe621ab9957a9c2131c515dbcade633b27a33e10466ad8b8",
+    "/root/build/fanout-retained/3acbac6d7f0168c9fa1e/hf-copy-1125e/lane/q25bb/prepared/source-record.json": "e6991359da24d4aaf459fb262ebbd906b2bb858ee61538337df88ec649945205",
+    "/root/build/fanout-retained/3acbac6d7f0168c9fa1e/hf-copy-1125e/lane/q25bb/standalone-1/standalone-notification.elf": "719ba5a237fb79acad5ac8ffddadde179c9f80440de0d4778548b8a8d018da7e",
+    "/root/build/fanout-retained/3acbac6d7f0168c9fa1e/hf-copy-1125e/lane/q25bb/standalone-2/standalone-notification.elf": "719ba5a237fb79acad5ac8ffddadde179c9f80440de0d4778548b8a8d018da7e",
+    "/root/build/q25b-simulator-1125/build/c_emulator/sail_riscv_sim": "dae7008727781fe22368c8a1dbaa7c387e33af10a3e2613ef6c23fcbec11560f",
+    "/root/build/q25b-simulator-1125/q25bb-preflight.json": "b03f731b1fdd82ad6ef9a234257ce28127afd4f54b9cb30b45ab041d4e14534c",
+    "/root/build/q25b-simulator-1125/simulator-build.json": "1680c1ec6281102476175f6e84598fe737ef72d7cbb99cd17e7f463e51df6ba5"
+  },
+  "installed_entry": null,
+  "matched_elf_replicas": [
+    "/root/build/fanout-retained/3acbac6d7f0168c9fa1e/hf-copy-1125e/lane/q25bb/standalone-2/standalone-notification.elf",
+    "/root/build/fanout-retained/3acbac6d7f0168c9fa1e/hf-copy-1125e/lane/q25bb/standalone-1/standalone-notification.elf"
+  ],
+  "prepared_source_sha256": "e6991359da24d4aaf459fb262ebbd906b2bb858ee61538337df88ec649945205",
+  "production_admission": false,
+  "qualified_producer": false,
+  "raw_log_sha256": "232d7310fcf062e4403930e8535806b73262c71535bf3ff05b0c59106130665f",
+  "replay_inputs_match_before_and_after": true,
+  "retired_entries": {
+    "vos_copy_init": {
+      "entry_pc": "0x80001364",
+      "expected": 1,
+      "observed": 1
+    },
+    "vos_copy_notify": {
+      "entry_pc": "0x80001578",
+      "expected": 7,
+      "observed": 7
+    },
+    "vos_copy_poll": {
+      "entry_pc": "0x800015ac",
+      "expected": 7,
+      "observed": 7
+    },
+    "vos_copy_prepare_sleep": {
+      "entry_pc": "0x80001490",
+      "expected": 1,
+      "observed": 1
+    },
+    "vos_copy_submit": {
+      "entry_pc": "0x800013ac",
+      "expected": 1,
+      "observed": 1
+    },
+    "vos_copy_take": {
+      "entry_pc": "0x80001438",
+      "expected": 1,
+      "observed": 1
+    }
+  },
+  "runner_sha256": "7b8851bcba58af2e1ce11b89da6e367262f6fa399da4c64abf5f9bffaf225edc",
+  "runtime_control": "copy_notification.controls",
+  "runtime_expected": {
+    "code": 0,
+    "verdict": "pass"
+  },
+  "runtime_observed": {
+    "argv": [
+      "/root/build/q25b-simulator-1125/build/c_emulator/sail_riscv_sim",
+      "--config",
+      "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/q25b-vo-review-1125/model/config/verifiedos.json",
+      "--trace-commit",
+      "--inst-limit",
+      "40000000",
+      "--terminal-log",
+      "/root/build/lane-q25b-vo-review-1125/q25bb-exact-replay/standalone-notification.term",
+      "/root/build/lane-q25b-vo-review-1125/q25bb-exact-replay/standalone-notification.elf"
+    ],
+    "code": 0,
+    "detail": "HTIF 0",
+    "log": "/root/build/lane-q25b-vo-review-1125/q25bb-exact-replay/standalone-notification.log",
+    "records": 14225,
+    "trace_sha256": "9b84b47536a3709ca543fdbd8ba6ecc665c262737c78f25b02285ede0538785f",
+    "verdict": "pass"
+  },
+  "scope": "Development execution of the exact archived standalone notification harness",
+  "simulator_receipt_profile": "q39-compiler-replay",
+  "simulator_version_scope": {
+    "bundled_model_tests": "not-run",
+    "full_model_acceptance": "pending"
+  },
+  "trial_acceptance": false,
+  "verifiedos_checkout_revision": "b4b9b257dec45c3cacf5bdaaa3b00b08f5ee03cb"
+}
