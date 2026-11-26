@@ -2,10 +2,13 @@
 
 This is executable reference work toward [Q34c](../../PLAN.md),
 under the existing [elastic-domain contract](contracts/elastic-domain.md).
-Q34c remains open: the finite allocator needs its universal refinement to the
-history contract, and the native service/library producer and its admission are
-absent. The history-producer theorem and generated finite traces do not establish
-that missing correspondence.
+[ElasticPool.v](../../proofs/ElasticPool.v) now proves universal refinement from
+the finite 5-phase, two-generation quarantine metadata state machine
+(`meta_init`, `meta_step`, `meta_run`) to `PoolGuarantees` and `HeapNarrows` over
+any admitted layout. Q34c remains open: connecting the Python reference's
+holder-map barrier checks and descendant/parent lifetime checks to that machine,
+realizing and admitting the native C/assembly service and heap library, and
+completing cold Guest CI proof acceptance are still absent.
 
 [elastic_pool.py](../../tools/vos/elastic_pool.py) implements composition-fixed
 size classes, fixed disjoint slots, per-island/memory-class pool selection, exact
@@ -88,10 +91,28 @@ wide bounds, unzeroed handoff, early reuse and a pass begun before the barrier.
 The history producer does not implement the semantic barrier. It consumes the
 contract's `BarrierDone`, `SweepBegin` and `SweepEnd` observations. In particular,
 its theorem cannot distinguish a falsely reported completion from a real one.
-The finite producer's barrier uses the explicit holder checks described above,
-but no universal theorem yet connects those transitions, its ownership metadata
-or its parent/child lifetime checks to the Gallina producer. The history-indexed
-producer also has no bounded runtime memory or cost claim.
+The history-indexed producer also has no bounded runtime memory or cost claim.
+
+To close the metadata-quarantine gap for a single pool level,
+[ElasticPool.v](../../proofs/ElasticPool.v) also defines the finite metadata
+state machine (`SlotPhase`, `SlotLayout`, `MetaSlot`, `MetaState`, `MetaOp`,
+`meta_init`, `meta_step`, `meta_run`) modeling `elastic_pool.py`'s 5-phase,
+two-generation quarantine transitions without calling `pool_event`'s history
+filter. Under `layout_admitted` (exact size classes, alignment, arena bounds,
+and `extents_separate`-shaped pairwise byte-disjointness, which the Python
+reference strengthens with 8-byte revocation-granule separation), `meta_init_inv`
+and `meta_step_preserves_inv` preserve `meta_inv`, and
+`meta_run_refines_pool_guarantees` and `meta_run_refines_heap_narrows` prove
+universally across all admitted layouts and arbitrary operation lists that the
+emitted history satisfies `PoolGuarantees` and `HeapNarrows`. Executable
+witnesses (`meta_two_gen_quarantine_refuses_early_alloc` and
+`meta_two_gen_quarantine_reuses_after_second_sweep`) demonstrate that a slot
+released while `ms_sweep_active = true` stays quarantined after `OpBarrier` and
+`OpSweepEnd`, refusing `OpAlloc` until a second `OpSweepBegin` and `OpSweepEnd`
+pass completes. What remains open is linking `OpBarrier` to the explicit holder
+inventory checks in [revocation.py](../../tools/vos/revocation.py), linking
+descendant/parent lifetime checks across nested heaps, realizing the Python/C/native
+service and heap library, and obtaining cold Guest CI acceptance.
 
 [elastic_pool_campaign.py](../../tools/vos/elastic_pool_campaign.py) generates
 actual finite allocator histories, including all command words of length four,
