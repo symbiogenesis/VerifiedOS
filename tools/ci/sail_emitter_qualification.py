@@ -30,9 +30,11 @@ def load(path: Path) -> dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
-def exact(path: Path, expected: str) -> None:
-    if receipts.digest(path) != expected:
+def exact(path: Path, expected: str) -> str:
+    observed = receipts.digest(path)
+    if observed != expected:
         raise ValueError(f"unexpected SHA-256 for {path}")
+    return observed
 
 
 def evidence_input(directory: Path, name: str) -> Path:
@@ -144,9 +146,9 @@ def check_frozen_pair(checkout: Path, stock: dict[str, Any],
     if load(comparison)["status"] != "identical":
         raise ValueError("the retained canonical comparison did not match")
     frozen_inputs = load(inputs)
-    exact(checkout / "model/handwritten_support/riscv_extras.v", frozen_inputs["handwritten_source"])
+    handwritten = exact(checkout / "model/handwritten_support/riscv_extras.v", frozen_inputs["handwritten_source"])
     bound = {"comparison": receipts.digest(comparison), "inputs": receipts.digest(inputs),
-             "handwritten_source": frozen_inputs["handwritten_source"]}
+             "handwritten_source": handwritten}
     generation = frozen_inputs["generation_receipts"]
     unchanged = ("format", "target", "outputs", "axioms")
     for label, observed in (("original", stock), ("candidate", candidate)):
