@@ -37,6 +37,11 @@ int vos_typed_tree_lookup_path(const struct vos_tree_image *image,
                                 uint64_t root, const struct vos_storage_typed_key *key,
                                 struct vos_storage_extent *output);
 
+struct vos_typed_tree_entry {
+    struct vos_storage_typed_key key;
+    struct vos_storage_extent extent;
+};
+
 /* [Append-only candidate contract](../typed-entry.md#bounded-typed-candidate-insert-and-replace). */
 int vos_typed_tree_insert(const struct vos_tree_arena *arena,
                            const struct vos_tree_limits *limits,
@@ -45,11 +50,25 @@ int vos_typed_tree_insert(const struct vos_tree_arena *arena,
                            const struct vos_storage_extent *extent,
                            struct vos_tree_update_result *output);
 
+/* [Bounded typed candidate batch insert](../typed-entry.md#bounded-typed-candidate-batch-insert). */
+int vos_typed_tree_insert_batch(const struct vos_tree_arena *arena,
+                                 const struct vos_tree_limits *limits,
+                                 uint64_t root, uint64_t generation,
+                                 const struct vos_typed_tree_entry *entries,
+                                 size_t entry_count,
+                                 struct vos_tree_update_result *output);
+
 /* [Bounded typed candidate delete](../typed-entry.md#bounded-typed-candidate-delete). */
 int vos_typed_tree_delete(const struct vos_tree_arena *arena,
                            const struct vos_tree_limits *limits,
                            uint64_t root, uint64_t generation,
                            const struct vos_storage_typed_key *key,
                            struct vos_tree_update_result *output);
+
+/* [Bounded typed candidate compact](../typed-entry.md#bounded-typed-candidate-compact). */
+int vos_typed_tree_compact(const struct vos_tree_arena *arena,
+                            const struct vos_tree_limits *limits,
+                            uint64_t root, uint64_t generation,
+                            struct vos_tree_update_result *output);
 
 #endif

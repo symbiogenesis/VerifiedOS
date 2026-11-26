@@ -17,18 +17,45 @@ static int number(const char *text, uint64_t *value)
     return 1;
 }
 
+enum host_update_mode {
+    HOST_MODE_INSERT = 0,
+    HOST_MODE_DELETE = 1,
+    HOST_MODE_INSERT_BATCH = 2,
+    HOST_MODE_COMPACT = 3
+};
+
 static int run_update(const struct vos_tree_arena *arena, const struct vos_tree_limits *limits,
                       uint64_t root, uint64_t generation, const struct vos_storage_typed_key *key,
-                      int is_delete, int invalid_extent)
+                      enum host_update_mode mode, int invalid_extent)
 {
     struct vos_storage_extent extent = {0};
+    struct vos_typed_tree_entry entries[VOS_TREE_MAX_BATCH + 2u] = {0};
+    size_t batch_count = 0u;
     if (arena->used > arena->geometry.arena_nodes) return 3;
-    if (!is_delete) {
+    if (mode == HOST_MODE_INSERT) {
         uint8_t serialized[VOS_STORAGE_EXTENT_BYTES];
         if (fread(serialized, 1u, sizeof(serialized), stdin) != sizeof(serialized) ||
             fgetc(stdin) != EOF ||
             !vos_storage_extent_decode(serialized, sizeof(serialized), &extent)) return 3;
         if (invalid_extent) extent.domain_epoch = VOS_NODE_NONCE_MAX_DOMAIN + 1u;
+    } else if (mode == HOST_MODE_INSERT_BATCH) {
+        uint8_t hdr[4];
+        if (fread(hdr, 1u, sizeof(hdr), stdin) != sizeof(hdr)) return 3;
+        batch_count = (size_t)hdr[0] | ((size_t)hdr[1] << 8u) |
+            ((size_t)hdr[2] << 16u) | ((size_t)hdr[3] << 24u);
+        if (batch_count > VOS_TREE_MAX_BATCH + 2u) return 3;
+        for (size_t i = 0u; i < batch_count; ++i) {
+            uint8_t record[VOS_STORAGE_TYPED_ENTRY_BYTES];
+            if (fread(record, 1u, sizeof(record), stdin) != sizeof(record) ||
+                !vos_storage_typed_key_decode(record, VOS_STORAGE_TYPED_KEY_BYTES,
+                                              &entries[i].key) ||
+                !vos_storage_extent_decode(record + VOS_STORAGE_TYPED_KEY_BYTES,
+                                           VOS_STORAGE_EXTENT_BYTES, &entries[i].extent))
+                return 3;
+        }
+        if (fgetc(stdin) != EOF) return 3;
+        if (invalid_extent && batch_count > 0u)
+            entries[batch_count - 1u].extent.domain_epoch = VOS_NODE_NONCE_MAX_DOMAIN + 1u;
     }
     const size_t generation_bytes = arena->generation_count * sizeof(arena->generations[0]);
     uint8_t *bytes_before = malloc(arena->length);
@@ -44,9 +71,17 @@ static int run_update(const struct vos_tree_arena *arena, const struct vos_tree_
     memset(&result, 0xa5, sizeof(result));
     uint8_t result_before[sizeof(result)];
     memcpy(result_before, &result, sizeof(result));
-    const int admitted = is_delete ?
-        vos_typed_tree_delete(arena, limits, root, generation, key, &result) :
-        vos_typed_tree_insert(arena, limits, root, generation, key, &extent, &result);
+    int admitted = 0;
+    if (mode == HOST_MODE_INSERT) {
+        admitted = vos_typed_tree_insert(arena, limits, root, generation, key, &extent, &result);
+    } else if (mode == HOST_MODE_DELETE) {
+        admitted = vos_typed_tree_delete(arena, limits, root, generation, key, &result);
+    } else if (mode == HOST_MODE_INSERT_BATCH) {
+        admitted = vos_typed_tree_insert_batch(arena, limits, root, generation,
+                                               entries, batch_count, &result);
+    } else {
+        admitted = vos_typed_tree_compact(arena, limits, root, generation, &result);
+    }
     const size_t prefix = (size_t)arena->used * arena->geometry.block_bytes;
     const int preserved = memcmp(bytes_before, arena->bytes, prefix) == 0 &&
         memcmp(generations_before, arena->generations,
@@ -73,10 +108,14 @@ static int run_update(const struct vos_tree_arena *arena, const struct vos_tree_
 int main(int argc, char **argv)
 {
     const int path_only = argc > 1 && strcmp(argv[1], "--path") == 0;
-    const int invalid_extent = argc > 1 && strcmp(argv[1], "--insert-invalid-extent") == 0;
-    const int insert = invalid_extent || (argc > 1 && strcmp(argv[1], "--insert") == 0);
+    const int invalid_single = argc > 1 && strcmp(argv[1], "--insert-invalid-extent") == 0;
+    const int insert = invalid_single || (argc > 1 && strcmp(argv[1], "--insert") == 0);
     const int del = argc > 1 && strcmp(argv[1], "--delete") == 0;
-    const int update = insert || del;
+    const int invalid_batch = argc > 1 && strcmp(argv[1], "--insert-batch-invalid-extent") == 0;
+    const int insert_batch = invalid_batch || (argc > 1 && strcmp(argv[1], "--insert-batch") == 0);
+    const int compact = argc > 1 && strcmp(argv[1], "--compact") == 0;
+    const int invalid_extent = invalid_single || invalid_batch;
+    const int update = insert || del || insert_batch || compact;
     const int offset = 1 + (path_only || update);
     const int parameters = update ? 15 : 13;
     uint64_t words[15] = {0};
@@ -94,7 +133,8 @@ int main(int argc, char **argv)
     for (size_t i = 0u; i < (size_t)count; ++i)
         if (!number(argv[offset + parameters + (int)i], &generations[i])) return 3;
     const size_t length = (size_t)count * (size_t)size;
-    if (fread(bytes, 1u, length, stdin) != length || (!insert && fgetc(stdin) != EOF)) return 3;
+    if (fread(bytes, 1u, length, stdin) != length ||
+        (!(insert || insert_batch) && fgetc(stdin) != EOF)) return 3;
     const struct vos_tree_image image = {
         .geometry = {.fan = (uint32_t)words[0], .arena_nodes = count, .block_bytes = (size_t)size},
         .bytes = bytes, .length = length, .generations = generations, .generation_count = (size_t)count
@@ -111,7 +151,11 @@ int main(int argc, char **argv)
             .geometry = image.geometry, .bytes = bytes, .length = length, .generations = generations,
             .generation_count = (size_t)count, .used = words[13]
         };
-        const int result = run_update(&arena, &limits, words[3], words[14], &key, del, invalid_extent);
+        enum host_update_mode mode = HOST_MODE_INSERT;
+        if (del) mode = HOST_MODE_DELETE;
+        else if (insert_batch) mode = HOST_MODE_INSERT_BATCH;
+        else if (compact) mode = HOST_MODE_COMPACT;
+        const int result = run_update(&arena, &limits, words[3], words[14], &key, mode, invalid_extent);
         free(generations);
         free(bytes);
         free(encoded);
