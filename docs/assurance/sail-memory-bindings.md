@@ -103,8 +103,8 @@ the retained Sail and Z3 binaries, complete selected plugin population and priva
 stdpp source and object bytes. The packaged replay strictly compiled the 29 selected
 support modules on each side, both emitted modules and the four authored modules.
 Both emissions reproduced the retained sources exactly. The before/after
-installed-prefix inventories agreed. The declaration comparison between the two
-compiled sides remains due.
+installed-prefix inventories agreed. The [frozen V1 instance comparison](#frozen-v1-instance-comparison) reads the
+affected interface and builtins on both compiled sides.
 
 [TagInterpreter.v](../../tools/sail-tag-outcomes/TagInterpreter.v) gives a fuelled
 finite-map interpretation with a fixed other-outcome handler and generic frame.
@@ -159,6 +159,34 @@ Two fresh minimal emissions matched both retained Rocq source files byte for
 byte when invoked with the relative `bindings.sail` name. The absolute-path
 control changed the embedded refusal locations, which the replay now preserves
 by passing the relative name in each emission directory.
+
+## Frozen V1 instance comparison
+
+The locked Rocq compiled the same emitted minimal architecture against each
+side of the packaged replay. With an empty search blacklist, the native query
+enumerated the declarations visible inside its `Interface` and `Defs` instances.
+The framed reader compared their types (`Check`), declaration metadata
+(`About`), and the printed bodies of transparent constants and inductives.
+The retained record includes both normalized readings, the query driver, compile
+commands and unchanged input identities. [Frozen V1 instance comparison](../implementation/retained-evidence/q35p-v1-instance-readings-20261125/manifest.json),
+SHA256 `8453b57f4da174533d2b247c0c7d632ba9d0fa0033638b25cb874a0e875e166f`.
+
+The candidate adds the two tag constructors and their two builtin bindings.
+Every previous name still resolves. The native readings identify
+`outcome_ind`, `outcome_rec` and `outcome_rect` as the generated principles
+that change. The printed bodies of `outcome`, `map_extra_iMon` and `try_catch`
+also change, with matching `Check` and `About` readings.
+
+One additional body requires an explicit disposition under the
+[tag-outcome comparison contract](../implementation/contracts/canonical-tag-outcomes.md#source-scope-and-acceptance).
+In the source, `pure_iTrace_aux` rejects `Choose` and recurses over every
+other event. Its `Check` and `About` readings agree. Its elaborated body adds
+precisely the `TagRead` and `TagWrite` cases, each recurring on the trace tail.
+The previous cases agree. The wrapper `pure_iTrace` applies this predicate to
+the event list, and `iMon_equiv` uses it as the premise for equivalence of
+trace matching. Both wrappers have identical type, metadata and body readings.
+The scoped comparison stopped at this additional change. Complete support
+comparison and the qualified dependency closure remain open.
 
 ## Canonical caller replay
 
