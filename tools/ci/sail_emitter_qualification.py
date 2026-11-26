@@ -151,12 +151,16 @@ def check_frozen_pair(checkout: Path, stock: dict[str, Any],
     directory = checkout / FROZEN
     comparison = evidence_input(directory, "comparison.json")
     inputs = evidence_input(directory, "inputs.json")
-    if load(comparison)["status"] != "identical":
+    result = load(comparison)
+    if result["status"] != "identical":
         raise ValueError("the retained canonical comparison did not match")
+    if result["library_inputs_unchanged"] is not True:
+        raise ValueError("the Rocq library inputs changed during the frozen comparison")
     frozen_inputs = load(inputs)
     handwritten = exact(checkout / "model/handwritten_support/riscv_extras.v", frozen_inputs["handwritten_source"])
+    library_inputs = exact(directory / "library-inputs-before.json", frozen_inputs["library_inputs"]["sha256"])
     bound = {"comparison": receipts.digest(comparison), "inputs": receipts.digest(inputs),
-             "handwritten_source": handwritten}
+             "handwritten_source": handwritten, "library_inputs": library_inputs}
     generation = frozen_inputs["generation_receipts"]
     unchanged = ("format", "target", "outputs", "axioms")
     for label, observed in (("original", stock), ("candidate", candidate)):

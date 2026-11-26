@@ -114,7 +114,7 @@ def frozen_emission_join() -> None:
         record["checkout"]["revision"] = REVISION
         record["command"][0] = "/runner/sail/bin/sail"
     bound = emitter.check_frozen_pair(root, stock, candidate)
-    ensure(set(bound) == {"comparison", "inputs", "handwritten_source", "original", "candidate",
+    ensure(set(bound) == {"comparison", "inputs", "handwritten_source", "library_inputs", "original", "candidate",
                           "refreshed_original", "refreshed_candidate"},
            "hosted result omitted frozen comparison inputs")
 
@@ -162,7 +162,7 @@ def frozen_emission_join() -> None:
             raise AssertionError("accepted a refreshed emission with changed output bytes")
 
 
-def changed_handwritten_support() -> None:
+def changed_reading_inputs() -> None:
     root = TOOLS.parent
     with TemporaryDirectory() as temporary:
         checkout = Path(temporary)
@@ -171,15 +171,35 @@ def changed_handwritten_support() -> None:
         source = Path("model/handwritten_support/riscv_extras.v")
         support = checkout / source
         support.parent.mkdir(parents=True)
-        support.write_bytes((root / source).read_bytes() + b"\n")
+        shutil.copyfile(root / source, support)
         stock, candidate = (emitter.load(checkout / emitter.REFRESH / f"{label}-generation.json")
                             for label in ("original", "candidate"))
-        try:
-            emitter.check_frozen_pair(checkout, stock, candidate)
-        except ValueError as error:
-            ensure(support.name in str(error), f"unexpected refusal: {error}")
-        else:
-            raise AssertionError("reused frozen readings after the handwritten support changed")
+
+        def expect_refusal(diagnostic: str) -> None:
+            try:
+                emitter.check_frozen_pair(checkout, stock, candidate)
+            except ValueError as error:
+                ensure(diagnostic in str(error), f"unexpected refusal: {error}")
+            else:
+                raise AssertionError(f"missing frozen comparison refusal: {diagnostic}")
+
+        comparison = checkout / emitter.FROZEN / "comparison.json"
+        load = emitter.load
+
+        def changed_dependencies(path: Path) -> dict[str, Any]:
+            record = load(path)
+            if path == comparison:
+                record["library_inputs_unchanged"] = False
+            return record
+
+        with patch.object(emitter, "load", side_effect=changed_dependencies):
+            expect_refusal("Rocq library inputs changed")
+
+        for path in (support, checkout / emitter.FROZEN / "library-inputs-before.json"):
+            with path.open("ab") as stream:
+                stream.write(b"\n")
+            expect_refusal(path.name)
+            shutil.copyfile(root / path.relative_to(checkout), path)
 
 
 def cases() -> list[Case]:
@@ -189,5 +209,5 @@ def cases() -> list[Case]:
         Case("substituted-producer", substituted_producer),
         Case("retained-source-inputs", retained_source_inputs),
         Case("frozen-emission-join", frozen_emission_join),
-        Case("changed-handwritten-support", changed_handwritten_support),
+        Case("changed-reading-inputs", changed_reading_inputs),
     ]

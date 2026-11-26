@@ -144,8 +144,10 @@ bytes and emitted axioms bound to the
 the checkout's [handwritten Rocq support](../../model/handwritten_support/riscv_extras.v)
 against the source digest recorded when the frozen declarations were read. A
 change to that file requires fresh readings even if both emissions repeat. The
-result records its digest alongside the comparison, input record and generation
-receipt digests.
+driver verifies the retained Rocq library inventory against its digest and
+requires the comparison's final library stability check to have passed. The
+result records the inventory and handwritten source digests alongside the
+comparison, input record and generation receipt digests.
 The `revision` input selects the exact commit on `main`.
 Use `e72c93f260fd025bc9594a983b1459a8e46bed41` to qualify the historical input
 pair using the guard stored at that revision. Use a revision carrying the
