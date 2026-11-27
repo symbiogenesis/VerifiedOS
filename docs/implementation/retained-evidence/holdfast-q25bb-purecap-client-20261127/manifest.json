@@ -1,0 +1,34 @@
+{
+  "files": {
+    "controls.json": {
+      "bytes": 5293,
+      "encoding": "identity",
+      "path": "controls.json",
+      "sha256": "995eed82d61baedc01f18bd08c51dfe87d2996a53199f435081150a753cf6c0b"
+    },
+    "driver.py.txt": {
+      "bytes": 46072,
+      "encoding": "identity",
+      "path": "driver.py.txt",
+      "sha256": "43385712bc9f2a2ed1694e5a326c27d59bb4c0f122770d01de0b57f378eb8526"
+    },
+    "envelope.json": {
+      "bytes": 59573,
+      "encoding": "identity",
+      "path": "envelope.json",
+      "sha256": "63cce229ba186127f5bf36df73f7b38ae9b9f32ebc6d70c51e82c9c0605099b1"
+    },
+    "native-parity.json": {
+      "bytes": 4139,
+      "encoding": "identity",
+      "path": "native-parity.json",
+      "sha256": "73e995563e7232bad91e8db9a34768b7cfa11711823c2b20403bfdbd10b87fa1"
+    },
+    "report.json": {
+      "bytes": 2273,
+      "encoding": "identity",
+      "path": "report.json",
+      "sha256": "fb0c813efe9dfb8b00b37477c5a50fcbede85a2ea55d008c972f5bcce6f3bdad"
+    }
+  }
+}

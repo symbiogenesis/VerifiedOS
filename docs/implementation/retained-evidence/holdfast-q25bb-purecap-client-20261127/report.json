@@ -1,0 +1,43 @@
+{
+  "code": 0,
+  "compcert_ini_sha256": "e0efcb8f02d749b406ed243e21408307f2189af136ae562a48b0d2044581550f",
+  "compiler_sha256": "3dae6ac7bd5a074053130fdcaaab84c42030bdc24be9fff6a4b244db272252f8",
+  "controls_sha256": "995eed82d61baedc01f18bd08c51dfe87d2996a53199f435081150a753cf6c0b",
+  "elf_sha256": "a1598ed8877f6ffd51efdd95e50da0eb5d39b5b4a9373922dc2916e921a2c87f",
+  "envelope_sha256": "63cce229ba186127f5bf36df73f7b38ae9b9f32ebc6d70c51e82c9c0605099b1",
+  "frozen_members": {
+    "compiled C": {
+      "bytes": 4808,
+      "sha256": "a4d9ebf4439c5237ef4aaf8e8030f589b030bcad488701a036b7d2aacb91ee3a"
+    },
+    "src/atomic_target.s": {
+      "bytes": 532,
+      "sha256": "80411cc51436678d7d3c514effc3230b82f247c92a1b74ec26388a100327e46e"
+    },
+    "src/notification_target.s": {
+      "bytes": 96,
+      "sha256": "702fa545fd8ef32131913841d6ad19455dec63a406ae8cec8406b6890802d322"
+    }
+  },
+  "frozen_members_matched": true,
+  "frozen_source_revision": "498127d6be3d1a70581ba4a9cc025c2d923e66f7",
+  "holdfast_client_c_sha256": "c7aa335602bc1512892c571459226a6d9d164eda8e4f6e057414a67dfb683e44",
+  "holdfast_client_h_sha256": "7820ab3f57345e0d3c5bb0abc360e470493e572dfde9e2309c78b6b050c2c41d",
+  "holdfast_revision": "85b9462f6787b4fd070322e0a3587fa28d8071d2",
+  "installed_entry": null,
+  "native_parity_matched": true,
+  "native_parity_sha256": "73e995563e7232bad91e8db9a34768b7cfa11711823c2b20403bfdbd10b87fa1",
+  "negative_controls_passed": true,
+  "prepared_source_sha256": "e6991359da24d4aaf459fb262ebbd906b2bb858ee61538337df88ec649945205",
+  "production_admission": false,
+  "profile_sha256": "7ff6f9dec6fbe0c164d52eea4862cc2cd29fd5d73fe59f498ca6011a1b6f88c2",
+  "qualified_producer": false,
+  "qualified_target_entry_producer_refusal": "target requires a successful source-bound contained compiler build",
+  "raw_log_sha256": "44dd45b4a7b4983629b3a14f2f3c8d6f20cd55e2c7219dbb1a412f7773dab646",
+  "scope": "Q25bb purecap HoldFast client end-to-end target execution against frozen 498127d6 copy-service",
+  "simulator_sha256": "dae7008727781fe22368c8a1dbaa7c387e33af10a3e2613ef6c23fcbec11560f",
+  "trace_records": 9490563,
+  "trace_sha256": "91b423c7b9f22eebeed079dc61bce56d0c741cf5806070138d9fcc94ec29a64a",
+  "trial_acceptance": false,
+  "verdict": "pass"
+}

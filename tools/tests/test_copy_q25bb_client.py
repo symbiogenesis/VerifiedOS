@@ -5,13 +5,28 @@ import copy
 import hashlib
 import json
 from collections.abc import Callable
-from typing import Any, cast
+from pathlib import Path
+from typing import Any, Final, cast
 
 from tests.harness import TOOLS, Case, ensure
 from vos import copy_q25bb_client as q25bb
 
 REPO_ROOT = TOOLS.parent
-BUNDLE_DIR = REPO_ROOT / "docs/implementation/retained-evidence/holdfast-q25bb-purecap-client-20261126"
+EVIDENCE_ROOT = REPO_ROOT / "docs/implementation/retained-evidence"
+BUNDLE_20261126 = EVIDENCE_ROOT / "holdfast-q25bb-purecap-client-20261126"
+BUNDLE_20261127 = EVIDENCE_ROOT / "holdfast-q25bb-purecap-client-20261127"
+BUNDLE_DIR = BUNDLE_20261127
+
+HISTORICAL_20261126_CONTROLS: Final[dict[str, tuple[str, tuple[int, ...], str]]] = {
+    name: q25bb.NEGATIVE_CONTROL_SPECS[name]
+    for name in (
+        "mutated-payload-limit",
+        "mutated-snapshot-byte",
+        "mutated-suffix-clobber",
+        "mutated-refusal-output",
+        "mutated-narrow-arena-cap",
+    )
+}
 
 
 def _sha256(raw: bytes) -> str:
@@ -27,25 +42,20 @@ def _refuse(fn: Callable[[], object], expected: str) -> None:
     raise AssertionError(f"expected ValueError containing {expected!r}")
 
 
-def _retained_bundle_positive() -> None:
-    manifest = json.loads((BUNDLE_DIR / "manifest.json").read_text(encoding="utf-8"))
+def _check_manifest(bundle_dir: Path, expected_members: set[str]) -> None:
+    manifest = json.loads((bundle_dir / "manifest.json").read_text(encoding="utf-8"))
     files = cast(dict[str, Any], manifest["files"])
-    expected_members = {"report.json", "envelope.json", "controls.json", "driver.py.txt"}
     ensure(set(files.keys()) == expected_members, f"unexpected bundle members: {sorted(files)}")
     for name in expected_members:
-        raw = (BUNDLE_DIR / name).read_bytes()
+        raw = (bundle_dir / name).read_bytes()
         entry = cast(dict[str, Any], files[name])
         ensure(
             entry["bytes"] == len(raw) and entry["sha256"] == _sha256(raw),
             f"manifest mismatch for {name}",
         )
-    ensure(
-        (BUNDLE_DIR / "driver.py.txt").read_bytes()
-        == (REPO_ROOT / "tools/vos/copy_q25bb_client.py").read_bytes(),
-        "retained driver.py.txt must match tools/vos/copy_q25bb_client.py",
-    )
 
-    report, envelope, controls = q25bb.validate_bundle_dir(BUNDLE_DIR)
+
+def _check_envelope_metrics(report: dict[str, Any], envelope: dict[str, Any]) -> None:
     ensure(report["verdict"] == "pass" and report["code"] == 0, f"unexpected verdict: {report}")
     ops = cast(dict[str, Any], envelope["operations"])
     ensure(ops["vos_copy_init_generation"]["call_count"] == 5, f"unexpected init_gen count: {ops}")
@@ -57,6 +67,19 @@ def _retained_bundle_positive() -> None:
         and ops["vos_copy_take"]["stack_frame_bytes"]["peak"] == 176,
         f"unexpected stack bounds: {ops}",
     )
+
+
+def _retained_bundle_20261126_positive() -> None:
+    _check_manifest(
+        BUNDLE_20261126,
+        {"report.json", "envelope.json", "controls.json", "driver.py.txt"},
+    )
+    report, envelope, controls = q25bb.validate_bundle_dir(
+        BUNDLE_20261126,
+        expected_controls=HISTORICAL_20261126_CONTROLS,
+        require_native_parity=False,
+    )
+    _check_envelope_metrics(report, envelope)
     ctrl_map = cast(dict[str, Any], controls["controls"])
     ensure(
         ctrl_map["mutated-payload-limit"]["code"] == 14
@@ -65,7 +88,45 @@ def _retained_bundle_positive() -> None:
         and ctrl_map["mutated-refusal-output"]["code"] in (2, 6)
         and ctrl_map["mutated-narrow-arena-cap"]["verdict"] == "trap"
         and ctrl_map["mutated-narrow-arena-cap"]["trap_cause"] == 28,
+        f"unexpected 20261126 negative control results: {ctrl_map}",
+    )
+
+
+def _retained_bundle_positive() -> None:
+    _check_manifest(
+        BUNDLE_20261127,
+        {"report.json", "envelope.json", "controls.json", "native-parity.json", "driver.py.txt"},
+    )
+    ensure(
+        (BUNDLE_20261127 / "driver.py.txt").read_bytes()
+        == (REPO_ROOT / "tools/vos/copy_q25bb_client.py").read_bytes(),
+        "retained driver.py.txt must match tools/vos/copy_q25bb_client.py",
+    )
+
+    report, envelope, controls = q25bb.validate_bundle_dir(BUNDLE_20261127)
+    _check_envelope_metrics(report, envelope)
+    ctrl_map = cast(dict[str, Any], controls["controls"])
+    ensure(
+        ctrl_map["mutated-payload-limit"]["code"] == 14
+        and ctrl_map["mutated-snapshot-byte"]["code"] == 7
+        and ctrl_map["mutated-suffix-clobber"]["code"] == 8
+        and ctrl_map["mutated-refusal-output"]["code"] in (2, 6)
+        and ctrl_map["mutated-overlapping-views"]["code"] == 9
+        and ctrl_map["mutated-narrow-arena-cap"]["verdict"] == "trap"
+        and ctrl_map["mutated-narrow-arena-cap"]["trap_cause"] == 28
+        and ctrl_map["mutated-read-only-arena-cap"]["verdict"] == "trap"
+        and ctrl_map["mutated-read-only-arena-cap"]["trap_cause"] == 28
+        and ctrl_map["mutated-untagged-arena-cap"]["verdict"] == "trap"
+        and ctrl_map["mutated-untagged-arena-cap"]["trap_cause"] == 28,
         f"unexpected negative control results: {ctrl_map}",
+    )
+    native_parity = json.loads((BUNDLE_20261127 / "native-parity.json").read_text(encoding="utf-8"))
+    ensure(
+        native_parity["all_parity_matched"] is True
+        and native_parity["holdfast_revision"] == "85b9462f6787b4fd070322e0a3587fa28d8071d2"
+        and set(native_parity["parity_checks"].keys())
+        == {native for native, _ in q25bb.PARITY_CASE_MAP},
+        f"unexpected native parity record: {native_parity}",
     )
 
 
@@ -77,9 +138,21 @@ def _wrapper_and_client_scoping() -> None:
     pos_wrapper = q25bb.entry_wrapper(arena_bytes)
     ensure("li x31, 524288" in pos_wrapper and "li x31, 16384" in pos_wrapper, pos_wrapper)
     ensure("q25bb_arena +" not in pos_wrapper, pos_wrapper)
+    ensure("candperm" not in pos_wrapper and "cgetaddr" not in pos_wrapper, pos_wrapper)
 
     narrow_wrapper = q25bb.entry_wrapper(arena_bytes, narrow_arena_by=1)
     ensure("li x31, q25bb_arena + 8188" in narrow_wrapper, narrow_wrapper)
+
+    ro_wrapper = q25bb.entry_wrapper(arena_bytes, read_only_arena=True)
+    ensure("andi x31, x31, -5" in ro_wrapper and "candperm c11, c11, x31" in ro_wrapper, ro_wrapper)
+
+    untagged_wrapper = q25bb.entry_wrapper(arena_bytes, untagged_arena=True)
+    ensure("cgetaddr x11, c11" in untagged_wrapper, untagged_wrapper)
+
+    _refuse(
+        lambda: q25bb.entry_wrapper(arena_bytes, read_only_arena=True, untagged_arena=True),
+        "at most one arena capability mutation",
+    )
 
     sample_asm = "\n".join([
         "# header",
@@ -133,7 +206,8 @@ def _wrapper_and_client_scoping() -> None:
 
 
 def _mutated_report_refusals() -> None:
-    report, envelope, controls = q25bb.validate_bundle_dir(BUNDLE_DIR)
+    report, envelope, controls = q25bb.validate_bundle_dir(BUNDLE_20261127)
+    native_parity = json.loads((BUNDLE_20261127 / "native-parity.json").read_text(encoding="utf-8"))
 
     for key, bad_val in (
         ("qualified_producer", True),
@@ -143,44 +217,106 @@ def _mutated_report_refusals() -> None:
     ):
         bad_report = copy.deepcopy(report)
         bad_report[key] = bad_val
-        _refuse(lambda r=bad_report: q25bb.validate_bundle(r, envelope, controls), f"report: {key}")
+        _refuse(
+            lambda r=bad_report: q25bb.validate_bundle(r, envelope, controls, native_parity),
+            f"report: {key}",
+        )
 
     bad_source = copy.deepcopy(report)
     bad_source["prepared_source_sha256"] = "0" * 64
-    _refuse(lambda: q25bb.validate_bundle(bad_source, envelope, controls), "prepared_source_sha256")
+    _refuse(
+        lambda: q25bb.validate_bundle(bad_source, envelope, controls, native_parity),
+        "prepared_source_sha256",
+    )
 
     bad_member = copy.deepcopy(envelope)
     bad_member["static_footprint"]["members"]["compiled C"]["sha256"] = "0" * 64
-    _refuse(lambda: q25bb.validate_bundle(report, bad_member, controls), "frozen 498127d6 build")
+    _refuse(
+        lambda: q25bb.validate_bundle(report, bad_member, controls, native_parity),
+        "frozen 498127d6 build",
+    )
 
     bad_verdict = copy.deepcopy(report)
     bad_verdict["verdict"] = "fail"
-    _refuse(lambda: q25bb.validate_bundle(bad_verdict, envelope, controls), "passing verdict")
+    _refuse(
+        lambda: q25bb.validate_bundle(bad_verdict, envelope, controls, native_parity),
+        "passing verdict",
+    )
 
     bad_ctrl_trap = copy.deepcopy(controls)
     bad_ctrl_trap["controls"]["mutated-narrow-arena-cap"]["verdict"] = "fail"
     _refuse(
-        lambda: q25bb.validate_bundle(report, envelope, bad_ctrl_trap),
+        lambda: q25bb.validate_bundle(report, envelope, bad_ctrl_trap, native_parity),
         "expected verdict 'trap'",
+    )
+
+    bad_ro_cause = copy.deepcopy(controls)
+    bad_ro_cause["controls"]["mutated-read-only-arena-cap"]["trap_cause"] = 0
+    _refuse(
+        lambda: q25bb.validate_bundle(report, envelope, bad_ro_cause, native_parity),
+        "expected CHERI trap cause 28",
+    )
+
+    bad_untagged_verdict = copy.deepcopy(controls)
+    bad_untagged_verdict["controls"]["mutated-untagged-arena-cap"]["verdict"] = "pass"
+    _refuse(
+        lambda: q25bb.validate_bundle(report, envelope, bad_untagged_verdict, native_parity),
+        "expected verdict 'trap'",
+    )
+
+    bad_overlap_code = copy.deepcopy(controls)
+    bad_overlap_code["controls"]["mutated-overlapping-views"]["code"] = 0
+    _refuse(
+        lambda: q25bb.validate_bundle(report, envelope, bad_overlap_code, native_parity),
+        "expected code in (9,)",
     )
 
     bad_ctrl_code = copy.deepcopy(controls)
     bad_ctrl_code["controls"]["mutated-payload-limit"]["code"] = 0
     _refuse(
-        lambda: q25bb.validate_bundle(report, envelope, bad_ctrl_code),
+        lambda: q25bb.validate_bundle(report, envelope, bad_ctrl_code, native_parity),
         "expected code in (14,)",
     )
 
     missing_ctrl = copy.deepcopy(controls)
     del missing_ctrl["controls"]["mutated-suffix-clobber"]
     _refuse(
-        lambda: q25bb.validate_bundle(report, envelope, missing_ctrl),
-        "expected all 5 negative controls",
+        lambda: q25bb.validate_bundle(report, envelope, missing_ctrl, native_parity),
+        "expected all 8 negative controls",
+    )
+
+    bad_parity_exit = copy.deepcopy(native_parity)
+    bad_parity_exit["parity_checks"]["tightened_payload_limit"]["native_exit"] = 1
+    _refuse(
+        lambda: q25bb.validate_bundle(report, envelope, controls, bad_parity_exit),
+        "native/target exit mismatch",
+    )
+
+    bad_parity_flag = copy.deepcopy(native_parity)
+    bad_parity_flag["all_parity_matched"] = False
+    _refuse(
+        lambda: q25bb.validate_bundle(report, envelope, controls, bad_parity_flag),
+        "all_parity_matched must be True",
+    )
+
+    bad_parity_syntax = copy.deepcopy(native_parity)
+    bad_parity_syntax["native_report"]["target_declarations_syntax_exit"] = 1
+    _refuse(
+        lambda: q25bb.validate_bundle(report, envelope, controls, bad_parity_syntax),
+        "target_declarations_syntax_exit must be 0",
+    )
+
+    bad_parity_accept = copy.deepcopy(native_parity)
+    bad_parity_accept["trial_acceptance"] = True
+    _refuse(
+        lambda: q25bb.validate_bundle(report, envelope, controls, bad_parity_accept),
+        "native_parity: trial_acceptance",
     )
 
 
 def cases() -> list[Case]:
     return [
+        Case("copy-q25bb-client-20261126-historical-passes", _retained_bundle_20261126_positive),
         Case("copy-q25bb-client-retained-bundle-passes", _retained_bundle_positive),
         Case("copy-q25bb-client-wrapper-and-scoping", _wrapper_and_client_scoping),
         Case("copy-q25bb-client-refuses-mutated-reports", _mutated_report_refusals),

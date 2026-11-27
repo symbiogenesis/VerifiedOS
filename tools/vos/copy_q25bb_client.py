@@ -4,6 +4,7 @@
 import argparse
 import hashlib
 import json
+import os
 import re
 import shutil
 import subprocess
@@ -49,20 +50,48 @@ TRIAL_EMPTY: Final = 2
 TRIAL_TOO_SMALL: Final = 6
 TRIAL_SNAPSHOT: Final = 7
 TRIAL_SUFFIX: Final = 8
+TRIAL_FRAME: Final = 9
 TRIAL_PAYLOAD_LIMIT: Final = 14
-CHERI_CAP_BOUNDS_TRAP_CODE: Final = compiler_diff.TRAP_BASE + 28
-CHERI_CAP_BOUNDS_CAUSE: Final = 28
+CHERI_CAP_CAUSE: Final = 28
+CHERI_CAP_TRAP_CODE: Final = compiler_diff.TRAP_BASE + CHERI_CAP_CAUSE
+CHERI_CAP_BOUNDS_TRAP_CODE: Final = CHERI_CAP_TRAP_CODE
+CHERI_CAP_BOUNDS_CAUSE: Final = CHERI_CAP_CAUSE
 
 NEGATIVE_CONTROL_SPECS: Final[dict[str, tuple[str, tuple[int, ...], str]]] = {
     "mutated-payload-limit": ("fail", (TRIAL_PAYLOAD_LIMIT,), "c-mutation"),
     "mutated-snapshot-byte": ("fail", (TRIAL_SNAPSHOT,), "c-mutation"),
     "mutated-suffix-clobber": ("fail", (TRIAL_SUFFIX,), "c-mutation"),
     "mutated-refusal-output": ("fail", (TRIAL_EMPTY, TRIAL_TOO_SMALL), "c-mutation"),
+    "mutated-overlapping-views": ("fail", (TRIAL_FRAME,), "client-mutation"),
     "mutated-narrow-arena-cap": (
         "trap",
-        (CHERI_CAP_BOUNDS_TRAP_CODE,),
+        (CHERI_CAP_TRAP_CODE,),
         "capability-bounds-narrowing",
     ),
+    "mutated-read-only-arena-cap": (
+        "trap",
+        (CHERI_CAP_TRAP_CODE,),
+        "capability-permission-narrowing",
+    ),
+    "mutated-untagged-arena-cap": (
+        "trap",
+        (CHERI_CAP_TRAP_CODE,),
+        "capability-tag-clearing",
+    ),
+}
+
+PARITY_CASE_MAP: Final[tuple[tuple[str, str], ...]] = (
+    ("baseline", "baseline"),
+    ("tightened_payload_limit", "mutated-payload-limit"),
+    ("changed_staged_prefix", "mutated-snapshot-byte"),
+    ("changed_suffix", "mutated-suffix-clobber"),
+    ("changed_refusal_output", "mutated-refusal-output"),
+)
+
+_WRAPPER_MUTATION_KWARGS: Final[dict[str, dict[str, Any]]] = {
+    "capability-bounds-narrowing": {"narrow_arena_by": 1},
+    "capability-permission-narrowing": {"read_only_arena": True},
+    "capability-tag-clearing": {"untagged_arena": True},
 }
 
 NON_ACCEPTANCE_FLAGS: Final[dict[str, object]] = {
@@ -104,9 +133,19 @@ def power_of_two_ceil(size: int) -> int:
     return 1 << (size - 1).bit_length()
 
 
-def entry_wrapper(arena_bytes: int, *, narrow_arena_by: int = 0) -> str:
+def entry_wrapper(
+    arena_bytes: int,
+    *,
+    narrow_arena_by: int = 0,
+    read_only_arena: bool = False,
+    untagged_arena: bool = False,
+) -> str:
     """Emit the purecap `main` entry wrapper constructing ring and arena capabilities."""
     _require(0 <= narrow_arena_by < arena_bytes, "invalid arena narrowing offset")
+    _require(
+        sum((narrow_arena_by > 0, read_only_arena, untagged_arena)) <= 1,
+        "at most one arena capability mutation may be selected",
+    )
     arena_extent = power_of_two_ceil(arena_bytes)
     lines = [
         ".text",
@@ -136,6 +175,17 @@ def entry_wrapper(arena_bytes: int, *, narrow_arena_by: int = 0) -> str:
             f"    li x31, q25bb_arena + {narrow_offset}",
             "    csetaddr c11, c11, x31",
         ])
+    elif read_only_arena:
+        # Clear bit 2 (permit-store) via candperm so the arena capability becomes read-only.
+        lines.extend([
+            "    cgetperm x31, c11",
+            "    andi x31, x31, -5",
+            "    candperm c11, c11, x31",
+        ])
+    elif untagged_arena:
+        # ccleartag is absent in the frozen dialect; under merged registers, an integer
+        # write to x11 clears c11's validity tag while keeping its address.
+        lines.append("    cgetaddr x11, c11")
     lines.extend([
         "    call holdfast_copy_trial",
         "    j q25bb_return",
@@ -278,11 +328,23 @@ def _compile_client_unit(
     client_c: Path,
     client_h: Path,
     scratch: Path,
+    *,
+    overlap_views: bool = False,
 ) -> str:
     scratch.mkdir(parents=True, exist_ok=True)
     staged_c = scratch / "q25bb-copy-client.c"
     staged_h = scratch / "q25bb-copy-client.h"
-    staged_c.write_bytes(client_c.read_bytes())
+    if overlap_views:
+        client_src = client_c.read_text(encoding="utf-8")
+        target = "arena + HOLDFAST_COPY_TRIAL_DESTINATION_OFFSET"
+        replacement = "arena + HOLDFAST_COPY_TRIAL_OVERLAPPING_OFFSET"
+        _require(
+            client_src.count(target) == 1,
+            "cannot locate destination offset in q25bb-copy-client.c",
+        )
+        staged_c.write_text(client_src.replace(target, replacement, 1), encoding="utf-8")
+    else:
+        staged_c.write_bytes(client_c.read_bytes())
     staged_h.write_bytes(client_h.read_bytes())
     unit_c = scratch / "client_unit.c"
     unit_c.write_text(_client_unit_source(), encoding="utf-8")
@@ -419,6 +481,134 @@ def _trace_details(raw_log: bytes) -> tuple[int, str, list[int]]:
     return len(records), trace_sha, trap_causes
 
 
+def _git_common_dir(root: Path) -> Path:
+    done = subprocess.run(
+        ["git", "-C", str(root), "rev-parse", "--git-common-dir"],
+        capture_output=True,
+        text=True,
+        check=True,
+        timeout=30,
+    )
+    raw = Path(done.stdout.strip())
+    return raw if raw.is_absolute() else (root / raw).resolve()
+
+
+def run_native_parity(
+    root: Path,
+    holdfast_repo: Path,
+    prepared_header: Path,
+    *,
+    cc: str = "cc",
+    timeout: int = 120,
+) -> dict[str, object]:
+    """Run HoldFast's `holdfast-copy-trial` native parity replay and return its JSON report."""
+    git_dir = _git_common_dir(root)
+    env = os.environ.copy()
+    existing_pythonpath = env.get("PYTHONPATH")
+    tools_dir = str(holdfast_repo / "tools")
+    env["PYTHONPATH"] = (
+        f"{tools_dir}{os.pathsep}{existing_pythonpath}"
+        if existing_pythonpath is not None and existing_pythonpath != ""
+        else tools_dir
+    )
+    argv = [
+        sys.executable,
+        "-c",
+        (
+            "import sys; "
+            "from toolchain.cli.holdfast_copy_trial import main; "
+            "raise SystemExit(main(sys.argv[1:]))"
+        ),
+        "--verifiedos-git-dir",
+        str(git_dir),
+        "--prepared-header",
+        str(prepared_header),
+        "--cc",
+        cc,
+    ]
+    done = subprocess.run(
+        argv,
+        cwd=holdfast_repo,
+        env=env,
+        capture_output=True,
+        text=True,
+        timeout=timeout,
+        check=False,
+    )
+    _require(
+        done.returncode == 0,
+        f"holdfast-copy-trial native parity failed: {(done.stderr + done.stdout).strip()}",
+    )
+    parsed = json.loads(done.stdout)
+    _require(isinstance(parsed, dict), "holdfast-copy-trial output must be a JSON object")
+    return cast(dict[str, object], parsed)
+
+
+def build_native_parity_report(
+    holdfast_rev: str,
+    native_report: Mapping[str, object],
+    target_code: int,
+    controls: Mapping[str, object],
+) -> dict[str, object]:
+    """Compare HoldFast host-native exit codes against purecap target exit codes."""
+    _require(
+        native_report.get("schema") == "holdfast-copy-trial-native/1",
+        f"unexpected native parity schema: {native_report.get('schema')!r}",
+    )
+    _require(
+        native_report.get("verifiedos_revision") == FROZEN_SOURCE_REVISION,
+        f"native parity verifiedos_revision mismatch: {native_report.get('verifiedos_revision')!r}",
+    )
+    _require(
+        native_report.get("target_declarations_syntax_exit") == 0,
+        "native parity target declaration syntax check failed",
+    )
+    native_cases = native_report.get("native_cases")
+    _require(isinstance(native_cases, Mapping), "native_report missing native_cases")
+    native_map = cast(Mapping[str, object], native_cases)
+
+    parity_checks: dict[str, object] = {}
+    for native_name, target_name in PARITY_CASE_MAP:
+        native_entry = native_map.get(native_name)
+        _require(isinstance(native_entry, Mapping), f"native_cases missing {native_name}")
+        native_exit = cast(Mapping[str, object], native_entry).get("exit")
+        _require(type(native_exit) is int, f"native_cases.{native_name}.exit must be an int")
+        if target_name == "baseline":
+            actual_verdict = "pass"
+            actual_code = target_code
+        else:
+            ctrl_entry = controls.get(target_name)
+            _require(isinstance(ctrl_entry, Mapping), f"controls missing parity target {target_name}")
+            ctrl_map = cast(Mapping[str, object], ctrl_entry)
+            actual_verdict = str(ctrl_map.get("verdict"))
+            raw_code = ctrl_map.get("code")
+            _require(type(raw_code) is int, f"controls.{target_name}.code must be an int")
+            actual_code = raw_code
+        _require(
+            native_exit == actual_code,
+            f"host-native vs purecap-target exit mismatch for {native_name}/{target_name}: "
+            f"native={native_exit} vs target={actual_code}",
+        )
+        parity_checks[native_name] = {
+            "native_case": native_name,
+            "target_case": target_name,
+            "native_exit": native_exit,
+            "target_verdict": actual_verdict,
+            "target_code": actual_code,
+            "parity_matched": True,
+        }
+
+    return {
+        "scope": "Q25bb host-native vs purecap-target exit-code parity against frozen 498127d6 copy-service",
+        "frozen_source_revision": FROZEN_SOURCE_REVISION,
+        "holdfast_revision": holdfast_rev,
+        "native_report": dict(native_report),
+        "parity_checks": parity_checks,
+        "all_parity_matched": True,
+        **NON_ACCEPTANCE_FLAGS,
+    }
+
+
 def run(
     root: Path,
     holdfast_repo: Path,
@@ -426,6 +616,7 @@ def run(
     simulator: Path,
     output: Path,
     *,
+    cc: str = "cc",
     timeout: int = 300,
 ) -> dict[str, object]:
     """Build, execute, observe, and validate HoldFast's purecap Q25bb client on Sail."""
@@ -518,17 +709,35 @@ def run(
                 ctrl_package_s = _compile_package_unit(
                     compiler, config_path, mutated_prepared, recipe, scratch / "package_unit.s"
                 )
+            ctrl_client_s = positive_client_s
             ctrl_wrapper_s = entry_wrapper(arena_bytes)
-        else:
+        elif kind == "client-mutation":
+            with tempfile.TemporaryDirectory(prefix=f"{control_name}-", dir=controls_dir) as td:
+                ctrl_client_s = _compile_client_unit(
+                    compiler,
+                    config_path,
+                    prepared,
+                    recipe,
+                    client_c,
+                    client_h,
+                    Path(td),
+                    overlap_views=True,
+                )
             ctrl_package_s = positive_package_s
-            ctrl_wrapper_s = entry_wrapper(arena_bytes, narrow_arena_by=1)
+            ctrl_wrapper_s = entry_wrapper(arena_bytes)
+        elif kind in _WRAPPER_MUTATION_KWARGS:
+            ctrl_package_s = positive_package_s
+            ctrl_client_s = positive_client_s
+            ctrl_wrapper_s = entry_wrapper(arena_bytes, **_WRAPPER_MUTATION_KWARGS[kind])
+        else:
+            raise ValueError(f"unsupported negative control kind: {kind}")
 
         ctrl_elf = controls_dir / f"{control_name}.elf"
         ctrl_elf_bytes, _ = _assemble_and_check_extents(
             ctrl_package_s,
             atomic_s,
             notification_s,
-            positive_client_s,
+            ctrl_client_s,
             ctrl_wrapper_s,
             control_name,
             ctrl_elf,
@@ -545,8 +754,8 @@ def run(
         )
         if exp_verdict == "trap":
             _require(
-                CHERI_CAP_BOUNDS_CAUSE in trap_causes,
-                f"negative control {control_name} missing CHERI bounds cause {CHERI_CAP_BOUNDS_CAUSE}: {trap_causes}",
+                CHERI_CAP_CAUSE in trap_causes,
+                f"negative control {control_name} missing CHERI cause {CHERI_CAP_CAUSE}: {trap_causes}",
             )
         controls_out[control_name] = {
             "name": control_name,
@@ -571,10 +780,26 @@ def run(
         **NON_ACCEPTANCE_FLAGS,
     }
 
+    native_report = run_native_parity(
+        root,
+        holdfast_repo,
+        prepared / "include/copy_service_config.h",
+        cc=cc,
+        timeout=timeout,
+    )
+    native_parity_doc = build_native_parity_report(
+        holdfast_rev,
+        native_report,
+        cast(int, sim_run["code"]),
+        controls_out,
+    )
+
     envelope_bytes = (json.dumps(envelope, indent=2, sort_keys=True) + "\n").encode("utf-8")
     controls_bytes = (json.dumps(controls_doc, indent=2, sort_keys=True) + "\n").encode("utf-8")
+    native_parity_bytes = (json.dumps(native_parity_doc, indent=2, sort_keys=True) + "\n").encode("utf-8")
     (output / "envelope.json").write_bytes(envelope_bytes)
     (output / "controls.json").write_bytes(controls_bytes)
+    (output / "native-parity.json").write_bytes(native_parity_bytes)
 
     trace_summary = cast(Mapping[str, object], envelope["trace_summary"])
     report: dict[str, object] = {
@@ -602,13 +827,15 @@ def run(
         "raw_log_sha256": envelope["raw_log_sha256"],
         "envelope_sha256": _sha256(envelope_bytes),
         "controls_sha256": _sha256(controls_bytes),
+        "native_parity_sha256": _sha256(native_parity_bytes),
         "negative_controls_passed": True,
+        "native_parity_matched": True,
         **NON_ACCEPTANCE_FLAGS,
     }
     report_bytes = (json.dumps(report, indent=2, sort_keys=True) + "\n").encode("utf-8")
     (output / "report.json").write_bytes(report_bytes)
 
-    validate_bundle(report, envelope, controls_doc)
+    validate_bundle(report, envelope, controls_doc, native_parity_doc)
     return report
 
 
@@ -637,12 +864,84 @@ def _check_frozen_members_map(members: object, label: str) -> None:
         )
 
 
+def _validate_native_parity(
+    native_parity: Mapping[str, object],
+    report: Mapping[str, object],
+    ctrl_map: Mapping[str, object],
+) -> None:
+    _check_non_acceptance(native_parity, "native_parity")
+    _require(
+        native_parity.get("frozen_source_revision") == FROZEN_SOURCE_REVISION,
+        "native_parity: frozen_source_revision mismatch",
+    )
+    _require(
+        native_parity.get("all_parity_matched") is True,
+        "native_parity: all_parity_matched must be True",
+    )
+    native_report = native_parity.get("native_report")
+    _require(isinstance(native_report, Mapping), "native_parity: missing native_report")
+    nr_map = cast(Mapping[str, object], native_report)
+    _require(
+        nr_map.get("schema") == "holdfast-copy-trial-native/1",
+        "native_parity: unexpected native_report schema",
+    )
+    _require(
+        nr_map.get("verifiedos_revision") == FROZEN_SOURCE_REVISION,
+        "native_parity: native_report verifiedos_revision mismatch",
+    )
+    _require(
+        nr_map.get("target_declarations_syntax_exit") == 0,
+        "native_parity: target_declarations_syntax_exit must be 0",
+    )
+    native_cases = nr_map.get("native_cases")
+    _require(isinstance(native_cases, Mapping), "native_parity: missing native_cases")
+    nc_map = cast(Mapping[str, object], native_cases)
+
+    parity_checks = native_parity.get("parity_checks")
+    _require(isinstance(parity_checks, Mapping), "native_parity: missing parity_checks")
+    pc_map = cast(Mapping[str, object], parity_checks)
+    expected_keys = {native_name for native_name, _ in PARITY_CASE_MAP}
+    _require(
+        set(pc_map.keys()) == expected_keys,
+        f"native_parity: parity_checks keys mismatch: {sorted(pc_map.keys())}",
+    )
+    for native_name, target_name in PARITY_CASE_MAP:
+        raw_check = pc_map[native_name]
+        _require(isinstance(raw_check, Mapping), f"native_parity.{native_name}: must be an object")
+        check_map = cast(Mapping[str, object], raw_check)
+        _require(check_map.get("parity_matched") is True, f"native_parity.{native_name}: parity_matched must be True")
+        _require(check_map.get("target_case") == target_name, f"native_parity.{native_name}: target_case mismatch")
+        native_exit = check_map.get("native_exit")
+        target_code = check_map.get("target_code")
+        _require(
+            type(native_exit) is int and type(target_code) is int and native_exit == target_code,
+            f"native_parity.{native_name}: native/target exit mismatch: {native_exit!r} vs {target_code!r}",
+        )
+        raw_nc = nc_map.get(native_name)
+        _require(
+            isinstance(raw_nc, Mapping) and cast(Mapping[str, object], raw_nc).get("exit") == native_exit,
+            f"native_parity.{native_name}: native_cases exit disagrees with parity_checks",
+        )
+        if target_name == "baseline":
+            _require(target_code == report.get("code"), "native_parity.baseline: disagrees with report.code")
+        else:
+            raw_ctrl = ctrl_map.get(target_name)
+            _require(
+                isinstance(raw_ctrl, Mapping) and cast(Mapping[str, object], raw_ctrl).get("code") == target_code,
+                f"native_parity.{native_name}: disagrees with controls.{target_name}.code",
+            )
+
+
 def validate_bundle(
     report: Mapping[str, object],
     envelope: Mapping[str, object],
     controls: Mapping[str, object],
+    native_parity: Mapping[str, object] | None = None,
+    *,
+    expected_controls: Mapping[str, tuple[str, tuple[int, ...], str]] = NEGATIVE_CONTROL_SPECS,
+    require_native_parity: bool = True,
 ) -> None:
-    """Validate `report.json`, `envelope.json`, and `controls.json` invariants and verdicts."""
+    """Validate `report.json`, `envelope.json`, `controls.json`, and `native-parity.json` invariants."""
     _check_non_acceptance(report, "report")
     _check_non_acceptance(envelope, "envelope")
     _check_non_acceptance(controls, "controls")
@@ -716,10 +1015,10 @@ def validate_bundle(
     _require(isinstance(ctrl_entries, Mapping), "controls: missing controls map")
     ctrl_map = cast(Mapping[str, object], ctrl_entries)
     _require(
-        set(ctrl_map.keys()) == set(NEGATIVE_CONTROL_SPECS.keys()),
-        f"controls: expected all 5 negative controls, got {sorted(ctrl_map.keys())}",
+        set(ctrl_map.keys()) == set(expected_controls.keys()),
+        f"controls: expected all {len(expected_controls)} negative controls, got {sorted(ctrl_map.keys())}",
     )
-    for name, (exp_verdict, exp_codes, _) in NEGATIVE_CONTROL_SPECS.items():
+    for name, (exp_verdict, exp_codes, _) in expected_controls.items():
         raw_entry = ctrl_map[name]
         _require(isinstance(raw_entry, Mapping), f"controls.{name}: must be an object")
         entry = cast(Mapping[str, object], raw_entry)
@@ -740,13 +1039,26 @@ def validate_bundle(
         )
         if exp_verdict == "trap":
             _require(
-                entry.get("trap_cause") == CHERI_CAP_BOUNDS_CAUSE,
-                f"controls.{name}: expected CHERI bounds trap cause {CHERI_CAP_BOUNDS_CAUSE}",
+                entry.get("trap_cause") == CHERI_CAP_CAUSE,
+                f"controls.{name}: expected CHERI trap cause {CHERI_CAP_CAUSE}",
             )
 
+    if require_native_parity:
+        _require(
+            report.get("native_parity_matched") is True,
+            "report: native_parity_matched must be True",
+        )
+        _require(native_parity is not None, "native_parity: missing native-parity.json")
+        _validate_native_parity(cast(Mapping[str, object], native_parity), report, ctrl_map)
 
-def validate_bundle_dir(bundle_dir: Path) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any]]:
-    """Read, hash-verify, and validate `report.json`, `envelope.json`, and `controls.json`."""
+
+def validate_bundle_dir(
+    bundle_dir: Path,
+    *,
+    expected_controls: Mapping[str, tuple[str, tuple[int, ...], str]] = NEGATIVE_CONTROL_SPECS,
+    require_native_parity: bool = True,
+) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any]]:
+    """Read, hash-verify, and validate `report.json`, `envelope.json`, `controls.json`, and `native-parity.json`."""
     report_bytes = (bundle_dir / "report.json").read_bytes()
     envelope_bytes = (bundle_dir / "envelope.json").read_bytes()
     controls_bytes = (bundle_dir / "controls.json").read_bytes()
@@ -765,7 +1077,25 @@ def validate_bundle_dir(bundle_dir: Path) -> tuple[dict[str, Any], dict[str, Any
         report.get("controls_sha256") == _sha256(controls_bytes),
         "report: controls_sha256 disagrees with controls.json bytes",
     )
-    validate_bundle(report, envelope, controls)
+    native_parity: dict[str, Any] | None = None
+    if require_native_parity:
+        parity_path = bundle_dir / "native-parity.json"
+        _require(parity_path.is_file(), "bundle missing native-parity.json")
+        parity_bytes = parity_path.read_bytes()
+        native_parity = json.loads(parity_bytes.decode("utf-8"))
+        _require(isinstance(native_parity, dict), "native-parity.json must be an object")
+        _require(
+            report.get("native_parity_sha256") == _sha256(parity_bytes),
+            "report: native_parity_sha256 disagrees with native-parity.json bytes",
+        )
+    validate_bundle(
+        report,
+        envelope,
+        controls,
+        native_parity,
+        expected_controls=expected_controls,
+        require_native_parity=require_native_parity,
+    )
     return report, envelope, controls
 
 
@@ -777,6 +1107,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--compiler", type=Path, required=True)
     parser.add_argument("--simulator", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--cc", default="cc")
     parser.add_argument("--timeout", type=int, default=300)
     args = parser.parse_args(argv)
     report = run(
@@ -785,6 +1116,7 @@ def main(argv: list[str] | None = None) -> int:
         args.compiler,
         args.simulator,
         args.output,
+        cc=args.cc,
         timeout=args.timeout,
     )
     print(json.dumps(report, indent=2, sort_keys=True))
