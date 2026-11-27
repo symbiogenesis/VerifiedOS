@@ -23,6 +23,8 @@ PUBLISH_SOURCE = ROOT / "storage" / "src" / "storage_publish.c"
 NODE_SOURCE = ROOT / "storage" / "src" / "node_image.c"
 TREE_IMAGE_SOURCE = ROOT / "storage" / "src" / "tree_image.c"
 TREE_UPDATE_SOURCE = ROOT / "storage" / "src" / "tree_update.c"
+TYPED_ENTRY_SOURCE = ROOT / "storage" / "src" / "typed_entry.c"
+TYPED_TREE_SOURCE = ROOT / "storage" / "src" / "typed_tree.c"
 RESIDENT_SOURCE = ROOT / "storage" / "src" / "resident_reads.c"
 HARNESS = ROOT / "storage" / "host" / "storage_publish.c"
 BLKDEV_JOIN_HARNESS = ROOT / "storage" / "host" / "storage_blkdev_join.cpp"
@@ -112,6 +114,8 @@ def _compile_and_run_c_harness() -> None:
         NODE_SOURCE,
         TREE_IMAGE_SOURCE,
         TREE_UPDATE_SOURCE,
+        TYPED_ENTRY_SOURCE,
+        TYPED_TREE_SOURCE,
         RESIDENT_SOURCE,
         CRYPTO_SOURCE,
         PUBLISH_SOURCE,
@@ -229,6 +233,80 @@ def _compile_and_run_c_harness() -> None:
                 "    medium->fallback_checkpoint = next_cp;",
                 "    (void)next_cp;",
             ),
+            (
+                "publish",
+                "typed: allow rollbackable replacement of Fresh keys",
+                "if (spec->commit_mode == VOS_STORAGE_COMMIT_ROLLBACKABLE && is_protected) {",
+                "if (0 && spec->commit_mode == VOS_STORAGE_COMMIT_ROLLBACKABLE && is_protected) {",
+            ),
+            (
+                "publish",
+                "typed: omit Fresh key membership from checkpoint authentication",
+                "if (!ops->key_encode(&cp->fresh_keys[i], buf + at, VOS_STORAGE_TYPED_KEY_BYTES)) {",
+                "(void)ops; zero_bytes(buf + at, VOS_STORAGE_TYPED_KEY_BYTES);\n        if (0) {",
+            ),
+            (
+                "publish",
+                "typed: skip content_digest check in vos_storage_typed_read_extent",
+                "!equal_bytes_ct(actual_digest, ext.content_digest, VOS_CRYPTO_DIGEST_BYTES)) {",
+                "0) {\n        (void)actual_digest;",
+            ),
+            (
+                "publish",
+                "typed: skip independently sealed pending checkpoint recovery",
+                "struct vos_storage_typed_checkpoint *selected = &medium->checkpoint;\n"
+                "    if (selected->commit_mode == VOS_STORAGE_COMMIT_FRESH ||\n"
+                "        selected->fresh_region_version != 0u ||\n"
+                "        (crypto->epoch_sealed_mask & (1u << crypto_slot)) != 0u) {",
+                "struct vos_storage_typed_checkpoint *selected = &medium->checkpoint;\n"
+                "    if (0 && selected->commit_mode == VOS_STORAGE_COMMIT_FRESH) {",
+            ),
+            (
+                "publish",
+                "typed: accept replayed nonce record below committed generation in typed Reopen",
+                "const struct vos_storage_typed_checkpoint *cp = &medium->checkpoint;\n"
+                "    if (medium->nonce_record.reserved_generation < cp->generation) {",
+                "const struct vos_storage_typed_checkpoint *cp = &medium->checkpoint;\n"
+                "    if (0 && medium->nonce_record.reserved_generation < cp->generation) {",
+            ),
+            (
+                "publish",
+                "typed: skip committed redo journal prefix replay in typed Reopen",
+                "if (medium->journal_count > VOS_STORAGE_TYPED_MAX_JOURNAL_FRAMES) {\n"
+                "            return 0;\n"
+                "        }\n"
+                "        const uint64_t j_gen = medium->journal[0].tx_generation;\n"
+                "        if (j_gen == cp->generation) {",
+                "if (medium->journal_count > VOS_STORAGE_TYPED_MAX_JOURNAL_FRAMES) {\n"
+                "            return 0;\n"
+                "        }\n"
+                "        const uint64_t j_gen = medium->journal[0].tx_generation;\n"
+                "        if (0 && j_gen == cp->generation) {",
+            ),
+            (
+                "publish",
+                "typed: refuse torn primary before trying authenticated fallback in typed Reopen",
+                "const int fallback_valid = medium->has_fallback && verify_typed_checkpoint_mac(\n"
+                "        &store->ops, crypto, crypto_slot, expected_domain_id, key_epoch,\n"
+                "        medium->geometry.arena_nodes, &medium->fallback_checkpoint);\n"
+                "    if (!primary_valid && !fallback_valid) {",
+                "const int fallback_valid = medium->has_fallback && verify_typed_checkpoint_mac(\n"
+                "        &store->ops, crypto, crypto_slot, expected_domain_id, key_epoch,\n"
+                "        medium->geometry.arena_nodes, &medium->fallback_checkpoint);\n"
+                "    if (!primary_valid) {",
+            ),
+            (
+                "publish",
+                "typed: skip fallback checkpoint refresh on typed publish",
+                "    medium->journal_reusable = 1u;\n"
+                "    medium->fallback_checkpoint = next_cp;\n"
+                "    medium->has_fallback = 1u;\n\n"
+                "    if (!persist_typed_store(store)) {",
+                "    medium->journal_reusable = 1u;\n"
+                "    (void)next_cp;\n"
+                "    medium->has_fallback = 1u;\n\n"
+                "    if (!persist_typed_store(store)) {",
+            ),
         ]
 
         for idx, (kind, label, target, replacement) in enumerate(mutants):
@@ -242,6 +320,8 @@ def _compile_and_run_c_harness() -> None:
                 NODE_SOURCE,
                 TREE_IMAGE_SOURCE,
                 mut_file if kind == "tree" else TREE_UPDATE_SOURCE,
+                TYPED_ENTRY_SOURCE,
+                TYPED_TREE_SOURCE,
                 RESIDENT_SOURCE,
                 mut_file if kind == "crypto" else CRYPTO_SOURCE,
                 mut_file if kind == "publish" else PUBLISH_SOURCE,

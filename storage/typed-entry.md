@@ -23,8 +23,11 @@ does not authorize IO, authenticate a tag or establish content freshness.
 A typed leaf entry occupies the key and whole descriptor inline. Its admission
 computes capacity from the selected block/header sizes and refuses a block that
 cannot hold one entry. The numeric 128-byte node instance therefore cannot be
-silently reused for typed leaves. Authenticated publication, production
-composition, C/Gallina refinement and target execution remain M5.3d/M5.4 joins.
+silently reused for typed leaves. Bounded `VOSTYP01` / `VOSEXT01` authenticated
+publication, crash cuts, reopen, lookup, compaction and domain-separated extent
+reads now live in [vos_storage_publish.h](include/vos_storage_publish.h) and
+[storage_publish.c](src/storage_publish.c); production composition, C/Gallina
+refinement and target execution remain M5.3d/M5.4 joins.
 
 ## Typed node and routing contract
 

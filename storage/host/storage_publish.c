@@ -1311,6 +1311,490 @@ static int check_fresh_key_inventory(void)
     return 1;
 }
 
+static int apply_typed_commit(struct vos_storage_typed_store *store,
+                              uint64_t domain_id,
+                              const struct vos_storage_typed_tx_spec *spec,
+                              uint64_t *ack_out)
+{
+    return vos_storage_typed_reserve(store, domain_id, spec) &&
+           vos_storage_typed_stage(store, domain_id) &&
+           vos_storage_typed_publish(store, domain_id, VOS_STORAGE_CUT_NONE, ack_out);
+}
+
+static int typed_extents_equal(const struct vos_storage_extent *a,
+                               const struct vos_storage_extent *b)
+{
+    uint8_t ea[VOS_STORAGE_EXTENT_BYTES];
+    uint8_t eb[VOS_STORAGE_EXTENT_BYTES];
+    return vos_storage_extent_encode(a, ea, sizeof(ea)) &&
+           vos_storage_extent_encode(b, eb, sizeof(eb)) &&
+           memcmp(ea, eb, sizeof(ea)) == 0;
+}
+
+static int check_typed_publish_lifecycle_and_cuts(void)
+{
+    const struct vos_node_geometry geometry = {
+        .fan = 3u,
+        .block_bytes = 512u,
+        .arena_nodes = 16u
+    };
+    const struct vos_tree_limits limits = {
+        .height = 0u,
+        .depth_limit = 6u,
+        .visit_limit = 64u
+    };
+    const uint64_t sys_domain = 0x54595031ULL;
+    uint8_t master_key[32];
+    for (uint32_t i = 0u; i < 32u; ++i) {
+        master_key[i] = (uint8_t)(0x21u + i);
+    }
+
+    static struct vos_crypto_core crypto;
+    static struct vos_storage_typed_medium medium;
+    static struct vos_storage_typed_medium scratch_medium;
+    static struct vos_storage_typed_store store;
+    static struct vos_storage_typed_store scratch_store;
+    memset(&crypto, 0, sizeof(crypto));
+    memset(&medium, 0, sizeof(medium));
+    memset(&store, 0, sizeof(store));
+
+    vos_crypto_core_init(&crypto, 16u);
+    if (!vos_crypto_core_unlock_domain(&crypto, VOS_CRYPTO_DOMAIN_SYSTEM,
+                                       sys_domain, 2u, master_key, 32u) ||
+        !vos_storage_typed_format(&medium, &store, &crypto,
+                                  VOS_CRYPTO_DOMAIN_SYSTEM, sys_domain, 2u,
+                                  &geometry, &limits, 1u, 24u)) {
+        return 0;
+    }
+
+    static const uint8_t payloads[6][32] = {
+        "typed-payload-00-alpha-record",
+        "typed-payload-01-bravo-record",
+        "typed-payload-02-charlie-rec!",
+        "typed-payload-03-delta-record",
+        "typed-payload-04-echo-record!",
+        "typed-payload-05-foxtrot-rec!"
+    };
+    uint8_t ciphertexts[6][32];
+    static struct vos_storage_typed_tx_spec batch_tx;
+    memset(&batch_tx, 0, sizeof(batch_tx));
+    batch_tx.op_kind = VOS_STORAGE_OP_INSERT_BATCH;
+    batch_tx.commit_mode = VOS_STORAGE_COMMIT_ROLLBACKABLE;
+    batch_tx.entry_count = 5u;
+
+    for (size_t i = 0u; i < 5u; ++i) {
+        batch_tx.entries[i].key = (struct vos_storage_typed_key){
+            .domain = sys_domain,
+            .space = 1u,
+            .kind = (i == 4u) ? UINT64_MAX : 2u,
+            .object = 100u + (uint64_t)i,
+            .attribute = (uint64_t)(i * 7u),
+            .version = (i == 3u) ? UINT64_MAX : 1u
+        };
+        if (!vos_storage_typed_seal_extent(
+                &store, 0x1000u + (uint64_t)i * 64u, (uint64_t)i, 1u,
+                VOS_NODE_LEAF, payloads[i], 32u, ciphertexts[i],
+                &batch_tx.entries[i].extent)) {
+            return 0;
+        }
+    }
+
+    uint64_t ack_gen = 0u;
+    if (!apply_typed_commit(&store, sys_domain, &batch_tx, &ack_gen) ||
+        ack_gen != 2u || store.committed_height == 0u) {
+        return 0;
+    }
+    const struct vos_storage_nonce_record saved_nonce_gen2 = medium.nonce_record;
+    static struct vos_storage_typed_checkpoint cp_gen2;
+    cp_gen2 = medium.checkpoint;
+
+    for (size_t i = 0u; i < 5u; ++i) {
+        struct vos_storage_extent got = {0};
+        uint8_t plain_out[32] = {0};
+        size_t plain_len = 0u;
+        if (vos_storage_typed_lookup(&store, sys_domain,
+                                     &batch_tx.entries[i].key, &got) != VOS_TREE_FOUND ||
+            !typed_extents_equal(&got, &batch_tx.entries[i].extent) ||
+            !vos_storage_typed_read_extent(&store, sys_domain,
+                                           &batch_tx.entries[i].key,
+                                           ciphertexts[i], 32u,
+                                           plain_out, sizeof(plain_out), &plain_len) ||
+            plain_len != 32u || memcmp(plain_out, payloads[i], 32u) != 0) {
+            return 0;
+        }
+    }
+
+    /* Torn primary checkpoint recovers from authenticated fallback at gen 2. */
+    scratch_medium = medium;
+    scratch_medium.checkpoint.checkpoint_mac[0] ^= 0x55u;
+    if (!vos_storage_typed_reopen(&scratch_medium, &scratch_store, &crypto,
+                                  VOS_CRYPTO_DOMAIN_SYSTEM, sys_domain) ||
+        scratch_store.committed_generation != 2u ||
+        vos_storage_typed_lookup(&scratch_store, sys_domain,
+                                 &batch_tx.entries[0].key,
+                                 &batch_tx.entries[5].extent) != VOS_TREE_FOUND) {
+        return 0;
+    }
+
+    const struct vos_storage_typed_key k5 = {
+        .domain = sys_domain, .space = 1u, .kind = 2u,
+        .object = 550u, .attribute = 1u, .version = 1u
+    };
+    struct vos_storage_extent ext5 = {0};
+    if (!vos_storage_typed_seal_extent(&store, 0x2000u, 5u, 2u, VOS_NODE_LEAF,
+                                       payloads[5], 32u, ciphertexts[5], &ext5)) {
+        return 0;
+    }
+    static struct vos_storage_typed_tx_spec ins_tx;
+    memset(&ins_tx, 0, sizeof(ins_tx));
+    ins_tx.op_kind = VOS_STORAGE_OP_INSERT;
+    ins_tx.commit_mode = VOS_STORAGE_COMMIT_ROLLBACKABLE;
+    ins_tx.key = k5;
+    ins_tx.extent = ext5;
+
+    /* Cut 1: AFTER_RESERVE preserves nonce advance across reopen. */
+    if (!vos_storage_typed_reserve(&store, sys_domain, &ins_tx) ||
+        medium.nonce_record.reserved_generation != 3u ||
+        vos_storage_typed_publish(&store, sys_domain,
+                                  VOS_STORAGE_CUT_AFTER_RESERVE, &ack_gen) ||
+        !vos_storage_typed_reopen(&medium, &store, &crypto,
+                                  VOS_CRYPTO_DOMAIN_SYSTEM, sys_domain) ||
+        store.committed_generation != 2u ||
+        medium.nonce_record.reserved_generation != 3u ||
+        vos_storage_typed_lookup(&store, sys_domain, &k5, &ext5) != VOS_TREE_MISSING) {
+        return 0;
+    }
+
+    /* Cut 2: MID_PAYLOAD discards partial uncommitted journal suffix. */
+    if (!vos_storage_typed_reserve(&store, sys_domain, &ins_tx) ||
+        store.attempt.generation != 4u ||
+        !vos_storage_typed_stage(&store, sys_domain) ||
+        vos_storage_typed_publish(&store, sys_domain,
+                                  VOS_STORAGE_CUT_MID_PAYLOAD, &ack_gen) ||
+        !vos_storage_typed_reopen(&medium, &store, &crypto,
+                                  VOS_CRYPTO_DOMAIN_SYSTEM, sys_domain) ||
+        store.committed_generation != 2u ||
+        medium.nonce_record.reserved_generation != 4u ||
+        vos_storage_typed_lookup(&store, sys_domain, &k5, &ext5) != VOS_TREE_MISSING) {
+        return 0;
+    }
+
+    /* Cut 3: BEFORE_CHECKPOINT discards uncheckpointed journal frames. */
+    if (!vos_storage_typed_reserve(&store, sys_domain, &ins_tx) ||
+        store.attempt.generation != 5u ||
+        !vos_storage_typed_stage(&store, sys_domain) ||
+        vos_storage_typed_publish(&store, sys_domain,
+                                  VOS_STORAGE_CUT_BEFORE_CHECKPOINT, &ack_gen) ||
+        !vos_storage_typed_reopen(&medium, &store, &crypto,
+                                  VOS_CRYPTO_DOMAIN_SYSTEM, sys_domain) ||
+        store.committed_generation != 2u ||
+        medium.nonce_record.reserved_generation != 5u ||
+        vos_storage_typed_lookup(&store, sys_domain, &k5, &ext5) != VOS_TREE_MISSING) {
+        return 0;
+    }
+
+    /* Cut 4: BEFORE_EPOCH_SEAL loses unsealed Fresh write (R-10-013c). */
+    static struct vos_storage_typed_tx_spec fresh_tx;
+    memset(&fresh_tx, 0, sizeof(fresh_tx));
+    fresh_tx.op_kind = VOS_STORAGE_OP_INSERT;
+    fresh_tx.commit_mode = VOS_STORAGE_COMMIT_FRESH;
+    fresh_tx.key = k5;
+    fresh_tx.extent = ext5;
+    fresh_tx.fresh_region_id = 77u;
+    fresh_tx.fresh_region_version = 1u;
+    if (!vos_storage_typed_reserve(&store, sys_domain, &fresh_tx) ||
+        store.attempt.generation != 6u ||
+        !vos_storage_typed_stage(&store, sys_domain) ||
+        vos_storage_typed_publish(&store, sys_domain,
+                                  VOS_STORAGE_CUT_BEFORE_EPOCH_SEAL, &ack_gen) ||
+        crypto.rot_epoch_counter != 0u ||
+        !vos_storage_typed_reopen(&medium, &store, &crypto,
+                                  VOS_CRYPTO_DOMAIN_SYSTEM, sys_domain) ||
+        store.committed_generation != 2u ||
+        vos_storage_typed_lookup(&store, sys_domain, &k5, &ext5) != VOS_TREE_MISSING) {
+        return 0;
+    }
+
+    /* Cut 5: BEFORE_ACK replays committed Fresh prefix on reopen. */
+    if (!vos_storage_typed_reserve(&store, sys_domain, &fresh_tx) ||
+        store.attempt.generation != 7u ||
+        !vos_storage_typed_stage(&store, sys_domain) ||
+        vos_storage_typed_publish(&store, sys_domain,
+                                  VOS_STORAGE_CUT_BEFORE_ACK, &ack_gen) ||
+        crypto.rot_epoch_counter != 1u || medium.journal_count == 0u) {
+        return 0;
+    }
+    scratch_medium = medium;
+    scratch_medium.journal[0].ciphertext[0] ^= 0x01u;
+    if (vos_storage_typed_reopen(&scratch_medium, &scratch_store, &crypto,
+                                 VOS_CRYPTO_DOMAIN_SYSTEM, sys_domain)) {
+        return 0;
+    }
+    if (!vos_storage_typed_reopen(&medium, &store, &crypto,
+                                  VOS_CRYPTO_DOMAIN_SYSTEM, sys_domain) ||
+        store.committed_generation != 7u ||
+        !medium.journal_reusable) {
+        return 0;
+    }
+    struct vos_storage_extent probe_ext = {0};
+    if (vos_storage_typed_lookup(&store, sys_domain, &k5, &probe_ext) != VOS_TREE_FOUND ||
+        !typed_extents_equal(&probe_ext, &ext5)) {
+        return 0;
+    }
+
+    /* Fresh key protection: rollbackable replacement/delete of k5 refuses. */
+    if (vos_storage_typed_reserve(&store, sys_domain, &ins_tx)) {
+        return 0;
+    }
+    ins_tx.op_kind = VOS_STORAGE_OP_DELETE;
+    if (vos_storage_typed_reserve(&store, sys_domain, &ins_tx)) {
+        return 0;
+    }
+    /* Checkpoint Fresh-key tamper in both slots must refuse reopen. */
+    scratch_medium = medium;
+    scratch_medium.checkpoint.fresh_keys[0].version ^= 1u;
+    scratch_medium.fallback_checkpoint.fresh_keys[0].version ^= 1u;
+    if (vos_storage_typed_reopen(&scratch_medium, &scratch_store, &crypto,
+                                 VOS_CRYPTO_DOMAIN_SYSTEM, sys_domain)) {
+        return 0;
+    }
+
+    /* Stale Fresh rollback, block swap, and nonce rollback all refuse reopen. */
+    scratch_medium = medium;
+    scratch_medium.checkpoint = cp_gen2;
+    scratch_medium.fallback_checkpoint = cp_gen2;
+    if (vos_storage_typed_reopen(&scratch_medium, &scratch_store, &crypto,
+                                 VOS_CRYPTO_DOMAIN_SYSTEM, sys_domain)) {
+        return 0;
+    }
+    scratch_medium = medium;
+    uint8_t swap_buf[512];
+    memcpy(swap_buf, scratch_medium.arena_ciphertext, 512u);
+    memcpy(scratch_medium.arena_ciphertext,
+           scratch_medium.arena_ciphertext + 512u, 512u);
+    memcpy(scratch_medium.arena_ciphertext + 512u, swap_buf, 512u);
+    if (vos_storage_typed_reopen(&scratch_medium, &scratch_store, &crypto,
+                                 VOS_CRYPTO_DOMAIN_SYSTEM, sys_domain)) {
+        return 0;
+    }
+    scratch_medium = medium;
+    scratch_medium.nonce_record = saved_nonce_gen2;
+    if (vos_storage_typed_reopen(&scratch_medium, &scratch_store, &crypto,
+                                 VOS_CRYPTO_DOMAIN_SYSTEM, sys_domain)) {
+        return 0;
+    }
+
+    /* Lazy delete of rollbackable key + canonical compaction + reopen. */
+    ins_tx.op_kind = VOS_STORAGE_OP_DELETE;
+    ins_tx.key = batch_tx.entries[1].key;
+    if (!apply_typed_commit(&store, sys_domain, &ins_tx, &ack_gen) ||
+        ack_gen != 8u ||
+        vos_storage_typed_lookup(&store, sys_domain, &batch_tx.entries[1].key,
+                                 &probe_ext) != VOS_TREE_MISSING) {
+        return 0;
+    }
+    static struct vos_storage_typed_tx_spec compact_tx;
+    memset(&compact_tx, 0, sizeof(compact_tx));
+    compact_tx.op_kind = VOS_STORAGE_OP_COMPACT;
+    compact_tx.commit_mode = VOS_STORAGE_COMMIT_ROLLBACKABLE;
+    const uint64_t used_before = store.committed_used;
+    if (!apply_typed_commit(&store, sys_domain, &compact_tx, &ack_gen) ||
+        ack_gen != 9u || store.committed_used >= used_before ||
+        !vos_storage_typed_reopen(&medium, &store, &crypto,
+                                  VOS_CRYPTO_DOMAIN_SYSTEM, sys_domain) ||
+        vos_storage_typed_lookup(&store, sys_domain, &k5, &probe_ext) != VOS_TREE_FOUND ||
+        !typed_extents_equal(&probe_ext, &ext5) ||
+        vos_storage_typed_lookup(&store, sys_domain, &batch_tx.entries[1].key,
+                                 &probe_ext) != VOS_TREE_MISSING) {
+        return 0;
+    }
+
+    /* Retain snapshot then delete another key -> deadlist records pinned nodes. */
+    if (!vos_storage_typed_retain_snapshot(&store, sys_domain, ack_gen)) {
+        return 0;
+    }
+    ins_tx.key = batch_tx.entries[0].key;
+    if (!apply_typed_commit(&store, sys_domain, &ins_tx, &ack_gen) ||
+        ack_gen != 10u || medium.checkpoint.dead_count == 0u ||
+        vos_storage_typed_lookup(&store, sys_domain, &batch_tx.entries[0].key,
+                                 &probe_ext) != VOS_TREE_MISSING) {
+        return 0;
+    }
+    return 1;
+}
+
+static uint32_t typed_persist_calls;
+
+static int count_typed_persists(void *opaque, const struct vos_storage_typed_medium *medium)
+{
+    uint32_t *count = (uint32_t *)opaque;
+    (void)medium;
+    ++(*count);
+    return 1;
+}
+
+static int check_typed_two_instances_and_extents(void)
+{
+    const struct vos_node_geometry geometry = {
+        .fan = 4u,
+        .block_bytes = 640u,
+        .arena_nodes = 16u
+    };
+    const struct vos_tree_limits limits = {
+        .height = 0u,
+        .depth_limit = 6u,
+        .visit_limit = 64u
+    };
+    const uint64_t sys_domain = 0x54535953ULL;
+    const uint64_t usr_domain = 0x54555352ULL;
+    uint8_t master_key[32];
+    for (uint32_t i = 0u; i < 32u; ++i) {
+        master_key[i] = (uint8_t)(0x90u + i);
+    }
+
+    static struct vos_crypto_core crypto;
+    static struct vos_storage_typed_medium sys_medium;
+    static struct vos_storage_typed_medium usr_medium;
+    static struct vos_storage_typed_store sys_store;
+    static struct vos_storage_typed_store usr_store;
+    memset(&crypto, 0, sizeof(crypto));
+    memset(&sys_medium, 0, sizeof(sys_medium));
+    memset(&usr_medium, 0, sizeof(usr_medium));
+    memset(&sys_store, 0, sizeof(sys_store));
+    memset(&usr_store, 0, sizeof(usr_store));
+
+    vos_crypto_core_init(&crypto, 16u);
+    if (!vos_crypto_core_unlock_domain(&crypto, VOS_CRYPTO_DOMAIN_SYSTEM,
+                                       sys_domain, 1u, master_key, 32u) ||
+        !vos_crypto_core_unlock_domain(&crypto, VOS_CRYPTO_DOMAIN_USER,
+                                       usr_domain, 1u, master_key, 32u) ||
+        !vos_storage_typed_format(&sys_medium, &sys_store, &crypto,
+                                  VOS_CRYPTO_DOMAIN_SYSTEM, sys_domain, 1u,
+                                  &geometry, &limits, 1u, 32u) ||
+        !vos_storage_typed_format(&usr_medium, &usr_store, &crypto,
+                                  VOS_CRYPTO_DOMAIN_USER, usr_domain, 1u,
+                                  &geometry, &limits, 1u, 32u)) {
+        return 0;
+    }
+
+    typed_persist_calls = 0u;
+    if (!vos_storage_typed_attach_persistence(&sys_store, count_typed_persists,
+                                              &typed_persist_calls)) {
+        return 0;
+    }
+
+    static const uint8_t shared_payload[40] =
+        "shared-typed-extent-bytes-across-domain";
+    uint8_t sys_dig1[32] = {0}, sys_dig2[32] = {0}, usr_dig[32] = {0};
+    if (!vos_storage_typed_object_digest(&sys_store, shared_payload,
+                                         sizeof(shared_payload), sys_dig1) ||
+        !vos_storage_typed_object_digest(&sys_store, shared_payload,
+                                         sizeof(shared_payload), sys_dig2) ||
+        !vos_storage_typed_object_digest(&usr_store, shared_payload,
+                                         sizeof(shared_payload), usr_dig) ||
+        memcmp(sys_dig1, sys_dig2, 32u) != 0 ||
+        memcmp(sys_dig1, usr_dig, 32u) == 0) {
+        return 0;
+    }
+
+    uint8_t sys_cipher[40] = {0};
+    uint8_t usr_cipher[40] = {0};
+    struct vos_storage_extent sys_ext = {0};
+    struct vos_storage_extent usr_ext = {0};
+    if (!vos_storage_typed_seal_extent(&sys_store, 0x4000u, 10u, 2u, VOS_NODE_LEAF,
+                                       shared_payload, sizeof(shared_payload),
+                                       sys_cipher, &sys_ext) ||
+        !vos_storage_typed_seal_extent(&usr_store, 0x4000u, 10u, 2u, VOS_NODE_LEAF,
+                                       shared_payload, sizeof(shared_payload),
+                                       usr_cipher, &usr_ext) ||
+        memcmp(sys_ext.content_digest, usr_ext.content_digest, 32u) == 0) {
+        return 0;
+    }
+
+    const struct vos_storage_typed_key key_sys = {
+        .domain = sys_domain, .space = 2u, .kind = 1u,
+        .object = 42u, .attribute = 0u, .version = 1u
+    };
+    const struct vos_storage_typed_key key_usr = {
+        .domain = usr_domain, .space = 2u, .kind = 1u,
+        .object = 42u, .attribute = 0u, .version = 1u
+    };
+    static struct vos_storage_typed_tx_spec tx;
+    memset(&tx, 0, sizeof(tx));
+    tx.op_kind = VOS_STORAGE_OP_INSERT;
+    tx.commit_mode = VOS_STORAGE_COMMIT_ROLLBACKABLE;
+    tx.key = key_sys;
+    tx.extent = sys_ext;
+    uint64_t ack = 0u;
+    if (!apply_typed_commit(&sys_store, sys_domain, &tx, &ack) || ack != 2u ||
+        typed_persist_calls == 0u) {
+        return 0;
+    }
+    tx.key = key_usr;
+    tx.extent = usr_ext;
+    if (!apply_typed_commit(&usr_store, usr_domain, &tx, &ack) || ack != 2u) {
+        return 0;
+    }
+
+    uint8_t out_buf[40];
+    size_t out_len = 0u;
+    if (!vos_storage_typed_read_extent(&sys_store, sys_domain, &key_sys,
+                                       sys_cipher, sizeof(sys_cipher),
+                                       out_buf, sizeof(out_buf), &out_len) ||
+        out_len != sizeof(shared_payload) ||
+        memcmp(out_buf, shared_payload, sizeof(shared_payload)) != 0 ||
+        !vos_storage_typed_read_extent(&usr_store, usr_domain, &key_usr,
+                                       usr_cipher, sizeof(usr_cipher),
+                                       out_buf, sizeof(out_buf), &out_len) ||
+        out_len != sizeof(shared_payload) ||
+        memcmp(out_buf, shared_payload, sizeof(shared_payload)) != 0) {
+        return 0;
+    }
+
+    /* Cross-domain read refuses without modifying caller output. */
+    memset(out_buf, 0xa5u, sizeof(out_buf));
+    out_len = 999u;
+    if (vos_storage_typed_read_extent(&usr_store, sys_domain, &key_sys,
+                                      sys_cipher, sizeof(sys_cipher),
+                                      out_buf, sizeof(out_buf), &out_len) ||
+        out_len != 999u || out_buf[0] != 0xa5u) {
+        return 0;
+    }
+
+    /* R-10-001: ciphertext bit flip refuses before returning any bytes. */
+    sys_cipher[0] ^= 0x01u;
+    if (vos_storage_typed_read_extent(&sys_store, sys_domain, &key_sys,
+                                      sys_cipher, sizeof(sys_cipher),
+                                      out_buf, sizeof(out_buf), &out_len) ||
+        out_len != 999u || out_buf[0] != 0xa5u) {
+        return 0;
+    }
+    sys_cipher[0] ^= 0x01u;
+
+    /* R-10-001: valid AEAD ciphertext + mismatched content_digest refuses
+     * before returning any bytes. */
+    struct vos_storage_extent bad_digest_ext = usr_ext;
+    bad_digest_ext.content_digest[0] ^= 0x80u;
+    const struct vos_storage_typed_key key_bad = {
+        .domain = usr_domain, .space = 2u, .kind = 1u,
+        .object = 43u, .attribute = 0u, .version = 1u
+    };
+    tx.key = key_bad;
+    tx.extent = bad_digest_ext;
+    if (!apply_typed_commit(&usr_store, usr_domain, &tx, &ack) || ack != 3u) {
+        return 0;
+    }
+    memset(out_buf, 0x5au, sizeof(out_buf));
+    out_len = 777u;
+    if (vos_storage_typed_read_extent(&usr_store, usr_domain, &key_bad,
+                                      usr_cipher, sizeof(usr_cipher),
+                                      out_buf, sizeof(out_buf), &out_len) ||
+        out_len != 777u || out_buf[0] != 0x5au) {
+        return 0;
+    }
+    return 1;
+}
+
 int main(void)
 {
     if (!check_crypto_primitives()) {
@@ -1347,6 +1831,14 @@ int main(void)
     }
     if (!check_fresh_key_inventory()) {
         fprintf(stderr, "storage_publish: Fresh key inventory check failed\n");
+        return 1;
+    }
+    if (!check_typed_publish_lifecycle_and_cuts()) {
+        fprintf(stderr, "storage_publish: typed publish lifecycle and cuts check failed\n");
+        return 1;
+    }
+    if (!check_typed_two_instances_and_extents()) {
+        fprintf(stderr, "storage_publish: typed two-instance and extents check failed\n");
         return 1;
     }
     printf("storage_publish: ok\n");

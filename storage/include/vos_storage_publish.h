@@ -10,6 +10,7 @@
 #include "vos_resident_reads.h"
 #include "vos_tree_image.h"
 #include "vos_tree_update.h"
+#include "vos_typed_tree.h"
 
 enum {
     VOS_STORAGE_MAX_ARENA_NODES = 64u,
@@ -306,5 +307,285 @@ void vos_storage_apply_block_tear(
     const uint8_t old_block[VOS_STORAGE_BLKDEV_BLOCK_BYTES],
     const uint8_t new_block[VOS_STORAGE_BLKDEV_BLOCK_BYTES],
     const uint8_t tear_mask[VOS_STORAGE_BLKDEV_BLOCK_BYTES]);
+
+/* Additive typed VOSTYP01 / VOSEXT01 authenticated publication, reopen, lookup
+ * and compaction over six-word L2 keys and inline 96-byte extent descriptors. */
+enum {
+    VOS_STORAGE_TYPED_MAX_ARENA_NODES = 32u,
+    VOS_STORAGE_TYPED_MAX_BLOCK_BYTES = 2368u,
+    VOS_STORAGE_TYPED_MAX_JOURNAL_FRAMES = 32u,
+    VOS_STORAGE_TYPED_MAX_FRESH_KEYS = 64u,
+    VOS_STORAGE_TYPED_MAX_EXTENT_BYTES = 4096u
+};
+
+struct vos_storage_typed_journal_frame {
+    uint32_t occupied;
+    uint32_t frame_index;
+    uint32_t kind;
+    uint64_t tx_generation;
+    uint64_t target_node_id;
+    uint8_t ciphertext[VOS_STORAGE_TYPED_MAX_BLOCK_BYTES];
+    uint8_t tag[VOS_CRYPTO_TAG_BYTES];
+    uint8_t content_digest[VOS_CRYPTO_DIGEST_BYTES];
+    uint8_t frame_mac[VOS_CRYPTO_DIGEST_BYTES];
+};
+
+struct vos_storage_typed_checkpoint {
+    uint32_t committed;
+    uint32_t commit_mode;
+    uint64_t domain_id;
+    uint64_t key_epoch;
+    uint64_t generation;
+    uint64_t root;
+    uint32_t height;
+    uint64_t used;
+    uint32_t frame_count;
+    uint64_t fresh_region_id;
+    uint64_t fresh_region_version;
+    uint64_t sealed_epoch;
+    uint8_t epoch_root[VOS_CRYPTO_DIGEST_BYTES];
+    uint8_t root_digest[VOS_CRYPTO_DIGEST_BYTES];
+    uint8_t fresh_state_digest[VOS_CRYPTO_DIGEST_BYTES];
+    uint8_t payload_manifest_digest[VOS_CRYPTO_DIGEST_BYTES];
+    uint32_t fresh_key_count;
+    struct vos_storage_typed_key fresh_keys[VOS_STORAGE_TYPED_MAX_FRESH_KEYS];
+    struct vos_storage_block_auth auth[VOS_STORAGE_TYPED_MAX_ARENA_NODES];
+    uint32_t snapshot_count;
+    uint64_t snapshots[VOS_STORAGE_MAX_SNAPSHOTS];
+    uint32_t dead_count;
+    struct vos_storage_dead_entry deadlist[VOS_STORAGE_MAX_DEADLIST];
+    uint8_t checkpoint_mac[VOS_CRYPTO_DIGEST_BYTES];
+};
+
+struct vos_storage_typed_medium {
+    struct vos_node_geometry geometry;
+    struct vos_tree_limits limits;
+    struct vos_storage_nonce_record nonce_record;
+    uint8_t arena_ciphertext[VOS_STORAGE_TYPED_MAX_ARENA_NODES * VOS_STORAGE_TYPED_MAX_BLOCK_BYTES];
+    uint32_t journal_count;
+    uint32_t journal_reusable;
+    struct vos_storage_typed_journal_frame journal[VOS_STORAGE_TYPED_MAX_JOURNAL_FRAMES];
+    struct vos_storage_typed_checkpoint checkpoint;
+    uint32_t has_fallback;
+    struct vos_storage_typed_checkpoint fallback_checkpoint;
+};
+
+typedef int (*vos_storage_typed_persistor)(
+    void *opaque, const struct vos_storage_typed_medium *medium);
+
+struct vos_storage_typed_tx_spec {
+    uint32_t op_kind;
+    uint32_t commit_mode;
+    struct vos_storage_typed_key key;
+    struct vos_storage_extent extent;
+    size_t entry_count;
+    struct vos_typed_tree_entry entries[VOS_STORAGE_MAX_BATCH];
+    uint64_t fresh_region_id;
+    uint64_t fresh_region_version;
+};
+
+struct vos_storage_typed_attempt {
+    uint32_t reserved;
+    uint32_t staged;
+    uint64_t caller_domain;
+    uint64_t generation;
+    uint64_t base_used;
+    struct vos_storage_typed_tx_spec spec;
+    struct vos_tree_update_result result;
+    uint8_t staged_plaintext[VOS_STORAGE_TYPED_MAX_ARENA_NODES * VOS_STORAGE_TYPED_MAX_BLOCK_BYTES];
+    uint64_t staged_generations[VOS_STORAGE_TYPED_MAX_ARENA_NODES];
+    struct vos_storage_block_auth staged_auth[VOS_STORAGE_TYPED_MAX_ARENA_NODES];
+    uint32_t staged_dead_count;
+    struct vos_storage_dead_entry staged_deadlist[VOS_STORAGE_MAX_DEADLIST];
+    uint32_t frame_count;
+    struct vos_storage_typed_journal_frame frames[VOS_STORAGE_TYPED_MAX_JOURNAL_FRAMES];
+};
+
+struct vos_storage_typed_ops {
+    int (*node_encode)(const struct vos_node_geometry *geometry,
+                       const struct vos_typed_node *node,
+                       uint8_t *output, size_t length);
+    int (*node_decode)(const struct vos_node_geometry *geometry,
+                       uint64_t expected_id, uint64_t expected_generation,
+                       const uint8_t *bytes, size_t length,
+                       struct vos_typed_node *output);
+    int (*lookup)(const struct vos_tree_image *image,
+                  const struct vos_tree_limits *limits,
+                  uint64_t root, const struct vos_storage_typed_key *key,
+                  struct vos_storage_extent *output);
+    int (*lookup_path)(const struct vos_tree_image *image,
+                       const struct vos_tree_limits *limits,
+                       uint64_t root, const struct vos_storage_typed_key *key,
+                       struct vos_storage_extent *output);
+    int (*insert)(const struct vos_tree_arena *arena,
+                  const struct vos_tree_limits *limits,
+                  uint64_t root, uint64_t generation,
+                  const struct vos_storage_typed_key *key,
+                  const struct vos_storage_extent *extent,
+                  struct vos_tree_update_result *output);
+    int (*insert_batch)(const struct vos_tree_arena *arena,
+                        const struct vos_tree_limits *limits,
+                        uint64_t root, uint64_t generation,
+                        const struct vos_typed_tree_entry *entries,
+                        size_t entry_count,
+                        struct vos_tree_update_result *output);
+    int (*del)(const struct vos_tree_arena *arena,
+               const struct vos_tree_limits *limits,
+               uint64_t root, uint64_t generation,
+               const struct vos_storage_typed_key *key,
+               struct vos_tree_update_result *output);
+    int (*compact)(const struct vos_tree_arena *arena,
+                   const struct vos_tree_limits *limits,
+                   uint64_t root, uint64_t generation,
+                   struct vos_tree_update_result *output);
+    int (*key_encode)(const struct vos_storage_typed_key *key,
+                      uint8_t *bytes, size_t length);
+    int (*extent_encode)(const struct vos_storage_extent *extent,
+                         uint8_t *bytes, size_t length);
+};
+
+struct vos_storage_typed_store {
+    uint32_t open;
+    uint32_t crypto_slot;
+    uint64_t domain_id;
+    uint64_t key_epoch;
+    uint64_t committed_generation;
+    uint64_t committed_root;
+    uint32_t committed_height;
+    uint64_t committed_used;
+    struct vos_storage_typed_medium *medium;
+    struct vos_crypto_core *crypto;
+    vos_storage_typed_persistor persist;
+    void *persistence;
+    struct vos_storage_typed_ops ops;
+    uint8_t plain_arena[VOS_STORAGE_TYPED_MAX_ARENA_NODES * VOS_STORAGE_TYPED_MAX_BLOCK_BYTES];
+    uint64_t plain_generations[VOS_STORAGE_TYPED_MAX_ARENA_NODES];
+    uint8_t compact_scratch[2u * VOS_STORAGE_TYPED_MAX_ARENA_NODES * VOS_STORAGE_TYPED_MAX_BLOCK_BYTES];
+    uint64_t compact_generations[2u * VOS_STORAGE_TYPED_MAX_ARENA_NODES];
+    struct vos_storage_typed_attempt attempt;
+    uint32_t active_checkpoint_valid;
+    uint32_t active_crypto_slot;
+    const struct vos_storage_typed_medium *active_medium;
+    const struct vos_crypto_core *active_crypto;
+    uint8_t active_checkpoint_bytes[sizeof(struct vos_storage_typed_checkpoint)];
+    uint64_t active_key_context;
+    uint8_t active_geometry_bytes[sizeof(struct vos_node_geometry)];
+    uint8_t active_limits_bytes[sizeof(struct vos_tree_limits)];
+};
+
+int vos_storage_typed_format_ops(struct vos_storage_typed_medium *medium,
+                                 struct vos_storage_typed_store *store,
+                                 struct vos_crypto_core *crypto,
+                                 uint32_t crypto_slot,
+                                 uint64_t domain_id,
+                                 uint64_t key_epoch,
+                                 const struct vos_node_geometry *geometry,
+                                 const struct vos_tree_limits *limits,
+                                 uint64_t initial_generation,
+                                 uint64_t max_generation,
+                                 const struct vos_storage_typed_ops *ops);
+
+int vos_storage_typed_attach_persistence(struct vos_storage_typed_store *store,
+                                           vos_storage_typed_persistor persist,
+                                           void *opaque);
+
+int vos_storage_typed_reserve(struct vos_storage_typed_store *store,
+                                uint64_t caller_domain,
+                                const struct vos_storage_typed_tx_spec *spec);
+
+int vos_storage_typed_stage(struct vos_storage_typed_store *store,
+                              uint64_t caller_domain);
+
+int vos_storage_typed_publish(struct vos_storage_typed_store *store,
+                                uint64_t caller_domain,
+                                uint32_t cut_point,
+                                uint64_t *acknowledged_generation);
+
+int vos_storage_typed_reopen_ops(struct vos_storage_typed_medium *medium,
+                                 struct vos_storage_typed_store *store,
+                                 struct vos_crypto_core *crypto,
+                                 uint32_t crypto_slot,
+                                 uint64_t expected_domain_id,
+                                 const struct vos_storage_typed_ops *ops);
+
+int vos_storage_typed_lookup(const struct vos_storage_typed_store *store,
+                               uint64_t caller_domain,
+                               const struct vos_storage_typed_key *key,
+                               struct vos_storage_extent *extent_out);
+
+int vos_storage_typed_retain_snapshot(struct vos_storage_typed_store *store,
+                                        uint64_t caller_domain,
+                                        uint64_t generation);
+
+int vos_storage_typed_object_digest(const struct vos_storage_typed_store *store,
+                                      const uint8_t *bytes,
+                                      size_t length,
+                                      uint8_t digest_out[VOS_CRYPTO_DIGEST_BYTES]);
+
+int vos_storage_typed_seal_extent(const struct vos_storage_typed_store *store,
+                                    uint64_t block_address,
+                                    uint64_t node_id,
+                                    uint64_t generation,
+                                    uint32_t kind,
+                                    const uint8_t *plaintext,
+                                    size_t length,
+                                    uint8_t *ciphertext_out,
+                                    struct vos_storage_extent *extent_out);
+
+int vos_storage_typed_read_extent(const struct vos_storage_typed_store *store,
+                                    uint64_t caller_domain,
+                                    const struct vos_storage_typed_key *key,
+                                    const uint8_t *ciphertext,
+                                    size_t ciphertext_length,
+                                    uint8_t *plaintext_out,
+                                    size_t plaintext_capacity,
+                                    size_t *length_out);
+
+static inline struct vos_storage_typed_ops vos_storage_typed_default_ops(void)
+{
+    const struct vos_storage_typed_ops ops = {
+        .node_encode = vos_typed_node_encode,
+        .node_decode = vos_typed_node_decode,
+        .lookup = vos_typed_tree_lookup,
+        .lookup_path = vos_typed_tree_lookup_path,
+        .insert = vos_typed_tree_insert,
+        .insert_batch = vos_typed_tree_insert_batch,
+        .del = vos_typed_tree_delete,
+        .compact = vos_typed_tree_compact,
+        .key_encode = vos_storage_typed_key_encode,
+        .extent_encode = vos_storage_extent_encode
+    };
+    return ops;
+}
+
+static inline int vos_storage_typed_format(
+    struct vos_storage_typed_medium *medium,
+    struct vos_storage_typed_store *store,
+    struct vos_crypto_core *crypto,
+    uint32_t crypto_slot,
+    uint64_t domain_id,
+    uint64_t key_epoch,
+    const struct vos_node_geometry *geometry,
+    const struct vos_tree_limits *limits,
+    uint64_t initial_generation,
+    uint64_t max_generation)
+{
+    const struct vos_storage_typed_ops ops = vos_storage_typed_default_ops();
+    return vos_storage_typed_format_ops(medium, store, crypto, crypto_slot,
+                                        domain_id, key_epoch, geometry, limits,
+                                        initial_generation, max_generation, &ops);
+}
+
+static inline int vos_storage_typed_reopen(
+    struct vos_storage_typed_medium *medium,
+    struct vos_storage_typed_store *store,
+    struct vos_crypto_core *crypto,
+    uint32_t crypto_slot,
+    uint64_t expected_domain_id)
+{
+    const struct vos_storage_typed_ops ops = vos_storage_typed_default_ops();
+    return vos_storage_typed_reopen_ops(medium, store, crypto, crypto_slot,
+                                        expected_domain_id, &ops);
+}
 
 #endif
