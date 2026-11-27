@@ -614,7 +614,7 @@ Sorted reference payload SHA-256: `23b690105f12b96f3ef7a997cf508a5b775e70bcaf077
 
 | Bound input or implementation | SHA-256 |
 | --- | --- |
-| [tools/vos/source_bindings.py](../../tools/vos/source_bindings.py) | `ce4e3825111a8c374f8816a3d4bd821c9f252e4f705e3ee672b0eba85703f5f9` |
+| [tools/vos/source_bindings.py](../../tools/vos/source_bindings.py) | `2e5f9e2b595edb7724bf31fd6cf2cf13e970951e08b619640da5ca91291ce4ac` |
 | [proofs/ProofSupport.v](../../proofs/ProofSupport.v) | `21fefa8c275f9a6ee41299d2d59b971974a8f89453cb8749bbec0d7d13e86a22` |
 | [tools/pyproject.toml](../../tools/pyproject.toml) | `7340fd0d1daf7751a80fdf2593831fd4958517d84839422f989752d439638f34` |
 | [tools/uv.lock](../../tools/uv.lock) | `0a470cbea5bb34c291a46053bc4c455f96ddd275adc435c14fab2a0babdbf0e1` |
@@ -631,9 +631,9 @@ Sorted reference payload SHA-256: `23b690105f12b96f3ef7a997cf508a5b775e70bcaf077
 | [tools/vos/proofenv.py](../../tools/vos/proofenv.py) | `1d51bdb83c1f09f675e5eec631016ca25ba16c4001e1dca75ec3ddd30f82b4f1` |
 | [tools/vos/prooflex.py](../../tools/vos/prooflex.py) | `d3cc29a77d0f9b214afeaa4bb7b54a8ffefac77e04bc7881ff5d25f237731913` |
 | [tools/vos/proofs.py](../../tools/vos/proofs.py) | `e97b1c3c7ae00098c9204396b27897eabdfc13cb4636d8daf4361421de51c226` |
-| [tools/vos/python_dependencies.py](../../tools/vos/python_dependencies.py) | `f7fc844fcb85635dd45532ccd510aca2c743ca18b2bd6a55a1f32fe0591fed15` |
+| [tools/vos/python_dependencies.py](../../tools/vos/python_dependencies.py) | `60a9f718a9588080c6aaee2ad60384fa9bdcb16f98c5b86c2eee383cbb44dad6` |
 | [tools/vos/receipts.py](../../tools/vos/receipts.py) | `25bbf0b0288363f3b1fe9b0eff3616839dce7d61720814fe2f350f1fbba8d822` |
 | [tools/vos/rocqterm.py](../../tools/vos/rocqterm.py) | `615415810520768480e6e41e3b20bb183bd33f638c5b0321711c37fb5084fa07` |
-| [tools/vos/sailbundle.py](../../tools/vos/sailbundle.py) | `d54f4ec96fceba911cd252c8ee666e05aabbc580731322ac2a21025219797acd` |
+| [tools/vos/sailbundle.py](../../tools/vos/sailbundle.py) | `ff5a1ef3aebf00b1f229d57cce63b4c3202d331309f8738e473f8acfc19bc862` |
 
 Before adopting a compact dictionary, name a real consumer, record its table shapes and access trace or justified query distribution, compare sorted arrays and generated perfect hashing, and declare finite byte/work thresholds. Construction and any randomized seed need their own bounds. Timing comparisons and benchmarks run on CI. Dynamic service indexes separately owe update, exhaustion and recovery behavior.

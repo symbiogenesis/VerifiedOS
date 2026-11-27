@@ -12,7 +12,7 @@
       "sources": [
         {
           "path": "tools/vos/source_bindings.py",
-          "sha256": "ce4e3825111a8c374f8816a3d4bd821c9f252e4f705e3ee672b0eba85703f5f9"
+          "sha256": "2e5f9e2b595edb7724bf31fd6cf2cf13e970951e08b619640da5ca91291ce4ac"
         },
         {
           "path": "proofs/ProofSupport.v",
@@ -72,7 +72,7 @@
         },
         {
           "path": "tools/vos/python_dependencies.py",
-          "sha256": "f7fc844fcb85635dd45532ccd510aca2c743ca18b2bd6a55a1f32fe0591fed15"
+          "sha256": "60a9f718a9588080c6aaee2ad60384fa9bdcb16f98c5b86c2eee383cbb44dad6"
         },
         {
           "path": "tools/vos/receipts.py",
@@ -84,7 +84,7 @@
         },
         {
           "path": "tools/vos/sailbundle.py",
-          "sha256": "d54f4ec96fceba911cd252c8ee666e05aabbc580731322ac2a21025219797acd"
+          "sha256": "ff5a1ef3aebf00b1f229d57cce63b4c3202d331309f8738e473f8acfc19bc862"
         }
       ]
     },
@@ -93,7 +93,7 @@
       "sources": [
         {
           "path": "tools/vos/source_bindings.py",
-          "sha256": "ce4e3825111a8c374f8816a3d4bd821c9f252e4f705e3ee672b0eba85703f5f9"
+          "sha256": "2e5f9e2b595edb7724bf31fd6cf2cf13e970951e08b619640da5ca91291ce4ac"
         },
         {
           "path": "proofs/ProofSupport.v",
@@ -193,7 +193,7 @@
         },
         {
           "path": "tools/vos/python_dependencies.py",
-          "sha256": "f7fc844fcb85635dd45532ccd510aca2c743ca18b2bd6a55a1f32fe0591fed15"
+          "sha256": "60a9f718a9588080c6aaee2ad60384fa9bdcb16f98c5b86c2eee383cbb44dad6"
         },
         {
           "path": "tools/vos/receipts.py",
@@ -205,7 +205,7 @@
         },
         {
           "path": "tools/vos/sailbundle.py",
-          "sha256": "d54f4ec96fceba911cd252c8ee666e05aabbc580731322ac2a21025219797acd"
+          "sha256": "ff5a1ef3aebf00b1f229d57cce63b4c3202d331309f8738e473f8acfc19bc862"
         },
         {
           "path": "tools/vos/sailexpr.py",
@@ -410,7 +410,7 @@
       "sources": [
         {
           "path": "tools/vos/source_bindings.py",
-          "sha256": "ce4e3825111a8c374f8816a3d4bd821c9f252e4f705e3ee672b0eba85703f5f9"
+          "sha256": "2e5f9e2b595edb7724bf31fd6cf2cf13e970951e08b619640da5ca91291ce4ac"
         },
         {
           "path": "proofs/ProofSupport.v",
@@ -658,7 +658,7 @@
         },
         {
           "path": "tools/vos/python_dependencies.py",
-          "sha256": "f7fc844fcb85635dd45532ccd510aca2c743ca18b2bd6a55a1f32fe0591fed15"
+          "sha256": "60a9f718a9588080c6aaee2ad60384fa9bdcb16f98c5b86c2eee383cbb44dad6"
         },
         {
           "path": "tools/vos/receipts.py",
@@ -678,7 +678,7 @@
         },
         {
           "path": "tools/vos/sailbundle.py",
-          "sha256": "d54f4ec96fceba911cd252c8ee666e05aabbc580731322ac2a21025219797acd"
+          "sha256": "ff5a1ef3aebf00b1f229d57cce63b4c3202d331309f8738e473f8acfc19bc862"
         },
         {
           "path": "tools/vos/sailexpr.py",
@@ -711,7 +711,7 @@
       ],
       "descriptor": {
         "path": "tools/composer/packages/copy-service.json",
-        "sha256": "d747eb6907d99e71abb5a111ccd93a1b6cce56723406d8442c3525cf70af779c"
+        "sha256": "49d19465b33dbd43940c96fd75adf1b88351a803c29d35056a8f0b9691fd4b80"
       },
       "artifact_slot": "copy-service-artifact",
       "entry": null,
@@ -730,7 +730,7 @@
       "sources": [
         {
           "path": "tools/vos/source_bindings.py",
-          "sha256": "ce4e3825111a8c374f8816a3d4bd821c9f252e4f705e3ee672b0eba85703f5f9"
+          "sha256": "2e5f9e2b595edb7724bf31fd6cf2cf13e970951e08b619640da5ca91291ce4ac"
         },
         {
           "path": "proofs/ProofSupport.v",
@@ -938,7 +938,7 @@
         },
         {
           "path": "tools/vos/python_dependencies.py",
-          "sha256": "f7fc844fcb85635dd45532ccd510aca2c743ca18b2bd6a55a1f32fe0591fed15"
+          "sha256": "60a9f718a9588080c6aaee2ad60384fa9bdcb16f98c5b86c2eee383cbb44dad6"
         },
         {
           "path": "tools/vos/receipts.py",
@@ -950,7 +950,7 @@
         },
         {
           "path": "tools/vos/sailbundle.py",
-          "sha256": "d54f4ec96fceba911cd252c8ee666e05aabbc580731322ac2a21025219797acd"
+          "sha256": "ff5a1ef3aebf00b1f229d57cce63b4c3202d331309f8738e473f8acfc19bc862"
         },
         {
           "path": "tools/vos/sailexpr.py",
@@ -967,7 +967,7 @@
       ],
       "descriptor": {
         "path": "tools/composer/packages/composer.json",
-        "sha256": "ed9727f99621e65f25956de68bbdb625134058e9b442b94c1e94f422813fd823"
+        "sha256": "d486e4d6937442e0294a2f250c321352b9bd61059813d6918a6e382cb197c39b"
       },
       "artifact_slot": "composer-artifact",
       "entry": null,
@@ -986,7 +986,7 @@
       "sources": [
         {
           "path": "tools/vos/source_bindings.py",
-          "sha256": "ce4e3825111a8c374f8816a3d4bd821c9f252e4f705e3ee672b0eba85703f5f9"
+          "sha256": "2e5f9e2b595edb7724bf31fd6cf2cf13e970951e08b619640da5ca91291ce4ac"
         },
         {
           "path": "proofs/ProofSupport.v",
@@ -1138,7 +1138,7 @@
         },
         {
           "path": "tools/vos/python_dependencies.py",
-          "sha256": "f7fc844fcb85635dd45532ccd510aca2c743ca18b2bd6a55a1f32fe0591fed15"
+          "sha256": "60a9f718a9588080c6aaee2ad60384fa9bdcb16f98c5b86c2eee383cbb44dad6"
         },
         {
           "path": "tools/vos/receipts.py",
@@ -1154,7 +1154,7 @@
         },
         {
           "path": "tools/vos/sailbundle.py",
-          "sha256": "d54f4ec96fceba911cd252c8ee666e05aabbc580731322ac2a21025219797acd"
+          "sha256": "ff5a1ef3aebf00b1f229d57cce63b4c3202d331309f8738e473f8acfc19bc862"
         },
         {
           "path": "tools/vos/sailexpr.py",
@@ -1171,7 +1171,7 @@
       ],
       "descriptor": {
         "path": "tools/composer/packages/admission.json",
-        "sha256": "1c33bfa5b64b47521e3ddb7679a961c1c18010ce56a41ad18bc38ff914fd9c28"
+        "sha256": "8a89282ce3d29c63845633c852529411c080c53d117b2ed2532eb37ff91331c6"
       },
       "artifact_slot": "admission-artifact",
       "entry": null,

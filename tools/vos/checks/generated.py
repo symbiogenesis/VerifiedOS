@@ -95,7 +95,11 @@ def _source_identity_row(ctx: Context, row: Row, staged: bytes | None) -> Readin
         repaired = ctx.fixed.get(sailbundle.BUNDLE)
         bundle_bytes = (repaired.encode("utf-8") if repaired is not None else
                         (ctx.root / sailbundle.BUNDLE).read_bytes())
-        sailbundle.read_source_identity(ctx.root, bundle_bytes, identity_bytes=working)
+        cached = ctx.shared.get("sail_source_identity")
+        if not (isinstance(cached, tuple) and len(cached) == 3
+                and cached[0] == bundle_bytes and cached[1] == working):
+            sailbundle.read_source_identity(ctx.root, bundle_bytes, identity_bytes=working,
+                                            bundle=ctx.shared.get("bundle"))
     except (OSError, sailbundle.BundleError) as exc:
         out.findings.append(f"{row.path} cannot establish source identity: {exc}")
     return out
@@ -189,12 +193,19 @@ def _fiat_row(ctx: Context, row: Row, staged: bytes | None) -> Reading:
     if missing:
         out.findings.append("Fiat emission members are not indexed: " + ", ".join(missing))
         return out
+    if "fiat_verified" not in ctx.shared:
+        try:
+            fiat.verify_record(ctx.root, ctx.corpus.gitlinks.get("upstream/fiat-crypto"))
+            ctx.shared["fiat_verified"] = ""
+        except (OSError, ValueError, KeyError, TypeError) as exc:
+            ctx.shared["fiat_verified"] = str(exc)
+            out.findings.append(f"{row.path} has invalid Fiat emission provenance: {exc}")
+            return out
     try:
-        fiat.verify_record(ctx.root, ctx.corpus.gitlinks.get("upstream/fiat-crypto"))
         if staged is None or (ctx.root / row.path).read_bytes() != staged:
             out.findings.append(f"{row.path} differs from its indexed emission; "
                                 f"run and review `{row.checker}` before staging")
-    except (OSError, ValueError, KeyError, TypeError) as exc:
+    except OSError as exc:
         out.findings.append(f"{row.path} has invalid Fiat emission provenance: {exc}")
     return out
 
@@ -375,11 +386,14 @@ def _composition_output(root: Path, name: str, projections: Callable[[Path], dic
     return data
 
 
-def _source_bindings_emit(relative: str) -> Emitter:
+def _source_bindings_emit(relative: str,
+                          session: source_bindings._Session | None = None) -> Emitter:
     """Regenerate the explicitly owned source fields in authored declarations."""
     def emit(root: Path, bundle: sailbundle.Bundle | None) -> str:
         del bundle
         try:
+            if session is not None:
+                return source_bindings._render(session, relative)
             return source_bindings.render(root, relative)
         except (OSError, TypeError) as error:
             raise ValueError(f"source-binding input cannot be read: {error}") from error
@@ -599,7 +613,12 @@ def _owners(ctx: Context, row: Row, bundle: sailbundle.Bundle,
     findings: list[str] = []
     source_count = 0
     try:
-        source_count = len(sailbundle.read_source_identity(ctx.root, bundle_bytes))
+        owners = sailbundle.read_source_identity(ctx.root, bundle_bytes, bundle=bundle)
+        source_count = len(owners)
+        identity_path = ctx.root / sailbundle.SOURCE_IDENTITY
+        if owners and identity_path.is_file():
+            ctx.shared["sail_source_identity"] = (
+                bundle_bytes, identity_path.read_bytes(), owners)
     except (OSError, sailbundle.BundleError) as exc:
         findings.append(f"{row.path} has no current complete project source identity: {exc}")
     for rel, recorded in sorted(bundle.owners().items()):
@@ -794,6 +813,8 @@ def run(ctx: Context) -> None:
     # The composer produces every projection together. Share that emission only
     # within this run, after the first indexed projection requests it.
     projections = cache(composition.projections)
+    bindings_session = source_bindings._new_session(ctx.root)
+    binding_paths = frozenset((*source_bindings.PACKAGE_FILES.values(), source_bindings.COMPOSITION))
     for row in GENERATED:
         # The order of the table is load-bearing here and nowhere else: a host row's
         # generator reads what an earlier row settled on, so the bundle the run has
@@ -802,7 +823,15 @@ def run(ctx: Context) -> None:
         # shares of this group apart.
         with ctx.clock.timing("row", row.path):
             if row.lane == "host":
-                reading = _host_row(ctx, row, settled, projections)
+                if row.path in binding_paths:
+                    active_row = Row(
+                        path=row.path, generator=row.generator, lane=row.lane,
+                        owners=row.owners, checker=row.checker,
+                        emit=_source_bindings_emit(row.path, bindings_session),
+                    )
+                    reading = _host_row(ctx, active_row, settled, projections)
+                else:
+                    reading = _host_row(ctx, row, settled, projections)
             elif row.inspect is not None:
                 reading = row.inspect(ctx, row, staged[row.path])
             else:

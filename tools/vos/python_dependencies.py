@@ -10,9 +10,34 @@ survives a call, so a changed import edge is read from the selected checkout.
 import ast
 import stat
 import symtable
-from collections.abc import Iterable
+from collections.abc import Iterable, Iterator
 from pathlib import Path
 from typing import override
+
+
+def _iter_imports(tree: ast.Module) -> Iterator[ast.Import | ast.ImportFrom]:
+    """Yield every `import` / `from ... import` statement by walking only statement blocks."""
+    blocks: list[list[ast.stmt]] = [tree.body]
+    while blocks:
+        for stmt in blocks.pop():
+            if isinstance(stmt, (ast.Import, ast.ImportFrom)):
+                yield stmt
+            elif isinstance(stmt, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef,
+                                   ast.With, ast.AsyncWith)):
+                blocks.append(stmt.body)
+            elif isinstance(stmt, (ast.For, ast.AsyncFor, ast.While, ast.If)):
+                blocks.append(stmt.body)
+                if stmt.orelse:
+                    blocks.append(stmt.orelse)
+            elif isinstance(stmt, (ast.Try, ast.TryStar)):
+                blocks.append(stmt.body)
+                blocks.extend(handler.body for handler in stmt.handlers)
+                if stmt.orelse:
+                    blocks.append(stmt.orelse)
+                if stmt.finalbody:
+                    blocks.append(stmt.finalbody)
+            elif isinstance(stmt, ast.Match):
+                blocks.extend(case.body for case in stmt.cases)
 
 
 class _RuntimeBindings(ast.NodeVisitor):
@@ -83,29 +108,38 @@ class _RuntimeBindings(ast.NodeVisitor):
         self.generic_visit(node)
 
 
-def sources(root: Path, entrypoints: Iterable[str]) -> tuple[str, ...]:
-    """Return sorted checkout-relative sources for explicit Python entry points.
-
-    Missing project-local modules refuse rather than disappearing from identity.
-    A ``from`` member may instead be a statically bound attribute of its module;
-    the symbol table distinguishes those exports from missing helper modules.
-    """
+def _sources(root: Path, entrypoints: Iterable[str], *,
+             parsed: dict[Path, tuple[ast.Module, frozenset[str]]] | None = None,
+             regular_cache: dict[Path, bool] | None = None,
+             module_cache: dict[str, Path | None] | None = None) -> tuple[str, ...]:
+    """Return sorted checkout-relative sources using caller-provided per-call caches."""
     boundary = root.resolve()
     tools = boundary / "tools"
     if tools.resolve() != tools:
         raise ValueError("Python dependency root must not redirect outside tools")
-    parsed: dict[Path, tuple[ast.Module, frozenset[str]]] = {}
+    if parsed is None:
+        parsed = {}
+    if regular_cache is None:
+        regular_cache = {}
+    if module_cache is None:
+        module_cache = {}
     found: set[Path] = set()
     pending: list[Path] = []
 
     def regular(path: Path) -> bool:
+        cached = regular_cache.get(path)
+        if cached is not None:
+            return cached
         try:
             mode = path.stat().st_mode
         except FileNotFoundError:
+            regular_cache[path] = False
             return False
         if path.resolve() != path or not path.is_relative_to(tools):
             raise ValueError(f"Python dependency path must stay within tools: {path}")
-        return stat.S_ISREG(mode)
+        result = stat.S_ISREG(mode)
+        regular_cache[path] = result
+        return result
 
     def read(path: Path) -> tuple[ast.Module, frozenset[str]]:
         if path not in parsed:
@@ -124,11 +158,16 @@ def sources(root: Path, entrypoints: Iterable[str]) -> tuple[str, ...]:
         return parsed[path]
 
     def module(name: str) -> Path | None:
+        if name in module_cache:
+            return module_cache[name]
         base = tools.joinpath(*name.split("."))
+        found_path: Path | None = None
         for path in (base / "__init__.py", base.with_suffix(".py")):
             if regular(path):
-                return path
-        return None
+                found_path = path
+                break
+        module_cache[name] = found_path
+        return found_path
 
     entries = tuple(entrypoints)
     if not entries:
@@ -171,12 +210,12 @@ def sources(root: Path, entrypoints: Iterable[str]) -> tuple[str, ...]:
             parts = package
         for length in range(1, len(parts)):
             add(".".join(parts[:length]), required=True)
-        for node in ast.walk(tree):
+        for node in _iter_imports(tree):
             if isinstance(node, ast.Import):
                 for alias in node.names:
                     top = alias.name.split(".")[0]
                     add(alias.name, required=top in local or module(top) is not None)
-            elif isinstance(node, ast.ImportFrom):
+            else:
                 if node.level:
                     if node.level > len(package):
                         raise ValueError(f"relative Python import escapes its package: {path}")
@@ -199,3 +238,13 @@ def sources(root: Path, entrypoints: Iterable[str]) -> tuple[str, ...]:
                     elif alias.name not in bound:
                         raise ValueError(f"missing local Python dependency or export: {member}")
     return tuple(sorted(path.relative_to(boundary).as_posix() for path in found))
+
+
+def sources(root: Path, entrypoints: Iterable[str]) -> tuple[str, ...]:
+    """Return sorted checkout-relative sources for explicit Python entry points.
+
+    Missing project-local modules refuse rather than disappearing from identity.
+    A ``from`` member may instead be a statically bound attribute of its module;
+    the symbol table distinguishes those exports from missing helper modules.
+    """
+    return _sources(root, entrypoints)

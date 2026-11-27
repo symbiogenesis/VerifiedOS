@@ -571,18 +571,32 @@ def owner_parts(rel: str) -> list[str]:
     return parts
 
 
-def owner_path(root: Path, rel: str) -> Path:
-    """A portable regular owner path, refusing traversal and link redirection."""
+def _owner_path(root: Path, rel: str, *, root_resolved: Path | None = None,
+                checked_dirs: set[Path] | None = None) -> Path:
+    """Resolve and validate one portable regular owner path within `root`."""
+    parts = owner_parts(rel)
     path = root
-    for part in owner_parts(rel):
+    last = len(parts) - 1
+    for index, part in enumerate(parts):
         path /= part
-        if path.is_symlink() or path.is_junction():
+        if index < last and checked_dirs is not None:
+            if path not in checked_dirs:
+                if path.is_symlink() or path.is_junction():
+                    raise BundleError(f"{rel}: symbolic links and junctions are not source owners")
+                checked_dirs.add(path)
+        elif path.is_symlink() or path.is_junction():
             raise BundleError(f"{rel}: symbolic links and junctions are not source owners")
-    if not path.resolve().is_relative_to(root.resolve()):
+    resolved_root = root.resolve() if root_resolved is None else root_resolved
+    if not path.resolve().is_relative_to(resolved_root):
         raise BundleError(f"{rel}: path escapes the checkout")
     if not path.is_file():
         raise BundleError(f"{rel}: missing regular source owner")
     return path
+
+
+def owner_path(root: Path, rel: str) -> Path:
+    """A portable regular owner path, refusing traversal and link redirection."""
+    return _owner_path(root, rel)
 
 
 def source_identity(root: Path, listed: list[str], bundle_bytes: bytes) -> bytes:
@@ -607,7 +621,8 @@ def source_identity(root: Path, listed: list[str], bundle_bytes: bytes) -> bytes
 
 
 def read_source_identity(root: Path, bundle_bytes: bytes, *, identity_bytes: bytes | None = None,
-                         captured: dict[str, bytes] | None = None) -> dict[str, str]:
+                         captured: dict[str, bytes] | None = None,
+                         bundle: Bundle | None = None) -> dict[str, str]:
     """Check the complete local source identity and return its SHA-256 owners.
 
     The project bytes bind the source selection recorded by the guest compiler;
@@ -615,8 +630,11 @@ def read_source_identity(root: Path, bundle_bytes: bytes, *, identity_bytes: byt
     listed source now, while the guest comparison regenerates the complete selection.
     Optional captured bytes let a context reader return these same checked reads.
     """
+    root_resolved = root.resolve()
+    checked_dirs: set[Path] = set()
     try:
-        data = (owner_path(root, SOURCE_IDENTITY).read_bytes()
+        data = (_owner_path(root, SOURCE_IDENTITY, root_resolved=root_resolved,
+                            checked_dirs=checked_dirs).read_bytes()
                 if identity_bytes is None else identity_bytes)
         raw = json.loads(data.decode("utf-8"), object_pairs_hook=_json_object,
                          parse_constant=_json_constant)
@@ -636,7 +654,8 @@ def read_source_identity(root: Path, bundle_bytes: bytes, *, identity_bytes: byt
             or not isinstance(project.get("sha256"), str)
             or not _SHA256_RE.fullmatch(project["sha256"])):
         raise BundleError(f"{SOURCE_IDENTITY}: malformed project file identity")
-    if hashlib.sha256(owner_path(root, PROJECT_FILE).read_bytes()).hexdigest() != project["sha256"]:
+    project_file = _owner_path(root, PROJECT_FILE, root_resolved=root_resolved, checked_dirs=checked_dirs)
+    if hashlib.sha256(project_file.read_bytes()).hexdigest() != project["sha256"]:
         raise BundleError(f"{PROJECT_FILE}: recorded project digest differs from current bytes; "
                           "regenerate and compare the bundle before using its context")
     manifest = raw["sources"]
@@ -644,28 +663,30 @@ def read_source_identity(root: Path, bundle_bytes: bytes, *, identity_bytes: byt
             or not isinstance(manifest.get("sha256"), dict) or not manifest["sha256"]):
         raise BundleError(f"{SOURCE_IDENTITY}: missing or malformed complete source manifest")
     hashes: dict[str, str] = {}
+    paths: dict[str, Path] = {}
     for rel, digest in manifest["sha256"].items():
         if (not isinstance(rel, str) or not rel.startswith(f"{SOURCE_ROOT}/")
                 or not isinstance(digest, str) or not _SHA256_RE.fullmatch(digest)):
             raise BundleError(f"{SOURCE_IDENTITY}: malformed source path or SHA-256")
-        owner_path(root, rel)
+        paths[rel] = _owner_path(root, rel, root_resolved=root_resolved, checked_dirs=checked_dirs)
         hashes[rel] = digest
     if (type(manifest.get("files")) is not int or manifest["files"] != len(hashes)
             or manifest.get("aggregate") != rocqterm.aggregate(hashes)):
         raise BundleError(f"{SOURCE_IDENTITY}: source count or aggregate disagrees with its members")
-    bundle = parse(bundle_bytes)
-    local = bundle.owners()
+    parsed_bundle = bundle if bundle is not None else parse(bundle_bytes)
+    local = parsed_bundle.owners()
     if missing := sorted(set(local) - set(hashes)):
         raise BundleError(f"{SOURCE_IDENTITY}: source manifest omits bundle owners: {', '.join(missing)}")
     checked: dict[str, bytes] = {}
     for rel, expected in hashes.items():
-        current = owner_path(root, rel).read_bytes()
+        current = paths[rel].read_bytes()
         if hashlib.sha256(current).hexdigest() != expected:
             raise BundleError(f"{rel}: recorded owner digest differs from current bytes; "
                               "regenerate and compare the bundle before using its context")
         if rel in local and hashlib.md5(current, usedforsecurity=False).hexdigest() != local[rel]:
             raise BundleError(f"{rel}: bundle MD5 differs from the complete source identity")
-        checked[rel] = current
+        if captured is not None:
+            checked[rel] = current
     if captured is not None:
         captured.update(checked)
     return hashes

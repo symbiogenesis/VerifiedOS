@@ -8,8 +8,10 @@ Generated JSON retains its other authored choices; no generator assigns handlers
 products, admission tiers or proof evidence.
 """
 
+import ast
 import hashlib
 import json
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Final
 
@@ -53,9 +55,30 @@ class SourceBindingError(ValueError):
     """A declared inventory cannot be generated or published at its boundary."""
 
 
-def sources(view: str, *, root: Path | None = None) -> tuple[str, ...]:
-    """Expand current imports and declared inputs in the selected checkout."""
-    root = Path(__file__).resolve().parents[2] if root is None else root
+@dataclass
+class _Session:
+    """Per-call cache so one expansion or render shares AST/digest work without persisting state."""
+
+    root: Path
+    root_resolved: Path
+    digests: dict[str, str] = field(default_factory=dict)
+    parsed: dict[Path, tuple[ast.Module, frozenset[str]]] = field(default_factory=dict)
+    regular_cache: dict[Path, bool] = field(default_factory=dict)
+    module_cache: dict[str, Path | None] = field(default_factory=dict)
+    view_sources: dict[str, tuple[str, ...]] = field(default_factory=dict)
+    view_refs: dict[str, list[dict[str, str]]] = field(default_factory=dict)
+    rendered_packages: dict[str, str] = field(default_factory=dict)
+
+
+def _new_session(root: Path) -> _Session:
+    return _Session(root=root, root_resolved=root.resolve())
+
+
+def _sources(view: str, session: _Session) -> tuple[str, ...]:
+    cached = session.view_sources.get(view)
+    if cached is not None:
+        return cached
+    root = session.root
     found: dict[str, None] = {}
 
     def visit(name: str, active: tuple[str, ...]) -> None:
@@ -65,7 +88,16 @@ def sources(view: str, *, root: Path | None = None) -> tuple[str, ...]:
             raise SourceBindingError(f"unknown source-binding group: {name}")
         members = GROUPS[name]
         if name == "copy-service-package":
-            members = (*members, *copy_package_sources.source_paths(root))
+            copy_sources = tuple(sorted({
+                *(f"copy-service/{item}" for item in
+                  (*copy_package_sources.C_FILES, *copy_package_sources.ADAPTERS)),
+                *copy_package_sources.DATA_INPUTS,
+                *python_dependencies._sources(
+                    root, copy_package_sources.ENTRYPOINTS,
+                    parsed=session.parsed, regular_cache=session.regular_cache,
+                    module_cache=session.module_cache),
+            }))
+            members = (*members, *copy_sources)
         if not members or len(members) != len(set(members)):
             raise SourceBindingError(f"empty or repeated source-binding group members: {name}")
         for member in members:
@@ -77,27 +109,56 @@ def sources(view: str, *, root: Path | None = None) -> tuple[str, ...]:
     visit(view, ())
     python = tuple(name for name in found if name.endswith(".py"))
     try:
-        imported = python_dependencies.sources(root, python)
+        imported = python_dependencies._sources(
+            root, python, parsed=session.parsed, regular_cache=session.regular_cache,
+            module_cache=session.module_cache)
     except ValueError as error:
         raise SourceBindingError(f"{view}: {error}") from error
-    return tuple(dict.fromkeys((*found, *imported)))
+    result = tuple(dict.fromkeys((*found, *imported)))
+    session.view_sources[view] = result
+    return result
+
+
+def sources(view: str, *, root: Path | None = None) -> tuple[str, ...]:
+    """Expand current imports and declared inputs in the selected checkout."""
+    selected = Path(__file__).resolve().parents[2] if root is None else root
+    return _sources(view, _new_session(selected))
+
+
+def _digest_for(session: _Session, relative: str) -> str:
+    cached = session.digests.get(relative)
+    if cached is None:
+        cached = digest(_path(session.root, relative, root_resolved=session.root_resolved))
+        session.digests[relative] = cached
+    return cached
+
+
+def _references(session: _Session, view: str) -> list[dict[str, str]]:
+    cached = session.view_refs.get(view)
+    if cached is None:
+        cached = [{"path": name, "sha256": _digest_for(session, name)}
+                  for name in _sources(view, session)]
+        session.view_refs[view] = cached
+    return [{"path": item["path"], "sha256": item["sha256"]} for item in cached]
 
 
 def references(root: Path, view: str) -> list[dict[str, str]]:
     """Bind the current bytes of a declared view; missing members are errors."""
-    return [{"path": name, "sha256": digest(_path(root, name))} for name in sources(view, root=root)]
+    return _references(_new_session(root), view)
 
 
-def _path(root: Path, relative: str) -> Path:
+def _path(root: Path, relative: str, *, root_resolved: Path | None = None) -> Path:
     selected = (root / relative).resolve()
+    resolved_root = root.resolve() if root_resolved is None else root_resolved
     if (Path(relative).is_absolute() or "\\" in relative or ".." in Path(relative).parts
-            or not selected.is_relative_to(root.resolve())):
+            or not selected.is_relative_to(resolved_root)):
         raise SourceBindingError(f"source-binding path must stay relative to the checkout: {relative}")
     return selected
 
 
-def _read(root: Path, relative: str) -> dict[str, Any]:
-    raw = json.loads(_path(root, relative).read_bytes(), object_pairs_hook=unique_object)
+def _read(root: Path, relative: str, *, root_resolved: Path | None = None) -> dict[str, Any]:
+    raw = json.loads(_path(root, relative, root_resolved=root_resolved).read_bytes(),
+                     object_pairs_hook=unique_object)
     if not isinstance(raw, dict):
         raise SourceBindingError(f"source-binding input must be an object: {relative}")
     return raw
@@ -116,27 +177,34 @@ def _interface_sources(raw: dict[str, Any]) -> list[dict[str, Any]]:
     return sources
 
 
-def render(root: Path, relative: str) -> str:
-    """Regenerate owned source fields, preserving all other authored choices."""
-    raw = _read(root, relative)
+def _render(session: _Session, relative: str) -> str:
+    root = session.root
     package = next((name for name, path in PACKAGE_FILES.items() if path == relative), None)
     if package is not None:
+        cached = session.rendered_packages.get(relative)
+        if cached is not None:
+            return cached
+        raw = _read(root, relative, root_resolved=session.root_resolved)
         if raw.get("package_id") != package:
             raise SourceBindingError(f"source-binding package identity disagrees: {relative}")
-        raw["sources"] = references(root, f"{package}-package")
+        raw["sources"] = _references(session, f"{package}-package")
         for source in _interface_sources(raw):
-            source["sha256"] = digest(_path(root, source["path"]))
-    elif relative == COMPOSITION:
-        for field in ("producers", "members"):
-            items = raw.get(field)
+            source["sha256"] = _digest_for(session, source["path"])
+        rendered = json.dumps(raw, indent=2, ensure_ascii=False, allow_nan=False) + "\n"
+        session.rendered_packages[relative] = rendered
+        return rendered
+    if relative == COMPOSITION:
+        raw = _read(root, relative, root_resolved=session.root_resolved)
+        for kind in ("producers", "members"):
+            items = raw.get(kind)
             if not isinstance(items, list) or any(
                     not isinstance(item, dict) or not isinstance(item.get("id"), str) for item in items):
-                raise SourceBindingError(f"source-binding {field} must be an array of identified objects")
+                raise SourceBindingError(f"source-binding {kind} must be an array of identified objects")
         for producer, view in PRODUCER_VIEWS.items():
             matches = [item for item in raw["producers"] if item["id"] == producer]
             if len(matches) != 1:
                 raise SourceBindingError(f"source-binding producer must occur once: {producer}")
-            matches[0]["sources"] = references(root, view)
+            matches[0]["sources"] = _references(session, view)
         for package, path in PACKAGE_FILES.items():
             matches = [item for item in raw["members"] if item["id"] == package]
             if len(matches) != 1:
@@ -146,22 +214,29 @@ def render(root: Path, relative: str) -> str:
             descriptor = matches[0].get("descriptor")
             if not isinstance(descriptor, dict) or descriptor.get("path") != path:
                 raise SourceBindingError(f"source-binding package path disagrees: {package}")
-            matches[0]["sources"] = references(root, f"{package}-package")
-            matches[0]["descriptor"]["sha256"] = hashlib.sha256(render(root, path).encode("utf-8")).hexdigest()
-    else:
-        raise SourceBindingError(f"no declared source-binding artifact: {relative}")
-    return json.dumps(raw, indent=2, ensure_ascii=False, allow_nan=False) + "\n"
+            matches[0]["sources"] = _references(session, f"{package}-package")
+            matches[0]["descriptor"]["sha256"] = hashlib.sha256(_render(session, path).encode("utf-8")).hexdigest()
+        return json.dumps(raw, indent=2, ensure_ascii=False, allow_nan=False) + "\n"
+    raise SourceBindingError(f"no declared source-binding artifact: {relative}")
 
 
-def _destinations(root: Path) -> dict[str, Path]:
+def render(root: Path, relative: str) -> str:
+    """Regenerate owned source fields, preserving all other authored choices."""
+    return _render(_new_session(root), relative)
+
+
+def _destinations(session: _Session) -> dict[str, Path]:
     """Preflight every output against containment, peers and bound source inputs."""
+    root = session.root
     destinations: dict[str, Path] = {}
     views = [*(f"{package}-package" for package in PACKAGE_FILES), *PRODUCER_VIEWS.values()]
-    inputs = {_path(root, name) for view in views for name in sources(view, root=root)}
-    inputs.update(_path(root, source["path"]) for relative in PACKAGE_FILES.values()
-                  for source in _interface_sources(_read(root, relative)))
+    inputs = {_path(root, name, root_resolved=session.root_resolved)
+              for view in views for name in _sources(view, session)}
+    inputs.update(_path(root, source["path"], root_resolved=session.root_resolved)
+                  for relative in PACKAGE_FILES.values()
+                  for source in _interface_sources(_read(root, relative, root_resolved=session.root_resolved)))
     for name in (*PACKAGE_FILES.values(), COMPOSITION):
-        selected = _path(root, name)
+        selected = _path(root, name, root_resolved=session.root_resolved)
         peers = [*destinations.values(), *inputs]
         if any(selected == peer or (selected.exists() and peer.exists() and selected.samefile(peer))
                for peer in peers):
@@ -176,8 +251,9 @@ def emit(root: Path) -> dict[str, str]:
     Each file is replaced atomically; the set is not a filesystem transaction.
     Projection generation follows this command and checks the complete binding.
     """
-    destinations = _destinations(root)
-    outputs = {name: render(root, name) for name in destinations}
+    session = _new_session(root)
+    destinations = _destinations(session)
+    outputs = {name: _render(session, name) for name in destinations}
     for name, text in outputs.items():
         with atomic_path(destinations[name]) as pending:
             pending.write_text(text, encoding="utf-8", newline="")
