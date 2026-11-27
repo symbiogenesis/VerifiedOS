@@ -1,0 +1,390 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Composition reset/power sequence table and R-15-247d discharge/admission rider",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "table_id",
+    "modes",
+    "islands",
+    "ahead_islands",
+    "inference_island",
+    "optional_sockets",
+    "regions",
+    "domains",
+    "island_resident",
+    "power_vector",
+    "off_image_extents",
+    "steps",
+    "entry_points",
+    "suffix_entries",
+    "latency_table"
+  ],
+  "properties": {
+    "schema": {"type": "integer", "const": 1},
+    "table_id": {"$ref": "#/$defs/identifier"},
+    "modes": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/mode"}
+    },
+    "islands": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/island"}
+    },
+    "ahead_islands": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/identifier"}
+    },
+    "inference_island": {
+      "oneOf": [
+        {"$ref": "#/$defs/identifier"},
+        {"type": "null"}
+      ]
+    },
+    "optional_sockets": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/socket"}
+    },
+    "regions": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/region"}
+    },
+    "domains": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/domain"}
+    },
+    "island_resident": {
+      "type": "object",
+      "propertyNames": {"$ref": "#/$defs/identifier"},
+      "additionalProperties": {
+        "type": "object",
+        "propertyNames": {"$ref": "#/$defs/identifier"},
+        "additionalProperties": {"type": "boolean"}
+      }
+    },
+    "power_vector": {
+      "type": "object",
+      "propertyNames": {"$ref": "#/$defs/identifier"},
+      "additionalProperties": {
+        "type": "object",
+        "propertyNames": {"$ref": "#/$defs/identifier"},
+        "additionalProperties": {"enum": ["ON", "RETAINED", "OFF"]}
+      }
+    },
+    "off_image_extents": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/off_image_extent"}
+    },
+    "steps": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/table_step"}
+    },
+    "entry_points": {
+      "type": "array",
+      "items": {"type": "integer", "minimum": 0}
+    },
+    "suffix_entries": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/suffix_entry"}
+    },
+    "latency_table": {"$ref": "#/$defs/latency_table"}
+  },
+  "$defs": {
+    "text": {"type": "string", "pattern": "\\S"},
+    "identifier": {"type": "string", "pattern": "^[a-z][a-z0-9_-]*(?![\\s\\S])"},
+    "retention_label": {"enum": ["first_class", "image_derived", "session_derived"]},
+    "mode": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "role"],
+      "properties": {
+        "id": {"$ref": "#/$defs/identifier"},
+        "role": {"enum": ["cold", "normal", "standby", "lock", "sleep", "recovery"]}
+      }
+    },
+    "island": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "role"],
+      "properties": {
+        "id": {"$ref": "#/$defs/identifier"},
+        "role": {"enum": ["rot", "shell", "telephony", "inference", "peripheral"]}
+      }
+    },
+    "socket": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "island_id", "replacement_mode", "initial_state"],
+      "properties": {
+        "id": {"$ref": "#/$defs/identifier"},
+        "island_id": {"$ref": "#/$defs/identifier"},
+        "replacement_mode": {"enum": ["cold", "host_live_orderly"]},
+        "initial_state": {
+          "enum": ["absent", "isolated", "detected", "reset", "authenticated", "active", "quiescing"]
+        }
+      }
+    },
+    "region": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "class", "kind", "base", "length", "from_image", "cap_store_granted", "arena_label"],
+      "properties": {
+        "id": {"$ref": "#/$defs/identifier"},
+        "class": {"enum": ["first_class", "second_class"]},
+        "kind": {
+          "enum": [
+            "code",
+            "stack",
+            "cap_tables",
+            "framebuffers",
+            "media_buffers",
+            "interpreter_object_arenas",
+            "interpreter_body",
+            "model_weights",
+            "cold_code",
+            "base_image_blocks",
+            "kv_cache",
+            "application_payload",
+            "dma_buffers"
+          ]
+        },
+        "base": {"type": "integer", "minimum": 0},
+        "length": {"type": "integer", "minimum": 1},
+        "from_image": {"type": "boolean"},
+        "cap_store_granted": {"type": "boolean"},
+        "arena_label": {"$ref": "#/$defs/retention_label"}
+      }
+    },
+    "arena": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "lo", "len", "arena_label"],
+      "properties": {
+        "id": {"$ref": "#/$defs/identifier"},
+        "lo": {"type": "integer", "minimum": 0},
+        "len": {"type": "integer", "minimum": 1},
+        "arena_label": {"$ref": "#/$defs/retention_label"}
+      }
+    },
+    "domain": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "island_id", "class", "retention_label", "arena", "region_ids", "phases"],
+      "properties": {
+        "id": {"$ref": "#/$defs/identifier"},
+        "island_id": {"$ref": "#/$defs/identifier"},
+        "class": {"enum": ["first_class", "second_class"]},
+        "retention_label": {"$ref": "#/$defs/retention_label"},
+        "arena": {"$ref": "#/$defs/arena"},
+        "region_ids": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/identifier"}
+        },
+        "phases": {
+          "type": "array",
+          "items": {"type": "integer", "minimum": 0}
+        }
+      }
+    },
+    "off_image_extent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "domain_id", "kind", "filled_by_loader", "verified", "digest_ref"],
+      "properties": {
+        "id": {"$ref": "#/$defs/identifier"},
+        "domain_id": {"$ref": "#/$defs/identifier"},
+        "kind": {"enum": ["executable", "data"]},
+        "filled_by_loader": {"type": "boolean"},
+        "verified": {"type": "boolean"},
+        "digest_ref": {"$ref": "#/$defs/text"}
+      }
+    },
+    "table_step": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["op", "ready_signal", "watchdog_bound_sym"],
+      "properties": {
+        "op": {
+          "enum": [
+            "rot_rail_up",
+            "entropy_tests_begin",
+            "clock_spine_lock",
+            "memory_controller_up",
+            "domain_ready",
+            "domain_complete",
+            "entropy_verdict_extended",
+            "draws_entropy",
+            "island_release",
+            "image_pass",
+            "image_verdict",
+            "loader_fill",
+            "extent_verified",
+            "fail_stop_latch"
+          ]
+        },
+        "domain_id": {"$ref": "#/$defs/identifier"},
+        "island_id": {"$ref": "#/$defs/identifier"},
+        "extent_id": {"$ref": "#/$defs/identifier"},
+        "ready_signal": {"$ref": "#/$defs/text"},
+        "watchdog_bound_sym": {"$ref": "#/$defs/text"}
+      }
+    },
+    "rider_step": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["op"],
+      "properties": {
+        "op": {
+          "enum": [
+            "requesters_held",
+            "tag_discharge_confirmed",
+            "requester_addressable",
+            "data_sanitization_confirmed",
+            "measured_execution",
+            "image_pass",
+            "image_verdict",
+            "socket_quiesced",
+            "epoch_invalidated",
+            "socket_isolated",
+            "socket_reset"
+          ]
+        },
+        "domain_id": {"$ref": "#/$defs/identifier"},
+        "socket_id": {"$ref": "#/$defs/identifier"}
+      }
+    },
+    "suffix_entry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "kind", "entry_index", "domains", "sockets", "rider_steps", "dependencies"],
+      "properties": {
+        "id": {"$ref": "#/$defs/identifier"},
+        "kind": {
+          "enum": [
+            "mode_exit",
+            "sleep_wake",
+            "unlock_wake",
+            "standby_exit",
+            "install_switch",
+            "socket_power",
+            "socket_isolation"
+          ]
+        },
+        "entry_index": {
+          "oneOf": [
+            {"type": "integer", "minimum": 0},
+            {"type": "null"}
+          ]
+        },
+        "domains": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/identifier"}
+        },
+        "sockets": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/identifier"}
+        },
+        "rider_steps": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"$ref": "#/$defs/rider_step"}
+        },
+        "dependencies": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 2,
+            "items": {"type": "integer", "minimum": 0}
+          }
+        }
+      }
+    },
+    "domain_latency_terms": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "rail_discharge_dwell_sym",
+        "rail_discharge_dwell_cycles",
+        "reverify_latency_sym",
+        "reverify_latency_cycles",
+        "refill_latency_sym",
+        "refill_latency_cycles",
+        "retained"
+      ],
+      "properties": {
+        "rail_discharge_dwell_sym": {"$ref": "#/$defs/text"},
+        "rail_discharge_dwell_cycles": {"type": "integer", "minimum": 0},
+        "reverify_latency_sym": {"$ref": "#/$defs/text"},
+        "reverify_latency_cycles": {"type": "integer", "minimum": 0},
+        "refill_latency_sym": {"$ref": "#/$defs/text"},
+        "refill_latency_cycles": {"type": "integer", "minimum": 0},
+        "retained": {"type": "boolean"}
+      }
+    },
+    "release_point_budget": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "role",
+        "island_id",
+        "domains",
+        "entropy_budget_sym",
+        "entropy_budget_cycles",
+        "sig_verify_sym",
+        "sig_verify_cycles",
+        "restore_sym",
+        "restore_cycles",
+        "stated_total_cycles",
+        "ceiling_cycles",
+        "ceiling_ref"
+      ],
+      "properties": {
+        "id": {"$ref": "#/$defs/identifier"},
+        "role": {"enum": ["wake_to_interactive", "cold_boot_to_interactive", "inference_ready"]},
+        "island_id": {"$ref": "#/$defs/identifier"},
+        "domains": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"$ref": "#/$defs/identifier"}
+        },
+        "entropy_budget_sym": {"$ref": "#/$defs/text"},
+        "entropy_budget_cycles": {"type": "integer", "minimum": 0},
+        "sig_verify_sym": {"$ref": "#/$defs/text"},
+        "sig_verify_cycles": {"type": "integer", "minimum": 0},
+        "restore_sym": {"$ref": "#/$defs/text"},
+        "restore_cycles": {"type": "integer", "minimum": 0},
+        "stated_total_cycles": {"type": "integer", "minimum": 0},
+        "ceiling_cycles": {"type": "integer", "minimum": 1},
+        "ceiling_ref": {"enum": ["DP-6", "DP-7", "inference_ceiling"]}
+      }
+    },
+    "latency_table": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ceiling_status", "domain_terms", "release_points"],
+      "properties": {
+        "ceiling_status": {"enum": ["proposed", "ratified"]},
+        "domain_terms": {
+          "type": "object",
+          "propertyNames": {"$ref": "#/$defs/identifier"},
+          "additionalProperties": {"$ref": "#/$defs/domain_latency_terms"}
+        },
+        "release_points": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"$ref": "#/$defs/release_point_budget"}
+        }
+      }
+    }
+  }
+}

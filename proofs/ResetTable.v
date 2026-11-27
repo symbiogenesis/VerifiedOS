@@ -30,8 +30,8 @@
    Owner: docs/requirements-register.md
    Requirements: R-02-003 R-05-163 R-05-164 R-05-165 R-05-166 R-09-006a R-09-006b R-15-247d
       R-15-247f R-15-247t R-15-189g R-15-189j R-15-190a R-15-190b R-15-195 R-15-198 R-15-198a
-      R-15-228 R-18-004a
-   SHA256: e7022599d4598fbc3a6ae934fca4edee001c5adcaeb3bf96a6e65e8f5172f264
+      R-15-228 R-15-228h R-15-228i R-18-004a
+   SHA256: 1a2b39be8ceedd8cbc06994f761f11045efadda0035cabaf5c341888977601da
    (*| END derived |*)
    ========================================================================= *)
 
@@ -972,5 +972,726 @@ Example the_walk_helpers_on_short_lists :
   conj eq_refl (conj eq_refl (conj eq_refl (conj eq_refl (conj eq_refl eq_refl)))).
 
 Definition witness_ResetTable : ResetTable := demo_table.
+
+(* =========================================================================
+   Dependency-ordered suffix re-entry predicates and the R-15-247d rider
+   (R-15-198, R-15-228h, R-15-228i, R-15-247d).
+
+   Every mode-exit, sleep-wake, and optional socket power/isolation suffix
+   preserves the R-15-247d four-stage rider for every affected domain:
+     tag discharge confirmed -> requester addressable ->
+     data sanitization confirmed -> measured execution,
+   with addressing requesters held in reset ahead of tag confirmation and
+   optional socket transitions respecting isolation-before-reset (power) or
+   epoch-invalidation-before-isolation with no autonomous recovery
+   (isolation).
+   ========================================================================= *)
+
+Inductive SuffixKind : Type :=
+| ModeExitSuffix
+| SleepWakeSuffix
+| SocketPowerSuffix
+| SocketIsolationSuffix.
+
+Inductive RiderStep : Type :=
+| RiderRequestersHeld
+| RiderTagDischargeConfirmed (d : nat)
+| RiderRequesterAddressable (d : nat)
+| RiderDataSanitizationConfirmed (d : nat)
+| RiderMeasuredExecution (d : nat)
+| RiderSocketQuiesced (s : nat)
+| RiderEpochInvalidated (s : nat)
+| RiderSocketIsolated (s : nat)
+| RiderSocketReset (s : nat).
+
+Definition rider_step_eqb (a b : RiderStep) : bool :=
+  match a, b with
+  | RiderRequestersHeld, RiderRequestersHeld => true
+  | RiderTagDischargeConfirmed d, RiderTagDischargeConfirmed e => Nat.eqb d e
+  | RiderRequesterAddressable d, RiderRequesterAddressable e => Nat.eqb d e
+  | RiderDataSanitizationConfirmed d, RiderDataSanitizationConfirmed e => Nat.eqb d e
+  | RiderMeasuredExecution d, RiderMeasuredExecution e => Nat.eqb d e
+  | RiderSocketQuiesced s, RiderSocketQuiesced t => Nat.eqb s t
+  | RiderEpochInvalidated s, RiderEpochInvalidated t => Nat.eqb s t
+  | RiderSocketIsolated s, RiderSocketIsolated t => Nat.eqb s t
+  | RiderSocketReset s, RiderSocketReset t => Nat.eqb s t
+  | _, _ => false
+  end.
+
+Lemma rider_step_eqb_refl : forall s : RiderStep, rider_step_eqb s s = true.
+Proof. intros s. destruct s; simpl; try reflexivity; apply eqb_refl. Qed.
+
+Lemma rider_step_eqb_true :
+  forall a b : RiderStep, rider_step_eqb a b = true -> a = b.
+Proof.
+  intros a b. destruct a; destruct b; simpl; intros H; try discriminate H;
+    try reflexivity; rewrite (eqb_true _ _ H); reflexivity.
+Qed.
+
+Fixpoint rider_occurs (s : RiderStep) (l : list RiderStep) : bool :=
+  match l with
+  | nil => false
+  | cons x r => orb (rider_step_eqb s x) (rider_occurs s r)
+  end.
+
+Fixpoint rider_precedes (p q : RiderStep) (l : list RiderStep) : bool :=
+  match l with
+  | nil => false
+  | cons x r =>
+      if rider_step_eqb q x then false
+      else if rider_step_eqb p x then rider_occurs q r
+      else rider_precedes p q r
+  end.
+
+Lemma rider_precedes_occurs :
+  forall (p q : RiderStep) (l : list RiderStep),
+    rider_precedes p q l = true -> rider_occurs q l = true.
+Proof.
+  intros p q l. induction l as [ | x r IH ]; simpl; intros H.
+  - discriminate H.
+  - destruct (rider_step_eqb q x); simpl in *.
+    + discriminate H.
+    + destruct (rider_step_eqb p x); [ exact H | exact (IH H) ].
+Qed.
+
+Lemma rider_precedes_occurs_left :
+  forall (p q : RiderStep) (l : list RiderStep),
+    rider_precedes p q l = true -> rider_occurs p l = true.
+Proof.
+  intros p q l. induction l as [ | x r IH ]; simpl; intros H.
+  - discriminate H.
+  - destruct (rider_step_eqb q x); simpl in *.
+    + discriminate H.
+    + destruct (rider_step_eqb p x); [ reflexivity | exact (IH H) ].
+Qed.
+
+Lemma rider_precedes_trans :
+  forall (p q s : RiderStep) (l : list RiderStep),
+    rider_precedes p q l = true -> rider_precedes q s l = true ->
+    rider_precedes p s l = true.
+Proof.
+  intros p q s l. induction l as [ | x r IH ]; simpl; intros H1 H2.
+  - discriminate H1.
+  - destruct (rider_step_eqb q x); simpl in *.
+    + discriminate H1.
+    + destruct (rider_step_eqb s x); simpl in *.
+      * discriminate H2.
+      * destruct (rider_step_eqb p x); [ exact (rider_precedes_occurs q s r H2) | exact (IH H1 H2) ].
+Qed.
+
+Lemma rider_precedes_antisym_false :
+  forall (p q : RiderStep) (l : list RiderStep),
+    rider_precedes p q l = true -> rider_precedes q p l = false.
+Proof.
+  intros p q l. induction l as [ | x r IH ]; simpl; intros H.
+  - reflexivity.
+  - destruct (rider_step_eqb q x); simpl in *.
+    + discriminate H.
+    + destruct (rider_step_eqb p x); [ reflexivity | exact (IH H) ].
+Qed.
+
+Definition pair_eqb (a b : RiderStep * RiderStep) : bool :=
+  andb (rider_step_eqb (fst a) (fst b)) (rider_step_eqb (snd a) (snd b)).
+
+Lemma pair_eqb_refl : forall p : RiderStep * RiderStep, pair_eqb p p = true.
+Proof.
+  intros [ p q ]. unfold pair_eqb. simpl.
+  rewrite rider_step_eqb_refl. rewrite rider_step_eqb_refl. reflexivity.
+Qed.
+
+Lemma pair_eqb_true :
+  forall a b : RiderStep * RiderStep, pair_eqb a b = true -> a = b.
+Proof.
+  intros [ a1 a2 ] [ b1 b2 ] H. unfold pair_eqb in H. simpl in H.
+  destruct (andb_split _ _ H) as [ H1 H2 ].
+  rewrite (rider_step_eqb_true a1 b1 H1).
+  rewrite (rider_step_eqb_true a2 b2 H2). reflexivity.
+Qed.
+
+Lemma all_of_pair_members :
+  forall (p : RiderStep * RiderStep -> bool) (l : list (RiderStep * RiderStep))
+         (e : RiderStep * RiderStep),
+    all_of p l = true -> any_of (pair_eqb e) l = true -> p e = true.
+Proof.
+  intros p l e. induction l as [ | y r IH ]; intros Hall Hmem.
+  - discriminate Hmem.
+  - simpl in Hall. destruct (andb_split _ _ Hall) as [ Hy Hr ].
+    revert Hmem. simpl. destruct (pair_eqb e y) eqn:E; simpl; intros Hmem.
+    + rewrite (pair_eqb_true e y E). exact Hy.
+    + exact (IH Hr Hmem).
+Qed.
+
+Lemma all_of_pair_members_intro :
+  forall (p : RiderStep * RiderStep -> bool) (l : list (RiderStep * RiderStep)),
+    (forall e : RiderStep * RiderStep, any_of (pair_eqb e) l = true -> p e = true) ->
+    all_of p l = true.
+Proof.
+  intros p l. induction l as [ | y r IH ]; intros H.
+  - reflexivity.
+  - simpl. apply andb_join.
+    + apply H. simpl. rewrite pair_eqb_refl. reflexivity.
+    + apply IH. intros e He. apply H. simpl. rewrite He.
+      destruct (pair_eqb e y); reflexivity.
+Qed.
+
+Record SuffixEntry : Type := {
+  suffix_id : nat;
+  suffix_kind : SuffixKind;
+  suffix_domains : list nat;
+  suffix_sockets : list nat;
+  suffix_steps : list RiderStep;
+  suffix_deps : list (RiderStep * RiderStep)
+}.
+
+Definition rider_domain_ok (d : nat) (l : list RiderStep) : bool :=
+  andb (rider_precedes RiderRequestersHeld (RiderTagDischargeConfirmed d) l)
+       (andb (rider_precedes (RiderTagDischargeConfirmed d) (RiderRequesterAddressable d) l)
+             (andb (rider_precedes (RiderRequesterAddressable d) (RiderDataSanitizationConfirmed d) l)
+                   (rider_precedes (RiderDataSanitizationConfirmed d) (RiderMeasuredExecution d) l))).
+
+Definition rider_socket_ok (k : SuffixKind) (s : nat) (l : list RiderStep) : bool :=
+  match k with
+  | ModeExitSuffix => true
+  | SleepWakeSuffix => true
+  | SocketPowerSuffix => rider_precedes (RiderSocketIsolated s) (RiderSocketReset s) l
+  | SocketIsolationSuffix =>
+      andb (rider_precedes (RiderEpochInvalidated s) (RiderSocketIsolated s) l)
+           (negb (rider_precedes (RiderSocketIsolated s) (RiderSocketReset s) l))
+  end.
+
+Definition suffix_deps_ok (se : SuffixEntry) : bool :=
+  all_of (fun pq => rider_precedes (fst pq) (snd pq) se.(suffix_steps)) se.(suffix_deps).
+
+Definition suffix_entry_ok (se : SuffixEntry) : bool :=
+  andb (all_of (fun d => rider_domain_ok d se.(suffix_steps)) se.(suffix_domains))
+       (andb (all_of (fun s => rider_socket_ok se.(suffix_kind) s se.(suffix_steps)) se.(suffix_sockets))
+             (suffix_deps_ok se)).
+
+Definition SuffixPreservesRider (se : SuffixEntry) : Prop :=
+  (forall d : nat,
+     any_of (Nat.eqb d) se.(suffix_domains) = true ->
+     rider_precedes RiderRequestersHeld (RiderTagDischargeConfirmed d) se.(suffix_steps) = true
+     /\ rider_precedes (RiderTagDischargeConfirmed d) (RiderRequesterAddressable d) se.(suffix_steps) = true
+     /\ rider_precedes (RiderRequesterAddressable d) (RiderDataSanitizationConfirmed d) se.(suffix_steps) = true
+     /\ rider_precedes (RiderDataSanitizationConfirmed d) (RiderMeasuredExecution d) se.(suffix_steps) = true)
+  /\ (forall s : nat,
+        any_of (Nat.eqb s) se.(suffix_sockets) = true ->
+        rider_socket_ok se.(suffix_kind) s se.(suffix_steps) = true)
+  /\ (forall pq : RiderStep * RiderStep,
+        any_of (pair_eqb pq) se.(suffix_deps) = true ->
+        rider_precedes (fst pq) (snd pq) se.(suffix_steps) = true).
+
+(*| discharges: R-15-198, R-15-228h, R-15-228i, R-15-247d |*)
+Theorem suffix_entry_ok_sound :
+  forall se : SuffixEntry,
+    suffix_entry_ok se = true -> SuffixPreservesRider se.
+Proof.
+  intros se H. unfold suffix_entry_ok in H.
+  destruct (andb_split _ _ H) as [ Hdom Hrest ].
+  destruct (andb_split _ _ Hrest) as [ Hsoc Hdep ].
+  unfold SuffixPreservesRider.
+  split.
+  - intros d Hd.
+    assert (Hrd := all_of_members _ se.(suffix_domains) d Hdom Hd). cbv beta in Hrd.
+    unfold rider_domain_ok in Hrd.
+    destruct (andb_split _ _ Hrd) as [ H1 H234 ].
+    destruct (andb_split _ _ H234) as [ H2 H34 ].
+    destruct (andb_split _ _ H34) as [ H3 H4 ].
+    split; [ exact H1 | split; [ exact H2 | split; [ exact H3 | exact H4 ] ] ].
+  - split.
+    + intros s Hs.
+      exact (all_of_members _ se.(suffix_sockets) s Hsoc Hs).
+    + intros pq Hpq. unfold suffix_deps_ok in Hdep.
+      exact (all_of_pair_members _ se.(suffix_deps) pq Hdep Hpq).
+Qed.
+
+(*| discharges: R-15-198, R-15-228h, R-15-228i, R-15-247d |*)
+Theorem suffix_entry_ok_complete :
+  forall se : SuffixEntry,
+    SuffixPreservesRider se -> suffix_entry_ok se = true.
+Proof.
+  intros se [ Hdom [ Hsoc Hdep ] ]. unfold suffix_entry_ok.
+  apply andb_join.
+  - apply all_of_members_intro. intros d Hd. cbv beta. unfold rider_domain_ok.
+    destruct (Hdom d Hd) as [ H1 [ H2 [ H3 H4 ] ] ].
+    apply andb_join; [ exact H1 | apply andb_join; [ exact H2 | apply andb_join; [ exact H3 | exact H4 ] ] ].
+  - apply andb_join.
+    + apply all_of_members_intro. intros s Hs. cbv beta. exact (Hsoc s Hs).
+    + unfold suffix_deps_ok. apply all_of_pair_members_intro. intros pq Hpq.
+      exact (Hdep pq Hpq).
+Qed.
+
+(*| discharges: R-15-247d |*)
+Theorem every_admitted_suffix_preserves_rider :
+  forall (se : SuffixEntry) (d : nat),
+    suffix_entry_ok se = true ->
+    any_of (Nat.eqb d) se.(suffix_domains) = true ->
+    rider_precedes RiderRequestersHeld (RiderTagDischargeConfirmed d) se.(suffix_steps) = true
+    /\ rider_precedes (RiderTagDischargeConfirmed d) (RiderRequesterAddressable d) se.(suffix_steps) = true
+    /\ rider_precedes (RiderRequesterAddressable d) (RiderDataSanitizationConfirmed d) se.(suffix_steps) = true
+    /\ rider_precedes (RiderDataSanitizationConfirmed d) (RiderMeasuredExecution d) se.(suffix_steps) = true
+    /\ rider_precedes (RiderTagDischargeConfirmed d) (RiderDataSanitizationConfirmed d) se.(suffix_steps) = true
+    /\ rider_precedes (RiderTagDischargeConfirmed d) (RiderMeasuredExecution d) se.(suffix_steps) = true.
+Proof.
+  intros se d Hok Hd.
+  destruct (suffix_entry_ok_sound se Hok) as [ Hdom _ ].
+  destruct (Hdom d Hd) as [ H1 [ H2 [ H3 H4 ] ] ].
+  assert (H23 := rider_precedes_trans _ _ _ se.(suffix_steps) H2 H3).
+  assert (H24 := rider_precedes_trans _ _ _ se.(suffix_steps) H23 H4).
+  split; [ exact H1 | split; [ exact H2 | split; [ exact H3 | split; [ exact H4 | split; [ exact H23 | exact H24 ] ] ] ] ].
+Qed.
+
+(*| discharges: R-15-247d, R-15-198 |*)
+Theorem suffix_skipping_discharge_or_reordering_sanitization_refused :
+  forall (se : SuffixEntry) (d : nat),
+    any_of (Nat.eqb d) se.(suffix_domains) = true ->
+    (rider_occurs (RiderTagDischargeConfirmed d) se.(suffix_steps) = false
+     \/ rider_occurs (RiderDataSanitizationConfirmed d) se.(suffix_steps) = false
+     \/ rider_precedes (RiderRequesterAddressable d) (RiderTagDischargeConfirmed d) se.(suffix_steps) = true
+     \/ rider_precedes (RiderDataSanitizationConfirmed d) (RiderRequesterAddressable d) se.(suffix_steps) = true
+     \/ rider_precedes (RiderMeasuredExecution d) (RiderDataSanitizationConfirmed d) se.(suffix_steps) = true) ->
+    ~ SuffixPreservesRider se /\ suffix_entry_ok se = false.
+Proof.
+  intros se d Hd Hbad.
+  assert (Hnot : ~ SuffixPreservesRider se).
+  { intros Hpres. destruct Hpres as [ Hdom _ ].
+    destruct (Hdom d Hd) as [ H1 [ H2 [ H3 H4 ] ] ].
+    destruct Hbad as [ Hnodis | [ Hnosan | [ Haddr_first | [ Hsan_first | Hexec_first ] ] ] ].
+    - rewrite (rider_precedes_occurs _ _ se.(suffix_steps) H1) in Hnodis. discriminate Hnodis.
+    - rewrite (rider_precedes_occurs _ _ se.(suffix_steps) H3) in Hnosan. discriminate Hnosan.
+    - rewrite (rider_precedes_antisym_false _ _ se.(suffix_steps) H2) in Haddr_first. discriminate Haddr_first.
+    - rewrite (rider_precedes_antisym_false _ _ se.(suffix_steps) H3) in Hsan_first. discriminate Hsan_first.
+    - rewrite (rider_precedes_antisym_false _ _ se.(suffix_steps) H4) in Hexec_first. discriminate Hexec_first. }
+  split; [ exact Hnot | ].
+  destruct (suffix_entry_ok se) eqn:E; [ | reflexivity ].
+  exfalso. exact (Hnot (suffix_entry_ok_sound se E)).
+Qed.
+
+(* Concrete positive suffix witnesses for all four SuffixKinds. *)
+Definition demo_mode_exit_steps : list RiderStep :=
+  cons RiderRequestersHeld
+  (cons (RiderTagDischargeConfirmed 1)
+  (cons (RiderRequesterAddressable 1)
+  (cons (RiderDataSanitizationConfirmed 1)
+  (cons (RiderMeasuredExecution 1) nil)))).
+
+Definition demo_mode_exit_suffix : SuffixEntry := {|
+  suffix_id := 0;
+  suffix_kind := ModeExitSuffix;
+  suffix_domains := cons 1 nil;
+  suffix_sockets := nil;
+  suffix_steps := demo_mode_exit_steps;
+  suffix_deps :=
+    cons (RiderRequestersHeld, RiderTagDischargeConfirmed 1)
+    (cons (RiderTagDischargeConfirmed 1, RiderRequesterAddressable 1)
+    (cons (RiderRequesterAddressable 1, RiderDataSanitizationConfirmed 1)
+    (cons (RiderDataSanitizationConfirmed 1, RiderMeasuredExecution 1) nil)))
+|}.
+
+Definition demo_sleep_wake_suffix : SuffixEntry := {|
+  suffix_id := 1;
+  suffix_kind := SleepWakeSuffix;
+  suffix_domains := cons 2 nil;
+  suffix_sockets := nil;
+  suffix_steps :=
+    cons RiderRequestersHeld
+    (cons (RiderTagDischargeConfirmed 2)
+    (cons (RiderRequesterAddressable 2)
+    (cons (RiderDataSanitizationConfirmed 2)
+    (cons (RiderMeasuredExecution 2) nil))));
+  suffix_deps :=
+    cons (RiderRequestersHeld, RiderTagDischargeConfirmed 2)
+    (cons (RiderTagDischargeConfirmed 2, RiderMeasuredExecution 2) nil)
+|}.
+
+Definition demo_socket_power_suffix : SuffixEntry := {|
+  suffix_id := 2;
+  suffix_kind := SocketPowerSuffix;
+  suffix_domains := cons 3 nil;
+  suffix_sockets := cons 0 nil;
+  suffix_steps :=
+    cons RiderRequestersHeld
+    (cons (RiderSocketIsolated 0)
+    (cons (RiderSocketReset 0)
+    (cons (RiderTagDischargeConfirmed 3)
+    (cons (RiderRequesterAddressable 3)
+    (cons (RiderDataSanitizationConfirmed 3)
+    (cons (RiderMeasuredExecution 3) nil))))));
+  suffix_deps :=
+    cons (RiderSocketIsolated 0, RiderSocketReset 0)
+    (cons (RiderSocketReset 0, RiderRequesterAddressable 3) nil)
+|}.
+
+Definition demo_socket_isolation_suffix : SuffixEntry := {|
+  suffix_id := 3;
+  suffix_kind := SocketIsolationSuffix;
+  suffix_domains := nil;
+  suffix_sockets := cons 0 nil;
+  suffix_steps :=
+    cons (RiderSocketQuiesced 0)
+    (cons (RiderEpochInvalidated 0)
+    (cons (RiderSocketIsolated 0) nil));
+  suffix_deps :=
+    cons (RiderSocketQuiesced 0, RiderEpochInvalidated 0)
+    (cons (RiderEpochInvalidated 0, RiderSocketIsolated 0) nil)
+|}.
+
+(* Negative suffix witnesses: skipped discharge, reordered sanitization,
+   early addressability, early execution, unisolated socket reset,
+   and socket isolation without prior epoch invalidation. *)
+Definition skip_discharge_suffix : SuffixEntry := {|
+  suffix_id := 10;
+  suffix_kind := ModeExitSuffix;
+  suffix_domains := cons 1 nil;
+  suffix_sockets := nil;
+  suffix_steps := drop_at 1 demo_mode_exit_steps;
+  suffix_deps := nil
+|}.
+
+Definition reordered_sanitization_suffix : SuffixEntry := {|
+  suffix_id := 11;
+  suffix_kind := ModeExitSuffix;
+  suffix_domains := cons 1 nil;
+  suffix_sockets := nil;
+  suffix_steps := swap_at 2 demo_mode_exit_steps;
+  suffix_deps := nil
+|}.
+
+Definition early_addressable_suffix : SuffixEntry := {|
+  suffix_id := 12;
+  suffix_kind := SleepWakeSuffix;
+  suffix_domains := cons 1 nil;
+  suffix_sockets := nil;
+  suffix_steps := swap_at 1 demo_mode_exit_steps;
+  suffix_deps := nil
+|}.
+
+Definition early_exec_suffix : SuffixEntry := {|
+  suffix_id := 13;
+  suffix_kind := ModeExitSuffix;
+  suffix_domains := cons 1 nil;
+  suffix_sockets := nil;
+  suffix_steps := swap_at 3 demo_mode_exit_steps;
+  suffix_deps := nil
+|}.
+
+Definition unisolated_socket_power_suffix : SuffixEntry := {|
+  suffix_id := 14;
+  suffix_kind := SocketPowerSuffix;
+  suffix_domains := cons 3 nil;
+  suffix_sockets := cons 0 nil;
+  suffix_steps := drop_at 1 demo_socket_power_suffix.(suffix_steps);
+  suffix_deps := nil
+|}.
+
+Definition uninvalidated_socket_isolation_suffix : SuffixEntry := {|
+  suffix_id := 15;
+  suffix_kind := SocketIsolationSuffix;
+  suffix_domains := nil;
+  suffix_sockets := cons 0 nil;
+  suffix_steps := drop_at 1 demo_socket_isolation_suffix.(suffix_steps);
+  suffix_deps := nil
+|}.
+
+(*| discharges: R-15-198, R-15-228h, R-15-228i, R-15-247d |*)
+Example demo_suffix_entries_checked :
+  map_over suffix_entry_ok
+    (cons demo_mode_exit_suffix (cons demo_sleep_wake_suffix
+    (cons demo_socket_power_suffix (cons demo_socket_isolation_suffix nil))))
+  = cons true (cons true (cons true (cons true nil)))
+  /\ map_over suffix_entry_ok
+       (cons skip_discharge_suffix (cons reordered_sanitization_suffix
+       (cons early_addressable_suffix (cons early_exec_suffix
+       (cons unisolated_socket_power_suffix (cons uninvalidated_socket_isolation_suffix nil))))))
+  = cons false (cons false (cons false (cons false (cons false (cons false nil))))) :=
+  conj eq_refl eq_refl.
+
+(* =========================================================================
+   Symbolic per-domain / per-release-point chain-latency summation (R-09-006b).
+
+   Every chain re-execution states a worst-case composition constant per
+   release point, summing per-domain rail/discharge dwells plus retained
+   re-verification or OFF refill latency, start-up entropy budget,
+   signature verification, and durable-state restore, checked against the
+   declared release-point ceiling without omitted domains or terms.
+   ========================================================================= *)
+
+Record DomainLatencyTerms : Type := {
+  dom_rail_discharge_dwell : nat -> nat;
+  dom_reverify_latency : nat -> nat;
+  dom_refill_latency : nat -> nat;
+  dom_retained : nat -> bool
+}.
+
+Record ReleasePointBudget : Type := {
+  rp_id : nat;
+  rp_domains : list nat;
+  rp_entropy_budget : nat;
+  rp_sig_verify_cost : nat;
+  rp_restore_cost : nat;
+  rp_stated_total : nat;
+  rp_ceiling : nat
+}.
+
+Record ChainLatencyTable : Type := {
+  lat_terms : DomainLatencyTerms;
+  lat_expected_domains : list nat;
+  lat_release_points : list ReleasePointBudget
+}.
+
+Definition domain_chain_latency (t : DomainLatencyTerms) (d : nat) : nat :=
+  t.(dom_rail_discharge_dwell) d
+  + (if t.(dom_retained) d then t.(dom_reverify_latency) d else t.(dom_refill_latency) d).
+
+Fixpoint sum_domain_latencies (t : DomainLatencyTerms) (ds : list nat) : nat :=
+  match ds with
+  | nil => 0
+  | cons d rest => domain_chain_latency t d + sum_domain_latencies t rest
+  end.
+
+Definition release_point_chain_sum (t : DomainLatencyTerms) (rp : ReleasePointBudget) : nat :=
+  sum_domain_latencies t rp.(rp_domains)
+  + rp.(rp_entropy_budget)
+  + rp.(rp_sig_verify_cost)
+  + rp.(rp_restore_cost).
+
+Definition domain_term_nonzero (t : DomainLatencyTerms) (d : nat) : bool :=
+  andb (Nat.ltb 0 (t.(dom_rail_discharge_dwell) d))
+       (if t.(dom_retained) d
+        then Nat.ltb 0 (t.(dom_reverify_latency) d)
+        else Nat.ltb 0 (t.(dom_refill_latency) d)).
+
+Definition release_point_ok (t : DomainLatencyTerms) (rp : ReleasePointBudget) : bool :=
+  andb (all_of (domain_term_nonzero t) rp.(rp_domains))
+       (andb (Nat.ltb 0 rp.(rp_sig_verify_cost))
+             (andb (Nat.eqb rp.(rp_stated_total) (release_point_chain_sum t rp))
+                   (Nat.leb rp.(rp_stated_total) rp.(rp_ceiling)))).
+
+Definition domain_covered_by_rps (rps : list ReleasePointBudget) (d : nat) : bool :=
+  any_of (fun rp => any_of (Nat.eqb d) rp.(rp_domains)) rps.
+
+Definition rp_eqb (a b : ReleasePointBudget) : bool :=
+  andb (Nat.eqb a.(rp_id) b.(rp_id))
+       (andb (Nat.eqb a.(rp_entropy_budget) b.(rp_entropy_budget))
+             (andb (Nat.eqb a.(rp_sig_verify_cost) b.(rp_sig_verify_cost))
+                   (andb (Nat.eqb a.(rp_restore_cost) b.(rp_restore_cost))
+                         (andb (Nat.eqb a.(rp_stated_total) b.(rp_stated_total))
+                               (Nat.eqb a.(rp_ceiling) b.(rp_ceiling)))))).
+
+Definition chain_latency_table_ok (tbl : ChainLatencyTable) : bool :=
+  andb (match tbl.(lat_release_points) with nil => false | _ => true end)
+       (andb (all_of (domain_covered_by_rps tbl.(lat_release_points)) tbl.(lat_expected_domains))
+             (all_of (release_point_ok tbl.(lat_terms)) tbl.(lat_release_points))).
+
+Fixpoint in_list {A : Type} (x : A) (l : list A) : Prop :=
+  match l with
+  | nil => False
+  | cons y r => y = x \/ in_list x r
+  end.
+
+Definition ChainLatencyAdmitted (tbl : ChainLatencyTable) : Prop :=
+  (match tbl.(lat_release_points) with nil => False | _ => True end)
+  /\ (forall d : nat,
+        any_of (Nat.eqb d) tbl.(lat_expected_domains) = true ->
+        domain_covered_by_rps tbl.(lat_release_points) d = true)
+  /\ (forall rp : ReleasePointBudget,
+        in_list rp tbl.(lat_release_points) ->
+        release_point_ok tbl.(lat_terms) rp = true).
+
+Lemma all_of_in_true :
+  forall (A : Type) (p : A -> bool) (l : list A),
+    all_of p l = true <-> (forall x : A, in_list x l -> p x = true).
+Proof.
+  intros A p l. induction l as [ | y r IH ]; simpl; split; intros H.
+  - intros x Hx. contradiction Hx.
+  - reflexivity.
+  - intros x [ Heq | Hin ].
+    + rewrite <- Heq. destruct (andb_split _ _ H) as [ Hy _ ]. exact Hy.
+    + destruct (andb_split _ _ H) as [ _ Hr ].
+      destruct IH as [ IHl _ ]. exact (IHl Hr x Hin).
+  - apply andb_join.
+    + apply H. left. reflexivity.
+    + destruct IH as [ _ IHr ]. apply IHr. intros x Hx. apply H. right. exact Hx.
+Qed.
+
+(*| discharges: R-09-006b |*)
+Theorem chain_latency_table_ok_sound :
+  forall tbl : ChainLatencyTable,
+    chain_latency_table_ok tbl = true -> ChainLatencyAdmitted tbl.
+Proof.
+  intros tbl H. unfold chain_latency_table_ok in H.
+  destruct (andb_split _ _ H) as [ Hne Hrest ].
+  destruct (andb_split _ _ Hrest) as [ Hcov Hrps ].
+  unfold ChainLatencyAdmitted.
+  split.
+  - destruct (lat_release_points tbl); [ discriminate Hne | exact I ].
+  - split.
+    + intros d Hd.
+      exact (all_of_members _ tbl.(lat_expected_domains) d Hcov Hd).
+    + intros rp Hrp.
+      destruct (all_of_in_true ReleasePointBudget (release_point_ok tbl.(lat_terms))
+                                tbl.(lat_release_points)) as [ Hfwd _ ].
+      exact (Hfwd Hrps rp Hrp).
+Qed.
+
+(*| discharges: R-09-006b |*)
+Theorem chain_latency_table_ok_complete :
+  forall tbl : ChainLatencyTable,
+    ChainLatencyAdmitted tbl -> chain_latency_table_ok tbl = true.
+Proof.
+  intros tbl [ Hne [ Hcov Hrps ] ]. unfold chain_latency_table_ok.
+  apply andb_join.
+  - destruct (lat_release_points tbl); [ contradiction Hne | reflexivity ].
+  - apply andb_join.
+    + apply all_of_members_intro. intros d Hd. exact (Hcov d Hd).
+    + destruct (all_of_in_true ReleasePointBudget (release_point_ok tbl.(lat_terms))
+                                tbl.(lat_release_points)) as [ _ Hbwd ].
+      exact (Hbwd Hrps).
+Qed.
+
+Lemma leb_add_l_step :
+  forall a b c : nat, Nat.leb a b = true -> Nat.leb a (c + b) = true.
+Proof.
+  intros a b c H. rewrite (add_comm c b).
+  exact (leb_trans a b (b + c) H (leb_add_l b c)).
+Qed.
+
+(*| discharges: R-09-006b |*)
+Theorem release_point_domain_extension_monotonic :
+  forall (t : DomainLatencyTerms) (rp : ReleasePointBudget) (d : nat),
+    Nat.leb (release_point_chain_sum t rp)
+            (release_point_chain_sum t {| rp with rp_domains := cons d rp.(rp_domains) |}) = true.
+Proof.
+  intros t rp d. unfold release_point_chain_sum. simpl.
+  rewrite <- !add_assoc.
+  apply leb_add_l_step. apply leb_refl.
+Qed.
+
+Lemma leb_ltb_contradict :
+  forall a b : nat, Nat.leb a b = true -> Nat.ltb b a = true -> False.
+Proof.
+  intros a b Hle Hlt.
+  rewrite (ltb_leb_false a b Hlt) in Hle. discriminate Hle.
+Qed.
+
+(*| discharges: R-09-006b |*)
+Theorem latency_overflow_or_omission_refused :
+  forall tbl : ChainLatencyTable,
+    ((exists d : nat,
+        any_of (Nat.eqb d) tbl.(lat_expected_domains) = true
+        /\ domain_covered_by_rps tbl.(lat_release_points) d = false)
+     \/ (exists rp : ReleasePointBudget,
+           in_list rp tbl.(lat_release_points)
+           /\ (Nat.ltb rp.(rp_ceiling) rp.(rp_stated_total) = true
+               \/ rp.(rp_sig_verify_cost) = 0
+               \/ Nat.eqb rp.(rp_stated_total) (release_point_chain_sum tbl.(lat_terms) rp) = false
+               \/ (exists d : nat,
+                     any_of (Nat.eqb d) rp.(rp_domains) = true
+                     /\ domain_term_nonzero tbl.(lat_terms) d = false)))) ->
+    ~ ChainLatencyAdmitted tbl /\ chain_latency_table_ok tbl = false.
+Proof.
+  intros tbl Hbad.
+  assert (Hnot : ~ ChainLatencyAdmitted tbl).
+  { intros Hadm. destruct Hadm as [ _ [ Hcov Hrps ] ].
+    destruct Hbad as [ [ d [ Hd Hnocov ] ] | [ rp [ Hrp Hrpbad ] ] ].
+    - rewrite (Hcov d Hd) in Hnocov. discriminate Hnocov.
+    - assert (Hok := Hrps rp Hrp). unfold release_point_ok in Hok.
+      destruct (andb_split _ _ Hok) as [ Hdoms H1 ].
+      destruct (andb_split _ _ H1) as [ Hsig H2 ].
+      destruct (andb_split _ _ H2) as [ Hsum Hceil ].
+      destruct Hrpbad as [ Hover | [ Hnosig | [ Hneq | [ d [ Hd Hzero ] ] ] ] ].
+      + exact (leb_ltb_contradict _ _ Hceil Hover).
+      + rewrite Hnosig in Hsig. discriminate Hsig.
+      + rewrite Hsum in Hneq. discriminate Hneq.
+      + rewrite (all_of_members _ rp.(rp_domains) d Hdoms Hd) in Hzero.
+        discriminate Hzero. }
+  split; [ exact Hnot | ].
+  destruct (chain_latency_table_ok tbl) eqn:E; [ | reflexivity ].
+  exfalso. exact (Hnot (chain_latency_table_ok_sound tbl E)).
+Qed.
+
+(* Concrete positive, overflow, and omission witnesses for R-09-006b. *)
+Definition demo_latency_terms : DomainLatencyTerms := {|
+  dom_rail_discharge_dwell := fun d => match d with 0 => 50 | 1 => 80 | 2 => 60 | _ => 70 end;
+  dom_reverify_latency := fun d => match d with 2 => 120 | 3 => 140 | _ => 40 end;
+  dom_refill_latency := fun d => match d with 0 => 200 | 1 => 300 | 2 => 500 | _ => 600 end;
+  dom_retained := fun d => match d with 2 => true | 3 => true | _ => false end
+|}.
+
+Definition demo_wake_rp : ReleasePointBudget := {|
+  rp_id := 0;
+  rp_domains := cons 0 (cons 1 nil);
+  rp_entropy_budget := 100;
+  rp_sig_verify_cost := 45;
+  rp_restore_cost := 35;
+  rp_stated_total := 810;
+  rp_ceiling := 1000
+|}.
+
+Definition demo_inference_rp : ReleasePointBudget := {|
+  rp_id := 1;
+  rp_domains := cons 0 (cons 1 (cons 2 (cons 3 nil)));
+  rp_entropy_budget := 100;
+  rp_sig_verify_cost := 45;
+  rp_restore_cost := 35;
+  rp_stated_total := 1200;
+  rp_ceiling := 2000
+|}.
+
+Definition demo_latency_table : ChainLatencyTable := {|
+  lat_terms := demo_latency_terms;
+  lat_expected_domains := cons 0 (cons 1 (cons 2 (cons 3 nil)));
+  lat_release_points := cons demo_wake_rp (cons demo_inference_rp nil)
+|}.
+
+Definition overflow_wake_rp : ReleasePointBudget :=
+  {| demo_wake_rp with rp_ceiling := 800 |}.
+
+Definition overflow_latency_table : ChainLatencyTable := {|
+  lat_terms := demo_latency_terms;
+  lat_expected_domains := cons 0 (cons 1 (cons 2 (cons 3 nil)));
+  lat_release_points := cons overflow_wake_rp (cons demo_inference_rp nil)
+|}.
+
+Definition omitted_domain_latency_table : ChainLatencyTable := {|
+  lat_terms := demo_latency_terms;
+  lat_expected_domains := cons 0 (cons 1 (cons 2 (cons 3 nil)));
+  lat_release_points := cons demo_wake_rp nil
+|}.
+
+Definition omitted_sig_wake_rp : ReleasePointBudget :=
+  {| demo_wake_rp with rp_sig_verify_cost := 0; rp_stated_total := 765 |}.
+
+Definition omitted_term_latency_table : ChainLatencyTable := {|
+  lat_terms := demo_latency_terms;
+  lat_expected_domains := cons 0 (cons 1 (cons 2 (cons 3 nil)));
+  lat_release_points := cons omitted_sig_wake_rp (cons demo_inference_rp nil)
+|}.
+
+Definition understated_wake_rp : ReleasePointBudget :=
+  {| demo_wake_rp with rp_stated_total := 700 |}.
+
+Definition understated_total_latency_table : ChainLatencyTable := {|
+  lat_terms := demo_latency_terms;
+  lat_expected_domains := cons 0 (cons 1 (cons 2 (cons 3 nil)));
+  lat_release_points := cons understated_wake_rp (cons demo_inference_rp nil)
+|}.
+
+(*| discharges: R-09-006b |*)
+Example demo_latency_table_accepted_and_refuted :
+  chain_latency_table_ok demo_latency_table = true
+  /\ release_point_chain_sum demo_latency_terms demo_wake_rp = 810
+  /\ release_point_chain_sum demo_latency_terms demo_inference_rp = 1200
+  /\ chain_latency_table_ok overflow_latency_table = false
+  /\ chain_latency_table_ok omitted_domain_latency_table = false
+  /\ chain_latency_table_ok omitted_term_latency_table = false
+  /\ chain_latency_table_ok understated_total_latency_table = false :=
+  conj eq_refl (conj eq_refl (conj eq_refl (conj eq_refl
+    (conj eq_refl (conj eq_refl eq_refl))))).
+
+Definition witness_SuffixEntry : SuffixEntry := demo_mode_exit_suffix.
+Definition witness_DomainLatencyTerms : DomainLatencyTerms := demo_latency_terms.
+Definition witness_ReleasePointBudget : ReleasePointBudget := demo_wake_rp.
+Definition witness_ChainLatencyTable : ChainLatencyTable := demo_latency_table.
 
 (* R-05-163 and R-05-164: `run.py proofs` audits the complete native inventory. *)
