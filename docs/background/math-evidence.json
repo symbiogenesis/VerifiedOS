@@ -851,6 +851,36 @@
         "docs/performance/toolchain-residency.md#research-leads-for-bounded-resident-passes",
         "docs/implementation/contracts/wasm-execution.md#mathematical-research-handoff"
       ]
+    },
+    {
+      "id": "deterministic-dlp",
+      "title": "Deterministic subexponential discrete logarithm preprint",
+      "claim": "Liu, Zhang and Ren claim a uniform deterministic multitape Turing machine solving discrete logarithms on prime-order elliptic curves E(F_p) (p > 3) and in prime fields F_p* in worst-case time 2^O(b/sqrt(log log b)) = p^o(1) and space 2^O(b/(log b)^(1/4)), where b = ceil(log2 p), with zero randomness and neither GRH nor smoothness heuristics, assuming OpenAI's October 2026 Cauchy-Hermite Boolean tensor contraction construction. The abstract also cites Las Vegas subexponential prime-field ECDLP algorithms by Akshima et al. (2026) and Kaarelson (2026).",
+      "sources": [
+        {
+          "url": "https://eprint.iacr.org/2026/3020",
+          "kind": "eprint",
+          "identity": "2026/3020@2026-11-24T11:37:07Z"
+        }
+      ],
+      "inspected": "2026-11-27",
+      "stage": "source inspection",
+      "assumptions": [
+        "Inspection covers the ePrint metadata page and abstract (received 2026-11-24, approved 2026-11-27); the PDF endpoint returned HTTP 403, so immutable PDF bytes, full proofs, constants and any AI-assistance disclosure have not been acquired or inspected here.",
+        "The claim is conditional on OpenAI's October 2026 Cauchy-Hermite Boolean tensor contraction construction, which is distinct from the fixed-width SAT Comparator target recorded in eth378 and has not been independently verified or replayed here; no peer review or machine-checked formalization is recorded.",
+        "The bound is purely asymptotic with unpriced hidden constants in the exponent and yields no concrete cost or crossover at 255- or 256-bit curves; classical ECDLP is only the classical hedge inside VerifiedOS's hybrid key exchange, while ROM boot uses SLH-DSA and PQ sessions use ML-KEM-1024 and ML-DSA-87."
+      ],
+      "consumer": {
+        "artifact": "docs/assurance/proof-reuse/crypto.md#research-handoff-for-unfinished-security-proofs",
+        "owner": "Q28 cryptographic premise monitoring"
+      },
+      "disposition": "monitor security",
+      "next_action": "Acquire the PDF bytes for 2026/3020 and locate the cited Akshima et al. (2026) and Kaarelson (2026) preprints; check the exact Cauchy-Hermite tensor-contraction premise, hidden exponent constants and prime-order subgroup conditions before revising any classical-hedge security estimate, and retain the hybrid-combiner witness requirement that PQ security holds if the classical component fails.",
+      "evidence": [
+        "docs/background/open-math-conjectures.md#classical-elliptic-curve-discrete-logarithm-and-diffie-hellman-hardness",
+        "docs/assurance/proof-reuse/crypto.md#factoring-estimates-and-the-confidentiality-horizon",
+        "docs/assurance/proof-reuse/crypto.md#research-handoff-for-unfinished-security-proofs"
+      ]
     }
   ]
 }

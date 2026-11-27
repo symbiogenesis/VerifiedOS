@@ -12,6 +12,7 @@ This validates metadata and finite host/reference behavior. It supplies no theor
 | [Lean Comparator maintenance route](#comparator) | source inspection | evaluate now | 2026-10-20 |
 | [Immutable composer dictionary shapes](#composer-dictionaries) | independent replay | evaluate now | 2026-11-25 |
 | [Disputed DCP attack and MLWE premise](#dcp) | source inspection | monitor security | 2026-10-20 |
+| [Deterministic subexponential discrete logarithm preprint](#deterministic-dlp) | source inspection | monitor security | 2026-11-27 |
 | [Riemann hypothesis and Dirichlet GRH](#dirichlet-grh) | supplied replay | await workload | 2026-11-25 |
 | [Reported ETH refutation by deterministic bounded-width SAT](#eth378) | supplied replay | await workload | 2026-11-25 |
 | [Exact finite Fourier transforms](#finite-fourier) | source inspection | await workload | 2026-11-25 |
@@ -158,6 +159,28 @@ Consumer: [docs/assurance/proof-reuse/crypto.md#what-the-attack-corrections-esta
 Local evidence: [docs/assurance/proof-reuse/crypto.md#what-the-attack-corrections-establish](../assurance/proof-reuse/crypto.md#what-the-attack-corrections-establish).
 
 Next action: Acquire the exact October 8 revision and bind its bytes, compare the changed algorithm and advantage argument with the pinned refutation's register, rounding and oracle assumptions, and record a substantive disposition only after that comparison.
+
+## Deterministic subexponential discrete logarithm preprint <a id="deterministic-dlp"></a>
+
+Liu, Zhang and Ren claim a uniform deterministic multitape Turing machine solving discrete logarithms on prime-order elliptic curves E(F_p) (p > 3) and in prime fields F_p* in worst-case time 2^O(b/sqrt(log log b)) = p^o(1) and space 2^O(b/(log b)^(1/4)), where b = ceil(log2 p), with zero randomness and neither GRH nor smoothness heuristics, assuming OpenAI's October 2026 Cauchy-Hermite Boolean tensor contraction construction. The abstract also cites Las Vegas subexponential prime-field ECDLP algorithms by Akshima et al. (2026) and Kaarelson (2026).
+
+Evidence stage: **source inspection**. Disposition: **monitor security**. Inspected: 2026-11-27.
+
+Selected sources:
+
+- [eprint](https://eprint.iacr.org/2026/3020); identity `2026/3020@2026-11-24T11:37:07Z`.
+
+Assumptions and exclusions:
+
+- Inspection covers the ePrint metadata page and abstract (received 2026-11-24, approved 2026-11-27); the PDF endpoint returned HTTP 403, so immutable PDF bytes, full proofs, constants and any AI-assistance disclosure have not been acquired or inspected here.
+- The claim is conditional on OpenAI's October 2026 Cauchy-Hermite Boolean tensor contraction construction, which is distinct from the fixed-width SAT Comparator target recorded in eth378 and has not been independently verified or replayed here; no peer review or machine-checked formalization is recorded.
+- The bound is purely asymptotic with unpriced hidden constants in the exponent and yields no concrete cost or crossover at 255- or 256-bit curves; classical ECDLP is only the classical hedge inside VerifiedOS's hybrid key exchange, while ROM boot uses SLH-DSA and PQ sessions use ML-KEM-1024 and ML-DSA-87.
+
+Consumer: [docs/assurance/proof-reuse/crypto.md#research-handoff-for-unfinished-security-proofs](../assurance/proof-reuse/crypto.md#research-handoff-for-unfinished-security-proofs). Owner: Q28 cryptographic premise monitoring.
+
+Local evidence: [docs/background/open-math-conjectures.md#classical-elliptic-curve-discrete-logarithm-and-diffie-hellman-hardness](open-math-conjectures.md#classical-elliptic-curve-discrete-logarithm-and-diffie-hellman-hardness); [docs/assurance/proof-reuse/crypto.md#factoring-estimates-and-the-confidentiality-horizon](../assurance/proof-reuse/crypto.md#factoring-estimates-and-the-confidentiality-horizon); [docs/assurance/proof-reuse/crypto.md#research-handoff-for-unfinished-security-proofs](../assurance/proof-reuse/crypto.md#research-handoff-for-unfinished-security-proofs).
+
+Next action: Acquire the PDF bytes for 2026/3020 and locate the cited Akshima et al. (2026) and Kaarelson (2026) preprints; check the exact Cauchy-Hermite tensor-contraction premise, hidden exponent constants and prime-order subgroup conditions before revising any classical-hedge security estimate, and retain the hybrid-combiner witness requirement that PQ security holds if the classical component fails.
 
 ## Riemann hypothesis and Dirichlet GRH <a id="dirichlet-grh"></a>
 
@@ -597,7 +620,7 @@ Sorted reference payload SHA-256: `23b690105f12b96f3ef7a997cf508a5b775e70bcaf077
 | [tools/uv.lock](../../tools/uv.lock) | `0a470cbea5bb34c291a46053bc4c455f96ddd275adc435c14fab2a0babdbf0e1` |
 | [tools/vos/composer.py](../../tools/vos/composer.py) | `b96169f76319dd55c7597462472257830370fe9c86c44236ae3379efe34bcd3e` |
 | [proofs/HandlerGraph.v](../../proofs/HandlerGraph.v) | `0a088ecfd1e96010290cffe278da431c5aeab1b5b56a8e8b8a66ee69addfdd07` |
-| [tools/vos/math_evidence.py](../../tools/vos/math_evidence.py) | `cc7dad395c4c0cc323dcc87d3f9f0b4b124e0ab8f50eb71db5c70d6e5be960f8` |
+| [tools/vos/math_evidence.py](../../tools/vos/math_evidence.py) | `60a5022e962ac4b3b13a3c7fab2edbb5ed9d1f744585b539d8650fbd6623c97d` |
 | [tools/vos/__init__.py](../../tools/vos/__init__.py) | `f4bf65b676335680ed2e74c496374a83a2d37380cb6bc32a0af94d192c788e36` |
 | [tools/vos/atomic.py](../../tools/vos/atomic.py) | `384e706e945f8cead1e1b3791f916f6e7f8783a7497c17dd3a551a765e670471` |
 | [tools/vos/copy_package_sources.py](../../tools/vos/copy_package_sources.py) | `85ac67a6394c91e40e7f4b19fa1b4b9d5bbd8ab61f74bc3765286cfeb704796f` |
