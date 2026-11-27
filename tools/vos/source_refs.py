@@ -97,30 +97,73 @@ def _docstring(tokens: list[tokenize.TokenInfo], value: str, fallback: int) -> _
     return _Prose(_normal(value), lines)
 
 
-def _python(text: str) -> Iterator[_Prose]:
+def _has_link_syntax(text: str) -> bool:
+    """Quick prefilter: CommonMark links/images/autolinks require `]` or `<`."""
+    return "]" in text or "<" in text
+
+
+def _iter_docstring_owners(tree: ast.Module) -> Iterator[ast.Module | ast.ClassDef | ast.FunctionDef | ast.AsyncFunctionDef]:
+    """Yield every module/class/function node by traversing only statement-bearing blocks."""
+    yield tree
+    blocks: list[list[ast.stmt]] = [tree.body]
+    while blocks:
+        for stmt in blocks.pop():
+            if isinstance(stmt, (ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)):
+                yield stmt
+                blocks.append(stmt.body)
+            elif isinstance(stmt, (ast.With, ast.AsyncWith)):
+                blocks.append(stmt.body)
+            elif isinstance(stmt, (ast.For, ast.AsyncFor, ast.While, ast.If)):
+                blocks.append(stmt.body)
+                if stmt.orelse:
+                    blocks.append(stmt.orelse)
+            elif isinstance(stmt, (ast.Try, ast.TryStar)):
+                blocks.append(stmt.body)
+                blocks.extend(handler.body for handler in stmt.handlers)
+                if stmt.orelse:
+                    blocks.append(stmt.orelse)
+                if stmt.finalbody:
+                    blocks.append(stmt.finalbody)
+            elif isinstance(stmt, ast.Match):
+                blocks.extend(case.body for case in stmt.cases)
+
+
+def _python(text: str, *, only_candidates: bool = False) -> Iterator[_Prose]:
     tree = ast.parse(text)
     docstrings: list[tuple[tuple[int, int], tuple[int, int], str, list[tokenize.TokenInfo]]] = []
-    for node in ast.walk(tree):
-        if not isinstance(node, (ast.Module, ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)):
-            continue
+    for node in _iter_docstring_owners(tree):
         if (node.body and isinstance(first := node.body[0], ast.Expr)
                 and isinstance(first.value, ast.Constant) and isinstance(first.value.value, str)):
             if first.value.end_lineno is None or first.value.end_col_offset is None:
                 raise ValueError("Python docstring has no complete source span")
+            if only_candidates and not _has_link_syntax(first.value.value):
+                continue
             docstrings.append(((first.value.lineno, first.value.col_offset),
                                (first.value.end_lineno, first.value.end_col_offset), first.value.value, []))
+    source_lines = text.split("\n")
+    if only_candidates and not docstrings and not any(
+        "#" in line and _has_link_syntax(line) for line in source_lines
+    ):
+        return
     # A single projected comment document allows reference definitions on adjacent
     # comment lines. Non-comments remain blank, so string fixtures are never read.
-    comments = [""] * len(text.split("\n"))
-    source_lines = text.split("\n")
+    comments = [""] * len(source_lines)
+    doc_by_line: dict[int, list[tuple[tuple[int, int], tuple[int, int], str, list[tokenize.TokenInfo]]]] = {}
+    if docstrings:
+        for entry in docstrings:
+            for line_no in range(entry[0][0], entry[1][0] + 1):
+                doc_by_line.setdefault(line_no, []).append(entry)
     for token in tokenize.generate_tokens(io.StringIO(text).readline):
         if token.type == tokenize.COMMENT:
             comments[token.start[0] - 1] = token.string[1:].removeprefix(" ")
-        elif token.type == tokenize.STRING:
+        elif token.type == tokenize.STRING and docstrings:
+            candidates = doc_by_line.get(token.start[0])
+            if candidates is None:
+                continue
             # AST columns count UTF-8 bytes; tokenize columns count characters.
             begin = (token.start[0], len(source_lines[token.start[0] - 1][:token.start[1]].encode("utf-8")))
             end = (token.end[0], len(source_lines[token.end[0] - 1][:token.end[1]].encode("utf-8")))
-            for first, last, _value, tokens in docstrings:
+            for first, last, _value, tokens in candidates:
                 if first <= begin and end <= last:
                     tokens.append(token)
                     break
@@ -158,11 +201,10 @@ def _c_comments(text: str, *, chars: bool, nested: bool, cpp: bool) -> Iterator[
         raise ValueError("unterminated block comment")
 
 
-def prose(rel: str, text: str) -> Iterator[_Prose]:
-    """Comment/docstring Markdown with physical source origins for every line."""
+def _prose_blocks(rel: str, text: str, *, only_candidates: bool) -> Iterator[_Prose]:
     suffix = PurePosixPath(rel).suffix
     if suffix == ".py":
-        yield from _python(text)
+        yield from _python(text, only_candidates=only_candidates)
         return
     if suffix == ".v":
         regions = []
@@ -186,6 +228,11 @@ def prose(rel: str, text: str) -> Iterator[_Prose]:
     yield _Prose("\n".join(projected), tuple(range(1, len(projected) + 1)))
 
 
+def prose(rel: str, text: str) -> Iterator[_Prose]:
+    """Comment/docstring Markdown with physical source origins for every line."""
+    yield from _prose_blocks(rel, text, only_candidates=False)
+
+
 @cache
 def _markdown() -> MarkdownIt:
     from markdown_it import MarkdownIt  # noqa: PLC0415
@@ -202,7 +249,9 @@ def _markdown() -> MarkdownIt:
 
 def references(rel: str, text: str) -> Iterator[Reference]:
     """Use CommonMark links, including reference-style links and excluding code."""
-    for block in prose(rel, text):
+    for block in _prose_blocks(rel, text, only_candidates=True):
+        if not _has_link_syntax(block.text):
+            continue
         lines = block.text.split("\n")
         for token in _markdown().parse(block.text):
             if token.type != "inline" or token.children is None or token.map is None:
@@ -251,17 +300,6 @@ def _local(source: str, target: str) -> tuple[str, str] | None:
     return "/".join(parts), fragment
 
 
-def _safe(root: Path, rel: str) -> Path:
-    path = root
-    for part in PurePosixPath(rel).parts:
-        path /= part
-        if path.is_symlink() or path.is_junction():
-            raise ValueError(f"{rel}: symbolic links and junctions are not reference targets")
-    if not path.resolve().is_relative_to(root.resolve()):
-        raise ValueError(f"{rel}: reference escapes the repository")
-    return path
-
-
 def python_names(text: str) -> set[str]:
     """Lexical qualified declarations; importing a target is never necessary."""
     names: set[str] = set()
@@ -299,16 +337,41 @@ def python_names(text: str) -> set[str]:
     return names
 
 
-def findings(root: Path, corpus: Corpus) -> list[str]:
+def findings(root: Path, corpus: Corpus, *,
+             sail_bundle: tuple[sailbundle.Bundle, dict[str, str]] | None = None) -> list[str]:
     """Validate every indexed live source reference; failures never rewrite prose."""
     faults: list[str] = []
     texts: dict[str, str] = {}
     symbols: dict[str, set[str]] = {}
     sail: dict[str, set[str]] | None = None
+    root_resolved = root.resolve()
+    safe_dirs: set[Path] = set()
+    safe_paths: dict[str, Path] = {}
+
+    def safe(rel: str) -> Path:
+        cached = safe_paths.get(rel)
+        if cached is not None:
+            return cached
+        path = root
+        parts = PurePosixPath(rel).parts
+        last = len(parts) - 1
+        for index, part in enumerate(parts):
+            path /= part
+            if index < last:
+                if path not in safe_dirs:
+                    if path.is_symlink() or path.is_junction():
+                        raise ValueError(f"{rel}: symbolic links and junctions are not reference targets")
+                    safe_dirs.add(path)
+            elif path.is_symlink() or path.is_junction():
+                raise ValueError(f"{rel}: symbolic links and junctions are not reference targets")
+        if not path.resolve().is_relative_to(root_resolved):
+            raise ValueError(f"{rel}: reference escapes the repository")
+        safe_paths[rel] = path
+        return path
 
     def read(rel: str) -> str:
         if rel not in texts:
-            texts[rel] = _safe(root, rel).read_bytes().decode("utf-8")
+            texts[rel] = safe(rel).read_bytes().decode("utf-8")
         return texts[rel]
 
     def declarations(rel: str) -> set[str]:
@@ -318,10 +381,14 @@ def findings(root: Path, corpus: Corpus) -> list[str]:
             if sail is None:
                 if not {sailbundle.BUNDLE, sailbundle.SOURCE_IDENTITY} <= corpus.indexed:
                     raise ValueError("Sail bundle and source identity must be indexed")
-                raw = _safe(root, sailbundle.BUNDLE).read_bytes()
-                owners = sailbundle.read_source_identity(root, raw)
+                if sail_bundle is not None:
+                    bundle_obj, owners = sail_bundle
+                else:
+                    raw = safe(sailbundle.BUNDLE).read_bytes()
+                    owners = sailbundle.read_source_identity(root, raw)
+                    bundle_obj = sailbundle.parse(raw)
                 sail = {owner: set[str]() for owner in owners}
-                for declaration in sailbundle.parse(raw).declarations():
+                for declaration in bundle_obj.declarations():
                     file = declaration.source.file
                     owner = f"{sailbundle.SOURCE_ROOT}/{file}"
                     if file is not None and owner in sail:
@@ -355,11 +422,11 @@ def findings(root: Path, corpus: Corpus) -> list[str]:
             if any(rel.startswith(prefix) for rel in corpus.indexed):
                 if fragment:
                     raise ValueError(f"{target}: directory references cannot select a fragment")
-                if not _safe(root, target).is_dir():
+                if not safe(target).is_dir():
                     raise ValueError(f"{target}: indexed directory is missing from the working tree")
                 return
             raise ValueError(f"{target}: target is not an indexed file (paths are case-sensitive)")
-        if not _safe(root, target).is_file():
+        if not safe(target).is_file():
             raise ValueError(f"{target}: indexed target is missing from the working tree")
         if fragment and fragment not in declarations(target):
             raise ValueError(f"{target}: no heading, anchor or supported declaration #{fragment}")

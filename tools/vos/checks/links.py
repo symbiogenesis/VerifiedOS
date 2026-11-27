@@ -16,7 +16,7 @@ from collections.abc import Iterator
 from pathlib import PurePosixPath
 from typing import TYPE_CHECKING
 
-from vos import lychee, source_refs
+from vos import lychee, sailbundle, source_refs
 from vos.corpus import Document
 
 if TYPE_CHECKING:
@@ -128,7 +128,17 @@ def run(ctx: Context) -> None:
         dead = lychee.findings(ctx.root, [doc.name for doc in corpus.docs], corpus.gitlinks)
     except (OSError, ValueError, TypeError, KeyError, subprocess.SubprocessError) as exc:
         dead = [f"ordinary link validation could not complete: {exc}"]
-    dead += source_refs.findings(ctx.root, corpus)
+    bundle = ctx.shared.get("bundle")
+    sail_id = ctx.shared.get("sail_source_identity")
+    sail_arg = (
+        (bundle, sail_id[2])
+        if (bundle is not None and isinstance(sail_id, tuple) and len(sail_id) == 3
+            and {sailbundle.BUNDLE, sailbundle.SOURCE_IDENTITY} <= corpus.indexed
+            and sailbundle.BUNDLE not in ctx.fixed
+            and sailbundle.SOURCE_IDENTITY not in ctx.fixed)
+        else None
+    )
+    dead += source_refs.findings(ctx.root, corpus, sail_bundle=sail_arg)
     rep.report("K-12", "dead link(s):", dead,
                "Markdown and source-comment links resolve; fragments name headings, "
                "anchors or supported source declarations")
