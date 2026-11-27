@@ -1,7 +1,7 @@
 {
   "all_parity_matched": true,
   "frozen_source_revision": "498127d6be3d1a70581ba4a9cc025c2d923e66f7",
-  "holdfast_revision": "85b9462f6787b4fd070322e0a3587fa28d8071d2",
+  "holdfast_revision": "f594585fed3430e7c385f661ff73e3d70a6b4762",
   "installed_entry": null,
   "native_report": {
     "cflags": [

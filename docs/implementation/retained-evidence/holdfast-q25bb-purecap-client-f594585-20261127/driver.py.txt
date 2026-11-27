@@ -31,7 +31,17 @@ from vos import (  # noqa: E402
 )
 
 FROZEN_SOURCE_REVISION: Final = "498127d6be3d1a70581ba4a9cc025c2d923e66f7"
-FROZEN_SOURCE_SHA256: Final = "e6991359da24d4aaf459fb262ebbd906b2bb858ee61538337df88ec649945205"
+FROZEN_PREPARED_OUTPUTS: Final[dict[str, str]] = {
+    "include/copy_service_config.h": "6ac893cc25b83485f2efb22e83c0f65d863cb4de7a5a37c50ff134ed48b64d77",
+    "include/vos_copy_atomic.h": "25d1e540f344f87a45132f2b781b181c3de458588c9ca5bd626414e99ca024fd",
+    "include/vos_copy_notification.h": "d921b9ef8352d4dbdd2289c2c71388fdeb5642643523d0ec18283288f198ee57",
+    "include/vos_copy_service.h": "2f7b774dc6c3caacba7988cf0db86d734ca2874bd9e6d22e5df6571bf0b5575f",
+    "src/atomic_target.s": "876a29600dd43509389014df505276afa297c0076453781da16a10f9ff237449",
+    "src/copy_service.c": "2997ffebcfa67f0bdb10f37470464bbb06750e2a66d3a5b764620132cbb9d85d",
+    "src/notification_target.s": "949d971b8ad42f750d76367f1bc235912433d6ddc6cb28a71986efc427711e49",
+    "src/package_unit.c": "bcc7bbbeb66c80940a2a659ef3361583951778151146bbfe1fd097eb5ab86af4",
+    "src/target_layout.c": "5624fc53c6a53c23bd0620a9067585819dadf19ef16f5eef96cb81bc08880cc1",
+}
 FROZEN_MEMBERS: Final[dict[str, tuple[int, str]]] = {
     "compiled C": (4808, "a4d9ebf4439c5237ef4aaf8e8030f589b030bcad488701a036b7d2aacb91ee3a"),
     "src/atomic_target.s": (532, "80411cc51436678d7d3c514effc3230b82f247c92a1b74ec26388a100327e46e"),
@@ -47,10 +57,13 @@ DATA_BASE: Final = 0x80200000
 
 TRIAL_PASS: Final = 0
 TRIAL_EMPTY: Final = 2
+TRIAL_STALE: Final = 3
+TRIAL_DUPLICATE: Final = 5
 TRIAL_TOO_SMALL: Final = 6
 TRIAL_SNAPSHOT: Final = 7
 TRIAL_SUFFIX: Final = 8
 TRIAL_FRAME: Final = 9
+TRIAL_FULL: Final = 11
 TRIAL_PAYLOAD_LIMIT: Final = 14
 CHERI_CAP_CAUSE: Final = 28
 CHERI_CAP_TRAP_CODE: Final = compiler_diff.TRAP_BASE + CHERI_CAP_CAUSE
@@ -62,6 +75,10 @@ NEGATIVE_CONTROL_SPECS: Final[dict[str, tuple[str, tuple[int, ...], str]]] = {
     "mutated-snapshot-byte": ("fail", (TRIAL_SNAPSHOT,), "c-mutation"),
     "mutated-suffix-clobber": ("fail", (TRIAL_SUFFIX,), "c-mutation"),
     "mutated-refusal-output": ("fail", (TRIAL_EMPTY, TRIAL_TOO_SMALL), "c-mutation"),
+    "mutated-stale-generation": ("fail", (TRIAL_STALE,), "c-mutation"),
+    "mutated-duplicate-request": ("fail", (TRIAL_DUPLICATE,), "c-mutation"),
+    "mutated-full-ring": ("fail", (TRIAL_FULL,), "c-mutation"),
+    "mutated-too-small-dst": ("fail", (TRIAL_TOO_SMALL,), "c-mutation"),
     "mutated-overlapping-views": ("fail", (TRIAL_FRAME,), "client-mutation"),
     "mutated-narrow-arena-cap": (
         "trap",
@@ -78,6 +95,21 @@ NEGATIVE_CONTROL_SPECS: Final[dict[str, tuple[str, tuple[int, ...], str]]] = {
         (CHERI_CAP_TRAP_CODE,),
         "capability-tag-clearing",
     ),
+    "mutated-narrow-ring-cap": (
+        "trap",
+        (CHERI_CAP_TRAP_CODE,),
+        "ring-bounds-narrowing",
+    ),
+    "mutated-read-only-ring-cap": (
+        "trap",
+        (CHERI_CAP_TRAP_CODE,),
+        "ring-permission-narrowing",
+    ),
+    "mutated-untagged-ring-cap": (
+        "trap",
+        (CHERI_CAP_TRAP_CODE,),
+        "ring-tag-clearing",
+    ),
 }
 
 PARITY_CASE_MAP: Final[tuple[tuple[str, str], ...]] = (
@@ -92,6 +124,9 @@ _WRAPPER_MUTATION_KWARGS: Final[dict[str, dict[str, Any]]] = {
     "capability-bounds-narrowing": {"narrow_arena_by": 1},
     "capability-permission-narrowing": {"read_only_arena": True},
     "capability-tag-clearing": {"untagged_arena": True},
+    "ring-bounds-narrowing": {"narrow_ring": True},
+    "ring-permission-narrowing": {"read_only_ring": True},
+    "ring-tag-clearing": {"untagged_ring": True},
 }
 
 NON_ACCEPTANCE_FLAGS: Final[dict[str, object]] = {
@@ -139,12 +174,23 @@ def entry_wrapper(
     narrow_arena_by: int = 0,
     read_only_arena: bool = False,
     untagged_arena: bool = False,
+    narrow_ring: bool = False,
+    read_only_ring: bool = False,
+    untagged_ring: bool = False,
 ) -> str:
     """Emit the purecap `main` entry wrapper constructing ring and arena capabilities."""
     _require(0 <= narrow_arena_by < arena_bytes, "invalid arena narrowing offset")
     _require(
-        sum((narrow_arena_by > 0, read_only_arena, untagged_arena)) <= 1,
-        "at most one arena capability mutation may be selected",
+        sum((
+            narrow_arena_by > 0,
+            read_only_arena,
+            untagged_arena,
+            narrow_ring,
+            read_only_ring,
+            untagged_ring,
+        ))
+        <= 1,
+        "at most one capability mutation may be selected across arena and ring",
     )
     arena_extent = power_of_two_ceil(arena_bytes)
     lines = [
@@ -186,6 +232,25 @@ def entry_wrapper(
         # ccleartag is absent in the frozen dialect; under merged registers, an integer
         # write to x11 clears c11's validity tag while keeping its address.
         lines.append("    cgetaddr x11, c11")
+    elif narrow_ring:
+        # Advance c10 cursor inside q25bb_ring by RING_BYTES - 4096 so
+        # vos_copy_init_generation faults at c10's upper bound with CHERI cause 28.
+        ring_offset = RING_BYTES - 4096
+        _require(0 < ring_offset < RING_BYTES, "ring narrowing offset must fit inside RING_BYTES")
+        lines.extend([
+            f"    li x31, q25bb_ring + {ring_offset}",
+            "    csetaddr c10, c10, x31",
+        ])
+    elif read_only_ring:
+        # Clear bit 2 (permit-store) via candperm so the ring capability becomes read-only.
+        lines.extend([
+            "    cgetperm x31, c10",
+            "    andi x31, x31, -5",
+            "    candperm c10, c10, x31",
+        ])
+    elif untagged_ring:
+        # Under merged registers, writing x10 clears c10's validity tag while keeping its address.
+        lines.append("    cgetaddr x10, c10")
     lines.extend([
         "    call holdfast_copy_trial",
         "    j q25bb_return",
@@ -466,6 +531,30 @@ def _apply_c_mutation(prepared_copy: Path, control_name: str) -> None:
             "    }\n"
             "    vos_copy_payload *const slot = &ring->slots[view->consumed % VOS_COPY_CAPACITY];"
         )
+    elif control_name == "mutated-stale-generation":
+        target = "generation != ring->generation"
+        replacement = "0"
+    elif control_name == "mutated-duplicate-request":
+        target = (
+            "if (ring->slots[(view->consumed + i) % VOS_COPY_CAPACITY].life.request == request)\n"
+            "            return 0;"
+        )
+        replacement = "(void)i;"
+    elif control_name == "mutated-full-ring":
+        target = "vos_copy_occupancy(view) >= VOS_COPY_CAPACITY"
+        replacement = "vos_copy_occupancy(view) > VOS_COPY_CAPACITY"
+        _require(original.count(target) == 2, f"cannot apply {control_name} occupancy mutation uniquely")
+        mutated = original.replace(target, replacement, 2)
+        state_guard = (
+            "if ((slot->life.state != VOS_COPY_FREE && slot->life.state != VOS_COPY_RECLAIMED)\n"
+            "        || slot->life.readers != 0) return 0;"
+        )
+        _require(mutated.count(state_guard) == 1, f"cannot apply {control_name} slot-state bypass uniquely")
+        service_c.write_text(mutated.replace(state_guard, "if (slot->life.readers != 0) return 0;", 1), encoding="utf-8")
+        return
+    elif control_name == "mutated-too-small-dst":
+        target = "|| slot->length > capacity) return 0;"
+        replacement = "|| slot->length > capacity) { *length = 0u; return 0; }"
     else:
         raise ValueError(f"unsupported C control mutation: {control_name}")
 
@@ -628,9 +717,10 @@ def run(
     copy_package.prepare(root, prepared)
     record = copy_package.check(root, prepared)
     _require(
-        _sha256((prepared / copy_package.RECORD).read_bytes()) == FROZEN_SOURCE_SHA256,
-        "prepared source record differs from frozen 498127d6 snapshot",
+        record.get("outputs") == FROZEN_PREPARED_OUTPUTS,
+        "prepared outputs differ from frozen 498127d6 snapshot",
     )
+    prepared_source_sha256 = _sha256((prepared / copy_package.RECORD).read_bytes())
 
     config_path = compiler.with_name("compcert.ini")
     _require(_sha256(compiler.read_bytes()) == COMPILER_SHA256, "retained compiler binary differs")
@@ -690,7 +780,7 @@ def run(
     envelope.update({
         "scope": "Q25bb purecap HoldFast client execution envelope against frozen 498127d6 copy-service",
         "frozen_source_revision": FROZEN_SOURCE_REVISION,
-        "prepared_source_sha256": FROZEN_SOURCE_SHA256,
+        "prepared_source_sha256": prepared_source_sha256,
         "runtime_verdict": sim_run["verdict"],
         "runtime_code": sim_run["code"],
         **NON_ACCEPTANCE_FLAGS,
@@ -805,7 +895,7 @@ def run(
     report: dict[str, object] = {
         "scope": "Q25bb purecap HoldFast client end-to-end target execution against frozen 498127d6 copy-service",
         "frozen_source_revision": FROZEN_SOURCE_REVISION,
-        "prepared_source_sha256": FROZEN_SOURCE_SHA256,
+        "prepared_source_sha256": prepared_source_sha256,
         "holdfast_revision": holdfast_rev,
         "holdfast_client_c_sha256": _sha256(client_c.read_bytes()),
         "holdfast_client_h_sha256": _sha256(client_h.read_bytes()),
@@ -946,9 +1036,14 @@ def validate_bundle(
     _check_non_acceptance(envelope, "envelope")
     _check_non_acceptance(controls, "controls")
 
+    prepared_sha = report.get("prepared_source_sha256")
     _require(
-        report.get("prepared_source_sha256") == FROZEN_SOURCE_SHA256,
-        "report: prepared_source_sha256 mismatch",
+        isinstance(prepared_sha, str) and bool(_SHA256_RE.fullmatch(prepared_sha)),
+        "report: invalid prepared_source_sha256",
+    )
+    _require(
+        envelope.get("prepared_source_sha256") == prepared_sha,
+        "report: prepared_source_sha256 disagrees with envelope",
     )
     _require(report.get("compiler_sha256") == COMPILER_SHA256, "report: compiler_sha256 mismatch")
     _require(

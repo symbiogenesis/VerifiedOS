@@ -197,21 +197,26 @@ archived notification trace and an extended legal-plus-refusal workload. These
 development measurements carry no qualified producer, installed entry or
 capability wiring, or production admission.
 
-The [Q25bb purecap HoldFast copy client target run and expanded controls (85b9462f)](../docs/implementation/retained-evidence/holdfast-q25bb-purecap-client-20261127/manifest.json),
-SHA256 `766c81fb127658d869bafed075a7ff7b960ee76fecdad7bcef986afc43b86be1`,
-executes HoldFast's purecap `holdfast_copy_trial` (`85b9462f`) against the
+The [Q25bb purecap HoldFast copy client target run and expanded controls (f594585f)](../docs/implementation/retained-evidence/holdfast-q25bb-purecap-client-f594585-20261127/manifest.json),
+SHA256 `9fed6efab3e723f31dc139dc04c2731a120d95d7dae5a38be384e8ed8bdc75b3`,
+executes HoldFast's purecap `holdfast_copy_trial` (`f594585f`) against the
 byte-identical `498127d6` copy-service text extents (5,436 service text bytes)
 on the source-bound Sail simulator (`verdict: pass`, 9,490,563 commit-trace
 records, 4,876,085 retired instructions; per-entry bounds across
 `vos_copy_init_generation` [5 calls, 3–5,727 insns, 0–328 writes, 32 B stack],
 `vos_copy_submit` [602 calls, 142–61,955 insns, 26–4,156 writes, 240 B stack],
 and `vos_copy_take` [593 calls, 110–61,924 insns, 19–4,142 writes, 176 B stack]),
-passes all eight target-side negative controls (`mutated-payload-limit` exit 14,
+passes all fifteen target-side negative controls (`mutated-payload-limit` exit 14,
 `mutated-snapshot-byte` exit 7, `mutated-suffix-clobber` exit 8,
-`mutated-refusal-output` exit 2, `mutated-overlapping-views` exit 9,
+`mutated-refusal-output` exit 2, `mutated-stale-generation` exit 3,
+`mutated-duplicate-request` exit 5, `mutated-full-ring` exit 11,
+`mutated-too-small-dst` exit 6, `mutated-overlapping-views` exit 9,
 `mutated-narrow-arena-cap` CHERI trap cause 28 / HTIF 284,
-`mutated-read-only-arena-cap` CHERI trap cause 28 / HTIF 284, and
-`mutated-untagged-arena-cap` CHERI trap cause 28 / HTIF 284), and confirms
+`mutated-read-only-arena-cap` CHERI trap cause 28 / HTIF 284,
+`mutated-untagged-arena-cap` CHERI trap cause 28 / HTIF 284,
+`mutated-narrow-ring-cap` CHERI trap cause 28 / HTIF 284,
+`mutated-read-only-ring-cap` CHERI trap cause 28 / HTIF 284, and
+`mutated-untagged-ring-cap` CHERI trap cause 28 / HTIF 284), and confirms
 host-native vs purecap-target exit-code parity via `holdfast-copy-trial` across
 baseline and the four C controls. These development measurements carry no
 qualified producer, installed entry or capability wiring, trial acceptance, or

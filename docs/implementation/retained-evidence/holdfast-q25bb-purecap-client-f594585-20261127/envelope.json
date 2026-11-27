@@ -3790,10 +3790,10 @@
       }
     }
   },
-  "prepared_source_sha256": "e6991359da24d4aaf459fb262ebbd906b2bb858ee61538337df88ec649945205",
+  "prepared_source_sha256": "16e11db9fbda1907b16e60b96b9aecc961b423329835e0091ca089f00b4fb8e7",
   "production_admission": false,
   "qualified_producer": false,
-  "raw_log_sha256": "44dd45b4a7b4983629b3a14f2f3c8d6f20cd55e2c7219dbb1a412f7773dab646",
+  "raw_log_sha256": "b3275b65929228fb70d2543e7d86e7c618be0a80538241668f4d2c828349fa51",
   "runtime_code": 0,
   "runtime_verdict": "pass",
   "scope": "Q25bb purecap HoldFast client execution envelope against frozen 498127d6 copy-service",
