@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import cast
 
 _HELPERS = runpy.run_path(str(Path(__file__).with_name("canonical_closure.py")))
+_kernel_summary = runpy.run_path(str(Path(__file__).with_name("_test_helpers.py")))["kernel_summary"]
 AUTHORED_CANONICAL_MODULES = cast(
     "tuple[str, ...]", _HELPERS["AUTHORED_CANONICAL_MODULES"],
 )
@@ -33,34 +34,6 @@ audit_canonical_assumptions = _HELPERS["audit_canonical_assumptions"]
 verify_canonical_kernel_check = _HELPERS["verify_canonical_kernel_check"]
 build_canonical_kernel_report = _HELPERS["build_canonical_kernel_report"]
 verify_frozen_canonical_closure = _HELPERS["verify_frozen_canonical_closure"]
-
-
-def _kernel_summary(axioms: list[str], indices: list[str] | None = None) -> str:
-    ax_block = (
-        "* Axioms: <none>"
-        if not axioms
-        else "* Axioms:\n" + "\n".join(f"    {ax}" for ax in axioms)
-    )
-    idx_block = (
-        "* Inductives relying on indices not mattering: <none>"
-        if indices is None or len(indices) == 0
-        else "* Inductives relying on indices not mattering:\n"
-        + "\n".join(f"    {ind}" for ind in indices)
-    )
-    return "\n".join([
-        "",
-        "CONTEXT SUMMARY",
-        "===============",
-        "",
-        "* Theory: Set is predicative",
-        "* Theory: Rewrite rules are not allowed",
-        ax_block,
-        "* Constants/Inductives relying on type-in-type: <none>",
-        "* Constants/Inductives relying on unsafe (co)fixpoints: <none>",
-        "* Inductives whose positivity is assumed: <none>",
-        idx_block,
-        "",
-    ])
 
 
 class CanonicalClosureControls(unittest.TestCase):

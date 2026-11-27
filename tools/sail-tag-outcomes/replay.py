@@ -3,6 +3,7 @@
 import argparse
 import gzip
 import hashlib
+import importlib
 import json
 import os
 import re
@@ -17,7 +18,8 @@ from typing import cast
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from vos import proofaudit, proofreading, python_dependencies
-from vos.jsonutil import unique_object
+
+_common = importlib.import_module("sail-tag-outcomes._common")
 
 PATCHED_SUPPORT_SOURCES = frozenset({"ConcurrencyInterface.v", "ConcurrencyInterfaceBuiltins.v"})
 AUTHORED_MODULES = (
@@ -46,49 +48,19 @@ _OPAQUE_BUT_TRANSPARENT = re.compile(
 )
 
 
-def sha(path: Path) -> str:
-    with path.open("rb") as source:
-        return hashlib.file_digest(source, "sha256").hexdigest()
-
-
-def tree_sha(root: Path) -> dict[str, str]:
-    return {
-        path.relative_to(root).as_posix(): sha(path)
-        for path in sorted(root.rglob("*")) if path.is_file() and path.suffix != ".glob"
-    }
-
-
-def absolute(value: str) -> Path:
-    path = Path(value)
-    if not path.is_absolute() or "%" in value:
-        raise argparse.ArgumentTypeError("an expanded absolute native path is required")
-    return path.resolve(strict=True)
-
-
-def output_path(value: str, protected: tuple[Path, ...]) -> Path:
-    """Refuse canonical input overlap and aliases before any output mutation."""
-    path = Path(value)
-    if not path.is_absolute() or "%" in value or path.exists() or path.is_symlink():
-        raise ValueError("output must be an expanded absolute, new directory")
-    if any(p.is_symlink() for p in path.parents):
-        raise ValueError("output ancestors must not be symlinks")
-    path = path.resolve()
-    for entry in protected:
-        canonical = entry.resolve(strict=True)
-        if path.is_relative_to(canonical) or canonical.is_relative_to(path):
-            raise ValueError(f"output overlaps protected input: {canonical}")
-    return path
-
-
-def require_sha(path: Path, expected: str) -> None:
-    if sha(path) != expected:
-        raise ValueError(f"input digest mismatch: {path}")
+sha = _common.sha
+tree_sha = _common.tree_sha
+absolute = _common.absolute
+output_path = _common.output_path
+require_sha = _common.require_sha
+retained_stdpp = _common.retained_stdpp
+parse_kernel_summary = _common.parse_kernel_summary
 
 
 def retained_emission_inputs(
     evidence: Path, plugin: Path, sail: Path, z3: Path,
 ) -> tuple[dict[Path, str], dict[str, str]]:
-    reading = json.loads(evidence.read_text(encoding="utf-8"))
+    reading = _common.load_json(evidence)
     if reading["checks"] != {"matched_retained_outputs": True, "unchanged_inputs": True}:
         raise ValueError("retained emission did not match the frozen inputs and outputs")
     recorded_hashes = cast(dict[str, str], reading["input_hashes"])
@@ -103,12 +75,6 @@ def retained_emission_inputs(
     for path, digest in plugins.items():
         require_sha(path, digest)
     return plugins, cast(dict[str, str], reading["expected"])
-
-
-def retained_stdpp(evidence: Path) -> dict[str, str]:
-    libraries = cast(dict[str, dict[str, str]], json.loads(evidence.read_text(encoding="utf-8")))
-    stdpp, = (reading for path, reading in libraries.items() if Path(path).name == "stdpp")
-    return stdpp
 
 
 def match_v1_reading(query: Callable[[str, str], str], output: Path, expected: str) -> None:
@@ -364,7 +330,7 @@ def verify_frozen_support(
     require_sha(frozen_manifest, expected_manifest_sha)
     members = cast(
         dict[str, dict[str, object]],
-        json.loads(frozen_manifest.read_bytes(), object_pairs_hook=unique_object)["files"],
+        _common.load_json(frozen_manifest)["files"],
     )
     if (hashlib.sha256(baseline_payload).hexdigest()
             != members["support-baseline.json.gz"]["sha256"]):
@@ -375,10 +341,7 @@ def verify_frozen_support(
     frozen_cmp_info = members["support-comparison.json"]
     frozen_cmp_path = frozen_manifest.parent / cast(str, frozen_cmp_info["path"])
     require_sha(frozen_cmp_path, cast(str, frozen_cmp_info["sha256"]))
-    frozen_cmp = cast(
-        dict[str, object],
-        json.loads(frozen_cmp_path.read_text(encoding="utf-8"), object_pairs_hook=unique_object),
-    )
+    frozen_cmp = _common.load_json(frozen_cmp_path)
     for key in ("modules_checked", "patched_sources", "empty_top_level_modules",
                 "total_declarations", "differing_reading_modules"):
         if comparison[key] != frozen_cmp[key]:
@@ -421,22 +384,15 @@ def authored_assumption_spec(module: str) -> tuple[str, str]:
 
 def authored_inventory_query(module: str) -> tuple[str, str]:
     """Build a `proofaudit.inventory_query` script for `module`, instantiating functor-only sources."""
-    target, preamble = authored_assumption_spec(module)
-    base = proofaudit.inventory_query(target)
-    prefix = f"Require {target}.\n"
-    if not base.startswith(prefix):
-        raise ValueError(f"unexpected inventory_query prefix for {target}")
-    return target, preamble + base[len(prefix):]
+    return cast("tuple[str, str]", _common.inventory_query_from_spec(module, authored_assumption_spec))
 
 
 def authored_assumption_query(module: str, symbols: list[proofaudit.Symbol]) -> str:
     """Build a `proofaudit.assumption_query` script for `symbols` under `module`."""
-    target, preamble = authored_assumption_spec(module)
-    base = proofaudit.assumption_query(target, symbols)
-    prefix = f"Require {target}.\n"
-    if not base.startswith(prefix):
-        raise ValueError(f"unexpected assumption_query prefix for {target}")
-    return preamble + base[len(prefix):]
+    return cast(
+        "str",
+        _common.assumption_query_from_spec(module, symbols, authored_assumption_spec),
+    )
 
 
 def audit_module_assumptions(
@@ -444,32 +400,12 @@ def audit_module_assumptions(
     query: Callable[[str, str], str],
 ) -> dict[str, object]:
     """Enumerate `module` declarations and require `Closed under the global context` on every one."""
-    target, inv_script = authored_inventory_query(module)
-    inv_stdout = query(f"AssumptionsInventory_{module}", inv_script)
-    symbols = proofaudit.inventory(inv_stdout, target)
-    if not symbols:
-        raise ValueError(f"empty native inventory for authored module {module}")
-    assump_script = authored_assumption_query(module, symbols)
-    assump_stdout = query(f"AssumptionsCheck_{module}", assump_script)
-    proofaudit.assumptions(assump_stdout, symbols)
-    non_closed = {
-        symbol["name"]: list(symbol["assumptions"])
-        for symbol in symbols if symbol["assumptions"]
-    }
-    if non_closed:
-        raise ValueError(
-            f"authored module {module} has non-closed declaration(s): {non_closed}",
-        )
-    return {
-        "module": module,
-        "query_target": target,
-        "instantiated_functor": target != module,
-        "declaration_count": len(symbols),
-        "closed_count": len(symbols),
-        "all_closed": True,
-        "non_closed": [],
-        "symbols": [symbol["name"] for symbol in symbols],
-    }
+    return cast(
+        "dict[str, object]",
+        _common.audit_module_assumptions(
+            module, query, authored_assumption_spec, kind_label="authored",
+        ),
+    )
 
 
 def audit_authored_assumptions(
@@ -477,38 +413,14 @@ def audit_authored_assumptions(
     query: Callable[[str, str], str],
 ) -> dict[str, object]:
     """Audit native `Print Assumptions` across every module in `modules`."""
-    per_module: dict[str, dict[str, object]] = {
-        mod: audit_module_assumptions(mod, query) for mod in modules
-    }
-    total = sum(cast(int, per_module[mod]["declaration_count"]) for mod in modules)
-    return {
-        "schema": "verifiedos-tag-assumptions/1",
-        "all_closed": True,
-        "modules_audited": list(modules),
-        "total_declarations": total,
-        "modules": per_module,
-    }
-
-
-def parse_kernel_summary(stderr: str) -> tuple[list[str], list[str]]:
-    """Parse `rocqchk -silent -o` summary via `proofaudit.kernel_context`, also returning indices."""
-    axioms = proofaudit.kernel_context(stderr)
-    lines = [line.rstrip() for line in stderr.splitlines() if line.strip()]
-    marker = f"* {proofaudit.KERNEL_INDICES}:"
-    indices: list[str] = []
-    in_indices = False
-    for line in lines:
-        if line.startswith(marker):
-            in_indices = True
-            rest = line[len(marker):].strip()
-            if rest == "<none>":
-                in_indices = False
-            continue
-        if in_indices:
-            if line.startswith("* "):
-                break
-            indices.append(line.strip())
-    return axioms, sorted(indices)
+    return cast(
+        "dict[str, object]",
+        _common.audit_assumptions(
+            modules, query, authored_assumption_spec,
+            schema="verifiedos-tag-assumptions/1",
+            kind_label="authored",
+        ),
+    )
 
 
 def verify_kernel_partition(
@@ -524,25 +436,15 @@ def verify_kernel_partition(
     note: str | None = None,
 ) -> dict[str, object]:
     """Validate one recursive `rocqchk -silent -o` partition, refusing `-norec` or axiom mismatch."""
-    if "-norec" in argv or "-norec" in portable_flags:
-        raise ValueError(f"kernel partition {name} must not pass -norec")
-    if "-silent" not in argv or "-o" not in argv:
-        raise ValueError(f"kernel partition {name} requires -silent -o")
-    if returncode != 0 or stdout.strip():
-        diagnostic = (stderr.strip() or stdout.strip()) or "no diagnostic"
-        raise ValueError(
-            f"kernel partition {name} failed (exit {returncode}): {diagnostic}",
-        )
-    axioms, indices = parse_kernel_summary(stderr)
-    if len(axioms) != len(set(axioms)):
-        raise ValueError(f"kernel partition {name} reported duplicate axioms: {axioms}")
-    actual_sorted = sorted(axioms)
-    expected_sorted = sorted(expected_axioms)
-    if actual_sorted != expected_sorted:
-        raise ValueError(
-            f"kernel partition {name} axioms mismatch: "
-            f"expected {expected_sorted}, got {actual_sorted}",
-        )
+    actual_sorted, expected_sorted, indices = _common.validate_kernel_run(
+        f"kernel partition {name}",
+        argv,
+        returncode,
+        stdout,
+        stderr,
+        expected_axioms,
+        portable_flags=portable_flags,
+    )
     entry: dict[str, object] = {
         "modules": list(modules),
         "argv": list(argv),
@@ -581,29 +483,7 @@ def _verify_frozen_assumptions(
     fresh: dict[str, object],
     frozen_doc: dict[str, object],
 ) -> None:
-    if fresh.get("all_closed") is not True:
-        raise ValueError("fresh assumptions report is not closed")
-    for key in ("schema", "all_closed", "modules_audited", "total_declarations"):
-        if fresh.get(key) != frozen_doc.get(key):
-            raise ValueError(f"assumptions {key} differs from frozen closure bundle")
-    fresh_mods = cast(dict[str, dict[str, object]], fresh["modules"])
-    frozen_mods = cast(dict[str, dict[str, object]], frozen_doc["modules"])
-    if set(fresh_mods) != set(frozen_mods):
-        raise ValueError("assumptions module keys differ from frozen closure bundle")
-    for mod in fresh_mods:
-        f_mod = fresh_mods[mod]
-        r_mod = frozen_mods[mod]
-        if (f_mod.get("all_closed") is not True or f_mod.get("non_closed") != []
-                or cast(int, f_mod.get("declaration_count", 0)) <= 0):
-            raise ValueError(f"fresh assumptions invalid for module {mod}")
-        for field in (
-            "module", "query_target", "instantiated_functor",
-            "declaration_count", "closed_count", "all_closed", "non_closed", "symbols",
-        ):
-            if f_mod.get(field) != r_mod.get(field):
-                raise ValueError(
-                    f"assumptions {mod}.{field} differs from frozen closure bundle",
-                )
+    _common.verify_frozen_assumptions(fresh, frozen_doc, bundle_label="assumptions")
 
 
 def _verify_frozen_kernel_check(
@@ -647,7 +527,7 @@ def verify_frozen_closure(
     require_sha(frozen_manifest, expected_manifest_sha)
     members = cast(
         dict[str, dict[str, object]],
-        json.loads(frozen_manifest.read_bytes(), object_pairs_hook=unique_object)["files"],
+        _common.load_json(frozen_manifest)["files"],
     )
     for member_name, fresh, verifier in (
         ("assumptions.json", assumptions_report, _verify_frozen_assumptions),
@@ -658,10 +538,7 @@ def verify_frozen_closure(
         info = members[member_name]
         member_path = frozen_manifest.parent / cast(str, info["path"])
         require_sha(member_path, cast(str, info["sha256"]))
-        frozen_doc = cast(
-            dict[str, object],
-            json.loads(member_path.read_text(encoding="utf-8"), object_pairs_hook=unique_object),
-        )
+        frozen_doc = _common.load_json(member_path)
         verifier(fresh, frozen_doc)
 
 
@@ -677,16 +554,16 @@ def main() -> None:
     repo = Path(__file__).resolve().parents[2]
     recipe_path = repo / "tools/sail-tag-outcomes/candidate.json"
     support_recipe = repo / "tools/opam/sail-support-qualification.json"
-    recipe = json.loads(recipe_path.read_text(encoding="utf-8"))
-    q = json.loads(support_recipe.read_text(encoding="utf-8"))
-    frozen = recipe["frozen_v1_manifest"]
+    recipe = _common.load_json(recipe_path)
+    q = _common.load_json(support_recipe)
+    frozen = cast(dict[str, str], recipe["frozen_v1_manifest"])
     frozen_manifest = repo / frozen["path"]
     require_sha(frozen_manifest, frozen["sha256"])
-    members = json.loads(frozen_manifest.read_bytes(), object_pairs_hook=unique_object)["files"]
-    frozen_support = recipe.get("frozen_support_manifest")
+    members = cast(dict[str, dict[str, str]], _common.load_json(frozen_manifest)["files"])
+    frozen_support = cast(dict[str, str] | None, recipe.get("frozen_support_manifest"))
     if frozen_support is not None:
         require_sha(repo / frozen_support["path"], frozen_support["sha256"])
-    frozen_closure = recipe.get("frozen_closure_manifest")
+    frozen_closure = cast(dict[str, str] | None, recipe.get("frozen_closure_manifest"))
     if frozen_closure is not None:
         require_sha(repo / frozen_closure["path"], frozen_closure["sha256"])
     try:
@@ -716,8 +593,10 @@ def main() -> None:
         expected_stdpp = retained_stdpp(repo / recipe["retained_library_evidence"])
     if out.is_relative_to(args.stdpp):
         parser.error("output may not be inside the dependency input")
-    if any(p.is_symlink() and p.is_dir() for p in args.stdpp.rglob("*")):
-        parser.error("dependency input may not contain directory symlinks")
+    try:
+        _common.check_no_dir_symlinks(args.stdpp)
+    except ValueError as error:
+        parser.error(str(error))
     out.mkdir(parents=True)
     commands = []
     switches = [args.rocq_prefix, args.sail_prefix]
@@ -1020,8 +899,7 @@ def main() -> None:
         (out / "repeat-output-identities.json").write_text(json.dumps(outputs, indent=2) + "\n")
     finally:
         after = inventory()
-        changes = {prefix: sorted(k for k in before[prefix].keys() | after[prefix].keys()
-                                 if before[prefix].get(k) != after[prefix].get(k)) for prefix in before}
+        changes = _common.compare_installed_inventories(before, after)
         (out / "commands.json").write_text(json.dumps(commands, indent=2) + "\n")
         (out / "installed-after.json").write_text(json.dumps(after, indent=2) + "\n")
         (out / "installed-comparison.json").write_text(json.dumps(changes, indent=2) + "\n")

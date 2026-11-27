@@ -3,7 +3,7 @@
 
 import argparse
 import hashlib
-import json
+import importlib
 import re
 import subprocess
 import sys
@@ -14,7 +14,8 @@ from typing import cast
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from vos import proofaudit, python_dependencies
-from vos.jsonutil import unique_object
+
+_common = importlib.import_module("sail-tag-outcomes._common")
 
 DEFAULT_WHOLE_TERM_DIR = (
     "/root/build/fanout-retained/4b3b843a3b9fe80d0323"
@@ -99,61 +100,22 @@ STRICT_COMPILE_TIMEOUT_SECONDS = 180
 KERNEL_CHECK_TIMEOUT_SECONDS = 600
 
 
-def sha(path: Path) -> str:
-    """Return the lowercase SHA-256 hex digest of `path`."""
-    with path.open("rb") as source:
-        return hashlib.file_digest(source, "sha256").hexdigest()
-
-
-def tree_sha(root: Path) -> dict[str, str]:
-    """Return relative-POSIX-path -> SHA-256 for every non-`.glob` file under `root`."""
-    return {
-        path.relative_to(root).as_posix(): sha(path)
-        for path in sorted(root.rglob("*")) if path.is_file() and path.suffix != ".glob"
-    }
-
-
-def absolute(value: str) -> Path:
-    """Parse an expanded absolute native directory path."""
-    path = Path(value)
-    if not path.is_absolute() or "%" in value:
-        raise argparse.ArgumentTypeError("an expanded absolute native path is required")
-    return path.resolve(strict=True)
+sha = _common.sha
+tree_sha = _common.tree_sha
+absolute = _common.absolute
+require_sha = _common.require_sha
+_load_json = _common.load_json
+retained_stdpp = _common.retained_stdpp
+compare_installed_inventories = _common.compare_installed_inventories
+verify_installed_unchanged = _common.verify_installed_unchanged
+parse_kernel_summary = _common.parse_kernel_summary
+_check_no_dir_symlinks = _common.check_no_dir_symlinks
+_write_json = _common.write_json
 
 
 def output_path(value: str, protected: tuple[Path, ...]) -> Path:
     """Require an expanded absolute empty/new output directory not overlapping protected inputs."""
-    path = Path(value)
-    if not path.is_absolute() or "%" in value or path.is_symlink():
-        raise ValueError("output must be an expanded absolute, non-symlink directory")
-    if any(parent.is_symlink() for parent in path.parents):
-        raise ValueError("output ancestors must not be symlinks")
-    if path.exists():
-        if not path.is_dir():
-            raise ValueError("output path exists and is not a directory")
-        if any(path.iterdir()):
-            raise ValueError("output directory must be empty")
-    resolved = path.resolve()
-    for entry in protected:
-        canonical = entry.resolve(strict=True)
-        if resolved.is_relative_to(canonical) or canonical.is_relative_to(resolved):
-            raise ValueError(f"output overlaps protected input: {canonical}")
-    return resolved
-
-
-def require_sha(path: Path, expected: str) -> None:
-    """Raise `ValueError` unless `path` exists as a regular file with SHA-256 `expected`."""
-    if not path.is_file():
-        raise ValueError(f"missing required input file: {path}")
-    if sha(path) != expected:
-        raise ValueError(f"input digest mismatch: {path}")
-
-
-def _load_json(path: Path) -> dict[str, object]:
-    return cast(
-        "dict[str, object]",
-        json.loads(path.read_text(encoding="utf-8"), object_pairs_hook=unique_object),
-    )
+    return cast("Path", _common.output_path(value, protected, allow_empty_existing=True))
 
 
 def verify_whole_term_inputs(
@@ -209,36 +171,6 @@ def verify_canonical_support_inputs(
     return verified
 
 
-def retained_stdpp(evidence: Path) -> dict[str, str]:
-    """Load the frozen private `stdpp` file-digest map from `library-inputs-before.json`."""
-    raw: object = json.loads(evidence.read_text(encoding="utf-8"), object_pairs_hook=unique_object)
-    libraries = cast("dict[str, dict[str, str]]", raw)
-    stdpp, = (reading for path, reading in libraries.items() if Path(path).name == "stdpp")
-    return stdpp
-
-
-def compare_installed_inventories(
-    before: dict[str, dict[str, str]],
-    after: dict[str, dict[str, str]],
-) -> dict[str, list[str]]:
-    """Return sorted added, removed, or modified relative paths per installed prefix."""
-    if set(before) != set(after):
-        raise ValueError("installed prefix keys changed between before and after snapshots")
-    return {
-        prefix: sorted(
-            key for key in before[prefix].keys() | after[prefix].keys()
-            if before[prefix].get(key) != after[prefix].get(key)
-        )
-        for prefix in before
-    }
-
-
-def verify_installed_unchanged(changes: dict[str, list[str]]) -> None:
-    """Refuse any change to the installed Rocq prefix."""
-    if not changes or any(changes.values()):
-        raise ValueError(f"installed paths changed: {changes}")
-
-
 def canonical_assumption_spec(module: str) -> tuple[str, str]:
     """Return `(search_target, preamble)` for a canonical-closure authored module."""
     if module == "TagInterpreter":
@@ -262,22 +194,15 @@ def canonical_assumption_spec(module: str) -> tuple[str, str]:
 
 def canonical_inventory_query(module: str) -> tuple[str, str]:
     """Build a `proofaudit.inventory_query` script for `module`, instantiating `TagPlane`."""
-    target, preamble = canonical_assumption_spec(module)
-    base = proofaudit.inventory_query(target)
-    prefix = f"Require {target}.\n"
-    if not base.startswith(prefix):
-        raise ValueError(f"unexpected inventory_query prefix for {target}")
-    return target, preamble + base[len(prefix):]
+    return cast("tuple[str, str]", _common.inventory_query_from_spec(module, canonical_assumption_spec))
 
 
 def canonical_assumption_query(module: str, symbols: list[proofaudit.Symbol]) -> str:
     """Build a `proofaudit.assumption_query` script for `symbols` under `module`."""
-    target, preamble = canonical_assumption_spec(module)
-    base = proofaudit.assumption_query(target, symbols)
-    prefix = f"Require {target}.\n"
-    if not base.startswith(prefix):
-        raise ValueError(f"unexpected assumption_query prefix for {target}")
-    return preamble + base[len(prefix):]
+    return cast(
+        "str",
+        _common.assumption_query_from_spec(module, symbols, canonical_assumption_spec),
+    )
 
 
 def audit_canonical_module_assumptions(
@@ -285,32 +210,12 @@ def audit_canonical_module_assumptions(
     query: Callable[[str, str], str],
 ) -> dict[str, object]:
     """Enumerate all declarations of `module` and require `Closed under the global context`."""
-    target, inv_script = canonical_inventory_query(module)
-    inv_stdout = query(f"AssumptionsInventory_{module}", inv_script)
-    symbols = proofaudit.inventory(inv_stdout, target)
-    if not symbols:
-        raise ValueError(f"empty native inventory for canonical module {module}")
-    assump_script = canonical_assumption_query(module, symbols)
-    assump_stdout = query(f"AssumptionsCheck_{module}", assump_script)
-    proofaudit.assumptions(assump_stdout, symbols)
-    non_closed = {
-        symbol["name"]: list(symbol["assumptions"])
-        for symbol in symbols if symbol["assumptions"]
-    }
-    if non_closed:
-        raise ValueError(
-            f"canonical module {module} has non-closed declaration(s): {non_closed}",
-        )
-    return {
-        "module": module,
-        "query_target": target,
-        "instantiated_functor": target != module,
-        "declaration_count": len(symbols),
-        "closed_count": len(symbols),
-        "all_closed": True,
-        "non_closed": [],
-        "symbols": [symbol["name"] for symbol in symbols],
-    }
+    return cast(
+        "dict[str, object]",
+        _common.audit_module_assumptions(
+            module, query, canonical_assumption_spec, kind_label="canonical",
+        ),
+    )
 
 
 def audit_canonical_assumptions(
@@ -318,38 +223,14 @@ def audit_canonical_assumptions(
     query: Callable[[str, str], str],
 ) -> dict[str, object]:
     """Audit native `Print Assumptions` across every enumerated declaration of `modules`."""
-    per_module: dict[str, dict[str, object]] = {
-        mod: audit_canonical_module_assumptions(mod, query) for mod in modules
-    }
-    total = sum(cast("int", per_module[mod]["declaration_count"]) for mod in modules)
-    return {
-        "schema": "verifiedos-canonical-tag-assumptions/1",
-        "all_closed": True,
-        "modules_audited": list(modules),
-        "total_declarations": total,
-        "modules": per_module,
-    }
-
-
-def parse_kernel_summary(stderr: str) -> tuple[list[str], list[str]]:
-    """Parse `rocqchk -silent -o` context summary via `proofaudit.kernel_context`."""
-    axioms = proofaudit.kernel_context(stderr)
-    lines = [line.rstrip() for line in stderr.splitlines() if line.strip()]
-    marker = f"* {proofaudit.KERNEL_INDICES}:"
-    indices: list[str] = []
-    in_indices = False
-    for line in lines:
-        if line.startswith(marker):
-            in_indices = True
-            rest = line[len(marker):].strip()
-            if rest == "<none>":
-                in_indices = False
-            continue
-        if in_indices:
-            if line.startswith("* "):
-                break
-            indices.append(line.strip())
-    return axioms, sorted(indices)
+    return cast(
+        "dict[str, object]",
+        _common.audit_assumptions(
+            modules, query, canonical_assumption_spec,
+            schema="verifiedos-canonical-tag-assumptions/1",
+            kind_label="canonical",
+        ),
+    )
 
 
 def verify_canonical_kernel_check(
@@ -364,32 +245,16 @@ def verify_canonical_kernel_check(
     elapsed_seconds: float | None = None,
 ) -> dict[str, object]:
     """Validate full recursive `rocqchk -silent -o` on `CanonicalPhysicalCallerBridge`."""
-    if "-norec" in argv or "-norec" in portable_flags:
-        raise ValueError("canonical recursive kernel check must not pass -norec")
-    if "-silent" not in argv or "-o" not in argv:
-        raise ValueError("canonical recursive kernel check requires -silent -o")
-    if "-silent" not in portable_flags or "-o" not in portable_flags:
-        raise ValueError("canonical kernel portable_flags must include -silent -o")
-    if target_module not in argv:
-        raise ValueError(f"canonical kernel argv must name {target_module}")
-    if returncode != 0 or stdout.strip():
-        diagnostic = (stderr.strip() or stdout.strip()) or "no diagnostic"
-        raise ValueError(
-            f"canonical recursive kernel check failed (exit {returncode}): {diagnostic}",
-        )
-    axioms, indices = parse_kernel_summary(stderr)
-    if len(axioms) != len(set(axioms)):
-        raise ValueError(f"canonical kernel check reported duplicate axioms: {axioms}")
-    actual_set = set(axioms)
-    expected_set = set(expected_axioms)
-    if len(expected_set) != len(expected_axioms):
-        raise ValueError("expected_axioms contains duplicates")
-    unexpected = sorted(actual_set - expected_set)
-    missing = sorted(expected_set - actual_set)
-    if unexpected or missing:
-        raise ValueError(
-            f"canonical kernel axioms mismatch: unexpected={unexpected}, missing={missing}",
-        )
+    axioms, expected, indices = _common.validate_kernel_run(
+        "canonical recursive kernel check",
+        argv,
+        returncode,
+        stdout,
+        stderr,
+        expected_axioms,
+        portable_flags=portable_flags,
+        required_token=target_module,
+    )
     report: dict[str, object] = {
         "schema": "verifiedos-canonical-tag-kernel-check/1",
         "recursive": True,
@@ -399,11 +264,11 @@ def verify_canonical_kernel_check(
         "argv": list(argv),
         "portable_flags": list(portable_flags),
         "exit_code": returncode,
-        "expected_axioms": sorted(expected_axioms),
-        "axioms": sorted(axioms),
+        "expected_axioms": expected,
+        "axioms": axioms,
         "axiom_count": len(axioms),
-        "unexpected_axioms": unexpected,
-        "missing_expected_axioms": missing,
+        "unexpected_axioms": [],
+        "missing_expected_axioms": [],
         "indices_not_mattering": indices,
     }
     if elapsed_seconds is not None:
@@ -451,29 +316,7 @@ def _verify_frozen_assumptions(
     fresh: dict[str, object],
     frozen_doc: dict[str, object],
 ) -> None:
-    if fresh.get("all_closed") is not True:
-        raise ValueError("fresh canonical assumptions report is not closed")
-    for key in ("schema", "all_closed", "modules_audited", "total_declarations"):
-        if fresh.get(key) != frozen_doc.get(key):
-            raise ValueError(f"canonical assumptions {key} differs from frozen closure bundle")
-    fresh_mods = cast("dict[str, dict[str, object]]", fresh["modules"])
-    frozen_mods = cast("dict[str, dict[str, object]]", frozen_doc["modules"])
-    if set(fresh_mods) != set(frozen_mods):
-        raise ValueError("canonical assumptions module keys differ from frozen closure bundle")
-    for mod in fresh_mods:
-        f_mod = fresh_mods[mod]
-        r_mod = frozen_mods[mod]
-        if (f_mod.get("all_closed") is not True or f_mod.get("non_closed") != []
-                or cast("int", f_mod.get("declaration_count", 0)) <= 0):
-            raise ValueError(f"fresh canonical assumptions invalid for module {mod}")
-        for field in (
-            "module", "query_target", "instantiated_functor",
-            "declaration_count", "closed_count", "all_closed", "non_closed", "symbols",
-        ):
-            if f_mod.get(field) != r_mod.get(field):
-                raise ValueError(
-                    f"canonical assumptions {mod}.{field} differs from frozen closure bundle",
-                )
+    _common.verify_frozen_assumptions(fresh, frozen_doc, bundle_label="canonical assumptions")
 
 
 def _verify_frozen_single_kernel_target(
@@ -561,19 +404,6 @@ def verify_frozen_canonical_closure(
     _verify_frozen_kernel_check(kernel_report, frozen_kernel)
     if installed_comparison is not None:
         verify_installed_unchanged(installed_comparison)
-
-
-def _check_no_dir_symlinks(root: Path) -> None:
-    if any(p.is_symlink() and p.is_dir() for p in root.rglob("*")):
-        raise ValueError(f"input directory may not contain directory symlinks: {root}")
-
-
-def _write_json(path: Path, payload: object) -> None:
-    path.write_text(
-        json.dumps(payload, sort_keys=True, indent=2) + "\n",
-        encoding="utf-8",
-        newline="\n",
-    )
 
 
 def main() -> None:

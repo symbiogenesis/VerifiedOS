@@ -8,6 +8,8 @@ import unittest
 from pathlib import Path
 
 helpers = runpy.run_path(str(Path(__file__).with_name("replay.py")))
+_test_helpers = runpy.run_path(str(Path(__file__).with_name("_test_helpers.py")))
+_kernel_summary = _test_helpers["kernel_summary"]
 output_path = helpers["output_path"]
 require_sha = helpers["require_sha"]
 sha = helpers["sha"]
@@ -418,31 +420,7 @@ class IsolationControls(unittest.TestCase):
     def _kernel_summary(
         self, axioms: list[str], indices: list[str] | None = None,
     ) -> str:
-        ax_block = (
-            "* Axioms: <none>"
-            if not axioms
-            else "* Axioms:\n" + "\n".join(f"    {ax}" for ax in axioms)
-        )
-        idx_block = (
-            "* Inductives relying on indices not mattering: <none>"
-            if indices is None or len(indices) == 0
-            else "* Inductives relying on indices not mattering:\n"
-            + "\n".join(f"    {ind}" for ind in indices)
-        )
-        return "\n".join([
-            "",
-            "CONTEXT SUMMARY",
-            "===============",
-            "",
-            "* Theory: Set is predicative",
-            "* Theory: Rewrite rules are not allowed",
-            ax_block,
-            "* Constants/Inductives relying on type-in-type: <none>",
-            "* Constants/Inductives relying on unsafe (co)fixpoints: <none>",
-            "* Inductives whose positivity is assumed: <none>",
-            idx_block,
-            "",
-        ])
+        return str(_kernel_summary(axioms, indices))
 
     def test_recursive_kernel_partitions_and_refusals(self) -> None:
         portable_flags = [
