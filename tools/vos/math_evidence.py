@@ -25,7 +25,7 @@ REQUIRED_IDS = frozenset({
     "rank48", "rank-three", "matrix-exponent", "arithmetic-hierarchy", "finite-fourier", "integer109",
     "eth378", "real-sum-paths", "type-fpt", "rational-lp", "two-stack", "composer-dictionaries",
     "dirichlet-grh", "forced-navier-stokes", "unforced-navier-stokes",
-    "logspace103", "comparator", "shortest-path",
+    "logspace103", "comparator", "shortest-path", "linear-mst",
 })
 STAGES = ("source inspection", "supplied replay", "independent replay", "production acceptance")
 DISPOSITIONS = ("evaluate now", "await workload", "monitor security")
