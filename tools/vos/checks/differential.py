@@ -82,12 +82,14 @@ def run(ctx: Context) -> None:
 
     # Every member assembles, and the checks it declares are the checks it has.
     faults = []
+    sources_text: dict[str, str] = {}
     for member in corpus.members:
         source = corpus.source(member)
         if not source.is_file():
             faults.append(f"{member.name}: {member.source} is not in the repository")
             continue
         text = source.read_text(encoding="utf-8")
+        sources_text[member.source] = text
         try:
             assembler = asm.Assembler(text, member.source)
             assembler.assemble()
@@ -109,7 +111,7 @@ def run(ctx: Context) -> None:
                f"{sum(m.checks for m in corpus.members)} checks and a recorded digest")
 
     _schema(ctx, corpus.trace_schema)
-    _hand_written_words(ctx, corpus, doc)
+    _hand_written_words(ctx, corpus, doc, sources_text)
     _record_kinds(ctx)
     rep.line()
 
@@ -161,7 +163,8 @@ _ROW = re.compile(
     r"\| `(?P<reading>[^`]+)` \|$", re.MULTILINE)
 
 
-def _hand_written_words(ctx: Context, corpus: differential.Corpus, doc: str) -> None:
+def _hand_written_words(ctx: Context, corpus: differential.Corpus, doc: str,
+                        sources_text: dict[str, str] | None = None) -> None:
     """K-72: every `.word` in a member is enumerated, on a ground the encoder agrees to."""
     rep = ctx.rep
     declared: dict[tuple[str, int], tuple[str, str]] = {}
@@ -186,14 +189,17 @@ def _hand_written_words(ctx: Context, corpus: differential.Corpus, doc: str) -> 
     # and never enumerated is a finding, and so is a row for a word that has gone.
     found: set[tuple[str, int]] = set()
     for member in corpus.members:
-        source = corpus.source(member)
-        if not source.is_file():
-            continue
-        for text in differential.hand_written_words(source.read_text(encoding="utf-8")):
+        text = sources_text.get(member.source) if sources_text is not None else None
+        if text is None:
+            source = corpus.source(member)
+            if not source.is_file():
+                continue
+            text = source.read_text(encoding="utf-8")
+        for literal in differential.hand_written_words(text):
             try:
-                found.add((member.source, int(text, 0)))
+                found.add((member.source, int(literal, 0)))
             except ValueError:
-                faults.append(f"{member.source} writes `.word {text}`, an operand this "
+                faults.append(f"{member.source} writes `.word {literal}`, an operand this "
                               f"rule cannot read as a number")
     faults += [f"{source} writes 0x{word:08X} by hand and {DOC} does not enumerate it"
                for source, word in sorted(found - set(declared))]

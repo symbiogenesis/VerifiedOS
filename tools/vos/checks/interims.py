@@ -23,8 +23,8 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, cast
 
 from vos import findings as plan_mod
+from vos import literalsearch, retained, sailbundle
 from vos import pins as pins_mod
-from vos import retained, sailbundle
 from vos.corpus import COMPRESSED_EVIDENCE, HEADING_RE, UNREAD_PREFIX, Document, from_text
 from vos.corpus import gzip_contents as _gzip_contents
 from vos.register import REGISTER, REQ_ID_PATTERN, REQ_TOKEN_RE
@@ -96,6 +96,12 @@ TOKENS: tuple[Token, ...] = (
 _ALNUM = frozenset(b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789")
 _WORD = _ALNUM | frozenset(b"_")
 _STAR = ord("*")
+_SENSITIVE_ASCII_GROUPS = literalsearch.byte_guard_groups(
+    tuple(tok.needle for tok in TOKENS if not tok.folded and tok.needle.isascii()))
+_SENSITIVE_NONASCII = tuple(
+    tok.needle for tok in TOKENS if not tok.folded and not tok.needle.isascii())
+_FOLDED_NEEDLES = tuple(tok.needle for tok in TOKENS if tok.folded)
+_FOLDED_TRIE = literalsearch.compile_bytes_trie(_FOLDED_NEEDLES)
 
 # The classes of tracked file that admit nothing, each with the reason. A row ending in
 # `/` is a directory and excludes every path under it; any other row is one exact path.
@@ -336,7 +342,17 @@ def hits(blob: bytes) -> list[tuple[int, Token]]:
     on the few hits rather than by a lookbehind the engine would re-decide at every
     position.
     """
+    blob_isascii = blob.isascii()
+    has_sensitive = (
+        any((not guard or guard in blob) and any(needle in blob for needle in group)
+            for guard, group in _SENSITIVE_ASCII_GROUPS)
+        or (not blob_isascii and any(needle in blob for needle in _SENSITIVE_NONASCII))
+    )
     low = blob.lower()
+    has_folded = (_FOLDED_TRIE.search(low) is not None
+                  if _FOLDED_TRIE is not None else any(needle in low for needle in _FOLDED_NEEDLES))
+    if not has_sensitive and not has_folded:
+        return []
     found: list[tuple[int, Token]] = []
     for tok in TOKENS:
         hay = low if tok.folded else blob
@@ -486,6 +502,7 @@ def scan(ctx: Context, excluded: dict[str, str], snapshots: bool = False) -> Sca
     """
     read = Scan()
     used: set[str] = set()
+    sensitive, folded = archive_needles()
     # `tracked` is what is on disk; `indexed` keeps a stage-zero file the working tree
     # has lost, which is what lets that loss be reported rather than walked past
     for rel in sorted(set(ctx.corpus.tracked) | ctx.corpus.indexed):
@@ -516,7 +533,6 @@ def scan(ctx: Context, excluded: dict[str, str], snapshots: bool = False) -> Sca
             try:
                 cache = cast(retained.Cache, ctx.shared.setdefault("retained_scan", retained.Cache()))
                 try:
-                    sensitive, folded = archive_needles()
                     facts = cache.scan(rel, blob, (), sensitive, folded)
                 except OSError, EOFError, ValueError, zlib.error:
                     # Preserve the original decoder's exact refusal message and

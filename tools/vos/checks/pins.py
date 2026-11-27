@@ -375,6 +375,13 @@ def _sources(ctx: Context, named: list[tuple[str, str, pins_mod.Pin]]) -> Iterat
     for rel, text in ported:
         yield rel, text, []
 
+    names_tuple = tuple(needle for needle, _, _ in named)
+    sensitive, folded = archive_needles()
+    minimal = literalsearch.minimal_substrings(names_tuple)
+    minimal_ascii = all(needle.isascii() for needle in minimal)
+    minimal_bytes = tuple(needle.encode("ascii") for needle in minimal) if minimal_ascii else ()
+    bytes_trie = literalsearch.compile_bytes_trie(minimal_bytes) if minimal_bytes else None
+
     for rel in ctx.corpus.tracked:
         if rel in ctx.corpus or rel.startswith(corpus_mod.UNREAD_PREFIX):
             continue
@@ -387,9 +394,7 @@ def _sources(ctx: Context, named: list[tuple[str, str, pins_mod.Pin]]) -> Iterat
                 blob = (ctx.root / rel).read_bytes()
                 cache = cast(retained.Cache, ctx.shared.setdefault("retained_scan", retained.Cache()))
                 try:
-                    sensitive, folded = archive_needles()
-                    facts = cache.scan(rel, blob, tuple(needle for needle, _, _ in named),
-                                       sensitive, folded)
+                    facts = cache.scan(rel, blob, names_tuple, sensitive, folded)
                 except OSError, EOFError, ValueError, zlib.error:
                     # The legacy reader owns exact malformed-gzip and text behavior.
                     # Failed or unsupported prescans are never cached as absences.
@@ -402,17 +407,34 @@ def _sources(ctx: Context, named: list[tuple[str, str, pins_mod.Pin]]) -> Iterat
                         continue
                 text = corpus_mod.gzip_contents(blob).decode("utf-8")
             else:
-                text = corpus_mod.scan_bytes(ctx.root, rel).decode("utf-8")
+                raw = corpus_mod.scan_bytes(ctx.root, rel)
+                if minimal_ascii and raw.isascii():
+                    raw_low = raw.lower()
+                    hit = (bytes_trie.search(raw_low) is not None
+                           if bytes_trie is not None else any(needle in raw_low for needle in minimal_bytes))
+                    del raw_low
+                    if not hit:
+                        continue
+                    text = raw.decode("ascii").replace("\r\n", "\n").replace("\r", "\n")
+                    yield rel, text, []
+                    continue
+                text = raw.decode("utf-8")
+                lowered = text.lower()
+                candidate = any(needle in lowered for needle in minimal)
+                del lowered
+                if not candidate:
+                    continue
             # Apply the same universal-newline normalization to plain and
             # decompressed text before scanning for pins.
             text = text.replace("\r\n", "\n").replace("\r", "\n")
         except OSError, UnicodeDecodeError, EOFError, ValueError, zlib.error:
             continue
-        lowered = text.lower()
-        candidate = any(needle in lowered for needle, _, _ in named)
-        del lowered
-        if not candidate:
-            continue
+        if rel.startswith(corpus_mod.COMPRESSED_EVIDENCE) and rel.endswith(".gz"):
+            lowered = text.lower()
+            candidate = any(needle in lowered for needle in minimal)
+            del lowered
+            if not candidate:
+                continue
         yield rel, text, []
 
 
