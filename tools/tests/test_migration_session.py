@@ -1,12 +1,11 @@
 # SPDX-License-Identifier: Apache-2.0
 """Independent reference oracle and proof audit for `MigrationSession`."""
 
-from dataclasses import dataclass, replace
-from pathlib import Path
 import re
+from dataclasses import dataclass, replace
 from typing import Literal
 
-from tests.harness import Case, TOOLS, ensure
+from tests.harness import TOOLS, Case, ensure
 
 INDEPENDENT_CASES = True
 
@@ -805,10 +804,7 @@ def check_root_set_faithfulness(
     runtime: LocalRuntime,
     actual_roots: dict[int, tuple[int, ...]],
 ) -> bool:
-    for unit, roots in runtime.roots.items():
-        if actual_roots.get(unit) != roots:
-            return False
-    return True
+    return all(actual_roots.get(unit) == roots for unit, roots in runtime.roots.items())
 
 
 def _base_profile() -> MigrationProfile:

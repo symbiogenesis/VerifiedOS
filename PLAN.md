@@ -456,19 +456,19 @@ These figures cover the priced reference-build, assessment and named hardening b
 | Measure | Value |
 | --- | --- |
 | Total estimate midpoint h | 4,597.7 |
-| Total estimate range h | 3,111.6–6,083.8 |
-| Completed scope h | 1,172.8 |
-| Complete by estimate % | 25.5 |
-| Remaining h | 3,424.9 |
-| Committed remaining h | 2,002.9 |
+| Total estimate range h | 3,120.6–6,074.8 |
+| Completed scope h | 1,199.8 |
+| Complete by estimate % | 26.1 |
+| Remaining h | 3,397.9 |
+| Committed remaining h | 1,975.9 |
 | Open class I h | 625 |
-| Open class X h | 2,799.9 |
-| Retained completion estimate h | 570 |
-| Unmeasured completed items | 53 |
-| Calibrated total h | 5,592.4 |
+| Open class X h | 2,772.9 |
+| Retained completion estimate h | 597 |
+| Unmeasured completed items | 54 |
+| Calibrated total h | 5,581.1 |
 | Committed M8a open h | 58 |
 | Committed M8b open h | 105.5 |
-| Other committed open h | 1,839.4 |
+| Other committed open h | 1,812.4 |
 | Conditional open h | 1,008 |
 | Unfunded option open h | 414 |
 | Committed M8a open class X h | 0 |
@@ -1298,9 +1298,15 @@ HoldFast language design, parser and elaborator qualification, authoring tooling
 * [ ] **Q42b · Implement the backup and migration trusted screens** · 20 h, range 14–26 · I
   * **Dispatch. Start:** the backup/migration contract, credential/unlock and trusted consent services, and Q42a's operation/profile/plan identities. **Owns:** separate backup/restore/migration flows, canonical recovery-secret entry through Q42a's derived decoder and one-time display, explicit discard-loss and surrendered-freshness caveats, source confirmation of exact authenticated quoted receiver roots, and one-use witnesses. **Check:** BA-DISPLAY, BA-CONSENT, BA-RESIDUAL and its BA-SCHEMA/BA-MIGRATE joins on actual trusted input/output, with spoof/replay/cancel/lock controls and no app/log secret path. **Join:** Q42a/Q42c and the existing trusted consent-path owner; a mockup or stored consent record is no implementation.
   * **Estimate basis:** recovery-secret entry/display/clear 4–8 h; operation/discard/root confirmation flows 4–8 h; trusted input/output and refusal controls 6–10 h. Class I: the contract and existing path own the decisions.
-* [ ] **Q42c · Realize and prove the migration session** · 72 h, range 48–96 · X
-  * **Dispatch. Start:** the backup/migration contract's MigrationSession relation, accepted bounded TLS/attestation/credential/context interfaces and M6.9/U-20 cryptographic foundations, Q42a's authenticated manifest/chunk stream and bounded volatile scratch, and Q42b's channel-bound witnesses. **Owns:** canonical bounded migration/challenge/evidence/key-transfer descriptors, mutual protocol, MigrationSession mechanization with inhabited success/refutation witnesses, exact conditional theorem and its computational argument over the separately owned foundation, recipient enrollment/key wrapping, and implementation context/custody/teardown/restore joins. **Check:** BA-WRAP, BA-MIGRATE, BA-TARGET-REFUSE and BA-SESSION on the exact protocol and target artifacts, all declared replay/concurrency/relay/compromise cases, complete assumption/kernel evidence, and storage-write observations showing no retained migration object. **Join:** Q42a/Q42b, M6.9's implementation/proof owners and CJ-ATTEST; neither the inherited one-direction symbolic theorem nor a finite fixture closes this leaf.
-  * **Estimate basis:** application record descriptors 12–24 h; mutual model/theorem and explicit foundation connection 16–32 h; protocol/recipient enrollment/custody implementation 12–24 h; exact target/adapters/refusal campaigns 8–16 h. Class X: the selected TLS/attestation construction's actual cryptographic and context interfaces remain externally qualified premises; generic foundation acquisition retains its existing owner.
+* [ ] **Q42c · Realize and prove the migration session**
+  * `Q42c-i` mechanizes the `MigrationSession` mutual attestation, quote binding, root confirmation, volatile transfer, recovery-key wrap, and relay-versus-substitution matrix in `MigrationSession.v` with inhabited positive traces and §6/six-premise refutations; `Q42c-ii` retains canonical migration descriptor lowering, cryptographic reduction over the M6.9/U-20 foundation, and target protocol/enrollment/custody integration.
+  * [x] **Q42c-i · Mechanize MigrationSession mutual attestation, root confirmation and relay matrix in Coq** · 27 h retained estimate, actual n/a · agent-parallel
+    * [MigrationSession.v](proofs/MigrationSession.v) and [test_migration_session.py](tools/tests/test_migration_session.py) mechanize `MigrationSession` mutual attestation, quote binding, root confirmation, zero-storage volatile transfer, key wrapping, and transparent-relay versus MITM/compromise separation with inhabited positive traces. ([note](docs/implementation/completion-log.md#q42c-i-mechanize-migrationsession-mutual-attestation-root-confirmation-and-relay-matrix-in-coq))
+  * [ ] **Q42c-ii · Lower migration descriptors, prove cryptographic reduction and integrate on target** · 45 h, range 30–60 · X
+    * **Start:** landed `Q42c-i` ([MigrationSession.v](proofs/MigrationSession.v)), [the backup/migration contract](docs/implementation/contracts/backup-migration.md), accepted bounded TLS/attestation/credential/context interfaces and M6.9/U-20 cryptographic foundations, Q42a's authenticated manifest/chunk stream and bounded volatile scratch, and Q42b's channel-bound witnesses.
+    * **Owns:** canonical bounded migration/challenge/evidence/key-transfer descriptors, mutual protocol, cryptographic reduction over the separately owned M6.9/U-20 foundation, recipient enrollment/key wrapping, and implementation context/custody/teardown/restore joins.
+    * **Check:** `BA-WRAP`, `BA-MIGRATE`, `BA-TARGET-REFUSE`, and `BA-SESSION` on the exact protocol and target artifacts, all declared replay/concurrency/relay/compromise cases, complete assumption/kernel evidence, and storage-write observations showing no retained migration object. **Join:** `Q42a`, `Q42b`, `M6.9`'s implementation/proof owners, and `CJ-ATTEST`; neither the inherited one-direction symbolic theorem nor a finite fixture closes this leaf.
+    * **Estimate basis:** application record descriptors 8–16 h; cryptographic foundation connection 8–16 h; protocol/recipient enrollment/custody implementation 8–16 h; exact target/adapters/refusal campaigns 6–12 h. Class X: the selected TLS/attestation construction's actual cryptographic and context interfaces remain externally qualified premises; generic foundation acquisition retains its existing owner.
 
 * [ ] **Q43 · Reuse validated contained compiler builds and complete audits by default** · 1.5 h, range 1–2 · X
   * **Mutable-path controls:** Output/cache roots and their sibling operation-lock paths must be mutually disjoint before any lock or write. Overlap refusals preserve the useful prior index, and ordinary sibling layouts remain accepted.
@@ -1363,7 +1369,7 @@ No assessment completion automatically increases a performance estimate. For an 
     * **Join:** R-18-018(b)'s TAL checker/soundness and certifying-Rust certificate mode, M7.1c's production admission, Q34c's heap refinement, M4.4/R2's actual retirement barrier, the HAL, supervisor and Q34f/Q34g's host/engine proofs. Existing owners retain foundational implementation/proof budgets; missing foundations are assigned and priced before implementation opens.
     * **Estimate basis:** linked closure/callback/teardown target controls and owner joins 10–18 h, conditional on accepted native producer interfaces and excluding foundational proofs and unattended hosted execution.
 
-**Q subtotal:** 2,769.2 h · 60% · 384.2 h complete · open range 1,371–3,399 h.
+**Q subtotal:** 2,769.2 h · 60% · 411.2 h complete · open range 1,353–3,363 h.
 
 ### M0 · Hardware reference
 
@@ -2532,6 +2538,7 @@ One row per completed item marked `agent-parallel`, using the [calibration recor
 | Q33-i | n/a | n/a |
 | Q34c-ii-a | I | 10 |
 | Q42a-i | n/a | n/a |
+| Q42c-i | n/a | n/a |
 | Q44-i | n/a | n/a |
 | Q47-i | n/a | n/a |
 | M4.4b-ii-a | X-authored | 1.1 |

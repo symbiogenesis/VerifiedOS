@@ -297,6 +297,7 @@ being a finding of the rules that read them rather than a row of this table.
 | R-05-163 | proofs/MemoryPlannerCertificates.v | n/a | cited |
 | R-05-163 | proofs/MemoryPlannerContracts.v | n/a | cited |
 | R-05-163 | proofs/MemoryPlannerResources.v | n/a | cited |
+| R-05-163 | proofs/MigrationSession.v | n/a | cited |
 | R-05-163 | proofs/ModuleFormats.v | n/a | cited |
 | R-05-163 | proofs/ObjectRouter.v | n/a | cited |
 | R-05-163 | proofs/ObjectTransactor.v | n/a | cited |
@@ -335,6 +336,7 @@ being a finding of the rules that read them rather than a row of this table.
 | R-05-164 | proofs/KeyspaceDomains.v | n/a | cited |
 | R-05-164 | proofs/MModeFirmware.v | n/a | cited |
 | R-05-164 | proofs/MemoryPlan.v | n/a | cited |
+| R-05-164 | proofs/MigrationSession.v | n/a | cited |
 | R-05-164 | proofs/ObjectRouter.v | n/a | cited |
 | R-05-164 | proofs/PartitionContext.v | n/a | cited |
 | R-05-164 | proofs/PqArith.v | n/a | cited |
@@ -395,6 +397,7 @@ being a finding of the rules that read them rather than a row of this table.
 | R-05-165 | proofs/MemoryPlannerCertificates.v | n/a | cited |
 | R-05-165 | proofs/MemoryPlannerContracts.v | n/a | cited |
 | R-05-165 | proofs/MemoryPlannerResources.v | n/a | cited |
+| R-05-165 | proofs/MigrationSession.v | n/a | cited |
 | R-05-165 | proofs/MlKem.v | the_unchecked_decapsulation_ignores_the_ciphertext_comparison | claimed |
 | R-05-165 | proofs/MlKem.v | a_decapsulation_with_no_re_encryption_check_is_refused | claimed |
 | R-05-165 | proofs/MlKem.v | a_distinguishable_refusal_is_refused | claimed |
@@ -498,6 +501,7 @@ being a finding of the rules that read them rather than a row of this table.
 | R-05-166 | proofs/MemoryPlannerCertificates.v | n/a | cited |
 | R-05-166 | proofs/MemoryPlannerContracts.v | n/a | cited |
 | R-05-166 | proofs/MemoryPlannerResources.v | n/a | cited |
+| R-05-166 | proofs/MigrationSession.v | n/a | cited |
 | R-05-166 | proofs/MlKem.v | n/a | cited |
 | R-05-166 | proofs/ModuleFormats.v | n/a | cited |
 | R-05-166 | proofs/ObjectRouter.v | n/a | cited |
@@ -1246,6 +1250,14 @@ being a finding of the rules that read them rather than a row of this table.
 | R-10-038 | proofs/BackupObject.v | zero_writes_before_staging | claimed |
 | R-10-039 | proofs/BackupObject.v | export_view_only_rollbackable_data_only | claimed |
 | R-10-039 | proofs/BackupObject.v | fresh_install_denies_old_authority | claimed |
+| R-10-040 | proofs/MigrationSession.v | enrollment_role_cannot_authorize_transfer | claimed |
+| R-10-040 | proofs/MigrationSession.v | migration_transfer_agreement | claimed |
+| R-10-040 | proofs/MigrationSession.v | migration_publish_agreement | claimed |
+| R-10-040 | proofs/MigrationSession.v | enrollment_key_wrap_agreement | claimed |
+| R-10-040 | proofs/MigrationSession.v | role_reflection_and_misordered_appraisal_are_refused | claimed |
+| R-10-040 | proofs/MigrationSession.v | truncated_substituted_and_oversize_roots_are_refused | claimed |
+| R-10-040 | proofs/MigrationSession.v | wrong_enrolled_recipient_and_transfer_on_enrollment_are_refused | claimed |
+| R-10-040 | proofs/MigrationSession.v | two_leg_mitm_relay_is_refused | claimed |
 | R-11-001 | proofs/ObjectTransactor.v | the_specification_stage_leaves_the_running_generation_alone | claimed |
 | R-11-001 | proofs/ObjectTransactor.v | the_specification_gate_returns_on_an_unhealthy_generation | claimed |
 | R-11-001 | proofs/ObjectTransactor.v | the_specification_gate_keeps_a_healthy_generation | claimed |
@@ -1427,6 +1439,7 @@ being a finding of the rules that read them rather than a row of this table.
 | R-12-015 | proofs/RotFirmware.v | an_appraisal_over_a_covered_vector_decides_the_chain | claimed |
 | R-12-015a | proofs/AttestedSession.v | n/a | cited |
 | R-12-015a | proofs/CredentialHandles.v | n/a | cited |
+| R-12-015a | proofs/MigrationSession.v | enrollment_role_cannot_authorize_transfer | claimed |
 | R-12-015a | proofs/RotFirmware.v | the_specification_unseal_exports_no_key | claimed |
 | R-12-015b | proofs/CredentialHandles.v | n/a | cited |
 | R-12-015c | proofs/AttestedSession.v | attested_session_binding | claimed |
@@ -1438,6 +1451,14 @@ being a finding of the rules that read them rather than a row of this table.
 | R-12-015c | proofs/AttestedSession.v | cross_session_replay_is_refused | claimed |
 | R-12-015c | proofs/AttestedSession.v | session_key_compromise_breaks_exclusivity_and_enables_impersonation | claimed |
 | R-12-015c | proofs/AttestedSession.v | broker_compromise_breaks_integrity_and_permits_forged_binding | claimed |
+| R-12-015c | proofs/MigrationSession.v | migration_transfer_agreement | claimed |
+| R-12-015c | proofs/MigrationSession.v | migration_publish_agreement | claimed |
+| R-12-015c | proofs/MigrationSession.v | enrollment_key_wrap_agreement | claimed |
+| R-12-015c | proofs/MigrationSession.v | replay_expiry_oversize_and_double_appraisal_are_refused | claimed |
+| R-12-015c | proofs/MigrationSession.v | parallel_session_substitution_is_refused | claimed |
+| R-12-015c | proofs/MigrationSession.v | role_reflection_and_misordered_appraisal_are_refused | claimed |
+| R-12-015c | proofs/MigrationSession.v | transparent_relay_preserves_agreement_without_key_authority | claimed |
+| R-12-015c | proofs/MigrationSession.v | two_leg_mitm_relay_is_refused | claimed |
 | R-12-015d | proofs/ComposedNonInterference.v | n/a | cited |
 | R-12-015d | proofs/EnsembleSchedule.v | both_ends_bind_one_digest | claimed |
 | R-12-017 | proofs/RotFirmware.v | the_specification_attempt_charges_before_it_compares | claimed |

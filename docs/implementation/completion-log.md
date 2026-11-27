@@ -3825,3 +3825,13 @@ Landed: Tier A. Local strict Rocq proofs, `rocqchk`, source boundary scan, and h
 Calibration: retained estimate 26 h (range 18–34 h); actual execution time recorded as `n/a · agent-parallel` in the agent-parallel series; excluded from the human fit.
 
 Landed: Tier A. Local strict Rocq proofs, `rocqchk`, C17 ASan/UBSan execution, and compiled mutant checks passed; hosted Host/Guest CI remains pending.
+
+<a id="q42c-i-mechanize-migrationsession-mutual-attestation-root-confirmation-and-relay-matrix-in-coq"></a>
+
+### Q42c-i · Mechanize MigrationSession mutual attestation, root confirmation and relay matrix in Coq
+
+  * Authored `proofs/MigrationSession.v` (3,469 lines; 5 inductives, 15 records with 15/15 closed `witness_<R>` terms, 130 definitions/fixpoints, 26 theorems, 21 lemmas, and 12 examples) and `tools/tests/test_migration_session.py` (`INDEPENDENT_CASES = True`, 13/13 passing on Windows and WSL), proving `migration_transfer_agreement`, `migration_publish_agreement`, `enrollment_key_wrap_agreement`, `enrollment_role_cannot_authorize_transfer`, `transfer_uses_volatile_buffer_only_and_zero_storage`, `close_clears_volatile_buffers_and_revokes_authority`, `failed_prepare_or_publish_preserves_current_profile`, `any_step_preserves_zero_retained_migration_objects`, `root_confirmation_requires_mutual_appraisal`, `post_restart_context_or_nonce_reuse_is_refused`, `transparent_relay_preserves_agreement_without_key_authority`, `parallel_session_substitution_is_refused`, inhabited positive migration/enrollment trace soundness, and explicit compromise/refusal witnesses across all §6 cases and six explicit premises. Verified at merge `0f6089cf` (from lane commit `29b57cd1`) under strict Rocq 9.3.0 compilation (1.91 s, empty stderr), `rocqchk -silent -o` (`Axioms: <none>`), `Print Assumptions` (`Closed under the global context`), `proofs headers --file proofs/MigrationSession.v`, and `test_migration_session`. Canonical migration descriptor lowering, cryptographic reduction over the M6.9/U-20 foundation, and target protocol/enrollment/custody integration remain open under `Q42c-ii`.
+
+Calibration: `Q42c` (72 h, range 48–96 h, Class X) split into `Q42c-i` (retained estimate 27 h, range 18–36 h; `actual n/a · agent-parallel`, excluded from the human fit) and `Q42c-ii` (45 h, range 30–60 h, Class X).
+
+Landed: Tier A. Local strict Rocq compilation, `rocqchk`, assumption closure, proof header check, and host/WSL `test_migration_session` passed; hosted cold proof CI and target/foundation integration remain pending.
