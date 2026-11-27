@@ -152,3 +152,54 @@ def compile_names(names: tuple[str, ...]) -> CandidateTrie:
     except (RecursionError, re.PatternError, OverflowError) as error:
         raise LegacyRequiredError("native trie compilation requires legacy use") from error
     return CandidateTrie(names, complete, known_right, ascii_complete, ascii_known_right)
+
+
+def minimal_substrings(needles: tuple[str, ...]) -> tuple[str, ...]:
+    """Drop duplicate or superstring needles covered by a shorter member."""
+    kept: list[str] = []
+    for needle in sorted(set(needles), key=lambda s: (len(s), s)):
+        if not any(short in needle for short in kept):
+            kept.append(needle)
+    return tuple(kept)
+
+
+def compile_bytes_trie(needles: tuple[bytes, ...]) -> re.Pattern[bytes] | None:
+    """Compile a bytes trie alternation for unanchored presence checks, or return `None`."""
+    unique = tuple(dict.fromkeys(needles))
+    if not unique or len(unique) > MAX_NAMES:
+        return None
+    total = 0
+    for needle in unique:
+        if not needle or len(needle) > MAX_NAME_LENGTH:
+            return None
+        total += len(needle)
+        if total > MAX_CHARACTERS:
+            return None
+    root = build(unique)
+    try:
+        return re.compile(_suffix(root, b""))
+    except RecursionError, re.PatternError, OverflowError:
+        return None
+
+
+def byte_guard_groups(needles: tuple[bytes, ...]) -> tuple[tuple[bytes, tuple[bytes, ...]], ...]:
+    """Group byte needles by a shared guard byte for fast absence checks."""
+    if not needles:
+        return ()
+    if any(not needle for needle in needles):
+        return ((b"", needles),)
+    remaining = list(dict.fromkeys(needles))
+    groups: list[tuple[bytes, tuple[bytes, ...]]] = []
+    while remaining:
+        counts: dict[int, int] = {}
+        for needle in remaining:
+            for byte in set(needle):
+                counts[byte] = counts.get(byte, 0) + 1
+        best_byte, best_count = max(counts.items(), key=lambda item: (item[1], -item[0]))
+        if best_count < 2:
+            groups.append((b"", tuple(remaining)))
+            break
+        covered = tuple(needle for needle in remaining if best_byte in needle)
+        remaining = [needle for needle in remaining if best_byte not in needle]
+        groups.append((bytes((best_byte,)), covered))
+    return tuple(groups)
