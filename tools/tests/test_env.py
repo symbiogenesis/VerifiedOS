@@ -169,9 +169,9 @@ def _jobs_env_reads() -> None:
 
 
 def _proof_jobs_use_phase_resources() -> None:
-    samples = ((12, 128 * 1024, 12, 12), (64, 128 * 1024, 64, 12),
-               (2, 128 * 1024, 2, 2), (12, 16 * 1024, 12, 1),
-               (12, 32 * 1024, 12, 3), (12, 2048, 1, 1),
+    samples = ((12, 128 * 1024, 12, 12), (64, 128 * 1024, 64, 63),
+               (2, 128 * 1024, 2, 2), (12, 16 * 1024, 12, 7),
+               (12, 32 * 1024, 12, 12), (12, 2048, 1, 1),
                (12, 0, 1, 1), (None, 64 * 1024, 1, 1),
                (12, None, 4, 1), (None, None, 1, 1))
     for cpus, memory, compilation, kernel in samples:
@@ -187,33 +187,53 @@ def _proof_jobs_use_phase_resources() -> None:
                    "the kernel limit must come with the CPU count and memory it was sized from")
             ensure(bool(warnings.getvalue()) == (memory is None),
                    "only unavailable memory should produce a fallback diagnostic")
+    ensure(proofenv.kernel_batch_memory_mb(["Sha256", "PqArith"]) == proofenv.PROOF_KERNEL_WORKER_MIB,
+           "ordinary batches must use the ordinary kernel worker budget")
+    ensure(proofenv.kernel_batch_memory_mb(["HmacDrbg", "Sha256"]) == proofenv.PROOF_KERNEL_HEAVY_WORKER_MIB,
+           "batches naming HmacDrbg must use the heavy kernel worker budget")
+    ensure(proofenv.kernel_batch_memory_mb([]) == proofenv.PROOF_KERNEL_WORKER_MIB,
+           "empty batch must default to the ordinary kernel worker budget")
+    ensure(proofenv.kernel_memory_budget_mb(None) is None
+           and proofenv.kernel_memory_budget_mb(1024) == 0
+           and proofenv.kernel_memory_budget_mb(2048) == 0
+           and proofenv.kernel_memory_budget_mb(16384) == 16384 - proofenv.PROOF_RESERVE_MIB,
+           "kernel memory budget must reserve headroom and clamp at zero")
 
 
 def _kernel_budget_holds_the_recorded_peaks() -> None:
-    """The kernel budget stands at or above every runner peak `proof_jobs` records, and
-    the margin, the second worker's threshold and the runner's worker counts it states
-    are what the budget and the reserve give."""
+    """The heavy and ordinary kernel budgets stand at or above every recorded peak
+    `proof_jobs` names, and the margins and runner worker counts match those budgets."""
     doc = proofenv.proof_jobs.__doc__ or ""
     peaks = [int(kib.replace(",", "")) for kib in re.findall(
         r"^\s*run \d{11} at [0-9a-f]{8}\s+([\d,]+) KiB$", doc, re.MULTILINE)]
     ensure(len(peaks) == 3, f"proof_jobs records three runner peaks, read {peaks}")
-    budget = proofenv.PROOF_KERNEL_WORKER_MIB * 1024
-    ensure(all(peak <= budget for peak in peaks),
-           f"a recorded kernel peak exceeds the {budget} KiB budget: {peaks}")
+    heavy_budget = proofenv.PROOF_KERNEL_HEAVY_WORKER_MIB * 1024
+    ordinary_budget = proofenv.PROOF_KERNEL_WORKER_MIB * 1024
+    ensure(all(peak <= heavy_budget for peak in peaks),
+           f"a recorded kernel peak exceeds the {heavy_budget} KiB heavy budget: {peaks}")
     prose = " ".join(doc.split())
     ensure(f"agree within {max(peaks) - min(peaks):,} KiB" in prose,
            "the stated spread is not the recorded peaks' range")
-    margin = budget - max(peaks)
-    ensure(f"{budget:,} KiB, sits {margin:,} KiB ({round(margin / 1024)} MiB, "
-           f"{100 * margin / budget:.1f}% of the" in prose,
-           "the stated margin is not the budget less the largest recorded peak")
-    second = 2048 + 2 * proofenv.PROOF_KERNEL_WORKER_MIB
-    ensure(f"needs {second:,} MiB available" in prose,
-           "the stated second-worker threshold is not the reserve and two budgets")
-    # The runner's four vCPUs: four compile/audit workers and one kernel worker over
-    # every MemAvailable a 16 GB machine can report, two kernel workers only past it.
-    for memory, compilation, kernel in ((6144, 4, 1), (6143, 3, 1), (16 * 1024, 4, 1),
-                                        (second - 1, 4, 1), (second, 4, 2)):
+    margin = heavy_budget - max(peaks)
+    ensure(f"{heavy_budget:,} KiB, sits {margin:,} KiB ({round(margin / 1024)} MiB, "
+           f"{100 * margin / heavy_budget:.1f}% of the" in prose,
+           "the stated heavy margin is not the heavy budget less the largest recorded peak")
+    sha_match = re.search(r"([\d,]+) KiB for Sha256\.v", prose)
+    if sha_match is None:
+        raise AssertionError("proof_jobs must record Sha256.v's peak")
+    sha_peak = int(sha_match.group(1).replace(",", ""))
+    ensure(sha_peak <= ordinary_budget,
+           f"Sha256.v peak {sha_peak} exceeds ordinary budget {ordinary_budget}")
+    sha_margin = ordinary_budget - sha_peak
+    ensure(f"{ordinary_budget:,} KiB, sits {sha_margin:,} KiB ({round(sha_margin / 1024)} MiB, "
+           f"{100 * sha_margin / ordinary_budget:.1f}% of the" in prose,
+           "the stated ordinary margin is not the ordinary budget less Sha256.v's peak")
+    four_ordinary = proofenv.PROOF_RESERVE_MIB + 4 * proofenv.PROOF_KERNEL_WORKER_MIB
+    ensure(f"4 * {proofenv.PROOF_KERNEL_WORKER_MIB} = {four_ordinary:,} MiB" in prose,
+           "the stated four-worker ordinary threshold is not the reserve and four ordinary budgets")
+    # On 4 vCPUs, ordinary kernel workers scale by PROOF_KERNEL_WORKER_MIB up to 4.
+    for memory, compilation, kernel in ((6144, 4, 2), (6143, 3, 1), (four_ordinary - 1, 4, 3),
+                                        (four_ordinary, 4, 4), (16 * 1024, 4, 4)):
         with patch.object(proofenv.os, "process_cpu_count", return_value=4), \
                 patch.object(proofenv, "_read_mem_available_mb", return_value=memory), \
                 redirect_stderr(io.StringIO()):

@@ -346,37 +346,44 @@ normal proof-evidence contract.
 
 ## Parallel kernel execution
 
-The proof launcher distributes independent changed dependency components across
-bounded `rocqchk` processes. The smallest estimated batch also checks the complete
-joint environment within its worker, so no separate consistency pass follows the
-pool. Shared changed prerequisites remain in the same batch. Compiled size is a
-scheduling heuristic; the source, object, gate and installed-library hashes still
-own freshness. Unknown installed-library contexts use one checker process.
+The proof launcher partitions changed modules in topological `Require` order across
+bounded `rocqchk` batches, isolating memory-heavy modules (`PROOF_KERNEL_MODULE_MIB`,
+currently `HmacDrbg`) into singleton batches and splitting contiguous ordinary
+segments by compile duration (falling back to `.vo` size when compile spans are
+unavailable). Each batch `i` checks its own targets recursively while admitting
+byte-validated `reused` roots and earlier batches `0..i-1`; the final batch loads
+every module in the proof set, so combined universe constraints and module identities
+are verified without a separate consistency pass. Freshness still belongs exclusively
+to source, object, gate and installed-library hashes. Unknown or unreadable-`Require`
+contexts use one checker process.
 
 Automatic worker sizing uses the guest's usable logical CPUs and available memory
-at each phase, with separate compile/audit and kernel budgets owned by
+at each phase, with separate compile/audit and per-batch kernel budgets owned by
 [`proofenv.proof_jobs`](vos/proofenv.py). The compile/audit budget is informed by the
 [historical prover residency measurements](../docs/performance/toolchain-residency.md#the-prover-and-which-of-its-two-acts-the-device-performs).
-The kernel budget is set at or above the measured peak of the one kernel worker that
-checks every module on Guest CI's proofs runner, and `proof_jobs` records those
-runs and the margin. A large core count therefore does not automatically launch a
-memory-heavy checker on every core. Explicit `--jobs` overrides resource sizing.
-Unknown memory uses conservative defaults, and help, metadata commands and complete
-cache hits perform no capacity probe.
+Ordinary kernel batches use `PROOF_KERNEL_WORKER_MIB` (2 GiB, above `Sha256.v`'s
+1.63 GiB peak), while isolated `HmacDrbg` batches use `PROOF_KERNEL_HEAVY_WORKER_MIB`
+(10 GiB, above the recorded whole-set runner peaks `proof_jobs` records). The
+memory-aware kernel dispatcher runs heavier batches first and admits concurrent
+batches only while active batch budgets stay within `MemAvailable - PROOF_RESERVE_MIB`
+(always admitting at least one batch when idle), so a 16 GB runner can check ordinary
+batches in parallel without launching concurrent heavy workers. Explicit `--jobs`
+overrides resource sizing and memory throttling. Unknown memory uses conservative
+defaults, and help, metadata commands and complete cache hits perform no capacity probe.
 
 Every changed module must be an explicit recursive check target in one batch.
-The launcher verifies complete, disjoint target coverage before starting workers.
-The joint worker provisionally admits peer roots and their dependency closures;
-the other workers check those roots recursively, with only validated cache hits
-admitted there. Its own explicit targets override admissions. Consequently a
-dependency skipped in the joint worker is covered by a peer or prior evidence.
-The joint worker loads the full proof set, retaining dependency and universe
-consistency across batches through the pinned checker's existing import path.
-Its success is provisional until every peer succeeds silently and all recorded
-bytes still match. Worker failures, diagnostics or changed objects refuse the
-whole run even when the joint worker already succeeded. No partial worker result
-is published or cached. The arrangement adds no trusted evaluator, library
-exemption or persistent cache.
+The launcher verifies complete, disjoint target coverage and topological batch
+ordering before starting workers. Earlier batches are provisionally admitted only by
+later batches whose targets sit downstream in the dependency order, while earlier
+batches check upstream modules and shared external dependencies recursively. Its
+own explicit targets override admissions. Consequently a dependency skipped by a
+later batch is covered by an earlier batch or prior evidence. The final batch loads
+the full proof set, retaining dependency and universe consistency across batches
+through the pinned checker's existing import path. Its success is provisional until
+every batch succeeds silently and all recorded bytes still match. Worker failures,
+diagnostics or changed objects refuse the whole run even when the final batch already
+succeeded. No partial worker result is published or cached. The arrangement adds no
+trusted evaluator, library exemption or persistent cache.
 
 [Proof-cache regressions](tests/test_proofcache.py) specify bounded concurrent
 execution, complete target coverage, shared-prerequisite placement, serial

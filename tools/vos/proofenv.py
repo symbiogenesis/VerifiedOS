@@ -13,8 +13,10 @@ import shlex
 import shutil
 import subprocess
 import sys
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
+from types import MappingProxyType
 
 BUILD_ROOT = Path("/root/build")
 
@@ -102,8 +104,13 @@ def _read_mem_available_mb() -> int | None:
     return None
 
 
+PROOF_RESERVE_MIB = 2048
 PROOF_COMPILE_WORKER_MIB = 1024
-PROOF_KERNEL_WORKER_MIB = 10240
+PROOF_KERNEL_WORKER_MIB = 2048
+PROOF_KERNEL_HEAVY_WORKER_MIB = 10240
+PROOF_KERNEL_MODULE_MIB: Mapping[str, int] = MappingProxyType({
+    "HmacDrbg": PROOF_KERNEL_HEAVY_WORKER_MIB,
+})
 
 
 @dataclass(frozen=True)
@@ -115,28 +122,44 @@ class Workers:
     mem_available_mb: int | None
 
 
+def kernel_batch_memory_mb(stems: Iterable[str]) -> int:
+    """Return the MiB budget required for a kernel worker checking `stems`."""
+    return max(
+        (PROOF_KERNEL_MODULE_MIB.get(stem, PROOF_KERNEL_WORKER_MIB) for stem in stems),
+        default=PROOF_KERNEL_WORKER_MIB,
+    )
+
+
+def kernel_memory_budget_mb(mem_available_mb: int | None) -> int | None:
+    """Return the usable MiB budget for concurrent kernel workers after reserving headroom."""
+    if mem_available_mb is None:
+        return None
+    return max(0, mem_available_mb - PROOF_RESERVE_MIB)
+
+
 def proof_jobs(*, kernel: bool = False) -> int:
     """Use available cores subject to a phase-specific memory planning budget.
 
-    Reserve 2 GiB of headroom, then budget 1 GiB per compile/audit worker or 10 GiB
-    per kernel worker. Sample in the guest just before each phase, after the workspace
-    lock has been acquired.
+    Reserve 2 GiB of headroom (`PROOF_RESERVE_MIB`), then budget 1 GiB per
+    compile/audit worker or per-batch kernel budgets: 2 GiB (`PROOF_KERNEL_WORKER_MIB`)
+    for ordinary kernel batches and 10 GiB (`PROOF_KERNEL_HEAVY_WORKER_MIB`) for any
+    batch containing `HmacDrbg`. Sample in the guest just before each phase, after the
+    workspace lock has been acquired.
 
     The compile/audit budget is an estimate: the historical toolchain-residency
     report records compilation below 1 GiB per module.
 
-    The kernel budget is set at or above the largest kernel worker peak measured.
-    Guest CI's proofs runner, one x86_64 `ubuntu-26.04` VM of 4 vCPUs and 16 GB,
-    checks every module in one kernel worker. GNU time's `maxrss_kb`, the peak
-    resident memory of the gate's largest process, read in three full rechecks of
-    the same 57 sources:
+    The heavy kernel budget is set at or above the largest whole-set kernel peak
+    measured. Guest CI's proofs runner, one x86_64 `ubuntu-26.04` VM of 4 vCPUs and
+    16 GB, peaked in GNU time's `maxrss_kb` across three full rechecks of the same
+    57 sources at:
 
         run 36812890026 at 1045acb9    10,029,668 KiB
         run 36814984495 at 2728d4a6    10,030,124 KiB
         run 36819172207 at ae25ee8f    10,029,820 KiB
 
-    The three agree within 456 KiB, so the peak the budget rests on repeats, where
-    small `rocqchk` processes' peaks on the profiling guest did not (F-587).
+    The three agree within 456 KiB, so the peak the heavy budget rests on repeats,
+    where small `rocqchk` processes' peaks on the profiling guest did not (F-587).
 
     Beside them, Q38i's per-module rechecks on the profiling guest, a WSL2 aarch64
     VM, each module checked alone with its closure admitted, peaked by `wait4` at
@@ -144,17 +167,20 @@ def proof_jobs(*, kernel: bool = False) -> int:
     PqArith.v, 767 for MlKem.v, 707 for Keccak.v and 568 for RomVerifier.v, and at
     most 363 MiB for every other module.
 
-    The 10 GiB budget, 10,485,760 KiB, sits 455,636 KiB (445 MiB, 4.3% of the
-    budget) above the largest of these peaks. A second kernel worker needs 22,528
-    MiB available, which a 16 GB runner never has, so that runner runs one kernel
-    worker; its four compile/audit workers need 6,144 MiB.
+    The 10 GiB heavy budget, 10,485,760 KiB, sits 455,636 KiB (445 MiB, 4.3% of the
+    budget) above the largest of these peaks, while the 2 GiB ordinary kernel budget,
+    2,097,152 KiB, sits 470,972 KiB (460 MiB, 22.5% of the budget) above `Sha256.v`'s
+    peak. Because `HmacDrbg` is isolated into its own kernel batch, a 4-vCPU 16 GB
+    runner admits up to 4 ordinary kernel workers (`PROOF_RESERVE_MIB + 4 * 2048 =
+    10,240 MiB`), and the memory-aware scheduler runs ordinary batches alongside the
+    isolated `HmacDrbg` batch only while active budgets stay within `MemAvailable -
+    PROOF_RESERVE_MIB` (e.g., 1 ordinary batch when `MemAvailable >= 14,336 MiB`, or
+    `HmacDrbg` alone when lower).
 
-    The peak HmacDrbg.v's literals would save admits no second worker there either
-    (F-581). Literals for its `pr_true_run` and `first_draw` lowered its per-module
-    recheck peak by 1,186,644 KiB. Two workers at the largest runner peak less that
-    saving would need 17,686,960 KiB, and 19,784,112 KiB with the reserve, above the
-    runner's 16 GB even read as 16 GiB, 16,777,216 KiB. So HmacDrbg.v keeps no
-    literal for them.
+    Two `HmacDrbg` workers at the runner's peak less the literal saving F-581 explored
+    (1,186,644 KiB) would still need 19,784,112 KiB with the reserve, above 16 GB,
+    so isolating `HmacDrbg` rather than adding literals for `pr_true_run` and
+    `first_draw` is what unlocks parallel kernel checking on 16 GB runners.
     """
     return proof_workers(kernel=kernel).jobs
 
@@ -180,7 +206,7 @@ def size_workers(memory_mb: int, *, fallback: int = 1, label: str = "worker") ->
         print(f"WARNING no MemAvailable figure from /proc/meminfo: automatic {label} "
               f"jobs limited to {jobs}; use --jobs to override", file=sys.stderr)
         return Workers(jobs, cpus, None)
-    return Workers(min(cpus, max(1, (available - 2048) // memory_mb)), cpus, available)
+    return Workers(min(cpus, max(1, (available - PROOF_RESERVE_MIB) // memory_mb)), cpus, available)
 
 
 def build_root() -> Path:

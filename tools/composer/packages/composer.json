@@ -156,7 +156,7 @@
     },
     {
       "path": "tools/vos/env.py",
-      "sha256": "c42ed53ffe87480e46decda34c8b80b78f513cf66bbd0d7623055201d0b07be4"
+      "sha256": "255ad5e9b911b8ba6809b0e56fe20bf2dde6525ed5bc7225ac1831325b2f99c1"
     },
     {
       "path": "tools/vos/extracted_proofs.py",
@@ -200,7 +200,7 @@
     },
     {
       "path": "tools/vos/proofenv.py",
-      "sha256": "1d51bdb83c1f09f675e5eec631016ca25ba16c4001e1dca75ec3ddd30f82b4f1"
+      "sha256": "c0cb72478a85aedea1bbe9a440e2a7a2b42c339abe0ccf26b7e90e60177db0f5"
     },
     {
       "path": "tools/vos/prooflex.py",

@@ -225,8 +225,12 @@ def _incremental_run() -> None:
             failing.clear()
 
             def tamper(_root: Path, sources: list[Path],
-                       _reused: frozenset[str], *, jobs: int) -> str:
+                       _reused: frozenset[str], *, jobs: int,
+                       memory_budget_mb: int | None = None,
+                       weights: object = None) -> str:
                 ensure(jobs == 2, "kernel job limit was not forwarded")
+                ensure(memory_budget_mb is None,
+                       "explicit --jobs must not attach an automatic memory budget")
                 sources[0].with_suffix(".vo").write_bytes(b"changed during kernel check")
                 return ""
 
@@ -255,6 +259,9 @@ def _incremental_run() -> None:
                 run(set(texts), fresh=True, jobs=None, kernel_jobs=3, refusal="--fresh")
                 ensure([call.kwargs for call in sizing.call_args_list] == [{}, {"kernel": True}],
                        "automatic sizing must sample compilation and kernel phases separately")
+                ensure(recheck.call_args.kwargs["memory_budget_mb"]
+                       == gate.proofenv.kernel_memory_budget_mb(12000),
+                       "automatic kernel sizing must forward its memory budget")
                 logged = output.getvalue()[said:]
                 ensure("compile/audit worker limit: 8 (automatic, sized from 8 usable CPU(s) "
                        "and MemAvailable 16,384 MiB)" in logged
@@ -558,23 +565,39 @@ def _kernel_batches_preserve_dependencies() -> None:
             (folder / f"{name}.v").write_text(text, encoding="utf-8")
             (folder / f"{name}.vo").write_bytes(b"object" * len(name))
         sources = sorted(folder.glob("*.v"))
+        index = gate.proofs_mod.SourceIndex.read(sources)
         reused = frozenset({"Cached"})
-        for jobs in (1, 2, 3, 8):
+        for jobs in (1, 2, 3, 5, 8):
             batches = gate._kernel_batches(sources, reused, jobs)
             groups = [{source.stem for source in batch} for batch in batches]
             flattened = [name for group in groups for name in group]
-            ensure(len(batches) == min(jobs, 3) and all(groups),
-                   "kernel batches must be nonempty and bounded by independent components")
+            ensure(len(batches) == min(jobs, len(set(texts) - reused)) and all(groups),
+                   f"kernel batches must partition changed modules cleanly: {groups}")
             ensure(set(flattened) == set(texts) - reused and len(flattened) == len(set(flattened)),
                    "changed roots must be covered exactly once, with no cached targets")
-            ensure(any({"Base", "Left", "Right"} <= group for group in groups),
-                   "shared changed prerequisites must stay in the same kernel batch")
+            batch_of = {source: idx for idx, batch in enumerate(batches) for source in batch}
+            for idx, batch in enumerate(batches):
+                for source in batch:
+                    for req in index.needs[source]:
+                        if req in batch_of:
+                            ensure(batch_of[req] <= idx,
+                                   f"dependency {req.stem} placed after {source.stem}: {groups}")
             ensure(batches == gate._kernel_batches(list(reversed(sources)), reused, jobs),
                    "kernel scheduling must be deterministic for the same source set")
+        # Connected DAGs split across batches and isolated modules get singleton batches.
+        split = gate._kernel_batches(sources, reused, 4, isolated=frozenset({"Base"}))
+        split_groups = [{source.stem for source in batch} for batch in split]
+        ensure(["Base"] in [[s.stem for s in b] for b in split],
+               f"isolated module must occupy its own singleton batch: {split_groups}")
+        ensure(len(split) >= 4 and not any({"Base", "Left", "Right"} <= g for g in split_groups),
+               f"connected DAG must split past hub prerequisites: {split_groups}")
+        ensure(split == gate._kernel_batches(list(reversed(sources)), reused, 4,
+                                             isolated=frozenset({"Base"})),
+               "isolated kernel scheduling must be deterministic")
 
 
 def _parallel_kernel_combines_joint_work_and_waits_for_peers() -> None:
-    """The joint worker finishing first cannot accept a failed or still-pending peer."""
+    """The final joint worker finishing first cannot accept a failed or still-pending peer."""
     with tempfile.TemporaryDirectory(prefix="vos-parallel-kernel-") as temporary:
         root = Path(temporary)
         folder = root / "proofs"
@@ -589,6 +612,10 @@ def _parallel_kernel_combines_joint_work_and_waits_for_peers() -> None:
         def exercise(failure: str, reused: frozenset[str]) -> None:
             for source in sources:
                 source.with_suffix(".vo").write_bytes(b"original object")
+            expected_batches = gate._kernel_batches(sources, reused, 2)
+            ensure(len(expected_batches) == 2, f"expected 2 batches, got {expected_batches}")
+            batch0 = {s.stem for s in expected_batches[0]}
+            batch1 = {s.stem for s in expected_batches[1]}
             barrier = threading.Barrier(2, timeout=5)
             joint_finished = threading.Event()
             calls: list[tuple[set[str], frozenset[str]]] = []
@@ -601,11 +628,11 @@ def _parallel_kernel_combines_joint_work_and_waits_for_peers() -> None:
                 ensure(len(calls) <= 2, "kernel launched a separate final consistency pass")
                 joint = names == stems
                 if joint:
-                    ensure(admitted == stems - {"Independent"},
-                           "the smallest batch must keep its own roots as explicit targets")
+                    ensure(admitted == stems - batch1,
+                           "the final batch must admit reused and earlier changed roots")
                 else:
-                    ensure(admitted == reused and names == stems - {"Independent"},
-                           "a peer admitted unchecked work or omitted its reusable closure")
+                    ensure(admitted == reused and names == (reused | batch0),
+                           "an earlier batch admitted unchecked work or omitted prior roots")
                 barrier.wait()
                 if joint:
                     joint_finished.set()
@@ -641,22 +668,32 @@ def _parallel_kernel_combines_joint_work_and_waits_for_peers() -> None:
 
 
 def _kernel_batches_cannot_omit_provisionally_admitted_work() -> None:
-    root = Path("unused-workspace")
-    sources = [root / f"{name}.v" for name in ("Cached", "First", "Second", "Third")]
-    cached, first, second, third = sources
-    invalid = ([[first], [second]], [[first, second], [second, third]],
-               [[first, second, third], [cached]], [[first, second, third], []],
-               [[first, second], [root / "Foreign.v"]])
-    for batches in invalid:
-        with patch.object(gate, "_kernel_batches", return_value=batches), \
-                patch.object(gate, "_recheck_joint") as worker:
-            try:
-                gate._recheck(root, sources, frozenset({"Cached"}), jobs=2)
-            except ValueError as err:
-                ensure("exactly once" in str(err), "wrong malformed-batch refusal")
-            else:
-                raise AssertionError("malformed coverage authorized provisional admissions")
-            ensure(not worker.called, "kernel worker started before coverage was established")
+    with tempfile.TemporaryDirectory(prefix="vos-invalid-batches-") as temporary:
+        root = Path(temporary)
+        texts = {"Cached": "Definition value := 0.", "First": "Require Cached.",
+                 "Second": "Require First.", "Third": "Require Second."}
+        for name, text in texts.items():
+            (root / f"{name}.v").write_text(text, encoding="utf-8")
+            (root / f"{name}.vo").write_bytes(b"object")
+        sources = sorted(root.glob("*.v"))
+        by_name = {s.stem: s for s in sources}
+        cached, first, second, third = (by_name[k] for k in ("Cached", "First", "Second", "Third"))
+        invalid = (([[first], [second]], "exactly once"),
+                   ([[first, second], [second, third]], "exactly once"),
+                   ([[first, second, third], [cached]], "exactly once"),
+                   ([[first, second, third], []], "exactly once"),
+                   ([[first, second], [root / "Foreign.v"]], "exactly once"),
+                   ([[third], [first, second]], "Require dependency order"))
+        for batches, message in invalid:
+            with patch.object(gate, "_kernel_batches", return_value=batches), \
+                    patch.object(gate, "_recheck_joint") as worker:
+                try:
+                    gate._recheck(root, sources, frozenset({"Cached"}), jobs=2)
+                except ValueError as err:
+                    ensure(message in str(err), f"wrong malformed-batch refusal: {err}")
+                else:
+                    raise AssertionError("malformed coverage authorized provisional admissions")
+                ensure(not worker.called, "kernel worker started before coverage was established")
 
 
 def _kernel_single_process_paths() -> None:
@@ -668,7 +705,7 @@ def _kernel_single_process_paths() -> None:
             source.with_suffix(".vo").write_bytes(b"object")
         samples: tuple[tuple[int, frozenset[str]], ...] = (
             (1, frozenset[str]()), (4, frozenset({"Base"})),
-            (4, frozenset({"Base", "Consumer"})), (4, frozenset[str]()))
+            (4, frozenset({"Base", "Consumer"})))
         for jobs, reused in samples:
             for stderr, accepted in ((KERNEL_CLEAN, True), ("", False)):
                 answer = subprocess.CompletedProcess([], 0, stdout="", stderr=stderr)
@@ -676,6 +713,13 @@ def _kernel_single_process_paths() -> None:
                     ensure(bool(gate._recheck(root, sources, reused, jobs=jobs)) != accepted,
                            "serial kernel path lost its verdict")
                     joint.assert_called_once_with(root, sources, reused)
+        # An unreadable Require forces single-process checking even with multiple workers.
+        (root / "Consumer.v").write_text("Time Require Base.", encoding="utf-8")
+        answer = subprocess.CompletedProcess([], 0, stdout="", stderr=KERNEL_CLEAN)
+        with patch.object(gate, "_recheck_joint", return_value=answer) as joint:
+            ensure(gate._recheck(root, sources, frozenset(), jobs=4) == "",
+                   "wrapped Require fallback failed")
+            joint.assert_called_once_with(root, sources, frozenset())
 
 
 def _joint_kernel_keeps_recursive_targets() -> None:
@@ -744,7 +788,7 @@ def _admission_covers_only_the_installed_names_it_repeats() -> None:
 
     with tempfile.TemporaryDirectory(prefix="vos-kernel-admission-") as temporary:
         root = Path(temporary)
-        sources, stems = _fixture_proof_set(root)
+        sources, _stems = _fixture_proof_set(root)
         reused = frozenset({"Cached"})
         # Each worker's axioms, the load-only pass's (None when that pass fails), the
         # text a refusal must carry and whether the compiler's reading is asked about
@@ -783,7 +827,7 @@ def _admission_covers_only_the_installed_names_it_repeats() -> None:
                 # Only a worker naming an installed axiom pays for a load-only pass, and
                 # workers admitting the same roots share it.
                 expected = ([] if not worker else [reused] if jobs == 1
-                            else [reused, stems - {"Left"}])
+                            else [reused, reused | {"Right"}, reused | {"Right", "Left"}])
                 ensure(sorted(passes, key=sorted) == sorted(expected, key=sorted),
                        f"load-only passes {passes} differ from {expected}")
                 # The compiler is asked about exactly the installed residue the admission
@@ -874,10 +918,10 @@ def _the_compilers_reading_covers_checked_sealed_fields() -> None:
                 for name in accepted:
                     ensure(name not in fault, f"{name} was refused for {worker}: {fault!r}")
                 # The reading is asked about the installed names alone, sorted, by every
-                # worker, never about a proof module's own. With nothing reused, Cached,
-                # Left and Middle are one changed component beside Right: two workers.
+                # worker, never about a proof module's own. With nothing reused and
+                # jobs=3, the four modules split into three topological batches.
                 installed = sorted(name for name in worker if not name.startswith("Right."))
-                ensure(asked == [installed] * (1 if jobs == 1 else 2),
+                ensure(asked == [installed] * (1 if jobs == 1 else 3),
                        f"the reading was asked {asked} for {worker} with {jobs} job(s)")
                 reported = said.getvalue()
                 modules = sorted({name.rsplit(".", 1)[0] for name in covered})
@@ -1149,9 +1193,82 @@ def _native_incremental_kernel() -> None:
             ensure(bool(recheck(joint, gate._sources(joint), frozenset({"SharedUniverses", "Left"}))),
                    "incremental join accepted contradictory universes")
             # The two changed roots form separate batches once their shared base
-            # is cached. Both can pass alone, but their joint environment cannot.
+            # is cached, and also split across topological batches on a fresh run.
+            # Both can pass alone, but their joint environment cannot.
             ensure(bool(recheck(joint, gate._sources(joint), frozenset({"SharedUniverses"}), jobs=2)),
                    "parallel join accepted contradictory universes")
+            ensure(bool(recheck(joint, gate._sources(joint), frozenset(), jobs=2)),
+                   "fresh parallel DAG join accepted contradictory universes")
+
+
+def _memory_aware_kernel_scheduler_respects_budget() -> None:
+    """Heavy batches run alone when tight on RAM and with one ordinary batch when budget allows."""
+    with tempfile.TemporaryDirectory(prefix="vos-kernel-memory-") as temporary:
+        root = Path(temporary)
+        folder = root / "proofs"
+        folder.mkdir()
+        texts = {
+            "Sha256": "Definition s := 0.",
+            "HmacDrbg": "Require Sha256. Definition h := Sha256.s.",
+            "OtherA": "Definition a := 1.",
+            "OtherB": "Definition b := 2.",
+            "OtherC": "Definition c := 3.",
+        }
+        for name, text in texts.items():
+            (folder / f"{name}.v").write_text(text, encoding="utf-8")
+            (folder / f"{name}.vo").write_bytes(b"obj" * len(name))
+        sources = gate._sources(root)
+
+        def run_budget(budget_mb: int) -> tuple[list[tuple[str, set[str]]], int]:
+            lock = threading.Lock()
+            active = 0
+            active_mem = 0
+            peak_mem_with_multi = 0
+            events: list[tuple[str, set[str]]] = []
+
+            def recheck(_base: Path, members: list[Path],
+                        admitted: frozenset[str]) -> subprocess.CompletedProcess[str]:
+                nonlocal active, active_mem, peak_mem_with_multi
+                targets = {s.stem for s in members} - admitted
+                mem = gate.proofenv.kernel_batch_memory_mb(targets)
+                with lock:
+                    active += 1
+                    active_mem += mem
+                    if active > 1:
+                        peak_mem_with_multi = max(peak_mem_with_multi, active_mem)
+                    events.append(("start", targets))
+                time.sleep(0.08 if "HmacDrbg" in targets else 0.04)
+                with lock:
+                    active -= 1
+                    active_mem -= mem
+                    events.append(("end", targets))
+                return subprocess.CompletedProcess([], 0, stdout="", stderr=KERNEL_CLEAN)
+
+            with patch.object(gate, "_recheck_joint", side_effect=recheck):
+                fault = gate._recheck(root, sources, frozenset(), jobs=4,
+                                      memory_budget_mb=budget_mb)
+            ensure(fault == "", f"memory-aware kernel check failed at {budget_mb} MiB: {fault}")
+            return events, peak_mem_with_multi
+
+        # 12,500 MiB fits HmacDrbg (10,240) + one ordinary batch (2,048) = 12,288, not two.
+        events_12500, peak_12500 = run_budget(12500)
+        ensure(peak_12500 <= 12500, f"concurrent active budget exceeded 12,500 MiB: {peak_12500}")
+        hmac_start = events_12500.index(("start", {"HmacDrbg"}))
+        hmac_end = events_12500.index(("end", {"HmacDrbg"}))
+        ensure(hmac_start == 0, "heavy batch must start first")
+        concurrent_starts = [t for kind, t in events_12500[hmac_start + 1:hmac_end] if kind == "start"]
+        ensure(len(concurrent_starts) >= 1,
+               f"expected an ordinary batch to overlap HmacDrbg within 12,500 MiB: {events_12500}")
+
+        # 8,000 MiB (< 10,240) still runs HmacDrbg alone without deadlocking, then overlaps ordinary.
+        events_8000, peak_8000 = run_budget(8000)
+        ensure(peak_8000 <= 8000, f"concurrent active budget exceeded 8,000 MiB: {peak_8000}")
+        h8_start = events_8000.index(("start", {"HmacDrbg"}))
+        h8_end = events_8000.index(("end", {"HmacDrbg"}))
+        ensure(h8_end == h8_start + 1,
+               f"HmacDrbg must run alone under 8,000 MiB budget: {events_8000}")
+        ensure(peak_8000 >= 2 * gate.proofenv.PROOF_KERNEL_WORKER_MIB,
+               f"ordinary batches must still run concurrently under 8,000 MiB: {events_8000}")
 
 
 def _native_admitted_installed_axioms() -> None:
@@ -1329,6 +1446,8 @@ def cases() -> list[Case]:
                  _parallel_kernel_combines_joint_work_and_waits_for_peers),
             Case("kernel-batches-require-complete-coverage",
                  _kernel_batches_cannot_omit_provisionally_admitted_work),
+            Case("memory-aware-kernel-scheduler",
+                 _memory_aware_kernel_scheduler_respects_budget),
             Case("kernel-single-process-paths", _kernel_single_process_paths),
             Case("joint-kernel-recursive-targets", _joint_kernel_keeps_recursive_targets),
             Case("kernel-admission-covers-installed-names",

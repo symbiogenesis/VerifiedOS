@@ -418,48 +418,121 @@ def _worker_fault(sources: list[Path], admitted: frozenset[str],
             by_admission, by_reading)
 
 
-def _kernel_batches(sources: list[Path], reused: frozenset[str], jobs: int) -> list[list[Path]]:
-    """Partition connected components of changed modules across at most `jobs` batches by `.vo` size."""
+def _split_contiguous(items: list[Path], item_weights: list[float], parts: int) -> list[list[Path]]:
+    """Partition `items` into `parts` non-empty contiguous slices minimizing max slice weight."""
+    n = len(items)
+    if parts <= 1:
+        return [sorted(items)]
+    if parts >= n:
+        return [[item] for item in items]
+    prefix = [0.0] * (n + 1)
+    for idx, weight in enumerate(item_weights):
+        prefix[idx + 1] = prefix[idx] + weight
+    dp = [[float("inf")] * (n + 1) for _ in range(parts + 1)]
+    cut = [[0] * (n + 1) for _ in range(parts + 1)]
+    for j in range(1, n + 1):
+        dp[1][j] = prefix[j]
+    for p in range(2, parts + 1):
+        for j in range(p, n - (parts - p) + 1):
+            best_val = float("inf")
+            best_m = p - 1
+            for m in range(p - 1, j):
+                cand = max(dp[p - 1][m], prefix[j] - prefix[m])
+                if cand < best_val:
+                    best_val = cand
+                    best_m = m
+            dp[p][j] = best_val
+            cut[p][j] = best_m
+    slices: list[list[Path]] = []
+    end = n
+    for p in range(parts, 0, -1):
+        start = cut[p][end]
+        slices.append(sorted(items[start:end]))
+        end = start
+    slices.reverse()
+    return slices
+
+
+def _kernel_batches(
+    sources: list[Path],
+    reused: frozenset[str],
+    jobs: int,
+    *,
+    weights: Mapping[Path, float] | None = None,
+    isolated: frozenset[str] = frozenset(),
+) -> list[list[Path]]:
+    """Partition changed modules in topological order across at most `jobs` ordinary batches,
+    isolating modules named in `isolated` into singleton batches."""
     index = proofs_mod.SourceIndex.read(sources)
     changed = {source for source in sources if source.stem not in reused}
-    neighbours = {source: set(index.needs[source]) & changed for source in changed}
-    for source, required in index.needs.items():
-        if source in changed:
-            for dependency in required & changed:
-                neighbours[dependency].add(source)
-    components: list[list[Path]] = []
-    remaining = set(changed)
-    while remaining:
-        frontier = {min(remaining)}
-        component: set[Path] = set()
-        while frontier:
-            source = frontier.pop()
-            if source not in remaining:
-                continue
-            remaining.remove(source)
-            component.add(source)
-            frontier.update(neighbours[source] & remaining)
-        components.append(sorted(component))
-    weighted = [(sum(source.with_suffix(".vo").stat().st_size for source in component), component)
-                for component in components]
-    batches: list[list[Path]] = [[] for _ in range(min(jobs, len(components)))]
-    loads = [0] * len(batches)
-    for size, members in sorted(weighted, key=lambda item: (-item[0], item[1])):
-        slot = min(range(len(batches)), key=lambda slot: (loads[slot], len(batches[slot]), slot))
-        batches[slot].extend(members)
-        loads[slot] += size
-    return [sorted(batch) for batch in batches]
+    if not changed:
+        return []
+    if jobs <= 1 or len(changed) <= 1:
+        return [sorted(changed)]
+    topo = [source for wave in index.ordered for source in wave if source in changed]
+
+    def item_weight(source: Path) -> float:
+        if weights is not None and source in weights:
+            return max(1e-3, float(weights[source]))
+        return float(max(1, source.with_suffix(".vo").stat().st_size))
+
+    segments: list[tuple[bool, list[Path], list[float]]] = []
+    cur_items: list[Path] = []
+    cur_weights: list[float] = []
+    for source in topo:
+        w = item_weight(source)
+        if source.stem in isolated:
+            if cur_items:
+                segments.append((False, cur_items, cur_weights))
+                cur_items, cur_weights = [], []
+            segments.append((True, [source], [w]))
+        else:
+            cur_items.append(source)
+            cur_weights.append(w)
+    if cur_items:
+        segments.append((False, cur_items, cur_weights))
+
+    ordinary_indices = [i for i, (is_iso, _, _) in enumerate(segments) if not is_iso]
+    if not ordinary_indices:
+        return [items for _, items, _ in segments]
+
+    ordinary_total = sum(len(segments[i][1]) for i in ordinary_indices)
+    target_ordinary = min(ordinary_total, max(len(ordinary_indices), jobs))
+    counts = dict.fromkeys(ordinary_indices, 1)
+    seg_totals = {i: sum(segments[i][2]) for i in ordinary_indices}
+    while sum(counts.values()) < target_ordinary:
+        splittable = [i for i in ordinary_indices if counts[i] < len(segments[i][1])]
+        if not splittable:
+            break
+        best = min(splittable, key=lambda i: (-(seg_totals[i] / counts[i]), -len(segments[i][1]), i))
+        counts[best] += 1
+
+    batches: list[list[Path]] = []
+    for i, (is_iso, items, item_weights) in enumerate(segments):
+        if is_iso:
+            batches.append(items)
+        else:
+            batches.extend(_split_contiguous(items, item_weights, counts[i]))
+    return batches
 
 
-def _recheck(root: Path, sources: list[Path], reused: frozenset[str] = frozenset(), *,
-             jobs: int = 1) -> str:
+def _recheck(
+    root: Path,
+    sources: list[Path],
+    reused: frozenset[str] = frozenset(),
+    *,
+    jobs: int = 1,
+    memory_budget_mb: int | None = None,
+    weights: Mapping[Path, float] | None = None,
+) -> str:
     """Recheck `sources` with `rocqchk`, returning a fault string or `""` when all batches pass.
 
-    Each changed connected component is checked in one worker batch while admitting
-    byte-validated `reused` roots. When multiple batches run, the lightest batch also
-    loads the joint environment across all `sources` (provisionally admitting peer
-    batches checked by other workers) to verify combined universe constraints and
-    module identities.
+    Changed modules are partitioned into a topological DAG sequence of batches (isolating
+    heavy modules into singleton batches) and checked concurrently within `jobs` and
+    `memory_budget_mb`. Each batch `i` checks its own targets recursively while admitting
+    `reused` roots and earlier batches `0..i-1`. The final batch loads every module in
+    `sources` (provisionally admitting all earlier batches) to verify combined universe
+    constraints and module identities without a separate consistency pass.
     """
     if jobs < 1:
         raise ValueError("kernel jobs must be positive")
@@ -497,38 +570,87 @@ def _recheck(root: Path, sources: list[Path], reused: frozenset[str] = frozenset
                   f"hide: {', '.join(modules)}", flush=True)
         return fault
 
-    if jobs == 1 or len(stems - reused) < 2:
+    index = proofs_mod.SourceIndex.read(sources)
+    changed_count = len(stems - reused)
+    if (jobs == 1 or changed_count < 2
+            or any(_unread_require(stmts) for stmts in index.statements.values())):
         return report(*verdict(sources, reused))
-    batches = _kernel_batches(sources, reused, jobs)
+    batch_target = (min(changed_count, jobs * 2)
+                    if (memory_budget_mb is not None or changed_count >= 4 * jobs)
+                    else min(changed_count, jobs))
+    batches = _kernel_batches(
+        sources, reused, batch_target, weights=weights,
+        isolated=frozenset(proofenv.PROOF_KERNEL_MODULE_MIB))
     if len(batches) < 2:
         return report(*verdict(sources, reused))
     assigned = [source for batch in batches for source in batch]
     if (any(not batch for batch in batches) or len(assigned) != len(set(assigned))
             or set(assigned) != {source for source in sources if source.stem not in reused}):
         raise ValueError("kernel batches must cover every changed module exactly once")
+    batch_of = {source: idx for idx, batch in enumerate(batches) for source in batch}
+    for idx, batch in enumerate(batches):
+        for source in batch:
+            for req in index.needs[source]:
+                if req in batch_of and batch_of[req] > idx:
+                    raise ValueError("kernel batches must respect Require dependency order")
     products = [source.with_suffix(".vo") for source in sources]
     before = receipts.snapshot(root, products)
     cached = [source for source in sources if source.stem in reused]
-    # Give the extra full-environment imports to the smallest estimated workload.
-    joint = min(range(len(batches)), key=lambda index: sum(
-        source.with_suffix(".vo").stat().st_size for source in batches[index]))
 
-    def check(item: tuple[int, list[Path]]) -> tuple[str, frozenset[str], frozenset[str]]:
-        index, batch = item
-        if index == joint:
-            return verdict(sources, stems - {source.stem for source in batch})
-        return verdict(sorted([*batch, *cached]), reused)
+    def batch_weight(batch: list[Path]) -> float:
+        if weights is not None:
+            return sum(max(1e-3, float(weights.get(s, 0.0))) for s in batch)
+        return float(sum(max(1, s.with_suffix(".vo").stat().st_size) for s in batch))
 
-    with ThreadPoolExecutor(max_workers=min(jobs, len(batches))) as pool:
-        verdicts = list(pool.map(check, enumerate(batches)))
-    for batch, (fault, _, _) in zip(batches, verdicts, strict=True):
+    invocations: list[tuple[list[Path], frozenset[str], int, float]] = []
+    prior: list[Path] = []
+    for batch in batches:
+        admitted_i = reused | frozenset(source.stem for source in prior)
+        members_i = sorted([*cached, *prior, *batch])
+        mem_i = proofenv.kernel_batch_memory_mb(source.stem for source in batch)
+        invocations.append((members_i, admitted_i, mem_i, batch_weight(batch)))
+        prior.extend(batch)
+
+    pending = sorted(range(len(batches)),
+                     key=lambda i: (-invocations[i][2], -invocations[i][3], i))
+    max_workers = min(jobs, len(batches))
+    verdicts: dict[int, tuple[str, frozenset[str], frozenset[str]]] = {}
+    with ThreadPoolExecutor(max_workers=max_workers) as pool:
+        running: dict[Future[tuple[str, frozenset[str], frozenset[str]]], tuple[int, int]] = {}
+        active_mem = 0
+        while pending or running:
+            while pending and len(running) < max_workers:
+                chosen_pos: int | None = None
+                for pos, idx in enumerate(pending):
+                    mem_i = invocations[idx][2]
+                    if (memory_budget_mb is None or not running
+                            or active_mem + mem_i <= memory_budget_mb):
+                        chosen_pos = pos
+                        break
+                if chosen_pos is None:
+                    break
+                idx = pending.pop(chosen_pos)
+                members_i, admitted_i, mem_i, _ = invocations[idx]
+                running[pool.submit(verdict, members_i, admitted_i)] = (idx, mem_i)
+                active_mem += mem_i
+            done, _ = wait(running, return_when=FIRST_COMPLETED)
+            for future in done:
+                idx, mem_i = running.pop(future)
+                active_mem -= mem_i
+                verdicts[idx] = future.result()
+
+    ordered_verdicts = [verdicts[i] for i in range(len(batches))]
+    for batch, (fault, _, _) in zip(batches, ordered_verdicts, strict=True):
         if fault:
             names = ", ".join(source.stem for source in batch)
             return f"kernel batch [{names}] failed:\n{fault}"
     if receipts.snapshot(root, products) != before:
         raise ValueError("compiled proof artifacts changed during parallel kernel checking")
-    return report("", frozenset[str]().union(*(by_admission for _, by_admission, _ in verdicts)),
-                  frozenset[str]().union(*(by_reading for _, _, by_reading in verdicts)))
+    return report(
+        "",
+        frozenset[str]().union(*(by_admission for _, by_admission, _ in ordered_verdicts)),
+        frozenset[str]().union(*(by_reading for _, _, by_reading in ordered_verdicts)),
+    )
 
 
 def _gate_modules(root: Path) -> list[Path]:
@@ -1254,11 +1376,13 @@ def _run_locked(root: Path, jobs: int | None, fresh: bool = False) -> int:
     # Same-run kernel admissions need the installed-library identity too. Unknown
     # contexts retain the single-process recursive check, even on a fresh run.
     kernel_basis = ""
+    kernel_memory_budget: int | None = None
     if context is None:
         kernel_jobs = 1
     elif jobs is None:
         sized = proofenv.proof_workers(kernel=True)
         kernel_jobs, kernel_basis = sized.jobs, f" ({_sized_from(sized)})"
+        kernel_memory_budget = proofenv.kernel_memory_budget_mb(sized.mem_available_mb)
     else:
         kernel_jobs = jobs
     replayed = wave_makespan([[spans[source].end - spans[source].start for source in wave]
@@ -1268,7 +1392,12 @@ def _run_locked(root: Path, jobs: int | None, fresh: bool = False) -> int:
           f"{len(reusable)}/{len(staged)} compiled objects and audits reused; "
           f"starting {'incremental' if reusable else 'full'} kernel recheck "
           f"with worker limit {kernel_jobs}{kernel_basis}", flush=True)
-    fault = _recheck(work, staged, frozenset(reusable), jobs=kernel_jobs)
+    compile_weights = {source: spans[source].end - spans[source].start
+                       for source in staged
+                       if source in spans and source.stem not in reusable}
+    fault = _recheck(work, staged, frozenset(reusable), jobs=kernel_jobs,
+                     memory_budget_mb=kernel_memory_budget,
+                     weights=compile_weights or None)
     recheck_seconds = time.perf_counter() - recheck_started
     if fault:
         print(f"FAIL: rocqchk recheck: {fault}")

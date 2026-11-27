@@ -16,7 +16,7 @@
     },
     {
       "path": "proofs/Sha256.v",
-      "sha256": "0cb687e0d2ec3c03846c35c4d6df12563be141ba095d5069c6f120f46a529ade"
+      "sha256": "ba8c70902bb0fd87b081cba7fba6f7112258cfae0dfc89f82198b77c8a439e30"
     },
     {
       "path": "proofs/AesGcm.v",

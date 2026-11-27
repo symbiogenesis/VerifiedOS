@@ -1451,14 +1451,18 @@ before compilation/auditing and again before kernel checking, after acquiring th
 workspace lock. [The resource policy](vos/proofenv.py) owns the headroom, per-worker budgets
 and conservative fallbacks when memory cannot be read. The compile/audit budget is an
 estimate from the [recorded prover measurements](../docs/performance/toolchain-residency.md#the-prover-and-which-of-its-two-acts-the-device-performs).
-The kernel budget is set at or above the peak resident memory of the one kernel worker
-that checks every module on Guest CI's proofs runner, whose recorded runs and margin
-`proof_jobs` states, so that 16 GB runner runs one kernel worker. Guest CI's
+Ordinary kernel batches use `PROOF_KERNEL_WORKER_MIB` (2 GiB), while isolated
+memory-heavy batches (`PROOF_KERNEL_MODULE_MIB`, currently `HmacDrbg`) use
+`PROOF_KERNEL_HEAVY_WORKER_MIB` (10 GiB), sitting above the recorded runner peaks
+that `proof_jobs` states. The kernel dispatcher admits concurrent workers only while
+their combined batch budgets stay within `MemAvailable - PROOF_RESERVE_MIB`, allowing
+up to four ordinary workers on a 16 GB runner while preventing concurrent heavy
+workers from exceeding memory. Guest CI's
 proof log records each run's peak single-process resident memory
 ([Guest CI contract](ci/README.md)). The selected limits are printed, each automatic one
 beside the usable CPU count and the `MemAvailable` reading it was sized from. An explicit
-`--jobs N` overrides automatic CPU/memory sizing for both phases; the single-process
-fallback for an unknown library identity still applies.
+`--jobs N` overrides automatic CPU/memory sizing and memory throttling for both phases;
+the single-process fallback for an unknown library identity still applies.
 Help, status, export and whole-set cache hits do not sample worker capacity.
 
 Changed runs use Rocq's documented
@@ -1487,17 +1491,18 @@ root that loads a sealed installed module, and a checked library whose alias-sea
 and functor-sealed fields the compiler's reading covers or, over an admitted
 implementation or a genuine axiom, refuses.
 
-The launcher groups changed modules by connected local dependency components and
-distributes them within the selected kernel-worker limit. Components stay
-together so their shared changed prerequisites are checked once. Compiled-object sizes
-balance the batches and select the lightest batch to carry the complete joint
-environment; sizes never authorize reuse. That worker type-checks its own targets
-while also checking dependency identities and combined universe constraints for all
-roots. It provisionally admits peer targets and their dependencies. Every peer
-recursively checks its targets, admitting only previously validated reusable roots.
-External dependencies can be checked by more than one worker.
+The launcher partitions changed modules in topological `Require` order across
+bounded `rocqchk` batches, isolating memory-heavy modules (`HmacDrbg`) into
+singleton batches and balancing contiguous ordinary segments by compile duration (or
+compiled `.vo` size when compile spans are absent); sizes never authorize reuse.
+Each batch `i` type-checks its own targets recursively while admitting validated
+`reused` roots and earlier batches `0..i-1`. The final batch loads every module in
+the proof set, verifying dependency identities and combined universe constraints for
+all roots without a separate consistency pass. External dependencies are checked
+recursively by the earliest batch that reaches them and admitted by later batches.
 
-The launcher verifies complete, disjoint target coverage before any worker starts.
+The launcher verifies complete, disjoint target coverage and topological batch
+ordering before any worker starts.
 A provisional admission supplies no reusable evidence: acceptance requires every
 worker's context summary to pass the audit above plus unchanged object, source,
 toolchain and library hashes.

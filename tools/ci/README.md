@@ -139,9 +139,11 @@ every lane; manual runs execute their selected lanes and default to all.
 The planning/history job alone has `actions: read`; the gate lanes keep `contents: read`.
 They need no repository secrets or initialized submodules. The public repository's standard
 [runner](https://docs.github.com/en/actions/reference/runners/github-hosted-runners)
-has 16 GB of RAM; the proof gate's one kernel worker peaks just under its 10 GiB
-budget there, as the runs [vos/proofenv.py](../vos/proofenv.py)'s `proof_jobs` records
-measured, so a smaller runner needs a separate resource measurement.
+has 16 GB of RAM; the proof gate isolates `HmacDrbg` under its 10 GiB heavy budget
+(above the whole-set runner peak [vos/proofenv.py](../vos/proofenv.py)'s `proof_jobs`
+records) and schedules up to four ordinary kernel workers under its 2 GiB ordinary
+budget within `MemAvailable - PROOF_RESERVE_MIB`, so a smaller runner needs a separate
+resource measurement.
 
 The gate job is a matrix of lanes, and each lane has its own runner. The `model` lane
 installs Z3, Sail, Verilator and Rocq, checks the generated vector oracle adapter with
