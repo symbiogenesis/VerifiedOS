@@ -315,7 +315,7 @@
       "id": "copy-service-boundary",
       "source": {
         "path": "copy-service/README.md",
-        "sha256": "ce977846f24bdd8331f6f93271fbd0f6852286c9b0359a871a8b58c52090eb54"
+        "sha256": "a62a0ffd25ebeffb2b3c76d73885295428bc2dc4691e276ade9e2dfb6bda4e79"
       }
     }
   ],
