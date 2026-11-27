@@ -950,7 +950,7 @@ def _the_recipe_pins_whole_commits_and_is_asked_by_name() -> None:
            f"the recipe pins each package to its commit before installing: {pinning}")
     ensure(install[:3] == ("opam", "install", f"--switch={switch}")
            and {f"rocq-core.{gallina.QUICKCHICK_RECIPE_ROCQ_VERSION}",
-                f"rocq-stdlib.{quickchick.STDLIB}", f"dune.{quickchick.DUNE}",
+                f"rocq-stdlib.{quickchick.STDLIB}", f"dune.{quickchick.RECIPE_DUNE}",
                 f"coq-ext-lib.{quickchick.EXTLIB}",
                 f"ocaml_intrinsics_kernel.{quickchick.INTRINSICS}",
                 *(f"{name}.dev" for name in pins)} <= set(install)

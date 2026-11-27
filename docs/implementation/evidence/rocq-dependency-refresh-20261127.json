@@ -1,0 +1,1858 @@
+{
+  "review_date": "2026-11-27",
+  "base_revision": "10291679befeb3384d52d951b4607ef4a0c8858d",
+  "scope": "Dated opam/Rocq dependency enumeration and candidate release license readings; available filters, avoid-version flags and consumer constraints still apply. No new switch build, resolver, kernel or hosted acceptance verdict is claimed.",
+  "opam": {
+    "review_date": "2026-11-27",
+    "scope": "Package-version enumeration across all six tools/opam/*.lock snapshots; available filters, avoid-version flags and consumer constraints still apply. No switch build, resolver or proof verdict is claimed.",
+    "metadata": {
+      "ocaml/opam-repository": {
+        "revision": "f23eddce580789b915c0a29ed3b90a3f8c8e214d",
+        "tree": "cc2d44e2bab5bea983f38d8c389c062ba2a7829d",
+        "index_source": "https://opam.ocaml.org/index.tar.gz"
+      },
+      "rocq-prover/opam": {
+        "revision": "d8e264789b0dd225a865ea6c923b0f75b82ad93f",
+        "tree": "3ba668ffeeaf66581d960de5f07b0d5aaf99e15b",
+        "truncated": false
+      }
+    },
+    "packages": [
+      {
+        "lock": "certirocq.lock",
+        "package": "astring",
+        "locked": "0.8.5",
+        "newest_nonpreview_version_in_metadata": "0.8.5"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "atd",
+        "locked": "4.2.0",
+        "newest_nonpreview_version_in_metadata": "4.2.0"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "atdgen",
+        "locked": "4.2.0",
+        "newest_nonpreview_version_in_metadata": "4.2.0"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "atdgen-runtime",
+        "locked": "4.2.0",
+        "newest_nonpreview_version_in_metadata": "4.2.0"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "atdts",
+        "locked": "4.2.0",
+        "newest_nonpreview_version_in_metadata": "4.2.0"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "base",
+        "locked": "v0.16.5",
+        "newest_nonpreview_version_in_metadata": "v0.17.3"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "base-bigarray",
+        "locked": "base",
+        "newest_nonpreview_version_in_metadata": "base"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "base-threads",
+        "locked": "base",
+        "newest_nonpreview_version_in_metadata": "base"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "base-unix",
+        "locked": "base",
+        "newest_nonpreview_version_in_metadata": "base"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "biniou",
+        "locked": "1.2.2",
+        "newest_nonpreview_version_in_metadata": "1.2.2"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "camlp-streams",
+        "locked": "5.0.1",
+        "newest_nonpreview_version_in_metadata": "5.0.1"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "cmdliner",
+        "locked": "2.1.1",
+        "newest_nonpreview_version_in_metadata": "2.1.2"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "conf-clang",
+        "locked": "2",
+        "newest_nonpreview_version_in_metadata": "2"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "conf-gmp",
+        "locked": "5",
+        "newest_nonpreview_version_in_metadata": "5"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "conf-linux-libc-dev",
+        "locked": "0",
+        "newest_nonpreview_version_in_metadata": "0"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "conf-pkg-config",
+        "locked": "5",
+        "newest_nonpreview_version_in_metadata": "5"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "coq",
+        "locked": "9.1.1",
+        "newest_nonpreview_version_in_metadata": "9.3.0"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "coq-compcert",
+        "locked": "3.18",
+        "newest_nonpreview_version_in_metadata": "3.18"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "coq-core",
+        "locked": "9.1.1",
+        "newest_nonpreview_version_in_metadata": "9.3.0"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "coq-ext-lib",
+        "locked": "0.13.2",
+        "newest_nonpreview_version_in_metadata": "0.13.2"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "coq-flocq",
+        "locked": "4.2.2",
+        "newest_nonpreview_version_in_metadata": "4.2.2"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "coq-mathcomp-ssreflect",
+        "locked": "2.4.0",
+        "newest_nonpreview_version_in_metadata": "2.6.0"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "coq-menhirlib",
+        "locked": "20260209",
+        "newest_nonpreview_version_in_metadata": "20260209"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "coq-parseque",
+        "locked": "0.2.2",
+        "newest_nonpreview_version_in_metadata": "0.2.2"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "coq-stdlib",
+        "locked": "9.0.0",
+        "newest_nonpreview_version_in_metadata": "9.2.0"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "coq-wasm",
+        "locked": "2.2.0",
+        "newest_nonpreview_version_in_metadata": "2.2.1"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "coqide-server",
+        "locked": "9.1.1",
+        "newest_nonpreview_version_in_metadata": "9.3.0"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "cppo",
+        "locked": "1.8.0",
+        "newest_nonpreview_version_in_metadata": "1.8.0"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "csexp",
+        "locked": "1.5.2",
+        "newest_nonpreview_version_in_metadata": "1.5.2"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "dune",
+        "locked": "3.23.1",
+        "newest_nonpreview_version_in_metadata": "3.25.0"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "dune-configurator",
+        "locked": "3.23.1",
+        "newest_nonpreview_version_in_metadata": "3.25.0"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "easy-format",
+        "locked": "1.3.4",
+        "newest_nonpreview_version_in_metadata": "1.3.4"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "elpi",
+        "locked": "3.7.3",
+        "newest_nonpreview_version_in_metadata": "4.1.1"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "fmt",
+        "locked": "0.11.0",
+        "newest_nonpreview_version_in_metadata": "0.11.0"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "linenoise",
+        "locked": "1.5.1",
+        "newest_nonpreview_version_in_metadata": "1.5.1"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "logs",
+        "locked": "0.10.0",
+        "newest_nonpreview_version_in_metadata": "0.10.0"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "mdx",
+        "locked": "2.7.0",
+        "newest_nonpreview_version_in_metadata": "2.7.0"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "menhir",
+        "locked": "20260209",
+        "newest_nonpreview_version_in_metadata": "20260209"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "menhirCST",
+        "locked": "20260209",
+        "newest_nonpreview_version_in_metadata": "20260209"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "menhirGLR",
+        "locked": "20260209",
+        "newest_nonpreview_version_in_metadata": "20260209"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "menhirLib",
+        "locked": "20260209",
+        "newest_nonpreview_version_in_metadata": "20260209"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "menhirSdk",
+        "locked": "20260209",
+        "newest_nonpreview_version_in_metadata": "20260209"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "ocaml",
+        "locked": "4.14.4",
+        "newest_nonpreview_version_in_metadata": "5.5.2"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "ocaml-base-compiler",
+        "locked": "4.14.4",
+        "newest_nonpreview_version_in_metadata": "5.5.2"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "ocaml-compiler-libs",
+        "locked": "v0.12.4",
+        "newest_nonpreview_version_in_metadata": "v0.17.0"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "ocaml-config",
+        "locked": "2",
+        "newest_nonpreview_version_in_metadata": "3"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "ocaml-options-vanilla",
+        "locked": "1",
+        "newest_nonpreview_version_in_metadata": "1"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "ocaml-version",
+        "locked": "4.1.4",
+        "newest_nonpreview_version_in_metadata": "4.1.6"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "ocamlbuild",
+        "locked": "0.16.1",
+        "newest_nonpreview_version_in_metadata": "0.16.1"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "ocamlfind",
+        "locked": "1.9.8",
+        "newest_nonpreview_version_in_metadata": "1.9.8"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "ppx_derivers",
+        "locked": "1.2.1",
+        "newest_nonpreview_version_in_metadata": "1.2.1"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "ppx_deriving",
+        "locked": "6.0.3",
+        "newest_nonpreview_version_in_metadata": "6.2.0"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "ppx_optcomp",
+        "locked": "v0.16.0",
+        "newest_nonpreview_version_in_metadata": "v0.17.1"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "ppxlib",
+        "locked": "0.35.0",
+        "newest_nonpreview_version_in_metadata": "0.39.0"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "re",
+        "locked": "1.14.0",
+        "newest_nonpreview_version_in_metadata": "1.14.0"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "result",
+        "locked": "1.5",
+        "newest_nonpreview_version_in_metadata": "1.5"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "rocq-certirocq",
+        "locked": "0.9.1+9.1",
+        "newest_nonpreview_version_in_metadata": "0.9.1+9.1"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "rocq-core",
+        "locked": "9.1.1",
+        "newest_nonpreview_version_in_metadata": "9.3.0"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "rocq-elpi",
+        "locked": "3.5.1",
+        "newest_nonpreview_version_in_metadata": "3.7.0"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "rocq-equations",
+        "locked": "1.3.1+9.1",
+        "newest_nonpreview_version_in_metadata": "1.3.2+9.3"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "rocq-hierarchy-builder",
+        "locked": "1.10.3",
+        "newest_nonpreview_version_in_metadata": "1.10.4"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "rocq-mathcomp-ssreflect",
+        "locked": "2.4.0",
+        "newest_nonpreview_version_in_metadata": "2.6.0"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "rocq-metarocq-common",
+        "locked": "1.5.1+9.1",
+        "newest_nonpreview_version_in_metadata": "1.5.1+9.2"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "rocq-metarocq-erasure",
+        "locked": "1.5.1+9.1",
+        "newest_nonpreview_version_in_metadata": "1.5.1+9.2"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "rocq-metarocq-erasure-plugin",
+        "locked": "1.5.1+9.1",
+        "newest_nonpreview_version_in_metadata": "1.5.1+9.2"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "rocq-metarocq-pcuic",
+        "locked": "1.5.1+9.1",
+        "newest_nonpreview_version_in_metadata": "1.5.1+9.2"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "rocq-metarocq-safechecker",
+        "locked": "1.5.1+9.1",
+        "newest_nonpreview_version_in_metadata": "1.5.1+9.2"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "rocq-metarocq-safechecker-plugin",
+        "locked": "1.5.1+9.1",
+        "newest_nonpreview_version_in_metadata": "1.5.1+9.2"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "rocq-metarocq-template",
+        "locked": "1.5.1+9.1",
+        "newest_nonpreview_version_in_metadata": "1.5.1+9.2"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "rocq-metarocq-template-pcuic",
+        "locked": "1.5.1+9.1",
+        "newest_nonpreview_version_in_metadata": "1.5.1+9.2"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "rocq-metarocq-utils",
+        "locked": "1.5.1+9.1",
+        "newest_nonpreview_version_in_metadata": "1.5.1+9.2"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "rocq-runtime",
+        "locked": "9.1.1",
+        "newest_nonpreview_version_in_metadata": "9.3.0"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "rocq-stdlib",
+        "locked": "9.0.0",
+        "newest_nonpreview_version_in_metadata": "9.2.0"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "sexplib0",
+        "locked": "v0.16.0",
+        "newest_nonpreview_version_in_metadata": "v0.17.0"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "stdio",
+        "locked": "v0.16.0",
+        "newest_nonpreview_version_in_metadata": "v0.17.0"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "stdlib-shims",
+        "locked": "0.3.0",
+        "newest_nonpreview_version_in_metadata": "0.3.0"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "topkg",
+        "locked": "1.1.1",
+        "newest_nonpreview_version_in_metadata": "1.1.1"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "wasm",
+        "locked": "2.0.2",
+        "newest_nonpreview_version_in_metadata": "2.0.2"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "yojson",
+        "locked": "3.0.0",
+        "newest_nonpreview_version_in_metadata": "3.0.0"
+      },
+      {
+        "lock": "certirocq.lock",
+        "package": "zarith",
+        "locked": "1.14",
+        "newest_nonpreview_version_in_metadata": "1.14"
+      },
+      {
+        "lock": "contained-compiler.lock",
+        "package": "base-bigarray",
+        "locked": "base",
+        "newest_nonpreview_version_in_metadata": "base"
+      },
+      {
+        "lock": "contained-compiler.lock",
+        "package": "base-threads",
+        "locked": "base",
+        "newest_nonpreview_version_in_metadata": "base"
+      },
+      {
+        "lock": "contained-compiler.lock",
+        "package": "base-unix",
+        "locked": "base",
+        "newest_nonpreview_version_in_metadata": "base"
+      },
+      {
+        "lock": "contained-compiler.lock",
+        "package": "conf-gmp",
+        "locked": "5",
+        "newest_nonpreview_version_in_metadata": "5"
+      },
+      {
+        "lock": "contained-compiler.lock",
+        "package": "conf-linux-libc-dev",
+        "locked": "0",
+        "newest_nonpreview_version_in_metadata": "0"
+      },
+      {
+        "lock": "contained-compiler.lock",
+        "package": "conf-pkg-config",
+        "locked": "5",
+        "newest_nonpreview_version_in_metadata": "5"
+      },
+      {
+        "lock": "contained-compiler.lock",
+        "package": "coq",
+        "locked": "9.3.0",
+        "newest_nonpreview_version_in_metadata": "9.3.0"
+      },
+      {
+        "lock": "contained-compiler.lock",
+        "package": "coq-core",
+        "locked": "9.3.0",
+        "newest_nonpreview_version_in_metadata": "9.3.0"
+      },
+      {
+        "lock": "contained-compiler.lock",
+        "package": "coq-stdlib",
+        "locked": "9.2.0",
+        "newest_nonpreview_version_in_metadata": "9.2.0"
+      },
+      {
+        "lock": "contained-compiler.lock",
+        "package": "coqide-server",
+        "locked": "9.3.0",
+        "newest_nonpreview_version_in_metadata": "9.3.0"
+      },
+      {
+        "lock": "contained-compiler.lock",
+        "package": "dune",
+        "locked": "3.24.2",
+        "newest_nonpreview_version_in_metadata": "3.25.0"
+      },
+      {
+        "lock": "contained-compiler.lock",
+        "package": "menhir",
+        "locked": "20260209",
+        "newest_nonpreview_version_in_metadata": "20260209"
+      },
+      {
+        "lock": "contained-compiler.lock",
+        "package": "menhirCST",
+        "locked": "20260209",
+        "newest_nonpreview_version_in_metadata": "20260209"
+      },
+      {
+        "lock": "contained-compiler.lock",
+        "package": "menhirGLR",
+        "locked": "20260209",
+        "newest_nonpreview_version_in_metadata": "20260209"
+      },
+      {
+        "lock": "contained-compiler.lock",
+        "package": "menhirLib",
+        "locked": "20260209",
+        "newest_nonpreview_version_in_metadata": "20260209"
+      },
+      {
+        "lock": "contained-compiler.lock",
+        "package": "menhirSdk",
+        "locked": "20260209",
+        "newest_nonpreview_version_in_metadata": "20260209"
+      },
+      {
+        "lock": "contained-compiler.lock",
+        "package": "ocaml",
+        "locked": "4.14.4",
+        "newest_nonpreview_version_in_metadata": "5.5.2"
+      },
+      {
+        "lock": "contained-compiler.lock",
+        "package": "ocaml-base-compiler",
+        "locked": "4.14.4",
+        "newest_nonpreview_version_in_metadata": "5.5.2"
+      },
+      {
+        "lock": "contained-compiler.lock",
+        "package": "ocaml-config",
+        "locked": "2",
+        "newest_nonpreview_version_in_metadata": "3"
+      },
+      {
+        "lock": "contained-compiler.lock",
+        "package": "ocaml-options-vanilla",
+        "locked": "1",
+        "newest_nonpreview_version_in_metadata": "1"
+      },
+      {
+        "lock": "contained-compiler.lock",
+        "package": "ocamlfind",
+        "locked": "1.9.8",
+        "newest_nonpreview_version_in_metadata": "1.9.8"
+      },
+      {
+        "lock": "contained-compiler.lock",
+        "package": "rocq-core",
+        "locked": "9.3.0",
+        "newest_nonpreview_version_in_metadata": "9.3.0"
+      },
+      {
+        "lock": "contained-compiler.lock",
+        "package": "rocq-runtime",
+        "locked": "9.3.0",
+        "newest_nonpreview_version_in_metadata": "9.3.0"
+      },
+      {
+        "lock": "contained-compiler.lock",
+        "package": "rocq-stdlib",
+        "locked": "9.2.0",
+        "newest_nonpreview_version_in_metadata": "9.2.0"
+      },
+      {
+        "lock": "contained-compiler.lock",
+        "package": "zarith",
+        "locked": "1.14",
+        "newest_nonpreview_version_in_metadata": "1.14"
+      },
+      {
+        "lock": "quickchick.lock",
+        "package": "atd",
+        "locked": "4.2.0",
+        "newest_nonpreview_version_in_metadata": "4.2.0"
+      },
+      {
+        "lock": "quickchick.lock",
+        "package": "atdgen",
+        "locked": "4.2.0",
+        "newest_nonpreview_version_in_metadata": "4.2.0"
+      },
+      {
+        "lock": "quickchick.lock",
+        "package": "atdgen-runtime",
+        "locked": "4.2.0",
+        "newest_nonpreview_version_in_metadata": "4.2.0"
+      },
+      {
+        "lock": "quickchick.lock",
+        "package": "atdts",
+        "locked": "4.2.0",
+        "newest_nonpreview_version_in_metadata": "4.2.0"
+      },
+      {
+        "lock": "quickchick.lock",
+        "package": "base",
+        "locked": "v0.17.3",
+        "newest_nonpreview_version_in_metadata": "v0.17.3"
+      },
+      {
+        "lock": "quickchick.lock",
+        "package": "base-bigarray",
+        "locked": "base",
+        "newest_nonpreview_version_in_metadata": "base"
+      },
+      {
+        "lock": "quickchick.lock",
+        "package": "base-domains",
+        "locked": "base",
+        "newest_nonpreview_version_in_metadata": "base"
+      },
+      {
+        "lock": "quickchick.lock",
+        "package": "base-effects",
+        "locked": "base",
+        "newest_nonpreview_version_in_metadata": "base"
+      },
+      {
+        "lock": "quickchick.lock",
+        "package": "base-nnp",
+        "locked": "base",
+        "newest_nonpreview_version_in_metadata": "base"
+      },
+      {
+        "lock": "quickchick.lock",
+        "package": "base-threads",
+        "locked": "base",
+        "newest_nonpreview_version_in_metadata": "base"
+      },
+      {
+        "lock": "quickchick.lock",
+        "package": "base-unix",
+        "locked": "base",
+        "newest_nonpreview_version_in_metadata": "base"
+      },
+      {
+        "lock": "quickchick.lock",
+        "package": "biniou",
+        "locked": "1.2.2",
+        "newest_nonpreview_version_in_metadata": "1.2.2"
+      },
+      {
+        "lock": "quickchick.lock",
+        "package": "camlp-streams",
+        "locked": "5.0.1",
+        "newest_nonpreview_version_in_metadata": "5.0.1"
+      },
+      {
+        "lock": "quickchick.lock",
+        "package": "cmdliner",
+        "locked": "2.1.1",
+        "newest_nonpreview_version_in_metadata": "2.1.2"
+      },
+      {
+        "lock": "quickchick.lock",
+        "package": "conf-gmp",
+        "locked": "5",
+        "newest_nonpreview_version_in_metadata": "5"
+      },
+      {
+        "lock": "quickchick.lock",
+        "package": "conf-linux-libc-dev",
+        "locked": "0",
+        "newest_nonpreview_version_in_metadata": "0"
+      },
+      {
+        "lock": "quickchick.lock",
+        "package": "conf-pkg-config",
+        "locked": "5",
+        "newest_nonpreview_version_in_metadata": "5"
+      },
+      {
+        "lock": "quickchick.lock",
+        "package": "coq",
+        "locked": "9.3.0",
+        "newest_nonpreview_version_in_metadata": "9.3.0"
+      },
+      {
+        "lock": "quickchick.lock",
+        "package": "coq-core",
+        "locked": "9.3.0",
+        "newest_nonpreview_version_in_metadata": "9.3.0"
+      },
+      {
+        "lock": "quickchick.lock",
+        "package": "coq-ext-lib",
+        "locked": "0.13.2",
+        "newest_nonpreview_version_in_metadata": "0.13.2"
+      },
+      {
+        "lock": "quickchick.lock",
+        "package": "coq-mathcomp-ssreflect",
+        "locked": "2.6.0",
+        "newest_nonpreview_version_in_metadata": "2.6.0"
+      },
+      {
+        "lock": "quickchick.lock",
+        "package": "coq-quickchick",
+        "locked": "dev",
+        "newest_nonpreview_version_in_metadata": "2.2.0"
+      },
+      {
+        "lock": "quickchick.lock",
+        "package": "coq-simple-io",
+        "locked": "dev",
+        "newest_nonpreview_version_in_metadata": "1.11.0"
+      },
+      {
+        "lock": "quickchick.lock",
+        "package": "coqide-server",
+        "locked": "9.3.0",
+        "newest_nonpreview_version_in_metadata": "9.3.0"
+      },
+      {
+        "lock": "quickchick.lock",
+        "package": "cppo",
+        "locked": "1.8.0",
+        "newest_nonpreview_version_in_metadata": "1.8.0"
+      },
+      {
+        "lock": "quickchick.lock",
+        "package": "csexp",
+        "locked": "1.5.2",
+        "newest_nonpreview_version_in_metadata": "1.5.2"
+      },
+      {
+        "lock": "quickchick.lock",
+        "package": "dune",
+        "locked": "3.23.1",
+        "newest_nonpreview_version_in_metadata": "3.25.0"
+      },
+      {
+        "lock": "quickchick.lock",
+        "package": "dune-configurator",
+        "locked": "3.23.1",
+        "newest_nonpreview_version_in_metadata": "3.25.0"
+      },
+      {
+        "lock": "quickchick.lock",
+        "package": "easy-format",
+        "locked": "1.3.4",
+        "newest_nonpreview_version_in_metadata": "1.3.4"
+      },
+      {
+        "lock": "quickchick.lock",
+        "package": "elpi",
+        "locked": "3.7.3",
+        "newest_nonpreview_version_in_metadata": "4.1.1"
+      },
+      {
+        "lock": "quickchick.lock",
+        "package": "menhir",
+        "locked": "20260209",
+        "newest_nonpreview_version_in_metadata": "20260209"
+      },
+      {
+        "lock": "quickchick.lock",
+        "package": "menhirCST",
+        "locked": "20260209",
+        "newest_nonpreview_version_in_metadata": "20260209"
+      },
+      {
+        "lock": "quickchick.lock",
+        "package": "menhirGLR",
+        "locked": "20260209",
+        "newest_nonpreview_version_in_metadata": "20260209"
+      },
+      {
+        "lock": "quickchick.lock",
+        "package": "menhirLib",
+        "locked": "20260209",
+        "newest_nonpreview_version_in_metadata": "20260209"
+      },
+      {
+        "lock": "quickchick.lock",
+        "package": "menhirSdk",
+        "locked": "20260209",
+        "newest_nonpreview_version_in_metadata": "20260209"
+      },
+      {
+        "lock": "quickchick.lock",
+        "package": "ocaml",
+        "locked": "5.4.1",
+        "newest_nonpreview_version_in_metadata": "5.5.2"
+      },
+      {
+        "lock": "quickchick.lock",
+        "package": "ocaml-base-compiler",
+        "locked": "5.4.1",
+        "newest_nonpreview_version_in_metadata": "5.5.2"
+      },
+      {
+        "lock": "quickchick.lock",
+        "package": "ocaml-compiler",
+        "locked": "5.4.1",
+        "newest_nonpreview_version_in_metadata": "5.5.2+introcaml2"
+      },
+      {
+        "lock": "quickchick.lock",
+        "package": "ocaml-compiler-libs",
+        "locked": "v0.17.0",
+        "newest_nonpreview_version_in_metadata": "v0.17.0"
+      },
+      {
+        "lock": "quickchick.lock",
+        "package": "ocaml-config",
+        "locked": "3",
+        "newest_nonpreview_version_in_metadata": "3"
+      },
+      {
+        "lock": "quickchick.lock",
+        "package": "ocaml-options-vanilla",
+        "locked": "1",
+        "newest_nonpreview_version_in_metadata": "1"
+      },
+      {
+        "lock": "quickchick.lock",
+        "package": "ocaml_intrinsics_kernel",
+        "locked": "v0.17.2",
+        "newest_nonpreview_version_in_metadata": "v0.17.3"
+      },
+      {
+        "lock": "quickchick.lock",
+        "package": "ocamlbuild",
+        "locked": "0.16.1",
+        "newest_nonpreview_version_in_metadata": "0.16.1"
+      },
+      {
+        "lock": "quickchick.lock",
+        "package": "ocamlfind",
+        "locked": "1.9.8",
+        "newest_nonpreview_version_in_metadata": "1.9.8"
+      },
+      {
+        "lock": "quickchick.lock",
+        "package": "ppx_derivers",
+        "locked": "1.2.1",
+        "newest_nonpreview_version_in_metadata": "1.2.1"
+      },
+      {
+        "lock": "quickchick.lock",
+        "package": "ppx_deriving",
+        "locked": "6.2.0",
+        "newest_nonpreview_version_in_metadata": "6.2.0"
+      },
+      {
+        "lock": "quickchick.lock",
+        "package": "ppx_optcomp",
+        "locked": "v0.17.1",
+        "newest_nonpreview_version_in_metadata": "v0.17.1"
+      },
+      {
+        "lock": "quickchick.lock",
+        "package": "ppxlib",
+        "locked": "0.39.0",
+        "newest_nonpreview_version_in_metadata": "0.39.0"
+      },
+      {
+        "lock": "quickchick.lock",
+        "package": "re",
+        "locked": "1.14.0",
+        "newest_nonpreview_version_in_metadata": "1.14.0"
+      },
+      {
+        "lock": "quickchick.lock",
+        "package": "rocq-core",
+        "locked": "9.3.0",
+        "newest_nonpreview_version_in_metadata": "9.3.0"
+      },
+      {
+        "lock": "quickchick.lock",
+        "package": "rocq-elpi",
+        "locked": "3.5.1",
+        "newest_nonpreview_version_in_metadata": "3.7.0"
+      },
+      {
+        "lock": "quickchick.lock",
+        "package": "rocq-hierarchy-builder",
+        "locked": "1.10.3",
+        "newest_nonpreview_version_in_metadata": "1.10.4"
+      },
+      {
+        "lock": "quickchick.lock",
+        "package": "rocq-mathcomp-boot",
+        "locked": "2.6.0",
+        "newest_nonpreview_version_in_metadata": "2.6.0"
+      },
+      {
+        "lock": "quickchick.lock",
+        "package": "rocq-mathcomp-order",
+        "locked": "2.6.0",
+        "newest_nonpreview_version_in_metadata": "2.6.0"
+      },
+      {
+        "lock": "quickchick.lock",
+        "package": "rocq-mathcomp-ssreflect",
+        "locked": "2.6.0",
+        "newest_nonpreview_version_in_metadata": "2.6.0"
+      },
+      {
+        "lock": "quickchick.lock",
+        "package": "rocq-runtime",
+        "locked": "9.3.0",
+        "newest_nonpreview_version_in_metadata": "9.3.0"
+      },
+      {
+        "lock": "quickchick.lock",
+        "package": "rocq-stdlib",
+        "locked": "9.2.0",
+        "newest_nonpreview_version_in_metadata": "9.2.0"
+      },
+      {
+        "lock": "quickchick.lock",
+        "package": "sexplib0",
+        "locked": "v0.17.0",
+        "newest_nonpreview_version_in_metadata": "v0.17.0"
+      },
+      {
+        "lock": "quickchick.lock",
+        "package": "stdio",
+        "locked": "v0.17.0",
+        "newest_nonpreview_version_in_metadata": "v0.17.0"
+      },
+      {
+        "lock": "quickchick.lock",
+        "package": "stdlib-shims",
+        "locked": "0.3.0",
+        "newest_nonpreview_version_in_metadata": "0.3.0"
+      },
+      {
+        "lock": "quickchick.lock",
+        "package": "yojson",
+        "locked": "3.0.0",
+        "newest_nonpreview_version_in_metadata": "3.0.0"
+      },
+      {
+        "lock": "quickchick.lock",
+        "package": "zarith",
+        "locked": "1.14",
+        "newest_nonpreview_version_in_metadata": "1.14"
+      },
+      {
+        "lock": "rocq.lock",
+        "package": "base-bigarray",
+        "locked": "base",
+        "newest_nonpreview_version_in_metadata": "base"
+      },
+      {
+        "lock": "rocq.lock",
+        "package": "base-domains",
+        "locked": "base",
+        "newest_nonpreview_version_in_metadata": "base"
+      },
+      {
+        "lock": "rocq.lock",
+        "package": "base-effects",
+        "locked": "base",
+        "newest_nonpreview_version_in_metadata": "base"
+      },
+      {
+        "lock": "rocq.lock",
+        "package": "base-nnp",
+        "locked": "base",
+        "newest_nonpreview_version_in_metadata": "base"
+      },
+      {
+        "lock": "rocq.lock",
+        "package": "base-threads",
+        "locked": "base",
+        "newest_nonpreview_version_in_metadata": "base"
+      },
+      {
+        "lock": "rocq.lock",
+        "package": "base-unix",
+        "locked": "base",
+        "newest_nonpreview_version_in_metadata": "base"
+      },
+      {
+        "lock": "rocq.lock",
+        "package": "conf-gmp",
+        "locked": "5",
+        "newest_nonpreview_version_in_metadata": "5"
+      },
+      {
+        "lock": "rocq.lock",
+        "package": "conf-linux-libc-dev",
+        "locked": "0",
+        "newest_nonpreview_version_in_metadata": "0"
+      },
+      {
+        "lock": "rocq.lock",
+        "package": "conf-pkg-config",
+        "locked": "5",
+        "newest_nonpreview_version_in_metadata": "5"
+      },
+      {
+        "lock": "rocq.lock",
+        "package": "dune",
+        "locked": "3.24.2",
+        "newest_nonpreview_version_in_metadata": "3.25.0"
+      },
+      {
+        "lock": "rocq.lock",
+        "package": "ocaml",
+        "locked": "5.4.1",
+        "newest_nonpreview_version_in_metadata": "5.5.2"
+      },
+      {
+        "lock": "rocq.lock",
+        "package": "ocaml-base-compiler",
+        "locked": "5.4.1",
+        "newest_nonpreview_version_in_metadata": "5.5.2"
+      },
+      {
+        "lock": "rocq.lock",
+        "package": "ocaml-compiler",
+        "locked": "5.4.1",
+        "newest_nonpreview_version_in_metadata": "5.5.2+introcaml2"
+      },
+      {
+        "lock": "rocq.lock",
+        "package": "ocaml-config",
+        "locked": "3",
+        "newest_nonpreview_version_in_metadata": "3"
+      },
+      {
+        "lock": "rocq.lock",
+        "package": "ocaml-options-vanilla",
+        "locked": "1",
+        "newest_nonpreview_version_in_metadata": "1"
+      },
+      {
+        "lock": "rocq.lock",
+        "package": "ocamlfind",
+        "locked": "1.9.8",
+        "newest_nonpreview_version_in_metadata": "1.9.8"
+      },
+      {
+        "lock": "rocq.lock",
+        "package": "rocq-core",
+        "locked": "9.3.0",
+        "newest_nonpreview_version_in_metadata": "9.3.0"
+      },
+      {
+        "lock": "rocq.lock",
+        "package": "rocq-runtime",
+        "locked": "9.3.0",
+        "newest_nonpreview_version_in_metadata": "9.3.0"
+      },
+      {
+        "lock": "rocq.lock",
+        "package": "rocq-stdlib",
+        "locked": "9.2.0",
+        "newest_nonpreview_version_in_metadata": "9.2.0"
+      },
+      {
+        "lock": "rocq.lock",
+        "package": "rocq-stdpp",
+        "locked": "1.13.0",
+        "newest_nonpreview_version_in_metadata": "1.13.0"
+      },
+      {
+        "lock": "rocq.lock",
+        "package": "zarith",
+        "locked": "1.14",
+        "newest_nonpreview_version_in_metadata": "1.14"
+      },
+      {
+        "lock": "rupicola.lock",
+        "package": "base-bigarray",
+        "locked": "base",
+        "newest_nonpreview_version_in_metadata": "base"
+      },
+      {
+        "lock": "rupicola.lock",
+        "package": "base-domains",
+        "locked": "base",
+        "newest_nonpreview_version_in_metadata": "base"
+      },
+      {
+        "lock": "rupicola.lock",
+        "package": "base-effects",
+        "locked": "base",
+        "newest_nonpreview_version_in_metadata": "base"
+      },
+      {
+        "lock": "rupicola.lock",
+        "package": "base-nnp",
+        "locked": "base",
+        "newest_nonpreview_version_in_metadata": "base"
+      },
+      {
+        "lock": "rupicola.lock",
+        "package": "base-threads",
+        "locked": "base",
+        "newest_nonpreview_version_in_metadata": "base"
+      },
+      {
+        "lock": "rupicola.lock",
+        "package": "base-unix",
+        "locked": "base",
+        "newest_nonpreview_version_in_metadata": "base"
+      },
+      {
+        "lock": "rupicola.lock",
+        "package": "conf-findutils",
+        "locked": "1",
+        "newest_nonpreview_version_in_metadata": "1"
+      },
+      {
+        "lock": "rupicola.lock",
+        "package": "conf-gmp",
+        "locked": "5",
+        "newest_nonpreview_version_in_metadata": "5"
+      },
+      {
+        "lock": "rupicola.lock",
+        "package": "conf-linux-libc-dev",
+        "locked": "0",
+        "newest_nonpreview_version_in_metadata": "0"
+      },
+      {
+        "lock": "rupicola.lock",
+        "package": "conf-pkg-config",
+        "locked": "5",
+        "newest_nonpreview_version_in_metadata": "5"
+      },
+      {
+        "lock": "rupicola.lock",
+        "package": "coq",
+        "locked": "9.2.0",
+        "newest_nonpreview_version_in_metadata": "9.3.0"
+      },
+      {
+        "lock": "rupicola.lock",
+        "package": "coq-bedrock2",
+        "locked": "0.0.9",
+        "newest_nonpreview_version_in_metadata": "0.0.9"
+      },
+      {
+        "lock": "rupicola.lock",
+        "package": "coq-bedrock2-compiler",
+        "locked": "0.0.9",
+        "newest_nonpreview_version_in_metadata": "0.0.9"
+      },
+      {
+        "lock": "rupicola.lock",
+        "package": "coq-coqutil",
+        "locked": "0.0.7",
+        "newest_nonpreview_version_in_metadata": "0.0.7"
+      },
+      {
+        "lock": "rupicola.lock",
+        "package": "coq-core",
+        "locked": "9.2.0",
+        "newest_nonpreview_version_in_metadata": "9.3.0"
+      },
+      {
+        "lock": "rupicola.lock",
+        "package": "coq-riscv",
+        "locked": "0.0.6",
+        "newest_nonpreview_version_in_metadata": "0.0.6"
+      },
+      {
+        "lock": "rupicola.lock",
+        "package": "coq-rupicola",
+        "locked": "0.0.11",
+        "newest_nonpreview_version_in_metadata": "0.0.11"
+      },
+      {
+        "lock": "rupicola.lock",
+        "package": "coqide-server",
+        "locked": "9.2.0",
+        "newest_nonpreview_version_in_metadata": "9.3.0"
+      },
+      {
+        "lock": "rupicola.lock",
+        "package": "dune",
+        "locked": "3.23.1",
+        "newest_nonpreview_version_in_metadata": "3.25.0"
+      },
+      {
+        "lock": "rupicola.lock",
+        "package": "ocaml",
+        "locked": "5.4.1",
+        "newest_nonpreview_version_in_metadata": "5.5.2"
+      },
+      {
+        "lock": "rupicola.lock",
+        "package": "ocaml-base-compiler",
+        "locked": "5.4.1",
+        "newest_nonpreview_version_in_metadata": "5.5.2"
+      },
+      {
+        "lock": "rupicola.lock",
+        "package": "ocaml-compiler",
+        "locked": "5.4.1",
+        "newest_nonpreview_version_in_metadata": "5.5.2+introcaml2"
+      },
+      {
+        "lock": "rupicola.lock",
+        "package": "ocaml-config",
+        "locked": "3",
+        "newest_nonpreview_version_in_metadata": "3"
+      },
+      {
+        "lock": "rupicola.lock",
+        "package": "ocaml-options-vanilla",
+        "locked": "1",
+        "newest_nonpreview_version_in_metadata": "1"
+      },
+      {
+        "lock": "rupicola.lock",
+        "package": "ocamlfind",
+        "locked": "1.9.8",
+        "newest_nonpreview_version_in_metadata": "1.9.8"
+      },
+      {
+        "lock": "rupicola.lock",
+        "package": "rocq-core",
+        "locked": "9.2.0",
+        "newest_nonpreview_version_in_metadata": "9.3.0"
+      },
+      {
+        "lock": "rupicola.lock",
+        "package": "rocq-runtime",
+        "locked": "9.2.0",
+        "newest_nonpreview_version_in_metadata": "9.3.0"
+      },
+      {
+        "lock": "rupicola.lock",
+        "package": "rocq-stdlib",
+        "locked": "9.2.0",
+        "newest_nonpreview_version_in_metadata": "9.2.0"
+      },
+      {
+        "lock": "rupicola.lock",
+        "package": "zarith",
+        "locked": "1.14",
+        "newest_nonpreview_version_in_metadata": "1.14"
+      },
+      {
+        "lock": "sail.lock",
+        "package": "base-bigarray",
+        "locked": "base",
+        "newest_nonpreview_version_in_metadata": "base"
+      },
+      {
+        "lock": "sail.lock",
+        "package": "base-bytes",
+        "locked": "base",
+        "newest_nonpreview_version_in_metadata": "base"
+      },
+      {
+        "lock": "sail.lock",
+        "package": "base-domains",
+        "locked": "base",
+        "newest_nonpreview_version_in_metadata": "base"
+      },
+      {
+        "lock": "sail.lock",
+        "package": "base-effects",
+        "locked": "base",
+        "newest_nonpreview_version_in_metadata": "base"
+      },
+      {
+        "lock": "sail.lock",
+        "package": "base-nnp",
+        "locked": "base",
+        "newest_nonpreview_version_in_metadata": "base"
+      },
+      {
+        "lock": "sail.lock",
+        "package": "base-threads",
+        "locked": "base",
+        "newest_nonpreview_version_in_metadata": "base"
+      },
+      {
+        "lock": "sail.lock",
+        "package": "base-unix",
+        "locked": "base",
+        "newest_nonpreview_version_in_metadata": "base"
+      },
+      {
+        "lock": "sail.lock",
+        "package": "base64",
+        "locked": "3.5.2",
+        "newest_nonpreview_version_in_metadata": "3.5.2"
+      },
+      {
+        "lock": "sail.lock",
+        "package": "conf-findutils",
+        "locked": "1",
+        "newest_nonpreview_version_in_metadata": "1"
+      },
+      {
+        "lock": "sail.lock",
+        "package": "conf-gmp",
+        "locked": "5",
+        "newest_nonpreview_version_in_metadata": "5"
+      },
+      {
+        "lock": "sail.lock",
+        "package": "conf-pkg-config",
+        "locked": "5",
+        "newest_nonpreview_version_in_metadata": "5"
+      },
+      {
+        "lock": "sail.lock",
+        "package": "csexp",
+        "locked": "1.5.2",
+        "newest_nonpreview_version_in_metadata": "1.5.2"
+      },
+      {
+        "lock": "sail.lock",
+        "package": "dune",
+        "locked": "3.24.2",
+        "newest_nonpreview_version_in_metadata": "3.25.0"
+      },
+      {
+        "lock": "sail.lock",
+        "package": "dune-private-libs",
+        "locked": "3.24.2",
+        "newest_nonpreview_version_in_metadata": "3.25.0"
+      },
+      {
+        "lock": "sail.lock",
+        "package": "dune-site",
+        "locked": "3.24.2",
+        "newest_nonpreview_version_in_metadata": "3.25.0"
+      },
+      {
+        "lock": "sail.lock",
+        "package": "dyn",
+        "locked": "3.24.2",
+        "newest_nonpreview_version_in_metadata": "3.25.0"
+      },
+      {
+        "lock": "sail.lock",
+        "package": "fs-io",
+        "locked": "3.24.2",
+        "newest_nonpreview_version_in_metadata": "3.25.0"
+      },
+      {
+        "lock": "sail.lock",
+        "package": "lem",
+        "locked": "2026-05-01",
+        "newest_nonpreview_version_in_metadata": "2026-05-01"
+      },
+      {
+        "lock": "sail.lock",
+        "package": "libsail",
+        "locked": "0.20.3",
+        "newest_nonpreview_version_in_metadata": "0.20.3"
+      },
+      {
+        "lock": "sail.lock",
+        "package": "linenoise",
+        "locked": "1.5.1",
+        "newest_nonpreview_version_in_metadata": "1.5.1"
+      },
+      {
+        "lock": "sail.lock",
+        "package": "linksem",
+        "locked": "0.8",
+        "newest_nonpreview_version_in_metadata": "0.8"
+      },
+      {
+        "lock": "sail.lock",
+        "package": "menhir",
+        "locked": "20260209",
+        "newest_nonpreview_version_in_metadata": "20260209"
+      },
+      {
+        "lock": "sail.lock",
+        "package": "menhirCST",
+        "locked": "20260209",
+        "newest_nonpreview_version_in_metadata": "20260209"
+      },
+      {
+        "lock": "sail.lock",
+        "package": "menhirGLR",
+        "locked": "20260209",
+        "newest_nonpreview_version_in_metadata": "20260209"
+      },
+      {
+        "lock": "sail.lock",
+        "package": "menhirLib",
+        "locked": "20260209",
+        "newest_nonpreview_version_in_metadata": "20260209"
+      },
+      {
+        "lock": "sail.lock",
+        "package": "menhirSdk",
+        "locked": "20260209",
+        "newest_nonpreview_version_in_metadata": "20260209"
+      },
+      {
+        "lock": "sail.lock",
+        "package": "num",
+        "locked": "1.6",
+        "newest_nonpreview_version_in_metadata": "1.6"
+      },
+      {
+        "lock": "sail.lock",
+        "package": "ocaml",
+        "locked": "5.4.1",
+        "newest_nonpreview_version_in_metadata": "5.5.2"
+      },
+      {
+        "lock": "sail.lock",
+        "package": "ocaml-base-compiler",
+        "locked": "5.4.1",
+        "newest_nonpreview_version_in_metadata": "5.5.2"
+      },
+      {
+        "lock": "sail.lock",
+        "package": "ocaml-compiler",
+        "locked": "5.4.1",
+        "newest_nonpreview_version_in_metadata": "5.5.2+introcaml2"
+      },
+      {
+        "lock": "sail.lock",
+        "package": "ocaml-config",
+        "locked": "3",
+        "newest_nonpreview_version_in_metadata": "3"
+      },
+      {
+        "lock": "sail.lock",
+        "package": "ocaml-options-vanilla",
+        "locked": "1",
+        "newest_nonpreview_version_in_metadata": "1"
+      },
+      {
+        "lock": "sail.lock",
+        "package": "ocamlbuild",
+        "locked": "0.16.1",
+        "newest_nonpreview_version_in_metadata": "0.16.1"
+      },
+      {
+        "lock": "sail.lock",
+        "package": "ocamlfind",
+        "locked": "1.9.8",
+        "newest_nonpreview_version_in_metadata": "1.9.8"
+      },
+      {
+        "lock": "sail.lock",
+        "package": "ocamlgraph",
+        "locked": "2.2.0",
+        "newest_nonpreview_version_in_metadata": "2.2.0"
+      },
+      {
+        "lock": "sail.lock",
+        "package": "omd",
+        "locked": "1.3.2",
+        "newest_nonpreview_version_in_metadata": "1.3.2"
+      },
+      {
+        "lock": "sail.lock",
+        "package": "ordering",
+        "locked": "3.24.2",
+        "newest_nonpreview_version_in_metadata": "3.25.0"
+      },
+      {
+        "lock": "sail.lock",
+        "package": "ott",
+        "locked": "0.34",
+        "newest_nonpreview_version_in_metadata": "0.34"
+      },
+      {
+        "lock": "sail.lock",
+        "package": "pp",
+        "locked": "2.0.0",
+        "newest_nonpreview_version_in_metadata": "2.0.0"
+      },
+      {
+        "lock": "sail.lock",
+        "package": "pprint",
+        "locked": "20230830",
+        "newest_nonpreview_version_in_metadata": "20230830"
+      },
+      {
+        "lock": "sail.lock",
+        "package": "sail",
+        "locked": "0.20.3",
+        "newest_nonpreview_version_in_metadata": "0.20.3"
+      },
+      {
+        "lock": "sail.lock",
+        "package": "sail_c_backend",
+        "locked": "0.20.3",
+        "newest_nonpreview_version_in_metadata": "0.20.3"
+      },
+      {
+        "lock": "sail.lock",
+        "package": "sail_coq_backend",
+        "locked": "0.20.3",
+        "newest_nonpreview_version_in_metadata": "0.20.3"
+      },
+      {
+        "lock": "sail.lock",
+        "package": "sail_doc_backend",
+        "locked": "0.20.3",
+        "newest_nonpreview_version_in_metadata": "0.20.3"
+      },
+      {
+        "lock": "sail.lock",
+        "package": "sail_latex_backend",
+        "locked": "0.20.3",
+        "newest_nonpreview_version_in_metadata": "0.20.3"
+      },
+      {
+        "lock": "sail.lock",
+        "package": "sail_lean_backend",
+        "locked": "0.20.3",
+        "newest_nonpreview_version_in_metadata": "0.20.3"
+      },
+      {
+        "lock": "sail.lock",
+        "package": "sail_lem_backend",
+        "locked": "0.20.3",
+        "newest_nonpreview_version_in_metadata": "0.20.3"
+      },
+      {
+        "lock": "sail.lock",
+        "package": "sail_maker",
+        "locked": "0.20.3",
+        "newest_nonpreview_version_in_metadata": "0.20.3"
+      },
+      {
+        "lock": "sail.lock",
+        "package": "sail_ocaml_backend",
+        "locked": "0.20.3",
+        "newest_nonpreview_version_in_metadata": "0.20.3"
+      },
+      {
+        "lock": "sail.lock",
+        "package": "sail_output",
+        "locked": "0.20.3",
+        "newest_nonpreview_version_in_metadata": "0.20.3"
+      },
+      {
+        "lock": "sail.lock",
+        "package": "sail_smt_backend",
+        "locked": "0.20.3",
+        "newest_nonpreview_version_in_metadata": "0.20.3"
+      },
+      {
+        "lock": "sail.lock",
+        "package": "sail_sv_backend",
+        "locked": "0.20.3",
+        "newest_nonpreview_version_in_metadata": "0.20.3"
+      },
+      {
+        "lock": "sail.lock",
+        "package": "stdune",
+        "locked": "3.24.2",
+        "newest_nonpreview_version_in_metadata": "3.25.0"
+      },
+      {
+        "lock": "sail.lock",
+        "package": "top-closure",
+        "locked": "3.24.2",
+        "newest_nonpreview_version_in_metadata": "3.25.0"
+      },
+      {
+        "lock": "sail.lock",
+        "package": "yojson",
+        "locked": "3.0.0",
+        "newest_nonpreview_version_in_metadata": "3.0.0"
+      },
+      {
+        "lock": "sail.lock",
+        "package": "zarith",
+        "locked": "1.14",
+        "newest_nonpreview_version_in_metadata": "1.14"
+      }
+    ]
+  },
+  "candidate_license_readings": {
+    "QuickChick": {
+      "commit": "3e9d210807ed7f4185ed04e2d7900cf64d5184a6",
+      "url": "https://github.com/QuickChick/QuickChick/tree/3e9d210807ed7f4185ed04e2d7900cf64d5184a6",
+      "license": "MIT",
+      "license_file": "LICENSE",
+      "license_sha256": "6010f188d0030246256c850749c34754b1014a5171316173258530d515965031",
+      "note": "Byte-identical LICENSE to qualified commit 3d4d6c0e and prior candidate 2b625770; 7 commits since 2b625770 add no new third-party notices."
+    },
+    "coq-simple-io": {
+      "commit": "5c70625af00af6182817e490d93247cdefbed2e1",
+      "url": "https://github.com/Lysxia/rocq-simple-io/tree/5c70625af00af6182817e490d93247cdefbed2e1",
+      "license": "MIT",
+      "license_file": "LICENSE",
+      "license_sha256": "1b4f292e1d0dd5bc383a146f9234f382f8bf7533b56d26af0ed37046d07fd69d",
+      "note": "Retained before 8cedb0c8 / rocq-simple-io 1.12.0 because 1.12.0 renames the opam package to rocq-simple-io while coq-quickchick.opam still requires coq-simple-io."
+    },
+    "ocaml_intrinsics_kernel.v0.17.3": {
+      "url": "https://github.com/janestreet/ocaml_intrinsics_kernel/archive/refs/tags/v0.17.3.tar.gz",
+      "archive_sha256": "2a967316c51b0f3fec37f42f43b362d87d9ae536ce98e0e921a65c8bbc83cd85",
+      "license": "MIT",
+      "license_file": "LICENSE.md",
+      "license_sha256": "1a28723500e43570896146ec235d4b11f70987ab4ef665a273b60207ebc73eea"
+    },
+    "dune.3.25.0": {
+      "url": "https://github.com/ocaml/dune/releases/download/3.25.0/dune-3.25.0.tbz",
+      "archive_sha256": "1d706779fa8405769a1ae667e4baaf4220ed87ec9d8be9d4fea0cf75bd79013b",
+      "archive_sha512": "5a03cac721d558b75d68888be0fab149bff7dd3e21a42ea7ac127e44d82b1d6b0454eb4fc9d2395815c5faecd66d4b553e6226508b788bd5a60530b457ecbd19",
+      "license": "MIT",
+      "license_file": "LICENSE.md",
+      "license_sha256": "7a9971a9f7b19a18568a7a2758573a989830947969506f5a59b657bbfc17abca"
+    },
+    "rocq-elpi.3.7.0": {
+      "url": "https://github.com/LPCIC/coq-elpi/releases/download/v3.7.0/rocq-elpi-3.7.0.tar.gz",
+      "archive_sha256": "56c8279b16fdc01d972aab28bbe672a3c93067d497cde98884d8305ea65a6a5a",
+      "archive_sha512": "bed6f5b8b3b4321c2fcfe980dc8306b4aeca91f2d53866f360d6face42e24079a27fbdc41c3f8a79716f3690487c063d1379660170eec9835cf115e631d651d6",
+      "license": "LGPL-2.1-or-later",
+      "license_file": "LICENSE",
+      "license_sha256": "9b872a8a070b8ad329c4bd380fb1bf0000f564c75023ec8e1e6803f15364b9e9"
+    },
+    "elpi.4.1.1": {
+      "url": "https://github.com/LPCIC/elpi/releases/download/v4.1.1/elpi-4.1.1.tbz",
+      "archive_sha256": "07cdb4d333e627e57644ee45e43edfaa4a201d21efafd8922e8e5e0d4649fb68",
+      "archive_sha512": "f2ca177be3eb449c79b184f84bbde4f4a29ffa8ccda727db9411ad700120515cee3ee7374be2ec42815b6f76993c1843615a2e6becb64621483ddb7b4c4da33c",
+      "license": "LGPL-2.1-or-later",
+      "license_file": "LICENSE",
+      "license_sha256": "2403020ec1fa1ada91cdffb14cc48251088c20e4d2cd4c70081c0f1d0fb10e30"
+    },
+    "rocq-hierarchy-builder.1.10.4": {
+      "url": "https://github.com/math-comp/hierarchy-builder/releases/download/v1.10.4/hierarchy-builder-1.10.4.tar.gz",
+      "archive_sha256": "3c2aef7e13c548190c4a36d2e155dcaa3bd82acb9fe8c99ca98210d76484bc3d",
+      "archive_sha512": "1618c15dd4e9109c55e9858d597ea48efb376be31aa7d01ef51610adbfb875224170980dc81dec6a9bffbafdfd41c29098fbe15fcb04c3820f7e6c0f4b4e56e5",
+      "license": "MIT",
+      "license_file": "LICENSE",
+      "license_sha256": "f9c4c77baa3828004ee54b8a4f2db2e88ed44a6237a493965bf551fac0fcb62d"
+    },
+    "cmdliner.2.1.2": {
+      "url": "https://erratique.ch/software/cmdliner/releases/cmdliner-2.1.2.tbz",
+      "archive_sha256": "8395e62005624c31c9f72d0e6884d5c96fec6bf2c5e8de8bf7e84b75d6628b9d",
+      "archive_sha512": "6cc3c116d748d3f97f9a0b2f06ee645df9c09d2042b73d8f8114a5cb030ce99a2149acda6cc0886e0a3f7776152b50f49337fdf5603a387acb2b6a85b8c5bccf",
+      "license": "ISC",
+      "license_file": "LICENSE.md",
+      "license_sha256": "deb8445a08c3a4fe46462e3b58f863782476d45bc762ca386a4c74bc01ef02c8"
+    },
+    "ocaml-version.4.1.6": {
+      "url": "https://github.com/ocurrent/ocaml-version/releases/download/v4.1.6/ocaml-version-4.1.6.tbz",
+      "archive_sha256": "da7530e7debf782d3d337014bdc2d3f27690e769141a4bebaea203f4b157c99f",
+      "archive_sha512": "173b4cb9ba4ce1999c5d36e720f6df01c2eb8c3e724f4fa8536566049f447627e42a69dedb38468a2036b5e77eb98597ccfc77dc9d9077d2ed6cb58148cc3ae2",
+      "license": "ISC",
+      "license_file": "LICENSE.md",
+      "license_sha256": "ff39345135a4aa7cf87c00045bd0929131e1ebbfe7e1a8f35d3c79bdb3c5fed8"
+    },
+    "ocaml-base-compiler.4.14.5": {
+      "url": "https://github.com/ocaml/ocaml/releases/download/4.14.5/ocaml_4.14.5.tar.gz",
+      "archive_sha256": "608c30e5b97fc4568741db8e5e674a5a081ef08a3c4d17172deb1dc6c8825037",
+      "archive_sha512": "6ae3fdecb17c427645a11aa72d0890647f0f53334ff7692f0946a5a736d6802b783afac967c9fedef9a449527d9f6a8d803d2ffabb83752e4960c028e81d605d",
+      "license": "LGPL-2.1-or-later WITH OCaml-LGPL-linking-exception",
+      "license_file": "LICENSE",
+      "license_sha256": "65f47d3bf5a921011ac7fa30f23d54f9dffbe7683921eeb116d5ce8dc26ff0c1",
+      "note": "runtime/caml/mlvalues.h retains the macro definition of Hd_val required by CertiRocq 0.9.1+9.1."
+    },
+    "rocq-equations.1.3.2+9.3": {
+      "url": "https://github.com/mattam82/Coq-Equations/archive/refs/tags/v1.3.2-9.3.tar.gz",
+      "archive_sha256": "6365789af331b4b87fd2348bff93144baaa4faf43906388dc0706bf8223c89f7",
+      "archive_sha512": "e007377a5cafaad39442fcccdf796bb88a5746505a8fe781e13271b6cce174a0cefe4f22c8f4b1ecf9945450d3554f44f5819c535892b05f0511758ab05d6d68",
+      "license": "LGPL-2.1-only",
+      "license_file": "LICENSE",
+      "license_sha256": "d4594b82f4d50840df6a7e9d14132a8c0a3cc05d0ac46d15310a264a1f75447e"
+    }
+  },
+  "rocq_9_3_upstream_status": {
+    "rocq-core": {
+      "latest_released": "9.3.0",
+      "supports_rocq_9_3_0": true,
+      "notes": "Proof, QuickChick, and contained-compiler switches already lock 9.3.0."
+    },
+    "rocq-stdlib": {
+      "latest_released": "9.2.0",
+      "supports_rocq_9_3_0": true,
+      "notes": "Admits rocq-core >= 9.1 & < 9.4~; locked at 9.2.0."
+    },
+    "rocq-stdpp": {
+      "latest_released": "1.13.0",
+      "supports_rocq_9_3_0": true,
+      "notes": "Admits rocq-core >= 9.0 & < 9.4~; locked at 1.13.0."
+    },
+    "rocq-sail-stdpp": {
+      "latest_released": "0.20.3",
+      "supports_rocq_9_3_0": false,
+      "notes": "Published opam metadata caps rocq-core < 9.3~; PR #14 open upstream."
+    },
+    "coq-quickchick": {
+      "latest_released": "2.2.0",
+      "supports_rocq_9_3_0": false,
+      "notes": "Latest release 2.2.0 blocked by coq-simple-io < 9.2~; candidate recipe pins commit 3e9d210807ed7f4185ed04e2d7900cf64d5184a6."
+    },
+    "coq-simple-io": {
+      "latest_released": "1.11.0 (coq-simple-io) / 1.12.0 (rocq-simple-io)",
+      "supports_rocq_9_3_0": false,
+      "notes": "rocq-simple-io 1.12.0 admits rocq-core < 9.4 but renames the opam package; coq-quickchick.opam still depends on coq-simple-io, so recipe retains commit 5c70625af00af6182817e490d93247cdefbed2e1."
+    },
+    "coq-ext-lib": {
+      "latest_released": "0.13.2",
+      "supports_rocq_9_3_0": true,
+      "notes": "Admits coq >= 8.11; locked at 0.13.2."
+    },
+    "rocq-elpi": {
+      "latest_released": "3.7.0",
+      "supports_rocq_9_3_0": true,
+      "notes": "Admits rocq-core >= 9.0+rc1 & < 9.4~, elpi >= 4.1.1 & < 4.2.0~, and dune >= 3.21 (removing the dune < 3.24 cap)."
+    },
+    "elpi": {
+      "latest_released": "4.1.1",
+      "supports_rocq_9_3_0": true,
+      "notes": "Unblocked alongside rocq-elpi 3.7.0."
+    },
+    "rocq-hierarchy-builder": {
+      "latest_released": "1.10.4",
+      "supports_rocq_9_3_0": true,
+      "notes": "Admits rocq-core >= 9.1 & < 9.4~ and rocq-elpi >= 3."
+    },
+    "rocq-mathcomp-ssreflect": {
+      "latest_released": "2.6.0",
+      "supports_rocq_9_3_0": true,
+      "notes": "Locked at 2.6.0 in quickchick.lock."
+    },
+    "rocq-equations": {
+      "latest_released": "1.3.2+9.3",
+      "supports_rocq_9_3_0": true,
+      "notes": "Published in rocq-released admitting rocq-core >= 9.3~ & < 9.4~."
+    },
+    "rocq-metarocq-common": {
+      "latest_released": "1.5.1+9.2",
+      "supports_rocq_9_3_0": false,
+      "notes": "No +9.3 opam release published yet; 9.3 branch exists upstream."
+    },
+    "coq-wasm": {
+      "latest_released": "2.2.1",
+      "supports_rocq_9_3_0": false,
+      "notes": "Published metadata caps coq < 9.3~; PR #94 open upstream."
+    },
+    "coq-menhirlib": {
+      "latest_released": "20260209",
+      "supports_rocq_9_3_0": false,
+      "notes": "Published metadata caps coq < 9.3; upstream commit 6dedce5 fixes late Proof commands."
+    },
+    "rocq-certirocq": {
+      "latest_released": "0.9.1+9.1",
+      "supports_rocq_9_3_0": false,
+      "notes": "Published metadata caps rocq-core < 9.2~ and coq-wasm = 2.2.0; PR #159 open upstream."
+    },
+    "coq-coqutil / coq-bedrock2 / coq-rupicola": {
+      "latest_released": "0.0.7 / 0.0.9 / 0.0.11",
+      "supports_rocq_9_3_0": false,
+      "notes": "No new releases since 2025-10-06; coq-bedrock2 0.0.9 fails under Rocq 9.3.0; rupicola PR #235 open upstream."
+    },
+    "coq-record-update": {
+      "latest_released": "0.3.6 (opam) / v0.3.7 (tag)",
+      "supports_rocq_9_3_0": true,
+      "notes": "Opam 0.3.6 admits rocq-core < 9.4; private qualification uses master commit e0dc9f89edabd9f43370fcf29252aaf5dd391c84 for strict notation compatibility."
+    },
+    "ocamlfind": {
+      "latest_released": "1.9.8 (stable)",
+      "supports_rocq_9_3_0": true,
+      "notes": "1.9.9~preview has avoid-version; 1.9.8 caps ocaml < 5.5.0~, retaining OCaml 5.4.1."
+    },
+    "ocaml-base-compiler": {
+      "latest_released": "5.5.2 (5.x) / 4.14.5 (4.14.x)",
+      "supports_rocq_9_3_0": true,
+      "notes": "5.4.1 retained by ocamlfind 1.9.8; 4.14.5 is compatible with CertiRocq and contained-compiler switches."
+    },
+    "dune": {
+      "latest_released": "3.25.0",
+      "supports_rocq_9_3_0": true,
+      "notes": "Compatible with Rocq 9.3.0 switches (rocq.lock, quickchick recipe, contained-compiler.lock) and sail.lock; excluded from 9.1.1 and 9.2.0 switches because rocq-runtime < 9.3 caps dune < 3.24."
+    }
+  }
+}

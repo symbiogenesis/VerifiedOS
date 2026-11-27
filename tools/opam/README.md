@@ -161,32 +161,39 @@ To refresh a resolution, update repository metadata, review `opam upgrade --swit
 
 ## Rocq dependency refresh
 
-The current upstream review is dated 2026-11-08. Released metadata was read at
+The current upstream review is dated 2026-11-27. Released metadata was read at
 opam-repository revision
-[`76e3d586`](https://github.com/ocaml/opam-repository/tree/76e3d58643dea3b2867c8811b8aacf30a4417c05/packages)
+[`f23eddce`](https://github.com/ocaml/opam-repository/tree/f23eddce580789b915c0a29ed3b90a3f8c8e214d/packages)
 and rocq-released revision
-[`06733fd8`](https://github.com/rocq-prover/opam/tree/06733fd8dcbd7ca2e61bc38c72d6062a52f20d57/released/packages).
+[`d8e26478`](https://github.com/rocq-prover/opam/tree/d8e264789b0dd225a865ea6c923b0f75b82ad93f/released/packages).
 Rocq, Stdlib, stdpp, ExtLib, CertiRocq and the released lowering packages remain
 at the versions above. The qualified snapshots retain their 2026-10-19 evidence.
-The [package enumeration](../../docs/implementation/evidence/dependency-refresh-20261108.json)
+The [package enumeration](../../docs/implementation/evidence/rocq-dependency-refresh-20261127.json)
 records every installed lock entry against those metadata revisions. It is a
 source review, with availability and consumer constraints still applicable, and
 supplies no new resolver, build or kernel verdict. The QuickChick candidate moves
-to the latest `master` commit below; Q45 retains qualification and production-lock
-adoption.
+to the latest `master` commit and unblocked dune/elpi closure below; Q45 retains
+qualification and production-lock adoption.
 
 The next QuickChick recipe selects QuickChick commit
-`2b625770f22a7c0bfd1d5d812593eccfd6ef2034`, simple-io commit
-`5c70625af00af6182817e490d93247cdefbed2e1` and
+`3e9d210807ed7f4185ed04e2d7900cf64d5184a6`, simple-io commit
+`5c70625af00af6182817e490d93247cdefbed2e1`, `dune.3.25.0`, and
 `ocaml_intrinsics_kernel.v0.17.3`. Keep Rocq 9.3.0, OCaml 5.4.1, findlib 1.9.8,
-Stdlib 9.2.0, dune 3.23.1 and ExtLib 0.13.2. The source comparisons for
-[QuickChick](https://github.com/QuickChick/QuickChick/compare/3d4d6c0e9f72172a9f0b26db61c5496ec8e0f568...2b625770f22a7c0bfd1d5d812593eccfd6ef2034)
+Stdlib 9.2.0 and ExtLib 0.13.2. Released `rocq-elpi` 3.7.0 and `elpi` 4.1.1
+remove the `dune < 3.24` cap, allowing `dune` 3.25.0 alongside
+`rocq-hierarchy-builder` 1.10.4 and `cmdliner` 2.1.2. The source comparison for
+[QuickChick](https://github.com/QuickChick/QuickChick/compare/3d4d6c0e9f72172a9f0b26db61c5496ec8e0f568...3e9d210807ed7f4185ed04e2d7900cf64d5184a6)
 and [simple-io](https://github.com/Lysxia/rocq-simple-io/compare/d035c0a85f0bde4ad56c31a9fa9ef3cb5e8d0f18...5c70625af00af6182817e490d93247cdefbed2e1)
-retain the old APIs below Rocq 9.4 through version guards. Simple-io also
-propagates the universe state returned by `interp_constr`; qualification must
-exercise polymorphic extraction as well as the existing property harness.
-Static review supplies no build verdict. Selected license readings belong to
-[the third-party ledger](../../THIRD-PARTY.md#development-tools-contained-by-use).
+retain the old APIs below Rocq 9.4 through version guards, and QuickChick fixes
+`Nat.sub`, `Hexadecimal.int` and `Number.int` extraction. Although
+`Lysxia/rocq-simple-io` published `rocq-simple-io` 1.12.0 admitting `rocq-core <
+9.4`, commit `8cedb0c8` renames its opam package from `coq-simple-io` to
+`rocq-simple-io`, whereas `coq-quickchick.opam` still requires `coq-simple-io >=
+1.6.0`; the recipe therefore stays at `5c70625af00af6182817e490d93247cdefbed2e1`.
+Simple-io also propagates the universe state returned by `interp_constr`;
+qualification must exercise polymorphic extraction as well as the existing
+property harness. Static review supplies no build verdict. Selected license
+readings belong to [the third-party ledger](../../THIRD-PARTY.md#development-tools-contained-by-use).
 
 Before moving recipe pins, ordinary checks and provisioning must recognize
 the qualified lock's source, while `--recipe` recognizes only the candidate's
@@ -198,23 +205,37 @@ the qualified lock. Only that passing run's export replaces the lock. Stop on
 a changed statement, assumption, unsupported API or failed property. Compatible
 released packages retire the source pins under the existing rule.
 
-CertiRocq's compatible transitive candidate is `ocaml-version.4.1.5`. Trial it
-in a private native switch imported from `certirocq.lock`, preserving the
-compiler invariant and every other version, using
-`opam upgrade --switch=SWITCH ocaml-version.4.1.5`. Require an actual successful
-export, unchanged demo and IPC kernel/Wasm answers, the negative IPC control,
-exact consumer assumptions, recursive kernel checks, an independent clean
-import and the [complete-vector comparison](../wasm-oracle/README.md#the-purecap-counterpart-ipc_oraclec-m12f)
+CertiRocq's compatible transitive candidates in its Rocq 9.1.1 / OCaml 4.14
+closure are `ocaml-base-compiler.4.14.5` (whose `runtime/caml/mlvalues.h` keeps
+`Hd_val` as a macro), `ocaml-version.4.1.6`, `cmdliner.2.1.2`,
+`rocq-elpi.3.7.0`, `elpi.4.1.1`, and `rocq-hierarchy-builder.1.10.4`
+(`rocq-runtime.9.1.1` still caps `dune < 3.24`). Trial them in a private native
+switch imported from `certirocq.lock`, preserving the `4.14` compiler lineage
+and every bounded version. Require an actual successful export, unchanged demo
+and IPC kernel/Wasm answers, the negative IPC control, exact consumer
+assumptions, recursive kernel checks, an independent clean import and the
+[complete-vector comparison](../wasm-oracle/README.md#the-purecap-counterpart-ipc_oraclec-m12f)
 before replacing that snapshot. This does not resume the deferred bootstrap
 backport or the Rocq 9.3 compatibility trial.
 
+For the other snapshots, `dune.3.25.0` is compatible with `rocq.lock`,
+`sail.lock`, and `contained-compiler.lock` (alongside `ocaml-base-compiler.4.14.5`
+for `contained-compiler.lock`), while `rupicola.lock` has no compatible upgrades
+because `rocq-runtime.9.2.0` caps `dune < 3.24` and no lowering package has a
+new release since 2025-10-06. All production snapshots remain unchanged pending
+their hosted or consumer acceptance gates.
+
 Retained versions have concrete constraints: CertiRocq's
-[published metadata](https://github.com/rocq-prover/opam/blob/06733fd8dcbd7ca2e61bc38c72d6062a52f20d57/released/packages/rocq-certirocq/rocq-certirocq.0.9.1%2B9.1/opam)
-requires WasmCert exactly 2.2.0 and Rocq below 9.2; MetaRocq and Equations must
-match that prover. Rocq-Elpi 3.5.1 requires Elpi below 3.8 and dune below 3.24,
-excluding Elpi 4.0.1 and dune-configurator 3.24.2 from those closures. Stable
-findlib excludes OCaml 5.5 and later. The Sail-support and lowering refusals
-above remain applicable.
+[published metadata](https://github.com/rocq-prover/opam/blob/d8e264789b0dd225a865ea6c923b0f75b82ad93f/released/packages/rocq-certirocq/rocq-certirocq.0.9.1%2B9.1/opam)
+requires WasmCert exactly 2.2.0 and Rocq below 9.2; `rocq-equations.1.3.2+9.3` is
+now published for Rocq 9.3, while MetaRocq (`1.5.1+9.2`, no `+9.3` release),
+`coq-wasm` (`2.2.1`, `< 9.3~`) and `coq-menhirlib` (`20260209`, `< 9.3`) still
+exclude released Rocq 9.3.0 adoption. `rocq-elpi` 3.7.0 and `elpi` 4.1.1 lift
+the `dune < 3.24` cap from 9.3.0 closures, while `rocq-runtime` 9.1.1 and 9.2.0
+retain it. Stable findlib 1.9.8 still excludes OCaml 5.5 and later (`1.9.9~preview`
+is marked `avoid-version`). The `rocq-sail-stdpp` 0.20.3 (`< 9.3~`),
+`coq-quickchick` 2.2.0 / `coq-simple-io` 1.11.0, and released lowering-package
+refusals above remain applicable.
 
 Q45 in [the plan](../../PLAN.md) owns remaining qualification. The user's
 local-commit-only instruction defers publication, Host CI, Guest CI and the

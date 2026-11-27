@@ -47,10 +47,11 @@ RECIPE_PINS: tuple[tuple[str, str, str], ...] = (
     ("coq-simple-io", "https://github.com/Lysxia/rocq-simple-io.git",
      "5c70625af00af6182817e490d93247cdefbed2e1"),
     (PACKAGE, "https://github.com/QuickChick/QuickChick.git",
-     "2b625770f22a7c0bfd1d5d812593eccfd6ef2034"),
+     "3e9d210807ed7f4185ed04e2d7900cf64d5184a6"),
 )
 STDLIB = "9.2.0"
 DUNE = "3.23.1"
+RECIPE_DUNE = "3.25.0"
 EXTLIB = "0.13.2"
 INTRINSICS = "v0.17.3"
 RECIPE_PIN = next(f"git+{url}#{commit}" for name, url, commit in RECIPE_PINS if name == PACKAGE)
@@ -63,7 +64,7 @@ RECIPE: tuple[tuple[str, ...], ...] = (
     ("opam", "install", f"--switch={gallina.QUICKCHICK_RECIPE_SWITCH}", "-y",
      f"ocamlfind.{env.OCAMLFIND_VERSION}",
      f"rocq-core.{gallina.QUICKCHICK_RECIPE_ROCQ_VERSION}", f"rocq-stdlib.{STDLIB}",
-     f"dune.{DUNE}", f"coq-ext-lib.{EXTLIB}", f"ocaml_intrinsics_kernel.{INTRINSICS}",
+     f"dune.{RECIPE_DUNE}", f"coq-ext-lib.{EXTLIB}", f"ocaml_intrinsics_kernel.{INTRINSICS}",
      *(f"{name}.dev" for name, _, _ in RECIPE_PINS)),
 )
 

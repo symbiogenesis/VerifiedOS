@@ -3,7 +3,8 @@
 This document records third-party components, their licenses, and how VerifiedOS uses or distributes them. [COPYRIGHT.md](COPYRIGHT.md) covers content authored by this project. The upstream license texts govern each component; this record summarizes their application here.
 
 The [2026-11-08 dependency review](docs/implementation/evidence/dependency-refresh-20261108.json)
-records selected package and crate license identities, unchanged sources and
+and the [2026-11-27 Rocq/opam refresh](docs/implementation/evidence/rocq-dependency-refresh-20261127.json)
+record selected package and crate license identities, unchanged sources and
 versions retained under their constraints. Hosted acceptance remains user-managed; the qualified
 opam snapshots retain their existing evidence and [Q45 qualification owner](tools/opam/README.md#rocq-dependency-refresh).
 
@@ -1230,33 +1231,37 @@ and its verbatim notice have an explicit BSD-2-Clause entry in the
 | Rust 1.99.1 and SHA2 | Rust core license texts (`COPYRIGHT`, `LICENSE-APACHE`, `LICENSE-MIT`), read in the 1.99.1 component archives on 2026-10-19, and sha2 0.8.2 license texts; MIT OR Apache-2.0. Cargo's `LICENSE-THIRD-PARTY` in the same archives lists the terms of libraries linked into the Cargo binary, including OpenSSL, libgit2 (GPL-2.0 with its linking exception), libssh2 and libcurl; they govern that tool binary, not its build outputs. The rustc archives, whose notice files are byte-identical for both targets, were read on 2026-10-19. The compiler links the LLVM 23.1 library the archive ships (`lib/libLLVM.so.23.1-rust-1.99.1-stable`), which `share/doc/rust/COPYRIGHT.html` (SHA-256 `d518ae2d76bc7a1f0cbf0069b8deafb56efc39c2614cab74a859ef0b467f8373`) lists as Apache-2.0 WITH LLVM-exception AND NCSA; that governs the compiler binary. `share/doc/rust/COPYRIGHT-library.html` (SHA-256 `5647be074c8edf7339fd863055923a8fc80bc5610a8d4661ec3b767b9d392c27`) gives the standard library's terms, Apache-2.0 OR MIT with Unicode-3.0 and BSD-2-Clause file exceptions, and the notices of the out-of-tree crates used to build it; the standard-library parts linked into a build output carry those notices | Optional lane-local Rust build tool, installed from the component archives the [shared Rust pin](tools/rust-toolchain.json) fixes for these tools and the [idealloc candidate build](#optional-static-memory-research-tools), and authored-driver dependency. Locked transitive Cargo sources remain native build inputs, not tracked source or normal host-gate prerequisites. Distribution of a resulting executable must retain the applicable dependency notices, including those `COPYRIGHT-library.html` lists for the standard-library parts linked into it. |
 | LLVM libclang 21.1.8 | Installed `libclang1-21` 21.1.8-6ubuntu1 copyright and [release license](https://github.com/llvm/llvm-project/blob/2078da43e25a4623cab2d0d60decddf709aaea28/LICENSE.TXT); Apache-2.0 WITH LLVM-exception with its separately licensed third-party/legacy notices | Optional system-provided compiler AST API called through standard-library ctypes, separate from the compiler-development gitlink. No LLVM source or binary is redistributed in this tree. Exact selected tool/library bytes enter the qualification receipt. |
 
-The 2026-11-08 [Rocq refresh candidate](tools/opam/README.md#rocq-dependency-refresh)
+The 2026-11-27 [Rocq refresh candidate](tools/opam/README.md#rocq-dependency-refresh)
 uses QuickChick
-[`2b625770`](https://github.com/QuickChick/QuickChick/blob/2b625770f22a7c0bfd1d5d812593eccfd6ef2034/LICENSE)
+[`3e9d2108`](https://github.com/QuickChick/QuickChick/blob/3e9d210807ed7f4185ed04e2d7900cf64d5184a6/LICENSE)
 and simple-io
 [`5c70625a`](https://github.com/Lysxia/rocq-simple-io/blob/5c70625af00af6182817e490d93247cdefbed2e1/LICENSE).
 Both selected MIT instruments were read and remain byte-identical to the
 qualified sources: their SHA-256 values are respectively
 `6010f188d0030246256c850749c34754b1014a5171316173258530d515965031`
 and `1b4f292e1d0dd5bc383a146f9234f382f8bf7533b56d26af0ed37046d07fd69d`.
-The reviewed source changes introduce no separate file notices. These remain
-contained test instruments; their source and compiled outputs are not conveyed
-here. The development-tool rows above continue to describe the qualified lock.
+The reviewed QuickChick source changes introduce no separate file notices.
+These remain contained test instruments; their source and compiled outputs are
+not conveyed here. The development-tool rows above continue to describe the
+qualified lock.
 
-The same review read the checksum-verified release archives for candidate
-`ocaml_intrinsics_kernel.v0.17.3` and `ocaml-version.4.1.5`. Their archive
-SHA-256 values are respectively
-`2a967316c51b0f3fec37f42f43b362d87d9ae536ce98e0e921a65c8bbc83cd85`
-and `9837e9a1f80f6597e023e3dd65b4dc0bf8f11452070c0e6b3d03eec75e77dc85`;
-each also matches its published opam SHA-512. The former's `LICENSE.md`
-is MIT, copyright 2020–2024 Jane Street Group, LLC, SHA-256
-`1a28723500e43570896146ec235d4b11f70987ab4ef665a273b60207ebc73eea`.
-The latter's `LICENSE.md` is ISC, crediting the individual source-header
-authors, SHA-256
-`ff39345135a4aa7cf87c00045bd0929131e1ebbfe7e1a8f35d3c79bdb3c5fed8`.
-Their intended use is in the private QuickChick and CertiRocq build closures;
-no upstream source or executable is distributed. These readings permit the
-candidate uses and supply no build or snapshot-adoption verdict.
+The 2026-11-08 and 2026-11-27 reviews read the checksum-verified candidate
+release archives below, each matching its published opam checksum (recorded in
+[the 2026-11-27 refresh ledger](docs/implementation/evidence/rocq-dependency-refresh-20261127.json)):
+
+- `ocaml_intrinsics_kernel.v0.17.3` (archive SHA-256 `2a967316c51b0f3fec37f42f43b362d87d9ae536ce98e0e921a65c8bbc83cd85`): `LICENSE.md` is MIT, copyright 2020–2024 Jane Street Group, LLC, SHA-256 `1a28723500e43570896146ec235d4b11f70987ab4ef665a273b60207ebc73eea`.
+- `dune.3.25.0` (archive SHA-256 `1d706779fa8405769a1ae667e4baaf4220ed87ec9d8be9d4fea0cf75bd79013b`): `LICENSE.md` is MIT, byte-identical to `3.24.2`, SHA-256 `7a9971a9f7b19a18568a7a2758573a989830947969506f5a59b657bbfc17abca`.
+- `rocq-elpi.3.7.0` (archive SHA-256 `56c8279b16fdc01d972aab28bbe672a3c93067d497cde98884d8305ea65a6a5a`): `LICENSE` is `LGPL-2.1-or-later`, byte-identical to `3.5.1`, SHA-256 `9b872a8a070b8ad329c4bd380fb1bf0000f564c75023ec8e1e6803f15364b9e9`.
+- `elpi.4.1.1` (archive SHA-256 `07cdb4d333e627e57644ee45e43edfaa4a201d21efafd8922e8e5e0d4649fb68`): `LICENSE` is `LGPL-2.1-or-later`, SHA-256 `2403020ec1fa1ada91cdffb14cc48251088c20e4d2cd4c70081c0f1d0fb10e30` (removing the duplicate LGPL-2.1 text present in 3.7.3); `src/runtime/ptmap.ml` and `.mli` retain `LGPL-2.1` with linking exception, `src/runtime/discrimination_tree.ml` retains its `LGPL-2.0` `Trie` module notice, and `src/runtime/bl.ml` carries `LGPL-2.1-or-later`.
+- `rocq-hierarchy-builder.1.10.4` (archive SHA-256 `3c2aef7e13c548190c4a36d2e155dcaa3bd82acb9fe8c99ca98210d76484bc3d`): `LICENSE` is MIT, byte-identical to `1.10.3`, SHA-256 `f9c4c77baa3828004ee54b8a4f2db2e88ed44a6237a493965bf551fac0fcb62d`.
+- `cmdliner.2.1.2` (archive SHA-256 `8395e62005624c31c9f72d0e6884d5c96fec6bf2c5e8de8bf7e84b75d6628b9d`): `LICENSE.md` is ISC, byte-identical to `2.1.1`, SHA-256 `deb8445a08c3a4fe46462e3b58f863782476d45bc762ca386a4c74bc01ef02c8`.
+- `ocaml-version.4.1.6` (archive SHA-256 `da7530e7debf782d3d337014bdc2d3f27690e769141a4bebaea203f4b157c99f`): `LICENSE.md` is ISC, byte-identical to `4.1.4` and `4.1.5`, SHA-256 `ff39345135a4aa7cf87c00045bd0929131e1ebbfe7e1a8f35d3c79bdb3c5fed8`.
+- `ocaml-base-compiler.4.14.5` (archive SHA-256 `608c30e5b97fc4568741db8e5e674a5a081ef08a3c4d17172deb1dc6c8825037`): `LICENSE` is `LGPL-2.1-or-later WITH OCaml-LGPL-linking-exception`, byte-identical to `4.14.4`, SHA-256 `65f47d3bf5a921011ac7fa30f23d54f9dffbe7683921eeb116d5ce8dc26ff0c1`, and `runtime/caml/mlvalues.h` retains the `Hd_val` macro.
+- `rocq-equations.1.3.2+9.3` (archive SHA-256 `6365789af331b4b87fd2348bff93144baaa4faf43906388dc0706bf8223c89f`): `LICENSE` is `LGPL-2.1-only`, byte-identical to `1.3.1+9.1`, SHA-256 `d4594b82f4d50840df6a7e9d14132a8c0a3cc05d0ac46d15310a264a1f75447e`.
+
+Their intended use is in the private QuickChick, CertiRocq, proof and contained-compiler
+build closures; no upstream source or executable is distributed. These readings
+permit the candidate uses and supply no build or snapshot-adoption verdict.
 
 QuickChick's ppxlib 0.39.0 source archive was read on 2026-10-19, before
 adopting the actual hosted export. Its MIT root grant and the OCaml-derived AST
