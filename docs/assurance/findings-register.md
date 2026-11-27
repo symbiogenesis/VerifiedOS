@@ -918,27 +918,27 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-430** owed-act: R-07-037g's lag bound of one request plus one call bound omits the sink, a conforming two-member trace ending at served-time lags of 22/5 against a bound of 4 and the heavy member reaching 67/5 over slot time
 · Raised: Q34a
-· Disposition: open, a register question, the trace staying inside one request plus a call bound plus a yield bound, which is named and not adopted; Q34b's share-bound theorem waits on it
+· Disposition: closed, answered by R-07-037g's register act at `d60d7cd5` and discharged universally in Q34b (`proofs/ElasticDispatch.v`: `sink_inclusive_lag_bound`, `cooperative_eevdf_lag_bounded`, `cooperative_eevdf_shortfall_bounded`, and `mutant_omitted_coop_padding_exceeds_lag_bound`)
 
 **F-431** owed-act: the share bound's time base is unstated, and over slot time the intra-slot steps and idle tails accrue shortfall, a single member ending two slots of 12 served 6 of 24 units at lag 18 against a bound of 4
 · Raised: Q34a
-· Disposition: open, a register question, R-11-006c charging the idle tail to the domain without saying whether a member's share is measured over it
+· Disposition: closed, answered by R-07-037g's register act at `d60d7cd5` (`ServedTime` base) and proved in Q34b (`proofs/ElasticDispatch.v`: `cooperative_eevdf_lag_bounded` and `cooperative_eevdf_shortfall_bounded`)
 
 **F-432** owed-act: which lag the share bound quantifies is unstated, and with it whether dispatch applies EEVDF's published leave rule: without the adjustment a member with work pending starves inside the bound, and with it its accounting lag is 0 while its service lag is -13/2
 · Raised: Q34a
-· Disposition: open, a register question, the statement's `charge` and `rebalance` following its answer
+· Disposition: closed, answered by R-07-037g's register act at `d60d7cd5` (accounting lag with published virtual-time leave adjustment and work conservation) and proved in Q34b (`proofs/ElasticDispatch.v`: zero-sum preservation `coop_published_leave_preserves_zero_sum` and `zero_sum_implies_eligible_exists`)
 
 **F-433** owed-act: which members are live for the share bound is unstated
 · Raised: Q34a
-· Disposition: open, a register question, the reading taken being every enumerated member accruing entitlement only while it competes
+· Disposition: closed, answered by R-07-037g's register act at `d60d7cd5` (every enumerated member competing while active with work pending) and proved in Q34b (`proofs/ElasticDispatch.v`: `coop_step_invariants` and `cooperative_eevdf_lag_bounded`)
 
 **F-782** owed-act: R-08-047b bounds a heap allocation to its size class rather than to the length requested, `HeapNarrows`'s grant carrying no requested length, and no entry decides which of the two "exactly that one allocation" means
 · Raised: Q34c
-· Disposition: open, a register question at R-08-047b, a bound at the request staying exact under R-15-007k from the table's granules; `HeapNarrows` and the reference allocator's interface follow its answer
+· Disposition: closed, answered by R-08-047b's register act at `d60d7cd5` (granule-exact narrowed request length without runtime `CRRL`/`CRAM`) and proved in Q34c-i (`proofs/ElasticPool.v`: `std_size_classes_discharge_r15_007k`, `requested_length_granule_exact`, and `narrowed_grant_preserves_bounded_exactly`)
 
 **F-783** owed-act: `HeapNarrows` omits zeroing, so the heap library's stated obligation does not carry R-05-126's eager zeroize into reuse inside a member's chunk, R-05-126's acceptance being worded over slots while R-17-045's relies on it
 · Raised: Q34c
-· Disposition: open, a register question at R-05-126 and R-08-047b, `HeapNarrows` gaining the zeroing conjunct if the entry binds; the reference allocator zeroes every grant meanwhile
+· Disposition: closed, answered by R-08-047b's register act at `d60d7cd5` (eager zeroing before every reuse inside member chunks) and proved in Q34c-i (`proofs/ElasticPool.v`: `HeapZeroedAtHandoff`, `HeapGuarantees`, `meta_run_refines_heap_guarantees`, and `unzeroed_reuse_satisfies_heap_narrows_but_not_zeroed`)
 
 **F-462** owed-act: no VST configuration is qualified at the locked prover, the VST/Iris line three register entries name not installing beside the prover and VST's non-Iris line, which those entries do not name, installing only with a CompCert that bounds the prover below its motivated upgrade
 · Raised: Q35a
@@ -3074,7 +3074,7 @@ A defect this repository's own work introduced and the same item closed is a `me
 
 **F-428** owed-act: PartitionContext.v's `Rotation` leaves the zeroized class unconstrained and does not state R-07-037g's cross-application `vmclear`
 · Raised: M4.4, in prose
-· Disposition: open, the kernel's rotation being R-07-037b's same-label step and the elastic step Q34a's
+· Disposition: closed, discharged by Q34b (`proofs/ElasticDispatch.v`: `ElasticStep`, `cross_app_step_executes_vmclear`, `static_elision_requires_vs_xs_off`, and `mutant_vmclear_elision_is_refuted`)
 
 **F-429** owed-act: the host model's dispatch check takes KernelInstance.v gap a's barrier-sanitizes arm, which the register leaves open, and what a refused dispatch does is unspecified
 · Raised: M4.4, in prose

@@ -547,6 +547,18 @@ Transcribed the capability properties for the narrowed model because the pin can
 
   * Landed: Tier A. The landing edits a licence position (a vendored row, a retained notice, a pin's Use cell), which is the full read whatever else it carries; it also makes a new claim about the format's properties that no rule holds, K-88 holding the bundle and K-80 and K-81 the licence paths and the pin id but nothing holding the census or the verdicts.
 
+<a id="q3c-author-the-protected-sequence-fault-model-specification"></a>
+
+### Q3c · Author the protected-sequence fault-model specification
+
+[The protected-sequence fault model](../hardware/protected-sequence-fault-model.md) states R-16-008f's single-fault transition relation over `try_step` and `run_hart_active` in [postlude/step.sail](../../model/model/postlude/step.sail), with both perturbation sites (`corrupt(w')` at `F_Base` binding and `skip` substituting `Retire_Success()`), activation boundaries (`PC` in `R`, `PCC` capability authority, `N`-step composition bound), all three R-16-008c sequence-class boundaries and data-reduction completeness readings, the three-class partition with named exclusions (including transient datapath/fetch-path strikes, stored-state ECC, multi-fault activations, out-of-region steps, and resident dictionary bundles), concrete witnesses (`N`, `F`, `C`, `X`, and naive-OR refutation `W_or`), and the named R-16-008f first-silicon bring-up characterization. All seven Q3c review findings were closed by register acts at `d60d7cd5`, and [the crown-jewel inventory](../assurance/crown-jewels.md) row 24 (`CJ-SAIL`) moves to `authored`.
+
+Verified across all 23 cited Sail symbols in 10 curated Sail files; `python tools/run.py markdown` and `python tools/run.py check --through K-39` passed (`exit 0`) at worker handoff `9b1c2b17`. Limits and downstream owners: U-19 owns the Coq detection theorem quantifying over this accepted relation, R-16-008c/R-05-029 own compiler instrumentation and binary admission checks, first-silicon bring-up characterization owns physical/dictionary correspondence (`R-17-058b`), and R-05-150 independent release review remains a release gate. Host CI and cold Guest CI remain user-managed pending checks.
+
+Calibration: original estimate 20 h, range 8–32; retained estimate, actual n/a · agent-parallel. Discovery and initial Tier-A authoring/review ran across earlier sessions whose partial intervals are excluded from measured calibration.
+
+Landed: Tier A. No checker rule enforces semantic fidelity of the fault relation, so completion rests on reading all three sequence classes, the two-site perturbation rules, exclusions, and witnesses against the register entries and Sail sources.
+
 <a id="q4a-measure-host-side-inference-demand-and-state-the-target-traffic-budget"></a>
 
 #### Q4a · Measure host-side inference demand and state the target traffic budget
@@ -1174,6 +1186,42 @@ Accounting: original estimate 12 h, range 8–16; 2.4 h agent-parallel actual, e
 
 Landed: Tier A. No checker rule was added, and none holds what this item created. The proof gate's compile, exact assumption audit, witness scan and kernel recheck hold the artifact's decisions, and R-05-150's review holds its agreement with the register. The fourth Tier-B condition is therefore unmet.
 
+<a id="q34b-extend-the-kernel-statements-to-elastic-dispatch-and-prove-the-share-bound"></a>
+
+#### Q34b · Extend the kernel statements to elastic dispatch and prove the share bound
+
+[ElasticDispatch.v](../../proofs/ElasticDispatch.v) and [its proof summary](elastic-dispatch-proof.md) extend [ElasticDomain.v](../../proofs/ElasticDomain.v), [PartitionContext.v](../../proofs/PartitionContext.v), [CyclicExecutive.v](../../proofs/CyclicExecutive.v), and [EndpointIPC.v](../../proofs/EndpointIPC.v) to discharge Q34b's kernel elastic-dispatch obligations and close findings `F-428`, `F-430`, `F-431`, `F-432`, and `F-433` under the R-07-037g register act at `d60d7cd5`. It proves the five-invocation tentative-yield ABI and repeated-tentative backstop without vector save (`R-07-031b`), partition-context-only dispatch state and `Launch | Close | Focus` request cell (`R-07-027a`, `R-07-037i`), inter-application `vmclear` and static-schedule `mstatus.VS`/`XS = Off` elision (`R-07-014c`), boundary `NeverCuts` and `LabelInternalUnwinding` (`R-07-032`), zero-sum lag preservation across charge/join/reweight/published-leave transitions, universal cooperative EEVDF lag and shortfall bounds (`cooperative_eevdf_lag_bounded`, `cooperative_eevdf_shortfall_bounded`) using `eff_coop_request = eff_request + call_bound + dc_yield_bound`, six closed `witness_<Record>` inhabitants, and five mutant refutations including `mutant_omitted_coop_padding_exceeds_lag_bound` (`101/10 > 10`).
+
+Strict Rocq 9.3.0 compilation (`-w +default,-abstract-large-number -set "Default Goal Selector=!" -disallow-sprop`), exhaustive `Print Assumptions` (`142/142` declared symbols `Closed under the global context`, `0` axioms), and `rocqchk -silent -o` (`Axioms: <none>`) passed locally in WSL at worker handoff `fbbdf6fd`; host header derivation (`14` `discharges` claims, `0` audit faults) and markdown validation passed. Limits: M4.4 and R2 own executable C/assembly kernel realization; cold Guest CI and Host CI remain user-managed pending checks.
+
+Calibration: original estimate 36 h, range 24–48; 0.7 h agent-parallel actual (wall-clock execution excluding integration and hosted gates).
+
+Landed: Tier A. Existing checker rules do not verify semantic adequacy of the cooperative padding, unwinding, or EEVDF share proofs; acceptance rests on reading the theorem statements, refutation mutants, and `R-07-037g` closure against the local compiler, `Print Assumptions`, and `rocqchk` evidence.
+
+<a id="q34c-i-prove-pool-size-class-island-barrier-and-descendant-lifetime-refinements-in-gallina"></a>
+
+#### Q34c-i · Prove pool, size-class, island, barrier and descendant-lifetime refinements in Gallina
+
+[ElasticPool.v](../../proofs/ElasticPool.v) and [the pool reference](elastic-pool-reference.md) complete the Gallina formalization split out of `Q34c` and close findings `F-782` and `F-783` under the R-08-047b register act at `d60d7cd5`. Beyond universal 5-phase two-generation quarantine refinement (`meta_run_refines_pool_guarantees`, `meta_run_refines_heap_narrows`), it proves the composition-fixed size-class table (`std_size_classes_discharge_r15_007k`, `16`–`65536` bytes), granule-exact narrowed allocation bounds without runtime rounding (`requested_length_granule_exact`, `narrowed_grant_preserves_bounded_exactly`), eager zeroing inside sub-allocation reuse (`HeapZeroedAtHandoff`, `HeapGuarantees`, `meta_run_refines_heap_guarantees`, and `unzeroed_reuse_satisfies_heap_narrows_but_not_zeroed`), per-island byte and 8-byte revocation-granule disjointness with 64-byte revocable-union containment (`island_pools_disjoint_bytes_and_granules`, `member_binds_launch_island_pool`, `shared_granule_pools_refused`), holder-map/revocation-barrier linking (`LinkedMetaState`, `stale_register_copy_blocks_barrier_and_reuse`, `stale_holder_any_kind_blocks_barrier_and_reuse`, `linked_clear_register_enables_barrier_and_reuse`), monotonic-generation parent/child descendant lifetime invalidation (`NestedHeapState`, `nested_run_refines_parent_and_child_guarantees`, `parent_release_invalidates_descendant_forever`), and exhausted-class refusal (`exhausted_class_refuses_allocation`, `exhausted_class_cannot_borrow_witness`), with closed `witness_<Record>` inhabitants.
+
+Strict Rocq 9.3.0 compilation of `ElasticPool.v` and `ElasticPoolCampaign.v`, exhaustive `Print Assumptions` (`185/185` declared checkable symbols `Closed under the global context`, `0` axioms), and `rocqchk -silent -o` (`Axioms: <none>`) passed locally in WSL at `e64c0c33`; `test --only elastic_pool` (`18` cases), `markdown`, and `proofs headers` passed. Limits: `Q34c-ii` retains native C/assembly pool/heap realization, M4.4/R2 barrier/sweep integration, and hosted cold Guest CI acceptance.
+
+Calibration: original parent estimate 40 h partitioned into `Q34c-i` (`24 h`) and `Q34c-ii` (`16 h`); `Q34c-i` uses `24 h retained estimate, actual n/a · agent-parallel` because initial finite-allocator authoring and earlier verification occurred prior to this session with irrecoverable wall-clock intervals.
+
+Landed: Tier A. Existing checker rules do not verify semantic adequacy of the Gallina refinements or refutations; acceptance rests on reading the theorem statements, refutation witnesses, and local compiler, `Print Assumptions`, and `rocqchk` evidence.
+
+<a id="q34i-i-specify-and-prove-isolated-desktop-domain-composition-admission-and-pool-accounting"></a>
+
+#### Q34i-i · Specify and prove isolated desktop domain composition, admission and pool accounting
+
+[Isolated desktop composition](isolated-desktop-composition.md), [desktop_composition.py](../../tools/vos/desktop_composition.py), [IsolatedDesktop.v](../../proofs/IsolatedDesktop.v), and [its focused test suite](../../tools/tests/test_desktop_composition.py) deliver the bounded domain composition rule, admission checks and refusals, reading of [the elastic-domain contract](contracts/elastic-domain.md) confirming arbitrary-domain parameterization (`Domain`, `Decl`, `Global`, `ReadsOnlyItsLabel`, `MovesNothingOutside`, `Distribution`), two-domain Gallina confinement and cross-domain state-read refutations (`decl_admits`, `DesktopState`, `within_the_envelope`), and exact rational additive pool accounting (`compose`, `admit`, `price_pools`) leaving the general domain's floored pool untouched.
+
+Verified at `d60d7cd5`: strict Rocq 9.3.0 compile, `Print Assumptions` (`34/34` declared symbols `Closed under the global context`, `0` axioms), and `rocqchk -silent -o` passed for `IsolatedDesktop.v` and its `Require` closure in WSL, alongside `test --only desktop_composition` (`9/9`) and `markdown` on host. Limits: `Q34i-ii` retains first-release desktop roster capacity pricing against R-18-004b once the accepted roster and capacity operands land; Host CI and cold Guest CI remain user-managed pending checks.
+
+Calibration: original parent estimate 10 h partitioned into `Q34i-i` (`7 h`) and `Q34i-ii` (`3 h`); `Q34i-i` uses `7 h retained estimate, actual n/a · agent-parallel` because authoring and retained native candidate capture occurred in earlier sessions whose full wall-clock intervals are unavailable.
+
+Landed: Tier A. Completion rests on reading the composition rule, admission refusals, contract reading, and `IsolatedDesktop.v` proof/assumption outputs alongside host tests; hosted Guest CI remains pending.
+
 <a id="q35a-record-the-verified-c-routes-blockers-and-assign-the-authored-c"></a>
 
 #### Q35a · Record the verified-C route's blockers and assign the authored C
@@ -1790,6 +1838,30 @@ Migration binds mutual appraisal, channel credentials, receiver roots and source
 Calibration: original estimate 12 h, range 8–16; retained estimate, actual n/a · agent-parallel. Discovery and complete author/review intervals are missing; the partial interval is not a full actual and is excluded from measured calibration.
 
 Landed: Tier A. The integrator read the whole contract against its requirement criteria, particularly export authority, consent-record freshness, authentication/schema zero-write outcomes, crash publication, trusted holder operations, mutual session binding and all three implementation predicates. Focused document and authored whitespace checks passed at handoff `3143a2c620fff3e60065ec95e0f9ca5138d35cf4`, based on `b238c3c5f8c216efa85ec0f413868e810a6aeeb8`; the settled hosted handoff is recorded by fanout. No backup implementation or physical/proof gate result is claimed by this contract landing.
+
+<a id="q46a-key-dictionary-placement-by-canonical-instruction-words"></a>
+
+### Q46a · Key dictionary placement by canonical instruction words
+
+[asm.py](../../tools/vos/asm.py) and [compose.py](../../tools/vos/compose.py) implement [the dictionary-word repair contract](contracts/dictionary-word-repair.md): every assembler instruction site carries its exact canonical 32-bit unsigned word identity, dictionary placement keys strictly on canonical word equality rather than mnemonics, malformed or ambiguous dictionaries refuse before placement, and the default empty dictionary preserves canonical ELF output unchanged.
+
+Verified at `d60d7cd5`: `typecheck`, `test --only asm` (`11/11`), and `13/13` non-corpus cases in [test_compose.py](../../tools/tests/test_compose.py) passed. The pre-existing `corpus-images-have-not-moved` check fails solely on `block-authority`'s `source_sha256` comment drift from commit `e3ecc019` (`# Input`), while `image_sha256` (`bda0f67559eb3f0a656e2d60cd2ca34a346d072825c9950791b3b24bda86b64a`, `54416` bytes) matches [corpus-image-baseline.json](../../tools/corpus-image-baseline.json) byte for byte. Limits: dictionary placement metadata does not implement encoded bundles or a Sail/RTL decoder, and Host CI remains a user-managed pending check.
+
+Calibration: original estimate 2 h, range 1–3; retained estimate, actual n/a · agent-parallel. Implementation occurred across an earlier session whose full wall-clock timing is unavailable.
+
+Landed: Tier A. Completion rests on reading the assembler/composer implementation against the contract alongside `typecheck` and focused host controls.
+
+<a id="q46c-bind-apex-transport-to-executable-observations"></a>
+
+### Q46c · Bind apex transport to executable observations
+
+[ApexTheorem.v](../../proofs/ApexTheorem.v) and [SeamWitnesses.v](../../proofs/SeamWitnesses.v) implement [the apex semantic-binding repair contract](contracts/apex-semantic-binding-repair.md): generic semantic transport carries fixed input, adversary-context, assumption-ledger, and three-channel observation mappings proving `T source` and transport imply `T target`, supports adjacent transport composition, makes `composition_meta_lemma` require both transport and source theorem, retains positive source/target witnesses and closed `witness_<Record>` inhabitants, and refutes omitted timing and all-True leaking targets while leaving the frozen `T`, `Ax`, `admissible`, and `observation_equal_modulo_D` definitions unchanged.
+
+Verified at `d60d7cd5` in WSL: strict Rocq 9.3.0 compilation, `Print Assumptions` (`104/104` closed symbols in `ApexTheorem.v`, `49/49` in `SeamWitnesses.v`, `0` axioms), and `rocqchk -silent -o` (`Axioms: <none>`) passed; elaborated reading comparison (`Set Printing All` + `Set Printing Universes`) of `T`, `Ax`, `admissible`, and `observation_equal_modulo_D` against `7cb17eab~1` matched byte-for-byte (SHA-256 `975b8f79bc3eb53e537952f50f441c89076b5500898105a545d6b0cf760b0b45`); host `blast`, `apex` (`15/15`), `proofreading` (`16` ok, `1` Windows-skipped), `blastradius` (`14/14`), `prooflex` (`3/3`), and `witness` (`13/13`) passed. Limits: generic transport does not instantiate the concrete hardware fields under R-18-031; Host CI and cold Guest CI remain user-managed pending checks.
+
+Calibration: original estimate 4 h, range 2–6; retained estimate, actual n/a · agent-parallel. Authoring and initial transport checks occurred across earlier sessions with unavailable wall-clock totals.
+
+Landed: Tier A. Completion rests on inspecting the elaborated apex semantics comparison, transport theorems, refuting witnesses, and local assumption/kernel-check outputs.
 
 ## M0 · Hardware reference
 

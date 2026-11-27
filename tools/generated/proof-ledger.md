@@ -156,6 +156,7 @@ being a finding of the rules that read them rather than a row of this table.
 | R-05-124 | proofs/CopyRingService.v | the_copy_once_service_reads_the_source_once | claimed |
 | R-05-124 | proofs/CopyRingService.v | the_copy_once_service_does_not_vary_with_the_second_image | claimed |
 | R-05-124 | proofs/CopyRingService.v | the_staging_buffer_holds_the_declared_payload | claimed |
+| R-05-126 | proofs/ElasticPool.v | n/a | cited |
 | R-05-126b | proofs/AesGcm.v | n/a | cited |
 | R-05-135a | proofs/AdmissionPath.v | n/a | cited |
 | R-05-135b | proofs/AdmissionPath.v | n/a | cited |
@@ -201,6 +202,7 @@ being a finding of the rules that read them rather than a row of this table.
 | R-05-163 | proofs/CryptoLists.v | n/a | cited |
 | R-05-163 | proofs/CyclicExecutive.v | n/a | cited |
 | R-05-163 | proofs/DischargeSequence.v | n/a | cited |
+| R-05-163 | proofs/ElasticDispatch.v | n/a | cited |
 | R-05-163 | proofs/ElasticDomain.v | n/a | cited |
 | R-05-163 | proofs/EndpointIPC.v | n/a | cited |
 | R-05-163 | proofs/EnsembleSchedule.v | n/a | cited |
@@ -243,6 +245,7 @@ being a finding of the rules that read them rather than a row of this table.
 | R-05-164 | proofs/ArithmeticComposition.v | n/a | cited |
 | R-05-164 | proofs/ComposedNonInterference.v | n/a | cited |
 | R-05-164 | proofs/DischargeSequence.v | n/a | cited |
+| R-05-164 | proofs/ElasticDispatch.v | n/a | cited |
 | R-05-164 | proofs/EndpointIPC.v | n/a | cited |
 | R-05-164 | proofs/ExecutableIndex.v | n/a | cited |
 | R-05-164 | proofs/HandlerGraph.v | n/a | cited |
@@ -286,6 +289,7 @@ being a finding of the rules that read them rather than a row of this table.
 | R-05-165 | proofs/CryptoLists.v | n/a | cited |
 | R-05-165 | proofs/CyclicExecutive.v | n/a | cited |
 | R-05-165 | proofs/DischargeSequence.v | n/a | cited |
+| R-05-165 | proofs/ElasticDispatch.v | mutant_omitted_coop_padding_exceeds_lag_bound | claimed |
 | R-05-165 | proofs/ElasticDomain.v | n/a | cited |
 | R-05-165 | proofs/EndpointIPC.v | n/a | cited |
 | R-05-165 | proofs/EnsembleSchedule.v | n/a | cited |
@@ -372,6 +376,7 @@ being a finding of the rules that read them rather than a row of this table.
 | R-05-166 | proofs/CryptoLists.v | n/a | cited |
 | R-05-166 | proofs/CyclicExecutive.v | n/a | cited |
 | R-05-166 | proofs/DischargeSequence.v | n/a | cited |
+| R-05-166 | proofs/ElasticDispatch.v | mutant_omitted_coop_padding_exceeds_lag_bound | claimed |
 | R-05-166 | proofs/ElasticDomain.v | n/a | cited |
 | R-05-166 | proofs/EndpointIPC.v | n/a | cited |
 | R-05-166 | proofs/EnsembleSchedule.v | n/a | cited |
@@ -490,8 +495,12 @@ being a finding of the rules that read them rather than a row of this table.
 | R-07-007 | proofs/CyclicExecutive.v | n/a | cited |
 | R-07-007 | proofs/EnsembleSchedule.v | n/a | cited |
 | R-07-007 | proofs/PartitionContext.v | n/a | cited |
+| R-07-014 | proofs/ElasticDispatch.v | static_elision_requires_vs_xs_off | claimed |
+| R-07-014a | proofs/ElasticDispatch.v | n/a | cited |
 | R-07-014a | proofs/ElasticDomain.v | n/a | cited |
 | R-07-014a | proofs/PartitionContext.v | n/a | cited |
+| R-07-014c | proofs/ElasticDispatch.v | cross_app_step_executes_vmclear | claimed |
+| R-07-014c | proofs/ElasticDispatch.v | static_elision_requires_vs_xs_off | claimed |
 | R-07-014c | proofs/ElasticDomain.v | n/a | cited |
 | R-07-014c | proofs/PartitionContext.v | n/a | cited |
 | R-07-015 | proofs/KernelInstance.v | the_burst_restores_every_witnessed_register | claimed |
@@ -520,6 +529,7 @@ being a finding of the rules that read them rather than a row of this table.
 | R-07-027 | proofs/EndpointIPC.v | n/a | cited |
 | R-07-027 | proofs/PartitionContext.v | n/a | cited |
 | R-07-027 | proofs/SupervisionTree.v | n/a | cited |
+| R-07-027a | proofs/ElasticDispatch.v | no_new_kernel_table_or_class | claimed |
 | R-07-027a | proofs/ElasticDomain.v | n/a | cited |
 | R-07-027a | proofs/EndpointIPC.v | the_specification_inventory_is_closed | claimed |
 | R-07-027a | proofs/EndpointIPC.v | the_specification_designation_names_only_objects | claimed |
@@ -565,6 +575,9 @@ being a finding of the rules that read them rather than a row of this table.
 | R-07-031a | proofs/EndpointIPC.v | the_specification_surface_is_the_frozen_one | claimed |
 | R-07-031a | proofs/MModeFirmware.v | n/a | cited |
 | R-07-031a | proofs/PartitionContext.v | n/a | cited |
+| R-07-031b | proofs/ElasticDispatch.v | abi_invocation_count_remains_five | claimed |
+| R-07-031b | proofs/ElasticDispatch.v | tentative_yield_does_not_switch | claimed |
+| R-07-031b | proofs/ElasticDispatch.v | repeated_tentative_backstop_switches | claimed |
 | R-07-031b | proofs/ElasticDomain.v | n/a | cited |
 | R-07-031b | proofs/EndpointIPC.v | the_specification_grouping_leaves_the_notification_group_empty | claimed |
 | R-07-031b | proofs/EndpointIPC.v | the_specification_grouping_makes_the_entrys_assignment | claimed |
@@ -579,6 +592,7 @@ being a finding of the rules that read them rather than a row of this table.
 | R-07-031b | proofs/MModeFirmware.v | n/a | cited |
 | R-07-031b | proofs/PartitionContext.v | n/a | cited |
 | R-07-032 | proofs/CyclicExecutive.v | geometry_ignores_behaviour | claimed |
+| R-07-032 | proofs/ElasticDispatch.v | elastic_dispatch_label_internal_unwinding | claimed |
 | R-07-032 | proofs/ElasticDomain.v | n/a | cited |
 | R-07-032 | proofs/KernelInstance.v | the_frame_check_decides_order_and_not_duration | claimed |
 | R-07-032 | proofs/KernelInstance.v | the_frame_check_ignores_the_order_numeral | claimed |
@@ -593,6 +607,7 @@ being a finding of the rules that read them rather than a row of this table.
 | R-07-037a | proofs/PartitionContext.v | n/a | cited |
 | R-07-037b | proofs/CopyRingService.v | n/a | cited |
 | R-07-037b | proofs/CyclicExecutive.v | n/a | cited |
+| R-07-037b | proofs/ElasticDispatch.v | same_app_step_elides_vmclear | claimed |
 | R-07-037b | proofs/ElasticDomain.v | n/a | cited |
 | R-07-037b | proofs/EndpointIPC.v | the_specification_rotation_is_composition_fixed | claimed |
 | R-07-037b | proofs/PartitionContext.v | rotation_is_a_strict_subset | claimed |
@@ -601,19 +616,29 @@ being a finding of the rules that read them rather than a row of this table.
 | R-07-037b | proofs/PartitionContext.v | rotation_pays_none_of_the_three | claimed |
 | R-07-037b | proofs/PartitionContext.v | rotation_restore_is_total | claimed |
 | R-07-037b | proofs/PartitionContext.v | switch_discharges_every_rotation_obligation | claimed |
+| R-07-037c | proofs/ElasticDispatch.v | same_app_step_elides_vmclear | claimed |
 | R-07-037c | proofs/ElasticDomain.v | n/a | cited |
 | R-07-037c | proofs/EndpointIPC.v | the_specification_delivery_swaps_where_a_swap_exists | claimed |
 | R-07-037c | proofs/EndpointIPC.v | the_specification_delivery_does_not_vary_with_the_predecessor | claimed |
 | R-07-037c | proofs/EndpointIPC.v | the_specification_step_leaves_every_other_members_bits_alone | claimed |
 | R-07-037c | proofs/EndpointIPC.v | the_bits_a_member_leaves_are_restored_at_its_next_dispatch | claimed |
 | R-07-037c | proofs/PartitionContext.v | rotation_pending_carries_nothing_on_the_swapping_arm | claimed |
+| R-07-037d | proofs/ElasticDispatch.v | same_app_step_elides_vmclear | claimed |
 | R-07-037d | proofs/ElasticDomain.v | n/a | cited |
 | R-07-037d | proofs/EndpointIPC.v | an_admissible_group_keeps_the_residue_in_domain | claimed |
 | R-07-037d | proofs/EndpointIPC.v | the_specification_claims_no_particular_sibling | claimed |
 | R-07-037d | proofs/PartitionContext.v | n/a | cited |
+| R-07-037e | proofs/ElasticDispatch.v | n/a | cited |
 | R-07-037e | proofs/ElasticDomain.v | an_admitted_envelope_has_one_label_and_no_fixed_tier_member | claimed |
 | R-07-037e | proofs/IsolatedDesktop.v | n/a | cited |
 | R-07-037f | proofs/ElasticDomain.v | an_admitted_envelope_has_one_label_and_no_fixed_tier_member | claimed |
+| R-07-037g | proofs/ElasticDispatch.v | repeated_tentative_backstop_switches | claimed |
+| R-07-037g | proofs/ElasticDispatch.v | cross_app_step_executes_vmclear | claimed |
+| R-07-037g | proofs/ElasticDispatch.v | cooperative_boundary_never_cuts | claimed |
+| R-07-037g | proofs/ElasticDispatch.v | elastic_dispatch_label_internal_unwinding | claimed |
+| R-07-037g | proofs/ElasticDispatch.v | zero_sum_implies_eligible_exists | claimed |
+| R-07-037g | proofs/ElasticDispatch.v | cooperative_eevdf_lag_bounded | claimed |
+| R-07-037g | proofs/ElasticDispatch.v | cooperative_eevdf_shortfall_bounded | claimed |
 | R-07-037g | proofs/ElasticDomain.v | select_is_the_eevdf_choice | claimed |
 | R-07-037g | proofs/ElasticDomain.v | select_idles_only_when_nothing_is_eligible | claimed |
 | R-07-037g | proofs/ElasticDomain.v | the_dispatch_reads_only_its_label | claimed |
@@ -621,7 +646,9 @@ being a finding of the rules that read them rather than a row of this table.
 | R-07-037g | proofs/ElasticDomain.v | a_step_between_applications_clears_the_zeroize_class | claimed |
 | R-07-037g | proofs/ElasticDomain.v | a_step_between_applications_leaves_no_residue | claimed |
 | R-07-037g | proofs/ElasticDomain.v | a_step_between_applications_costs_one_vmclear | claimed |
+| R-07-037h | proofs/ElasticDispatch.v | cooperative_boundary_never_cuts | claimed |
 | R-07-037h | proofs/ElasticDomain.v | the_counter_bounds_every_path_between_invocations | claimed |
+| R-07-037i | proofs/ElasticDispatch.v | request_cell_launch_activates_only_placed | claimed |
 | R-07-037i | proofs/ElasticDomain.v | launch_activates_only_placed_contexts | claimed |
 | R-07-039 | proofs/EndpointIPC.v | n/a | cited |
 | R-07-039 | proofs/PartitionContext.v | n/a | cited |
@@ -638,6 +665,7 @@ being a finding of the rules that read them rather than a row of this table.
 | R-08-004d | proofs/EndpointIPC.v | the_specification_gives_no_table_a_lifecycle | claimed |
 | R-08-004d | proofs/PartitionContext.v | n/a | cited |
 | R-08-005 | proofs/KernelInstance.v | n/a | cited |
+| R-08-005a | proofs/ElasticPool.v | n/a | cited |
 | R-08-005a | proofs/KernelInstance.v | n/a | cited |
 | R-08-005b | proofs/KernelInstance.v | a_filtered_restore_carries_no_marked_authority | claimed |
 | R-08-005b | proofs/KernelInstance.v | a_filtered_restore_of_an_unsanitized_image_is_not_total | claimed |
@@ -655,6 +683,7 @@ being a finding of the rules that read them rather than a row of this table.
 | R-08-006 | proofs/MemoryPlannerContracts.v | n/a | cited |
 | R-08-006 | proofs/MemoryPlannerResources.v | n/a | cited |
 | R-08-007a | proofs/ElasticDomain.v | a_passed_gate_is_a_barrier_then_a_whole_sweep_begun_after_it | claimed |
+| R-08-007a | proofs/ElasticPool.v | n/a | cited |
 | R-08-007a | proofs/JournalIndex.v | n/a | cited |
 | R-08-007a | proofs/KernelInstance.v | marking_one_base_alone_leaves_a_derived_base_live | claimed |
 | R-08-007a | proofs/KernelInstance.v | completion_does_not_turn_on_the_epoch_mark | claimed |
@@ -690,6 +719,7 @@ being a finding of the rules that read them rather than a row of this table.
 | R-08-046 | proofs/ObjectRouter.v | an_admitted_composition_sizes_its_queue | claimed |
 | R-08-046 | proofs/ObjectRouter.v | the_specification_stays_inside_the_declared_bound | claimed |
 | R-08-047 | proofs/CopyRingService.v | n/a | cited |
+| R-08-047 | proofs/ElasticPool.v | n/a | cited |
 | R-08-047 | proofs/HandlerGraph.v | the_specification_binder_always_answers | claimed |
 | R-08-047 | proofs/HandlerGraph.v | the_specification_binder_declines_when_full | claimed |
 | R-08-047 | proofs/HandlerGraph.v | the_specification_binder_borrows_nothing | claimed |
@@ -697,6 +727,7 @@ being a finding of the rules that read them rather than a row of this table.
 | R-08-047 | proofs/InferenceAdmission.v | the_session_pool_never_exceeds_its_declared_capacity | claimed |
 | R-08-047 | proofs/InferenceAdmission.v | a_full_session_pool_declines_the_binding | claimed |
 | R-08-047a | proofs/ElasticDomain.v | n/a | cited |
+| R-08-047a | proofs/ElasticPool.v | n/a | cited |
 | R-08-047b | proofs/ElasticDomain.v | live_chunks_share_no_byte | claimed |
 | R-08-047b | proofs/ElasticDomain.v | an_exact_grant_needs_no_rounding | claimed |
 | R-08-047b | proofs/ElasticDomain.v | every_byte_is_zero_at_handoff | claimed |
@@ -1119,6 +1150,8 @@ being a finding of the rules that read them rather than a row of this table.
 | R-11-006 | proofs/SupervisionTree.v | n/a | cited |
 | R-11-006b | proofs/CyclicExecutive.v | n/a | cited |
 | R-11-006b | proofs/PartitionContext.v | n/a | cited |
+| R-11-006c | proofs/ElasticDispatch.v | cooperative_eevdf_lag_bounded | claimed |
+| R-11-006c | proofs/ElasticDispatch.v | cooperative_eevdf_shortfall_bounded | claimed |
 | R-11-006c | proofs/ElasticDomain.v | n/a | cited |
 | R-11-008 | proofs/HandlerGraph.v | n/a | cited |
 | R-11-009 | proofs/BoundaryCost.v | n/a | cited |
@@ -1438,6 +1471,7 @@ being a finding of the rules that read them rather than a row of this table.
 | R-15-007b | proofs/MModeFirmware.v | n/a | cited |
 | R-15-007n | proofs/EndpointIPC.v | n/a | cited |
 | R-15-007c | proofs/ElasticDomain.v | n/a | cited |
+| R-15-007c | proofs/ElasticPool.v | n/a | cited |
 | R-15-007c | proofs/MemoryPlan.v | the_specification_quantum_is_byte_exact_below_the_threshold | claimed |
 | R-15-007c | proofs/MemoryPlan.v | the_specification_quantum_is_no_coarser_than_the_bound | claimed |
 | R-15-007c | proofs/MemoryPlan.v | the_specification_quantum_is_the_coarsest_within_that_bound | claimed |
@@ -1798,6 +1832,7 @@ being a finding of the rules that read them rather than a row of this table.
 | R-16-027 | proofs/SupervisionTree.v | the_specification_escalates_past_the_rate_limit | claimed |
 | R-17-003 | proofs/ApexTheorem.v | n/a | cited |
 | R-17-003d | proofs/ComposedNonInterference.v | n/a | cited |
+| R-17-007b | proofs/ElasticDispatch.v | cooperative_eevdf_shortfall_bounded | claimed |
 | R-17-007b | proofs/ElasticDomain.v | n/a | cited |
 | R-17-007b | proofs/IsolatedDesktop.v | n/a | cited |
 | R-17-012 | proofs/SecurityPolicyModel.v | the_shipped_rule_is_delimited | claimed |
@@ -1825,6 +1860,7 @@ being a finding of the rules that read them rather than a row of this table.
 | R-17-041 | proofs/EnsembleSchedule.v | n/a | cited |
 | R-17-042 | proofs/ApexTheorem.v | n/a | cited |
 | R-17-043 | proofs/ApexTheorem.v | n/a | cited |
+| R-17-045 | proofs/ElasticPool.v | n/a | cited |
 | R-17-049 | proofs/ApexTheorem.v | n/a | cited |
 | R-17-049 | proofs/RomVerifier.v | n/a | cited |
 | R-17-049e | proofs/ApexTheorem.v | n/a | cited |
