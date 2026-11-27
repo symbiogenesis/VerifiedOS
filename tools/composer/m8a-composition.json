@@ -711,7 +711,7 @@
       ],
       "descriptor": {
         "path": "tools/composer/packages/copy-service.json",
-        "sha256": "9ed46c38702951313e20dc2072cd29ff680b10bc4633616708a09a4361b80786"
+        "sha256": "3c9d9d26d46a42d45d0730fdbec8cdcbd7f16b3198a5371be1d0941c2ac5ffc3"
       },
       "artifact_slot": "copy-service-artifact",
       "entry": null,

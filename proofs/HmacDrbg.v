@@ -805,7 +805,7 @@ Example the_three_families_complete_and_use_their_whole_pool :
   andb (andb (completed no_reseed_run) (Nat.eqb (pool_left no_reseed_run) 0))
   (andb (andb (completed pr_false_run) (Nat.eqb (pool_left pr_false_run) 0))
         (andb (completed pr_true_run) (Nat.eqb (pool_left pr_true_run) 0))) = true.
-Proof. rewrite no_reseed_run_is_its_literal. vm_reflexivity. Qed.
+Proof. reflexivity. Qed.
 
 Example the_three_families_are_disciplined_runs :
   andb (disciplined_run_b demo nil two_draws)
@@ -889,7 +889,13 @@ Example the_algorithm_alone_reaches_the_first_family :
                | Some r2 => bits_eqb (fst r2) (output_at no_reseed_run 1)
                end
   end = true.
-Proof. rewrite no_reseed_run_is_its_literal. vm_reflexivity. Qed.
+Proof.
+  assert (Hrefl : forall l : list bool, bits_eqb l l = true).
+  { induction l as [| [|] l IH]; [reflexivity | exact IH | exact IH]. }
+  cbv beta iota zeta delta -[hmac_drbg_update draw_blocks hmac_sha256 sha256
+                             take_of ProofSupport.take_of zero_key one_value bits_eqb].
+  exact (Hrefl _).
+Qed.
 
 (* -------------------------------------------------------------------------
    Backtracking resistance across a draw, as a computed property: no block
@@ -911,18 +917,33 @@ Example the_state_that_leaves_a_draw_carries_no_block_of_its_output :
   all_of (fun b => andb (negb (bits_eqb b (value (snd first_draw))))
                         (negb (bits_eqb b (key (snd first_draw)))))
          (blocks_of_output (fst first_draw)) = true.
-Proof. vm_reflexivity. Qed.
+Proof.
+  change (let d := first_draw in
+          let v := value (snd d) in
+          let k := key (snd d) in
+          all_of (fun b => andb (negb (bits_eqb b v)) (negb (bits_eqb b k)))
+                 (blocks_of_output (fst d)) = true).
+  vm_reflexivity.
+Qed.
 
 Example the_draw_that_updates_first_leaves_its_last_block_as_its_value :
   bits_eqb (last_of (blocks_of_output (fst first_draw_updating_first)) nil)
            (value (snd first_draw_updating_first)) = true.
-Proof. vm_reflexivity. Qed.
+Proof.
+  change (let d := first_draw_updating_first in
+          bits_eqb (last_of (blocks_of_output (fst d)) nil) (value (snd d)) = true).
+  vm_reflexivity.
+Qed.
 
 Example the_draw_that_updates_first_keeps_the_length_and_the_counter :
   andb (Nat.eqb (length_of (fst first_draw_updating_first)) corpus_draw_bits)
        (Nat.eqb (reseed_counter (snd first_draw_updating_first))
                 (reseed_counter (snd first_draw))) = true.
-Proof. vm_reflexivity. Qed.
+Proof.
+  assert (Hc : Nat.eqb (reseed_counter (snd first_draw_updating_first))
+                       (reseed_counter (snd first_draw)) = true) by reflexivity.
+  rewrite Hc. vm_reflexivity.
+Qed.
 
 Example the_draw_that_updates_first_misses_the_published_answer :
   bits_eqb (fst first_draw_updating_first) (output_at no_reseed_run 0) = false.
@@ -942,7 +963,14 @@ Example two_fresh_strings_leave_two_states :
        (negb (bits_eqb (value (reseed instantiated_for_pr pr_true_first_reseed_entropy nil))
                        (value (reseed instantiated_for_pr pr_true_second_reseed_entropy nil))))
   = true.
-Proof. vm_reflexivity. Qed.
+Proof.
+  change (let s := instantiated_for_pr in
+          let r1 := reseed s pr_true_first_reseed_entropy nil in
+          let r2 := reseed s pr_true_second_reseed_entropy nil in
+          andb (negb (bits_eqb (key r1) (key r2)))
+               (negb (bits_eqb (value r1) (value r2))) = true).
+  vm_reflexivity.
+Qed.
 
 Example the_reseed_that_ignores_its_entropy_leaves_one_state :
   andb (bits_eqb (key (reseed_ignoring_its_entropy instantiated_for_pr pr_true_first_reseed_entropy nil))
@@ -950,7 +978,12 @@ Example the_reseed_that_ignores_its_entropy_leaves_one_state :
        (Nat.eqb (reseed_counter (reseed_ignoring_its_entropy instantiated_for_pr
                                                              pr_true_first_reseed_entropy nil)) 1)
   = true.
-Proof. vm_reflexivity. Qed.
+Proof.
+  assert (Hrefl : forall l : list bool, bits_eqb l l = true).
+  { induction l as [| [|] l IH]; [reflexivity | exact IH | exact IH]. }
+  cbv beta iota delta [reseed_ignoring_its_entropy key reseed_counter Nat.eqb].
+  rewrite Hrefl. reflexivity.
+Qed.
 
 Example a_pool_that_reuses_a_string_is_not_fresh :
   andb (negb (fresh_pool (pr_true_first_reseed_entropy :: pr_true_first_reseed_entropy :: nil)))
@@ -973,7 +1006,7 @@ Definition witness_run : Run :=
 
 Example a_draw_past_the_bound_is_refused_at_the_witness :
   completed (step demo witness_run (Draw (S (draw_bound demo)) nil)) = false.
-Proof. vm_reflexivity. Qed.
+Proof. reflexivity. Qed.
 
 Example a_run_with_a_draw_past_the_bound_is_not_disciplined :
   disciplined_run_b demo nil (Draw (S (draw_bound demo)) nil :: nil) = false.
@@ -982,20 +1015,20 @@ Proof. vm_reflexivity. Qed.
 Example the_lock_edge_takes_a_string_from_the_pool :
   andb (Nat.eqb (pool_left (step demo witness_run (Cross the_lock_edge))) 0)
        (Nat.eqb (reseed_counter (state_of (step demo witness_run (Cross the_lock_edge)))) 1) = true.
-Proof. vm_reflexivity. Qed.
+Proof. reflexivity. Qed.
 
 Example every_transition_takes_a_string_from_the_pool_at_the_witness :
   all_of (fun t => Nat.eqb (pool_left (step demo witness_run (Cross t))) 0) all_transitions = true.
-Proof. vm_reflexivity. Qed.
+Proof. reflexivity. Qed.
 
 Example the_discipline_silent_on_the_lock_edge_takes_nothing_there :
   Nat.eqb (pool_left (step silent_on_the_lock_edge witness_run (Cross the_lock_edge))) 1 = true.
-Proof. vm_reflexivity. Qed.
+Proof. reflexivity. Qed.
 
 Example a_lock_transition_from_an_empty_pool_halts :
   completed (step demo {| witness_run with pool := nil; outputs := nil |}
                   (Cross the_lock_edge)) = false.
-Proof. vm_reflexivity. Qed.
+Proof. reflexivity. Qed.
 
 (* The instantiation refuses an entropy input and a nonce of the wrong
    length separately, so neither length is carried by the other. *)
@@ -1005,7 +1038,7 @@ Example an_instantiation_refuses_each_wrong_length_on_its_own :
                                         no_reseed_nonce nil nil nil))))
        (negb (completed (run_from demo no_reseed_entropy
                                   (take_of 8 no_reseed_nonce) nil nil nil))) = true.
-Proof. vm_reflexivity. Qed.
+Proof. reflexivity. Qed.
 
 
 (* The interval at the witness, and the one thing about it a reader gets
@@ -1023,11 +1056,11 @@ Example the_third_draw_reseeds_from_the_pool_and_the_fifth_halts :
              (Nat.eqb (pool_left (run demo three_draws witness_run)) 0))
   (andb (completed (run demo four_draws witness_run))
         (negb (completed (run demo five_draws witness_run)))) = true.
-Proof. vm_reflexivity. Qed.
+Proof. reflexivity. Qed.
 
 Example the_third_draw_leaves_a_counter_of_two :
   Nat.eqb (reseed_counter (state_of (run demo three_draws witness_run))) 2 = true.
-Proof. vm_reflexivity. Qed.
+Proof. reflexivity. Qed.
 
 (* A counter that starts at zero admits one draw more than the interval
    before the machine reseeds: from an empty pool the standard's third draw
@@ -1042,12 +1075,18 @@ Definition witness_run_counting_from_zero : Run :=
 Example the_counter_at_zero_admits_a_third_draw_the_standard_halts :
   andb (negb (completed (run demo three_draws witness_run_without_a_pool)))
        (completed (run demo three_draws witness_run_counting_from_zero)) = true.
-Proof. vm_reflexivity. Qed.
+Proof. reflexivity. Qed.
 
 Example the_counter_at_zero_agrees_with_the_standard_on_the_outputs_it_shares :
   bits_eqb (output_at (run demo two_draws witness_run_counting_from_zero) 1)
            (output_at no_reseed_run 1) = true.
-Proof. rewrite no_reseed_run_is_its_literal. vm_reflexivity. Qed.
+Proof.
+  assert (Hrefl : forall l : list bool, bits_eqb l l = true).
+  { induction l as [| [|] l IH]; [reflexivity | exact IH | exact IH]. }
+  cbv beta iota zeta delta -[hmac_drbg_update draw_blocks hmac_sha256 sha256
+                             take_of ProofSupport.take_of zero_key one_value bits_eqb].
+  exact (Hrefl _).
+Qed.
 
 (* A halted run reports nothing rather than the last thing it held, which is
    R-15-241b's fail-stop read at the reader: no pool, no counter, no output,
@@ -1059,7 +1098,7 @@ Example a_halted_run_reports_nothing :
                                                      witness_run_without_a_pool))) 0)
              (Nat.eqb (length_of (outputs_of (run demo three_draws
                                                   witness_run_without_a_pool))) 0)) = true.
-Proof. vm_reflexivity. Qed.
+Proof. reflexivity. Qed.
 
 (* The inverted update misses the published answer at the empty
    personalization string every family here uses, which is the branch it
@@ -1079,7 +1118,7 @@ Example the_alternative_instantiations_move_one_thing_each :
        (Nat.eqb (S (reseed_counter (instantiate_with_the_counter_at_zero
                                       no_reseed_entropy no_reseed_nonce nil)))
                 (reseed_counter (instantiate no_reseed_entropy no_reseed_nonce nil))) = true.
-Proof. vm_reflexivity. Qed.
+Proof. reflexivity. Qed.
 
 (* And it is held to that single difference on both branches, in opposite
    directions: where provided_data is not empty the standard's result is the
@@ -1097,7 +1136,15 @@ Example the_inverted_update_is_one_pass_from_the_standard_on_each_branch :
              (bits_eqb (snd std) (hmac_sha256 (fst std) (snd inv))))
        (andb (bits_eqb (fst inv0) (hmac_sha256 (fst std0) (snd std0 ++ separator_one ++ nil)))
              (bits_eqb (snd inv0) (hmac_sha256 (fst inv0) (snd std0)))) = true.
-Proof. vm_reflexivity. Qed.
+Proof.
+  assert (Hrefl : forall l : list bool, bits_eqb l l = true).
+  { induction l as [| [|] l IH]; [reflexivity | exact IH | exact IH]. }
+  cbv zeta.
+  case_eq pr_false_reseed_entropy; [intro H; vm_compute in H; discriminate H | intros b bs _].
+  unfold update_with_its_branch_inverted, hmac_drbg_update.
+  cbv beta iota zeta delta [fst snd].
+  repeat rewrite Hrefl. reflexivity.
+Qed.
 
 (* -------------------------------------------------------------------------
    Inhabitation witnesses (R-05-166) for each record type in this file.
