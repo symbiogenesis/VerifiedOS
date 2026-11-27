@@ -31,7 +31,11 @@ DEFAULT_STDPP = (
 DEFAULT_ROCQ_PREFIX = "/root/.opam/verifiedos-rocq-9.3.0-ocaml-5.4.1"
 
 TAG_INTERPRETER_SHA256 = "6a4d74e55548aeb86647031f24297365233541f2c20991a80f744f636fc24d40"
+TAG_CONSERVATIVITY_SHA256 = "ce05b0dceac920e0fb46e569b93300905f3461d84242a14c6964118950753a63"
 CANONICAL_BRIDGE_SHA256 = "420b764eef05c2d2cf392975b67afcd7242b82f241bc1100e3b74edad6f51112"
+CANONICAL_TAG_CONSERVATIVITY_SHA256 = (
+    "62e5d9b57293ddb44b2c7586fd5aba0c8e9c82f35ae724e8079a5cace0c10015"
+)
 
 CANONICAL_BRIDGE_REL = (
     "docs/implementation/retained-evidence/"
@@ -45,8 +49,15 @@ CANONICAL_DIAGNOSTIC_MANIFEST_REL = (
 )
 
 WHOLE_TERM_MODULES = ("riscv_extras", "rv64d_types", "rv64d")
-AUTHORED_CANONICAL_MODULES = ("TagInterpreter", "CanonicalPhysicalCallerBridge")
+AUTHORED_CANONICAL_MODULES = (
+    "TagInterpreter",
+    "TagConservativity",
+    "CanonicalPhysicalCallerBridge",
+    "CanonicalTagConservativity",
+)
+KERNEL_CHECK_MODULES = ("CanonicalPhysicalCallerBridge", "CanonicalTagConservativity")
 CANONICAL_TAG_PLANE_INST = "CanonicalTagPlaneInst"
+CANONICAL_OLD_OUTCOMES_INST = "CanonicalOldOutcomesInst"
 
 # Classified floating-point axioms declared by the canonical hart-0 emission:
 # [canonical-machine-term.md](../../docs/assurance/canonical-machine-term.md#the-31-the-emission-declares).
@@ -237,7 +248,14 @@ def canonical_assumption_spec(module: str) -> tuple[str, str]:
             f"Module {CANONICAL_TAG_PLANE_INST} := TagInterpreter.TagPlane "
             f"rv64d_types.Arch rv64d_types.Interface.\n",
         )
-    if module == "CanonicalPhysicalCallerBridge":
+    if module == "TagConservativity":
+        return (
+            CANONICAL_OLD_OUTCOMES_INST,
+            f"Require rv64d_types TagConservativity.\n"
+            f"Module {CANONICAL_OLD_OUTCOMES_INST} := TagConservativity.OldOutcomes "
+            f"rv64d_types.Arch rv64d_types.Interface.\n",
+        )
+    if module in ("CanonicalPhysicalCallerBridge", "CanonicalTagConservativity"):
         return module, f"Require {module}.\n"
     raise ValueError(f"unsupported canonical closure module: {module}")
 
@@ -393,6 +411,42 @@ def verify_canonical_kernel_check(
     return report
 
 
+def build_canonical_kernel_report(
+    targets: dict[str, dict[str, object]],
+) -> dict[str, object]:
+    """Assemble the multi-target recursive `rocqchk -silent -o` kernel report."""
+    if list(targets) != list(KERNEL_CHECK_MODULES):
+        raise ValueError(f"unexpected canonical kernel target order: {list(targets)}")
+    for mod, report in targets.items():
+        if (
+            report.get("recursive") is not True
+            or report.get("norec_absent") is not True
+            or report.get("norec_present") is not False
+            or report.get("target_module") != mod
+            or report.get("exit_code") != 0
+            or report.get("unexpected_axioms") != []
+            or report.get("missing_expected_axioms") != []
+            or sorted(cast("list[str]", report.get("axioms", [])))
+            != sorted(EXPECTED_CANONICAL_FP_AXIOMS)
+        ):
+            raise ValueError(f"canonical kernel target {mod} violated recursive invariants")
+    total_elapsed = sum(
+        cast("float", report.get("elapsed_seconds", 0.0))
+        for report in targets.values()
+    )
+    return {
+        "schema": "verifiedos-canonical-tag-kernel-check/2",
+        "recursive": True,
+        "norec_absent": True,
+        "norec_present": False,
+        "target_modules": list(KERNEL_CHECK_MODULES),
+        "expected_axioms": sorted(EXPECTED_CANONICAL_FP_AXIOMS),
+        "axiom_count": len(EXPECTED_CANONICAL_FP_AXIOMS),
+        "total_elapsed_seconds": total_elapsed,
+        "targets": targets,
+    }
+
+
 def _verify_frozen_assumptions(
     fresh: dict[str, object],
     frozen_doc: dict[str, object],
@@ -422,7 +476,7 @@ def _verify_frozen_assumptions(
                 )
 
 
-def _verify_frozen_kernel_check(
+def _verify_frozen_single_kernel_target(
     fresh: dict[str, object],
     frozen_doc: dict[str, object],
 ) -> None:
@@ -447,6 +501,32 @@ def _verify_frozen_kernel_check(
             raise ValueError(
                 f"canonical kernel-check {field} differs from frozen closure bundle",
             )
+
+
+def _verify_frozen_kernel_check(
+    fresh: dict[str, object],
+    frozen_doc: dict[str, object],
+) -> None:
+    if fresh.get("schema") == "verifiedos-canonical-tag-kernel-check/2":
+        if (fresh.get("recursive") is not True or fresh.get("norec_absent") is not True
+                or fresh.get("norec_present") is not False):
+            raise ValueError("fresh canonical kernel-check report must be recursive without -norec")
+        for field in (
+            "schema", "recursive", "norec_absent", "norec_present",
+            "target_modules", "expected_axioms", "axiom_count",
+        ):
+            if fresh.get(field) != frozen_doc.get(field):
+                raise ValueError(
+                    f"canonical kernel-check {field} differs from frozen closure bundle",
+                )
+        fresh_targets = cast("dict[str, dict[str, object]]", fresh["targets"])
+        frozen_targets = cast("dict[str, dict[str, object]]", frozen_doc["targets"])
+        if list(fresh_targets) != list(frozen_targets):
+            raise ValueError("canonical kernel-check target keys differ from frozen closure bundle")
+        for mod in fresh_targets:
+            _verify_frozen_single_kernel_target(fresh_targets[mod], frozen_targets[mod])
+        return
+    _verify_frozen_single_kernel_target(fresh, frozen_doc)
 
 
 def verify_frozen_canonical_closure(
@@ -538,7 +618,13 @@ def main() -> None:
     )
 
     tag_interpreter_source = repo / "tools/sail-tag-outcomes/TagInterpreter.v"
+    tag_conservativity_source = repo / "tools/sail-tag-outcomes/TagConservativity.v"
+    canonical_conservativity_source = (
+        repo / "tools/sail-tag-outcomes/CanonicalTagConservativity.v"
+    )
     require_sha(tag_interpreter_source, TAG_INTERPRETER_SHA256)
+    require_sha(tag_conservativity_source, TAG_CONSERVATIVITY_SHA256)
+    require_sha(canonical_conservativity_source, CANONICAL_TAG_CONSERVATIVITY_SHA256)
 
     closure_doc = _load_json(closure_reading_path)
     recorded_fp = sorted(cast("list[str]", closure_doc["emitted_axioms"]))
@@ -548,6 +634,11 @@ def main() -> None:
     frozen_canonical = cast("dict[str, str] | None", recipe.get("frozen_canonical_closure_manifest"))
     if frozen_canonical is not None:
         require_sha(repo / frozen_canonical["path"], frozen_canonical["sha256"])
+    frozen_conservativity = cast(
+        "dict[str, str] | None", recipe.get("frozen_canonical_conservativity_manifest"),
+    )
+    if frozen_conservativity is not None:
+        require_sha(repo / frozen_conservativity["path"], frozen_conservativity["sha256"])
 
     try:
         out = output_path(
@@ -609,8 +700,13 @@ def main() -> None:
         "frozen_canonical_closure_manifest_sha256": (
             frozen_canonical["sha256"] if frozen_canonical is not None else None
         ),
+        "frozen_canonical_conservativity_manifest_sha256": (
+            frozen_conservativity["sha256"] if frozen_conservativity is not None else None
+        ),
         "tag_interpreter_source_sha256": TAG_INTERPRETER_SHA256,
+        "tag_conservativity_source_sha256": TAG_CONSERVATIVITY_SHA256,
         "canonical_bridge_source_sha256": CANONICAL_BRIDGE_SHA256,
+        "canonical_tag_conservativity_source_sha256": CANONICAL_TAG_CONSERVATIVITY_SHA256,
         "rocq_sha256": sha(rocq_bin),
         "rocqchk_sha256": sha(rocqchk_bin),
         "whole_term_files": whole_term_verified,
@@ -656,11 +752,17 @@ def main() -> None:
 
     try:
         tag_dest = out / "TagInterpreter.v"
+        conserv_dest = out / "TagConservativity.v"
         bridge_dest = out / "CanonicalPhysicalCallerBridge.v"
+        canon_conserv_dest = out / "CanonicalTagConservativity.v"
         tag_dest.write_bytes(tag_interpreter_source.read_bytes())
+        conserv_dest.write_bytes(tag_conservativity_source.read_bytes())
         bridge_dest.write_bytes(bridge_source.read_bytes())
+        canon_conserv_dest.write_bytes(canonical_conservativity_source.read_bytes())
         require_sha(tag_dest, TAG_INTERPRETER_SHA256)
+        require_sha(conserv_dest, TAG_CONSERVATIVITY_SHA256)
         require_sha(bridge_dest, CANONICAL_BRIDGE_SHA256)
+        require_sha(canon_conserv_dest, CANONICAL_TAG_CONSERVATIVITY_SHA256)
 
         strict_flags = cast("list[str]", support_recipe["strict_flags"])
         base_loadpaths: list[str | Path] = [
@@ -681,7 +783,9 @@ def main() -> None:
         ]
         for mod, src_path in (
             ("TagInterpreter", tag_dest),
+            ("TagConservativity", conserv_dest),
             ("CanonicalPhysicalCallerBridge", bridge_dest),
+            ("CanonicalTagConservativity", canon_conserv_dest),
         ):
             res, _ = run(f"compile-{mod}", [*compile_prefix, src_path], cwd=out)
             if res.stdout or res.stderr:
@@ -711,13 +815,6 @@ def main() -> None:
         )
         _write_json(out / "assumptions.json", assumptions_report)
 
-        kernel_argv: list[str | Path] = [
-            rocqchk_bin,
-            "-silent",
-            "-o",
-            *base_loadpaths,
-            "CanonicalPhysicalCallerBridge",
-        ]
         portable_kernel_flags = [
             "-silent",
             "-o",
@@ -729,22 +826,33 @@ def main() -> None:
             "-R", "<whole_term_dir>", "",
             "-R", "<out>", "",
         ]
-        kernel_res, kernel_elapsed = run(
-            "kernel-CanonicalPhysicalCallerBridge",
-            kernel_argv,
-            cwd=out,
-            timeout=KERNEL_CHECK_TIMEOUT_SECONDS,
-        )
-        kernel_report = verify_canonical_kernel_check(
-            list(map(str, kernel_argv)),
-            kernel_res.returncode,
-            kernel_res.stdout,
-            kernel_res.stderr,
-            target_module="CanonicalPhysicalCallerBridge",
-            portable_flags=portable_kernel_flags,
-            expected_axioms=EXPECTED_CANONICAL_FP_AXIOMS,
-            elapsed_seconds=kernel_elapsed,
-        )
+        kernel_targets: dict[str, dict[str, object]] = {}
+        for target_mod in KERNEL_CHECK_MODULES:
+            kernel_argv: list[str | Path] = [
+                rocqchk_bin,
+                "-silent",
+                "-o",
+                *base_loadpaths,
+                target_mod,
+            ]
+            kernel_res, target_elapsed = run(
+                f"kernel-{target_mod}",
+                kernel_argv,
+                cwd=out,
+                timeout=KERNEL_CHECK_TIMEOUT_SECONDS,
+            )
+            kernel_targets[target_mod] = verify_canonical_kernel_check(
+                list(map(str, kernel_argv)),
+                kernel_res.returncode,
+                kernel_res.stdout,
+                kernel_res.stderr,
+                target_module=target_mod,
+                portable_flags=portable_kernel_flags,
+                expected_axioms=EXPECTED_CANONICAL_FP_AXIOMS,
+                elapsed_seconds=target_elapsed,
+            )
+        kernel_report = build_canonical_kernel_report(kernel_targets)
+        kernel_elapsed = cast("float", kernel_report["total_elapsed_seconds"])
         _write_json(out / "kernel-check.json", kernel_report)
 
         # Re-verify input digests after compilation and kernel checking.
@@ -762,10 +870,10 @@ def main() -> None:
         _write_json(out / "installed-comparison.json", changes)
         verify_installed_unchanged(changes)
 
-    if frozen_canonical is not None:
+    if frozen_conservativity is not None:
         verify_frozen_canonical_closure(
-            repo / frozen_canonical["path"],
-            frozen_canonical["sha256"],
+            repo / frozen_conservativity["path"],
+            frozen_conservativity["sha256"],
             assumptions_report,
             kernel_report,
             changes,
