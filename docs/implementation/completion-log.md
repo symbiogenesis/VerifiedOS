@@ -3614,3 +3614,164 @@ Landed: Tier A. No checker rule was added and none holds what this item created:
   * Two findings.
     * **The workflow's expression contexts are held by GitHub at validation and by no gate here.** A violation is invisible to `run.py --check --tests` and surfaces as a run that does not exist. Standing: the residue is carried, not closed, for the reason the fourth bullet above gives.
     * **Two statements of the workflow's command line outside the tools lane went stale with this landing.** No rule holds the pair; K-68's co-stated table does not carry it.
+
+
+<a id="q28b-i-derive-conditioned-extractor-families-and-prove-adaptive-multi-block-seed-accumulation"></a>
+
+### Q28b-i · Derive conditioned extractor families and prove adaptive multi-block seed accumulation
+
+  * Extended `proofs/TwoSourceExtractor.v` (2,767 lines; 309/309 symbols closed) with `derived_conditioned_family_valid`, `derived_joint_observer_distance_bound`, `adaptive_multiblock_accumulation_bound`, and `SeedChain256`. Verified at merge `dc36f040` (from lane commit `347718b6`) under strict Rocq 9.3.0 compilation across all 19 `.v` files and `rocqchk` (`Axioms: <none>`). Physical S5 source parameters, TM-8 concrete conditioner map, and finite boot/source fit remain open under `Q28b-ii`.
+
+Calibration: retained estimate 18 h (range 10–26 h); actual execution time recorded as `n/a · agent-parallel` in the agent-parallel series; excluded from the human fit.
+
+Landed: Tier A. Focused Rocq compilation and `rocqchk` passed locally in WSL; full proof/guest CI awaits user-managed hosted validation.
+
+<a id="q33-i-specify-and-verify-reset-table-schema-validator-off-image-loader-fill-and-suffix-rider-proofs"></a>
+
+### Q33-i · Specify and verify reset-table schema, validator, OFF-image loader-fill and suffix rider proofs
+
+  * Extended `proofs/DischargeSequence.v` (354/354 closed) with R-15-190b OFF-image loader-fill sequencing and `proofs/ResetTable.v` (234/234 closed) with R-15-247d suffix rider preservation and R-09-006b symbolic chain-latency summation; authored `docs/hardware/reset-power-sequence-table.md` (Crown-Jewel Rows 12 and 26), `interfaces/reset-table.schema.json`, `tools/vos/reset_table.py`, and `tools/tests/test_reset_table.py`. Verified at merge `dc36f040` (from lane commit `7d4d3fe7`) with strict Rocq 9.3.0, `rocqchk` (`Axioms: <none>`), and `test_reset_table` (11/11 cases passing in WSL). Hardware silicon/fuse timing calibration remains open under `Q33-ii`.
+
+Calibration: retained estimate 13 h (range 8–18 h); actual execution time recorded as `n/a · agent-parallel` in the agent-parallel series; excluded from the human fit.
+
+Landed: Tier A. Local schema validator suite and Rocq/checker proofs passed; hosted guest/proof CI and physical timing sign-off remain deferred.
+
+<a id="q34c-ii-a-author-gc-free-c17-pool-service-heap-library-and-m44-holder-barrier"></a>
+
+### Q34c-ii-a · Author GC-free C17 pool service, heap library and M4.4 holder barrier
+
+  * Authored original Apache-2.0 GC-free C17 `pool/` service and library (`vos_elastic_pool.h`, `elastic_pool.c`, `test_elastic_pool.c`, `README.md`) and `tools/tests/test_elastic_pool_c.py`. Verified at merge `dc36f040` (from lane commit `94a1e2b2`) against `elastic_pool.py` (54/54 differential traces passing), `clang -std=c17 -Wall -Wextra -Werror -Wstrict-prototypes -pedantic`, `gcc -fsanitize=address,undefined` (8/8 compiled mutants killed), and `test_elastic_pool_c` (3/3 passing in WSL). Target hardware/runtime execution on bare-metal CHERI remains open under `Q34c-ii-b`.
+
+Calibration: recorded 0.1 h actual (`agent-parallel`; ~7.0 min measured worker duration) against original allocation 10 h (class I); carried in the agent-parallel series.
+
+Landed: Tier A. Local C17 compilation, ASan/UBSan test run, differential trace checks, and mutant kills passed; on-target hardware qualification remains under `Q34c-ii-b`.
+
+<a id="q44-i-qualify-c-to-gallina-resident-read-correspondence-across-both-root-kinds"></a>
+
+### Q44-i · Qualify C-to-Gallina resident-read correspondence across both root kinds
+
+  * Authored `storage/host/resident_reads_correspondence.c`, `tools/tests/test_resident_correspondence.py`, `ResidentReadsCorrespondence.v`, and negative tampered control `ResidentReadsTampered.v`, updating `storage/resident-reads.md`. Verified at merge `dc36f040` (from lane commit `b138fe76`) with `clang -std=c17 -Wall -Wextra -Werror -Wstrict-prototypes -pedantic`, `gcc -fsanitize=address,undefined` (8/8 compiled mutants killed), strict Rocq 9.3.0 + `rocqchk`, tampered-control rejection, and `test_resident_correspondence` (3/3 passing in WSL). Remaining storage integration closes under `Q44-ii`.
+
+Calibration: retained estimate 8 h (range 5–11 h); actual execution time recorded as `n/a · agent-parallel` in the agent-parallel series; excluded from the human fit.
+
+Landed: Tier A. Local correspondence proofs, tampered-model rejection, ASan/UBSan execution, and mutant checks passed; hosted proof CI remains user-managed.
+
+<a id="m44b-ii-a-author-gc-free-c17-groupelastic-executive-and-general-csr-restoration"></a>
+
+### M4.4b-ii-a · Author GC-free C17 group/elastic executive and general CSR restoration
+
+  * Authored additive GC-free C17 executive files (`kernel/include/vos_elastic_exec.h`, `kernel/src/elastic_exec.c`, `kernel/test/test_elastic_exec.c`) and `tools/tests/test_kernel_elastic_c.py`. Verified at merge `dc36f040` (from lane commit `94a1e2b2`) against 6/6 EEVDF oracle steps, `clang -std=c17 -Wall -Wextra -Werror -Wstrict-prototypes -pedantic`, `gcc -fsanitize=address,undefined` (7/7 compiled mutants killed), and `test_kernel_elastic_c` (3/3 passing in WSL). Bare-metal target exception/CSR bring-up remains open under `M4.4b-ii-b`.
+
+Calibration: recorded 0.1 h actual (`agent-parallel`; ~4.5 min measured worker duration) against original allocation 1.1 h (class X-authored); carried in the agent-parallel series.
+
+Landed: Tier A. Local host compilation, ASan/UBSan EEVDF oracle checks, and mutant testing passed; on-target hardware scheduling and trap integration remain under `M4.4b-ii-b`.
+
+<a id="m53d-i-realize-authenticated-typed-storage-publication-and-two-instance-separation-in-c"></a>
+
+### M5.3d-i · Realize authenticated typed storage publication and two-instance separation in C
+
+  * Authored authenticated typed `VOSTYP01` tree publication, reopen, crash-cut, compaction, and two-instance isolation across `storage/include/vos_storage_publish.h`, `storage/src/storage_publish.c`, `storage/host/storage_publish.c`, and updated `storage/README.md` and `storage/typed-entry.md`. Verified at merge `dc36f040` (from lane commit `b138fe76`) with `clang -std=c17 -Wall -Wextra -Werror -Wstrict-prototypes -pedantic`, `gcc -fsanitize=address,undefined` (22/22 compiled mutants killed), and `test_storage_publish` (3/3 passing in WSL). Hardware flash/wear target integration remains open under `M5.3d-ii`.
+
+Calibration: retained estimate 8 h (range 5–11 h); actual execution time recorded as `n/a · agent-parallel` in the agent-parallel series; excluded from the human fit.
+
+Landed: Tier A. Local C17 build, ASan/UBSan host tests, and mutant testing passed; hosted suites and target storage-media integration remain pending.
+
+<a id="m54-i-prove-binary-id-replay-and-path-local-reader-and-author-bounded-transactor-c"></a>
+
+### M5.4-i · Prove binary-ID replay and path-local reader and author bounded transactor C
+
+  * Extended `proofs/ObjectTransactor.v` (382/382 symbols closed) with radix-2 `TxIndex` replay equality (`tx_index_lookup_eq_commits`, `tx_index_apply_all_eq`) and `path_read` Merkle chain proofs and refusal witnesses; authored bounded GC-free C17 `transactor/` (`vos_transactor.h`, `transactor.c`, `test_transactor.c`, `README.md`) and `tools/tests/test_transactor.py`. Verified at merge `dc36f040` (from lane commit `9a60ddac`) under strict Rocq 9.3.0 + `rocqchk` (`Axioms: <none>`), `clang -std=c17 -Wall -Wextra -Werror -Wstrict-prototypes -pedantic`, `gcc -fsanitize=address,undefined` (6/6 compiled mutants killed), and `test_transactor` (4/4 passing in WSL). Target flash persistence closes under `M5.4-ii`.
+
+Calibration: retained estimate 12 h (range 8–16 h); actual execution time recorded as `n/a · agent-parallel` in the agent-parallel series; excluded from the human fit.
+
+Landed: Tier A. Local Rocq proofs, `rocqchk`, ASan/UBSan C checks, and mutant suite passed; hosted proof/host CI remains user-managed.
+
+<a id="m63b-i-realize-namespace-live-query-and-credential-handle-router-in-c"></a>
+
+### M6.3b-i · Realize namespace, live-query and credential-handle router in C
+
+  * Authored GC-free C17 `router/` (`vos_router.h`, `router.c`, `test_router.c`, `README.md`) and `tools/tests/test_router_c.py`. Verified at merge `dc36f040` (from lane commit `120cc72e`) with `clang -std=c17 -Wall -Wextra -Werror -Wstrict-prototypes -pedantic`, `gcc -fsanitize=address,undefined` (15/15 compiled mutants killed), and `test_router_c` (3/3 passing in WSL). Target IPC/capability runtime wiring remains open under `M6.3b-ii`.
+
+Calibration: retained estimate 6 h (range 4–8 h); actual execution time recorded as `n/a · agent-parallel` in the agent-parallel series; excluded from the human fit.
+
+Landed: Tier A. Local host compilation, ASan/UBSan test cases, and mutant testing passed; hosted validation remains user-managed.
+
+<a id="m65b-i-realize-dma-ring-validation-cancellation-and-quiescence-service-in-c"></a>
+
+### M6.5b-i · Realize DMA ring validation, cancellation and quiescence service in C
+
+  * Authored GC-free C17 `dma-service/` (`vos_dma_service.h`, `dma_service.c`, `test_dma_service.c`, `README.md`) and `tools/tests/test_dma_service.py` dynamically consuming `ring_dma` from `interfaces/ring-reference.json`. Verified at merge `dc36f040` (from lane commit `120cc72e`) with `clang -std=c17 -Wall -Wextra -Werror -Wstrict-prototypes -pedantic`, `gcc -fsanitize=address,undefined` (10/10 compiled mutants killed), Rocq `RingDma` check, and `test_dma_service` (3/3 passing in WSL). Hardware IOMMU/board quiescence binding remains open under `M6.5b-ii`.
+
+Calibration: retained estimate 9 h (range 6–12 h); actual execution time recorded as `n/a · agent-parallel` in the agent-parallel series; excluded from the human fit.
+
+Landed: Tier A. Local host C17/ASan/UBSan tests, mutant kills, and `RingDma` alignment passed; hosted CI and board validation remain pending.
+
+<a id="m66-i-realize-canonical-shape-codec-and-seven-term-session-open-ceiling-in-c"></a>
+
+### M6.6-i · Realize canonical shape codec and seven-term session-open ceiling in C
+
+  * Authored GC-free C17 canonical tensor/shape codec and seven-term session-open admission ceiling in `inference-admission/` (`vos_inference_admission.h`, `inference_admission.c`, `test_inference_admission.c`, `README.md`) and `tools/tests/test_inference_admission_c.py`. Verified at merge `dc36f040` (from lane commit `4b86605d`) with `clang -std=c17 -Wall -Wextra -Werror -Wstrict-prototypes -pedantic`, `gcc -fsanitize=address,undefined` (6/6 compiled mutants killed across the module suite), and `test_inference_admission_c` (4/4 passing in WSL). Full NPU/target transport integration closes under `M6.6-ii`.
+
+Calibration: retained estimate 9 h (range 6–12 h); actual execution time recorded as `n/a · agent-parallel` in the agent-parallel series; excluded from the human fit.
+
+Landed: Tier A. Local host build, ASan/UBSan suite, and mutant testing passed; target integration and hosted CI remain pending.
+
+<a id="m67-i-realize-expert-residency-and-fixed-work-admission-arithmetic-in-c"></a>
+
+### M6.7-i · Realize expert-residency and fixed-work admission arithmetic in C
+
+  * Authored GC-free C17 expert-residency and fixed-work admission arithmetic in `inference-admission/` (`vos_inference_admission.h`, `inference_admission.c`, `test_inference_admission.c`, `README.md`) and `tools/tests/test_inference_admission_c.py`. Verified at merge `dc36f040` (from lane commit `4b86605d`) under `clang -std=c17 -Wall -Wextra -Werror -Wstrict-prototypes -pedantic`, `gcc -fsanitize=address,undefined` (6/6 compiled mutants killed across the module suite), and `test_inference_admission_c` (4/4 passing in WSL). On-target SRAM/memory-pool binding remains open under `M6.7-ii`.
+
+Calibration: retained estimate 4.5 h (range 2.5–6.5 h); actual execution time recorded as `n/a · agent-parallel` in the agent-parallel series; excluded from the human fit.
+
+Landed: Tier A. Local host C17/ASan/UBSan checks and mutants passed; hosted CI and target binding remain pending.
+
+<a id="m68-i-realize-bank-grant-token-rate-derivation-in-c"></a>
+
+### M6.8-i · Realize bank-grant token-rate derivation in C
+
+  * Authored GC-free C17 bank-grant token-rate derivation in `inference-admission/` (`vos_inference_admission.h`, `inference_admission.c`, `test_inference_admission.c`, `README.md`) and `tools/tests/test_inference_admission_c.py`. Verified at merge `dc36f040` (from lane commit `4b86605d`) under `clang -std=c17 -Wall -Wextra -Werror -Wstrict-prototypes -pedantic`, `gcc -fsanitize=address,undefined` (6/6 compiled mutants killed across the module suite), and `test_inference_admission_c` (4/4 passing in WSL). Hardware token-credit pacing integration remains open under `M6.8-ii`.
+
+Calibration: retained estimate 4 h (range 2.5–5.5 h); actual execution time recorded as `n/a · agent-parallel` in the agent-parallel series; excluded from the human fit.
+
+Landed: Tier A. Local host C17/ASan/UBSan checks and mutants passed; hosted CI and hardware integration remain pending.
+
+<a id="m69c-i-prove-multi-session-attested-tls-agreement-and-relay-versus-substitution-matrix"></a>
+
+### M6.9c-i · Prove multi-session attested TLS agreement and relay-versus-substitution matrix
+
+  * Extended `proofs/AttestedSession.v` (175/175 symbols closed) with multi-session strand/trace agreement, `ByteForwardingRelay` versus substitution separation, and the 5-cell compromise matrix. Verified at merge `dc36f040` (from lane commit `4b86605d`) under strict Rocq 9.3.0 compilation across all 19 `.v` files and `rocqchk` (`Axioms: <none>`). Wire-level implementation and runtime integration remain open under `M6.9c-ii`.
+
+Calibration: retained estimate 18 h (range 12–24 h); actual execution time recorded as `n/a · agent-parallel` in the agent-parallel series; excluded from the human fit.
+
+Landed: Tier A. Local strict Rocq compilation and `rocqchk` passed; hosted proof CI and wire-runtime integration remain pending.
+
+<a id="post-m10a-i-prove-pinisni-composition-adaptive-equivalence-and-transition-separation-in-coq"></a>
+
+### Post-M10a-i · Prove PINI/SNI composition, adaptive equivalence and transition separation in Coq
+
+  * Extended `proofs/ProbingModel.v` (4,915 lines; 381 symbols, 369/369 `Closed under the global context`, 8/8 record witnesses) with glitch-robust PINI/SNI composition (`linear_gadget_is_pini`, `pini_seq_compose`, `pini_par_compose`, `sni_ni_compose`, `ni_sni_compose`, `StrongPINI`), `fixed_implies_adaptive_probing_secure`, `adaptive_d_share_hides_secret`, and `diff_only_misses_register_reuse_that_pair_catches`. Verified at merge `dc36f040` (from lane commit `09b9f7a9`) under strict Rocq 9.3.0 and `rocqchk` (`Axioms: <none>`). RTL-level leakage/silicon validation remains open under `Post-M10a-ii`.
+
+Calibration: retained estimate 16 h (range 8–24 h); actual execution time recorded as `n/a · agent-parallel` in the agent-parallel series; excluded from the human fit.
+
+Landed: Tier A. Local strict Rocq proofs and `rocqchk` passed; hosted cold proof CI and hardware leakage sign-off remain pending.
+
+<a id="post-m10b-i-prove-arbitrary-order-arithmetic-pipeline-security-and-conditional-probability-link"></a>
+
+### Post-M10b-i · Prove arbitrary-order arithmetic pipeline security and conditional probability link
+
+  * Extended `proofs/ArithmeticComposition.v` (2,284 lines; 205/205 closed) with arbitrary-order prime-field operations and pipeline hiding, `preimage_cardinality_implies_conditional_probability_equality`, and reused-mask and omitted-barrier refutations. Verified at merge `dc36f040` (from lane commit `347718b6`) under strict Rocq 9.3.0 compilation and `rocqchk` (`Axioms: <none>`). RTL netlist correspondence and silicon TVLA remain open under `Post-M10b-ii`.
+
+Calibration: retained estimate 20 h (range 8–32 h); actual execution time recorded as `n/a · agent-parallel` in the agent-parallel series; excluded from the human fit.
+
+Landed: Tier A. Local strict Rocq compilation and `rocqchk` passed; hosted cold proof CI and netlist/hardware checks remain pending.
+
+<a id="post-m10c-i-prove-arbitrary-order-domhpc-boolean-masking-for-aes-s-box-and-keccak-chi"></a>
+
+### Post-M10c-i · Prove arbitrary-order DOM/HPC Boolean masking for AES S-box and Keccak chi
+
+  * Authored `proofs/BooleanComposition.v` (8,148 lines; 329 symbols, 326/326 closed, 2/2 record witnesses) defining `gf2_sharing`, arbitrary-order glitch-robust DOM/HPC AND and linear gadgets, DAG composition (`BoolCircuit`), exhaustive 256-byte FIPS 197 AES S-box and Keccak chi equivalence with arbitrary-order `t`-PINI security, and barrierless/reused-randomness refutations. Verified at merge `dc36f040` (from lane commit `09b9f7a9`) under strict Rocq 9.3.0 compilation and `rocqchk` (`Axioms: <none>`). Netlist extraction and hardware validation remain open under `Post-M10c-ii`.
+
+Calibration: retained estimate 24 h (range 12–36 h); actual execution time recorded as `n/a · agent-parallel` in the agent-parallel series; excluded from the human fit.
+
+Landed: Tier A. Local strict Rocq compilation and `rocqchk` passed; hosted cold proof CI and RTL/silicon verification remain pending.

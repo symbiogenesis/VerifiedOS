@@ -24,7 +24,7 @@
     },
     {
       "path": "storage/src/storage_publish.c",
-      "sha256": "4b8709e1b014c8cc01538274e5720d9465cd3d60453aae97ea60439d490f049d"
+      "sha256": "ef2e8907784c936b26443160135b234c331b107bf47d8ce3faddd6e68e6e6145"
     },
     {
       "path": "storage/include/vos_node_image.h",
@@ -48,7 +48,7 @@
     },
     {
       "path": "storage/include/vos_storage_publish.h",
-      "sha256": "c500a7673943cc0ace9fbf5006eda5b1f1b5e4cfe1b4369aec0a3d9c8333c215"
+      "sha256": "161600f3cf8d3e8656fd9c2d3d267082c0b1c66fae9b10d9234430006ecf3965"
     },
     {
       "path": "proofs/ExecutableIndex.v",
@@ -76,7 +76,7 @@
     },
     {
       "path": "proofs/ObjectTransactor.v",
-      "sha256": "acde93573446388ad8ed1299500799a9ab29e47e45af25bc4fdcf3a8563bd94e"
+      "sha256": "2d1c83783431ac344e327d26f7c7f74be18de855b5fed69e0570c9b3a95960b9"
     },
     {
       "path": "storage/src/typed_tree.c",
@@ -92,14 +92,14 @@
       "id": "storage-boundary",
       "source": {
         "path": "storage/README.md",
-        "sha256": "63973b1a33c156f27ea8437853f47d745281cb502013af25f8617dcad1472c38"
+        "sha256": "281843955e894df6eb2e11aa08dec0e3782632ee6c0a7f97c85b49e998859af9"
       }
     },
     {
       "id": "resident-reads-boundary",
       "source": {
         "path": "storage/resident-reads.md",
-        "sha256": "12b8ebf75bb55aef6753f9e218f7dd9a72782477492ff7642d3a408d811b049e"
+        "sha256": "3efd33890b25632b49ceebe1abfbe62d06424c0cd4328326ecd4e89691f5c2b8"
       }
     },
     {
@@ -127,7 +127,7 @@
       "id": "typed-entry-boundary",
       "source": {
         "path": "storage/typed-entry.md",
-        "sha256": "0d95a50885a95632f466048b639546587de83455d65a43aeacd42cbab014d4f8"
+        "sha256": "86b9cea3adf3bdc154a6c7b44f490bba2513a5daf08ea36d02d41c11ba5d65c3"
       }
     }
   ],

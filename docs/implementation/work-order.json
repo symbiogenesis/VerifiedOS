@@ -4,8 +4,10 @@
     "m8a": [
       "M3.5b",
       "M4.4b-i",
-      "M5.3d",
-      "Q44",
+      "M5.3d-i",
+      "M5.3d-ii",
+      "Q44-i",
+      "Q44-ii",
       "M6.1b-i",
       "M7.1a",
       "M7.1b",
@@ -34,13 +36,16 @@
       "Q7",
       "Q9",
       "Q10",
-      "Q28b",
+      "Q28b-i",
+      "Q28b-ii",
       "Q32b",
       "Q32c",
-      "Q33",
+      "Q33-i",
+      "Q33-ii",
       "Q34b",
       "Q34c-i",
-      "Q34c-ii",
+      "Q34c-ii-a",
+      "Q34c-ii-b",
       "Q34d",
       "Q34e",
       "Q34f",
@@ -54,27 +59,38 @@
       "M1.8b",
       "M1.10",
       "M3.6b",
-      "M5.4",
+      "M5.4-i",
+      "M5.4-ii",
       "M6.2c",
-      "M6.3b",
-      "M6.5b",
-      "M6.6",
-      "M6.7",
-      "M6.8",
+      "M6.3b-i",
+      "M6.3b-ii",
+      "M6.5b-i",
+      "M6.5b-ii",
+      "M6.6-i",
+      "M6.6-ii",
+      "M6.7-i",
+      "M6.7-ii",
+      "M6.8-i",
+      "M6.8-ii",
       "M6.9a",
       "M6.9b",
-      "M6.9c",
+      "M6.9c-i",
+      "M6.9c-ii",
       "M6.10",
       "R5",
       "R5a",
       "M9",
       "M10",
       "M9a",
-      "Post-M10 · Author the probing model in Coq",
-      "Post-M10 · Qualify and author the arithmetic composition half",
-      "Post-M10 · Author the Boolean composition half",
+      "Post-M10a-i",
+      "Post-M10a-ii",
+      "Post-M10b-i",
+      "Post-M10b-ii",
+      "Post-M10c-i",
+      "Post-M10c-ii",
       "Post-M10 · Author the R-17-058d reduction theorem",
-      "M4.4b-ii",
+      "M4.4b-ii-a",
+      "M4.4b-ii-b",
       "M4.4b-iii",
       "M6.2b-0a",
       "M6.1b-ii",
@@ -196,7 +212,7 @@
       ]
     },
     {
-      "item": "Q44",
+      "item": "Q44-i",
       "start": [],
       "artifacts": [
         "docs/implementation/contracts/resident-object-reads.md"
@@ -204,17 +220,45 @@
       "unmet": [],
       "join": [
         {
-          "item": "M5.3d",
+          "item": "M5.3d-i",
+          "output": "host authenticated storage verifier and C correspondence trace"
+        }
+      ]
+    },
+    {
+      "item": "Q44-ii",
+      "start": [
+        "Q44-i"
+      ],
+      "artifacts": [
+        "docs/implementation/contracts/resident-object-reads.md"
+      ],
+      "unmet": [],
+      "join": [
+        {
+          "item": "M5.3d-ii",
           "output": "real authenticated storage owner and two-instance target trace"
         }
       ]
     },
     {
-      "item": "M5.3d",
+      "item": "M5.3d-i",
       "start": [
         "M5.3a",
         "M5.3b",
         "M5.3c"
+      ],
+      "artifacts": [
+        "interfaces/block-device-contract.md",
+        "docs/implementation/storage-recovery-policy.md"
+      ],
+      "unmet": [],
+      "join": []
+    },
+    {
+      "item": "M5.3d-ii",
+      "start": [
+        "M5.3d-i"
       ],
       "artifacts": [
         "interfaces/block-device-contract.md",
@@ -271,7 +315,7 @@
           "output": "scalar kernel service and restart bindings"
         },
         {
-          "item": "M5.3d",
+          "item": "M5.3d-ii",
           "output": "storage and separate crypto compartment"
         },
         {
