@@ -1,0 +1,709 @@
+{
+  "bindings": {
+    "artifact_accepted": false,
+    "missing_deployed_evidence": {
+      "packet_functional_result": "Checked packet outcome and destination byte effects for the exact admitted image and entry point",
+      "returned_view_authority": "Checked descriptor validity at entry and read-only destination view bounds, origin and permissions for the exact admitted image and entry point"
+    },
+    "production_admission": false,
+    "proof_replayed": false,
+    "receipt": "/root/build/lane-hf-q25ba-a53d775-20261127/build/holdfast-first-slice/qualification.json",
+    "receipt_sha256": "0462ff87c186ac9163f24815b89a4ba74564be5187f27528649e5149feb8f49e",
+    "schema": 1,
+    "scope": "holdfast-first-slice-binding-check",
+    "status": "matched"
+  },
+  "compcert_sail": {
+    "asm_lines": 2410,
+    "asm_sha256": "283b522e51111ced832bf495e026aa761747813eaa22aaa1189a1b133ec43e14",
+    "available": true,
+    "ccomp_path": "/root/build/lane-hf-q25ba-a53d775-20261127/ccomp-readonly/compiler/ccomp",
+    "ccomp_sha256": "3dae6ac7bd5a074053130fdcaaab84c42030bdc24be9fff6a4b244db272252f8",
+    "clight_path": "/root/build/lane-hf-q25ba-a53d775-20261127/build/holdfast-first-slice/slice-xw9g4tk_/first_slice/first_slice.light.c",
+    "clight_sha256": "27ba35386cc89758013c5c61ffaa61942426e38794dfc277082eabb9b39ea00b",
+    "interp_exit_code": 0,
+    "perturbed_controls": [
+      {
+        "check_id": 4,
+        "interp_code": 4,
+        "name": "perturbed-empty-view-origin",
+        "target_code": 4,
+        "verdict": "fail"
+      },
+      {
+        "check_id": 6,
+        "interp_code": 6,
+        "name": "perturbed-full-view-origin",
+        "target_code": 6,
+        "verdict": "fail"
+      },
+      {
+        "check_id": 7,
+        "interp_code": 7,
+        "name": "perturbed-wrong-payload-byte",
+        "target_code": 7,
+        "verdict": "fail"
+      },
+      {
+        "check_id": 10,
+        "interp_code": 10,
+        "name": "perturbed-writable-partial-view",
+        "target_code": 10,
+        "verdict": "fail"
+      },
+      {
+        "check_id": 12,
+        "interp_code": 12,
+        "name": "perturbed-stale-trailing-byte",
+        "target_code": 12,
+        "verdict": "fail"
+      },
+      {
+        "check_id": 16,
+        "interp_code": 16,
+        "name": "perturbed-checksum-error-code",
+        "target_code": 16,
+        "verdict": "fail"
+      },
+      {
+        "check_id": 17,
+        "interp_code": 17,
+        "name": "perturbed-unscrubbed-checksum-dst",
+        "target_code": 17,
+        "verdict": "fail"
+      }
+    ],
+    "sail_cap_roundtrip": true,
+    "sail_records": 43884,
+    "sail_trace_digest": "b8217fc422d43dde",
+    "sail_verdict": "pass"
+  },
+  "execution_inputs": {
+    "compcert_available": true,
+    "files": {
+      "ccomp": {
+        "path": "/root/build/lane-hf-q25ba-a53d775-20261127/ccomp-readonly/compiler/ccomp",
+        "sha256": "3dae6ac7bd5a074053130fdcaaab84c42030bdc24be9fff6a4b244db272252f8"
+      },
+      "profile": {
+        "path": "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/hf-q25ba-a53d775-20261127/model/config/verifiedos.json",
+        "sha256": "7ff6f9dec6fbe0c164d52eea4862cc2cd29fd5d73fe59f498ca6011a1b6f88c2"
+      },
+      "python": {
+        "path": "/usr/bin/python3.14",
+        "sha256": "d1b87c365d0cf5a985cfedfc227ff613a5bc6ff56e841202eb9330d263bbeee9"
+      },
+      "simulator": {
+        "path": "/root/build/q25b-simulator-1125/build/c_emulator/sail_riscv_sim",
+        "sha256": "dae7008727781fe22368c8a1dbaa7c387e33af10a3e2613ef6c23fcbec11560f"
+      }
+    },
+    "python_version": "3.14.4 (main, Aug 20 2026, 10:41:58) [GCC 15.2.0]"
+  },
+  "holdfast": {
+    "baseline_compared": "b0e72a5477bf77f25158ad52f2d74f3ed17265fe",
+    "commit": "a53d7752081cf72ba325092e38508dc45af353ce",
+    "reuse_and_licenses_diff": "empty (no changes to REUSE.toml or LICENSES/)",
+    "reuse_toml_sha256": "c5a9383eb3546b2f076b9f1397b7b0d62db75f7d608913d95a4ff97e114c536a"
+  },
+  "integrated_entry_observer": {
+    "entry_pc": 2147486324,
+    "first_slice_calls": [
+      {
+        "backing_reads_count": 4,
+        "backing_writes_count": 8,
+        "case": "empty",
+        "copied": 0,
+        "error": 0,
+        "mismatches": []
+      },
+      {
+        "backing_reads_count": 8,
+        "backing_writes_count": 8,
+        "case": "full",
+        "copied": 4,
+        "error": 0,
+        "mismatches": []
+      },
+      {
+        "backing_reads_count": 6,
+        "backing_writes_count": 8,
+        "case": "partial",
+        "copied": 2,
+        "error": 0,
+        "mismatches": []
+      },
+      {
+        "backing_reads_count": 0,
+        "backing_writes_count": 0,
+        "case": "short",
+        "copied": 0,
+        "error": 1,
+        "mismatches": []
+      },
+      {
+        "backing_reads_count": 4,
+        "backing_writes_count": 8,
+        "case": "bad-magic",
+        "copied": 0,
+        "error": 2,
+        "mismatches": []
+      },
+      {
+        "backing_reads_count": 4,
+        "backing_writes_count": 8,
+        "case": "oversized",
+        "copied": 0,
+        "error": 3,
+        "mismatches": []
+      },
+      {
+        "backing_reads_count": 8,
+        "backing_writes_count": 8,
+        "case": "checksum",
+        "copied": 0,
+        "error": 4,
+        "mismatches": []
+      },
+      {
+        "backing_reads_count": 0,
+        "backing_writes_count": 0,
+        "case": "overlap",
+        "copied": 0,
+        "error": 1,
+        "mismatches": []
+      },
+      {
+        "backing_reads_count": 4,
+        "backing_writes_count": 8,
+        "case": "bad-flags-and-oversized",
+        "copied": 0,
+        "error": 2,
+        "mismatches": []
+      }
+    ],
+    "first_slice_calls_count": 9,
+    "no_tagged_store_into_result_fields": true,
+    "perturbed_entry_controls": {
+      "perturbed-checksum-error-code": {
+        "calls_observed": 7,
+        "entry_pc": 2147486324,
+        "mismatches_by_call": [
+          [],
+          [],
+          [],
+          [],
+          [],
+          [],
+          []
+        ]
+      },
+      "perturbed-empty-view-origin": {
+        "calls_observed": 1,
+        "entry_pc": 2147486324,
+        "mismatches_by_call": [
+          [
+            "view.cursor"
+          ]
+        ]
+      },
+      "perturbed-full-view-origin": {
+        "calls_observed": 2,
+        "entry_pc": 2147486324,
+        "mismatches_by_call": [
+          [],
+          [
+            "view.cursor"
+          ]
+        ]
+      },
+      "perturbed-stale-trailing-byte": {
+        "calls_observed": 3,
+        "entry_pc": 2147486324,
+        "mismatches_by_call": [
+          [],
+          [],
+          []
+        ]
+      },
+      "perturbed-unscrubbed-checksum-dst": {
+        "calls_observed": 7,
+        "entry_pc": 2147486324,
+        "mismatches_by_call": [
+          [],
+          [],
+          [],
+          [],
+          [],
+          [],
+          []
+        ]
+      },
+      "perturbed-writable-partial-view": {
+        "calls_observed": 3,
+        "entry_pc": 2147486324,
+        "mismatches_by_call": [
+          [],
+          [],
+          [
+            "view.perm_write"
+          ]
+        ]
+      },
+      "perturbed-wrong-payload-byte": {
+        "calls_observed": 2,
+        "entry_pc": 2147486324,
+        "mismatches_by_call": [
+          [],
+          []
+        ]
+      }
+    },
+    "scope": "compiled-development-scalar-descriptor"
+  },
+  "negative_binding_control": {
+    "mutated_c_sha256": "5f8a2c3d87e25ca365ee5840b57142f2a95f56eb064d58655cf97fbdc9c068fb",
+    "mutation": "substituted one byte in copied first_slice.c (return 0; -> return 1;) and remapped copied directory paths, artifacts_sha256, and lowered_c_sha256 in copied receipt",
+    "refusal_message": "FAIL holdfast-parser: retained integer lowering or generated subjects differ from the checked source",
+    "returncode": 1
+  },
+  "new_a53d775_controls": {
+    "baseline_b0e72a5_first_slice_elapsed_s": 32.931,
+    "first_slice_cold_elapsed_s": 155.225,
+    "first_slice_elapsed_s": 60.022,
+    "native_ext4_caches": {
+      "checkout_venv": "/root/build/lane-hf-q25ba-a53d775-20261127/holdfast/out/venv-linux",
+      "vos_build_root": "/root/build/lane-hf-q25ba-a53d775-20261127/build",
+      "vos_build_root_entries": [
+        "holdfast-first-slice",
+        "holdfast-parser",
+        "holdfast-parser-cache",
+        "holdfast-parser-checked-runtime",
+        "holdfast-parser/build-3w4sv6no",
+        "holdfast-parser/build-hbc8cjsj",
+        "holdfast-parser/build.lock",
+        "rocq-support-cache"
+      ]
+    },
+    "suites": {
+      "holdfast_borrow_comparison": {
+        "cases_run": 4,
+        "cases_skipped_slow": 0,
+        "cases_skipped_unavailable": 0,
+        "command": "python3 tools/run.py test --only holdfast_borrow_comparison --require-toolchain",
+        "elapsed_s": 0.931,
+        "module_details": {
+          "test_holdfast_borrow_comparison": {
+            "cases": 4,
+            "seconds": 0.726,
+            "skipped_lane": 0,
+            "skipped_slow": 0
+          }
+        },
+        "modules": {
+          "test_holdfast_borrow_comparison": 4
+        },
+        "returncode": 0
+      },
+      "holdfast_funnel_table": {
+        "cases_run": 1,
+        "cases_skipped_slow": 0,
+        "cases_skipped_unavailable": 0,
+        "command": "python3 tools/run.py test --only holdfast_funnel_table --require-toolchain",
+        "elapsed_s": 10.64,
+        "module_details": {
+          "test_holdfast_funnel_table": {
+            "cases": 1,
+            "seconds": 10.465,
+            "skipped_lane": 0,
+            "skipped_slow": 0
+          }
+        },
+        "modules": {
+          "test_holdfast_funnel_table": 1
+        },
+        "returncode": 0
+      },
+      "holdfast_graded": {
+        "cases_run": 51,
+        "cases_skipped_slow": 0,
+        "cases_skipped_unavailable": 0,
+        "command": "python3 tools/run.py test --only holdfast_graded --require-toolchain",
+        "elapsed_s": 27.202,
+        "module_details": {
+          "test_holdfast_graded": {
+            "cases": 11,
+            "seconds": 17.972,
+            "skipped_lane": 0,
+            "skipped_slow": 0
+          },
+          "test_holdfast_graded_borrow_syntax": {
+            "cases": 3,
+            "seconds": 6.021,
+            "skipped_lane": 0,
+            "skipped_slow": 0
+          },
+          "test_holdfast_graded_cbv": {
+            "cases": 5,
+            "seconds": 26.868,
+            "skipped_lane": 0,
+            "skipped_slow": 0
+          },
+          "test_holdfast_graded_client": {
+            "cases": 9,
+            "seconds": 21.069,
+            "skipped_lane": 0,
+            "skipped_slow": 0
+          },
+          "test_holdfast_graded_combinators": {
+            "cases": 3,
+            "seconds": 10.714,
+            "skipped_lane": 0,
+            "skipped_slow": 0
+          },
+          "test_holdfast_graded_inference": {
+            "cases": 5,
+            "seconds": 5.731,
+            "skipped_lane": 0,
+            "skipped_slow": 0
+          },
+          "test_holdfast_graded_metatheory": {
+            "cases": 6,
+            "seconds": 22.719,
+            "skipped_lane": 0,
+            "skipped_slow": 0
+          },
+          "test_holdfast_graded_modal": {
+            "cases": 6,
+            "seconds": 23.828,
+            "skipped_lane": 0,
+            "skipped_slow": 0
+          },
+          "test_holdfast_graded_synthesis": {
+            "cases": 3,
+            "seconds": 4.433,
+            "skipped_lane": 0,
+            "skipped_slow": 0
+          }
+        },
+        "modules": {
+          "test_holdfast_graded": 11,
+          "test_holdfast_graded_borrow_syntax": 3,
+          "test_holdfast_graded_cbv": 5,
+          "test_holdfast_graded_client": 9,
+          "test_holdfast_graded_combinators": 3,
+          "test_holdfast_graded_inference": 5,
+          "test_holdfast_graded_metatheory": 6,
+          "test_holdfast_graded_modal": 6,
+          "test_holdfast_graded_synthesis": 3
+        },
+        "returncode": 0
+      },
+      "holdfast_loan": {
+        "cases_run": 66,
+        "cases_skipped_slow": 0,
+        "cases_skipped_unavailable": 0,
+        "command": "python3 tools/run.py test --only test_holdfast_loan --require-toolchain",
+        "elapsed_s": 44.965,
+        "module_details": {
+          "test_holdfast_loan_returns": {
+            "cases": 19,
+            "seconds": 44.702,
+            "skipped_lane": 0,
+            "skipped_slow": 0
+          },
+          "test_holdfast_loan_soundness": {
+            "cases": 4,
+            "seconds": 18.89,
+            "skipped_lane": 0,
+            "skipped_slow": 0
+          },
+          "test_holdfast_loans": {
+            "cases": 43,
+            "seconds": 12.815,
+            "skipped_lane": 0,
+            "skipped_slow": 0
+          }
+        },
+        "modules": {
+          "test_holdfast_loan_returns": 19,
+          "test_holdfast_loan_soundness": 4,
+          "test_holdfast_loans": 43
+        },
+        "returncode": 0
+      },
+      "holdfast_parser_cache": {
+        "cases_run": 6,
+        "cases_skipped_slow": 0,
+        "cases_skipped_unavailable": 0,
+        "command": "python3 tools/run.py test --only holdfast_parser_cache --require-toolchain",
+        "elapsed_s": 0.724,
+        "module_details": {
+          "test_holdfast_parser_cache": {
+            "cases": 6,
+            "seconds": 0.173,
+            "skipped_lane": 0,
+            "skipped_slow": 0
+          }
+        },
+        "modules": {
+          "test_holdfast_parser_cache": 6
+        },
+        "returncode": 0
+      },
+      "holdfast_parser_checked": {
+        "cases_run": 11,
+        "cases_skipped_slow": 0,
+        "cases_skipped_unavailable": 0,
+        "command": "python3 tools/run.py test --only holdfast_parser_checked --require-toolchain",
+        "elapsed_s": 0.652,
+        "module_details": {
+          "test_holdfast_parser_checked": {
+            "cases": 11,
+            "seconds": 0.14,
+            "skipped_lane": 0,
+            "skipped_slow": 0
+          }
+        },
+        "modules": {
+          "test_holdfast_parser_checked": 11
+        },
+        "returncode": 0
+      },
+      "holdfast_proof_certificates": {
+        "cases_run": 5,
+        "cases_skipped_slow": 0,
+        "cases_skipped_unavailable": 0,
+        "command": "python3 tools/run.py test --only holdfast_proof_certificates --require-toolchain",
+        "elapsed_s": 15.937,
+        "module_details": {
+          "test_holdfast_proof_certificates": {
+            "cases": 5,
+            "seconds": 15.702,
+            "skipped_lane": 0,
+            "skipped_slow": 0
+          }
+        },
+        "modules": {
+          "test_holdfast_proof_certificates": 5
+        },
+        "returncode": 0
+      },
+      "holdfast_solver_ledger": {
+        "cases_run": 6,
+        "cases_skipped_slow": 0,
+        "cases_skipped_unavailable": 0,
+        "command": "python3 tools/run.py test --only holdfast_solver_ledger --require-toolchain",
+        "elapsed_s": 0.469,
+        "module_details": {
+          "test_holdfast_solver_ledger": {
+            "cases": 6,
+            "seconds": 0.002,
+            "skipped_lane": 0,
+            "skipped_slow": 0
+          }
+        },
+        "modules": {
+          "test_holdfast_solver_ledger": 6
+        },
+        "returncode": 0
+      },
+      "locked_resolution": {
+        "cases_run": 3,
+        "cases_skipped_slow": 0,
+        "cases_skipped_unavailable": 0,
+        "command": "python3 tools/run.py test --only locked_resolution --require-toolchain",
+        "elapsed_s": 0.568,
+        "module_details": {
+          "test_locked_resolution": {
+            "cases": 3,
+            "seconds": 0.123,
+            "skipped_lane": 0,
+            "skipped_slow": 0
+          }
+        },
+        "modules": {
+          "test_locked_resolution": 3
+        },
+        "returncode": 0
+      }
+    },
+    "total_cases_run": 153,
+    "total_cases_skipped": 0
+  },
+  "purecap_cheri_runs": {
+    "bounds-trap": {
+      "cap_roundtrip": false,
+      "code": 284,
+      "image_bytes": 17008,
+      "process": {
+        "command": [
+          "/root/build/q25b-simulator-1125/build/c_emulator/sail_riscv_sim",
+          "--config",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/hf-q25ba-a53d775-20261127/model/config/verifiedos.json",
+          "--trace-commit",
+          "--inst-limit",
+          "1000000",
+          "--terminal-log",
+          "/root/build/lane-hf-q25ba-a53d775-20261127/build/holdfast-first-slice/slice-xw9g4tk_/purecap_bounds-trap.term",
+          "/root/build/lane-hf-q25ba-a53d775-20261127/build/holdfast-first-slice/slice-xw9g4tk_/purecap_bounds-trap.elf"
+        ],
+        "log": "/root/build/lane-hf-q25ba-a53d775-20261127/build/holdfast-first-slice/slice-xw9g4tk_/purecap_bounds-trap.sail.log",
+        "log_sha256": "9edd3196a34129ee76830142747075e9bcfbd471db40081a1a4e8892543e34e6",
+        "returncode": 1,
+        "stderr_bytes": 137,
+        "stderr_sha256": "3adcbe1618f9ec8e462f3994765f00ecce19ca666cd08eb90525d69357612286",
+        "stdout_bytes": 4632,
+        "stdout_sha256": "3debefeda45e8a693df837ff195f5af7871508e591c20a9349a39d3e1a1a9d5a"
+      },
+      "records": 167,
+      "trace_digest": "cfac630fdc2cd548",
+      "verdict": "trap"
+    },
+    "pass": {
+      "cap_roundtrip": true,
+      "code": 0,
+      "image_bytes": 17076,
+      "process": {
+        "command": [
+          "/root/build/q25b-simulator-1125/build/c_emulator/sail_riscv_sim",
+          "--config",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/hf-q25ba-a53d775-20261127/model/config/verifiedos.json",
+          "--trace-commit",
+          "--inst-limit",
+          "1000000",
+          "--terminal-log",
+          "/root/build/lane-hf-q25ba-a53d775-20261127/build/holdfast-first-slice/slice-xw9g4tk_/purecap_pass.term",
+          "/root/build/lane-hf-q25ba-a53d775-20261127/build/holdfast-first-slice/slice-xw9g4tk_/purecap_pass.elf"
+        ],
+        "log": "/root/build/lane-hf-q25ba-a53d775-20261127/build/holdfast-first-slice/slice-xw9g4tk_/purecap_pass.sail.log",
+        "log_sha256": "742143782ee1489a02b1cd562aebdad47546fb2138e00895f2d07395f23780df",
+        "returncode": 0,
+        "stderr_bytes": 130,
+        "stderr_sha256": "8ce1d72923f96a21e31523be91255cb2229aa3ac8ccaa0822ac05f9c39d4aefe",
+        "stdout_bytes": 5364,
+        "stdout_sha256": "839f9d7da8325691cbb7ce5a497ee561b45b553b5d3a6c25d58f8da921a98a99"
+      },
+      "records": 192,
+      "trace_digest": "8091b6b10c41c6af",
+      "verdict": "pass"
+    },
+    "perm-trap": {
+      "cap_roundtrip": false,
+      "code": 284,
+      "image_bytes": 17008,
+      "process": {
+        "command": [
+          "/root/build/q25b-simulator-1125/build/c_emulator/sail_riscv_sim",
+          "--config",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/hf-q25ba-a53d775-20261127/model/config/verifiedos.json",
+          "--trace-commit",
+          "--inst-limit",
+          "1000000",
+          "--terminal-log",
+          "/root/build/lane-hf-q25ba-a53d775-20261127/build/holdfast-first-slice/slice-xw9g4tk_/purecap_perm-trap.term",
+          "/root/build/lane-hf-q25ba-a53d775-20261127/build/holdfast-first-slice/slice-xw9g4tk_/purecap_perm-trap.elf"
+        ],
+        "log": "/root/build/lane-hf-q25ba-a53d775-20261127/build/holdfast-first-slice/slice-xw9g4tk_/purecap_perm-trap.sail.log",
+        "log_sha256": "5c9bc9902bde655f8aaaf218e5313f1962589af0c00a55e1694b93286bc5871a",
+        "returncode": 1,
+        "stderr_bytes": 135,
+        "stderr_sha256": "889ad37f3a1d2e26036ae588381cde40fd7009cc05a25497254fa3139f7101d9",
+        "stdout_bytes": 4632,
+        "stdout_sha256": "be66f6ebb4b21633612b018757e8b9aa37242a54684313d5f3b8ec6ac4a33264"
+      },
+      "records": 167,
+      "trace_digest": "81aee0ec7fb97c8e",
+      "verdict": "trap"
+    },
+    "tag-trap": {
+      "cap_roundtrip": false,
+      "code": 284,
+      "image_bytes": 17012,
+      "process": {
+        "command": [
+          "/root/build/q25b-simulator-1125/build/c_emulator/sail_riscv_sim",
+          "--config",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/hf-q25ba-a53d775-20261127/model/config/verifiedos.json",
+          "--trace-commit",
+          "--inst-limit",
+          "1000000",
+          "--terminal-log",
+          "/root/build/lane-hf-q25ba-a53d775-20261127/build/holdfast-first-slice/slice-xw9g4tk_/purecap_tag-trap.term",
+          "/root/build/lane-hf-q25ba-a53d775-20261127/build/holdfast-first-slice/slice-xw9g4tk_/purecap_tag-trap.elf"
+        ],
+        "log": "/root/build/lane-hf-q25ba-a53d775-20261127/build/holdfast-first-slice/slice-xw9g4tk_/purecap_tag-trap.sail.log",
+        "log_sha256": "06be34a8d991a0af4f902a8c2192c33fb34e5edc10a298cbb6748bd59698bbd3",
+        "returncode": 1,
+        "stderr_bytes": 134,
+        "stderr_sha256": "5128ccad3ead0cc57615025228adb4a11b1b86a011ca9aadebc36d1484e946a9",
+        "stdout_bytes": 4687,
+        "stdout_sha256": "97e81542fd1e3fa705cd125e1bfaadbf205492b8db68aa7fa28b1371abb13409"
+      },
+      "records": 169,
+      "trace_digest": "0ce96bfa1989fb9f",
+      "verdict": "trap"
+    },
+    "writable-view": {
+      "cap_roundtrip": true,
+      "code": 2,
+      "image_bytes": 17080,
+      "process": {
+        "command": [
+          "/root/build/q25b-simulator-1125/build/c_emulator/sail_riscv_sim",
+          "--config",
+          "/mnt/c/Users/symbi/source/repos/VerifiedOS/.worktrees/hf-q25ba-a53d775-20261127/model/config/verifiedos.json",
+          "--trace-commit",
+          "--inst-limit",
+          "1000000",
+          "--terminal-log",
+          "/root/build/lane-hf-q25ba-a53d775-20261127/build/holdfast-first-slice/slice-xw9g4tk_/purecap_writable-view.term",
+          "/root/build/lane-hf-q25ba-a53d775-20261127/build/holdfast-first-slice/slice-xw9g4tk_/purecap_writable-view.elf"
+        ],
+        "log": "/root/build/lane-hf-q25ba-a53d775-20261127/build/holdfast-first-slice/slice-xw9g4tk_/purecap_writable-view.sail.log",
+        "log_sha256": "7d41108c65fdf1fb8971efa7aa5cd92a9976f4015dcff20019e69d5bd14b1712",
+        "returncode": 1,
+        "stderr_bytes": 139,
+        "stderr_sha256": "1d48e812b2ac885991eeaa36eabe6bfe60f8405faef5da5535f7f4437b0974b7",
+        "stdout_bytes": 5604,
+        "stdout_sha256": "27748ecef7c476d6c4fde47a658e969b5283e35afdc1578131bd4e30dd5e8e0d"
+      },
+      "records": 200,
+      "trace_digest": "a5bbacbe6d43e410",
+      "verdict": "fail"
+    }
+  },
+  "qualification": {
+    "accepted": true,
+    "artifact_accepted": false,
+    "assumption_exports_count": 78,
+    "capacity_invariance": {
+      "gallina_bytes": 168196,
+      "kernel_checked": true,
+      "large_capacity": "1_000_000_000usize",
+      "obligation_count": 11,
+      "reduction_steps": 0,
+      "small_capacity": "8usize",
+      "work_steps": 1610
+    },
+    "full_machine_refinement_closed": false,
+    "gallina_sha256": "ebdc07f15f29edf6d0050e200d8aa62cb4e8ebb3d90b5a12fa44ef6d4572537f",
+    "kernel_checked": true,
+    "lowered_c_sha256": "ba4515e89fd6db9b92909aff669b157fccef93b4763cf63ee80b9fb17be31059",
+    "negative_controls_count": 19,
+    "production_admission": false,
+    "proof_corruption_refused": true,
+    "receipt_bytes": 1175249,
+    "receipt_gzip_bytes": 294874,
+    "receipt_gzip_sha256": "b3ce9a328486e6e931feb8d5d2d09fffe4cf9079078594e12eb1cfdc441b9db8",
+    "receipt_sha256": "0462ff87c186ac9163f24815b89a4ba74564be5187f27528649e5149feb8f49e",
+    "solver_trusted_axioms": [],
+    "solver_trusted_count": 0,
+    "source_correspondence": false,
+    "source_sha256": "d165039ed299a16bf87ec0ede832d76b37ff576f5c59f0ec52a7545c732274c6",
+    "status": "passed"
+  },
+  "reuse_toml_sha256": "c5a9383eb3546b2f076b9f1397b7b0d62db75f7d608913d95a4ff97e114c536a",
+  "schema": 1,
+  "scope": "holdfast-q25ba-a53d775-replay"
+}
