@@ -133,6 +133,15 @@ being a finding of the rules that read them rather than a row of this table.
 | R-05-042 | proofs/ModuleFormats.v | n/a | cited |
 | R-05-046 | proofs/ModuleFormats.v | n/a | cited |
 | R-05-050 | proofs/HandlerGraph.v | n/a | cited |
+| R-05-051a | proofs/BackupObject.v | recovery_secret_decode_of_encode | claimed |
+| R-05-051a | proofs/BackupObject.v | recovery_secret_encode_of_decode | claimed |
+| R-05-051a | proofs/BackupObject.v | recovery_secret_canonicity | claimed |
+| R-05-051a | proofs/BackupObject.v | plaintext_parse_of_serialize | claimed |
+| R-05-051a | proofs/BackupObject.v | plaintext_serialize_of_parse | claimed |
+| R-05-051a | proofs/BackupObject.v | plaintext_canonicity | claimed |
+| R-05-051a | proofs/BackupObject.v | envelope_parse_of_serialize | claimed |
+| R-05-051a | proofs/BackupObject.v | envelope_serialize_of_parse | claimed |
+| R-05-051a | proofs/BackupObject.v | envelope_canonicity | claimed |
 | R-05-051a | proofs/InferenceAdmission.v | re_encoding_its_bytes_gives_decode_injectivity | claimed |
 | R-05-051a | proofs/InferenceAdmission.v | the_schema_codec_re_encodes_its_bytes | claimed |
 | R-05-051a | proofs/InferenceAdmission.v | the_schema_codec_decode_is_injective | claimed |
@@ -148,6 +157,12 @@ being a finding of the rules that read them rather than a row of this table.
 | R-05-051a | proofs/ModuleFormats.v | certificate_serialize_of_parse | claimed |
 | R-05-051a | proofs/ModuleFormats.v | certificate_has_one_admissible_encoding | claimed |
 | R-05-051a | proofs/ObjectTransactor.v | n/a | cited |
+| R-05-051b | proofs/BackupObject.v | recovery_secret_encode_of_decode | claimed |
+| R-05-051b | proofs/BackupObject.v | recovery_secret_refuses_trailing_bytes | claimed |
+| R-05-051b | proofs/BackupObject.v | plaintext_serialize_of_parse | claimed |
+| R-05-051b | proofs/BackupObject.v | plaintext_refuses_trailing_bytes | claimed |
+| R-05-051b | proofs/BackupObject.v | envelope_serialize_of_parse | claimed |
+| R-05-051b | proofs/BackupObject.v | envelope_refuses_trailing_bytes | claimed |
 | R-05-051b | proofs/InferenceAdmission.v | the_schema_codec_re_encodes_its_bytes | claimed |
 | R-05-051b | proofs/InferenceAdmission.v | the_schema_codec_length_is_a_schema_constant | claimed |
 | R-05-051b | proofs/InferenceAdmission.v | the_schema_codec_emits_admissible_bytes | claimed |
@@ -254,6 +269,7 @@ being a finding of the rules that read them rather than a row of this table.
 | R-05-163 | proofs/AesGcm.v | n/a | cited |
 | R-05-163 | proofs/ApexTheorem.v | n/a | cited |
 | R-05-163 | proofs/ArithmeticComposition.v | n/a | cited |
+| R-05-163 | proofs/BackupObject.v | n/a | cited |
 | R-05-163 | proofs/BooleanComposition.v | n/a | cited |
 | R-05-163 | proofs/CombinedReduction.v | n/a | cited |
 | R-05-163 | proofs/ComposedNonInterference.v | n/a | cited |
@@ -304,6 +320,7 @@ being a finding of the rules that read them rather than a row of this table.
 | R-05-164 | proofs/AesGcm.v | n/a | cited |
 | R-05-164 | proofs/ApexTheorem.v | n/a | cited |
 | R-05-164 | proofs/ArithmeticComposition.v | n/a | cited |
+| R-05-164 | proofs/BackupObject.v | n/a | cited |
 | R-05-164 | proofs/BooleanComposition.v | n/a | cited |
 | R-05-164 | proofs/CombinedReduction.v | n/a | cited |
 | R-05-164 | proofs/ComposedNonInterference.v | n/a | cited |
@@ -345,6 +362,7 @@ being a finding of the rules that read them rather than a row of this table.
 | R-05-165 | proofs/ArithmeticComposition.v | reused_mask_stages_individually_hide_but_jointly_leak | claimed |
 | R-05-165 | proofs/ArithmeticComposition.v | omitted_barrier_recombination_is_secure_under_stable | claimed |
 | R-05-165 | proofs/ArithmeticComposition.v | omitted_barrier_recombination_leaks_under_glitch | claimed |
+| R-05-165 | proofs/BackupObject.v | n/a | cited |
 | R-05-165 | proofs/BooleanComposition.v | n/a | cited |
 | R-05-165 | proofs/CombinedReduction.v | weakened_order_claim_fails_unreduced_predicate | claimed |
 | R-05-165 | proofs/ComposedNonInterference.v | quantifier_domains_inhabited | claimed |
@@ -438,6 +456,7 @@ being a finding of the rules that read them rather than a row of this table.
 | R-05-166 | proofs/ArithmeticComposition.v | reused_mask_recovers_secret_and_leaks_difference | claimed |
 | R-05-166 | proofs/ArithmeticComposition.v | reused_mask_stages_individually_hide_but_jointly_leak | claimed |
 | R-05-166 | proofs/ArithmeticComposition.v | omitted_barrier_recombination_leaks_under_glitch | claimed |
+| R-05-166 | proofs/BackupObject.v | n/a | cited |
 | R-05-166 | proofs/BooleanComposition.v | unmasked_and_exp_leaks | claimed |
 | R-05-166 | proofs/BooleanComposition.v | recombined_2share_and_refutes_ni | claimed |
 | R-05-166 | proofs/BooleanComposition.v | dom_and_no_reg_refutes_ni_glitch | claimed |
@@ -1223,6 +1242,10 @@ being a finding of the rules that read them rather than a row of this table.
 | R-10-037 | proofs/KeyspaceDomains.v | n/a | cited |
 | R-10-037 | proofs/SupervisionTree.v | the_specification_regrant_carries_no_retired_authority | claimed |
 | R-10-036a | proofs/ObjectTransactor.v | the_landed_view_names_every_staged_object_it_answers | claimed |
+| R-10-038 | proofs/BackupObject.v | recovery_secret_encode_length | claimed |
+| R-10-038 | proofs/BackupObject.v | zero_writes_before_staging | claimed |
+| R-10-039 | proofs/BackupObject.v | export_view_only_rollbackable_data_only | claimed |
+| R-10-039 | proofs/BackupObject.v | fresh_install_denies_old_authority | claimed |
 | R-11-001 | proofs/ObjectTransactor.v | the_specification_stage_leaves_the_running_generation_alone | claimed |
 | R-11-001 | proofs/ObjectTransactor.v | the_specification_gate_returns_on_an_unhealthy_generation | claimed |
 | R-11-001 | proofs/ObjectTransactor.v | the_specification_gate_keeps_a_healthy_generation | claimed |

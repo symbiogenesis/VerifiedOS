@@ -3815,3 +3815,13 @@ Landed: Tier A. Local C17 compilation, ASan/UBSan test execution, and compiled m
 Calibration: retained estimate 10 h (range 6–14 h); actual execution time recorded as `n/a · agent-parallel` in the agent-parallel series; excluded from the human fit.
 
 Landed: Tier A. Local strict Rocq proofs, `rocqchk`, source boundary scan, and host/WSL checks passed; hosted Host/Guest CI remains pending.
+
+<a id="q42a-i-prove-backupobject-v1-canonicity-and-realize-bounded-gc-free-c17-backup-service"></a>
+
+### Q42a-i · Prove BackupObject-v1 canonicity and realize bounded GC-free C17 backup service
+
+  * Authored `proofs/BackupObject.v` (2,196 lines; 11/11 closed record witnesses, whole-language round-trip and canonicity proofs for `RecoverySecret-v1` and `BackupObject-v1`, `ExportView` exclusion, zero-write pre-staging restore invariants, and §5 Fresh denial) and GC-free C17 `backup/` (`vos_backup.h`, `backup.c`, `test_backup.c`, `README.md`) plus `tools/tests/test_backup_service.py`. Verified at merge `c7febc25` (from lane commit `403bfd87`) under strict Rocq 9.3.0 and `rocqchk -silent -o` (`Axioms: <none>`), `clang -std=c17 -Wall -Wextra -Werror -Wstrict-prototypes`, `gcc -fsanitize=address,undefined` (12/12 compiled behavioral mutants killed including `backup-export-reads-fresh`, 0 stillborn), and `test_backup_service` (5/5 passing in WSL). Narcissus U-14 lowering and M5.3d-ii purecap crash-cut target integration remain open under `Q42a-ii`.
+
+Calibration: retained estimate 26 h (range 18–34 h); actual execution time recorded as `n/a · agent-parallel` in the agent-parallel series; excluded from the human fit.
+
+Landed: Tier A. Local strict Rocq proofs, `rocqchk`, C17 ASan/UBSan execution, and compiled mutant checks passed; hosted Host/Guest CI remains pending.

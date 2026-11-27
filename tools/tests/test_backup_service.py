@@ -65,7 +65,7 @@ def _aes256_expand(key: bytes) -> list[bytes]:
         elif i % 8 == 4:
             t = [_SBOX[b] for b in t]
         words.append([words[i - 8][j] ^ t[j] for j in range(4)])
-    return [bytes(sum(words[4 * r : 4 * r + 4], [])) for r in range(15)]
+    return [bytes(b for w in words[4 * r : 4 * r + 4] for b in w) for r in range(15)]
 
 
 def _aes256_encrypt_block(rks: list[bytes], block: bytes) -> bytes:
@@ -211,9 +211,10 @@ def _build_merkle(leaves: list[bytes]) -> tuple[bytes, list[list[bytes]]]:
     for _ in range(depth):
         prev = levels[-1]
         levels.append([_node_hash(prev[2 * j], prev[2 * j + 1]) for j in range(len(prev) // 2)])
-    proofs: list[list[bytes]] = []
-    for idx in range(n):
-        proofs.append([levels[lvl][(idx >> lvl) ^ 1] for lvl in range(depth)])
+    proofs = [
+        [levels[lvl][(idx >> lvl) ^ 1] for lvl in range(depth)]
+        for idx in range(n)
+    ]
     return levels[-1][0], proofs
 
 
@@ -357,8 +358,17 @@ def _backup_object_wire_and_crypto_oracle() -> None:
     ensure(len(wire) == total_extent, "exact total extent match")
 
     # Decode and verify canonicity and trailing-byte refusal.
-    dec_m = _aes256_gcm_open(manifest_key, manifest_nonce, wire[0:40], wire[40 : 40 + manifest_len], wire[40 + manifest_len : 56 + manifest_len])
+    wire_bytes = bytes(wire)
+    dec_m = _aes256_gcm_open(
+        manifest_key,
+        manifest_nonce,
+        wire_bytes[0:40],
+        wire_bytes[40 : 40 + manifest_len],
+        wire_bytes[40 + manifest_len : 56 + manifest_len],
+    )
     ensure(dec_m == manifest_pt, "manifest round-trip")
+    if dec_m is None:
+        raise AssertionError("manifest round-trip failed")
     parsed = _decode_manifest_body(dec_m, chunk_size)
     ensure(parsed is not None, "manifest parses canonically")
     # Duplicate / unsorted region IDs refuse.

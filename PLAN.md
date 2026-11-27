@@ -456,19 +456,19 @@ These figures cover the priced reference-build, assessment and named hardening b
 | Measure | Value |
 | --- | --- |
 | Total estimate midpoint h | 4,597.7 |
-| Total estimate range h | 3,103.6–6,091.8 |
-| Completed scope h | 1,146.8 |
-| Complete by estimate % | 24.9 |
-| Remaining h | 3,450.9 |
-| Committed remaining h | 2,028.9 |
-| Open class I h | 651 |
+| Total estimate range h | 3,111.6–6,083.8 |
+| Completed scope h | 1,172.8 |
+| Complete by estimate % | 25.5 |
+| Remaining h | 3,424.9 |
+| Committed remaining h | 2,002.9 |
+| Open class I h | 625 |
 | Open class X h | 2,799.9 |
-| Retained completion estimate h | 544 |
-| Unmeasured completed items | 52 |
-| Calibrated total h | 5,584.9 |
+| Retained completion estimate h | 570 |
+| Unmeasured completed items | 53 |
+| Calibrated total h | 5,592.4 |
 | Committed M8a open h | 58 |
 | Committed M8b open h | 105.5 |
-| Other committed open h | 1,865.4 |
+| Other committed open h | 1,839.4 |
 | Conditional open h | 1,008 |
 | Unfunded option open h | 414 |
 | Committed M8a open class X h | 0 |
@@ -1287,9 +1287,14 @@ HoldFast language design, parser and elaborator qualification, authoring tooling
   * **Estimate basis:** harness 8–20 h; campaigns 12–30 h; fields/false-trip evidence 8–20 h; independent review/replay 4–10 h. Class X: physical measurements decide the fields; procurement, fabrication and lab calendar are excluded.
 * [x] **Q42 · Author the backup and device-migration contract** · 12 h retained estimate, actual n/a · agent-parallel
   * The contract specifies typed rollbackable export, bounded object/recovery encodings, authenticated atomic restore and Fresh initialization, trusted holder actions and the mutual migration relation, with implementation predicates at Q42a/Q42b/Q42c. ([note](docs/implementation/completion-log.md#q42-author-the-backup-and-device-migration-contract))
-* [ ] **Q42a · Implement the backup object and export/restore service** · 56 h, range 40–72 · I
-  * **Dispatch. Start:** the backup/migration contract and a concrete bounded descriptor profile, accepted Narcissus qualification and U-14's measured descriptor path, typed manifest/checkpoint/schema-migration interfaces, the at-rest crypto core and M5.3d's user-data instance. **Owns:** BackupObject-v1 and RecoverySecret-v1 descriptors, pairs/canonicity/lowering, the closed export view and holder audit, authenticated manifest/chunk key and nonce operations, fixed-tier bounded streaming export/restore, schema/discard plan, Fresh initializer joins and atomic publication beside old state. **Check:** the contract's BA-EXPORT, BA-TYPE, BA-FORMAT, BA-KEY, BA-OBJECT-REFUSE, BA-STREAM, BA-SCHEMA, BA-ATOMIC and BA-FRESH on the exact real source/target artifacts, including backup-export-reads-fresh and excluded-state controls, checked proof/assumption/kernel evidence and crash cuts; a reference codec alone does not pass. **Join:** M5.3d, each manifest owner, Q42b/Q42c and Q10. Existing parser, crypto, freshness and storage foundation owners retain their work and estimates.
-  * **Estimate basis:** descriptor specialization/canonicity/lowering 9–17 h; snapshot/export authority audit 7–13 h; restore/Fresh/atomic publication 12–22 h; exact target, exclusion and crash campaigns 12–20 h. Class I: the contract and accepted foundation interfaces decide the artifact; foundation acquisition is outside this leaf and does not receive a second price.
+* [ ] **Q42a · Implement the backup object and export/restore service**
+  * `Q42a-i` proves `RecoverySecret-v1` and `BackupObject-v1` round-trip/canonicity, `ExportView` exclusion of `Fresh`/`ConsentStore`/key/credential/sealed state, zero-write pre-staging restore invariants, and §5 Fresh denial in `BackupObject.v`, and delivers the bounded GC-free C17 export/restore service (`backup/`) under ASan/UBSan and compiled mutation controls; `Q42a-ii` retains Narcissus descriptor compilation/lowering (`U-14`) and M5.3d-ii purecap crash-cut target integration.
+  * [x] **Q42a-i · Prove BackupObject-v1 canonicity and realize bounded GC-free C17 backup service** · 26 h retained estimate, actual n/a · agent-parallel
+    * [BackupObject.v](proofs/BackupObject.v) and [the backup service](backup/README.md) prove canonical round-trip/injectivity and export/restore/Fresh invariants and implement bounded AES-256-GCM/Merkle export and atomic restore under strict C17, ASan/UBSan, and compiled mutation controls. ([note](docs/implementation/completion-log.md#q42a-i-prove-backupobject-v1-canonicity-and-realize-bounded-gc-free-c17-backup-service))
+  * [ ] **Q42a-ii · Lower Narcissus backup descriptors and join M5.3d-ii purecap crash-cut target** · 30 h, range 22–38 · I
+    * **Start:** landed `Q42a-i` (`BackupObject.v`, `backup/`), [the backup/migration contract](docs/implementation/contracts/backup-migration.md), accepted Narcissus qualification (`U-13`/`U-14`), typed manifest/checkpoint and schema-migration interfaces, and M5.3d-ii's user-data instance.
+    * **Owns:** concrete Narcissus descriptors (`backup-object`, `backup-recovery-secret`), Fiat/Bedrock-to-Clight lowering, holder-audit closure on the composed graph, and target crash-cut/Fresh-initializer campaigns on the purecap emulator.
+    * **Check:** `BA-EXPORT`, `BA-TYPE`, `BA-FORMAT`, `BA-KEY`, `BA-OBJECT-REFUSE`, `BA-STREAM`, `BA-SCHEMA`, `BA-ATOMIC`, and `BA-FRESH` on the real target artifacts with exact source/image identities and kernel-checked proofs. **Join:** M5.3d-ii, manifest owners, Q42b/Q42c, and Q10.
 * [ ] **Q42b · Implement the backup and migration trusted screens** · 20 h, range 14–26 · I
   * **Dispatch. Start:** the backup/migration contract, credential/unlock and trusted consent services, and Q42a's operation/profile/plan identities. **Owns:** separate backup/restore/migration flows, canonical recovery-secret entry through Q42a's derived decoder and one-time display, explicit discard-loss and surrendered-freshness caveats, source confirmation of exact authenticated quoted receiver roots, and one-use witnesses. **Check:** BA-DISPLAY, BA-CONSENT, BA-RESIDUAL and its BA-SCHEMA/BA-MIGRATE joins on actual trusted input/output, with spoof/replay/cancel/lock controls and no app/log secret path. **Join:** Q42a/Q42c and the existing trusted consent-path owner; a mockup or stored consent record is no implementation.
   * **Estimate basis:** recovery-secret entry/display/clear 4–8 h; operation/discard/root confirmation flows 4–8 h; trusted input/output and refusal controls 6–10 h. Class I: the contract and existing path own the decisions.
@@ -1358,7 +1363,7 @@ No assessment completion automatically increases a performance estimate. For an 
     * **Join:** R-18-018(b)'s TAL checker/soundness and certifying-Rust certificate mode, M7.1c's production admission, Q34c's heap refinement, M4.4/R2's actual retirement barrier, the HAL, supervisor and Q34f/Q34g's host/engine proofs. Existing owners retain foundational implementation/proof budgets; missing foundations are assigned and priced before implementation opens.
     * **Estimate basis:** linked closure/callback/teardown target controls and owner joins 10–18 h, conditional on accepted native producer interfaces and excluding foundational proofs and unattended hosted execution.
 
-**Q subtotal:** 2,769.2 h · 60% · 358.2 h complete · open range 1,389–3,433 h.
+**Q subtotal:** 2,769.2 h · 60% · 384.2 h complete · open range 1,371–3,399 h.
 
 ### M0 · Hardware reference
 
@@ -2526,6 +2531,7 @@ One row per completed item marked `agent-parallel`, using the [calibration recor
 | Q28b-i | n/a | n/a |
 | Q33-i | n/a | n/a |
 | Q34c-ii-a | I | 10 |
+| Q42a-i | n/a | n/a |
 | Q44-i | n/a | n/a |
 | Q47-i | n/a | n/a |
 | M4.4b-ii-a | X-authored | 1.1 |
