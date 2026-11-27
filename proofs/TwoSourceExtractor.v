@@ -1495,3 +1495,1273 @@ Qed.
 Definition witness_TwoSource : TwoSource := uniform_pair.
 Definition witness_Params : Params := accepted_params.
 Definition witness_ConditionedFamily : ConditionedFamily := demo_family.
+
+(* =========================================================================
+   6. Unconditioned-joint-to-conditioned-family derivation.
+   ========================================================================= *)
+
+Definition J_X (n : nat) {E : Type} (J : list bool -> list bool -> E -> Z)
+    (x : list bool) (e : E) : Z :=
+  sumZ (strings n) (fun y => J x y e).
+
+Definition J_Y (n : nat) {E : Type} (J : list bool -> list bool -> E -> Z)
+    (y : list bool) (e : E) : Z :=
+  sumZ (strings n) (fun x => J x y e).
+
+Definition E_weight (n : nat) {E : Type} (J : list bool -> list bool -> E -> Z)
+    (e : E) : Z :=
+  sumZ (strings n) (fun x => J_X n J x e).
+
+Definition cond_X (n : nat) {E : Type} (J : list bool -> list bool -> E -> Z)
+    (e : E) (x : list bool) : Z :=
+  J_X n J x e.
+
+Definition cond_Y (n : nat) {E : Type} (J : list bool -> list bool -> E -> Z)
+    (e : E) (y : list bool) : Z :=
+  J_Y n J y e.
+
+Lemma E_weight_eq_sum_Y :
+  forall (n : nat) {E : Type} (J : list bool -> list bool -> E -> Z) (e : E),
+    sumZ (strings n) (fun y => J_Y n J y e) = E_weight n J e.
+Proof.
+  intros n E J e. unfold E_weight, J_X, J_Y. rewrite sumZ_swap. reflexivity.
+Qed.
+
+Record UnconditionedJoint : Type := {
+  uj_E : Type;
+  uj_enum : list uj_E;
+  uj_n : nat;
+  uj_kX : uj_E -> nat;
+  uj_kY : uj_E -> nat;
+  uj_J : list bool -> list bool -> uj_E -> Z;
+  uj_J_nonneg : forall x y e,
+    In x (strings uj_n) -> In y (strings uj_n) -> In e uj_enum -> 0 <= uj_J x y e;
+  uj_cond_indep : forall x y e,
+    In x (strings uj_n) -> In y (strings uj_n) -> In e uj_enum ->
+    uj_J x y e * E_weight uj_n uj_J e = J_X uj_n uj_J x e * J_Y uj_n uj_J y e;
+  uj_minent_X : forall x e,
+    In x (strings uj_n) -> In e uj_enum ->
+    J_X uj_n uj_J x e * two_pow (uj_kX e) <= E_weight uj_n uj_J e;
+  uj_minent_Y : forall y e,
+    In y (strings uj_n) -> In e uj_enum ->
+    J_Y uj_n uj_J y e * two_pow (uj_kY e) <= E_weight uj_n uj_J e
+}.
+
+Lemma J_X_nonneg :
+  forall (u : UnconditionedJoint) (x : list bool) (e : uj_E u),
+    In x (strings (uj_n u)) -> In e (uj_enum u) -> 0 <= J_X (uj_n u) (uj_J u) x e.
+Proof.
+  intros u x e Hx He. unfold J_X. apply sumZ_nonneg.
+  intros y Hy. exact (uj_J_nonneg u x y e Hx Hy He).
+Qed.
+
+Lemma J_Y_nonneg :
+  forall (u : UnconditionedJoint) (y : list bool) (e : uj_E u),
+    In y (strings (uj_n u)) -> In e (uj_enum u) -> 0 <= J_Y (uj_n u) (uj_J u) y e.
+Proof.
+  intros u y e Hy He. unfold J_Y. apply sumZ_nonneg.
+  intros x Hx. exact (uj_J_nonneg u x y e Hx Hy He).
+Qed.
+
+Lemma E_weight_nonneg :
+  forall (u : UnconditionedJoint) (e : uj_E u),
+    In e (uj_enum u) -> 0 <= E_weight (uj_n u) (uj_J u) e.
+Proof.
+  intros u e He. unfold E_weight. apply sumZ_nonneg.
+  intros x Hx. exact (J_X_nonneg u x e Hx He).
+Qed.
+
+Fixpoint attach_in {A : Type} (l : list A) : list {a : A | In a l} :=
+  match l with
+  | [] => []
+  | x :: r =>
+      exist (fun a => In a (x :: r)) x (or_introl eq_refl)
+      :: map (fun s => exist (fun a => In a (x :: r)) (proj1_sig s) (or_intror (proj2_sig s)))
+             (attach_in r)
+  end.
+
+Lemma sumZ_attach_in :
+  forall {A : Type} (l : list A) (g : A -> Z),
+    sumZ (attach_in l) (fun s => g (proj1_sig s)) = sumZ l g.
+Proof.
+  intros A l g. induction l as [ | x r IH ]; simpl; [ reflexivity | ].
+  rewrite sumZ_map. simpl. rewrite IH. reflexivity.
+Qed.
+
+Definition supported_side_sig (u : UnconditionedJoint)
+  : list {e : uj_E u | In e (uj_enum u)} :=
+  filter (fun s => Z.ltb 0 (E_weight (uj_n u) (uj_J u) (proj1_sig s)))
+         (attach_in (uj_enum u)).
+
+Definition derived_cond_pair (u : UnconditionedJoint)
+    (se : {e : uj_E u | In e (uj_enum u) /\ 0 < E_weight (uj_n u) (uj_J u) (e)}) : TwoSource.
+Proof.
+  destruct se as [ e [ He Hpos ] ].
+  refine {|
+    ts_n := uj_n u;
+    ts_kX := uj_kX u e;
+    ts_kY := uj_kY u e;
+    ts_w := cond_X (uj_n u) (uj_J u) e;
+    ts_v := cond_Y (uj_n u) (uj_J u) e
+  |}.
+  - intros x Hx. exact (J_X_nonneg u x e Hx He).
+  - intros y Hy. exact (J_Y_nonneg u y e Hy He).
+  - exact Hpos.
+  - unfold cond_Y. rewrite E_weight_eq_sum_Y. exact Hpos.
+  - intros x Hx. exact (uj_minent_X u x e Hx He).
+  - intros y Hy. unfold cond_Y. rewrite E_weight_eq_sum_Y.
+    exact (uj_minent_Y u y e Hy He).
+Defined.
+
+Definition attach_supported (u : UnconditionedJoint)
+  : list {e : uj_E u | In e (uj_enum u) /\ 0 < E_weight (uj_n u) (uj_J u) e} :=
+  flat_map
+    (fun s =>
+       match Z_gt_le_dec (E_weight (uj_n u) (uj_J u) (proj1_sig s)) 0 with
+       | left Hpos =>
+           [ exist (fun e => In e (uj_enum u) /\ 0 < E_weight (uj_n u) (uj_J u) e)
+                   (proj1_sig s) (conj (proj2_sig s) (Z.gt_lt _ _ Hpos)) ]
+       | right _ => []
+       end)
+    (attach_in (uj_enum u)).
+
+Definition derived_conditioned_family (u : UnconditionedJoint) : ConditionedFamily.
+Proof.
+  refine {|
+    cf_side := {e : uj_E u | In e (uj_enum u) /\ 0 < E_weight (uj_n u) (uj_J u) e};
+    cf_enum := attach_supported u;
+    cf_pair := derived_cond_pair u;
+    cf_w := fun se => E_weight (uj_n u) (uj_J u) (proj1_sig se)
+  |}.
+  intros [ e [ He Hpos ] ] _. simpl. lia.
+Defined.
+
+Lemma derived_conditioned_family_valid :
+  forall (u : UnconditionedJoint)
+         (se : cf_side (derived_conditioned_family u)),
+    let e := proj1_sig se in
+    let p := cf_pair (derived_conditioned_family u) se in
+    In e (uj_enum u)
+    /\ 0 < E_weight (uj_n u) (uj_J u) e
+    /\ ts_n p = uj_n u
+    /\ ts_w p = cond_X (uj_n u) (uj_J u) e
+    /\ ts_v p = cond_Y (uj_n u) (uj_J u) e
+    /\ totX p = E_weight (uj_n u) (uj_J u) e
+    /\ totY p = E_weight (uj_n u) (uj_J u) e
+    /\ (forall x y, In x (strings (uj_n u)) -> In y (strings (uj_n u)) ->
+          joint p x y = uj_J u x y e * E_weight (uj_n u) (uj_J u) e).
+Proof.
+  intros u [ e [ He Hpos ] ]. simpl.
+  repeat split; try reflexivity; try exact He; try exact Hpos.
+  - unfold totY, cond_Y. apply E_weight_eq_sum_Y.
+  - intros x y Hx Hy. unfold joint, cond_X, cond_Y. simpl.
+    symmetry. exact (uj_cond_indep u x y e Hx Hy He).
+Qed.
+
+Definition joint_ip_mass (n : nat) {E : Type} (J : list bool -> list bool -> E -> Z)
+    (e : E) (b : bool) : Z :=
+  sumZ (strings n) (fun x =>
+    sumZ (strings n) (fun y => J x y e * (if beqb (ip x y) b then 1 else 0))).
+
+Definition joint_cg_bias (n : nat) {E : Type} (J : list bool -> list bool -> E -> Z)
+    (e : E) : Z :=
+  sumZ (strings n) (fun x =>
+    sumZ (strings n) (fun y => J x y e * chi (ip x y))).
+
+Definition joint_obs_enum {E : Type} (enumE : list E) : list (E * bool) :=
+  flat_map (fun e => [(e, false); (e, true)]) enumE.
+
+Definition joint_obs_real (n : nat) {E : Type} (J : list bool -> list bool -> E -> Z)
+    (eb : E * bool) : Z :=
+  2 * joint_ip_mass n J (fst eb) (snd eb).
+
+Definition joint_obs_ideal (n : nat) {E : Type} (J : list bool -> list bool -> E -> Z)
+    (eb : E * bool) : Z :=
+  E_weight n J (fst eb).
+
+Lemma joint_ip_mass_split :
+  forall (n : nat) {E : Type} (J : list bool -> list bool -> E -> Z) (e : E),
+    joint_ip_mass n J e false + joint_ip_mass n J e true = E_weight n J e.
+Proof.
+  intros n E J e. unfold joint_ip_mass, E_weight, J_X.
+  rewrite <- sumZ_add. apply sumZ_ext. intros x _.
+  rewrite <- sumZ_add. apply sumZ_ext. intros y _.
+  destruct (ip x y); cbn [beqb negb]; ring.
+Qed.
+
+Lemma joint_ip_mass_diff :
+  forall (n : nat) {E : Type} (J : list bool -> list bool -> E -> Z) (e : E),
+    joint_ip_mass n J e false - joint_ip_mass n J e true = joint_cg_bias n J e.
+Proof.
+  intros n E J e. unfold joint_ip_mass, joint_cg_bias.
+  rewrite <- sumZ_sub. apply sumZ_ext. intros x _.
+  rewrite <- sumZ_sub. apply sumZ_ext. intros y _.
+  destruct (ip x y); cbn [beqb negb chi]; ring.
+Qed.
+
+Lemma sumZ_joint_obs_enum :
+  forall {E : Type} (enumE : list E) (g : E * bool -> Z),
+    sumZ (joint_obs_enum enumE) g = sumZ enumE (fun e => g (e, false) + g (e, true)).
+Proof.
+  intros E enumE g. unfold joint_obs_enum.
+  induction enumE as [ | e r IH ]; cbn [flat_map app sumZ]; [ reflexivity | ].
+  rewrite IH. lia.
+Qed.
+
+Lemma sumZ_nonneg_zero_pointwise :
+  forall {A : Type} (l : list A) (g : A -> Z),
+    (forall a, In a l -> 0 <= g a) -> sumZ l g = 0 ->
+    forall a, In a l -> g a = 0.
+Proof.
+  intros A l g Hnn Hz. induction l as [ | x r IH ]; intros a Ha; cbn [In] in Ha.
+  - contradiction.
+  - cbn [sumZ] in Hz.
+    assert (Hx : 0 <= g x) by (apply Hnn; left; reflexivity).
+    assert (Hr : 0 <= sumZ r g) by (apply sumZ_nonneg; intros b Hb; apply Hnn; right; exact Hb).
+    destruct Ha as [ Ha | Ha ].
+    + subst a. lia.
+    + apply IH; [ intros b Hb; apply Hnn; right; exact Hb | lia | exact Ha ].
+Qed.
+
+(* Derive the joint (E, bit) statistical distance bound directly from J
+   without taking ConditionedFamily as a premise: the proof constructs
+   `derived_conditioned_family u` internally from `uj_cond_indep` and
+   cancels the positive E_weight factor per supported e. *)
+(*| discharges: R-15-241ca |*)
+Theorem derived_joint_observer_distance_bound :
+  forall (u : UnconditionedJoint) (sec : nat),
+    (forall e, In e (uj_enum u) -> 0 < E_weight (uj_n u) (uj_J u) e ->
+       (uj_n u + 2 * sec <= uj_kX u e + uj_kY u e)%nat) ->
+    statdist (joint_obs_enum (uj_enum u))
+      (joint_obs_real (uj_n u) (uj_J u))
+      (joint_obs_ideal (uj_n u) (uj_J u)) * two_pow sec
+    <= 2 * sumZ (uj_enum u) (E_weight (uj_n u) (uj_J u)).
+Proof.
+  intros u sec Hsec.
+  set (f := derived_conditioned_family u).
+  unfold statdist. rewrite sumZ_joint_obs_enum.
+  rewrite sumZ_mul_r.
+  transitivity (2 * sumZ (uj_enum u) (E_weight (uj_n u) (uj_J u))); [ | lia ].
+  rewrite <- sumZ_scale. apply sumZ_le. intros e He. cbv beta.
+  pose proof (joint_ip_mass_split (uj_n u) (uj_J u) e) as Hsplit.
+  pose proof (joint_ip_mass_diff (uj_n u) (uj_J u) e) as Hdiff.
+  assert (Habs :
+    Z.abs (joint_obs_real (uj_n u) (uj_J u) (e, false)
+           - joint_obs_ideal (uj_n u) (uj_J u) (e, false))
+    + Z.abs (joint_obs_real (uj_n u) (uj_J u) (e, true)
+             - joint_obs_ideal (uj_n u) (uj_J u) (e, true))
+    = 2 * Z.abs (joint_cg_bias (uj_n u) (uj_J u) e)).
+  { unfold joint_obs_real, joint_obs_ideal. cbn [fst snd].
+    replace (2 * joint_ip_mass (uj_n u) (uj_J u) e false - E_weight (uj_n u) (uj_J u) e)
+      with (joint_cg_bias (uj_n u) (uj_J u) e) by lia.
+    replace (2 * joint_ip_mass (uj_n u) (uj_J u) e true - E_weight (uj_n u) (uj_J u) e)
+      with (- joint_cg_bias (uj_n u) (uj_J u) e) by lia.
+    rewrite Z.abs_opp. lia. }
+  rewrite Habs.
+  pose proof (E_weight_nonneg u e He) as Hw_nn.
+  destruct (Z_gt_le_dec (E_weight (uj_n u) (uj_J u) e) 0) as [ Hpos | Hle0 ].
+  - assert (Hpos' : 0 < E_weight (uj_n u) (uj_J u) e) by lia.
+    set (se := exist (fun e0 => In e0 (uj_enum u) /\ 0 < E_weight (uj_n u) (uj_J u) e0)
+                     e (conj He Hpos')).
+    pose proof (derived_conditioned_family_valid u se) as Hval.
+    destruct Hval as [ _ [ _ [ Hn [ Htw [ Htv [ Htx [ Hty Hjoint ] ] ] ] ] ] ].
+    set (p := cf_pair f se).
+    change (cf_pair (derived_conditioned_family u) se) with p in Htx, Hty, Hjoint.
+    change (proj1_sig se) with e in Htx, Hty, Hjoint.
+    assert (Hbias : cg_bias p = joint_cg_bias (uj_n u) (uj_J u) e * E_weight (uj_n u) (uj_J u) e).
+    { unfold cg_bias, joint_cg_bias. change (ts_n p) with (uj_n u).
+      rewrite sumZ_mul_r. apply sumZ_ext. intros x Hx. cbv beta.
+      rewrite sumZ_mul_r. apply sumZ_ext. intros y Hy. cbv beta.
+      rewrite (Hjoint x y Hx Hy). ring. }
+    pose proof (bias_linear_bound p sec) as Hlin.
+    assert (Hent : (ts_n p + 2 * sec <= ts_kX p + ts_kY p)%nat).
+    { change (ts_n p) with (uj_n u). change (ts_kX p) with (uj_kX u e).
+      change (ts_kY p) with (uj_kY u e). exact (Hsec e He Hpos'). }
+    specialize (Hlin Hent).
+    rewrite Hbias, Htx, Hty, Z.abs_mul, (Z.abs_eq (E_weight (uj_n u) (uj_J u) e) Hw_nn) in Hlin.
+    assert (Hlin' : Z.abs (joint_cg_bias (uj_n u) (uj_J u) e) * two_pow sec
+                    <= E_weight (uj_n u) (uj_J u) e) by nia.
+    lia.
+  - assert (Hz : E_weight (uj_n u) (uj_J u) e = 0) by lia.
+    assert (Hjx0 : forall x, In x (strings (uj_n u)) -> J_X (uj_n u) (uj_J u) x e = 0).
+    { apply sumZ_nonneg_zero_pointwise; [ | exact Hz ].
+      intros x Hx. exact (J_X_nonneg u x e Hx He). }
+    assert (Hj0 : forall x y, In x (strings (uj_n u)) -> In y (strings (uj_n u)) ->
+                    uj_J u x y e = 0).
+    { intros x y Hx Hy. apply (sumZ_nonneg_zero_pointwise (strings (uj_n u)) (fun y0 => uj_J u x y0 e)).
+      - intros y0 Hy0. exact (uj_J_nonneg u x y0 e Hx Hy0 He).
+      - exact (Hjx0 x Hx).
+      - exact Hy. }
+    assert (Hcg0 : joint_cg_bias (uj_n u) (uj_J u) e = 0).
+    { unfold joint_cg_bias. apply sumZ_zero. intros x Hx. apply sumZ_zero. intros y Hy.
+      rewrite (Hj0 x y Hx Hy). ring. }
+    rewrite Hcg0, Hz. cbn [Z.abs]. lia.
+Qed.
+
+Definition demo_uj_J (x y : list bool) (e : bool) : Z := 1.
+
+Lemma demo_uj_J_nonneg :
+  forall x y e, In x (strings 2) -> In y (strings 2) -> In e [false; true] ->
+    0 <= demo_uj_J x y e.
+Proof. intros x y e _ _ _. unfold demo_uj_J. lia. Qed.
+
+Lemma demo_uj_cond_indep :
+  forall x y e, In x (strings 2) -> In y (strings 2) -> In e [false; true] ->
+    demo_uj_J x y e * E_weight 2 demo_uj_J e
+    = J_X 2 demo_uj_J x e * J_Y 2 demo_uj_J y e.
+Proof.
+  intros x y e _ _ _. unfold demo_uj_J, E_weight, J_X, J_Y.
+  transitivity 16; [ vm_compute; reflexivity | ].
+  symmetry.
+  assert (Hx : sumZ (strings 2) (fun _ : list bool => 1) = 4) by (vm_compute; reflexivity).
+  rewrite !Hx. reflexivity.
+Qed.
+
+Lemma demo_uj_minent_X :
+  forall x e, In x (strings 2) -> In e [false; true] ->
+    J_X 2 demo_uj_J x e * two_pow 2 <= E_weight 2 demo_uj_J e.
+Proof.
+  intros x e _ _.
+  replace (J_X 2 demo_uj_J x e) with 4 by (vm_compute; reflexivity).
+  replace (E_weight 2 demo_uj_J e) with 16 by (vm_compute; reflexivity).
+  cbn [two_pow]. lia.
+Qed.
+
+Lemma demo_uj_minent_Y :
+  forall y e, In y (strings 2) -> In e [false; true] ->
+    J_Y 2 demo_uj_J y e * two_pow 2 <= E_weight 2 demo_uj_J e.
+Proof.
+  intros y e _ _.
+  replace (J_Y 2 demo_uj_J y e) with 4 by (vm_compute; reflexivity).
+  replace (E_weight 2 demo_uj_J e) with 16 by (vm_compute; reflexivity).
+  cbn [two_pow]. lia.
+Qed.
+
+Definition witness_UnconditionedJoint : UnconditionedJoint :=
+  {| uj_E := bool;
+     uj_enum := [false; true];
+     uj_n := 2;
+     uj_kX := fun _ => 2%nat;
+     uj_kY := fun _ => 2%nat;
+     uj_J := demo_uj_J;
+     uj_J_nonneg := demo_uj_J_nonneg;
+     uj_cond_indep := demo_uj_cond_indep;
+     uj_minent_X := demo_uj_minent_X;
+     uj_minent_Y := demo_uj_minent_Y |}.
+
+(*| discharges: R-15-241ca |*)
+Theorem derived_joint_witness_meets_bound :
+  statdist (joint_obs_enum (uj_enum witness_UnconditionedJoint))
+    (joint_obs_real (uj_n witness_UnconditionedJoint) (uj_J witness_UnconditionedJoint))
+    (joint_obs_ideal (uj_n witness_UnconditionedJoint) (uj_J witness_UnconditionedJoint))
+    * two_pow 1
+  <= 2 * sumZ (uj_enum witness_UnconditionedJoint)
+           (E_weight (uj_n witness_UnconditionedJoint) (uj_J witness_UnconditionedJoint)).
+Proof.
+  apply derived_joint_observer_distance_bound.
+  intros e _ _. cbn [uj_n uj_kX uj_kY witness_UnconditionedJoint]. lia.
+Qed.
+
+(* =========================================================================
+   7. Adaptive prior-history multi-block seed accumulation theorem.
+   ========================================================================= *)
+
+Record AdaptiveChain : Type := {
+  ac_E : Type;
+  ac_enum : list ac_E;
+  ac_w : ac_E -> Z;
+  ac_w_nonneg : forall e, In e ac_enum -> 0 <= ac_w e;
+  ac_m : nat;
+  ac_sec : nat;
+  ac_pair : nat -> ac_E -> list bool -> TwoSource;
+  ac_step_mass : nat -> ac_E -> Z;
+  ac_step_mass_match : forall i e pref,
+    (i < ac_m)%nat -> In e ac_enum -> In pref (strings i) ->
+    totX (ac_pair i e pref) * totY (ac_pair i e pref) = ac_step_mass i e;
+  ac_entropy_ok : forall i e pref,
+    (i < ac_m)%nat -> In e ac_enum -> In pref (strings i) ->
+    (ts_n (ac_pair i e pref) + 2 * ac_sec
+     <= ts_kX (ac_pair i e pref) + ts_kY (ac_pair i e pref))%nat
+}.
+
+Definition obs_chain_enum {E : Type} (enumE : list E) (m : nat) : list (E * list bool) :=
+  flat_map (fun e => map (pair e) (strings m)) enumE.
+
+Fixpoint chain_real_aux {E : Type} (step_pair : nat -> E -> list bool -> TwoSource)
+    (offset : nat) (e : E) (pref rest : list bool) : Z :=
+  match rest with
+  | [] => 1
+  | b :: r =>
+      2 * ip_mass (step_pair offset e pref) b
+      * chain_real_aux step_pair (S offset) e (pref ++ [b]) r
+  end.
+
+Fixpoint chain_ideal_tail {E : Type} (step_mass : nat -> E -> Z)
+    (offset len : nat) (e : E) : Z :=
+  match len with
+  | O => 1
+  | S k => step_mass offset e * chain_ideal_tail step_mass (S offset) k e
+  end.
+
+Definition chain_real (c : AdaptiveChain) (eb : ac_E c * list bool) : Z :=
+  ac_w c (fst eb) * chain_real_aux (ac_pair c) O (fst eb) [] (snd eb).
+
+Definition chain_ideal (c : AdaptiveChain) (eb : ac_E c * list bool) : Z :=
+  ac_w c (fst eb) * chain_ideal_tail (ac_step_mass c) O (ac_m c) (fst eb).
+
+Definition chain_total_mass (c : AdaptiveChain) : Z :=
+  two_pow (ac_m c)
+  * sumZ (ac_enum c) (fun e => ac_w c e * chain_ideal_tail (ac_step_mass c) O (ac_m c) e).
+
+Fixpoint hyb_chain_weight {E : Type} (step_pair : nat -> E -> list bool -> TwoSource)
+    (step_mass : nat -> E -> Z) (offset j : nat) (e : E) (pref bs : list bool) : Z :=
+  match j with
+  | O => chain_ideal_tail step_mass offset (length bs) e
+  | S j' =>
+      match bs with
+      | [] => 1
+      | b :: rest =>
+          2 * ip_mass (step_pair offset e pref) b
+          * hyb_chain_weight step_pair step_mass (S offset) j' e (pref ++ [b]) rest
+      end
+  end.
+
+Definition chain_hyb (c : AdaptiveChain) (j : nat) (eb : ac_E c * list bool) : Z :=
+  ac_w c (fst eb) * hyb_chain_weight (ac_pair c) (ac_step_mass c) O j (fst eb) [] (snd eb).
+
+Lemma sumZ_strings_split :
+  forall (a b : nat) (g : list bool -> Z),
+    sumZ (strings (a + b)) g
+    = sumZ (strings a) (fun pref => sumZ (strings b) (fun rest => g (pref ++ rest))).
+Proof.
+  induction a as [ | a' IH ]; intros b g; cbn [Nat.add].
+  - cbn [strings sumZ app]. rewrite Z.add_0_r.
+    apply sumZ_ext. intros rest _. reflexivity.
+  - rewrite (sumZ_cube_split (a' + b)%nat). cbv beta.
+    rewrite (sumZ_cube_split a'). cbv beta.
+    rewrite !IH. f_equal; apply sumZ_ext; intros pref _;
+      apply sumZ_ext; intros rest _; reflexivity.
+Qed.
+
+Lemma sumZ_obs_chain_enum :
+  forall {E : Type} (enumE : list E) (m : nat) (g : E * list bool -> Z),
+    sumZ (obs_chain_enum enumE m) g
+    = sumZ enumE (fun e => sumZ (strings m) (fun bs => g (e, bs))).
+Proof.
+  intros E enumE m g. unfold obs_chain_enum.
+  induction enumE as [ | e r IH ]; cbn [flat_map sumZ]; [ reflexivity | ].
+  rewrite sumZ_app, sumZ_map, IH. reflexivity.
+Qed.
+
+Lemma ip_mass_nonneg : forall (s : TwoSource) (b : bool), 0 <= ip_mass s b.
+Proof.
+  intros s b. unfold ip_mass. apply sumZ_nonneg. intros x Hx.
+  apply sumZ_nonneg. intros y Hy. unfold joint.
+  pose proof (ts_w_nonneg s x Hx) as Hw. pose proof (ts_v_nonneg s y Hy) as Hv.
+  destruct (beqb (ip x y) b); nia.
+Qed.
+
+Lemma ac_step_mass_pos :
+  forall (c : AdaptiveChain) (i : nat) (e : ac_E c),
+    (i < ac_m c)%nat -> In e (ac_enum c) -> 0 < ac_step_mass c i e.
+Proof.
+  intros c i e Hi He. destruct (strings_inhabited i) as [ pref Hpref ].
+  rewrite <- (ac_step_mass_match c i e pref Hi He Hpref).
+  pose proof (ts_w_positive (ac_pair c i e pref)) as Hx.
+  pose proof (ts_v_positive (ac_pair c i e pref)) as Hy.
+  change (sumZ (strings (ts_n (ac_pair c i e pref))) (ts_w (ac_pair c i e pref)))
+    with (totX (ac_pair c i e pref)) in Hx.
+  change (sumZ (strings (ts_n (ac_pair c i e pref))) (ts_v (ac_pair c i e pref)))
+    with (totY (ac_pair c i e pref)) in Hy.
+  nia.
+Qed.
+
+Lemma chain_real_aux_nonneg :
+  forall (c : AdaptiveChain) (offset : nat) (e : ac_E c) (pref rest : list bool),
+    0 <= chain_real_aux (ac_pair c) offset e pref rest.
+Proof.
+  intros c offset e pref rest. revert offset pref.
+  induction rest as [ | b r IH ]; intros offset pref; cbn [chain_real_aux]; [ lia | ].
+  pose proof (ip_mass_nonneg (ac_pair c offset e pref) b) as Hb.
+  pose proof (IH (S offset) (pref ++ [b])) as Hr. nia.
+Qed.
+
+Lemma chain_ideal_tail_nonneg :
+  forall (c : AdaptiveChain) (offset len : nat) (e : ac_E c),
+    (offset + len <= ac_m c)%nat -> In e (ac_enum c) ->
+    0 <= chain_ideal_tail (ac_step_mass c) offset len e.
+Proof.
+  intros c offset len e Hbound He. revert offset Hbound.
+  induction len as [ | k IH ]; intros offset Hbound; cbn [chain_ideal_tail]; [ lia | ].
+  pose proof (ac_step_mass_pos c offset e ltac:(lia) He) as Hp.
+  pose proof (IH (S offset) ltac:(lia)) as Hk. nia.
+Qed.
+
+Lemma hyb_chain_weight_zero :
+  forall {E : Type} (step_pair : nat -> E -> list bool -> TwoSource)
+         (step_mass : nat -> E -> Z) (offset : nat) (e : E) (pref bs : list bool),
+    hyb_chain_weight step_pair step_mass offset O e pref bs
+    = chain_ideal_tail step_mass offset (length bs) e.
+Proof. reflexivity. Qed.
+
+Lemma hyb_chain_weight_full :
+  forall {E : Type} (step_pair : nat -> E -> list bool -> TwoSource)
+         (step_mass : nat -> E -> Z) (offset : nat) (e : E) (pref bs : list bool),
+    hyb_chain_weight step_pair step_mass offset (length bs) e pref bs
+    = chain_real_aux step_pair offset e pref bs.
+Proof.
+  intros E step_pair step_mass offset e pref bs.
+  revert offset pref. induction bs as [ | b r IH ]; intros offset pref;
+    cbn [length hyb_chain_weight chain_real_aux]; [ reflexivity | ].
+  rewrite IH. reflexivity.
+Qed.
+
+Lemma hyb_chain_weight_split :
+  forall {E : Type} (step_pair : nat -> E -> list bool -> TwoSource)
+         (step_mass : nat -> E -> Z) (offset j k : nat) (e : E)
+         (p0 pref tail : list bool),
+    length pref = j ->
+    hyb_chain_weight step_pair step_mass offset (j + k) e p0 (pref ++ tail)
+    = chain_real_aux step_pair offset e p0 pref
+      * hyb_chain_weight step_pair step_mass (offset + j)%nat k e (p0 ++ pref) tail.
+Proof.
+  intros E step_pair step_mass offset j. revert offset.
+  induction j as [ | j' IH ]; intros offset k e p0 pref tail Hlen.
+  - destruct pref; [ | cbn [length] in Hlen; discriminate ].
+    cbn [Nat.add app chain_real_aux]. rewrite Nat.add_0_r, app_nil_r. ring.
+  - destruct pref as [ | b r ]; [ cbn [length] in Hlen; discriminate | ].
+    cbn [Nat.add app hyb_chain_weight chain_real_aux].
+    rewrite (IH (S offset) k e (p0 ++ [b]) r tail) by (cbn [length] in Hlen; lia).
+    rewrite <- app_assoc. cbn [app].
+    replace (S offset + j')%nat with (offset + S j')%nat by lia.
+    ring.
+Qed.
+
+Lemma chain_ideal_tail_split :
+  forall {E : Type} (step_mass : nat -> E -> Z) (offset a b : nat) (e : E),
+    chain_ideal_tail step_mass offset (a + b) e
+    = chain_ideal_tail step_mass offset a e
+      * chain_ideal_tail step_mass (offset + a)%nat b e.
+Proof.
+  intros E step_mass offset a. revert offset.
+  induction a as [ | a' IH ]; intros offset b e; cbn [Nat.add chain_ideal_tail].
+  - rewrite Nat.add_0_r. ring.
+  - rewrite (IH (S offset) b e).
+    replace (S offset + a')%nat with (offset + S a')%nat by lia. ring.
+Qed.
+
+Lemma chain_real_aux_app :
+  forall {E : Type} (step_pair : nat -> E -> list bool -> TwoSource)
+         (offset : nat) (e : E) (p0 pref tail : list bool),
+    chain_real_aux step_pair offset e p0 (pref ++ tail)
+    = chain_real_aux step_pair offset e p0 pref
+      * chain_real_aux step_pair (offset + length pref)%nat e (p0 ++ pref) tail.
+Proof.
+  intros E step_pair offset e p0 pref. revert offset p0.
+  induction pref as [ | b r IH ]; intros offset p0 tail; cbn [app length chain_real_aux].
+  - rewrite Nat.add_0_r, app_nil_r. ring.
+  - rewrite (IH (S offset) (p0 ++ [b]) tail).
+    rewrite <- app_assoc. cbn [app].
+    replace (S offset + length r)%nat with (offset + S (length r))%nat by lia.
+    ring.
+Qed.
+
+Lemma sumZ_chain_real_aux :
+  forall (c : AdaptiveChain) (j : nat) (e : ac_E c),
+    (j <= ac_m c)%nat -> In e (ac_enum c) ->
+    sumZ (strings j) (fun pref => chain_real_aux (ac_pair c) O e [] pref)
+    = two_pow j * chain_ideal_tail (ac_step_mass c) O j e.
+Proof.
+  intros c j e Hj He. induction j as [ | j' IH ].
+  - cbn [strings sumZ chain_real_aux two_pow chain_ideal_tail]. lia.
+  - replace (S j') with (j' + 1)%nat by lia.
+    rewrite sumZ_strings_split.
+    transitivity (sumZ (strings j') (fun pref =>
+      chain_real_aux (ac_pair c) O e [] pref * (2 * ac_step_mass c j' e))).
+    + apply sumZ_ext. intros pref Hpref. cbv beta.
+      cbn [strings map app sumZ].
+      rewrite !(chain_real_aux_app (ac_pair c) O e [] pref).
+      rewrite (strings_length j' pref Hpref).
+      cbn [Nat.add app chain_real_aux].
+      pose proof (ip_mass_split (ac_pair c j' e pref)) as Hsplit.
+      pose proof (ac_step_mass_match c j' e pref ltac:(lia) He Hpref) as Hmass.
+      nia.
+    + rewrite <- (sumZ_mul_r (strings j')
+                    (fun pref => chain_real_aux (ac_pair c) O e [] pref)
+                    (2 * ac_step_mass c j' e)).
+      rewrite (IH ltac:(lia)), (two_pow_add j' 1).
+      rewrite (chain_ideal_tail_split (ac_step_mass c) O j' 1 e).
+      cbn [Nat.add two_pow chain_ideal_tail]. ring.
+Qed.
+
+Lemma statdist_symm :
+  forall {A : Type} (l : list A) (f g : A -> Z),
+    statdist l f g = statdist l g f.
+Proof.
+  intros A l f g. unfold statdist. apply sumZ_ext. intros a _.
+  rewrite <- Z.abs_opp. f_equal. lia.
+Qed.
+
+Lemma chain_hybrid_step_bound :
+  forall (c : AdaptiveChain) (j : nat),
+    (j < ac_m c)%nat ->
+    statdist (obs_chain_enum (ac_enum c) (ac_m c))
+      (chain_hyb c j) (chain_hyb c (S j)) * two_pow (ac_sec c)
+    <= chain_total_mass c.
+Proof.
+  intros c j Hj.
+  set (rem := (ac_m c - S j)%nat).
+  assert (Hm_eq : ac_m c = (j + S rem)%nat) by (unfold rem; lia).
+  unfold statdist. rewrite sumZ_obs_chain_enum.
+  rewrite Hm_eq.
+  apply Z.le_trans with (sumZ (ac_enum c) (fun e =>
+    two_pow (j + S rem) * (ac_w c e * chain_ideal_tail (ac_step_mass c) O (j + S rem) e)));
+    [ | unfold chain_total_mass; rewrite Hm_eq, <- sumZ_scale; lia ].
+  rewrite sumZ_mul_r.
+  apply sumZ_le. intros e He. cbv beta.
+  pose proof (ac_w_nonneg c e He) as Hw_nn.
+  rewrite sumZ_strings_split.
+  assert (Hinner :
+    sumZ (strings j) (fun pref =>
+      sumZ (strings (S rem)) (fun rest =>
+        Z.abs (chain_hyb c j (e, pref ++ rest)
+               - chain_hyb c (S j) (e, pref ++ rest))))
+    * two_pow (ac_sec c)
+    <= two_pow (j + S rem) * (ac_w c e * chain_ideal_tail (ac_step_mass c) O (j + S rem) e)).
+  { rewrite sumZ_mul_r.
+    transitivity (sumZ (strings j) (fun pref =>
+      ac_w c e * chain_real_aux (ac_pair c) O e [] pref
+      * (2 * ac_step_mass c j e)
+      * two_pow rem * chain_ideal_tail (ac_step_mass c) (S j) rem e)).
+    - apply sumZ_le. intros pref Hpref. cbv beta.
+      pose proof (strings_length j pref Hpref) as Hplen.
+      rewrite (sumZ_strings_split 1 rem).
+      cbn [strings map app sumZ].
+      assert (Hstep_pref :
+        sumZ (strings rem) (fun tail =>
+          Z.abs (chain_hyb c j (e, pref ++ false :: tail)
+                 - chain_hyb c (S j) (e, pref ++ false :: tail)))
+        + (sumZ (strings rem) (fun tail =>
+            Z.abs (chain_hyb c j (e, pref ++ true :: tail)
+                   - chain_hyb c (S j) (e, pref ++ true :: tail)))
+           + 0)
+        = ac_w c e * chain_real_aux (ac_pair c) O e [] pref
+          * (2 * Z.abs (cg_bias (ac_pair c j e pref)))
+          * two_pow rem * chain_ideal_tail (ac_step_mass c) (S j) rem e).
+      { assert (Hbranch : forall b : bool,
+          sumZ (strings rem) (fun tail =>
+            Z.abs (chain_hyb c j (e, pref ++ b :: tail)
+                   - chain_hyb c (S j) (e, pref ++ b :: tail)))
+          = two_pow rem
+            * (ac_w c e * chain_real_aux (ac_pair c) O e [] pref
+               * chain_ideal_tail (ac_step_mass c) (S j) rem e
+               * Z.abs (ac_step_mass c j e - 2 * ip_mass (ac_pair c j e pref) b))).
+        { intros b.
+          transitivity (sumZ (strings rem) (fun tail =>
+            ac_w c e * chain_real_aux (ac_pair c) O e [] pref
+            * chain_ideal_tail (ac_step_mass c) (S j) rem e
+            * Z.abs (ac_step_mass c j e - 2 * ip_mass (ac_pair c j e pref) b))).
+          - apply sumZ_ext. intros tail Htail. cbv beta.
+            unfold chain_hyb. cbn [fst snd].
+            replace j with (j + 0)%nat at 1 by lia.
+            rewrite (hyb_chain_weight_split (ac_pair c) (ac_step_mass c) O j O e [] pref (b :: tail) Hplen).
+            replace (S j) with (j + 1)%nat at 1 by lia.
+            rewrite (hyb_chain_weight_split (ac_pair c) (ac_step_mass c) O j 1 e [] pref (b :: tail) Hplen).
+            cbn [Nat.add app length hyb_chain_weight chain_ideal_tail].
+            rewrite (strings_length rem tail Htail).
+            pose proof (chain_real_aux_nonneg c O e [] pref) as Hpre_nn.
+            pose proof (chain_ideal_tail_nonneg c (S j) rem e ltac:(unfold rem; lia) He) as Htail_nn.
+            replace (ac_w c e * (chain_real_aux (ac_pair c) O e [] pref
+                                 * (ac_step_mass c j e * chain_ideal_tail (ac_step_mass c) (S j) rem e))
+                     - ac_w c e * (chain_real_aux (ac_pair c) O e [] pref
+                                   * (2 * ip_mass (ac_pair c j e pref) b
+                                      * chain_ideal_tail (ac_step_mass c) (S j) rem e)))
+              with ((ac_w c e * chain_real_aux (ac_pair c) O e [] pref
+                     * chain_ideal_tail (ac_step_mass c) (S j) rem e)
+                    * (ac_step_mass c j e - 2 * ip_mass (ac_pair c j e pref) b)) by ring.
+            rewrite Z.abs_mul, (Z.abs_eq (ac_w c e * chain_real_aux (ac_pair c) O e [] pref
+                                           * chain_ideal_tail (ac_step_mass c) (S j) rem e)
+                                          ltac:(nia)).
+            reflexivity.
+          - rewrite sumZ_const, <- strings_count, sumZ_const. ring. }
+        rewrite (Hbranch false), (Hbranch true).
+        pose proof (ip_mass_split (ac_pair c j e pref)) as Hsp.
+        pose proof (ip_mass_difference (ac_pair c j e pref)) as Hdf.
+        pose proof (ac_step_mass_match c j e pref Hj He Hpref) as Hmm.
+        assert (Habs_sum :
+          Z.abs (ac_step_mass c j e - 2 * ip_mass (ac_pair c j e pref) false)
+          + Z.abs (ac_step_mass c j e - 2 * ip_mass (ac_pair c j e pref) true)
+          = 2 * Z.abs (cg_bias (ac_pair c j e pref))).
+        { replace (ac_step_mass c j e - 2 * ip_mass (ac_pair c j e pref) false)
+            with (- cg_bias (ac_pair c j e pref)) by lia.
+          replace (ac_step_mass c j e - 2 * ip_mass (ac_pair c j e pref) true)
+            with (cg_bias (ac_pair c j e pref)) by lia.
+          rewrite Z.abs_opp. lia. }
+        nia. }
+      rewrite Hstep_pref.
+      pose proof (bias_linear_bound (ac_pair c j e pref) (ac_sec c)
+                    (ac_entropy_ok c j e pref Hj He Hpref)) as Hlin.
+      rewrite (ac_step_mass_match c j e pref Hj He Hpref) in Hlin.
+      pose proof (chain_real_aux_nonneg c O e [] pref) as Hpre_nn.
+      pose proof (chain_ideal_tail_nonneg c (S j) rem e ltac:(unfold rem; lia) He) as Htail_nn.
+      pose proof (two_pow_pos rem) as Hrem_pos.
+      assert (Hmul :
+        (ac_w c e * chain_real_aux (ac_pair c) O e [] pref
+         * (2 * Z.abs (cg_bias (ac_pair c j e pref)))
+         * two_pow rem * chain_ideal_tail (ac_step_mass c) (S j) rem e) * two_pow (ac_sec c)
+        <= (ac_w c e * chain_real_aux (ac_pair c) O e [] pref
+            * (2 * ac_step_mass c j e)
+            * two_pow rem * chain_ideal_tail (ac_step_mass c) (S j) rem e)).
+      { replace ((ac_w c e * chain_real_aux (ac_pair c) O e [] pref
+                  * (2 * Z.abs (cg_bias (ac_pair c j e pref)))
+                  * two_pow rem * chain_ideal_tail (ac_step_mass c) (S j) rem e)
+                 * two_pow (ac_sec c))
+          with ((ac_w c e * chain_real_aux (ac_pair c) O e [] pref
+                 * two_pow rem * chain_ideal_tail (ac_step_mass c) (S j) rem e)
+                * (2 * (Z.abs (cg_bias (ac_pair c j e pref)) * two_pow (ac_sec c)))) by ring.
+        replace (ac_w c e * chain_real_aux (ac_pair c) O e [] pref
+                 * (2 * ac_step_mass c j e)
+                 * two_pow rem * chain_ideal_tail (ac_step_mass c) (S j) rem e)
+          with ((ac_w c e * chain_real_aux (ac_pair c) O e [] pref
+                 * two_pow rem * chain_ideal_tail (ac_step_mass c) (S j) rem e)
+                * (2 * ac_step_mass c j e)) by ring.
+        apply Z.mul_le_mono_nonneg_l; [ nia | lia ]. }
+      exact Hmul.
+    - transitivity
+        (sumZ (strings j) (fun pref => chain_real_aux (ac_pair c) O e [] pref)
+         * (ac_w c e * (2 * ac_step_mass c j e) * two_pow rem
+            * chain_ideal_tail (ac_step_mass c) (S j) rem e)).
+      + rewrite sumZ_mul_r. apply Z.eq_le_incl. apply sumZ_ext. intros pref _. ring.
+      + rewrite (sumZ_chain_real_aux c j e ltac:(lia) He).
+        rewrite (two_pow_add j (S rem)), two_pow_S.
+        rewrite (chain_ideal_tail_split (ac_step_mass c) O j (S rem) e).
+        cbn [Nat.add chain_ideal_tail]. ring_simplify. lia. }
+  exact Hinner.
+Qed.
+
+Lemma natupto_in_lt : forall m i, In i (natupto m) -> (i < m)%nat.
+Proof.
+  induction m as [ | k IH ]; intros i Hi; cbn [natupto] in Hi.
+  - contradiction.
+  - apply in_app_or in Hi. destruct Hi as [ Hi | Hi ].
+    + specialize (IH i Hi). lia.
+    + cbn [In] in Hi. destruct Hi as [ Hi | Hi ]; [ lia | contradiction ].
+Qed.
+
+(* Adaptive prior-history multi-block seed accumulation theorem:
+   For m sequential extraction steps where step i's conditional source pair
+   may depend on the prior output prefix b_0..b_{i-1} and side information e,
+   the statistical distance of the joint (e, b_0..b_{m-1}) distribution from
+   uniform 2^m outputs alongside e is bounded by m times the per-bit budget. *)
+(*| discharges: R-15-241ca |*)
+Theorem adaptive_multiblock_accumulation_bound :
+  forall c : AdaptiveChain,
+    statdist (obs_chain_enum (ac_enum c) (ac_m c))
+      (chain_real c) (chain_ideal c) * two_pow (ac_sec c)
+    <= Z.of_nat (ac_m c) * chain_total_mass c.
+Proof.
+  intro c.
+  assert (H0 : forall eb, In eb (obs_chain_enum (ac_enum c) (ac_m c)) ->
+                 chain_hyb c O eb = chain_ideal c eb).
+  { intros [ e bs ] Heb. unfold obs_chain_enum in Heb.
+    apply in_flat_map in Heb as [ e0 [ _ Heb ] ].
+    apply in_map_iff in Heb as [ bs0 [ Heq Hbs ] ].
+    inversion Heq; subst. unfold chain_hyb, chain_ideal. cbn [fst snd].
+    rewrite hyb_chain_weight_zero, (strings_length (ac_m c) bs Hbs). reflexivity. }
+  assert (Hm : forall eb, In eb (obs_chain_enum (ac_enum c) (ac_m c)) ->
+                 chain_hyb c (ac_m c) eb = chain_real c eb).
+  { intros [ e bs ] Heb. unfold obs_chain_enum in Heb.
+    apply in_flat_map in Heb as [ e0 [ _ Heb ] ].
+    apply in_map_iff in Heb as [ bs0 [ Heq Hbs ] ].
+    inversion Heq; subst. unfold chain_hyb, chain_real. cbn [fst snd].
+    rewrite <- (strings_length (ac_m c) bs Hbs) at 1.
+    rewrite hyb_chain_weight_full. reflexivity. }
+  assert (Heq_dist :
+    statdist (obs_chain_enum (ac_enum c) (ac_m c)) (chain_real c) (chain_ideal c)
+    = statdist (obs_chain_enum (ac_enum c) (ac_m c)) (chain_hyb c O) (chain_hyb c (ac_m c))).
+  { rewrite statdist_symm. unfold statdist. apply sumZ_ext. intros eb Heb.
+    rewrite (H0 eb Heb), (Hm eb Heb). reflexivity. }
+  rewrite Heq_dist.
+  apply (hybrid_error_budget (obs_chain_enum (ac_enum c) (ac_m c))
+           (chain_hyb c) (ac_m c) (ac_sec c) (chain_total_mass c)).
+  intros i Hi. apply chain_hybrid_step_bound. apply natupto_in_lt. exact Hi.
+Qed.
+
+(* =========================================================================
+   8. Concrete 256-bit TM-8 conditioner composition interface (SeedChain256),
+   matching R-15-241d / HmacDrbg.v (`outlen_bits = 256`), with an explicit
+   realized 256-bit parameter witness and an out-of-premise refusal witness.
+   ========================================================================= *)
+
+Record SeedChain256 : Type := {
+  sc_params : Params;
+  sc_width_256 : out_width sc_params = 256%nat;
+  sc_admissible : admissible sc_params = true;
+  sc_chain : AdaptiveChain;
+  sc_chain_m : ac_m sc_chain = out_width sc_params;
+  sc_chain_sec : ac_sec sc_chain = p_s sc_params;
+  sc_chain_widths : forall i e pref,
+    (i < ac_m sc_chain)%nat -> In e (ac_enum sc_chain) -> In pref (strings i) ->
+    ts_n (ac_pair sc_chain i e pref) = p_n sc_params
+    /\ ts_kX (ac_pair sc_chain i e pref) = p_kX sc_params
+    /\ ts_kY (ac_pair sc_chain i e pref) = p_kY sc_params;
+  sc_B : Type;
+  sc_enumB : list sc_B;
+  sc_eqB : sc_B -> sc_B -> bool;
+  sc_cond : (ac_E sc_chain * list bool) -> sc_B;
+  sc_target : sc_B -> Z;
+  sc_image_bound : Z;
+  sc_cond_well_typed : forall a,
+    In a (obs_chain_enum (ac_enum sc_chain) (ac_m sc_chain)) ->
+    sumZ sc_enumB (fun b => if sc_eqB (sc_cond a) b then 1 else 0) = 1;
+  sc_image_dist :
+    statdist sc_enumB
+      (pushforward (obs_chain_enum (ac_enum sc_chain) (ac_m sc_chain))
+         sc_eqB sc_cond (chain_ideal sc_chain))
+      sc_target * two_pow (p_s sc_params) <= sc_image_bound
+}.
+
+(* Connect the 256-bit adaptive multi-block extraction bound to
+   `conditioner_join` / `conditioner_target_bound` for TM-8 conditioning. *)
+(*| discharges: R-15-241c, R-15-241ca, R-15-241d |*)
+Theorem seed_chain_256_conditioner_bound :
+  forall sc : SeedChain256,
+    statdist (sc_enumB sc)
+      (pushforward (obs_chain_enum (ac_enum (sc_chain sc)) (ac_m (sc_chain sc)))
+         (sc_eqB sc) (sc_cond sc) (chain_real (sc_chain sc)))
+      (sc_target sc) * two_pow (p_s (sc_params sc))
+    <= 256 * chain_total_mass (sc_chain sc) + sc_image_bound sc.
+Proof.
+  intro sc.
+  pose proof (conditioner_target_bound
+                (obs_chain_enum (ac_enum (sc_chain sc)) (ac_m (sc_chain sc)))
+                (sc_enumB sc) (sc_eqB sc) (sc_cond sc)
+                (chain_real (sc_chain sc)) (chain_ideal (sc_chain sc))
+                (sc_target sc) (sc_cond_well_typed sc)) as Hjoin.
+  pose proof (adaptive_multiblock_accumulation_bound (sc_chain sc)) as Hacc.
+  replace (Z.of_nat (ac_m (sc_chain sc))) with 256 in Hacc
+    by (rewrite (sc_chain_m sc), (sc_width_256 sc); reflexivity).
+  rewrite (sc_chain_sec sc) in Hacc.
+  pose proof (sc_image_dist sc) as Himg.
+  pose proof (two_pow_pos (p_s (sc_params sc))) as Hpos.
+  assert (Hscaled :
+    statdist (sc_enumB sc)
+      (pushforward (obs_chain_enum (ac_enum (sc_chain sc)) (ac_m (sc_chain sc)))
+         (sc_eqB sc) (sc_cond sc) (chain_real (sc_chain sc)))
+      (sc_target sc) * two_pow (p_s (sc_params sc))
+    <= (statdist (obs_chain_enum (ac_enum (sc_chain sc)) (ac_m (sc_chain sc)))
+          (chain_real (sc_chain sc)) (chain_ideal (sc_chain sc))
+        + statdist (sc_enumB sc)
+            (pushforward (obs_chain_enum (ac_enum (sc_chain sc)) (ac_m (sc_chain sc)))
+               (sc_eqB sc) (sc_cond sc) (chain_ideal (sc_chain sc)))
+            (sc_target sc)) * two_pow (p_s (sc_params sc))).
+  { apply Z.mul_le_mono_nonneg_r; [ lia | exact Hjoin ]. }
+  change (Z.of_nat 256) with 256 in Hacc.
+  nia.
+Qed.
+
+(*| discharges: R-15-241ca, R-15-241d |*)
+Theorem seed_chain_256_feasible_security :
+  forall sc : SeedChain256,
+    ac_enum (sc_chain sc) <> [] ->
+    (2 * p_s (sc_params sc) <= p_n (sc_params sc))%nat.
+Proof.
+  intros sc Hne.
+  destruct (ac_enum (sc_chain sc)) as [ | e rest ] eqn:Ee; [ contradiction | ].
+  assert (He : In e (ac_enum (sc_chain sc))) by (rewrite Ee; left; reflexivity).
+  assert (H0 : (0 < ac_m (sc_chain sc))%nat)
+    by (rewrite (sc_chain_m sc), (sc_width_256 sc); lia).
+  destruct (strings_inhabited O) as [ p0 Hp0 ].
+  destruct (sc_chain_widths sc O e p0 H0 He Hp0) as [ Hn [ HkX HkY ] ].
+  exact (matching_parameters_have_feasible_security
+           (sc_params sc) (ac_pair (sc_chain sc) O e p0)
+           (sc_admissible sc) Hn HkX HkY).
+Qed.
+
+(* ---- explicit realized 256-bit witness (n = 512, kX = 384, kY = 384, m = 256, s = 128) ---- *)
+
+Definition params_256 : Params :=
+  {| p_n := 512; p_kX := 384; p_kY := 384; p_m := 256; p_s := 128 |}.
+
+Lemma le_384_512 : (384 <= 512)%nat.
+Proof. lia. Qed.
+
+Definition unif_pair_512_384 : TwoSource :=
+  {| ts_n := 512; ts_kX := 384; ts_kY := 384; ts_w := unif; ts_v := unif;
+     ts_w_nonneg := unif_nonneg 512; ts_v_nonneg := unif_nonneg 512;
+     ts_w_positive := unif_positive 512; ts_v_positive := unif_positive 512;
+     ts_w_minent := unif_minent_at 512 384 le_384_512;
+     ts_v_minent := unif_minent_at 512 384 le_384_512 |}.
+
+Lemma chain_256_w_nonneg : forall e : unit, In e [tt] -> 0 <= 1.
+Proof. intros _ _. lia. Qed.
+
+Lemma chain_256_step_mass_match :
+  forall (i : nat) (e : unit) (pref : list bool),
+    (i < 256)%nat -> In e [tt] -> In pref (strings i) ->
+    totX unif_pair_512_384 * totY unif_pair_512_384 = two_pow 512 * two_pow 512.
+Proof.
+  intros _ _ _ _ _ _. unfold totX, totY. cbn [ts_n ts_w ts_v unif_pair_512_384].
+  rewrite !unif_total. reflexivity.
+Qed.
+
+Lemma chain_256_entropy_ok :
+  forall (i : nat) (e : unit) (pref : list bool),
+    (i < 256)%nat -> In e [tt] -> In pref (strings i) ->
+    (ts_n unif_pair_512_384 + 2 * 128
+     <= ts_kX unif_pair_512_384 + ts_kY unif_pair_512_384)%nat.
+Proof.
+  intros _ _ _ _ _ _. cbn [ts_n ts_kX ts_kY unif_pair_512_384]. lia.
+Qed.
+
+Definition chain_256 : AdaptiveChain :=
+  {| ac_E := unit;
+     ac_enum := [tt];
+     ac_w := fun _ => 1;
+     ac_w_nonneg := chain_256_w_nonneg;
+     ac_m := 256;
+     ac_sec := 128;
+     ac_pair := fun _ _ _ => unif_pair_512_384;
+     ac_step_mass := fun _ _ => two_pow 512 * two_pow 512;
+     ac_step_mass_match := chain_256_step_mass_match;
+     ac_entropy_ok := chain_256_entropy_ok |}.
+
+Definition witness_AdaptiveChain : AdaptiveChain := chain_256.
+
+Lemma obs_chain_enum_unit_cond_well_typed :
+  forall (m : nat) (a : unit * list bool),
+    In a (obs_chain_enum [tt] m) ->
+    sumZ (strings m) (fun b => if eqbits (snd a) b then 1 else 0) = 1.
+Proof.
+  intros m [ [] bs ] Ha. unfold obs_chain_enum in Ha.
+  cbn [flat_map] in Ha. rewrite app_nil_r in Ha.
+  apply in_map_iff in Ha as [ bs0 [ Heq Hbs ] ].
+  inversion Heq; subst. cbn [snd].
+  apply bits_enumerated_once. exact (strings_length m bs Hbs).
+Qed.
+
+Lemma seed_chain_256_cond_well_typed :
+  forall a : unit * list bool,
+    In a (obs_chain_enum (ac_enum chain_256) (ac_m chain_256)) ->
+    sumZ (strings 256) (fun b => if eqbits (snd a) b then 1 else 0) = 1.
+Proof.
+  intros a Ha. exact (obs_chain_enum_unit_cond_well_typed 256 a Ha).
+Qed.
+
+Lemma eqbits_symm : forall a b : list bool, eqbits a b = eqbits b a.
+Proof.
+  induction a as [ | p r IH ]; intros [ | q s ]; cbn [eqbits]; try reflexivity.
+  rewrite (IH s). destruct p; destruct q; reflexivity.
+Qed.
+
+Lemma pushforward_unit_const :
+  forall {E : Type} (e0 : E) (m : nat) (c : Z) (b : list bool),
+    In b (strings m) ->
+    pushforward (obs_chain_enum [e0] m) eqbits snd (fun _ => c) b = c.
+Proof.
+  intros E e0 m c b Hb. unfold pushforward, obs_chain_enum.
+  cbn [flat_map]. rewrite app_nil_r, sumZ_map.
+  transitivity (sumZ (strings m) (fun y' => c * (if eqbits b y' then 1 else 0))).
+  - apply sumZ_ext. intros y' _. cbn [snd]. rewrite (eqbits_symm y' b). reflexivity.
+  - exact (sumZ_delta m b (strings_length m b Hb) (fun _ => c)).
+Qed.
+
+Lemma pushforward_ext :
+  forall {A B : Type} (enumA : list A) (eqB : B -> B -> bool) (C : A -> B)
+         (f g : A -> Z) (b : B),
+    (forall a : A, f a = g a) ->
+    pushforward enumA eqB C f b = pushforward enumA eqB C g b.
+Proof.
+  intros A B enumA eqB C f g b H. unfold pushforward.
+  apply sumZ_ext. intros a _. rewrite (H a). reflexivity.
+Qed.
+
+Lemma obs_chain_enum_unit_ideal_image_dist :
+  forall (ch : AdaptiveChain) (e0 : ac_E ch) (sec m : nat) (c : Z),
+    ac_enum ch = [e0] ->
+    ac_m ch = m ->
+    (forall e : ac_E ch, ac_w ch e = 1) ->
+    (forall e : ac_E ch, chain_ideal_tail (ac_step_mass ch) O m e = c) ->
+    statdist (strings m)
+      (pushforward (obs_chain_enum (ac_enum ch) (ac_m ch))
+         eqbits snd (chain_ideal ch))
+      (fun _ => c) * two_pow sec <= 0.
+Proof.
+  intros ch e0 sec m c Henum Hm Hw Htail.
+  assert (Hval : forall b : list bool,
+    In b (strings m) ->
+    pushforward (obs_chain_enum (ac_enum ch) (ac_m ch))
+      eqbits snd (chain_ideal ch) b = c).
+  { intros b Hb. rewrite Henum, Hm.
+    transitivity (pushforward (obs_chain_enum [e0] m) eqbits snd (fun _ => c) b).
+    - apply pushforward_ext. intros ebs. unfold chain_ideal.
+      rewrite Hw, Hm, Htail. ring.
+    - exact (pushforward_unit_const e0 m c b Hb). }
+  assert (Hz :
+    statdist (strings m)
+      (pushforward (obs_chain_enum (ac_enum ch) (ac_m ch))
+         eqbits snd (chain_ideal ch))
+      (fun _ => c) = 0).
+  { unfold statdist. apply sumZ_zero. intros b Hb.
+    rewrite (Hval b Hb), Z.sub_diag. reflexivity. }
+  rewrite Hz, Z.mul_0_l. lia.
+Qed.
+
+Lemma seed_chain_256_image_dist :
+  statdist (strings 256)
+    (pushforward (obs_chain_enum (ac_enum chain_256) (ac_m chain_256))
+       eqbits snd (chain_ideal chain_256))
+    (fun _ => chain_ideal_tail (ac_step_mass chain_256) O 256 tt)
+  * two_pow (p_s params_256) <= 0.
+Proof.
+  apply (obs_chain_enum_unit_ideal_image_dist chain_256 tt (p_s params_256) 256
+           (chain_ideal_tail (ac_step_mass chain_256) O 256 tt)).
+  - reflexivity.
+  - reflexivity.
+  - intros e. reflexivity.
+  - cbn [ac_E chain_256]. intros []. reflexivity.
+Qed.
+
+Lemma chain_256_widths :
+  forall (i : nat) (e : unit) (pref : list bool),
+    (i < 256)%nat -> In e [tt] -> In pref (strings i) ->
+    ts_n unif_pair_512_384 = p_n params_256
+    /\ ts_kX unif_pair_512_384 = p_kX params_256
+    /\ ts_kY unif_pair_512_384 = p_kY params_256.
+Proof. intros _ _ _ _ _ _. repeat split; reflexivity. Qed.
+
+Definition witness_SeedChain256 : SeedChain256 :=
+  {| sc_params := params_256;
+     sc_width_256 := eq_refl;
+     sc_admissible := eq_refl;
+     sc_chain := chain_256;
+     sc_chain_m := eq_refl;
+     sc_chain_sec := eq_refl;
+     sc_chain_widths := chain_256_widths;
+     sc_B := list bool;
+     sc_enumB := strings 256;
+     sc_eqB := eqbits;
+     sc_cond := snd;
+     sc_target := fun _ => chain_ideal_tail (ac_step_mass chain_256) O 256 tt;
+     sc_image_bound := 0;
+     sc_cond_well_typed := seed_chain_256_cond_well_typed;
+     sc_image_dist := seed_chain_256_image_dist |}.
+
+(*| discharges: R-15-241c, R-15-241ca, R-15-241d |*)
+Theorem seed_chain_256_witness_realized :
+  out_width (sc_params witness_SeedChain256) = 256%nat
+  /\ admissible (sc_params witness_SeedChain256) = true
+  /\ p_s (sc_params witness_SeedChain256) = 128%nat
+  /\ statdist (sc_enumB witness_SeedChain256)
+       (pushforward (obs_chain_enum (ac_enum (sc_chain witness_SeedChain256))
+                                    (ac_m (sc_chain witness_SeedChain256)))
+          (sc_eqB witness_SeedChain256) (sc_cond witness_SeedChain256)
+          (chain_real (sc_chain witness_SeedChain256)))
+       (sc_target witness_SeedChain256) * two_pow 128
+     <= 256 * chain_total_mass (sc_chain witness_SeedChain256).
+Proof.
+  split; [ reflexivity | ].
+  split; [ reflexivity | ].
+  split; [ reflexivity | ].
+  pose proof (seed_chain_256_conditioner_bound witness_SeedChain256) as Hb.
+  change (sc_image_bound witness_SeedChain256) with 0 in Hb.
+  change (p_s (sc_params witness_SeedChain256)) with 128%nat in Hb.
+  lia.
+Qed.
+
+(* ---- explicit out-of-premise refusal witness (kX + kY < n + 2s at n = 512) ---- *)
+
+Definition refused_params_256 : Params :=
+  {| p_n := 512; p_kX := 256; p_kY := 256; p_m := 256; p_s := 128 |}.
+
+Definition orth_lo (half : nat) (x : list bool) : Z :=
+  if allfalse (firstn half x) then 1 else 0.
+
+Definition orth_hi (half : nat) (y : list bool) : Z :=
+  if allfalse (skipn half y) then 1 else 0.
+
+Lemma firstn_app_exact :
+  forall {A : Type} (n : nat) (u v : list A),
+    length u = n -> firstn n (u ++ v) = u.
+Proof.
+  intros A n. induction n as [ | k IH ]; intros [ | x r ] v H; simpl in *;
+    try discriminate; [ reflexivity | ].
+  f_equal. apply IH. lia.
+Qed.
+
+Lemma skipn_app_exact :
+  forall {A : Type} (n : nat) (u v : list A),
+    length u = n -> skipn n (u ++ v) = v.
+Proof.
+  intros A n. induction n as [ | k IH ]; intros [ | x r ] v H; simpl in *;
+    try discriminate; [ reflexivity | ].
+  apply IH. lia.
+Qed.
+
+Lemma sumZ_allfalse_one :
+  forall n : nat, sumZ (strings n) (fun u => if allfalse u then 1 else 0) = 1.
+Proof.
+  induction n as [ | k IH ]; [ cbn [strings sumZ allfalse]; lia | ].
+  rewrite sumZ_cube_split. cbv beta. cbn [allfalse negb andb].
+  rewrite (sumZ_zero (strings k) (fun _ => 0)) by (intros; reflexivity).
+  rewrite IH. lia.
+Qed.
+
+Lemma orth_lo_total :
+  forall a b : nat,
+    sumZ (strings (a + b)) (orth_lo a) = two_pow b.
+Proof.
+  intros a b. rewrite sumZ_strings_split.
+  transitivity (sumZ (strings a) (fun u =>
+    if allfalse u then two_pow b else 0)).
+  - apply sumZ_ext. intros u Hu. cbv beta.
+    transitivity (sumZ (strings b) (fun _ => if allfalse u then 1 else 0)).
+    + apply sumZ_ext. intros v _. unfold orth_lo.
+      rewrite (firstn_app_exact a u v (strings_length a u Hu)). reflexivity.
+    + rewrite sumZ_const, <- strings_count, sumZ_const.
+      destruct (allfalse u); ring.
+  - transitivity (two_pow b * sumZ (strings a) (fun u => if allfalse u then 1 else 0)).
+    + rewrite <- sumZ_scale. apply sumZ_ext. intros u _. destruct (allfalse u); ring.
+    + rewrite sumZ_allfalse_one. ring.
+Qed.
+
+Lemma orth_hi_total :
+  forall a b : nat,
+    sumZ (strings (a + b)) (orth_hi a) = two_pow a.
+Proof.
+  intros a b. rewrite sumZ_strings_split.
+  transitivity (sumZ (strings a) (fun _ => 1)).
+  - apply sumZ_ext. intros u Hu. cbv beta.
+    transitivity (sumZ (strings b) (fun v => if allfalse v then 1 else 0)).
+    + apply sumZ_ext. intros v _. unfold orth_hi.
+      rewrite (skipn_app_exact a u v (strings_length a u Hu)). reflexivity.
+    + apply sumZ_allfalse_one.
+  - apply strings_count.
+Qed.
+
+Lemma ip_app :
+  forall u1 v1 u2 v2 : list bool,
+    length u1 = length u2 ->
+    ip (u1 ++ v1) (u2 ++ v2) = xorb (ip u1 u2) (ip v1 v2).
+Proof.
+  induction u1 as [ | a r1 IH ]; intros v1 [ | b r2 ] v2 H; simpl in *;
+    try discriminate; [ reflexivity | ].
+  rewrite (IH v1 r2 v2 ltac:(lia)).
+  destruct (a && b); destruct (ip r1 r2); destruct (ip v1 v2); reflexivity.
+Qed.
+
+Lemma ip_allfalse_l :
+  forall u1 u2 : list bool, allfalse u1 = true -> ip u1 u2 = false.
+Proof.
+  induction u1 as [ | a r1 IH ]; intros [ | b r2 ] H; simpl in *;
+    try reflexivity; try discriminate.
+  apply andb_true_iff in H as [ Ha Hr ].
+  destruct a; [ discriminate | ].
+  simpl. apply IH. exact Hr.
+Qed.
+
+Lemma ip_allfalse_r :
+  forall u1 u2 : list bool, allfalse u2 = true -> ip u1 u2 = false.
+Proof.
+  induction u1 as [ | a r1 IH ]; intros [ | b r2 ] H; simpl in *;
+    try reflexivity; try discriminate.
+  apply andb_true_iff in H as [ Hb Hr ].
+  destruct b; [ discriminate | ].
+  rewrite andb_false_r. simpl. apply IH. exact Hr.
+Qed.
+
+Lemma orth_lo_nonneg : forall half x, In x (strings (half + half)) -> 0 <= orth_lo half x.
+Proof. intros half x _. unfold orth_lo. destruct (allfalse (firstn half x)); lia. Qed.
+
+Lemma orth_hi_nonneg : forall half y, In y (strings (half + half)) -> 0 <= orth_hi half y.
+Proof. intros half y _. unfold orth_hi. destruct (allfalse (skipn half y)); lia. Qed.
+
+Lemma orth_lo_pos : forall half, 0 < sumZ (strings (half + half)) (orth_lo half).
+Proof. intro half. rewrite orth_lo_total. apply two_pow_pos. Qed.
+
+Lemma orth_hi_pos : forall half, 0 < sumZ (strings (half + half)) (orth_hi half).
+Proof. intro half. rewrite orth_hi_total. apply two_pow_pos. Qed.
+
+Lemma orth_lo_minent : forall half x,
+  In x (strings (half + half)) ->
+  orth_lo half x * two_pow half <= sumZ (strings (half + half)) (orth_lo half).
+Proof.
+  intros half x _. rewrite orth_lo_total. unfold orth_lo.
+  pose proof (two_pow_pos half). destruct (allfalse (firstn half x)); lia.
+Qed.
+
+Lemma orth_hi_minent : forall half y,
+  In y (strings (half + half)) ->
+  orth_hi half y * two_pow half <= sumZ (strings (half + half)) (orth_hi half).
+Proof.
+  intros half y _. rewrite orth_hi_total. unfold orth_hi.
+  pose proof (two_pow_pos half). destruct (allfalse (skipn half y)); lia.
+Qed.
+
+Definition orth_pair_256 : TwoSource :=
+  {| ts_n := 512; ts_kX := 256; ts_kY := 256;
+     ts_w := orth_lo 256; ts_v := orth_hi 256;
+     ts_w_nonneg := orth_lo_nonneg 256; ts_v_nonneg := orth_hi_nonneg 256;
+     ts_w_positive := orth_lo_pos 256; ts_v_positive := orth_hi_pos 256;
+     ts_w_minent := orth_lo_minent 256; ts_v_minent := orth_hi_minent 256 |}.
+
+Lemma full_bias_violates_budget :
+  forall (s : TwoSource) (sec : nat),
+    (1 <= sec)%nat ->
+    cg_bias s = totX s * totY s ->
+    (totX s * totX s) * (totY s * totY s)
+    < cg_bias s * cg_bias s * two_pow (2 * sec).
+Proof.
+  intros s sec Hsec Hbias. rewrite Hbias.
+  pose proof (ts_w_positive s) as Hx. pose proof (ts_v_positive s) as Hy.
+  change (sumZ (strings (ts_n s)) (ts_w s)) with (totX s) in Hx.
+  change (sumZ (strings (ts_n s)) (ts_v s)) with (totY s) in Hy.
+  pose proof (two_pow_mono 1 (2 * sec) ltac:(lia)) as Hpow.
+  replace (two_pow 1) with 2 in Hpow by reflexivity.
+  assert (Hprod : 0 < (totX s * totX s) * (totY s * totY s))
+    by (apply Z.mul_pos_pos; apply Z.mul_pos_pos; assumption).
+  replace (totX s * totY s * (totX s * totY s))
+    with ((totX s * totX s) * (totY s * totY s)) by ring.
+  nia.
+Qed.
+
+(* Out-of-premise refusal witness at 256-bit block parameters:
+   kX + kY = 256 + 256 < 512 + 2 * 128 = n + 2s is refused by `admissible`
+   and realizes an orthogonal pair whose bias equals `totX * totY`,
+   violating the per-bit 2^(-s) budget. *)
+(*| discharges: R-05-165, R-05-166, R-15-241ca, R-15-241d |*)
+Theorem refused_256_fails_admissibility_and_violates_budget :
+  admissible refused_params_256 = false
+  /\ (ts_kX orth_pair_256 + ts_kY orth_pair_256
+      < ts_n orth_pair_256 + 2 * p_s refused_params_256)%nat
+  /\ cg_bias orth_pair_256 = totX orth_pair_256 * totY orth_pair_256
+  /\ (totX orth_pair_256 * totX orth_pair_256)
+     * (totY orth_pair_256 * totY orth_pair_256)
+     < cg_bias orth_pair_256 * cg_bias orth_pair_256
+       * two_pow (2 * p_s refused_params_256).
+Proof.
+  assert (Hbias : cg_bias orth_pair_256 = totX orth_pair_256 * totY orth_pair_256).
+  { rewrite <- joint_total. unfold cg_bias.
+    change (ts_n orth_pair_256) with (256 + 256)%nat.
+    rewrite sumZ_strings_split. symmetry. rewrite sumZ_strings_split. symmetry.
+    apply sumZ_ext. intros u1 Hu1. cbv beta.
+    apply sumZ_ext. intros v1 Hv1. cbv beta.
+    rewrite sumZ_strings_split. symmetry. rewrite sumZ_strings_split. symmetry.
+    apply sumZ_ext. intros u2 Hu2. cbv beta.
+    apply sumZ_ext. intros v2 Hv2. cbv beta.
+    unfold joint. cbn [ts_w ts_v orth_pair_256].
+    unfold orth_lo, orth_hi.
+    rewrite (firstn_app_exact 256 u1 v1 (strings_length 256 u1 Hu1)).
+    rewrite (skipn_app_exact 256 u2 v2 (strings_length 256 u2 Hu2)).
+    destruct (allfalse u1) eqn:Eu1; destruct (allfalse v2) eqn:Ev2; try ring.
+    rewrite ip_app by (rewrite (strings_length 256 u1 Hu1), (strings_length 256 u2 Hu2); reflexivity).
+    rewrite (ip_allfalse_l u1 u2 Eu1), (ip_allfalse_r v1 v2 Ev2).
+    cbn [xorb chi]. ring. }
+  split; [ reflexivity | ].
+  split; [ cbn [ts_kX ts_kY ts_n orth_pair_256 p_s refused_params_256]; lia | ].
+  split; [ exact Hbias | ].
+  exact (full_bias_violates_budget orth_pair_256 (p_s refused_params_256)
+           ltac:(cbn [p_s refused_params_256]; lia) Hbias).
+Qed.
+
+

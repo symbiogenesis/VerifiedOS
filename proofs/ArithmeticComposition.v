@@ -1156,3 +1156,1129 @@ Qed.
 Example the_prime_field_inhabits_the_probing_model_sharing :
   Val (fp_sharing five) = Fp five.
 Proof. reflexivity. Qed.
+
+(* =========================================================================
+   11. Arbitrary-order (n+1)-share prime-field operations: sec_add, sec_scale,
+   and iterative k-stage sec_refresh_pipeline.
+   ========================================================================= *)
+
+Fixpoint vec_add (m : Sharing) (xs ys : list (Val m)) : list (Val m) :=
+  match xs, ys with
+  | cons x xr, cons y yr => cons (v_add m x y) (vec_add m xr yr)
+  | _, _ => nil
+  end.
+
+Lemma vec_add_length :
+  forall (m : Sharing) (xs ys : list (Val m)),
+    length xs = length ys -> length (vec_add m xs ys) = length xs.
+Proof.
+  intros m xs. induction xs as [ | x xr IH ]; intros [ | y yr ] H;
+    simpl in *; try discriminate H; try reflexivity.
+  f_equal. apply IH. lia.
+Qed.
+
+Lemma vec_add_sum :
+  forall (m : Sharing) (xs ys : list (Val m)),
+    length xs = length ys ->
+    sum_of m (vec_add m xs ys) = v_add m (sum_of m xs) (sum_of m ys).
+Proof.
+  intros m xs. induction xs as [ | x xr IH ]; intros [ | y yr ] H;
+    simpl in *; try discriminate H.
+  - symmetry. apply v_add_zero_l.
+  - rewrite (IH yr) by lia.
+    rewrite (v_add_assoc m (v_add m x y) (sum_of m xr) (sum_of m yr)).
+    rewrite <- (v_add_assoc m x y (sum_of m xr)).
+    rewrite (v_add_comm m y (sum_of m xr)).
+    rewrite (v_add_assoc m x (sum_of m xr) y).
+    rewrite <- (v_add_assoc m (v_add m x (sum_of m xr)) y (sum_of m yr)).
+    reflexivity.
+Qed.
+
+Definition sec_add (P : Modulus) (xs ys : list (Fp P)) : list (Fp P) :=
+  vec_add (fp_sharing P) xs ys.
+
+Lemma sec_add_length :
+  forall (P : Modulus) (xs ys : list (Fp P)),
+    length xs = length ys -> length (sec_add P xs ys) = length xs.
+Proof. intros P xs ys H. exact (vec_add_length (fp_sharing P) xs ys H). Qed.
+
+Lemma sec_add_sum :
+  forall (P : Modulus) (xs ys : list (Fp P)),
+    length xs = length ys ->
+    sum_of (fp_sharing P) (sec_add P xs ys)
+    = fp_add P (sum_of (fp_sharing P) xs) (sum_of (fp_sharing P) ys).
+Proof. intros P xs ys H. exact (vec_add_sum (fp_sharing P) xs ys H). Qed.
+
+(*| discharges: R-05-004a, R-15-053a |*)
+Theorem sec_add_preserves_masked_sum :
+  forall (P : Modulus) (n : nat) (s1 s2 : Fp P) (mx my : list (Fp P)),
+    length mx = n -> length my = n ->
+    length (sec_add P (encode (fp_sharing P) s1 mx) (encode (fp_sharing P) s2 my)) = S n
+    /\ sum_of (fp_sharing P)
+              (sec_add P (encode (fp_sharing P) s1 mx) (encode (fp_sharing P) s2 my))
+       = fp_add P s1 s2.
+Proof.
+  intros P n s1 s2 mx my Hx Hy.
+  assert (Hlen1 : @length (Fp P) (encode (fp_sharing P) s1 mx) = S n)
+    by (unfold encode; rewrite length_app; simpl; lia).
+  assert (Hlen2 : @length (Fp P) (encode (fp_sharing P) s2 my) = S n)
+    by (unfold encode; rewrite length_app; simpl; lia).
+  split.
+  - rewrite sec_add_length by (rewrite Hlen1, Hlen2; reflexivity). exact Hlen1.
+  - rewrite sec_add_sum by (rewrite Hlen1, Hlen2; reflexivity).
+    rewrite !the_whole_sharing_recovers_the_secret. reflexivity.
+Qed.
+
+Fixpoint sec_scale (P : Modulus) (c : Fp P) (xs : list (Fp P)) : list (Fp P) :=
+  match xs with
+  | nil => nil
+  | cons x xr => cons (fp_mul P c x) (sec_scale P c xr)
+  end.
+
+Lemma fp_mul_zero_r : forall (P : Modulus) (c : Fp P), fp_mul P c (fp_zero P) = fp_zero P.
+Proof.
+  intros P c. unfold fp_mul, fp_zero. apply fp_eq_rep.
+  repeat rewrite fp_rep_of. rewrite Nat.Div0.mod_0_l, Nat.mul_0_r. apply Nat.Div0.mod_0_l.
+Qed.
+
+Lemma fp_mul_add_distr_l :
+  forall (P : Modulus) (c a b : Fp P),
+    fp_mul P c (fp_add P a b) = fp_add P (fp_mul P c a) (fp_mul P c b).
+Proof.
+  intros P c a b. unfold fp_mul, fp_add. apply fp_eq_rep.
+  repeat rewrite fp_rep_of.
+  rewrite Nat.Div0.mul_mod_idemp_r.
+  rewrite Nat.Div0.add_mod_idemp_l, Nat.Div0.add_mod_idemp_r.
+  f_equal. ring.
+Qed.
+
+Lemma sec_scale_length :
+  forall (P : Modulus) (c : Fp P) (xs : list (Fp P)),
+    length (sec_scale P c xs) = length xs.
+Proof.
+  intros P c xs. induction xs as [ | x xr IH ]; simpl; [ reflexivity | f_equal; exact IH ].
+Qed.
+
+Lemma sec_scale_sum :
+  forall (P : Modulus) (c : Fp P) (xs : list (Fp P)),
+    sum_of (fp_sharing P) (sec_scale P c xs)
+    = fp_mul P c (sum_of (fp_sharing P) xs).
+Proof.
+  intros P c xs. induction xs as [ | x xr IH ]; simpl.
+  - symmetry. apply fp_mul_zero_r.
+  - rewrite IH. change (fp_add P (fp_mul P c x) (fp_mul P c (sum_of (fp_sharing P) xr))
+                        = fp_mul P c (fp_add P x (sum_of (fp_sharing P) xr))).
+    symmetry. apply fp_mul_add_distr_l.
+Qed.
+
+(*| discharges: R-05-004a, R-15-053a |*)
+Theorem sec_scale_preserves_masked_product :
+  forall (P : Modulus) (n : nat) (c s : Fp P) (mx : list (Fp P)),
+    length mx = n ->
+    length (sec_scale P c (encode (fp_sharing P) s mx)) = S n
+    /\ sum_of (fp_sharing P) (sec_scale P c (encode (fp_sharing P) s mx))
+       = fp_mul P c s.
+Proof.
+  intros P n c s mx Hx. split.
+  - rewrite sec_scale_length. unfold encode. rewrite length_app. simpl. lia.
+  - rewrite sec_scale_sum, the_whole_sharing_recovers_the_secret. reflexivity.
+Qed.
+
+Definition refresh_step (m : Sharing) (xs masks : list (Val m)) : list (Val m) :=
+  vec_add m xs (encode m (v_zero m) masks).
+
+Definition fresh_stage_masks (m : Sharing) (tape : list (Val m)) (n l : nat)
+  : list (Val m) := map (fun i => fresh_mask m tape n l i) (seq 0 n).
+
+Fixpoint refresh_pipeline (m : Sharing) (n : nat) (s : Val m)
+    (tape : list (Val m)) (stages : nat) : list (Val m) :=
+  match stages with
+  | 0 => encode m s (fresh_stage_masks m tape n 0)
+  | S k => refresh_step m (refresh_pipeline m n s tape k)
+             (fresh_stage_masks m tape n (S k))
+  end.
+
+Definition sec_refresh_pipeline (P : Modulus) (n : nat) (s : Fp P)
+    (tape : list (Fp P)) (stages : nat) : list (Fp P) :=
+  refresh_pipeline (fp_sharing P) n s tape stages.
+
+Lemma vec_add_app :
+  forall (m : Sharing) (a1 b1 a2 b2 : list (Val m)),
+    length a1 = length a2 ->
+    vec_add m (a1 ++ b1) (a2 ++ b2) = vec_add m a1 a2 ++ vec_add m b1 b2.
+Proof.
+  intros m a1 b1 a2 b2. revert a2.
+  induction a1 as [ | x r1 IH ]; intros [ | y r2 ] H; simpl in *;
+    try discriminate H; [ reflexivity | ].
+  f_equal. apply IH. lia.
+Qed.
+
+Lemma v_sub_add_zero :
+  forall (m : Sharing) (s a b : Val m),
+    v_add m (v_sub m s a) (v_sub m (v_zero m) b) = v_sub m s (v_add m a b).
+Proof.
+  intros m s a b. apply (v_add_cancel_r m _ _ (v_add m a b)).
+  rewrite (v_sub_add m s (v_add m a b)).
+  rewrite (v_add_assoc m (v_add m (v_sub m s a) (v_sub m (v_zero m) b)) a b).
+  rewrite <- (v_add_assoc m (v_sub m s a) (v_sub m (v_zero m) b) a).
+  rewrite (v_add_comm m (v_sub m (v_zero m) b) a).
+  rewrite (v_add_assoc m (v_sub m s a) a (v_sub m (v_zero m) b)).
+  rewrite (v_sub_add m s a).
+  rewrite <- (v_add_assoc m s (v_sub m (v_zero m) b) b).
+  rewrite (v_sub_add m (v_zero m) b).
+  rewrite (v_add_comm m s (v_zero m)), (v_add_zero_l m s).
+  reflexivity.
+Qed.
+
+Lemma vec_add_encode_zero :
+  forall (m : Sharing) (s : Val m) (xs masks : list (Val m)),
+    length xs = length masks ->
+    vec_add m (encode m s xs) (encode m (v_zero m) masks)
+    = encode m s (vec_add m xs masks).
+Proof.
+  intros m s xs masks Hlen. unfold encode.
+  rewrite vec_add_app by exact Hlen. f_equal. simpl. f_equal.
+  rewrite vec_add_sum by exact Hlen. apply v_sub_add_zero.
+Qed.
+
+Lemma fresh_stage_masks_length :
+  forall (m : Sharing) (tape : list (Val m)) (n l : nat),
+    length (fresh_stage_masks m tape n l) = n.
+Proof.
+  intros m tape n l. unfold fresh_stage_masks. rewrite length_map. apply length_seq.
+Qed.
+
+Lemma vec_add_stage_tuple_fresh :
+  forall (m : Sharing) (tape : list (Val m)) (n k : nat),
+    vec_add m (stage_tuple m tape n k) (fresh_stage_masks m tape n (S k))
+    = stage_tuple m tape n (S k).
+Proof.
+  intros m tape n k. unfold stage_tuple, fresh_stage_masks.
+  generalize (seq 0 n) as l. induction l as [ | i r IH ]; simpl; [ reflexivity | ].
+  f_equal. exact IH.
+Qed.
+
+Lemma refresh_pipeline_eq_stage_shares :
+  forall (m : Sharing) (n : nat) (s : Val m) (tape : list (Val m)) (stages : nat),
+    refresh_pipeline m n s tape stages = stage_shares m s tape n stages.
+Proof.
+  intros m n s tape stages. induction stages as [ | k IH ]; simpl.
+  - reflexivity.
+  - unfold refresh_step. rewrite IH. unfold stage_shares.
+    rewrite vec_add_encode_zero
+      by (rewrite stage_tuple_length, fresh_stage_masks_length; reflexivity).
+    rewrite vec_add_stage_tuple_fresh. reflexivity.
+Qed.
+
+(*| discharges: R-05-004a, R-15-053a |*)
+Theorem sec_refresh_pipeline_preserves_secret :
+  forall (P : Modulus) (n : nat) (s : Fp P) (tape : list (Fp P)) (stages : nat),
+    length (sec_refresh_pipeline P n s tape stages) = S n
+    /\ sum_of (fp_sharing P) (sec_refresh_pipeline P n s tape stages) = s.
+Proof.
+  intros P n s tape stages. unfold sec_refresh_pipeline.
+  rewrite refresh_pipeline_eq_stage_shares. split.
+  - unfold stage_shares, encode. rewrite length_app, stage_tuple_length. simpl. lia.
+  - apply every_stage_shares_the_same_secret.
+Qed.
+
+(* =========================================================================
+   12. Arbitrary-order t <= n share-observation security across k stages
+   with fresh per-stage masks and register barriers between stages.
+   ========================================================================= *)
+
+Definition pipeline_probe_view (m : Sharing) (s : Val m) (tape : list (Val m))
+    (n : nat) (probes : list (nat * nat)) : list (Val m) :=
+  map (fun p => wire_value m s tape n (fst p) (snd p)) probes.
+
+Definition pipeline_probe_admissible (n stages : nat) (probes : list (nat * nat))
+  : Prop :=
+  forall p : nat * nat, In p probes -> fst p <= stages /\ snd p <= n.
+
+Definition stage_probes_at (probes : list (nat * nat)) (st : nat) : list nat :=
+  map snd (filter (fun p => Nat.eqb (fst p) st) probes).
+
+Lemma stage_probes_at_length :
+  forall (probes : list (nat * nat)) (st : nat),
+    length (stage_probes_at probes st) <= length probes.
+Proof.
+  intros probes st. unfold stage_probes_at. rewrite length_map.
+  induction probes as [ | p r IH ]; simpl; [ lia | ].
+  destruct (Nat.eqb (fst p) st); simpl; lia.
+Qed.
+
+Lemma in_stage_probes_at :
+  forall (probes : list (nat * nat)) (st j : nat),
+    In (st, j) probes -> In j (stage_probes_at probes st).
+Proof.
+  intros probes st j H. unfold stage_probes_at.
+  apply in_map_iff. exists (st, j). split; [ reflexivity | ].
+  apply filter_In. split; [ exact H | apply Nat.eqb_refl ].
+Qed.
+
+Definition missing_wire (n : nat) (probes : list (nat * nat)) (st : nat) : nat :=
+  match find (fun i => negb (mem_nat i (stage_probes_at probes st))) (seq 0 (S n)) with
+  | Some i => i
+  | None => n
+  end.
+
+Lemma mem_nat_in :
+  forall (x : nat) (l : list nat), mem_nat x l = true <-> In x l.
+Proof.
+  intros x l. induction l as [ | y r IH ]; simpl; [ split; [ intros H; discriminate H | contradiction ] | ].
+  rewrite orb_true_iff, Nat.eqb_eq, IH. split; intros [H | H]; auto.
+Qed.
+
+Lemma missing_wire_spec :
+  forall (n : nat) (probes : list (nat * nat)) (st : nat),
+    length (stage_probes_at probes st) <= n ->
+    missing_wire n probes st <= n /\ ~ In (missing_wire n probes st) (stage_probes_at probes st).
+Proof.
+  intros n probes st Hlen. unfold missing_wire.
+  destruct (find (fun i => negb (mem_nat i (stage_probes_at probes st))) (seq 0 (S n)))
+    as [ i | ] eqn:Hfind.
+  - apply find_some in Hfind. destruct Hfind as [Hin Hneg].
+    apply in_seq in Hin. split; [ lia | ].
+    intros Hin'. apply (proj2 (mem_nat_in i (stage_probes_at probes st))) in Hin'.
+    rewrite Hin' in Hneg. discriminate Hneg.
+  - exfalso.
+    assert (Hincl : incl (seq 0 (S n)) (stage_probes_at probes st)).
+    { intros i Hi. pose proof (find_none _ _ Hfind i Hi) as Hn.
+      cbv beta in Hn. destruct (mem_nat i (stage_probes_at probes st)) eqn:Em;
+        [ apply mem_nat_in; exact Em | discriminate Hn ]. }
+    pose proof (NoDup_incl_length (seq_NoDup (S n) 0) Hincl) as Hle.
+    rewrite length_seq in Hle. lia.
+Qed.
+
+Fixpoint shift_tuple (m : Sharing) (shifts xs : list (Val m)) : list (Val m) :=
+  match shifts, xs with
+  | cons d ds, cons x xr => cons (v_add m d x) (shift_tuple m ds xr)
+  | _, _ => nil
+  end.
+
+Lemma shift_tuple_length :
+  forall (m : Sharing) (shifts xs : list (Val m)),
+    length shifts = length xs -> length (shift_tuple m shifts xs) = length xs.
+Proof.
+  intros m shifts. induction shifts as [ | d ds IH ]; intros [ | x xr ] H;
+    simpl in *; try discriminate H; [ reflexivity | ].
+  f_equal. apply IH. lia.
+Qed.
+
+Lemma shift_tuple_nth :
+  forall (m : Sharing) (shifts xs : list (Val m)) (i : nat),
+    i < length shifts -> length shifts = length xs ->
+    nth i (shift_tuple m shifts xs) (v_zero m)
+    = v_add m (nth i shifts (v_zero m)) (nth i xs (v_zero m)).
+Proof.
+  intros m shifts. induction shifts as [ | d ds IH ]; intros [ | x xr ] [ | i ] Hi Hlen;
+    simpl in *; try lia; try reflexivity.
+  apply IH; lia.
+Qed.
+
+Lemma shift_tuple_permutation :
+  forall (m : Sharing) (len : nat) (shifts : list (Val m)),
+    length shifts = len ->
+    Perm (map (shift_tuple m shifts) (mask_tuples m len)) (mask_tuples m len).
+Proof.
+  intros m len. induction len as [ | k IH ]; intros shifts Hlen.
+  - destruct shifts; simpl in Hlen; [ | discriminate Hlen ].
+    simpl. apply perm_refl.
+  - destruct shifts as [ | d ds ]; simpl in Hlen; [ discriminate Hlen | ].
+    cbn [mask_tuples]. rewrite map_flatten.
+    apply perm_trans with
+      (flat_map (fun x => map (cons (v_add m d x)) (mask_tuples m k)) (v_enum m)).
+    + apply perm_flat_map_pointwise. intros x _. rewrite map_map.
+      change (Perm (map (fun r => cons (v_add m d x) (shift_tuple m ds r)) (mask_tuples m k))
+                   (map (cons (v_add m d x)) (mask_tuples m k))).
+      rewrite <- map_map. apply perm_map_std. apply IH. lia.
+    + replace (flat_map (fun x => map (cons (v_add m d x)) (mask_tuples m k)) (v_enum m))
+        with (flat_map (fun y => map (cons y) (mask_tuples m k)) (map (v_add m d) (v_enum m)))
+        by (rewrite flat_map_mapped; reflexivity).
+      apply perm_flat_map_std. rewrite <- map_over_is_map. exact (v_enum_shift m d).
+Qed.
+
+Definition fresh_delta_at (m : Sharing) (n : nat) (stage_delta : nat -> nat -> Val m)
+    (idx : nat) : Val m :=
+  let st := idx / n in
+  let wire := idx mod n in
+  match st with
+  | 0 => stage_delta 0 wire
+  | S k => v_sub m (stage_delta (S k) wire) (stage_delta k wire)
+  end.
+
+Definition pipeline_tape_shifts (m : Sharing) (n stages : nat)
+    (stage_delta : nat -> nat -> Val m) : list (Val m) :=
+  map (fresh_delta_at m n stage_delta) (seq 0 (S stages * n)).
+
+Lemma pipeline_tape_shifts_length :
+  forall (m : Sharing) (n stages : nat) (stage_delta : nat -> nat -> Val m),
+    length (pipeline_tape_shifts m n stages stage_delta) = S stages * n.
+Proof.
+  intros m n stages stage_delta. unfold pipeline_tape_shifts.
+  rewrite length_map. apply length_seq.
+Qed.
+
+Lemma fresh_mask_shift_tuple :
+  forall (m : Sharing) (n stages st i : nat) (stage_delta : nat -> nat -> Val m)
+         (tape : list (Val m)),
+    0 < n -> st <= stages -> i < n -> length tape = S stages * n ->
+    fresh_mask m (shift_tuple m (pipeline_tape_shifts m n stages stage_delta) tape) n st i
+    = v_add m
+        (match st with
+         | 0 => stage_delta 0 i
+         | S k => v_sub m (stage_delta (S k) i) (stage_delta k i)
+         end)
+        (fresh_mask m tape n st i).
+Proof.
+  intros m n stages st i stage_delta tape Hn Hs Hi Hlen.
+  unfold fresh_mask.
+  assert (Hidx : st * n + i < S stages * n) by nia.
+  rewrite shift_tuple_nth;
+    [ | rewrite pipeline_tape_shifts_length; exact Hidx
+      | rewrite pipeline_tape_shifts_length, Hlen; reflexivity ].
+  f_equal. unfold pipeline_tape_shifts.
+  rewrite nth_map_seq by exact Hidx.
+  unfold fresh_delta_at.
+  assert (Hdiv : (st * n + i) / n = st)
+    by (symmetry; apply (Nat.div_unique (st * n + i) n st i Hi); lia).
+  assert (Hmod : (st * n + i) mod n = i)
+    by (symmetry; apply (Nat.mod_unique (st * n + i) n st i Hi); lia).
+  rewrite Hdiv, Hmod. reflexivity.
+Qed.
+
+Lemma stage_mask_shift_tuple :
+  forall (m : Sharing) (n stages st i : nat) (stage_delta : nat -> nat -> Val m)
+         (tape : list (Val m)),
+    0 < n -> st <= stages -> i < n -> length tape = S stages * n ->
+    stage_mask m (shift_tuple m (pipeline_tape_shifts m n stages stage_delta) tape) n st i
+    = v_add m (stage_delta st i) (stage_mask m tape n st i).
+Proof.
+  intros m n stages st i stage_delta tape Hn Hs Hi Hlen.
+  induction st as [ | k IH ].
+  - cbn [stage_mask].
+    exact (fresh_mask_shift_tuple m n stages 0 i stage_delta tape Hn Hs Hi Hlen).
+  - cbn [stage_mask].
+    rewrite IH by lia.
+    rewrite (fresh_mask_shift_tuple m n stages (S k) i stage_delta tape Hn Hs Hi Hlen).
+    set (d0 := stage_delta k i). set (d1 := stage_delta (S k) i).
+    set (a := stage_mask m tape n k i). set (b := fresh_mask m tape n (S k) i).
+    rewrite (v_add_assoc m (v_add m d0 a) (v_sub m d1 d0) b).
+    rewrite (v_add_comm m (v_add m d0 a) (v_sub m d1 d0)).
+    rewrite (v_add_assoc m (v_sub m d1 d0) d0 a).
+    rewrite (v_sub_add m d1 d0).
+    rewrite <- (v_add_assoc m d1 a b).
+    reflexivity.
+Qed.
+
+Definition pipeline_stage_delta (m : Sharing) (n : nat) (probes : list (nat * nat))
+    (delta : Val m) (st i : nat) : Val m :=
+  if Nat.eqb i (missing_wire n probes st) then delta else v_zero m.
+
+Lemma sum_of_stage_tuple_single_delta :
+  forall (m : Sharing) (n stages st i0 : nat) (probes : list (nat * nat))
+         (delta : Val m) (tape : list (Val m)),
+    0 < n -> st <= stages -> i0 < n -> missing_wire n probes st = i0 ->
+    length tape = S stages * n ->
+    sum_of m (stage_tuple m
+                (shift_tuple m (pipeline_tape_shifts m n stages
+                                  (pipeline_stage_delta m n probes delta)) tape)
+                n st)
+    = v_add m delta (sum_of m (stage_tuple m tape n st)).
+Proof.
+  intros m n stages st i0 probes delta tape Hn Hs Hi0 Hmiss Hlen.
+  set (tape' := shift_tuple m
+                  (pipeline_tape_shifts m n stages
+                     (pipeline_stage_delta m n probes delta)) tape).
+  assert (Hext : forall i : nat, i < n ->
+            stage_mask m tape' n st i
+            = if Nat.eqb i i0
+              then v_add m delta (stage_mask m tape n st i)
+              else stage_mask m tape n st i).
+  { intros i Hi. unfold tape'.
+    rewrite (stage_mask_shift_tuple m n stages st i
+               (pipeline_stage_delta m n probes delta) tape Hn Hs Hi Hlen).
+    unfold pipeline_stage_delta. rewrite Hmiss.
+    destruct (Nat.eqb i i0); [ reflexivity | apply v_add_zero_l ]. }
+  unfold stage_tuple.
+  assert (Hsum_gen : forall (l : list nat),
+            (forall i : nat, In i l -> i < n) ->
+            NoDup l ->
+            sum_of m (map (fun i => stage_mask m tape' n st i) l)
+            = v_add m (if mem_nat i0 l then delta else v_zero m)
+                      (sum_of m (map (fun i => stage_mask m tape n st i) l))).
+  { intros l. induction l as [ | x r IH ]; intros Hbound Hnd.
+    - simpl. symmetry. apply v_add_zero_l.
+    - inversion Hnd as [ | x0 r0 Hx Hr ]; subst x0 r0.
+      assert (Hxlt : x < n) by (apply Hbound; left; reflexivity).
+      assert (Hrbound : forall i : nat, In i r -> i < n)
+        by (intros i Hi; apply Hbound; right; exact Hi).
+      simpl. rewrite (IH Hrbound Hr).
+      rewrite (Hext x Hxlt).
+      destruct (Nat.eqb x i0) eqn:Ex.
+      + apply Nat.eqb_eq in Ex. subst x.
+        assert (Hmem : mem_nat i0 r = false).
+        { destruct (mem_nat i0 r) eqn:Em; [ | reflexivity ].
+          exfalso. apply Hx. apply mem_nat_in. exact Em. }
+        change (mem_nat i0 (i0 :: r)) with (orb (Nat.eqb i0 i0) (mem_nat i0 r)).
+        rewrite Nat.eqb_refl, Hmem. simpl.
+        rewrite <- (v_add_assoc m delta (stage_mask m tape n st i0)
+                      (v_add m (v_zero m) (sum_of m (map (fun i => stage_mask m tape n st i) r)))).
+        f_equal. f_equal. apply v_add_zero_l.
+      + assert (Eflip : Nat.eqb i0 x = false)
+          by (apply Nat.eqb_neq; apply Nat.eqb_neq in Ex; lia).
+        change (mem_nat i0 (x :: r)) with (orb (Nat.eqb i0 x) (mem_nat i0 r)).
+        rewrite Eflip. simpl.
+        destruct (mem_nat i0 r).
+        * rewrite (v_add_assoc m (stage_mask m tape n st x) delta _).
+          rewrite (v_add_comm m (stage_mask m tape n st x) delta).
+          rewrite <- (v_add_assoc m delta (stage_mask m tape n st x) _).
+          reflexivity.
+        * rewrite !(v_add_zero_l m _). reflexivity. }
+  assert (Hseq_bound : forall i : nat, In i (seq 0 n) -> i < n)
+    by (intros i Hi; apply in_seq in Hi; lia).
+  rewrite (Hsum_gen (seq 0 n) Hseq_bound (seq_NoDup n 0)).
+  assert (Hmem : mem_nat i0 (seq 0 n) = true)
+    by (apply mem_nat_in; apply in_seq; lia).
+  rewrite Hmem. reflexivity.
+Qed.
+
+Lemma pipeline_probe_view_shift :
+  forall (m : Sharing) (n stages : nat) (probes : list (nat * nat))
+         (s1 s2 : Val m) (tape : list (Val m)),
+    0 < n ->
+    pipeline_probe_admissible n stages probes ->
+    (forall st : nat, st <= stages -> length (stage_probes_at probes st) <= n) ->
+    length tape = S stages * n ->
+    pipeline_probe_view m s2
+      (shift_tuple m
+         (pipeline_tape_shifts m n stages
+            (pipeline_stage_delta m n probes (v_sub m s2 s1)))
+         tape)
+      n probes
+    = pipeline_probe_view m s1 tape n probes.
+Proof.
+  intros m n stages probes s1 s2 tape Hn Hadm Hper Hlen.
+  set (tape' := shift_tuple m
+                  (pipeline_tape_shifts m n stages
+                     (pipeline_stage_delta m n probes (v_sub m s2 s1)))
+                  tape).
+  unfold pipeline_probe_view. apply map_ext_in. intros [ st j ] Hp.
+  simpl. destruct (Hadm (st, j) Hp) as [ Hst Hj ]. simpl in Hst, Hj.
+  destruct (missing_wire_spec n probes st (Hper st Hst)) as [ Hmiss_le Hmiss_out ].
+  assert (Hnot : j <> missing_wire n probes st).
+  { intros E. apply Hmiss_out. rewrite <- E. apply in_stage_probes_at. exact Hp. }
+  destruct (Nat.lt_ge_cases j n) as [ Hjlt | Hjge ].
+  - rewrite (mask_wire_value m s2 tape' n st j Hjlt).
+    rewrite (mask_wire_value m s1 tape n st j Hjlt).
+    unfold tape'.
+    rewrite (stage_mask_shift_tuple m n stages st j
+               (pipeline_stage_delta m n probes (v_sub m s2 s1)) tape
+               Hn Hst Hjlt Hlen).
+    unfold pipeline_stage_delta.
+    assert (Ejf : Nat.eqb j (missing_wire n probes st) = false)
+      by (apply Nat.eqb_neq; exact Hnot).
+    rewrite Ejf. apply v_add_zero_l.
+  - assert (Ejn : j = n) by lia. subst j.
+    assert (Hmiss_lt : missing_wire n probes st < n) by lia.
+    rewrite (completing_wire_value m s2 tape' n st).
+    rewrite (completing_wire_value m s1 tape n st).
+    unfold tape'.
+    rewrite (sum_of_stage_tuple_single_delta m n stages st
+               (missing_wire n probes st) probes (v_sub m s2 s1) tape
+               Hn Hst Hmiss_lt eq_refl Hlen).
+    apply v_sub_shift.
+Qed.
+
+(* Per-stage <= n share-observation security across all k+1 stages: every
+   stage receives fresh masks, so even (k+1)*n total probes (at most n per
+   stage) yield identical observation preimage multisets for any s1, s2. *)
+(*| discharges: R-05-004a, R-15-053a |*)
+Theorem per_stage_bounded_pipeline_hides_secret :
+  forall (m : Sharing) (n stages : nat) (probes : list (nat * nat)) (s1 s2 : Val m),
+    0 < n ->
+    pipeline_probe_admissible n stages probes ->
+    (forall st : nat, st <= stages -> length (stage_probes_at probes st) <= n) ->
+    Perm (map (fun tape => pipeline_probe_view m s1 tape n probes)
+              (pipeline_tapes m n stages))
+         (map (fun tape => pipeline_probe_view m s2 tape n probes)
+              (pipeline_tapes m n stages))
+    /\ SameDistribution (counting (list (Val m)) (pipeline_tapes m n stages))
+         (list (Val m)) (list_eqb (v_eqb m))
+         (fun tape => pipeline_probe_view m s1 tape n probes)
+         (fun tape => pipeline_probe_view m s2 tape n probes).
+Proof.
+  intros m n stages probes s1 s2 Hn Hadm Hper.
+  set (shifts := pipeline_tape_shifts m n stages
+                   (pipeline_stage_delta m n probes (v_sub m s2 s1))).
+  assert (Hperm : Perm (map (fun tape => pipeline_probe_view m s1 tape n probes)
+                            (pipeline_tapes m n stages))
+                       (map (fun tape => pipeline_probe_view m s2 tape n probes)
+                            (pipeline_tapes m n stages))).
+  { replace (map (fun tape => pipeline_probe_view m s1 tape n probes)
+                 (pipeline_tapes m n stages))
+      with (map (fun tape => pipeline_probe_view m s2 (shift_tuple m shifts tape) n probes)
+                (pipeline_tapes m n stages)).
+    - rewrite <- (map_map (shift_tuple m shifts)
+                    (fun tape => pipeline_probe_view m s2 tape n probes)
+                    (pipeline_tapes m n stages)).
+      apply perm_map_std. unfold pipeline_tapes.
+      apply shift_tuple_permutation. apply pipeline_tape_shifts_length.
+    - apply map_ext_in. intros tape Htape.
+      apply pipeline_probe_view_shift;
+        [ exact Hn | exact Hadm | exact Hper | ].
+      exact (mask_tuples_length m (S stages * n) tape Htape). }
+  split; [ exact Hperm | ].
+  apply equal_image_multisets_are_identically_distributed.
+  repeat rewrite map_over_is_map. exact Hperm.
+Qed.
+
+(* Any t <= n probes across all k+1 stages of the pipeline yield identical
+   observation preimage multisets and identical distributions for any two
+   secrets s1, s2. *)
+(*| discharges: R-05-004a, R-15-053a |*)
+Theorem arbitrary_order_pipeline_hides_secret :
+  forall (m : Sharing) (n stages : nat) (probes : list (nat * nat)) (s1 s2 : Val m),
+    0 < n ->
+    length probes <= n ->
+    pipeline_probe_admissible n stages probes ->
+    Perm (map (fun tape => pipeline_probe_view m s1 tape n probes)
+              (pipeline_tapes m n stages))
+         (map (fun tape => pipeline_probe_view m s2 tape n probes)
+              (pipeline_tapes m n stages))
+    /\ SameDistribution (counting (list (Val m)) (pipeline_tapes m n stages))
+         (list (Val m)) (list_eqb (v_eqb m))
+         (fun tape => pipeline_probe_view m s1 tape n probes)
+         (fun tape => pipeline_probe_view m s2 tape n probes).
+Proof.
+  intros m n stages probes s1 s2 Hn Hlen Hadm.
+  apply per_stage_bounded_pipeline_hides_secret; [ exact Hn | exact Hadm | ].
+  intros st _. pose proof (stage_probes_at_length probes st). lia.
+Qed.
+
+(* Prime-field instance written directly in terms of `sec_refresh_pipeline`
+   at the final stage and the stage-wire projection across all stages. *)
+(*| discharges: R-05-004a, R-15-053a |*)
+Theorem arbitrary_order_prime_field_pipeline_hides_secret :
+  forall (P : Modulus) (n stages : nat) (probes : list (nat * nat)) (s1 s2 : Fp P),
+    0 < n ->
+    length probes <= n ->
+    pipeline_probe_admissible n stages probes ->
+    (forall tape : list (Fp P),
+       sec_refresh_pipeline P n s1 tape stages
+       = stage_shares (fp_sharing P) s1 tape n stages)
+    /\ Perm (map (fun tape => pipeline_probe_view (fp_sharing P) s1 tape n probes)
+                 (pipeline_tapes (fp_sharing P) n stages))
+            (map (fun tape => pipeline_probe_view (fp_sharing P) s2 tape n probes)
+                 (pipeline_tapes (fp_sharing P) n stages))
+    /\ SameDistribution
+         (counting (list (Fp P)) (pipeline_tapes (fp_sharing P) n stages))
+         (list (Fp P)) (list_eqb (fp_eqb P))
+         (fun tape => pipeline_probe_view (fp_sharing P) s1 tape n probes)
+         (fun tape => pipeline_probe_view (fp_sharing P) s2 tape n probes).
+Proof.
+  intros P n stages probes s1 s2 Hn Hlen Hadm. split.
+  - intros tape. unfold sec_refresh_pipeline.
+    exact (refresh_pipeline_eq_stage_shares (fp_sharing P) n s1 tape stages).
+  - exact (arbitrary_order_pipeline_hides_secret (fp_sharing P) n stages probes
+             s1 s2 Hn Hlen Hadm).
+Qed.
+
+(* =========================================================================
+   13. Cardinality-to-conditional-probability over exact integer mass ratios.
+   ========================================================================= *)
+
+Definition cond_prob_ratio {T O : Type} (enum : list T) (cond : T -> bool)
+    (eqb : O -> O -> bool) (f : T -> O) (o : O) : nat * nat :=
+  normalized_counting_observation (filter_of cond enum) eqb f o.
+
+(* Proportional uniform preimage cardinalities (M * count1 = den1 and
+   M * count2 = den2 with M > 0 and nonzero denominators) imply exact
+   conditional probability equality num1 * den2 = num2 * den1. *)
+(*| discharges: R-05-004a, R-15-053a |*)
+Theorem preimage_cardinality_implies_conditional_probability_equality :
+  forall {T1 T2 O : Type}
+         (enum1 : list T1) (enum2 : list T2)
+         (cond1 : T1 -> bool) (cond2 : T2 -> bool)
+         (eqb : O -> O -> bool) (f1 : T1 -> O) (f2 : T2 -> O)
+         (o : O) (M : nat),
+    0 < M ->
+    0 < count_of (filter_of cond1 enum1) ->
+    0 < count_of (filter_of cond2 enum2) ->
+    M * count_of (filter_of (fun t => eqb (f1 t) o) (filter_of cond1 enum1))
+      = count_of (filter_of cond1 enum1) ->
+    M * count_of (filter_of (fun t => eqb (f2 t) o) (filter_of cond2 enum2))
+      = count_of (filter_of cond2 enum2) ->
+    let num1 := fst (cond_prob_ratio enum1 cond1 eqb f1 o) in
+    let den1 := snd (cond_prob_ratio enum1 cond1 eqb f1 o) in
+    let num2 := fst (cond_prob_ratio enum2 cond2 eqb f2 o) in
+    let den2 := snd (cond_prob_ratio enum2 cond2 eqb f2 o) in
+    num1 * den2 = num2 * den1 /\ den1 <> 0 /\ den2 <> 0.
+Proof.
+  intros T1 T2 O enum1 enum2 cond1 cond2 eqb f1 f2 o M HM Hpos1 Hpos2 Hc1 Hc2.
+  unfold cond_prob_ratio, normalized_counting_observation. simpl.
+  rewrite !counting_pr, !count_of_is_length in *.
+  split; [ | split; lia ].
+  assert (Hmul : M * (length (filter_of (fun t => eqb (f1 t) o) (filter_of cond1 enum1))
+                      * length (filter_of cond2 enum2))
+               = M * (length (filter_of (fun t => eqb (f2 t) o) (filter_of cond2 enum2))
+                      * length (filter_of cond1 enum1))).
+  { replace (M * (length (filter_of (fun t => eqb (f1 t) o) (filter_of cond1 enum1))
+                  * length (filter_of cond2 enum2)))
+      with ((M * length (filter_of (fun t => eqb (f1 t) o) (filter_of cond1 enum1)))
+            * length (filter_of cond2 enum2)) by lia.
+    replace (M * (length (filter_of (fun t => eqb (f2 t) o) (filter_of cond2 enum2))
+                  * length (filter_of cond1 enum1)))
+      with ((M * length (filter_of (fun t => eqb (f2 t) o) (filter_of cond2 enum2)))
+            * length (filter_of cond1 enum1)) by lia.
+    rewrite Hc1, Hc2. lia. }
+  nia.
+Qed.
+
+(* Equal preimage multisets over a nonempty conditioned uniform space also
+   imply exact conditional probability equality num1 * den2 = num2 * den1. *)
+(*| discharges: R-05-004a, R-15-053a |*)
+Theorem equal_preimage_multiset_implies_conditional_probability_equality :
+  forall {T O : Type} (enum : list T) (cond : T -> bool)
+         (eqb : O -> O -> bool) (f1 f2 : T -> O) (o : O),
+    0 < count_of (filter_of cond enum) ->
+    Perm (map f1 (filter_of cond enum)) (map f2 (filter_of cond enum)) ->
+    let num1 := fst (cond_prob_ratio enum cond eqb f1 o) in
+    let den1 := snd (cond_prob_ratio enum cond eqb f1 o) in
+    let num2 := fst (cond_prob_ratio enum cond eqb f2 o) in
+    let den2 := snd (cond_prob_ratio enum cond eqb f2 o) in
+    num1 * den2 = num2 * den1 /\ den1 <> 0 /\ den2 <> 0.
+Proof.
+  intros T O enum cond eqb f1 f2 o Hpos Hperm.
+  unfold cond_prob_ratio, normalized_counting_observation. simpl.
+  rewrite !counting_pr.
+  assert (Hcnt : count_of (filter_of (fun t => eqb (f1 t) o) (filter_of cond enum))
+               = count_of (filter_of (fun t => eqb (f2 t) o) (filter_of cond enum))).
+  { rewrite (count_filter_image f1 (fun v => eqb v o) (filter_of cond enum)).
+    rewrite (count_filter_image f2 (fun v => eqb v o) (filter_of cond enum)).
+    rewrite !map_over_is_map.
+    apply count_of_perm, perm_filter. exact Hperm. }
+  rewrite Hcnt, count_of_is_length in *. split; [ lia | split; lia ].
+Qed.
+
+Lemma pipeline_tapes_count_positive :
+  forall (m : Sharing) (n stages : nat),
+    0 < count_of (pipeline_tapes m n stages).
+Proof.
+  intros m n stages. unfold pipeline_tapes.
+  destruct (mask_tuples_nonempty m (S stages * n)) as [ xs Hxs ].
+  destruct (mask_tuples m (S stages * n)) eqn:E; [ contradiction | simpl; lia ].
+Qed.
+
+Lemma filter_true_id :
+  forall {A : Type} (l : list A), filter_of (fun _ => true) l = l.
+Proof.
+  intros A l. induction l as [ | x r IH ]; simpl; [ reflexivity | rewrite IH; reflexivity ].
+Qed.
+
+(*| discharges: R-05-004a, R-15-053a |*)
+Theorem single_wire_conditional_probability_equality :
+  forall (m : Sharing) (n stages stage i : nat) (s1 s2 o : Val m),
+    NoDup (v_enum m) -> 0 < n -> stage <= stages -> i <= n ->
+    let num1 := fst (cond_prob_ratio (pipeline_tapes m n stages) (fun _ => true)
+                       (v_eqb m) (fun tape => wire_value m s1 tape n stage i) o) in
+    let den1 := snd (cond_prob_ratio (pipeline_tapes m n stages) (fun _ => true)
+                       (v_eqb m) (fun tape => wire_value m s1 tape n stage i) o) in
+    let num2 := fst (cond_prob_ratio (pipeline_tapes m n stages) (fun _ => true)
+                       (v_eqb m) (fun tape => wire_value m s2 tape n stage i) o) in
+    let den2 := snd (cond_prob_ratio (pipeline_tapes m n stages) (fun _ => true)
+                       (v_eqb m) (fun tape => wire_value m s2 tape n stage i) o) in
+    num1 * den2 = num2 * den1 /\ den1 <> 0 /\ den2 <> 0.
+Proof.
+  intros m n stages stage i s1 s2 o Hnd Hn Hs Hi.
+  apply (preimage_cardinality_implies_conditional_probability_equality
+           (pipeline_tapes m n stages) (pipeline_tapes m n stages)
+           (fun _ => true) (fun _ => true)
+           (v_eqb m)
+           (fun tape => wire_value m s1 tape n stage i)
+           (fun tape => wire_value m s2 tape n stage i)
+           o (length (v_enum m))).
+  - destruct (v_enum m) eqn:E; [ exfalso; exact (sharing_enumeration_nonempty m E) | simpl; lia ].
+  - rewrite filter_true_id. apply pipeline_tapes_count_positive.
+  - rewrite filter_true_id. apply pipeline_tapes_count_positive.
+  - rewrite !filter_true_id.
+    unfold pipeline_tapes at 2.
+    rewrite (count_of_is_length (mask_tuples m (S stages * n))), mask_tuples_length_pow.
+    exact (the_single_wire_preimage_count m s1 n stages stage i o Hnd Hn Hs Hi).
+  - rewrite !filter_true_id.
+    unfold pipeline_tapes at 2.
+    rewrite (count_of_is_length (mask_tuples m (S stages * n))), mask_tuples_length_pow.
+    exact (the_single_wire_preimage_count m s2 n stages stage i o Hnd Hn Hs Hi).
+Qed.
+
+(*| discharges: R-05-004a, R-15-053a |*)
+Theorem arbitrary_order_pipeline_conditional_probability_equality :
+  forall (m : Sharing) (n stages : nat) (probes : list (nat * nat))
+         (s1 s2 : Val m) (o : list (Val m)),
+    0 < n -> length probes <= n -> pipeline_probe_admissible n stages probes ->
+    let num1 := fst (cond_prob_ratio (pipeline_tapes m n stages) (fun _ => true)
+                       (list_eqb (v_eqb m))
+                       (fun tape => pipeline_probe_view m s1 tape n probes) o) in
+    let den1 := snd (cond_prob_ratio (pipeline_tapes m n stages) (fun _ => true)
+                       (list_eqb (v_eqb m))
+                       (fun tape => pipeline_probe_view m s1 tape n probes) o) in
+    let num2 := fst (cond_prob_ratio (pipeline_tapes m n stages) (fun _ => true)
+                       (list_eqb (v_eqb m))
+                       (fun tape => pipeline_probe_view m s2 tape n probes) o) in
+    let den2 := snd (cond_prob_ratio (pipeline_tapes m n stages) (fun _ => true)
+                       (list_eqb (v_eqb m))
+                       (fun tape => pipeline_probe_view m s2 tape n probes) o) in
+    num1 * den2 = num2 * den1 /\ den1 <> 0 /\ den2 <> 0.
+Proof.
+  intros m n stages probes s1 s2 o Hn Hlen Hadm.
+  apply equal_preimage_multiset_implies_conditional_probability_equality.
+  - rewrite filter_true_id. apply pipeline_tapes_count_positive.
+  - rewrite filter_true_id.
+    exact (proj1 (arbitrary_order_pipeline_hides_secret m n stages probes s1 s2 Hn Hlen Hadm)).
+Qed.
+
+(* =========================================================================
+   14. Negative witnesses:
+   (a) Reused refresh mask across two stages leaks s1 - s2.
+   (b) Omitted register barrier across prime-field linear recombination leaks
+       under glitch expansion while remaining hidden under stable probing.
+   ========================================================================= *)
+
+Definition reused_mask_stage0 (P : Modulus) (s r : Fp P) : list (Fp P) :=
+  encode (fp_sharing P) s (cons r nil).
+
+Definition reused_mask_stage1 (P : Modulus) (s r : Fp P) : list (Fp P) :=
+  refresh_step (fp_sharing P) (reused_mask_stage0 P s r) (cons r nil).
+
+Definition reused_mask_joint_view (P : Modulus) (s r : Fp P) : Fp P * Fp P :=
+  (nth 0 (reused_mask_stage0 P s r) (fp_zero P),
+   nth 1 (reused_mask_stage1 P s r) (fp_zero P)).
+
+Lemma v_sub_diff_cancel :
+  forall (m : Sharing) (s1 s2 x : Val m),
+    v_sub m (v_sub m s1 x) (v_sub m s2 x) = v_sub m s1 s2.
+Proof.
+  intros m s1 s2 x.
+  apply (v_add_cancel_r m _ _ (v_sub m s2 x)).
+  rewrite (v_sub_add m (v_sub m s1 x) (v_sub m s2 x)).
+  apply (v_add_cancel_r m _ _ x).
+  rewrite (v_sub_add m s1 x).
+  rewrite <- (v_add_assoc m (v_sub m s1 s2) (v_sub m s2 x) x).
+  rewrite (v_sub_add m s2 x).
+  rewrite (v_sub_add m s1 s2).
+  reflexivity.
+Qed.
+
+(* Even though stage 1 shares are valid secret shares of s, reusing stage 0's
+   mask r in stage 1 leaks s1 - s2 across one probe per stage. *)
+(*| discharges: R-05-165, R-05-166, R-15-053a |*)
+Theorem reused_mask_recovers_secret_and_leaks_difference :
+  forall (P : Modulus) (s s1 s2 r : Fp P),
+    sum_of (fp_sharing P) (reused_mask_stage1 P s r) = s
+    /\ fp_add P (fp_add P (fst (reused_mask_joint_view P s r))
+                          (fst (reused_mask_joint_view P s r)))
+                (snd (reused_mask_joint_view P s r)) = s
+    /\ fp_sub P (snd (reused_mask_joint_view P s1 r))
+                (snd (reused_mask_joint_view P s2 r)) = fp_sub P s1 s2.
+Proof.
+  intros P s s1 s2 r.
+  assert (Hst1 : forall x : Fp P,
+            reused_mask_stage1 P x r
+            = encode (fp_sharing P) x (cons (fp_add P r r) nil)).
+  { intros x. unfold reused_mask_stage1, reused_mask_stage0, refresh_step.
+    rewrite vec_add_encode_zero by reflexivity. reflexivity. }
+  split; [ rewrite Hst1; apply the_whole_sharing_recovers_the_secret | ].
+  split.
+  - unfold reused_mask_joint_view. rewrite Hst1.
+    unfold reused_mask_stage0, encode. simpl.
+    change (fp_add P (fp_add P r r)
+              (fp_sub P s (fp_add P (fp_add P r r) (fp_zero P))) = s).
+    rewrite (fp_add_comm P (fp_add P r r) (fp_zero P)), fp_add_zero_l.
+    rewrite fp_add_comm. apply fp_sub_add.
+  - unfold reused_mask_joint_view. rewrite !Hst1.
+    unfold encode. simpl.
+    exact (v_sub_diff_cancel (fp_sharing P) s1 s2 (fp_add P (fp_add P r r) (fp_zero P))).
+Qed.
+
+(* Each stage of the reused-mask pipeline is individually 1-probe hidden over F_5,
+   yet probing one wire per stage distinguishes s1 = 0 from s2 = 1. *)
+Definition fp_pair_eqb (P : Modulus) (a b : Fp P * Fp P) : bool :=
+  andb (fp_eqb P (fst a) (fst b)) (fp_eqb P (snd a) (snd b)).
+
+(*| discharges: R-05-165, R-05-166, R-15-053a |*)
+Theorem reused_mask_stages_individually_hide_but_jointly_leak :
+  (forall (i : nat) (s1 s2 : Fp five),
+     i <= 1 ->
+     SameDistribution (counting (Fp five) (fp_enum five)) (Fp five) (fp_eqb five)
+       (fun r => nth i (reused_mask_stage0 five s1 r) (fp_zero five))
+       (fun r => nth i (reused_mask_stage0 five s2 r) (fp_zero five)))
+  /\ (forall (i : nat) (s1 s2 : Fp five),
+        i <= 1 ->
+        SameDistribution (counting (Fp five) (fp_enum five)) (Fp five) (fp_eqb five)
+          (fun r => nth i (reused_mask_stage1 five s1 r) (fp_zero five))
+          (fun r => nth i (reused_mask_stage1 five s2 r) (fp_zero five)))
+  /\ ~ SameDistribution (counting (Fp five) (fp_enum five))
+         (Fp five * Fp five) (fp_pair_eqb five)
+         (fun r => reused_mask_joint_view five (fp_of five 0) r)
+         (fun r => reused_mask_joint_view five (fp_of five 1) r).
+Proof.
+  split.
+  - intros [ | [ | i ] ] s1 s2 Hi; [ | | lia ].
+    + apply identical_views_are_identically_distributed. intros r. reflexivity.
+    + apply (rerandomization_hides (counting (Fp five) (fp_enum five))
+               (Fp five) (fp_eqb five) _ _
+               (fp_add five (fp_sub five s2 s1))).
+      * intros r. reflexivity.
+      * apply fp_enum_shift.
+      * intros r. unfold reused_mask_stage0, encode. simpl.
+        rewrite !(fp_add_comm five _ (fp_zero five)), !fp_add_zero_l.
+        exact (v_sub_shift (fp_sharing five) s1 s2 r).
+  - split.
+    + intros [ | [ | i ] ] s1 s2 Hi; [ | | lia ].
+      * apply identical_views_are_identically_distributed. intros r. reflexivity.
+      * apply (rerandomization_hides (counting (Fp five) (fp_enum five))
+                 (Fp five) (fp_eqb five) _ _
+                 (fp_add five (fp_mul five (fp_of five 3) (fp_sub five s2 s1)))).
+        -- intros r. reflexivity.
+        -- apply fp_enum_shift.
+        -- intros r. unfold reused_mask_stage1, reused_mask_stage0, refresh_step.
+           rewrite !(vec_add_encode_zero (fp_sharing five)) by reflexivity.
+           unfold encode. simpl.
+           rewrite !(fp_add_comm five _ (fp_zero five)), !fp_add_zero_l.
+           set (d := fp_mul five (fp_of five 3) (fp_sub five s2 s1)).
+           assert (H2d : fp_add five (fp_add five d r) (fp_add five d r)
+                         = fp_add five (fp_sub five s2 s1) (fp_add five r r)).
+           { assert (Hd : fp_add five d d = fp_sub five s2 s1).
+             { unfold d, fp_add, fp_mul. apply fp_eq_rep. repeat rewrite fp_rep_of.
+               rewrite Nat.Div0.add_mod_idemp_l, Nat.Div0.add_mod_idemp_r.
+               pose proof (fp_rep_lt five (fp_sub five s2 s1)) as Hu.
+               destruct (fp_rep (fp_sub five s2 s1)) as [ | [ | [ | [ | [ | k ] ] ] ] ];
+                 simpl in *; try reflexivity; lia. }
+             rewrite <- (fp_add_assoc five d r (fp_add five d r)).
+             rewrite (fp_add_comm five r (fp_add five d r)).
+             rewrite <- (fp_add_assoc five d r r).
+             rewrite (fp_add_assoc five d d (fp_add five r r)).
+             rewrite Hd. reflexivity. }
+           rewrite H2d. exact (v_sub_shift (fp_sharing five) s1 s2 (fp_add five r r)).
+  + intros H. specialize (H (fp_of five 0, fp_of five 0)).
+    vm_compute in H. discriminate H.
+Qed.
+
+(* (b) Omitted register barrier across prime-field linear recombination:
+   wire 3 computes x0 + r without a register, and wire 4 recombines
+   (x0 + r) + x1. Stable probing on wire 4 observes s + r and hides s;
+   glitch expansion on wire 4 observes [x0; r; x1] = [m; r; s - m] and
+   recovers s. Placing a register barrier g_reg 3 on wire 4 restores
+   1-probing security across every wire and cycle under ex_glitch. *)
+
+Definition fp_ops (P : Modulus) (o : nat) (args : list (Fp P)) : Fp P :=
+  match o with
+  | 0 => fp_zero P
+  | _ => sum_of (fp_sharing P) args
+  end.
+
+Definition omitted_barrier_circuit : Circuit :=
+  cons (g_in 0)
+  (cons (g_in 1)
+  (cons (g_in 2)
+  (cons (g_op 1 (cons 0 (cons 2 nil)))
+  (cons (g_op 1 (cons 3 (cons 1 nil)))
+  (cons (g_reg 4) nil))))).
+
+Definition omitted_barrier_experiment : Experiment := {|
+  x_share := fp_sharing five;
+  x_prob := counting (list (Fp five)) (mask_tuples (fp_sharing five) 2);
+  x_circuit := omitted_barrier_circuit;
+  x_ops := fp_ops five;
+  x_secret := Fp five;
+  x_in := fun s tape _ i =>
+            match i with
+            | 0 => nth 0 tape (fp_zero five)
+            | 1 => fp_sub five s (nth 0 tape (fp_zero five))
+            | _ => nth 1 tape (fp_zero five)
+            end;
+  x_init := fun _ _ _ => fp_zero five;
+  x_order := 1
+|}.
+
+(*| discharges: R-15-053a |*)
+Theorem omitted_barrier_circuit_is_well_formed :
+  well_formed omitted_barrier_circuit = true.
+Proof. reflexivity. Qed.
+
+(*| discharges: R-05-165, R-15-053a |*)
+Theorem omitted_barrier_recombination_is_secure_under_stable :
+  forall s1 s2 : Fp five,
+    SameDistribution (x_prob omitted_barrier_experiment)
+      (list (Fp five)) (list_eqb (fp_eqb five))
+      (x_view omitted_barrier_experiment ex_stable (cons (probe_of 4 0) nil) s1)
+      (x_view omitted_barrier_experiment ex_stable (cons (probe_of 4 0) nil) s2).
+Proof.
+  intros s1 s2.
+  apply (counting_rerandomization_on_members (list (Fp five))
+           (mask_tuples (fp_sharing five) 2)
+           (list (Fp five)) (list_eqb (fp_eqb five))
+           (x_view omitted_barrier_experiment ex_stable (cons (probe_of 4 0) nil) s1)
+           (x_view omitted_barrier_experiment ex_stable (cons (probe_of 4 0) nil) s2)
+           (shift_mask (fp_sharing five) 1 (fp_sub five s1 s2))).
+  - rewrite map_over_is_map.
+    exact (shift_mask_permutation (fp_sharing five) 2 1 (fp_sub five s1 s2) (ltac:(lia))).
+  - intros tape Htape.
+    assert (Hlen : length tape = 2)
+      by (exact (mask_tuples_length (fp_sharing five) 2 tape Htape)).
+    destruct tape as [ | m [ | r [ | ? ? ] ] ]; simpl in Hlen; try discriminate Hlen.
+    unfold x_view, probe_set, ex_stable. simpl. unfold value_at. simpl.
+    f_equal.
+    rewrite !(fp_add_comm five _ (fp_zero five)), !fp_add_zero_l.
+    rewrite (fp_add_comm five m (fp_add five (fp_sub five s1 s2) r)).
+    rewrite <- (fp_add_assoc five (fp_sub five s1 s2) r m).
+    rewrite (fp_add_comm five (fp_add five (fp_sub five s1 s2) (fp_add five r m)) (fp_sub five s2 m)).
+    rewrite (fp_add_assoc five (fp_sub five s2 m) (fp_sub five s1 s2) (fp_add five r m)).
+    rewrite (fp_add_comm five (fp_sub five s2 m) (fp_sub five s1 s2)).
+    assert (Hs : fp_add five (fp_sub five s1 s2) (fp_sub five s2 m) = fp_sub five s1 m).
+    { apply (v_add_cancel_r (fp_sharing five) _ _ m).
+      change (fp_add five (fp_add five (fp_sub five s1 s2) (fp_sub five s2 m)) m
+              = fp_add five (fp_sub five s1 m) m).
+      rewrite <- (fp_add_assoc five (fp_sub five s1 s2) (fp_sub five s2 m) m).
+      rewrite (fp_sub_add five s2 m).
+      rewrite (fp_sub_add five s1 s2).
+      rewrite (fp_sub_add five s1 m). reflexivity. }
+    rewrite Hs.
+    rewrite (fp_add_comm five (fp_sub five s1 m) (fp_add five r m)).
+    rewrite (fp_add_comm five r m). reflexivity.
+Qed.
+
+(*| discharges: R-05-165, R-05-166, R-15-053a |*)
+Theorem omitted_barrier_recombination_leaks_under_glitch :
+  Leaks omitted_barrier_experiment ex_glitch.
+Proof.
+  intros H.
+  specialize (H (cons (probe_of 4 0) nil) eq_refl (fp_of five 0) (fp_of five 1)).
+  specialize (H (cons (fp_of five 0) (cons (fp_of five 0) (cons (fp_of five 0) nil)))).
+  vm_compute in H. discriminate H.
+Qed.
+
+Definition barriered_recombination_circuit : Circuit :=
+  cons (g_in 0)
+  (cons (g_in 1)
+  (cons (g_in 2)
+  (cons (g_op 1 (cons 0 (cons 2 nil)))
+  (cons (g_reg 3)
+  (cons (g_op 1 (cons 4 (cons 1 nil))) nil))))).
+
+Definition barriered_recombination_experiment : Experiment := {|
+  x_share := fp_sharing five;
+  x_prob := counting (list (Fp five)) (mask_tuples (fp_sharing five) 2);
+  x_circuit := barriered_recombination_circuit;
+  x_ops := fp_ops five;
+  x_secret := Fp five;
+  x_in := fun s tape _ i =>
+            match i with
+            | 0 => nth 0 tape (fp_zero five)
+            | 1 => fp_sub five s (nth 0 tape (fp_zero five))
+            | _ => nth 1 tape (fp_zero five)
+            end;
+  x_init := fun _ _ _ => fp_zero five;
+  x_order := 1
+|}.
+
+(*| discharges: R-15-053a |*)
+Theorem barriered_recombination_circuit_is_well_formed :
+  well_formed barriered_recombination_circuit = true.
+Proof. reflexivity. Qed.
+
+(* Restoring the register barrier between x0 + r and + x1 makes every single
+   wire at every cycle 1-probe secure even under glitch expansion. *)
+(*| discharges: R-05-004a, R-15-053a |*)
+Theorem barriered_recombination_is_probing_secure_under_glitch :
+  ProbingSecure barriered_recombination_experiment ex_glitch.
+Proof.
+  intros ps Hps s1 s2.
+  destruct ps as [ | [ w cyc ] [ | ? ? ] ].
+  - apply identical_views_are_identically_distributed. intros t. reflexivity.
+  - unfold admissible_probes in Hps.
+    apply andb_prop in Hps as [ _ Hw ].
+    unfold wires_exist, wire_count in Hw.
+    rewrite all_of_is_forallb in Hw. simpl in Hw.
+    rewrite andb_true_r in Hw. apply Nat.ltb_lt in Hw.
+    assert (Hreg4 : forall (s : Fp five) (m r : Fp five) (k : nat),
+              regs_at (fp_sharing five) (fp_ops five) barriered_recombination_circuit
+                (fun _ => fp_zero five)
+                (fun _ i => match i with
+                            | 0 => m
+                            | 1 => fp_sub five s m
+                            | _ => r
+                            end)
+                k 4
+              = match k with
+                | 0 => fp_zero five
+                | S _ => fp_add five m (fp_add five r (fp_zero five))
+                end).
+    { intros s m r k. induction k as [ | k IH ]; simpl; [ reflexivity | ].
+      reflexivity. }
+    destruct w as [ | [ | [ | [ | [ | [ | w ] ] ] ] ] ]; try lia.
+    + (* w = 0 *)
+      apply identical_views_are_identically_distributed. intros tape. reflexivity.
+    + (* w = 1 *)
+      set (d := fp_sub five s2 s1).
+      apply (counting_rerandomization_on_members (list (Fp five))
+               (mask_tuples (fp_sharing five) 2)
+               (list (Fp five)) (list_eqb (fp_eqb five))
+               (x_view barriered_recombination_experiment ex_glitch (cons (probe_of 1 cyc) nil) s1)
+               (x_view barriered_recombination_experiment ex_glitch (cons (probe_of 1 cyc) nil) s2)
+               (shift_mask (fp_sharing five) 0 d)).
+      * rewrite map_over_is_map.
+        exact (shift_mask_permutation (fp_sharing five) 2 0 d (ltac:(lia))).
+      * intros tape Htape.
+        assert (Hlen : length tape = 2)
+          by (exact (mask_tuples_length (fp_sharing five) 2 tape Htape)).
+        destruct tape as [ | m [ | r [ | ? ? ] ] ]; simpl in Hlen; try discriminate Hlen.
+        unfold x_view, probe_set, ex_glitch. simpl. unfold value_at. simpl.
+        f_equal. exact (v_sub_shift (fp_sharing five) s1 s2 m).
+    + (* w = 2 *)
+      apply identical_views_are_identically_distributed. intros tape. reflexivity.
+    + (* w = 3 *)
+      apply identical_views_are_identically_distributed. intros tape. reflexivity.
+    + (* w = 4 *)
+      apply identical_views_are_identically_distributed. intros tape.
+      unfold x_view, probe_set, ex_glitch. simpl.
+      unfold value_at. simpl.
+      f_equal. rewrite !Hreg4. reflexivity.
+    + (* w = 5 *)
+      set (d := fp_sub five s2 s1).
+      set (sigma := shift_tuple (fp_sharing five) (cons d (cons (fp_sub five (fp_zero five) d) nil))).
+      apply (counting_rerandomization_on_members (list (Fp five))
+               (mask_tuples (fp_sharing five) 2)
+               (list (Fp five)) (list_eqb (fp_eqb five))
+               (x_view barriered_recombination_experiment ex_glitch (cons (probe_of 5 cyc) nil) s1)
+               (x_view barriered_recombination_experiment ex_glitch (cons (probe_of 5 cyc) nil) s2)
+               sigma).
+      * rewrite map_over_is_map.
+        exact (shift_tuple_permutation (fp_sharing five) 2
+                 (cons d (cons (fp_sub five (fp_zero five) d) nil)) eq_refl).
+      * intros tape Htape.
+        assert (Hlen : length tape = 2)
+          by (exact (mask_tuples_length (fp_sharing five) 2 tape Htape)).
+        destruct tape as [ | m [ | r [ | ? ? ] ] ]; simpl in Hlen; try discriminate Hlen.
+        unfold x_view, probe_set, ex_glitch. simpl. unfold value_at. simpl.
+        unfold value_at. simpl.
+        rewrite !Hreg4. f_equal.
+        -- destruct cyc as [ | k ]; [ reflexivity | ].
+           rewrite !(fp_add_comm five _ (fp_zero five)), !fp_add_zero_l.
+           unfold d.
+           rewrite (fp_add_assoc five (fp_add five (fp_sub five s2 s1) m)
+                                      (fp_sub five (fp_zero five) (fp_sub five s2 s1)) r).
+           rewrite (fp_add_comm five (fp_sub five s2 s1) m).
+           rewrite <- (fp_add_assoc five m (fp_sub five s2 s1)
+                                    (fp_sub five (fp_zero five) (fp_sub five s2 s1))).
+           rewrite (fp_add_comm five (fp_sub five s2 s1)
+                                (fp_sub five (fp_zero five) (fp_sub five s2 s1))).
+           rewrite (fp_sub_add five (fp_zero five) (fp_sub five s2 s1)).
+           rewrite (fp_add_comm five m (fp_zero five)), fp_add_zero_l.
+           reflexivity.
+        -- f_equal. exact (v_sub_shift (fp_sharing five) s1 s2 m).
+  - unfold admissible_probes in Hps. simpl in Hps. discriminate Hps.
+Qed.
+
+
+
