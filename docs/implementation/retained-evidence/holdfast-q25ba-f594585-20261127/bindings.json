@@ -6,8 +6,8 @@
   },
   "production_admission": false,
   "proof_replayed": false,
-  "receipt": "/root/build/lane-hf-q25ba-a53d775-20261127/build/holdfast-first-slice/qualification.json",
-  "receipt_sha256": "0462ff87c186ac9163f24815b89a4ba74564be5187f27528649e5149feb8f49e",
+  "receipt": "/root/build/lane-hf-q25ba-f594585-20261127/build/holdfast-first-slice/qualification.json",
+  "receipt_sha256": "90235782611e1a742ff1ae4a3df3ce4a06502262aac3949793040f9cf09e747f",
   "schema": 1,
   "scope": "holdfast-first-slice-binding-check",
   "status": "matched"

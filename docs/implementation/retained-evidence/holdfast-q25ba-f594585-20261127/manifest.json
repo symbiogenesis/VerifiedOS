@@ -1,0 +1,24 @@
+{
+  "files": {
+    "bindings.json": {
+      "bytes": 720,
+      "encoding": "identity",
+      "path": "bindings.json",
+      "sha256": "5ee9d9bea725a11f990fa1501b5f63ea080e85b54017929fc86c44e6f2432bd4"
+    },
+    "qualification.json.gz": {
+      "bytes": 1174961,
+      "encoding": "gzip",
+      "path": "qualification.json.gz",
+      "sha256": "90235782611e1a742ff1ae4a3df3ce4a06502262aac3949793040f9cf09e747f",
+      "stored_bytes": 305022,
+      "stored_sha256": "a443ef07fe0908520063cb306b5af6abbfe05a11f7a94040a3cb6bbce3d5b965"
+    },
+    "summary.json": {
+      "bytes": 23646,
+      "encoding": "identity",
+      "path": "summary.json",
+      "sha256": "55cf4dad42740bf7e838581d7ce00a9b756a0017471f6a78937f8884d4a4ec09"
+    }
+  }
+}
