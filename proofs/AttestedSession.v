@@ -875,3 +875,777 @@ Definition witness_Evidence : Evidence := issued_evidence event_a.
 Definition witness_Issuance : Issuance := event_a.
 Definition witness_AppraisalPolicy : AppraisalPolicy := software_policy.
 Definition witness_Connection : Connection := waiting_for software_policy context_a 6.
+
+(* =========================================================================
+   M6.9c-i Multi-Session Strand/Trace Extension
+
+   Models interleaved multi-session handshakes, challenge issuances,
+   broker-local quote issuances, single-attempt appraisals, session-key
+   exposures, and broker compromises as finite ordered strand traces with
+   StrandsRocq-style bundle-relative freshness (`bundle_fresh`).
+   ========================================================================= *)
+
+Inductive StrandEvent : Type :=
+| EvHandshakeComplete : ProtectedContext -> StrandEvent
+| EvChallengeIssued : Connection -> Challenge -> StrandEvent
+| EvBrokerQuoteIssued : Issuance -> StrandEvent
+| EvAppraisalAccepted : Connection -> AppraisalPolicy -> Evidence -> nat -> nat -> StrandEvent
+| EvKeyExposed : ProtectedContext -> nat -> StrandEvent
+| EvBrokerCompromised : nat -> StrandEvent.
+
+Definition SessionTrace : Type := list StrandEvent.
+
+Record MultiSessionEnv : Type := {
+  ms_profile : AttestationProfile;
+  ms_measured : Measurement;
+  ms_aliases : UnitAliases;
+  ms_auth : Evidence -> bool;
+  ms_custody : ProtectedContext -> Prop
+}.
+
+Record ByteForwardingRelay : Type := {
+  relay_hops : list nat;
+  relay_source : ProtectedContext;
+  relay_target : ProtectedContext;
+  relay_evidence : Evidence;
+  relay_same_holder : SameKeyHolder relay_source relay_target
+}.
+
+Fixpoint trace_issuances (tr : SessionTrace) : list Issuance :=
+  match tr with
+  | [] => []
+  | EvBrokerQuoteIssued iss :: rest => iss :: trace_issuances rest
+  | _ :: rest => trace_issuances rest
+  end.
+
+Lemma trace_issuances_in_tr : forall tr iss,
+  In iss (trace_issuances tr) <-> In (EvBrokerQuoteIssued iss) tr.
+Proof.
+  induction tr as [|e rest IH]; intro iss; split; intro H.
+  - destruct H.
+  - destruct H.
+  - destruct e; cbn in H; try (right; apply IH; exact H).
+    destruct H as [Heq|Hin].
+    + subst. left. reflexivity.
+    + right. apply IH. exact Hin.
+  - destruct H as [Heq|Hin].
+    + subst. left. reflexivity.
+    + destruct e; cbn; try (apply IH; exact Hin).
+      right. apply IH. exact Hin.
+Qed.
+
+Definition trace_key_exposed (tr : SessionTrace) (ctx : ProtectedContext) : Prop :=
+  exists sender, In (EvKeyExposed ctx sender) tr.
+
+Definition trace_broker_compromised (tr : SessionTrace) (u : nat) : Prop :=
+  In (EvBrokerCompromised u) tr.
+
+Definition NoKeyExposure (tr : SessionTrace) : Prop :=
+  forall ctx sender, ~ In (EvKeyExposed ctx sender) tr.
+
+Definition NoBrokerCompromise (tr : SessionTrace) : Prop :=
+  forall u, ~ In (EvBrokerCompromised u) tr.
+
+(* StrandsRocq-style bundle-relative freshness: the challenge originates at a
+   unique strand event index `i` in `tr` with positive nonce, distinct from
+   every other challenge-issuance nonce and context identity in the bundle, and
+   precedes every matching quote issuance and appraisal acceptance. *)
+Definition bundle_fresh (tr : SessionTrace) (conn : Connection) (q : Challenge) : Prop :=
+  0 < challenge_nonce q /\
+  exists i : nat,
+    nth_error tr i = Some (EvChallengeIssued conn q) /\
+    (forall j conn' q',
+      nth_error tr j = Some (EvChallengeIssued conn' q') ->
+      challenge_nonce q' = challenge_nonce q ->
+      j = i /\ conn' = conn /\ q' = q) /\
+    (forall j conn' q',
+      nth_error tr j = Some (EvChallengeIssued conn' q') ->
+      context_id (protected_context conn') = context_id (protected_context conn) ->
+      j = i /\ conn' = conn /\ q' = q) /\
+    (forall k conn_a pol_a ev_a now_a sz_a,
+      nth_error tr k = Some (EvAppraisalAccepted conn_a pol_a ev_a now_a sz_a) ->
+      (evidence_challenge ev_a = q \/
+       context_id (protected_context conn_a) = context_id (protected_context conn)) ->
+      i < k) /\
+    (forall m iss,
+      nth_error tr m = Some (EvBrokerQuoteIssued iss) ->
+      ~ trace_broker_compromised tr (context_unit (issuer_context iss)) ->
+      evidence_challenge (issued_evidence iss) = q ->
+      i < m).
+
+Definition TraceSound (env : MultiSessionEnv) (tr : SessionTrace) : Prop :=
+  (forall ctx, In (EvHandshakeComplete ctx) tr ->
+    context_usable ctx = true /\ ms_custody env ctx) /\
+  (forall conn q, In (EvChallengeIssued conn q) tr ->
+    phase conn = Waiting /\ pending_challenge conn = q /\
+    context_usable (protected_context conn) = true /\
+    In (EvHandshakeComplete (protected_context conn)) tr) /\
+  (forall iss, In (EvBrokerQuoteIssued iss) tr ->
+    ~ trace_broker_compromised tr (context_unit (issuer_context iss)) ->
+    LocalContextIntegrity (ms_profile env) [iss] (ms_measured env) (ms_aliases env) /\
+    ms_custody env (issuer_context iss)) /\
+  (forall conn policy ev now sz,
+    In (EvAppraisalAccepted conn policy ev now sz) tr ->
+    snd (decide (ms_profile env) policy (ms_auth env) conn now sz (Some ev)) = true /\
+    PendingBinding (ms_profile env) policy conn /\
+    In (EvHandshakeComplete (protected_context conn)) tr /\
+    bundle_fresh tr conn (pending_challenge conn)) /\
+  (forall k m conn policy ev now sz iss,
+    nth_error tr k = Some (EvAppraisalAccepted conn policy ev now sz) ->
+    nth_error tr m = Some (EvBrokerQuoteIssued iss) ->
+    ~ trace_broker_compromised tr (context_unit (issuer_context iss)) ->
+    issued_evidence iss = ev ->
+    m < k).
+
+Lemma trace_sound_local_integrity : forall env tr,
+  TraceSound env tr -> NoBrokerCompromise tr ->
+  LocalContextIntegrity (ms_profile env) (trace_issuances tr) (ms_measured env) (ms_aliases env) /\
+  (forall iss, In iss (trace_issuances tr) -> ms_custody env (issuer_context iss)).
+Proof.
+  intros env tr [_ [_ [Hquotes _]]] Hnobrk.
+  split.
+  - intros iss Hin. apply trace_issuances_in_tr in Hin.
+    destruct (Hquotes iss Hin (Hnobrk (context_unit (issuer_context iss)))) as [Hloc _].
+    apply Hloc. left. reflexivity.
+  - intros iss Hin. apply trace_issuances_in_tr in Hin.
+    destruct (Hquotes iss Hin (Hnobrk (context_unit (issuer_context iss)))) as [_ Hcust].
+    exact Hcust.
+Qed.
+
+Lemma in_nth_error_witness : forall (A : Type) (xs : list A) (x : A),
+  In x xs -> exists idx, nth_error xs idx = Some x.
+Proof.
+  intros A xs x Hin. apply In_nth_error in Hin. exact Hin.
+Qed.
+
+(*| discharges: R-12-015c, R-09-025a |*)
+Theorem multi_session_software_agreement :
+  forall env tr conn policy ev now sz,
+  TraceSound env tr ->
+  NoKeyExposure tr ->
+  NoBrokerCompromise tr ->
+  ExporterSecurity (ms_custody env) ->
+  EvidenceAuthenticity (ms_auth env) (trace_issuances tr) (NoBrokerCompromise tr) ->
+  AuthenticatedUnitPseudonyms (ms_aliases env) ->
+  UnitEnrollment policy (protected_context conn) (ms_aliases env) ->
+  unit_policy policy = false ->
+  In (EvAppraisalAccepted conn policy ev now sz) tr ->
+  exists iss i_ch i_q i_app,
+    i_ch < i_q /\ i_q < i_app /\
+    nth_error tr i_ch = Some (EvChallengeIssued conn (pending_challenge conn)) /\
+    nth_error tr i_q = Some (EvBrokerQuoteIssued iss) /\
+    nth_error tr i_app = Some (EvAppraisalAccepted conn policy ev now sz) /\
+    issued_evidence iss = ev /\
+    SameKeyHolder (issuer_context iss) (protected_context conn) /\
+    ms_measured env (context_unit (protected_context conn)) = Some (evidence_generation ev) /\
+    approved_generation policy (evidence_generation ev) = true /\
+    context_principal (protected_context conn) = required_principal policy /\
+    evidence_challenge ev = pending_challenge conn.
+Proof.
+  intros env tr conn policy ev now sz Hsound _ Hnobrk Hex Hauth Halias Henroll Hsw Hacc.
+  pose proof Hsound as [Hh [Hch [Hquotes [Happs Hcausal]]]].
+  destruct (Happs conn policy ev now sz Hacc) as [Hdec [Hpend [Hhs Hfresh]]].
+  destruct (Hh (protected_context conn) Hhs) as [_ Htarget_cust].
+  destruct (trace_sound_local_integrity env tr Hsound Hnobrk) as [Hlocal Hiss_cust].
+  assert (Hkeys : UncompromisedSessionKeys (ms_custody env) (trace_issuances tr) (protected_context conn)).
+  { split; [exact Htarget_cust|exact Hiss_cust]. }
+  destruct (attested_session_binding (ms_profile env) policy (ms_auth env)
+    (trace_issuances tr) (ms_measured env) (ms_aliases env) (ms_custody env)
+    (NoBrokerCompromise tr) conn now sz ev
+    Hex Hauth Hnobrk Hlocal Hkeys Halias Henroll Hpend Hdec)
+    as [iss [Hin_iss [Hev [Hholder [Hmeas [Hgen [Hprin [Hchal _]]]]]]]].
+  apply trace_issuances_in_tr in Hin_iss.
+  destruct (in_nth_error_witness _ _ _ Hin_iss) as [i_q Hq].
+  destruct (in_nth_error_witness _ _ _ Hacc) as [i_app Happ].
+  destruct Hfresh as [_ [i_ch [Hch_nth [_ [_ [_ Hq_after]]]]]].
+  assert (Hlt_ch_q : i_ch < i_q).
+  { apply (Hq_after i_q iss Hq (Hnobrk (context_unit (issuer_context iss)))).
+    rewrite Hev. exact Hchal. }
+  assert (Hlt_q_app : i_q < i_app).
+  { apply (Hcausal i_app i_q conn policy ev now sz iss Happ Hq
+             (Hnobrk (context_unit (issuer_context iss))) Hev). }
+  exists iss, i_ch, i_q, i_app.
+  split; [exact Hlt_ch_q|]. split; [exact Hlt_q_app|].
+  split; [exact Hch_nth|]. split; [exact Hq|].
+  split; [exact Happ|]. split; [exact Hev|].
+  split; [exact Hholder|]. split; [exact Hmeas|].
+  split; [exact Hgen|]. split; [exact Hprin|exact Hchal].
+Qed.
+
+(*| discharges: R-12-015c, R-09-025a |*)
+Theorem multi_session_unit_agreement :
+  forall env tr conn policy ev now sz,
+  TraceSound env tr ->
+  NoKeyExposure tr ->
+  NoBrokerCompromise tr ->
+  ExporterSecurity (ms_custody env) ->
+  EvidenceAuthenticity (ms_auth env) (trace_issuances tr) (NoBrokerCompromise tr) ->
+  AuthenticatedUnitPseudonyms (ms_aliases env) ->
+  UnitEnrollment policy (protected_context conn) (ms_aliases env) ->
+  unit_policy policy = true ->
+  In (EvAppraisalAccepted conn policy ev now sz) tr ->
+  exists iss i_ch i_q i_app,
+    i_ch < i_q /\ i_q < i_app /\
+    nth_error tr i_ch = Some (EvChallengeIssued conn (pending_challenge conn)) /\
+    nth_error tr i_q = Some (EvBrokerQuoteIssued iss) /\
+    nth_error tr i_app = Some (EvAppraisalAccepted conn policy ev now sz) /\
+    issued_evidence iss = ev /\
+    SameKeyHolder (issuer_context iss) (protected_context conn) /\
+    ms_measured env (context_unit (protected_context conn)) = Some (evidence_generation ev) /\
+    approved_generation policy (evidence_generation ev) = true /\
+    context_principal (protected_context conn) = required_principal policy /\
+    evidence_challenge ev = pending_challenge conn /\
+    context_unit (protected_context conn) = expected_unit policy /\
+    evidence_alias ev = Some (expected_alias policy).
+Proof.
+  intros env tr conn policy ev now sz Hsound _ Hnobrk Hex Hauth Halias Henroll Hunit Hacc.
+  pose proof Hsound as [Hh [Hch [Hquotes [Happs Hcausal]]]].
+  destruct (Happs conn policy ev now sz Hacc) as [Hdec [Hpend [Hhs Hfresh]]].
+  destruct (Hh (protected_context conn) Hhs) as [_ Htarget_cust].
+  destruct (trace_sound_local_integrity env tr Hsound Hnobrk) as [Hlocal Hiss_cust].
+  assert (Hkeys : UncompromisedSessionKeys (ms_custody env) (trace_issuances tr) (protected_context conn)).
+  { split; [exact Htarget_cust|exact Hiss_cust]. }
+  destruct (attested_session_binding (ms_profile env) policy (ms_auth env)
+    (trace_issuances tr) (ms_measured env) (ms_aliases env) (ms_custody env)
+    (NoBrokerCompromise tr) conn now sz ev
+    Hex Hauth Hnobrk Hlocal Hkeys Halias Henroll Hpend Hdec)
+    as [iss [Hin_iss [Hev [Hholder [Hmeas [Hgen [Hprin [Hchal Hunit_eq]]]]]]]].
+  destruct (accepted_checks (ms_profile env) policy (ms_auth env) conn now sz ev Hdec)
+    as [_ [_ [_ [_ [_ [_ Halias_eq]]]]]].
+  unfold policy_alias in Halias_eq. rewrite Hunit in Halias_eq.
+  apply trace_issuances_in_tr in Hin_iss.
+  destruct (in_nth_error_witness _ _ _ Hin_iss) as [i_q Hq].
+  destruct (in_nth_error_witness _ _ _ Hacc) as [i_app Happ].
+  destruct Hfresh as [_ [i_ch [Hch_nth [_ [_ [_ Hq_after]]]]]].
+  assert (Hlt_ch_q : i_ch < i_q).
+  { apply (Hq_after i_q iss Hq (Hnobrk (context_unit (issuer_context iss)))).
+    rewrite Hev. exact Hchal. }
+  assert (Hlt_q_app : i_q < i_app).
+  { apply (Hcausal i_app i_q conn policy ev now sz iss Happ Hq
+             (Hnobrk (context_unit (issuer_context iss))) Hev). }
+  exists iss, i_ch, i_q, i_app.
+  split; [exact Hlt_ch_q|]. split; [exact Hlt_q_app|].
+  split; [exact Hch_nth|]. split; [exact Hq|].
+  split; [exact Happ|]. split; [exact Hev|].
+  split; [exact Hholder|]. split; [exact Hmeas|].
+  split; [exact Hgen|]. split; [exact Hprin|].
+  split; [exact Hchal|]. split; [apply Hunit_eq; exact Hunit|exact Halias_eq].
+Qed.
+
+(* Byte-forwarding relay vs. parallel-session and foreign-unit substitution. *)
+(*| discharges: R-12-015c, R-09-025a |*)
+Theorem byte_forwarding_relay_satisfies_endpoint_agreement :
+  forall env tr conn policy hops ev now sz,
+  TraceSound env tr ->
+  NoKeyExposure tr ->
+  NoBrokerCompromise tr ->
+  ExporterSecurity (ms_custody env) ->
+  EvidenceAuthenticity (ms_auth env) (trace_issuances tr) (NoBrokerCompromise tr) ->
+  AuthenticatedUnitPseudonyms (ms_aliases env) ->
+  UnitEnrollment policy (protected_context conn) (ms_aliases env) ->
+  In (EvAppraisalAccepted conn policy (forward_bytes hops ev) now sz) tr ->
+  exists iss (relay : ByteForwardingRelay),
+    In (EvBrokerQuoteIssued iss) tr /\
+    relay_hops relay = hops /\
+    relay_source relay = issuer_context iss /\
+    relay_target relay = protected_context conn /\
+    relay_evidence relay = ev /\
+    ms_measured env (context_unit (protected_context conn)) = Some (evidence_generation ev) /\
+    approved_generation policy (evidence_generation ev) = true /\
+    evidence_challenge ev = pending_challenge conn /\
+    (unit_policy policy = true -> context_unit (protected_context conn) = expected_unit policy) /\
+    (forall h, In h hops -> h <> context_unit (protected_context conn) ->
+      records_open (fst (decide (ms_profile env) policy (ms_auth env) conn now sz
+                                (Some (forward_bytes hops ev))))
+                   [context_unit (protected_context conn)] h = false).
+Proof.
+  intros env tr conn policy hops ev now sz Hsound _ Hnobrk Hex Hauth Halias Henroll Hacc.
+  pose proof Hsound as [Hh [_ [_ [Happs _]]]].
+  destruct (Happs conn policy (forward_bytes hops ev) now sz Hacc) as [Hdec [Hpend [Hhs _]]].
+  destruct (Hh (protected_context conn) Hhs) as [_ Htarget_cust].
+  destruct (trace_sound_local_integrity env tr Hsound Hnobrk) as [Hlocal Hiss_cust].
+  assert (Hkeys : UncompromisedSessionKeys (ms_custody env) (trace_issuances tr) (protected_context conn)).
+  { split; [exact Htarget_cust|exact Hiss_cust]. }
+  unfold forward_bytes in *.
+  destruct (attested_session_binding (ms_profile env) policy (ms_auth env)
+    (trace_issuances tr) (ms_measured env) (ms_aliases env) (ms_custody env)
+    (NoBrokerCompromise tr) conn now sz ev
+    Hex Hauth Hnobrk Hlocal Hkeys Halias Henroll Hpend Hdec)
+    as [iss [Hin_iss [Hev [Hholder [Hmeas [Hgen [_ [Hchal Hunit_eq]]]]]]]].
+  apply trace_issuances_in_tr in Hin_iss.
+  exists iss, {| relay_hops := hops;
+                 relay_source := issuer_context iss;
+                 relay_target := protected_context conn;
+                 relay_evidence := ev;
+                 relay_same_holder := Hholder |}.
+  repeat split; try assumption; try reflexivity.
+  intros h _ Hneq.
+  apply forwarding_does_not_grant_record_authority.
+  intros [Hin|[]]. apply Hneq. symmetry. exact Hin.
+Qed.
+
+(*| discharges: R-12-015c |*)
+Theorem parallel_session_substitution_is_refused :
+  forall env tr conn1 conn2 iss2 policy now sz,
+  TraceSound env tr ->
+  NoBrokerCompromise tr ->
+  In (EvBrokerQuoteIssued iss2) tr ->
+  context_id (protected_context conn1) <> context_id (protected_context conn2) ->
+  issuer_context iss2 = protected_context conn2 ->
+  (context_exporter (protected_context conn1) <> context_exporter (protected_context conn2) \/
+   evidence_challenge (issued_evidence iss2) <> pending_challenge conn1) ->
+  snd (decide (ms_profile env) policy (ms_auth env) conn1 now sz
+               (Some (issued_evidence iss2))) = false.
+Proof.
+  intros env tr conn1 conn2 iss2 policy now sz [_ [_ [Hquotes _]]] Hnobrk Hin2 _ Hctx2 Hsep.
+  destruct (Hquotes iss2 Hin2 (Hnobrk (context_unit (issuer_context iss2)))) as [Hloc _].
+  specialize (Hloc iss2 (or_introl eq_refl)).
+  cbn in Hloc. destruct Hloc as [_ [Hex_eq _]].
+  destruct Hsep as [Hexp_neq | Hchal_neq].
+  - destruct (snd (decide (ms_profile env) policy (ms_auth env) conn1 now sz
+                     (Some (issued_evidence iss2)))) eqn:E; [|reflexivity].
+    destruct (accepted_checks (ms_profile env) policy (ms_auth env) conn1 now sz
+                (issued_evidence iss2) E) as [_ [_ [_ [Hacc_exp _]]]].
+    exfalso. apply Hexp_neq. rewrite <- Hctx2, <- Hex_eq, <- Hacc_exp. reflexivity.
+  - apply replay_with_a_different_challenge_is_refused. exact Hchal_neq.
+Qed.
+
+(*| discharges: R-09-025a, R-12-015c |*)
+Theorem foreign_correctly_measured_unit_substitution_is_refused :
+  forall env tr policy target_ctx conn_foreign iss_foreign now sz gen,
+  TraceSound env tr ->
+  NoBrokerCompromise tr ->
+  unit_policy policy = true ->
+  AuthenticatedUnitPseudonyms (ms_aliases env) ->
+  UnitEnrollment policy target_ctx (ms_aliases env) ->
+  context_origin (protected_context conn_foreign) = context_origin target_ctx ->
+  context_unit (protected_context conn_foreign) <> expected_unit policy ->
+  ms_measured env (context_unit (protected_context conn_foreign)) = Some gen ->
+  approved_generation policy gen = true ->
+  In (EvBrokerQuoteIssued iss_foreign) tr ->
+  SameKeyHolder (issuer_context iss_foreign) (protected_context conn_foreign) ->
+  PendingBinding (ms_profile env) policy conn_foreign ->
+  snd (decide (ms_profile env) policy (ms_auth env) conn_foreign now sz
+               (Some (issued_evidence iss_foreign))) = false.
+Proof.
+  intros env tr policy target_ctx conn_foreign iss_foreign now sz gen
+    [_ [_ [Hquotes _]]] Hnobrk Hunit Halias Henroll Horig Hneq_unit _ _ Hin_iss Hholder Hpend.
+  destruct (Hquotes iss_foreign Hin_iss
+              (Hnobrk (context_unit (issuer_context iss_foreign)))) as [Hloc _].
+  specialize (Hloc iss_foreign (or_introl eq_refl)).
+  cbn in Hloc. destruct Hloc as [_ [_ [_ [_ [_ [_ Halias_iss]]]]]].
+  destruct (snd (decide (ms_profile env) policy (ms_auth env) conn_foreign now sz
+                   (Some (issued_evidence iss_foreign)))) eqn:E; [|reflexivity].
+  destruct (accepted_checks (ms_profile env) policy (ms_auth env) conn_foreign now sz
+              (issued_evidence iss_foreign) E)
+    as [_ [_ [Hchal [_ [_ [_ Halias_acc]]]]]].
+  unfold policy_alias in Halias_acc. rewrite Hunit in Halias_acc.
+  destruct Hpend as [_ [Hscope _]].
+  rewrite Hchal, Hscope, Hunit in Halias_iss.
+  destruct Hholder as [_ [Hu [_ Ho]]].
+  specialize (Henroll Hunit).
+  assert (Hsame_u : context_unit (protected_context conn_foreign) = expected_unit policy).
+  { apply (Halias (context_origin target_ctx)
+             (context_unit (protected_context conn_foreign))
+             (expected_unit policy) (expected_alias policy)).
+    - rewrite <- Hu, <- Horig, <- Ho, <- Halias_iss. exact Halias_acc.
+    - exact Henroll. }
+  contradiction.
+Qed.
+
+(*| discharges: R-12-015c |*)
+Theorem cross_session_replay_is_refused :
+  forall env tr conn1 conn2 q1 q2 policy ev1 now sz,
+  bundle_fresh tr conn1 q1 ->
+  bundle_fresh tr conn2 q2 ->
+  context_id (protected_context conn1) <> context_id (protected_context conn2) ->
+  pending_challenge conn2 = q2 ->
+  evidence_challenge ev1 = q1 ->
+  snd (decide (ms_profile env) policy (ms_auth env) conn2 now sz (Some ev1)) = false.
+Proof.
+  intros env tr conn1 conn2 q1 q2 policy ev1 now sz
+    [_ [i1 [Hnth1 [Hnonce_uniq _]]]] [_ [i2 [Hnth2 _]]] Hneq_ctx Hp2 Hev1.
+  apply replay_with_a_different_challenge_is_refused.
+  rewrite Hp2, Hev1. intro Heq.
+  assert (Hsame_nonce : challenge_nonce q2 = challenge_nonce q1) by (rewrite Heq; reflexivity).
+  destruct (Hnonce_uniq i2 conn2 q2 Hnth2 Hsame_nonce) as [_ [Hconn_eq _]].
+  apply Hneq_ctx. rewrite Hconn_eq. reflexivity.
+Qed.
+
+(* =========================================================================
+   Complete Adversary Compromise Matrix (Inhabited Multi-Session Traces)
+   ========================================================================= *)
+
+Definition conn_a_sw : Connection := waiting_for software_policy context_a 6.
+Definition conn_b_sw : Connection := waiting_for software_policy context_b 7.
+Definition conn_a_unit : Connection := waiting_for unit_specific_policy context_a 8.
+Definition conn_b_unit : Connection := waiting_for unit_specific_policy context_b 9.
+
+Definition event_b_sw_7 : Issuance := example_issuance context_b false 7.
+Definition event_a_unit_8 : Issuance := example_issuance context_a true 8.
+Definition event_b_unit_9 : Issuance := example_issuance context_b true 9.
+
+Definition ms_multi_ledger : list Issuance :=
+  [event_a; event_b_sw_7; event_a_unit_8; event_b_unit_9].
+
+(* 1. Honest multi-session trace exercising both software-only (context_a and
+   correctly measured foreign unit context_b on its own session) and unit-
+   specific (context_a) appraisals with bundle-relative freshness. *)
+Definition honest_multi_session_trace : SessionTrace := [
+  EvHandshakeComplete context_a;
+  EvHandshakeComplete context_b;
+  EvChallengeIssued conn_a_sw (example_challenge false 6);
+  EvChallengeIssued conn_b_sw (example_challenge false 7);
+  EvBrokerQuoteIssued event_a;
+  EvBrokerQuoteIssued event_b_sw_7;
+  EvAppraisalAccepted conn_a_sw software_policy (issued_evidence event_a) 1 8;
+  EvAppraisalAccepted conn_b_sw software_policy (issued_evidence event_b_sw_7) 1 8
+].
+
+Definition honest_unit_multi_session_trace : SessionTrace := [
+  EvHandshakeComplete context_a;
+  EvHandshakeComplete context_b;
+  EvChallengeIssued conn_a_unit (example_challenge true 8);
+  EvBrokerQuoteIssued event_a_unit_8;
+  EvAppraisalAccepted conn_a_unit unit_specific_policy (issued_evidence event_a_unit_8) 1 8
+].
+
+Lemma honest_trace_bundle_fresh_a :
+  bundle_fresh honest_multi_session_trace conn_a_sw (example_challenge false 6).
+Proof.
+  split; [cbn; lia|].
+  exists 2. split; [reflexivity|].
+  split.
+  - intros j conn' q' Hj Hn.
+    do 8 (destruct j as [|j]; [cbn in Hj; try discriminate; inversion Hj; subst;
+      cbn in Hn; try discriminate; repeat split; reflexivity|]).
+    cbn in Hj. destruct j; discriminate.
+  - split.
+    + intros j conn' q' Hj Hc.
+      do 8 (destruct j as [|j]; [cbn in Hj; try discriminate; inversion Hj; subst;
+        cbn in Hc; try discriminate; repeat split; reflexivity|]).
+      cbn in Hj. destruct j; discriminate.
+    + split.
+      * intros k ca pa ea na sa Hk Hor.
+        do 8 (destruct k as [|k]; [cbn in Hk; try discriminate; inversion Hk; subst;
+          try lia; destruct Hor as [Hc|Hc]; cbn in Hc; discriminate|]).
+        cbn in Hk. destruct k; discriminate.
+      * intros m iss Hm _ Hc.
+        do 8 (destruct m as [|m]; [cbn in Hm; try discriminate; inversion Hm; subst;
+          try lia; cbn in Hc; discriminate|]).
+        cbn in Hm. destruct m; discriminate.
+Qed.
+
+Lemma honest_trace_bundle_fresh_b :
+  bundle_fresh honest_multi_session_trace conn_b_sw (example_challenge false 7).
+Proof.
+  split; [cbn; lia|].
+  exists 3. split; [reflexivity|].
+  split.
+  - intros j conn' q' Hj Hn.
+    do 8 (destruct j as [|j]; [cbn in Hj; try discriminate; inversion Hj; subst;
+      cbn in Hn; try discriminate; repeat split; reflexivity|]).
+    cbn in Hj. destruct j; discriminate.
+  - split.
+    + intros j conn' q' Hj Hc.
+      do 8 (destruct j as [|j]; [cbn in Hj; try discriminate; inversion Hj; subst;
+        cbn in Hc; try discriminate; repeat split; reflexivity|]).
+      cbn in Hj. destruct j; discriminate.
+    + split.
+      * intros k ca pa ea na sa Hk Hor.
+        do 8 (destruct k as [|k]; [cbn in Hk; try discriminate; inversion Hk; subst;
+          try lia; destruct Hor as [Hc|Hc]; cbn in Hc; discriminate|]).
+        cbn in Hk. destruct k; discriminate.
+      * intros m iss Hm _ Hc.
+        do 8 (destruct m as [|m]; [cbn in Hm; try discriminate; inversion Hm; subst;
+          try lia; cbn in Hc; discriminate|]).
+        cbn in Hm. destruct m; discriminate.
+Qed.
+
+Lemma honest_unit_trace_bundle_fresh_a :
+  bundle_fresh honest_unit_multi_session_trace conn_a_unit (example_challenge true 8).
+Proof.
+  split; [cbn; lia|].
+  exists 2. split; [reflexivity|].
+  split.
+  - intros j conn' q' Hj Hn.
+    do 5 (destruct j as [|j]; [cbn in Hj; try discriminate; inversion Hj; subst;
+      cbn in Hn; try discriminate; repeat split; reflexivity|]).
+    cbn in Hj. destruct j; discriminate.
+  - split.
+    + intros j conn' q' Hj Hc.
+      do 5 (destruct j as [|j]; [cbn in Hj; try discriminate; inversion Hj; subst;
+        cbn in Hc; try discriminate; repeat split; reflexivity|]).
+      cbn in Hj. destruct j; discriminate.
+    + split.
+      * intros k ca pa ea na sa Hk _.
+        do 5 (destruct k as [|k]; [cbn in Hk; try discriminate; inversion Hk; subst; lia|]).
+        cbn in Hk. destruct k; discriminate.
+      * intros m iss Hm _ _.
+        do 5 (destruct m as [|m]; [cbn in Hm; try discriminate; inversion Hm; subst; lia|]).
+        cbn in Hm. destruct m; discriminate.
+Qed.
+
+Definition env_honest_sw : MultiSessionEnv := {|
+  ms_profile := example_profile;
+  ms_measured := example_measured;
+  ms_aliases := example_aliases;
+  ms_auth := ledger_authentic (trace_issuances honest_multi_session_trace);
+  ms_custody := example_custody
+|}.
+
+Definition env_honest_unit : MultiSessionEnv := {|
+  ms_profile := example_profile;
+  ms_measured := example_measured;
+  ms_aliases := example_aliases;
+  ms_auth := ledger_authentic (trace_issuances honest_unit_multi_session_trace);
+  ms_custody := example_custody
+|}.
+
+Theorem honest_split_traces_are_sound :
+  TraceSound env_honest_sw honest_multi_session_trace /\
+  TraceSound env_honest_unit honest_unit_multi_session_trace /\
+  NoKeyExposure honest_multi_session_trace /\
+  NoBrokerCompromise honest_multi_session_trace /\
+  NoKeyExposure honest_unit_multi_session_trace /\
+  NoBrokerCompromise honest_unit_multi_session_trace.
+Proof.
+  unfold TraceSound; repeat match goal with |- _ /\ _ => split end.
+  - intros ctx H. cbn in H.
+    destruct H as [H|[H|[H|[H|[H|[H|[H|[H|[]]]]]]]]]; try discriminate;
+      inversion H; subst; (split; [reflexivity|cbn; unfold example_custody; auto]).
+  - intros conn q H. cbn in H.
+    destruct H as [H|[H|[H|[H|[H|[H|[H|[H|[]]]]]]]]]; try discriminate;
+      inversion H; subst; repeat split; try reflexivity; cbn; auto.
+  - intros iss H _. cbn in H.
+    destruct H as [H|[H|[H|[H|[H|[H|[H|[H|[]]]]]]]]]; try discriminate;
+      inversion H; subst;
+      (split; [intros e [He|[]]; subst; repeat split; reflexivity|cbn; unfold example_custody; auto]).
+  - intros conn pol ev now sz H. cbn in H.
+    destruct H as [H|[H|[H|[H|[H|[H|[H|[H|[]]]]]]]]]; try discriminate;
+      inversion H; subst.
+    + split; [reflexivity|]. split; [repeat split; cbn; lia|].
+      split; [cbn; auto|exact honest_trace_bundle_fresh_a].
+    + split; [reflexivity|]. split; [repeat split; cbn; lia|].
+      split; [cbn; auto|exact honest_trace_bundle_fresh_b].
+  - intros k m conn pol ev now sz iss Hk Hm _ Hev.
+    do 8 (destruct k as [|k]; [cbn in Hk; try discriminate; inversion Hk; subst;
+      do 8 (destruct m as [|m]; [cbn in Hm; try discriminate; inversion Hm; subst;
+        try lia; cbn in Hev; discriminate|]);
+      cbn in Hm; destruct m; discriminate|]).
+    cbn in Hk. destruct k; discriminate.
+  - intros ctx H. cbn in H.
+    destruct H as [H|[H|[H|[H|[H|[]]]]]]; try discriminate;
+      inversion H; subst; (split; [reflexivity|cbn; unfold example_custody; auto]).
+  - intros conn q H. cbn in H.
+    destruct H as [H|[H|[H|[H|[H|[]]]]]]; try discriminate;
+      inversion H; subst; repeat split; try reflexivity; cbn; auto.
+  - intros iss H _. cbn in H.
+    destruct H as [H|[H|[H|[H|[H|[]]]]]]; try discriminate;
+      inversion H; subst;
+      (split; [intros e [He|[]]; subst; repeat split; reflexivity|cbn; unfold example_custody; auto]).
+  - intros conn pol ev now sz H. cbn in H.
+    destruct H as [H|[H|[H|[H|[H|[]]]]]]; try discriminate;
+      inversion H; subst.
+    split; [reflexivity|]. split; [repeat split; cbn; lia|].
+    split; [cbn; auto|exact honest_unit_trace_bundle_fresh_a].
+  - intros k m conn pol ev now sz iss Hk Hm _ Hev.
+    do 5 (destruct k as [|k]; [cbn in Hk; try discriminate; inversion Hk; subst;
+      do 5 (destruct m as [|m]; [cbn in Hm; try discriminate; inversion Hm; subst;
+        try lia; cbn in Hev; discriminate|]);
+      cbn in Hm; destruct m; discriminate|]).
+    cbn in Hk. destruct k; discriminate.
+  - intros ctx sender H. cbn in H.
+    destruct H as [H|[H|[H|[H|[H|[H|[H|[H|[]]]]]]]]]; discriminate.
+  - intros u H. cbn in H.
+    destruct H as [H|[H|[H|[H|[H|[H|[H|[H|[]]]]]]]]]; discriminate.
+  - intros ctx sender H. cbn in H.
+    destruct H as [H|[H|[H|[H|[H|[]]]]]]; discriminate.
+  - intros u H. cbn in H.
+    destruct H as [H|[H|[H|[H|[H|[]]]]]]; discriminate.
+Qed.
+
+Theorem honest_multi_session_matrix_cell :
+  (exists iss i_ch i_q i_app,
+    i_ch < i_q /\ i_q < i_app /\
+    issued_evidence iss = issued_evidence event_a /\
+    SameKeyHolder (issuer_context iss) context_a) /\
+  (exists iss i_ch i_q i_app,
+    i_ch < i_q /\ i_q < i_app /\
+    issued_evidence iss = issued_evidence event_a_unit_8 /\
+    SameKeyHolder (issuer_context iss) context_a /\
+    context_unit (protected_context conn_a_unit) = expected_unit unit_specific_policy).
+Proof.
+  destruct honest_split_traces_are_sound
+    as [Hs1 [Hs2 [Hnk1 [Hnb1 [Hnk2 Hnb2]]]]].
+  split.
+  - destruct (multi_session_software_agreement env_honest_sw honest_multi_session_trace
+      conn_a_sw software_policy (issued_evidence event_a) 1 8
+      Hs1 Hnk1 Hnb1 example_exporters_bind_their_actual_key_holders
+      (fun _ => ledger_authenticity_is_inhabited _ I)
+      example_unit_aliases_are_authenticated_and_distinct
+      (fun H => False_rect _ (Bool.diff_false_true H)) eq_refl)
+      as [iss [i_ch [i_q [i_app [H1 [H2 [_ [_ [_ [Hev [Hholder _]]]]]]]]]]].
+    + cbn. right. right. right. right. right. right. left. reflexivity.
+    + exists iss, i_ch, i_q, i_app.
+      split; [exact H1|]. split; [exact H2|]. split; [exact Hev|exact Hholder].
+  - destruct (multi_session_unit_agreement env_honest_unit honest_unit_multi_session_trace
+      conn_a_unit unit_specific_policy (issued_evidence event_a_unit_8) 1 8
+      Hs2 Hnk2 Hnb2 example_exporters_bind_their_actual_key_holders
+      (fun _ => ledger_authenticity_is_inhabited _ I)
+      example_unit_aliases_are_authenticated_and_distinct
+      (fun _ => eq_refl) eq_refl)
+      as [iss [i_ch [i_q [i_app [H1 [H2 [_ [_ [_ [Hev [Hholder [_ [_ [_ [_ [Hu _]]]]]]]]]]]]]]]].
+    + cbn. right. right. right. right. left. reflexivity.
+    + exists iss, i_ch, i_q, i_app.
+      split; [exact H1|]. split; [exact H2|]. split; [exact Hev|].
+      split; [exact Hholder|exact Hu].
+Qed.
+
+(* 2. Session-key compromise matrix cell: exposing context_a's key to peer 90
+   falsifies NoKeyExposure, breaks ExclusiveTrafficKeys, and lets peer 90 send
+   authenticated records on the opened session. *)
+Definition key_compromise_trace : SessionTrace :=
+  honest_multi_session_trace ++ [EvKeyExposed context_a 90].
+
+Theorem session_key_compromise_matrix_cell :
+  ~ NoKeyExposure key_compromise_trace /\
+  trace_key_exposed key_compromise_trace context_a /\
+  ~ ExclusiveTrafficKeys context_a [1; 90] /\
+  records_open (fst (decide example_profile software_policy
+                       (ledger_authentic (trace_issuances key_compromise_trace))
+                       conn_a_sw 1 8 (Some (issued_evidence event_a))))
+               [1; 90] 90 = true.
+Proof.
+  split.
+  - intro H. apply (H context_a 90). unfold key_compromise_trace.
+    apply in_or_app. right. left. reflexivity.
+  - split.
+    + exists 90. unfold key_compromise_trace. apply in_or_app. right. left. reflexivity.
+    + split.
+      * apply the_exposure_violates_exclusive_key_custody.
+      * reflexivity.
+Qed.
+
+(* 3. Broker compromise matrix cell: compromising unit 2's broker allows a
+   forged caller-exporter issuance (context_b claiming context_a's exporter),
+   falsifying NoBrokerCompromise and LocalContextIntegrity while still passing
+   decide on context_a's session. *)
+Definition broker_compromise_trace : SessionTrace := [
+  EvHandshakeComplete context_a;
+  EvBrokerCompromised 2;
+  EvChallengeIssued conn_a_sw (example_challenge false 6);
+  EvBrokerQuoteIssued caller_exporter_event;
+  EvAppraisalAccepted conn_a_sw software_policy (issued_evidence caller_exporter_event) 1 8
+].
+
+Theorem broker_compromise_matrix_cell :
+  ~ NoBrokerCompromise broker_compromise_trace /\
+  trace_broker_compromised broker_compromise_trace 2 /\
+  ~ LocalContextIntegrity example_profile (trace_issuances broker_compromise_trace)
+      example_measured example_aliases /\
+  snd (decide example_profile software_policy
+         (ledger_authentic (trace_issuances broker_compromise_trace))
+         conn_a_sw 1 8 (Some (issued_evidence caller_exporter_event))) = true /\
+  context_unit (issuer_context caller_exporter_event) <> context_unit context_a.
+Proof.
+  split; [intro H; apply (H 2); cbn; auto|].
+  split; [cbn; auto|].
+  split; [exact the_caller_exporter_event_breaks_local_context_integrity|].
+  split; [reflexivity|discriminate].
+Qed.
+
+(* 4. Cross-session replay matrix cell: replaying event_a (nonce 6) onto
+   conn_b_sw (nonce 7) or reusing context_a across reconnect fails. *)
+Theorem cross_session_replay_matrix_cell :
+  snd (decide example_profile software_policy
+         (ledger_authentic (trace_issuances honest_multi_session_trace))
+         conn_b_sw 1 8 (Some (issued_evidence event_a))) = false /\
+  phase (reconnect (fst (decide example_profile software_policy
+                           (ledger_authentic (trace_issuances honest_multi_session_trace))
+                           conn_a_sw 1 8 (Some (issued_evidence event_a))))
+                   context_a) = Closed.
+Proof.
+  split.
+  - eapply (cross_session_replay_is_refused env_honest_sw).
+    + exact honest_trace_bundle_fresh_a.
+    + exact honest_trace_bundle_fresh_b.
+    + discriminate.
+    + reflexivity.
+    + reflexivity.
+  - reflexivity.
+Qed.
+
+(* 5. Foreign correctly measured unit substitution matrix cell: unit 2
+   (context_b) has approved generation 7, succeeds under software_policy on
+   its own session conn_b_sw, and is refused both on context_a's session and
+   on its own session conn_b_unit under unit_specific_policy. *)
+Definition foreign_unit_trace : SessionTrace := [
+  EvHandshakeComplete context_a;
+  EvHandshakeComplete context_b;
+  EvChallengeIssued conn_a_unit (example_challenge true 8);
+  EvChallengeIssued conn_b_unit (example_challenge true 9);
+  EvBrokerQuoteIssued event_b_unit_9
+].
+
+Theorem foreign_unit_substitution_matrix_cell :
+  example_measured (context_unit context_b) = Some 7 /\
+  snd (decide example_profile software_policy
+         (ledger_authentic (trace_issuances honest_multi_session_trace))
+         conn_b_sw 1 8 (Some (issued_evidence event_b_sw_7))) = true /\
+  snd (decide example_profile unit_specific_policy
+         (ledger_authentic (trace_issuances foreign_unit_trace))
+         conn_b_unit 1 8 (Some (issued_evidence event_b_unit_9))) = false /\
+  snd (decide example_profile unit_specific_policy
+         (ledger_authentic (trace_issuances foreign_unit_trace))
+         conn_a_unit 1 8 (Some (issued_evidence event_b_unit_9))) = false.
+Proof.
+  repeat split; reflexivity.
+Qed.
+
+(* Quantified adversary compromise theorems for session-key and broker compromise. *)
+(*| discharges: R-12-015c |*)
+Theorem session_key_compromise_breaks_exclusivity_and_enables_impersonation :
+  forall profile policy auth tr conn attacker now sz ev,
+  In (EvKeyExposed (protected_context conn) attacker) tr ->
+  attacker <> context_unit (protected_context conn) ->
+  snd (decide profile policy auth conn now sz (Some ev)) = true ->
+  ~ NoKeyExposure tr /\
+  ~ ExclusiveTrafficKeys (protected_context conn) [context_unit (protected_context conn); attacker] /\
+  records_open (fst (decide profile policy auth conn now sz (Some ev)))
+               [context_unit (protected_context conn); attacker] attacker = true.
+Proof.
+  intros profile policy auth tr conn attacker now sz ev Hexp Hneq Hacc.
+  split; [intro Hno; exact (Hno (protected_context conn) attacker Hexp)|].
+  split.
+  - intro Hexcl. apply Hneq.
+    apply Hexcl. right. left. reflexivity.
+  - unfold decide in Hacc |- *. destruct (phase conn); [discriminate| |discriminate|discriminate].
+    destruct (appraisal_checks profile policy auth conn now sz ev); [|discriminate].
+    cbn. rewrite Nat.eqb_refl, orb_true_r. reflexivity.
+Qed.
+
+(*| discharges: R-12-015c |*)
+Theorem broker_compromise_breaks_integrity_and_permits_forged_binding :
+  forall env tr iss,
+  In (EvBrokerCompromised (context_unit (issuer_context iss))) tr ->
+  In (EvBrokerQuoteIssued iss) tr ->
+  evidence_exporter (issued_evidence iss) <> context_exporter (issuer_context iss) ->
+  ~ NoBrokerCompromise tr /\
+  ~ LocalContextIntegrity (ms_profile env) (trace_issuances tr) (ms_measured env) (ms_aliases env).
+Proof.
+  intros env tr iss Hbrk Hiss Hneq.
+  split; [intro Hno; exact (Hno (context_unit (issuer_context iss)) Hbrk)|].
+  intro Hloc. apply trace_issuances_in_tr in Hiss.
+  destruct (Hloc iss Hiss) as [_ [Heq _]]. contradiction.
+Qed.
+
+Definition witness_MultiSessionEnv : MultiSessionEnv := env_honest_sw.
+
+Definition witness_ByteForwardingRelay : ByteForwardingRelay := {|
+  relay_hops := [90; 91];
+  relay_source := context_a;
+  relay_target := context_a;
+  relay_evidence := issued_evidence event_a;
+  relay_same_holder := conj eq_refl (conj eq_refl (conj eq_refl eq_refl))
+|}.
