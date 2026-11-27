@@ -19,16 +19,6 @@ canonical-consumer acceptance remains owed.
   (`-norec` absent) on both `CanonicalPhysicalCallerBridge` and
   `CanonicalTagConservativity` matching the exact `31` classified floating-point
   axioms, bound inputs, installed-prefix comparison, and replay commands.
-- [Canonical hart-0 recursive kernel and native assumption closure](../implementation/retained-evidence/q35p-canonical-closure-20261126/manifest.json),
-  SHA256 `0bebb10f9f6dd53d0af6bb3912fef8dbb0acc715e96a5b21bb38f04dae5dbf26`.
-  Strict compilation of `TagInterpreter.v` and `CanonicalPhysicalCallerBridge.v`
-  against the canonical hart-0 term (`rv64d_types`, `rv64d`, `riscv_extras`),
-  native `Print Assumptions` audit across all `429` enumerated declarations
-  (`122` in `CanonicalTagPlaneInst`, `307` in `CanonicalPhysicalCallerBridge`,
-  all closed under the global context), full recursive `rocqchk -silent -o`
-  (`-norec` absent) on `CanonicalPhysicalCallerBridge` matching the exact `31`
-  classified floating-point axioms, bound inputs, installed-prefix comparison,
-  and replay commands.
 - [Recursive kernel and native assumption closure](../implementation/retained-evidence/q35p-recursive-closure-20261126/manifest.json),
   SHA256 `b47e2e2147e339567e28a762510af6de4f3eb640c2091b3a697254121f156ba1`.
   Native `Print Assumptions` audit across all four authored Q35p modules (`811`
@@ -40,37 +30,24 @@ canonical-consumer acceptance remains owed.
   Full 29-module source diff, compiled objects, normalized top-level elaborated
   readings (1,868 declarations each), installed-prefix inventories and replay
   commands.
-- [Packaged Q35p isolated replay](../implementation/retained-evidence/q35p-holdfast-frozen-replay-20261125/manifest.json),
-  SHA256 `75aacf6bccc11d27fe4a1503d3bb79b973f531ed1fb6b31f6aa5bddb9d532953`.
-  Frozen inputs, strict compile commands, repeated emission and installed-prefix comparison.
+- [Canonical caller replay manifest](../implementation/retained-evidence/q35p-canonical-callers-20261125/manifest.json),
+  SHA256 `e1a92981e480aadecdd6baebb1fd4f98d836c2bb3b89039c6599cc36cff1a4d7`.
+  Canonical hart-0 `CanonicalPhysicalCallerBridge.v` source, caller equivalence
+  readings, and input identities.
 - [Native V1 conservativity and physical-caller checkpoint](../implementation/retained-evidence/holdfast-q35p-worker-proofs-20261125/manifest.json),
   SHA256 `8e0eb97c3f34a8a0e56bbcf5f1a9cf1856a5c429b7916f9e0fdb806b2edd088c`.
   Frozen source identities, minimal emission repeats and focused proof readings.
 - [Refreshed sequential emulator isolation](../implementation/retained-evidence/q35p-holdfast-emulator-refresh-20261125/manifest.json),
   SHA256 `eb6ef7fec1e686543a1b759dabe20c2d087a6830a1387d7cc8035dcc2c1806b6`.
   Bound source change, paired run commands and exact output comparisons.
-- [Fresh sequential emulator repeat](../implementation/retained-evidence/q35p-holdfast-emulator-repeat-20261125/manifest.json),
-  SHA256 `866a62b9da6f484ce28ebae0cc4f5bc6d788078dd4ab2898daaeda5a7490bcec`.
-  Exact run commands, frozen identities and comparisons against the prior pair.
-- [Paired emulator emission and determinism controls](../implementation/retained-evidence/q35p-holdfast-emulator-20261125/manifest.json),
-  SHA256 `319b746cef4fb0b77ab08190a052f02ce95e1d3eba23be501ab9157d81baeac1`.
-  Build commands, source and tool identities, and exact output comparisons for
-  the default, stock-repeat and sequential runs.
-- [Bounded tag outcomes](../implementation/retained-evidence/q35p-tag-outcomes-20261023/manifest.json),
-  SHA256 `975fb21ac24e0e45c07ac5704e16ebe3a6fcdd229837090178173eb80fb74ba2`:
-  immutable semantic patch, authored laws/controls, emitted reproducer, native
-  readings, compiler arguments, inputs and available logs.
 - [Baseline bindings](../implementation/retained-evidence/close3-q35p-20261013/manifest.json),
   SHA256 `db26237bdbde7915efa9f3d4ce29b3b95c595dc1008842fb34ce9f713a4f3510`:
   emulator/state readings and original diagnostic, with
   [frozen inputs](../implementation/retained-evidence/close3-q35p-20261013/inputs.json).
 - [Reusable native candidate](../implementation/retained-evidence/reuse-wire-tags-20261023/manifest.json),
   SHA256 `3fe661163dd4ac2c9781d2229e2a8a546306bfe87359bbecffa1f0d762aaac0d`:
-  separate patch, support, unchanged minimal emission, readings, assumptions, scoped
+  patch, support, unchanged minimal emission, readings, assumptions, scoped
   kernel check and installed-path inventories at `a5e4ba0e3e2ab477cdde2ae8a59dd47b82a9da90`.
-- [Executed reusable drivers](../implementation/retained-evidence/reuse-wire-tags-drivers-20261023/manifest.json),
-  SHA256 `04b6f1e55fc37ca623105f559be23a23c6af723a271e0adfbd49074d1680dfb6`:
-  original per-attempt Python commands.
 
 <a id="actual-semantic-boundary"></a>
 
@@ -100,37 +77,28 @@ flags. Native readings resolve all seven primitives:
 
 ## Executable interpretation and checked scope
 
-`TagOutcomeLaws.v` interprets tags by executable finite-map lookup/insertion at
-`bv_unsigned key`. An absent key reads `false`; writing returns `tt` and changes
-only that key. Other outcomes retain their payloads, responses and continuations
-as residual requests. Laws establish primitive agreement for arbitrary maps and
-continuations, neighbor framing, exception/early-return forwarding and the composed
-read/write/read/clear sequence. The functor takes the exact emitted `Interface`
-implementation and assumes no desired handler-agreement law.
+[TagInterpreter.v](../../tools/sail-tag-outcomes/TagInterpreter.v) gives a fuelled
+finite-map interpretation with a fixed other-outcome handler and generic frame,
+interpreting tags by executable lookup/insertion at `bv_unsigned key`.
+Primitive bridges quantify over arbitrary maps, keys, frames and continuations,
+establishing neighbor framing, exception/early-return forwarding, and primitive
+agreement for the exact emitted `Interface` implementation.
 
-`CallerBridge.v` proves the actual metadata loop's ascending event sequence and
-map interpretation for arbitrary endpoints, initial maps and continuations,
-including the emitted fixed-width endpoint addition. Controls cover aligned,
-partial and multi-granule writes, distinct raw keys, zero, the largest unsigned
-key and the existing empty loop at wraparound.
-
-Physical lemmas instantiate `Write_plain` and `Read_plain`. Every `Ok` data-write
-response, including `Ok (Some false)`, runs metadata and returns `true`; `Err ()`
-returns `false` without metadata. Read controls observe requested metadata before
-data, the unrequested default and returned metadata after zero-data success.
-Read refusals establish event shape, not exact refusal-payload equivalence;
-printed definitions separately retain the refusal bodies.
-
-Distinguishing `Fail` controls reject changed write type, discarded writes,
-unconstrained reads, aliased/changed neighbors, omitted/reordered/added clears,
-tag-as-exception and dummy data writes. Selected support, laws, emitted modules
-and controls compile strictly. Queries instantiated against the emitted
-architecture/interface have closed global contexts; the focused kernel check
-exits zero. Final source identities and installed dependency sentinels agree.
+[TagControls.v](../../tools/sail-tag-outcomes/TagControls.v) and
+[PhysicalCallerBridge.v](../../tools/sail-tag-outcomes/PhysicalCallerBridge.v)
+check the actual emitted metadata loop and `read_ram`/`write_ram` callers:
+aligned, partial and multi-granule writes, distinct raw keys, zero, the largest
+unsigned key, and the empty loop at wraparound; requested/unrequested tag reads,
+tag/data order, all three `Ok` forms and `Err ()`, ascending clears, forwarding,
+and `GenericFail "exit"` / `internal_error` refusals. Distinguishing `Fail`
+controls reject changed write type, discarded writes, unconstrained reads,
+aliased/changed neighbors, omitted/reordered/added clears, tag-as-exception, and
+dummy data writes. These finite controls establish no universal physical-caller
+theorem.
 
 ## Reusable candidate and independent controls
 
-The separate [reusable V1 candidate](../../tools/sail-tag-outcomes/README.md)
+The [reusable V1 candidate](../../tools/sail-tag-outcomes/README.md)
 packages an isolated construction and replay recipe. The November input set binds
 the retained Sail and Z3 binaries, complete selected plugin population and private
 stdpp source and object bytes. The packaged replay strictly compiled the 29 selected
@@ -139,30 +107,14 @@ Both emissions reproduced the retained sources exactly. The before/after
 installed-prefix inventories agreed. The [frozen V1 instance comparison](#frozen-v1-instance-comparison) reads the
 affected interface and builtins on both compiled sides.
 
-[TagInterpreter.v](../../tools/sail-tag-outcomes/TagInterpreter.v) gives a fuelled
-finite-map interpretation with a fixed other-outcome handler and generic frame.
-Primitive bridges quantify over arbitrary maps, keys, frames and continuations.
-[TagControls.v](../../tools/sail-tag-outcomes/TagControls.v) observes actual callers'
-complete data environment and frame: requested/unrequested reads, tag/data order,
-all three `Ok` forms and `Err ()`, ascending clears, wraparound, forwarding and
-refusals. These finite controls establish no universal physical-caller theorem.
-
-All 33 queried new proofs have closed global contexts. `rocqchk -norec` passes
-on the two authored objects while admitting dependencies; that supplies no
-dependency-axiom closure. Minimal Rocq outputs repeat byte for byte, as do two C
-regenerations' `.c`/`.h` files; this is not paired full-model regeneration.
-
-Before/after inventories rescan all 10,904 installed proof `bin`/`lib` paths,
-including additions/deletions, unchanged. All 16,140 Sail paths agree during the
-later query/C-generation interval; initial minimal Rocq emission precedes it.
-No shared installation is rebuilt or repaired. The reusable checkpoint ends at
-twelve checks within a conservative 1,001-second wall interval.
-
-The two patches share constructor types, binding bodies and forwarding, with
-different comments and placement. Each reading, assumption and kernel verdict
-belongs to its elaborated candidate; source similarity transfers no verdict.
-Both preserve BSD-2-Clause notices and leave the production recipe, shared switch,
-model and emitter unchanged.
+All 811 enumerated declarations across the four authored modules in the packaged
+replay have closed native assumption queries, and full recursive `rocqchk -silent -o`
+passes across all four partitions below. Minimal Rocq outputs repeat byte for
+byte, as do two C regenerations' `.c`/`.h` files; this is not paired full-model
+regeneration. Before/after inventories rescan all installed proof `bin`/`lib`
+paths, unchanged, and Sail paths agree during the query/C-generation interval.
+The candidate preserves BSD-2-Clause notices and leaves the production recipe,
+shared switch, model and emitter unchanged.
 
 ## Conservativity and physical callers
 
@@ -217,17 +169,7 @@ and `About` readings agree. Its printed body adds exactly the `TagRead` and
 `TagWrite` cases, each recurring on the trace tail. Every previous case agrees.
 The `pure_iTrace` wrapper, the `iTrace_match` relation and the `iMon_equiv`
 definition that uses them have identical native readings on both sides. The
-complete 29-module support comparison is retained below; the qualified
-dependency closure remains open.
-
-At `25cd8283`, the [packaged replay](../../tools/sail-tag-outcomes/README.md)
-compiled the same minimal architecture against each private support build. Its
-fresh readings matched the frozen normalized bytes for all 167 baseline and
-171 candidate declarations. Both minimal emissions repeated byte for byte and
-both installed-prefix inventories matched before and after. The inputs, commands
-and measured reading and object identities are retained in the
-[packaged replay of both frozen V1 readings](../implementation/retained-evidence/q35p-packaged-v1-20261125/manifest.json),
-SHA256 `f40781dc29683f38a7f0731d996f7e86b4f76f9a16e11b4e7e836348a1dd8f35`.
+complete 29-module support comparison and recursive closure are retained below.
 
 ## Complete 29-module support comparison
 
@@ -313,22 +255,9 @@ against the compiled canonical hart-0 term (`rv64d_types.vo`, `rv64d.vo`,
 `riscv_extras.vo`), all 29 compiled `SailStdpp` candidate objects, and the
 matching private `stdpp` tree. After verifying input source/object digests and
 snapshotting the installed Rocq prefix before and after, it strictly compiles
-`TagInterpreter.v` and `CanonicalPhysicalCallerBridge.v`, enumerates all
-declarations of `CanonicalTagPlaneInst := TagInterpreter.TagPlane rv64d_types.Arch rv64d_types.Interface`
-(`122` declarations) and `CanonicalPhysicalCallerBridge` (`307` declarations)
-under native `Print Assumptions` (all `429` declarations report `Closed under
-the global context`), and runs full recursive `rocqchk -silent -o` (with `-norec`
-absent) on `CanonicalPhysicalCallerBridge`. The recursive kernel check exits
-`0` (`23.228` seconds) and reports only the exact `31` classified floating-point
-axioms in [the canonical machine term](canonical-machine-term.md#the-31-the-emission-declares),
-with `0` `Stdlib.Reals` axioms, `0` `Program.Wf`/`Values_lemmas` axioms, and
-`0` new tag or bridge axioms (`installed-comparison.json` records zero prefix
-changes). `candidate.json` binds `frozen_canonical_closure_manifest` to
-[Canonical hart-0 recursive kernel and native assumption closure](../implementation/retained-evidence/q35p-canonical-closure-20261126/manifest.json),
-SHA256 `0bebb10f9f6dd53d0af6bb3912fef8dbb0acc715e96a5b21bb38f04dae5dbf26`.
-
-[CanonicalTagConservativity.v](../../tools/sail-tag-outcomes/CanonicalTagConservativity.v)
-extends that canonical hart-0 closure to `TagConservativity`. It instantiates
+all four authored modules (`TagInterpreter.v`, `TagConservativity.v`,
+`CanonicalPhysicalCallerBridge.v`, and [CanonicalTagConservativity.v](../../tools/sail-tag-outcomes/CanonicalTagConservativity.v)).
+`CanonicalTagConservativity` instantiates
 `CanonicalOldOutcomes := TagConservativity.OldOutcomes rv64d_types.Arch rv64d_types.Interface`,
 bridges `CanonicalPhysicalCallerBridge.T.run` to `CanonicalOldOutcomes.run_old`,
 and proves caller-level tag-preservation and conservativity lemmas over
@@ -339,16 +268,16 @@ under a `MemWrite` refusal (`Err tt`) returns `false` without invoking
 `__WriteRAM_Meta` and preserves `tags` unchanged; and negative controls exclude
 `read_ram kind (Physaddr addr) width true`, `__ReadRAM_Meta`, and
 `__WriteRAM_Meta (zeros 64) 1 meta` from `CanonicalOldOutcomes.tag_free`.
-Re-running [the canonical closure driver](../../tools/sail-tag-outcomes/canonical_closure.py)
-strictly compiles all four authored modules, audits all `1,038` enumerated
-declarations under native `Print Assumptions` (`122` in `CanonicalTagPlaneInst`,
-`145` in `CanonicalOldOutcomesInst`, `307` in `CanonicalPhysicalCallerBridge`,
-and `464` in `CanonicalTagConservativity`, all `Closed under the global context`),
-and runs full recursive `rocqchk -silent -o` (`-norec` absent) on both
-`CanonicalPhysicalCallerBridge` (`26.088` seconds) and
+
+The driver audits all `1,038` enumerated declarations under native `Print Assumptions`
+(`122` in `CanonicalTagPlaneInst`, `145` in `CanonicalOldOutcomesInst`, `307` in
+`CanonicalPhysicalCallerBridge`, and `464` in `CanonicalTagConservativity`, all
+`Closed under the global context`) and runs full recursive `rocqchk -silent -o`
+(`-norec` absent) on both `CanonicalPhysicalCallerBridge` (`26.088` seconds) and
 `CanonicalTagConservativity` (`24.429` seconds, `50.517` seconds total), both
-exiting `0` with only the exact `31` classified floating-point axioms (`0`
-`Stdlib.Reals`, `0` `Program.Wf`/`Values_lemmas`, `0` new tag, conservativity,
+exiting `0` with only the exact `31` classified floating-point axioms in
+[the canonical machine term](canonical-machine-term.md#the-31-the-emission-declares)
+(`0` `Stdlib.Reals`, `0` `Program.Wf`/`Values_lemmas`, `0` new tag, conservativity,
 or bridge axioms) and zero installed-prefix changes. `candidate.json` binds
 `frozen_canonical_conservativity_manifest` to
 [Canonical hart-0 TagConservativity recursive kernel and native assumption closure](../implementation/retained-evidence/q35p-canonical-conservativity-20261127/manifest.json),
@@ -389,8 +318,8 @@ size with private support. Q35p's isolated 29-module support comparison, V1
 instance readings, native `Print Assumptions` audit, and four-partition
 recursive `rocqchk -silent -o` closure checkpoint are retained against the
 November inputs, and the canonical hart-0 closure replay extends native
-`Print Assumptions` (`429` closed declarations in `q35p-canonical-closure-20261126`,
-extended to `1,038` closed declarations in `q35p-canonical-conservativity-20261127`)
+`Print Assumptions` (`1,038` closed declarations in
+`q35p-canonical-conservativity-20261127`)
 and un-admitted recursive `rocqchk -silent -o` (`31` classified floating-point
 axioms, `F-480`) to `TagInterpreter`, `TagConservativity`,
 `CanonicalPhysicalCallerBridge`, and `CanonicalTagConservativity`. Q35p remains open for the

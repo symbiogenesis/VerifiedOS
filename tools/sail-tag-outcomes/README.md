@@ -7,9 +7,8 @@ production support recipe, prover switch, Sail source or emitter.
 
 - `candidate.json` binds the immutable semantic patch, existing source recipe,
   unchanged minimal Sail reproducer, qualified private syntax-plugin identity,
-  and all five frozen manifests (`frozen_v1_manifest`,
-  `frozen_support_manifest`, `frozen_closure_manifest`,
-  `frozen_canonical_closure_manifest`, and
+  and all four frozen manifests (`frozen_v1_manifest`,
+  `frozen_support_manifest`, `frozen_closure_manifest`, and
   `frozen_canonical_conservativity_manifest`).
 - `TagInterpreter.v` defines executable finite-map tag legality, a fixed handler
   for other outcomes, primitive continuation bridges and forwarding lemmas.
@@ -146,8 +145,7 @@ python3 tools/sail-tag-outcomes/canonical_closure.py \
 ```
 
 Focused host helper controls for `canonical_closure.py` and the
-`frozen_canonical_closure_manifest` /
-`frozen_canonical_conservativity_manifest` bindings run with:
+`frozen_canonical_conservativity_manifest` binding run with:
 
 ```powershell
 python -m unittest discover -s tools/sail-tag-outcomes -p "test_*.py"

@@ -301,48 +301,14 @@ The target binds the frozen profile and the model-side removals have landed, so 
 
 ## 9. The whole-term compile refusal
 
-[Canonical compile refusal bundle](../implementation/retained-evidence/q35o-20261013/manifest.json), SHA256 `a673461478bb2b157d6c61a7e14f1c7faa7d0403a5fdcfc2ff9fc786e74620f2`,
-binds every retained generation record, diagnostic, fragment and notice.
-
-The 2026-10-13 emission uses the locked Sail 0.20.3 and the unchanged frozen
-primary-composition model. Its retained
-[generation receipt](../implementation/retained-evidence/q35o-20261013/receipt.json)
-binds the complete source listing, configuration, toolchain and both output
-files. It reports 31 emitted axioms, retaining their existing source
-classifications; that count is not an assumption-closure verdict.
-
-Q35n's [focused support result](../../tools/opam/sail-compatibility.md#focused-strict-source-result)
-compiles the paired support's selected sources strictly, compares their frozen
-readings and checks the exact import controls. A whole-term baseline compile
-against that private support, at Rocq 9.3.0 with the original build settings,
-provides a distinct result. Those settings permit diagnostics and establish no
-strict acceptance. The
-[compile record](../implementation/retained-evidence/q35o-20261013/compile-receipt.json)
-records the commands, mappings and exits: the handwritten support and emitted
-types compile, while the main output exits 1 at `__WriteRAM_Meta`.
-
-The [exact diagnostic](../implementation/retained-evidence/q35o-20261013/rv64d.v.compile.log)
-and [source fragment](../implementation/retained-evidence/q35o-20261013/write-tag-fragment.txt)
-identify the first semantic incompatibility. In
+Compiling the untouched emitted canonical term (`rv64d.v`) against the earlier
+paired `coq-sail` 0.20.3 support failed at `__WriteRAM_Meta`: in
 [the metadata owner](../../model/model/core/mem_metadata.sail), `__write_tag` is
-an impure `(bits(64), bool) -> unit` primitive, and `__WriteRAM_Meta` calls it
-for every granule spanned by a successful data write. The emitted loop expects
-`M unit`; `write_tag_bool` resolves to
-`SailStdpp.Prompt_monad.write_tag_bool`, whose result has type
-`Prompt_monad.monad bool ?E0`. Neither a missing `Proof` command nor notation
-spelling explains that mismatch. The uncompiled main has no accepted kernel
-closure and no complete compiled-size result.
-
-The [refusal record](../implementation/retained-evidence/q35o-20261013/refusal.json)
-binds the source identities and preserves the stopping decision. No model
-primitive, statement, assumption, support definition or backend changed to make
-this compile. [Q35o's current qualification](sail-rocq-emission.md)
-emits the actual target without unused `Real` and binds the complete selected
-native plugin population and directory order. Unsupported library/site selectors
-require explicit absolute plugin selection. The private syntax trial retains a
-further notation refusal; complete frozen/strict consumer and hosted plugin
-qualification remain open. The identity checks bind stable inputs before and
-after generation and supply no atomic observation of dynamic plugin loading.
+an impure `(bits(64), bool) -> unit` primitive expecting `M unit`, whereas
+`SailStdpp.Prompt_monad.write_tag_bool` returned `Prompt_monad.monad bool ?E0`.
+That semantic mismatch is owned and addressed by Q35p's
+[tag-outcome qualification](sail-memory-bindings.md) and compiled in
+[Q35o's canonical candidate replay](sail-rocq-emission.md).
 
 Q35p's [bounded seven-binding qualification](sail-memory-bindings.md)
 reproduces this mismatch against the canonical concurrency outcome monad.

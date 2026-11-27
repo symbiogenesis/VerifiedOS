@@ -1,3 +1,0 @@
-description = "Original Q35q native metadata producer"
-requires = "rocq-runtime.vernac"
-plugin(native) = "vos_rocq_census.cmxs"

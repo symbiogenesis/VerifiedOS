@@ -461,9 +461,6 @@ def main() -> None:
     if recorded_fp != sorted(EXPECTED_CANONICAL_FP_AXIOMS):
         raise ValueError("recorded canonical FP axioms do not match expected 31 axioms")
 
-    frozen_canonical = cast("dict[str, str] | None", recipe.get("frozen_canonical_closure_manifest"))
-    if frozen_canonical is not None:
-        require_sha(repo / frozen_canonical["path"], frozen_canonical["sha256"])
     frozen_conservativity = cast(
         "dict[str, str] | None", recipe.get("frozen_canonical_conservativity_manifest"),
     )
@@ -527,9 +524,6 @@ def main() -> None:
         "support_recipe_sha256": sha(support_recipe_path),
         "canonical_diagnostic_manifest_sha256": sha(diag_manifest_path),
         "canonical_callers_manifest_sha256": sha(callers_manifest_path),
-        "frozen_canonical_closure_manifest_sha256": (
-            frozen_canonical["sha256"] if frozen_canonical is not None else None
-        ),
         "frozen_canonical_conservativity_manifest_sha256": (
             frozen_conservativity["sha256"] if frozen_conservativity is not None else None
         ),

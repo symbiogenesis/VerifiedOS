@@ -516,7 +516,7 @@ class CanonicalClosureControls(unittest.TestCase):
         recipe = json.loads(
             (repo / "tools/sail-tag-outcomes/candidate.json").read_text(encoding="utf-8"),
         )
-        for key in ("frozen_canonical_closure_manifest", "frozen_canonical_conservativity_manifest"):
+        for key in ("frozen_canonical_conservativity_manifest",):
             entry = recipe[key]
             manifest = repo / entry["path"]
             self.assertTrue(manifest.is_file(), f"missing {key}: {manifest}")

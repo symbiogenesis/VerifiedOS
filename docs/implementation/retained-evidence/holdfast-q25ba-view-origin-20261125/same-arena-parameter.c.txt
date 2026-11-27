@@ -1,7 +1,0 @@
-int compare(unsigned char *arena, unsigned long offset)
-{
-    if (offset >= 8UL) {
-        return 0;
-    }
-    return arena + offset == arena + 4;
-}

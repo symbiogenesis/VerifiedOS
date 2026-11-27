@@ -6,27 +6,15 @@ import hashlib
 import json
 from collections.abc import Callable
 from pathlib import Path
-from typing import Any, Final, cast
+from typing import Any, cast
 
 from tests.harness import TOOLS, Case, ensure
 from vos import copy_q25bb_client as q25bb
 
 REPO_ROOT = TOOLS.parent
 EVIDENCE_ROOT = REPO_ROOT / "docs/implementation/retained-evidence"
-BUNDLE_20261126 = EVIDENCE_ROOT / "holdfast-q25bb-purecap-client-20261126"
 BUNDLE_20261127 = EVIDENCE_ROOT / "holdfast-q25bb-purecap-client-20261127"
 BUNDLE_DIR = BUNDLE_20261127
-
-HISTORICAL_20261126_CONTROLS: Final[dict[str, tuple[str, tuple[int, ...], str]]] = {
-    name: q25bb.NEGATIVE_CONTROL_SPECS[name]
-    for name in (
-        "mutated-payload-limit",
-        "mutated-snapshot-byte",
-        "mutated-suffix-clobber",
-        "mutated-refusal-output",
-        "mutated-narrow-arena-cap",
-    )
-}
 
 
 def _sha256(raw: bytes) -> str:
@@ -66,29 +54,6 @@ def _check_envelope_metrics(report: dict[str, Any], envelope: dict[str, Any]) ->
         and ops["vos_copy_submit"]["stack_frame_bytes"]["peak"] == 240
         and ops["vos_copy_take"]["stack_frame_bytes"]["peak"] == 176,
         f"unexpected stack bounds: {ops}",
-    )
-
-
-def _retained_bundle_20261126_positive() -> None:
-    _check_manifest(
-        BUNDLE_20261126,
-        {"report.json", "envelope.json", "controls.json", "driver.py.txt"},
-    )
-    report, envelope, controls = q25bb.validate_bundle_dir(
-        BUNDLE_20261126,
-        expected_controls=HISTORICAL_20261126_CONTROLS,
-        require_native_parity=False,
-    )
-    _check_envelope_metrics(report, envelope)
-    ctrl_map = cast(dict[str, Any], controls["controls"])
-    ensure(
-        ctrl_map["mutated-payload-limit"]["code"] == 14
-        and ctrl_map["mutated-snapshot-byte"]["code"] == 7
-        and ctrl_map["mutated-suffix-clobber"]["code"] == 8
-        and ctrl_map["mutated-refusal-output"]["code"] in (2, 6)
-        and ctrl_map["mutated-narrow-arena-cap"]["verdict"] == "trap"
-        and ctrl_map["mutated-narrow-arena-cap"]["trap_cause"] == 28,
-        f"unexpected 20261126 negative control results: {ctrl_map}",
     )
 
 
@@ -316,7 +281,6 @@ def _mutated_report_refusals() -> None:
 
 def cases() -> list[Case]:
     return [
-        Case("copy-q25bb-client-20261126-historical-passes", _retained_bundle_20261126_positive),
         Case("copy-q25bb-client-retained-bundle-passes", _retained_bundle_positive),
         Case("copy-q25bb-client-wrapper-and-scoping", _wrapper_and_client_scoping),
         Case("copy-q25bb-client-refuses-mutated-reports", _mutated_report_refusals),

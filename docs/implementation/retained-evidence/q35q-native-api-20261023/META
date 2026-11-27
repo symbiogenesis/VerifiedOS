@@ -1,3 +1,0 @@
-description = "Bounded Q35q native metadata probe"
-requires = "rocq-runtime.vernac"
-plugin(native) = "q35q_probe.cmxs"

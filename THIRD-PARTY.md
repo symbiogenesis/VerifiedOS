@@ -404,21 +404,6 @@ No upstream source, plugin, compiler or generated binary is distributed by
 this trial. A compatibility result supplies no production-carriage permission
 or proof verdict.
 
-The [Sail support compatibility trial](tools/opam/sail-compatibility.md), recorded
-2026-10-12, uses coq-sail 0.20.3 at
-`e7b914cddc032e3676eebd87a808229828013e9c` and stdpp/bitvector 1.13.0 as external
-native build inputs. Their actual license files were read: BSD-2-Clause for
-coq-sail, SHA-256 `9e52d88fe1802beb469e538b8c026ff5e7f9413ef06cd3ce898ee3928ae24df0`,
-and BSD-3-Clause for stdpp, SHA-256
-`bc4fe79f9b7f78bc6e4e61e1f7c430b1e413b82de4aacb9355ade5e43bad2a69`.
-[The retained receipt](docs/implementation/retained-evidence/rocq-compat-20261012/receipt.json)
-binds exact archives, source inventories, tool versions and logs; the two
-verbatim notices follow [the licensing map](COPYRIGHT.md#the-map).
-The repository retains authored probes and textual evidence, and conveys no
-upstream source tree or compiled library. The unchanged package build supplies
-no production carriage or assumption acceptance; any later pinned or patched
-library needs its exact incorporation and distribution recorded at that act.
-
 Q34g's [collector client-interface reading](docs/assurance/proof-reuse/parsers.md#guest-collector-proof-starting-point)
 uses CertiGraph `e42b44f4aad981210d56f9fa228414f09efd687c`; its own instrument states MIT. The 2026 paper's older `v2.0` reference supplies no
 dependency downgrade or substitute qualification. Q34h's future guest-producer
@@ -449,32 +434,6 @@ full frozen snapshot containing the two reviewed BSD-2-Clause patches and that
 notice. It distributes no dependency source tree or compiled library object.
 Its authored probes and qualification controller follow the original-file map.
 The project proof-switch lock remains unchanged until actual consumer acceptance.
-Q35q retains printed module and signature provenance from the same reviewed
-coq-sail release, with its exact BSD-2-Clause notice in
-`docs/implementation/retained-evidence/q35q-native-20261013/Sail-Support-LICENSE`. Its authored lookup queries copy no upstream proof script;
-no support source tree or compiled object is distributed.
-The signature type completeness evidence in
-`docs/implementation/retained-evidence/close3-q35q-20261013/` retains additional
-printed module/signature declarations from the same immutable coq-sail release,
-under BSD-2-Clause with its adjacent `Sail-Support-LICENSE`.
-Its authored query copies no proof script. The locally inspected Rocq printer
-source is bound only by digest and is not copied or excerpted. No support source
-tree or compiled object is distributed by this evidence.
-The native API diagnosis and restored replay in
-`docs/implementation/retained-evidence/q35q-native-api-20261023/` and
-`docs/implementation/retained-evidence/q35q-native-api-restoration-20261023/`
-retain diagnostic coq-sail signature types
-under the same BSD-2-Clause terms and notices. The original OCaml query sources
-and controls follow the original-file licensing map. The locked Rocq installation's
-LGPL-2.1 license and API headers were read before building; no upstream implementation
-or linked plugin is conveyed by these bundles.
-The constructor-based metadata in
-`docs/implementation/retained-evidence/reuse-wire-census-20261023/attempt-3-native-query.stdout.log.gz`
-retains coq-sail declaration types under those same BSD-2-Clause terms, with the
-verbatim release notice at [Sail-Support-LICENSE.md](tools/rocq-census/Sail-Support-LICENSE.md).
-The original [producer](tools/rocq-census/README.md), runner and control sources
-follow the original-file map. No Rocq implementation, linked plugin or support
-object is conveyed. This metadata control supplies no complete census acceptance.
 The native census continuation also reads the locked Stdlib installation,
 whose package metadata and inspected release `LICENSE` declare
 `LGPL-2.1-only`. The immutable source is
@@ -491,9 +450,6 @@ Complete body encodings exist only in native memory during digest and reference
 collection. The original producer uses installed APIs and copies no library
 implementation. This continuation changes neither the licensing map nor the
 qualification status of the installed libraries.
-The `q35o-20261013/` refusal bundle retains the generated tag-loop fragment and its diagnostics, with the
-exact RISC-V and CHERI model notices. The fragment keeps
-BSD-2-Clause terms; no complete emitted term is distributed by that evidence.
 Q35p retains the model-derived minimal memory/tag reproducer and its generated
 outputs, paired coq-sail interface excerpts, and locked Sail library/runtime
 excerpts in `docs/implementation/retained-evidence/close3-q35p-20261013/`.
@@ -502,14 +458,6 @@ retained beside those BSD-2-Clause excerpts.
 Authored reproducer scaffolding uses the same terms. The licensing map names
 each source-derived file; no complete canonical term, dependency source tree or
 compiled object is distributed.
-The bounded tag-outcome construction in
-`docs/implementation/retained-evidence/q35p-tag-outcomes-20261023/` retains a
-semantic diff and native declaration readings from the same exact coq-sail
-release, plus the unchanged model-derived minimal reproducer and its generated
-outputs. The BSD-2-Clause support, model, CHERI and Sail notices accompany those
-source-derived members. Fresh authored law and query sources follow the
-original-file map. The construction distributes no complete dependency tree,
-compiled object or full canonical term and changes no shared switch or lock.
 Q35o's compatibility evidence in
 `docs/implementation/retained-evidence/close3-q35o-20261013/` retains a private
 syntax-only diff to the locked Sail's `src/sail_coq_backend/pretty_print_coq.ml` at
@@ -535,15 +483,6 @@ authored changes to the support use those terms. Its original finite-map interpr
 controls and replay helper follow the original-file map. Strict private compilation
 and bounded caller proofs do not install the candidate, change the production
 support recipe, or qualify its complete assumption and canonical-consumer joins.
-
-The handwritten-support and canonical-types qualification in
-`docs/implementation/retained-evidence/q35o-handwritten-types-20261023/` retains
-model-derived support sources and native elaborated declaration readings under
-BSD-2-Clause, with exact model, CHERI and CHERI verification notices. Its
-`LICENSE.sail` is the Sail compiler notice; `LICENSE.support` separately records
-coq-sail's paired support notice. Authored maintenance scripts follow the
-original-file map. Complete generated canonical source and native objects
-remain untracked.
 
 Tools used to observe, execute, or accelerate a build do not automatically license its output. Non-commercial restrictions also govern use, even where nothing is distributed.
 

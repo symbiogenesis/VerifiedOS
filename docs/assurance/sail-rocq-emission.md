@@ -24,11 +24,6 @@ Each bundle binds its executed commands, inputs, readings and diagnostics.
   SHA256 `7372aa91c69788edf57e531c9b333ad3ce820cf7432a6f543deca56ea5947188`.
   Stock and candidate emission identities, strict compilation, the native
   kernel context, named assumption reconciliation and focused controls.
-- [Handwritten support and canonical types](../implementation/retained-evidence/q35o-handwritten-types-20261023/manifest.json),
-  SHA256 `e6d5db45c31b8983a137bfbd0bd04a9ea36a400a9128aecad9f66a6b97bf835d`:
-  preserving import repair, native declarations and assumptions, fresh original-plugin
-  generation, complete types comparison and strict compilation at
-  `a5e4ba0e3e2ab477cdde2ae8a59dd47b82a9da90`.
 - [Scoped canonical syntax](../implementation/retained-evidence/q35o-scope-20261023/manifest.json),
   SHA256 `30f9caabab5f9e92c949242b527a8702b4a6a19ec022ef821b7367465305b32c`:
   private patch, four notation controls, canonical generation identity, first strict
@@ -71,23 +66,12 @@ and Linux typechecking passes.
 ## Handwritten support and canonical types qualification
 
 The model-owned `riscv_extras.v` explicitly imports `List` and `Lia` from
-`Stdlib`. Its complete native inventory has identical types, universes,
-transparent bodies and declaration metadata before and after the spelling
-change. All owned declarations have closed native assumption queries, and the
-candidate compiles strictly without diagnostics.
-
-Fresh original-plugin generation and the scoped candidate bind identical frozen
-configuration and complete Sail source identities. Their untouched
-`rv64d_types.v` files compile at identical original settings with byte-identical
-readings over every native declaration and transparent/inductive `Print` target.
-The candidate also compiles strictly. A cross-flag comparison would be invalid:
-`-disallow-sprop` suppresses automatically generated `_sind` declarations.
-
-Private support reconstructs exactly from the authenticated paired release and
-Q35g/Q35n patches without fuzz. The `Base` and canonical V1 dependency closures
-compile strictly. Source/object inventories bind the actual dependencies and
-unchanged installed objects and sentinels. The retained bounded replay reads the
-complete baseline body output under an explicit larger cap; it drops no body.
+`Stdlib`, and compiles strictly without diagnostics alongside the emitted
+`rv64d_types.v` and `rv64d.v` in the [canonical candidate replay](#canonical-candidate-replay).
+The untouched `rv64d_types.v` outputs retain identical elaborated readings across
+original and patched emitters (`-disallow-sprop` suppresses generated `_sind`
+declarations). Private support reconstructs from the authenticated paired release
+and Q35g/Q35n patches without fuzz.
 
 ## Immutable syntax trial and exact stop
 

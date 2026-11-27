@@ -104,55 +104,7 @@ hosted result completes Q35b.
 
 ## Trial result
 
-The 2026-10-12 trial starts at repository revision
-`af95a7f287ce04a2977687e12d6cab659b81679d`, after committing this contract as
-`bcd4bd6f`. Its private native prefix is
-`/root/build/lane-rocq-compat-20261012/sail-compatibility`. The
-[receipt](../../docs/implementation/retained-evidence/rocq-compat-20261012/receipt.json),
-SHA-256 `8705df0cd027c2428388b5206ddad89ebd1086823c1c3e4394c9a06b19f035bb`,
-records commands, actual source/archive/licence identities, executable hashes,
-exits and diagnostic-log digests. It records no source patch or downgrade.
-The generated retained-copy snapshot
-[`rocq-compat-20261012/manifest.json`](../../docs/implementation/retained-evidence/rocq-compat-20261012/manifest.json),
-SHA256 `009d5400b9a097291f8606858253fcbebee670a510bbbe8e49d8b7217425d19f`,
-binds every indexed receipt, log, probe, switch export and licence copy by size
-and SHA-256. The focused retained-evidence check verifies those unchanged bytes;
-the snapshot supplies no production or proof acceptance.
-The existing installed stdpp was copied into the private prefix; bitvector
-was built and installed only there. The unchanged source's own opam metadata
-admits Rocq 9.3.0, so selecting its immutable upstream commit provides a
-candidate route around the published package's upper bound.
-
-| Check | Observed result | Acceptance scope |
-| --- | --- | --- |
-| stdpp bitvector 1.13.0 Dune package build and private install | exit 0 | Exact dependency builds at the locked versions; retained confirmation reuses its private build outputs. |
-| Sail support 0.20.3 `dune build -p rocq-sail-stdpp -j 2 @install @runtest` | exit 0, with upstream diagnostics | Actual completing package build and package tests; incremental after correcting private dependency-path layout, not cold evidence. |
-| Term import probe and `Eqdep` control under the existing strict compiler flags | each exits 0 with no diagnostic | Imports from the private package build work; no changed theorem is qualified. |
-| Each probe's recursive `rocqchk -silent -o` | each exits 0 and names the same five Stdlib axioms | Reproduces the known assumption conflict; not passing exact-set acceptance. |
-| Direct `Print Assumptions` queries for those five declarations | exit 0, naming each axiom | Independently confirms the named assumption declarations. |
-| Strict compile of unchanged `Inhabited.v` | exit 1 at line 12, `notation-for-abbreviation` | First strict source refusal: two deprecated `Notation` abbreviations require reviewed source compatibility work. |
-| Shared proof-switch exports before/after | byte-identical, SHA-256 `3e70338fb77832f9e09ee8780cd10524e002420b1ca9aa5f56a15777765e1b32` | No shared package resolution changed. All inventoried upstream source bytes are unchanged. |
-
-The release archive's SHA-512 matches the published checksum. Its SHA-256 is
-`1a0e226608ac84add6cd1f61a11637ea9db5e00e1551b2070945310078c9e031`.
-The stdpp 1.13.0 archive used by bitvector likewise matches its published
-SHA-512; SHA-256
-`c7bec4536187ff8dc401efae828f1f5d1d4e3f32f46eca907ffa98f829011d00`.
-The exact Sail support `LICENSE` read is BSD-2-Clause, SHA-256
-`9e52d88fe1802beb469e538b8c026ff5e7f9413ef06cd3ce898ee3928ae24df0`;
-stdpp's `LICENSE` is BSD-3-Clause, SHA-256
-`bc4fe79f9b7f78bc6e4e61e1f7c430b1e413b82de4aacb9355ade5e43bad2a69`.
-Source trees and compiled libraries remain native trial inputs. The
-[third-party record](../../THIRD-PARTY.md) owns intended distribution.
-
-The bounded trial therefore closes the uncertainty about the package's real
-builder at the current versions and removes the policy requirement to wait
-for a release. It refuses production carriage. The next bounded source
-qualification must eliminate strict source diagnostics, qualify Q35g's
-five-axiom removal with frozen elaborated comparisons, and then run the full
-consumer acceptance on hosted cold inputs. An opam pin/import of a production
-snapshot, the full canonical term and a frozen semantic comparison were not
-performed. `rocq.lock` stays unchanged.
+The 2026-10-12 paired-release trial established that `rocq-stdpp-bitvector` 1.13.0 and `rocq-sail-stdpp` 0.20.3 (`e7b914cddc032e3676eebd87a808229828013e9c`) build via Dune against Rocq 9.3.0 without downgrading dependencies or waiting for an upstream opam release, while refusing production carriage: strict compilation rejects deprecated `Notation` abbreviations in `Inhabited.v` (`notation-for-abbreviation`) and the unchanged release loads five undeclared Stdlib axioms. The release archive digests and license readings (`BSD-2-Clause` for `coq-sail`, SHA-256 `9e52d88fe1802beb469e538b8c026ff5e7f9413ef06cd3ce898ee3928ae24df0`; `BSD-3-Clause` for `stdpp`, SHA-256 `bc4fe79f9b7f78bc6e4e61e1f7c430b1e413b82de4aacb9355ade5e43bad2a69`) remain recorded in [THIRD-PARTY.md](../../THIRD-PARTY.md).
 
 ## Reproduction
 
@@ -276,36 +228,13 @@ This source campaign qualifies a support candidate's portability only. The
 project lock and production carriage still require Q35p's semantic agreement,
 Q35o's emission compatibility and Q35b's actual canonical consumer acceptance.
 
-[First hosted cold source refusal](../../docs/implementation/retained-evidence/q35n-hosted-20261013-refusal/manifest.json), SHA256 `f819c10c3dd0c7a61750629f14c67d6ed2e142d3500f362d151dd30585a572c5`,
-retains the actual [campaign](https://github.com/symbiogenesis/VerifiedOS/actions/runs/38354508897)
-at `eb10cff9ef91e66560ec0a986782b8c24c19b556`. The guarded plan, cold dependency
-installation with package tests and all 29 strict support compiles passed. The
-first declaration inventory failed because the controller used `assumption-0.v`,
-an invalid Rocq module identifier. No native assumption, frozen repetition,
-recursive kernel or snapshot verdict was reached. The import job was skipped and
-the join refused the failed campaign.
-
-The bounded controller correction uses `Assumption_N.v` and `Frozen_N.v`,
-preserving query contents, compiler flags, command labels and acceptance logic.
-Its focused regression captures the actual compiler arguments of both loops;
-independent review and all ten selected controller cases passed. A fresh hosted
-campaign must pass before any source snapshot portability claim.
-
-[Hosted native-inventory refusal](../../docs/implementation/retained-evidence/q35n-hosted-20261014-refusal/manifest.json), SHA256 `b75cddf27c49fdb70323ae3b1ccd63611ee58cf1d867dfc1b6487f19a143d668`,
-retains the corrected [cold campaign](https://github.com/symbiogenesis/VerifiedOS/actions/runs/38497276040)
-at `42798d568df3988609d8afb6afbc2051634c6753`. All 48 recorded native commands
-exited zero, including the cold dependency/package build with tests and all 29
-strict support compiles. The `SailStdpp.Inhabited` search returned no declarations
-and its assumption query returned no output. The next search, for
-`SailStdpp.TypeCasts`, printed `TypeCasts.Z_eq_dec.U` first; the common inventory
-parser refused that spelling because it lacks the required
-`SailStdpp.TypeCasts.` prefix. These observations establish neither canonical
-ownership of the printed symbol nor completeness of the empty response.
-
-The TypeCasts assumption query, remaining inventories, frozen repetition, probes,
-recursive kernel check and snapshot export/import were not reached. The import
-job was skipped and the join refused the campaign. The common prefix/uniqueness
-guard remains unchanged; a compiler exit of zero supplies no complete audit.
+Prior cold hosted attempts (`eb10cff9ef91e66560ec0a986782b8c24c19b556` and
+`42798d568df3988609d8afb6afbc2051634c6753`) stopped before native assumption
+queries or snapshot export because `SailStdpp.Inhabited` returned no declarations
+and `SailStdpp.TypeCasts` printed shortened names (`TypeCasts.Z_eq_dec.U`) that
+failed the common `SailStdpp.<Mod>.` prefix guard. Those refusals remain blocked
+on Q35q's native support inventory prerequisite below; a passing hosted
+campaign is still required before any source snapshot portability claim.
 
 ## Native support inventory prerequisite
 

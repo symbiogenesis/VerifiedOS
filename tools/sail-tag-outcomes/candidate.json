@@ -23,10 +23,6 @@
     "path": "docs/implementation/retained-evidence/q35p-recursive-closure-20261126/manifest.json",
     "sha256": "b47e2e2147e339567e28a762510af6de4f3eb640c2091b3a697254121f156ba1"
   },
-  "frozen_canonical_closure_manifest": {
-    "path": "docs/implementation/retained-evidence/q35p-canonical-closure-20261126/manifest.json",
-    "sha256": "0bebb10f9f6dd53d0af6bb3912fef8dbb0acc715e96a5b21bb38f04dae5dbf26"
-  },
   "frozen_canonical_conservativity_manifest": {
     "path": "docs/implementation/retained-evidence/q35p-canonical-conservativity-20261127/manifest.json",
     "sha256": "86e7bf2fda88a47512833ec879df55663d843fc09a37330706b4ef20e234c9e2"
