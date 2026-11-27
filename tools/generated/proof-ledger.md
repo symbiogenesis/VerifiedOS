@@ -100,6 +100,9 @@ being a finding of the rules that read them rather than a row of this table.
 | R-05-004a | proofs/BooleanComposition.v | masked_aes_sbox_correct | claimed |
 | R-05-004a | proofs/BooleanComposition.v | masked_aes_sbox_multi_output_pini | claimed |
 | R-05-004a | proofs/BooleanComposition.v | masked_aes_sbox_out_is_pini | claimed |
+| R-05-004a | proofs/CombinedReduction.v | share_localized_unreduced_probing_secure | claimed |
+| R-05-004a | proofs/CombinedReduction.v | share_localized_adaptive_probing_secure | claimed |
+| R-05-004a | proofs/CombinedReduction.v | combined_single_fault_reduction | claimed |
 | R-05-004a | proofs/HmacDrbg.v | n/a | cited |
 | R-05-004a | proofs/MlDsa.v | n/a | cited |
 | R-05-004a | proofs/ProbingModel.v | sni_implies_ni | claimed |
@@ -121,6 +124,7 @@ being a finding of the rules that read them rather than a row of this table.
 | R-05-029 | proofs/AdmissionPath.v | a_transposition_of_the_records_changes_no_verdict | claimed |
 | R-05-029 | proofs/AdmissionPath.v | a_duplication_of_a_record_changes_no_verdict | claimed |
 | R-05-030 | proofs/AdmissionPath.v | n/a | cited |
+| R-05-031 | proofs/RuntimeBoundary.v | n/a | cited |
 | R-05-036 | proofs/AdmissionPath.v | n/a | cited |
 | R-05-037 | proofs/AdmissionPath.v | n/a | cited |
 | R-05-038 | proofs/AdmissionPath.v | n/a | cited |
@@ -193,6 +197,7 @@ being a finding of the rules that read them rather than a row of this table.
 | R-05-077a | proofs/Keccak.v | n/a | cited |
 | R-05-077a | proofs/RomVerifier.v | n/a | cited |
 | R-05-077a | proofs/Sha256.v | n/a | cited |
+| R-05-080 | proofs/RuntimeBoundary.v | n/a | cited |
 | R-05-083 | proofs/DeviceRegisters.v | n/a | cited |
 | R-05-086 | proofs/MModeFirmware.v | n/a | cited |
 | R-05-087 | proofs/MModeFirmware.v | the_firmware_holds_only_planned_authority | claimed |
@@ -200,6 +205,7 @@ being a finding of the rules that read them rather than a row of this table.
 | R-05-097 | proofs/CopyRingService.v | n/a | cited |
 | R-05-097 | proofs/HandlerGraph.v | n/a | cited |
 | R-05-098 | proofs/HandlerGraph.v | n/a | cited |
+| R-05-100 | proofs/RuntimeBoundary.v | n/a | cited |
 | R-05-102 | proofs/ApexTheorem.v | n/a | cited |
 | R-05-102 | proofs/ElasticDomain.v | n/a | cited |
 | R-05-104 | proofs/MemoryPlannerCertificates.v | n/a | cited |
@@ -249,6 +255,7 @@ being a finding of the rules that read them rather than a row of this table.
 | R-05-163 | proofs/ApexTheorem.v | n/a | cited |
 | R-05-163 | proofs/ArithmeticComposition.v | n/a | cited |
 | R-05-163 | proofs/BooleanComposition.v | n/a | cited |
+| R-05-163 | proofs/CombinedReduction.v | n/a | cited |
 | R-05-163 | proofs/ComposedNonInterference.v | n/a | cited |
 | R-05-163 | proofs/CopyRingService.v | n/a | cited |
 | R-05-163 | proofs/CredentialHandles.v | n/a | cited |
@@ -284,6 +291,7 @@ being a finding of the rules that read them rather than a row of this table.
 | R-05-163 | proofs/ResetTable.v | n/a | cited |
 | R-05-163 | proofs/RomVerifier.v | n/a | cited |
 | R-05-163 | proofs/RotFirmware.v | n/a | cited |
+| R-05-163 | proofs/RuntimeBoundary.v | n/a | cited |
 | R-05-163 | proofs/SeamWitnesses.v | n/a | cited |
 | R-05-163 | proofs/SecurityPolicyModel.v | n/a | cited |
 | R-05-163 | proofs/Sha256.v | n/a | cited |
@@ -297,6 +305,7 @@ being a finding of the rules that read them rather than a row of this table.
 | R-05-164 | proofs/ApexTheorem.v | n/a | cited |
 | R-05-164 | proofs/ArithmeticComposition.v | n/a | cited |
 | R-05-164 | proofs/BooleanComposition.v | n/a | cited |
+| R-05-164 | proofs/CombinedReduction.v | n/a | cited |
 | R-05-164 | proofs/ComposedNonInterference.v | n/a | cited |
 | R-05-164 | proofs/DischargeSequence.v | n/a | cited |
 | R-05-164 | proofs/ElasticDispatch.v | n/a | cited |
@@ -315,6 +324,7 @@ being a finding of the rules that read them rather than a row of this table.
 | R-05-164 | proofs/ProbingModel.v | n/a | cited |
 | R-05-164 | proofs/ResetTable.v | n/a | cited |
 | R-05-164 | proofs/RotFirmware.v | n/a | cited |
+| R-05-164 | proofs/RuntimeBoundary.v | n/a | cited |
 | R-05-164 | proofs/SeamWitnesses.v | n/a | cited |
 | R-05-164 | proofs/SecurityPolicyModel.v | n/a | cited |
 | R-05-164 | proofs/Sha256.v | n/a | cited |
@@ -336,6 +346,7 @@ being a finding of the rules that read them rather than a row of this table.
 | R-05-165 | proofs/ArithmeticComposition.v | omitted_barrier_recombination_is_secure_under_stable | claimed |
 | R-05-165 | proofs/ArithmeticComposition.v | omitted_barrier_recombination_leaks_under_glitch | claimed |
 | R-05-165 | proofs/BooleanComposition.v | n/a | cited |
+| R-05-165 | proofs/CombinedReduction.v | weakened_order_claim_fails_unreduced_predicate | claimed |
 | R-05-165 | proofs/ComposedNonInterference.v | quantifier_domains_inhabited | claimed |
 | R-05-165 | proofs/ComposedNonInterference.v | composed_premises_inhabited | claimed |
 | R-05-165 | proofs/ComposedNonInterference.v | composed_noninterference_inhabitation_witness | claimed |
@@ -382,6 +393,7 @@ being a finding of the rules that read them rather than a row of this table.
 | R-05-165 | proofs/ResetTable.v | n/a | cited |
 | R-05-165 | proofs/RomVerifier.v | n/a | cited |
 | R-05-165 | proofs/RotFirmware.v | n/a | cited |
+| R-05-165 | proofs/RuntimeBoundary.v | n/a | cited |
 | R-05-165 | proofs/ScheduleRecord.v | n/a | cited |
 | R-05-165 | proofs/SeamWitnesses.v | seam_lemmas_inhabitation | claimed |
 | R-05-165 | proofs/SeamWitnesses.v | substrate_and_tower_inhabitation | claimed |
@@ -431,6 +443,12 @@ being a finding of the rules that read them rather than a row of this table.
 | R-05-166 | proofs/BooleanComposition.v | dom_and_no_reg_refutes_ni_glitch | claimed |
 | R-05-166 | proofs/BooleanComposition.v | dom_and_no_reg_refutes_pini_robust | claimed |
 | R-05-166 | proofs/BooleanComposition.v | reused_rand_two_and_refutes_ni_stable | claimed |
+| R-05-166 | proofs/CombinedReduction.v | instantiated_masked_activation_conforming | claimed |
+| R-05-166 | proofs/CombinedReduction.v | instantiated_combined_reduction | claimed |
+| R-05-166 | proofs/CombinedReduction.v | cross_share_fault_breaks_unreduced_probing | claimed |
+| R-05-166 | proofs/CombinedReduction.v | two_fault_injection_breaks_reduction | claimed |
+| R-05-166 | proofs/CombinedReduction.v | missing_token_withholding_violates_detection_arm | claimed |
+| R-05-166 | proofs/CombinedReduction.v | weakened_order_claim_fails_unreduced_predicate | claimed |
 | R-05-166 | proofs/ComposedNonInterference.v | composed_premises_inhabited | claimed |
 | R-05-166 | proofs/ComposedNonInterference.v | composed_noninterference_inhabitation_witness | claimed |
 | R-05-166 | proofs/ComposedNonInterference.v | leaky_members_hold | claimed |
@@ -475,6 +493,7 @@ being a finding of the rules that read them rather than a row of this table.
 | R-05-166 | proofs/ResetTable.v | n/a | cited |
 | R-05-166 | proofs/RomVerifier.v | n/a | cited |
 | R-05-166 | proofs/RotFirmware.v | n/a | cited |
+| R-05-166 | proofs/RuntimeBoundary.v | n/a | cited |
 | R-05-166 | proofs/ScheduleRecord.v | n/a | cited |
 | R-05-166 | proofs/SeamWitnesses.v | seam_lemmas_inhabitation | claimed |
 | R-05-166 | proofs/SeamWitnesses.v | substrate_and_tower_inhabitation | claimed |
@@ -729,6 +748,7 @@ being a finding of the rules that read them rather than a row of this table.
 | R-07-044 | proofs/KernelInstance.v | clause_two_admits_a_burst_that_fails_no_residue | claimed |
 | R-07-044 | proofs/PartitionContext.v | pending_carries_nothing_across | claimed |
 | R-08-001 | proofs/KeyspaceDomains.v | n/a | cited |
+| R-08-004 | proofs/RuntimeBoundary.v | n/a | cited |
 | R-08-004c | proofs/EndpointIPC.v | n/a | cited |
 | R-08-004d | proofs/EndpointIPC.v | the_specification_gives_no_table_a_lifecycle | claimed |
 | R-08-004d | proofs/PartitionContext.v | n/a | cited |
@@ -1484,8 +1504,10 @@ being a finding of the rules that read them rather than a row of this table.
 | R-13-011 | proofs/AdmissionPath.v | n/a | cited |
 | R-13-011 | proofs/HandlerGraph.v | n/a | cited |
 | R-13-012 | proofs/AdmissionPath.v | n/a | cited |
+| R-13-012 | proofs/RuntimeBoundary.v | n/a | cited |
 | R-13-013 | proofs/AdmissionPath.v | the_specification_reads_no_pedigree | claimed |
 | R-13-013 | proofs/AdmissionPath.v | admission_does_not_move_with_the_producer | claimed |
+| R-13-013 | proofs/RuntimeBoundary.v | n/a | cited |
 | R-13-014 | proofs/AdmissionPath.v | the_specification_fails_closed | claimed |
 | R-13-014 | proofs/AdmissionPath.v | the_specification_satisfies_every_named_refusal | claimed |
 | R-13-022 | proofs/AdmissionPath.v | the_specification_fails_closed | claimed |
@@ -1551,6 +1573,7 @@ being a finding of the rules that read them rather than a row of this table.
 | R-14-011b | proofs/WorkflowProfiles.v | n/a | cited |
 | R-14-011c | proofs/IsolatedDesktop.v | n/a | cited |
 | R-14-012a | proofs/KeyspaceDomains.v | the_specification_reads_no_global_directory | claimed |
+| R-14-013a | proofs/RuntimeBoundary.v | n/a | cited |
 | R-14-015 | proofs/MemoryPlan.v | the_specification_places_the_arenas_second | claimed |
 | R-14-015 | proofs/MemoryPlan.v | the_specification_places_the_interpreter_body_first | claimed |
 | R-14-015 | proofs/MemoryPlan.v | the_specification_bound_is_monotone_in_the_member_cost | claimed |
@@ -1652,6 +1675,11 @@ being a finding of the rules that read them rather than a row of this table.
 | R-15-053a | proofs/BooleanComposition.v | masked_aes_sbox_correct | claimed |
 | R-15-053a | proofs/BooleanComposition.v | masked_aes_sbox_multi_output_pini | claimed |
 | R-15-053a | proofs/BooleanComposition.v | masked_aes_sbox_out_is_pini | claimed |
+| R-15-053a | proofs/CombinedReduction.v | share_localized_unreduced_probing_secure | claimed |
+| R-15-053a | proofs/CombinedReduction.v | share_localized_adaptive_probing_secure | claimed |
+| R-15-053a | proofs/CombinedReduction.v | combined_single_fault_reduction | claimed |
+| R-15-053a | proofs/CombinedReduction.v | combined_reduction_preserves_unreduced_order | claimed |
+| R-15-053a | proofs/CombinedReduction.v | weakened_order_claim_fails_unreduced_predicate | claimed |
 | R-15-053a | proofs/ProbingModel.v | reindexing_preserves_probability | claimed |
 | R-15-053a | proofs/ProbingModel.v | rerandomization_hides | claimed |
 | R-15-053a | proofs/ProbingModel.v | well_formed_gate_reads_earlier_wires | claimed |
@@ -2006,6 +2034,7 @@ being a finding of the rules that read them rather than a row of this table.
 | R-15-241d | proofs/TwoSourceExtractor.v | seed_chain_256_witness_realized | claimed |
 | R-15-241d | proofs/TwoSourceExtractor.v | refused_256_fails_admissibility_and_violates_budget | claimed |
 | R-15-241e | proofs/TwoSourceExtractor.v | n/a | cited |
+| R-16-001 | proofs/RuntimeBoundary.v | n/a | cited |
 | R-16-001 | proofs/SupervisionTree.v | n/a | cited |
 | R-16-003 | proofs/JournalIndex.v | an_admissible_commit_is_crash_consistent | claimed |
 | R-16-003 | proofs/JournalIndex.v | the_demo_commit_is_crash_consistent | claimed |
@@ -2016,6 +2045,15 @@ being a finding of the rules that read them rather than a row of this table.
 | R-16-007 | proofs/RotFirmware.v | n/a | cited |
 | R-16-007 | proofs/SupervisionTree.v | the_specification_counts_boots | claimed |
 | R-16-008 | proofs/ObjectTransactor.v | n/a | cited |
+| R-16-008f | proofs/CombinedReduction.v | zero_budget_permits_no_fault | claimed |
+| R-16-008f | proofs/CombinedReduction.v | single_fault_budget_conservation | claimed |
+| R-16-008f | proofs/CombinedReduction.v | at_most_one_fault_per_activation | claimed |
+| R-16-008f | proofs/CombinedReduction.v | two_faults_have_no_derivation | claimed |
+| R-16-008f | proofs/CombinedReduction.v | out_of_region_fault_excluded | claimed |
+| R-16-008f | proofs/CombinedReduction.v | activation_derivation_partition | claimed |
+| R-16-008f | proofs/CombinedReduction.v | combined_single_fault_reduction | claimed |
+| R-16-008f | proofs/CombinedReduction.v | two_fault_injection_breaks_reduction | claimed |
+| R-16-008f | proofs/CombinedReduction.v | missing_token_withholding_violates_detection_arm | claimed |
 | R-16-015 | proofs/RotFirmware.v | n/a | cited |
 | R-16-021 | proofs/RotFirmware.v | n/a | cited |
 | R-16-024 | proofs/SupervisionTree.v | n/a | cited |
@@ -2067,9 +2105,19 @@ being a finding of the rules that read them rather than a row of this table.
 | R-17-058a | proofs/ApexTheorem.v | n/a | cited |
 | R-17-058a | proofs/ArithmeticComposition.v | n/a | cited |
 | R-17-058a | proofs/BooleanComposition.v | n/a | cited |
+| R-17-058a | proofs/CombinedReduction.v | n/a | cited |
 | R-17-058a | proofs/ProbingModel.v | n/a | cited |
+| R-17-058b | proofs/CombinedReduction.v | two_faults_have_no_derivation | claimed |
+| R-17-058b | proofs/CombinedReduction.v | two_fault_injection_breaks_reduction | claimed |
+| R-17-058c | proofs/CombinedReduction.v | cross_share_fault_breaks_unreduced_probing | claimed |
 | R-17-058d | proofs/ArithmeticComposition.v | n/a | cited |
 | R-17-058d | proofs/BooleanComposition.v | n/a | cited |
+| R-17-058d | proofs/CombinedReduction.v | combined_single_fault_reduction | claimed |
+| R-17-058d | proofs/CombinedReduction.v | combined_reduction_preserves_unreduced_order | claimed |
+| R-17-058d | proofs/CombinedReduction.v | instantiated_masked_activation_conforming | claimed |
+| R-17-058d | proofs/CombinedReduction.v | instantiated_combined_reduction | claimed |
+| R-17-058d | proofs/CombinedReduction.v | missing_token_withholding_violates_detection_arm | claimed |
+| R-17-058d | proofs/CombinedReduction.v | weakened_order_claim_fails_unreduced_predicate | claimed |
 | R-17-058d | proofs/ProbingModel.v | n/a | cited |
 | R-17-058f | proofs/DischargeSequence.v | authority_invalidation_is_independent_of_residue_sanitization | claimed |
 | R-17-058i | proofs/ModuleFormats.v | n/a | cited |

@@ -23,7 +23,11 @@ def _live_source_inventory() -> None:
            "host-source boundary scan must never claim exact_native_acceptance")
     ensure(inv["production_admission"] is False,
            "host-source boundary scan must never claim production_admission")
-    ensure(inv["components_scanned"] == list(rb.ACTIVE_TARGET_COMPONENTS),
+    expected_scanned = [
+        *rb.ACTIVE_TARGET_COMPONENTS,
+        *(c for c in rb.OPTIONAL_TARGET_COMPONENTS if (_REPO_ROOT / c).is_dir()),
+    ]
+    ensure(inv["components_scanned"] == expected_scanned,
            f"unexpected scanned component list: {inv['components_scanned']!r}")
     ensure(inv["forbidden_symbol_findings"] == [],
            f"unexpected forbidden unwind/runtime symbols in active target C: "

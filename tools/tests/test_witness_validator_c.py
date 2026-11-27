@@ -12,7 +12,8 @@ from dataclasses import dataclass, replace
 from pathlib import Path
 
 from tests.harness import Case, ensure
-from vos import toolenv, witness as w
+from vos import toolenv
+from vos import witness as w
 from vos.proofs import strip_comments
 
 INDEPENDENT_CASES = True
@@ -257,7 +258,7 @@ def _supports_flags(compiler: str, flags: list[str], scratch: Path) -> bool:
 
 def _compile_and_run(compiler: str, flags: list[str], src_c: Path,
                      out_bin: Path) -> subprocess.CompletedProcess[str]:
-    built = subprocess.run(
+    return subprocess.run(
         [
             compiler,
             *flags,
@@ -271,7 +272,6 @@ def _compile_and_run(compiler: str, flags: list[str], src_c: Path,
         ],
         capture_output=True, text=True, timeout=60, check=False,
     )
-    return built
 
 
 def _mutants(source: str) -> list[tuple[str, str, str]]:

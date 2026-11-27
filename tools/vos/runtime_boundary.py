@@ -175,7 +175,7 @@ def _strip_c_comments_and_strings(text: str, *, keep_includes: bool = False) -> 
                 i += 1
         elif in_string:
             if ch == "\\" and i + 1 < n:
-                out.append(" " if nxt != "\n" else " ")
+                out.append(" ")
                 if nxt == "\n":
                     out.append("\n")
                 else:
@@ -381,15 +381,17 @@ def scan_c_for_forbidden_symbols(
         # Remove struct member dereferences `.field` / `->field` before scanning symbols.
         no_members = re.sub(r"(?:\.|->)\s*[A-Za-z_][A-Za-z0-9_]*", " ", line)
 
-        for sym in sorted(UNCONDITIONAL_FORBIDDEN_SYMBOLS):
-            if re.search(rf"\b{re.escape(sym)}\b", no_members):
-                findings.append({
-                    "component": component,
-                    "file": rel_file,
-                    "line": lineno,
-                    "symbol": sym,
-                    "reason": f"forbidden native unwind/runtime symbol `{sym}`",
-                })
+        findings.extend(
+            {
+                "component": component,
+                "file": rel_file,
+                "line": lineno,
+                "symbol": sym,
+                "reason": f"forbidden native unwind/runtime symbol `{sym}`",
+            }
+            for sym in sorted(UNCONDITIONAL_FORBIDDEN_SYMBOLS)
+            if re.search(rf"\b{re.escape(sym)}\b", no_members)
+        )
 
         for sym in sorted(CONTEXT_SENSITIVE_SYMBOLS):
             if re.search(rf"\b{re.escape(sym)}\s*\(", no_members):
@@ -734,7 +736,7 @@ def run_reentrant_callback(
     st.reentry_locked = True
     rejected = True
     try:
-        if reenter and st.reentry_locked:
+        if reenter:
             rejected = True
         if drop_inside:
             dropped_inner = drop_collection(st, defect=defect)

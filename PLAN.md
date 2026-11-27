@@ -456,19 +456,19 @@ These figures cover the priced reference-build, assessment and named hardening b
 | Measure | Value |
 | --- | --- |
 | Total estimate midpoint h | 4,597.7 |
-| Total estimate range h | 3,081.6–6,113.8 |
-| Completed scope h | 1,090.8 |
-| Complete by estimate % | 23.7 |
-| Remaining h | 3,506.9 |
-| Committed remaining h | 2,084.9 |
-| Open class I h | 661 |
-| Open class X h | 2,845.9 |
-| Retained completion estimate h | 488 |
-| Unmeasured completed items | 48 |
-| Calibrated total h | 5,601.3 |
+| Total estimate range h | 3,103.6–6,091.8 |
+| Completed scope h | 1,146.8 |
+| Complete by estimate % | 24.9 |
+| Remaining h | 3,450.9 |
+| Committed remaining h | 2,028.9 |
+| Open class I h | 651 |
+| Open class X h | 2,799.9 |
+| Retained completion estimate h | 544 |
+| Unmeasured completed items | 52 |
+| Calibrated total h | 5,584.9 |
 | Committed M8a open h | 58 |
 | Committed M8b open h | 105.5 |
-| Other committed open h | 1,921.4 |
+| Other committed open h | 1,865.4 |
 | Conditional open h | 1,008 |
 | Unfunded option open h | 414 |
 | Committed M8a open class X h | 0 |
@@ -1347,13 +1347,18 @@ Q6's conventional-memory simulators are conditional on a topology comparison nee
 
 No assessment completion automatically increases a performance estimate. For an optimization affecting fraction `f` of runtime by factor `s`, the unchanged-cost bound is `1 / ((1 - f) + f / s)`; added transfers or changed scheduling require a fresh whole-workload comparison. Better packing is not more fabricated capacity, and host performance is not target throughput.
 
-* [ ] **Q47 · Qualify library callbacks and runtime teardown** · 24 h, range 16–32 · I · after the M8a gate
-  * **Start:** the committed [runtime-boundary hardening contract](docs/implementation/contracts/runtime-boundary-hardening.md), read with the [FORGE disposition](docs/background/critique.md#rust-library-soundness-and-runtime-boundaries), the real package/linker closure and the existing native admission and lifecycle interfaces. Inventory and fixture authoring can precede complete native producers; exact-artifact acceptance cannot.
-  * **Owns:** the build-derived library/runtime boundary inventory, adversarial callback and teardown controls, seeded defects, and the qualification joins. Cover linked libraries and generated glue, changing borrows/lengths, false encoding and range claims, partial initialization, synchronous reentry, native unwind/import refusal, and outstanding users at close/restart. **Execute:** reuse the existing package identities, TAL controls, pool-history generator and revocation holder/barrier model; derive new campaigns from those owners rather than building a parallel admission checker. Audit host tooling separately from the target exclusions and retain Wasm's guest-internal safety limit.
-  * **Check:** the contract's callback and abort/retirement predicates hold on every inventoried boundary through checked safety/lifecycle proofs and exact-native positive/negative controls. Every closure member and caller-controlled assumption has an explained discharge; changing object identity, dropping validation, admitting unwind glue or reusing backing before completion is detected by an executed mutant. Stillborn mutants, survivors, fixture-only evidence and missing native producers leave the affected acceptance open. **Join:** R-18-018(b)'s TAL checker/soundness and certifying-Rust certificate mode, M7.1c's production admission, Q34c's heap refinement, M4.4/R2's actual retirement barrier, the HAL, supervisor and Q34f/Q34g's host/engine proofs. Existing owners retain foundational implementation/proof budgets; missing foundations are assigned and priced before implementation opens.
-  * **Estimate basis:** closure and boundary inventory 3–5 h; callback/representation controls 5–9 h; abort/reentry/retirement controls 5–11 h; proof-owner joins and exact-artifact review 3–7 h. These are integration estimates conditional on accepted producer interfaces, excluding the existing foundational proofs and unattended hosted execution. This contract and article assessment supply no implementation or elimination verdict.
+* [ ] **Q47 · Qualify library callbacks and runtime teardown**
+  * `Q47-i` delivers `RuntimeBoundary.v` (callback-safety bounds, UTF-8/object-ID binding, reentrancy/ownership linearity, native abandonment, and multi-class holder retirement proofs) and the source-derived boundary inventory and adversarial/seeded-defect evaluator in `tools/vos/runtime_boundary.py`; `Q47-ii` retains linked purecap native closures, TAL/certifying-Rust joins, and target execution campaigns.
+  * [x] **Q47-i · Prove callback-safety and holder-retirement predicates and build source boundary audit** · 10 h retained estimate, actual n/a · agent-parallel
+    * [RuntimeBoundary.v](proofs/RuntimeBoundary.v) and [runtime_boundary.py](tools/vos/runtime_boundary.py) prove callback safety and multi-class holder retirement and derive the active target C boundary inventory with adversarial and seeded-defect checks under zero axioms. ([note](docs/implementation/completion-log.md#q47-i-prove-callback-safety-and-holder-retirement-predicates-and-build-source-boundary-audit))
+  * [ ] **Q47-ii · Qualify linked native purecap closures, TAL/certifying-Rust joins and target campaigns** · 14 h, range 10–18 · I · after the M8a gate
+    * **Start:** landed `Q47-i` (`RuntimeBoundary.v`, `runtime_boundary.py`), the committed [runtime-boundary hardening contract](docs/implementation/contracts/runtime-boundary-hardening.md), read with the [FORGE disposition](docs/background/critique.md#rust-library-soundness-and-runtime-boundaries), the real package/linker closure and the existing native admission and lifecycle interfaces. Exact-artifact acceptance requires complete native producers.
+    * **Owns:** the linked native purecap closure inventory, adversarial callback and teardown controls on target, seeded native defects, and the qualification joins across linked `core`/`alloc`/`std` fragments, capability libc, allocator/collection libraries, compiler helpers, generated wrappers, HAL calls, and guest imports.
+    * **Check:** the contract's callback and abort/retirement predicates hold on every linked boundary through checked safety/lifecycle proofs and exact-native positive/negative controls. Changing object identity, dropping validation, admitting unwind glue or reusing backing before completion is detected by an executed mutant. Stillborn mutants, survivors, fixture-only evidence and missing native producers leave the affected acceptance open.
+    * **Join:** R-18-018(b)'s TAL checker/soundness and certifying-Rust certificate mode, M7.1c's production admission, Q34c's heap refinement, M4.4/R2's actual retirement barrier, the HAL, supervisor and Q34f/Q34g's host/engine proofs. Existing owners retain foundational implementation/proof budgets; missing foundations are assigned and priced before implementation opens.
+    * **Estimate basis:** linked closure/callback/teardown target controls and owner joins 10–18 h, conditional on accepted native producer interfaces and excluding foundational proofs and unattended hosted execution.
 
-**Q subtotal:** 2,769.2 h · 60% · 348.2 h complete · open range 1,395–3,447 h.
+**Q subtotal:** 2,769.2 h · 60% · 358.2 h complete · open range 1,389–3,433 h.
 
 ### M0 · Hardware reference
 
@@ -1841,11 +1846,14 @@ The ring data plane is brought up in its contract order: the common ring schema 
       * **Start:** M6.2b-0a/M6.2b-0b's fully qualified executable checker, checked premises and bounded serialization/resource interface, plus the required lowering foundations from their existing owners and Q35e's qualified C-refinement foundation, or, on its refusal, the repair that refusal prices once it has landed, with the review-gate acts F-463 and F-464 name. **Owns:** the GC-free CompCert-C representation, its proof against that accepted checker contract, and the actual proof-term ingestion and failure path. **Join:** M1.2f's target path and real derivations.
       * **Check:** native accepted/refused proof fixtures agree with the qualified checker, malformed and over-limit inputs fail closed, and the promised refinement constants replay under the project's assumption audit. Neither differential tests alone nor the parent source's dependent return type closes the refinement.
       * **Estimate boundary:** a conditional engineering range for this bounded connection, not for constructing an unavailable checker or a complete native proof chain. If qualification exposes a larger subset, missing serializer theorem or unavailable lowering rule, price that prerequisite before opening this child; do not absorb it by weakening the endpoint.
-  * [ ] **M6.2c · Refine the local witness-evidence validator** · 26 h, range 16–36 · X · after the M8a gate
-    * **Start:** Q22b's reviewed bounded policy/interface and fixed-layout resource contract; implementation of policy-dependent validation consumes M5.5's accepted model and theorem, and its refinement consumes Q35e's qualified C-refinement foundation, or, on its refusal, the repair that refusal prices once it has landed, with the review-gate acts F-463 and F-464 name. **Owns:** the checkpoint, inclusion, consistency and transition reader, persistent client-pin/refusal interface and its CompCert-C refinement. This reader is distinct from M6.2b's CIC kernel.
-    * **Execute:** Prepare the bounded parser and positive/refusal fixtures beside the policy theorem after the common schema is reviewed. Reuse qualified authenticated hash/signature and serialization primitives; assign and price missing primitives before opening the dependent implementation.
-    * **Check:** bind identities, keys, epoch, trust scope and transition destination; count distinct eligible witnesses; verify inclusion for every required base/package identity, monotonic client state and checked terminal continuity or explicitly authorized rebootstrap. Malformed, over-limit, forged, stale, duplicate, foreign and missing evidence refuses installation without changing the running generation. The refinement constants and target accepted/refused cases must both pass; a Python model or a signature-reader smoke test supplies neither.
-    * **Join:** M5.4's update transactor, executable storage durability, M1.2f's lowering path and the accepted policy theorem. **Estimate boundary:** this local bounded connection, not a production witness service, a new cryptographic implementation or a general proof kernel.
+  * [ ] **M6.2c · Refine the local witness-evidence validator**
+    * `M6.2c-i` delivers the bounded GC-free C17 witness-evidence parser, quorum/pin/transition/rebootstrap validator (`witness-validator/`), ASan/UBSan suite, and compiled behavioral mutation kills; `M6.2c-ii` retains CompCert-C/VST refinement, M5.4 transactor and storage integration, and purecap target acceptance.
+    * [x] **M6.2c-i · Realize bounded GC-free C17 witness-evidence parser, quorum and transition validator** · 14 h retained estimate, actual n/a · agent-parallel
+      * [The witness validator](witness-validator/README.md) implements canonical wire parsing, quorum-intersection enforcement, continuous terminal transitions, authenticated rebootstraps, and pin immutability under strict C17, ASan/UBSan, and compiled mutation controls. ([note](docs/implementation/completion-log.md#m62c-i-realize-bounded-gc-free-c17-witness-evidence-parser-quorum-and-transition-validator))
+    * [ ] **M6.2c-ii · Refine witness validator in CompCert-C/VST and integrate on purecap target** · 12 h, range 6–18 · X · after the M8a gate
+      * **Start:** landed `M6.2c-i` (`witness-validator/`), Q22b's reviewed bounded policy/interface, M5.5's accepted model (`WitnessContinuity.v`), and Q35e's qualified C-refinement foundation (or its landed repair and review-gate acts F-463/F-464).
+      * **Owns:** CompCert-C/VST refinement of the checkpoint, inclusion, consistency and transition reader against `WitnessContinuity.v`, persistent client-pin storage integration, and purecap target execution.
+      * **Check:** refinement constants and target accepted/refused cases pass; malformed, over-limit, forged, stale, duplicate, foreign and missing evidence refuses without modifying the running generation. **Join:** M5.4's update transactor, executable storage durability, M1.2f's lowering path and the accepted policy theorem.
 
 * [ ] **M6.3 · Build the package composer and contained object router**
   * **Split at entry**: the composer emits the finite typed handler and translator graph a booting system needs, and the router's private namespaces, intents, live queries, deterministic translation caching and protocol-bound credential handles are what an application layer needs, which no pre-MVP server does.
@@ -1893,11 +1901,14 @@ The ring data plane is brought up in its contract order: the common ring schema 
 
 * [ ] **M6.9 · Realize and prove attested TLS sessions**
   * Q22c qualifies one symbolic TLS application binding. Its protocol realization, theorem and implementation connection remain separate outputs; none joins the M8a executable roster. The ranges below are conditional engineering allowances, not measurements or estimates for an entire TLS stack. [The unassigned proof map](docs/assurance/unassigned-proof-map.md)'s U-20 qualifies the missing admitted TLS or cryptographic foundation before dependent implementation opens, and the TLS implementation's language route is a register or plan act it records outside its priced total.
-  * [ ] **M6.9a · Realize the attested TLS application protocol** · 24 h, range 16–32 · X · after the M8a gate
-    * **Partial source result:** [The bounded source-object-fetch protocol](docs/implementation/attested-tls-protocol.md) fixes exchange, appraisal, refusal and one lifecycle over a protected completed-handshake/exporter interface. No TLS implementation is admitted by the current pins; canonical bytes, resource bounds and executable context/credential adapters remain prerequisites.
-    * **Start:** Q22c's reviewed application-binding contract, M6.3b's credential-handle interface and the reviewed completed-handshake/exporter interface for serialization and resource-bound authoring. Executable integration requires an identified admitted TLS implementation. **Owns:** the bounded request, evidence, appraisal and refusal path for one selected service, including fresh challenge state and one authentication lifecycle per connection.
-    * **Execute:** Land serialization and resource bounds before implementing the exchange. Obtain the channel binding from the same protected local TLS context that owns the session keys; a caller-provided exporter cannot authorize a quote. Reuse the selected TLS and credential services rather than building another handshake or key store.
-    * **Check:** the implemented protocol preserves the selected software-only or relying-party-specific unit policy, rejects replay and concurrent-session substitution and fails closed without a weaker fallback. Exercise real protected context ownership and malformed/over-limit records. **Join:** the actual admitted TLS implementation and protected context/credential services, then M6.9b connects these bytes and key operations to M6.9c's theorem; this functional realization alone claims no cryptographic session-binding proof.
+  * [ ] **M6.9a · Realize the attested TLS application protocol**
+    * `M6.9a-i` delivers the bounded GC-free C17 canonical wire codecs, protected local broker issuance seam, and single-attempt appraiser state machine (`attested-tls/`) under ASan/UBSan and compiled mutation controls; `M6.9a-ii` retains admitted TLS 1.3 stack selection, protected traffic-key custody, and purecap target integration.
+    * [x] **M6.9a-i · Realize bounded GC-free C17 attested TLS wire codec, broker seam and appraiser** · 12 h retained estimate, actual n/a · agent-parallel
+      * [The attested TLS module](attested-tls/README.md) implements canonical challenge/evidence/fetch codecs, protected-context local quote issuance, and single-attempt appraiser state transitions under strict C17, ASan/UBSan, and compiled mutation controls. ([note](docs/implementation/completion-log.md#m69a-i-realize-bounded-gc-free-c17-attested-tls-wire-codec-broker-seam-and-appraiser))
+    * [ ] **M6.9a-ii · Integrate admitted TLS 1.3 stack and protected custody on purecap target** · 12 h, range 8–16 · X · after the M8a gate
+      * **Start:** landed `M6.9a-i` (`attested-tls/`), [the bounded source-object-fetch protocol](docs/implementation/attested-tls-protocol.md), Q22c's binding, M6.3b's credential-handle interface, and an identified, license-reviewed, admitted TLS 1.3 stack with the protected completed-handshake/exporter interface.
+      * **Owns:** live TLS 1.3 handshake/exporter custody integration, real protected context ownership, and purecap target execution for the object-fetch service.
+      * **Check:** software-only and origin-scoped unit policies hold on real TLS contexts, refusing resumption/early-data/replay/parallel-session substitution without a weaker fallback. **Join:** the admitted TLS implementation, protected context/credential services, and M6.9b's implementation-to-model connection.
   * [ ] **M6.9b · Connect session context and key custody to the implementation** · 24 h, range 16–32 · X · after the M8a gate
     * **Start:** the reviewed context/credential interface; implementation-dependent proof work consumes M6.9a's actual exchange and M6.9c's accepted model. **Owns:** the connection from serialized messages, handshake completion, exporter provenance, challenge consumption and protected key handles to the model's operations.
     * **Execute:** Trace one session end to end across M6.3b's handle boundary, then expand the generated failure campaign. Keep abstract channel labels separate from the real TLS exporter and binding lifetime; an attacker-controlled public binding value must not reach the trusted quote-issuance operation as authority.
@@ -1919,7 +1930,7 @@ The ring data plane is brought up in its contract order: the common ring schema 
   * **Check:** both generations admitted by the ordinary path and booted by the transactor with health-gated rollback intact, the mint reachable only through the consent act, the composition mode entered and left as R-11-018 requires, and the install's proof checking staying inside R-06-015a's declared budget. **Join:** Q26 prices the occupancy and the storage this act needs; Q9 measures its turnaround beside the remote path's.
   * **Done when** the device composes, signs, admits and boots its own generation twice over, once for a package change and once for the base image, with nothing reachable and no artifact another machine produced, and the run records what it occupied rather than only that it finished.
 
-**M6 subtotal:** 665.7 h · 14% · 103.2 h complete · open range 262–863 h.
+**M6 subtotal:** 665.7 h · 14% · 129.2 h complete · open range 244–829 h.
 
 ### M7 · Full emulated system
 
@@ -2180,13 +2191,14 @@ Each task starts with a concrete witness and a refuted alternative, then extends
     * [BooleanComposition.v](proofs/BooleanComposition.v) proves arbitrary-order glitch-robust DOM/HPC AND and linear gadgets, straight-line circuit PINI composition, exhaustive FIPS 197 AES S-box and Keccak chi equivalence and security, and barrierless/reused-randomness refutations under zero axioms. ([note](docs/implementation/completion-log.md#post-m10c-i-prove-arbitrary-order-domhpc-boolean-masking-for-aes-s-box-and-keccak-chi))
   * [ ] **Post-M10c-ii · Connect Boolean masking proofs to masked R-05-004a netlist gadgets** · 16 h, range 10–22 · X
     * **Join:** `R-05-004a` HPC/DOM AES and Keccak RTL/netlist correspondence, execution-aware netlist verification, and `R-05-150` review.
-* [ ] **Post-M10 · Author the R-17-058d reduction theorem** · 36 h, range 18–54 · X
-  * **Execute:** Prepare the effective-versus-ineffective case split and its exact premises while the composition work proceeds. Missing detection or countermeasure artifacts return to their separately priced owners. Close only against their checked constants and the shared model revision, without weakening the fault quantifier to fit an available proof.
-  * The selected route's combined claim, machine-checked on the artifact: every fault the single-fault-per-activation hypothesis admits on the masked datapath's activation is either effective, landing in the R-16-008f detection statement, or confined to one share's computation, landing inside the R-15-053a probing bound at unreduced order.
-  * **No compatible combined reduction is qualified by the survey.** VERICA/FIVER and related tools provide external checker evidence; CAPA, M&M and CINI-class constructions have their own models and are not the selected countermeasure. The Coq theorem shape at CompCert's RTL level, recorded in [the fault lineage](docs/background/inspirations.md#the-masking-and-fault-countermeasure-lineage-dom-to-matchi-the-netlist-level-discharge-and-the-theorem-shapes-the-two-axioms-import), informs the detection side and supplies no complete proof of the combined case.
-  * **The range prices the reduction over accepted premises.** Its case split still needs the actual R-16-008f detection theorem and countermeasure construction, whose full implementations are not costed by this cell. [The unassigned proof map](docs/assurance/unassigned-proof-map.md) prices the detection theorem's construction model as U-19 and records the countermeasure's authoring route as a register act outside its total; a source-level template or a conditional theorem cannot be counted as their implementation.
+* [ ] **Post-M10 · Author the R-17-058d reduction theorem**
+  * `Post-M10d-i` completes `CombinedReduction.v` with the single-fault-per-activation execution model, share-domain-separated `(d+1)`-share probing security, the R-17-058d effective-versus-share-confined reduction theorem at unreduced order `d`, parametric positive witness, and three refutations; `Post-M10d-ii` retains U-19 final-binary detection and R-05-004a masked netlist countermeasure joins.
+  * [x] **Post-M10d-i · Prove R-17-058d single-fault effective-versus-share-confined reduction in Coq** · 20 h retained estimate, actual n/a · agent-parallel
+    * [CombinedReduction.v](proofs/CombinedReduction.v) proves the R-17-058d single-fault effective-versus-share-confined reduction theorem at unreduced probing order with parametric positive witnesses and cross-share, unwithheld-token, and weakened-order refutations under zero axioms. ([note](docs/implementation/completion-log.md#post-m10d-i-prove-r-17-058d-single-fault-effective-versus-share-confined-reduction-in-coq))
+  * [ ] **Post-M10d-ii · Bind R-17-058d reduction to U-19 binary detection and masked netlist countermeasure** · 16 h, range 8–24 · X
+    * **Join:** `U-19`'s actual binary/ROM detection theorem (`R-16-008f`), the separately authored and priced `R-17-058d` masked netlist countermeasure construction, and shared silicon model revision without weakening the fault quantifier or probing order.
 
-**M8–M10 subtotal:** 231.9 h · 5% · 60.4 h complete · open range 106–237 h.
+**M8–M10 subtotal:** 231.9 h · 5% · 80.4 h complete · open range 96–207 h.
 
 ## Build-loop instruments
 
@@ -2510,18 +2522,22 @@ One row per completed item marked `agent-parallel`, using the [calibration recor
 | Post-M10a-i | n/a | n/a |
 | Post-M10b-i | n/a | n/a |
 | Post-M10c-i | n/a | n/a |
+| Post-M10d-i | n/a | n/a |
 | Q28b-i | n/a | n/a |
 | Q33-i | n/a | n/a |
 | Q34c-ii-a | I | 10 |
 | Q44-i | n/a | n/a |
+| Q47-i | n/a | n/a |
 | M4.4b-ii-a | X-authored | 1.1 |
 | M5.3d-i | n/a | n/a |
 | M5.4-i | n/a | n/a |
+| M6.2c-i | n/a | n/a |
 | M6.3b-i | n/a | n/a |
 | M6.5b-i | n/a | n/a |
 | M6.6-i | n/a | n/a |
 | M6.7-i | n/a | n/a |
 | M6.8-i | n/a | n/a |
+| M6.9a-i | n/a | n/a |
 | M6.9c-i | n/a | n/a |
 | I15 | n/a | n/a |
 | I17 | n/a | n/a |

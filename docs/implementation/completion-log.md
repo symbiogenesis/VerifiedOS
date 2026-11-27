@@ -3775,3 +3775,43 @@ Landed: Tier A. Local strict Rocq compilation and `rocqchk` passed; hosted cold 
 Calibration: retained estimate 24 h (range 12–36 h); actual execution time recorded as `n/a · agent-parallel` in the agent-parallel series; excluded from the human fit.
 
 Landed: Tier A. Local strict Rocq compilation and `rocqchk` passed; hosted cold proof CI and RTL/silicon verification remain pending.
+
+<a id="post-m10d-i-prove-r-17-058d-single-fault-effective-versus-share-confined-reduction-in-coq"></a>
+
+### Post-M10d-i · Prove R-17-058d single-fault effective-versus-share-confined reduction in Coq
+
+  * Authored `proofs/CombinedReduction.v` (1,525 lines; 93 declarations, 4/4 closed record witnesses) and `tools/tests/test_combined_reduction.py` (5/5 oracle and structural cases passing on Windows and WSL), proving the R-17-058d single-fault effective-versus-share-confined reduction (`combined_single_fault_reduction`, `combined_reduction_preserves_unreduced_order`) at unreduced probing order `d` over `ProbingModel.v` with parametric positive witnesses and cross-share, unwithheld-token, and weakened-order refutations. Verified at merge `03a1439c` (from lane commit `70b8d4ce`) under strict Rocq 9.3.0 compilation and `rocqchk -silent -o` (`Axioms: <none>`). U-19 binary detection and masked netlist countermeasure joins remain open under `Post-M10d-ii`.
+
+Calibration: retained estimate 20 h (range 10–30 h); actual execution time recorded as `n/a · agent-parallel` in the agent-parallel series; excluded from the human fit.
+
+Landed: Tier A. Local strict Rocq proofs, `rocqchk`, and host/WSL oracle checks passed; hosted proof CI remains user-managed.
+
+<a id="m62c-i-realize-bounded-gc-free-c17-witness-evidence-parser-quorum-and-transition-validator"></a>
+
+### M6.2c-i · Realize bounded GC-free C17 witness-evidence parser, quorum and transition validator
+
+  * Authored GC-free C17 `witness-validator/` (`vos_witness_validator.h`, `witness_validator.c`, `test_witness_validator.c`, `README.md`) and `tools/tests/test_witness_validator_c.py` implementing canonical `VOSWTP01`/`VOSWTC01`/`VOSWIT01`/`VOSWTT01`/`VOSWTR01` wire parsing, `2 * K > N + f` quorum intersection, continuous terminal epoch transitions, authenticated rebootstraps, and byte-identical pin immutability on refusal. Verified at merge `877c65de` (from lane commit `5eb0a50c`) with `clang -std=c17 -Wall -Wextra -Werror -Wstrict-prototypes -pedantic`, `gcc -fsanitize=address,undefined` (15/15 compiled behavioral mutants killed, 0 stillborn), and `test_witness_validator_c` (3/3 passing in WSL). CompCert-C/VST refinement and purecap target integration remain open under `M6.2c-ii`.
+
+Calibration: retained estimate 14 h (range 10–18 h); actual execution time recorded as `n/a · agent-parallel` in the agent-parallel series; excluded from the human fit.
+
+Landed: Tier A. Local C17 compilation, ASan/UBSan test execution, and compiled mutant testing passed; hosted Host/Guest CI remains pending.
+
+<a id="m69a-i-realize-bounded-gc-free-c17-attested-tls-wire-codec-broker-seam-and-appraiser"></a>
+
+### M6.9a-i · Realize bounded GC-free C17 attested TLS wire codec, broker seam and appraiser
+
+  * Authored GC-free C17 `attested-tls/` (`vos_attested_tls.h`, `attested_tls.c`, `test_attested_tls.c`, `README.md`) and `tools/tests/test_attested_tls_c.py` implementing canonical `VOSATLC1`/`VOSATLE1`/`VOSATLR1`/`VOSATLP1` codecs, protected local quote issuance without caller-supplied exporters, single-attempt `FRESH -> WAITING -> OPEN -> CLOSED` appraisal, spent context/nonce history, and software vs. origin-scoped unit policies. Verified at merge `db4e7655` (from lane commit `90c50b02`) with `clang -std=c17 -Wall -Wextra -Werror -Wstrict-prototypes -pedantic`, `gcc -fsanitize=address,undefined` (14/14 compiled behavioral mutants killed, 0 stillborn), and `test_attested_tls_c` (4/4 passing in WSL). Admitted TLS 1.3 stack integration and protected traffic-key custody remain open under `M6.9a-ii`.
+
+Calibration: retained estimate 12 h (range 8–16 h); actual execution time recorded as `n/a · agent-parallel` in the agent-parallel series; excluded from the human fit.
+
+Landed: Tier A. Local C17 compilation, ASan/UBSan test execution, and compiled mutant testing passed; hosted Host/Guest CI remains pending.
+
+<a id="q47-i-prove-callback-safety-and-holder-retirement-predicates-and-build-source-boundary-audit"></a>
+
+### Q47-i · Prove callback-safety and holder-retirement predicates and build source boundary audit
+
+  * Authored `proofs/RuntimeBoundary.v` (79 declarations, 7/7 closed record witnesses, 7 concrete refutations), `tools/vos/runtime_boundary.py`, and `tools/tests/test_runtime_boundary.py` proving callback-safety and multi-class holder retirement predicates and extracting a source-derived boundary inventory across active target C components with zero forbidden unwind/runtime symbol findings. Verified at merge `9bf32009` (from lane commit `77c04bc5`) under strict Rocq 9.3.0 and `rocqchk -silent -o` (`Axioms: <none>`), 12/12 adversarial controls, 23/23 seeded defects killed, and `test_runtime_boundary` (6/6 passing on Windows and WSL). Linked native purecap closures, TAL/certifying-Rust joins, and target execution remain open under `Q47-ii`.
+
+Calibration: retained estimate 10 h (range 6–14 h); actual execution time recorded as `n/a · agent-parallel` in the agent-parallel series; excluded from the human fit.
+
+Landed: Tier A. Local strict Rocq proofs, `rocqchk`, source boundary scan, and host/WSL checks passed; hosted Host/Guest CI remains pending.

@@ -73,7 +73,7 @@ def _eval_checked_circuit(
     share `idx` (`x_idx ^ 0`), remaining strictly inside share domain `idx`.
     """
     num_shares = d + 1
-    assert len(shares) == num_shares
+    ensure(len(shares) == num_shares, "share vector length mismatch")
     low_wires = list(shares)
     high_wires = list(shares)
     if fault_kind == "corrupt_false" and fault_idx is not None and fault_idx <= d:
@@ -86,7 +86,9 @@ def _is_effective_fault(d: int, fault_kind: str | None, fault_idx: int | None) -
     """Match R-17-058d effective vs share-confined classification on the instance."""
     if fault_kind is None:
         return False
-    assert fault_idx is not None
+    ensure(fault_idx is not None, "explicit fault requires a target index")
+    if fault_idx is None:
+        return False
     if fault_idx > d:
         return True
     return fault_kind in ("skip", "corrupt_true")
@@ -94,9 +96,7 @@ def _is_effective_fault(d: int, fault_kind: str | None, fault_idx: int | None) -
 
 def _emit_token(effective: bool, withhold_enabled: bool = True) -> bool:
     """Return acceptance token (`True` = accepted, `False` = withheld)."""
-    if effective and withhold_enabled:
-        return False
-    return True
+    return not (effective and withhold_enabled)
 
 
 def _probe_distribution(
@@ -170,8 +170,9 @@ def _exhaustive_combined_reduction_oracle() -> None:
         )
         candidates: list[tuple[str | None, int | None]] = [(None, None)]
         for idx in range(d + 2):
-            for kind in ("skip", "corrupt_false", "corrupt_true"):
-                candidates.append((kind, idx))
+            candidates.extend(
+                (kind, idx) for kind in ("skip", "corrupt_false", "corrupt_true")
+            )
 
         effective_count = 0
         confined_count = 0
