@@ -46,13 +46,17 @@ independent byte oracle. [The bounded typed-node codec and readers](typed-entry.
 store these full entries inline, route all six key components and distinguish
 full-tree admission from a root-to-leaf read. `python tools/run.py test --only
 storage_typed_tree` checks independent canonical bytes, retained roots, complete
-extent results, structural refusals and compiled defects. [The typed candidate
-updater](typed-entry.md#bounded-typed-candidate-insert-and-replace) and
+extent results, structural refusals and compiled defects. [The typed candidate updater](typed-entry.md#bounded-typed-candidate-insert-and-replace) and
 [bounded typed lazy deletion](typed-entry.md#bounded-typed-candidate-delete) stage
 single-key inserts, replacements and Rodeh-style lazy CoW deletions with
 empty-subtree pruning and single-child root collapse, verifying the resulting tree
-while preserving retained roots. Authenticated publication, the production format,
-refinement and target execution remain M5.3d/M5.4 work.
+while preserving retained roots. Additive `vos_storage_typed_*` APIs in
+[vos_storage_publish.h](include/vos_storage_publish.h) and
+[storage_publish.c](src/storage_publish.c) join those `VOSTYP01` nodes and
+`VOSEXT01` extents to authenticated AEAD/HMAC publication, crash cuts, reopen,
+lookup, compaction and hash-checked extent reads across both domain instances;
+the production variable-width format, C/Gallina refinement and target execution
+remain M5.3d/M5.4 work.
 
 `python tools/run.py test --only storage_node_image` discovers the focused
 behavioral module. Its native C cases run on Linux, including Host CI's Ubuntu
@@ -214,10 +218,15 @@ test vectors, all five crash cuts, `"VOSBLK01"` image header/geometry
 validation, `verifiedos-blkdev-receipt-2` SHA-256 chaining across writer close
 and reader open, non-prefix reset bit tears (`(old & ~m) | (new & m)`),
 swap/rollback refusals, two-instance (`system-integrity` and `user-data`)
-execution over the shared L1 index body (R-10-003), and Q44 resident-read
-completion with zero common per-read writes, and kills compiled behavioral
-mutants across `crypto_core.c` and `storage_publish.c`. Target purecap/Sail
-execution and Gallina refinement of the extended tree operations remain open.
+execution over the shared numeric and typed (`VOSTYP01` / `VOSEXT01`) L1 index
+bodies (R-10-003), hash-mismatch refusal before returning extent bytes
+(R-10-001), and Q44 resident-read completion with zero common per-read writes,
+and kills compiled behavioral mutants across `crypto_core.c` and
+`storage_publish.c`. `python tools/run.py test --only resident_correspondence`
+runs [the native C-to-Gallina correspondence harness](host/resident_reads_correspondence.c)
+and checks exact equivalence against [ResidentReads.v](../proofs/ResidentReads.v)
+under strict Rocq 9.3.0 and `rocqchk`. Target purecap/Sail execution and
+Gallina refinement of the extended tree operations remain open.
 
 The physical-image campaign additionally reopens after every changed block in
 bounded rollbackable and Fresh update/compaction sequences, injects non-prefix

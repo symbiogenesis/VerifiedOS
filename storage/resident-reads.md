@@ -223,11 +223,20 @@ remain open.
 
 `python tools/run.py test --only storage_publish` exercises
 `vos_storage_verify_resident` across both storage instances and kills a compiled
-mutant that skips the authenticated B+ tree lookup. Gallina/Python
-correspondence, purecap/Sail target execution and complete concrete
-writer/resource qualification remain open. This is a C implementation checkpoint
-and compiled-control campaign, not Q44 or M5.3d completion. Complete hosted
-model/proof acceptance follows the repository validation handoff; behavior
-counts here supply no benchmark or throughput claim.
+mutant that skips the authenticated B+ tree lookup.
+`python tools/run.py test --only resident_correspondence` additionally builds
+[the C-to-Gallina correspondence harness](host/resident_reads_correspondence.c)
+with `-fsanitize=address,undefined` across `resident_reads.c`,
+`resident_scalar.c`, `storage_publish.c` and `crypto_core.c` for both
+`SystemImage` and `UserData` (two-holder repeated reads with zero common
+writes, two-slot CoW predecessor replacement, barrier/quarantine retirement,
+close/renew/fresh-token readmission, crash/reopen and scalar kernel
+retirement), translates the observed trace into a finite Gallina module compiled
+under strict Rocq 9.3.0 against [ResidentReads.v](../proofs/ResidentReads.v)
+with `rocqchk`, rejects a tampered trace, and kills compiled C behavioral
+mutants. Purecap/Sail target execution and complete concrete writer/resource
+qualification remain open. Complete hosted model/proof acceptance follows the
+repository validation handoff; behavior counts here supply no benchmark or
+throughput claim.
 
 This document uses `CC-BY-4.0` under [COPYRIGHT.md](../COPYRIGHT.md).
