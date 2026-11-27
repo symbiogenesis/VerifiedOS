@@ -484,7 +484,8 @@ def _kernel_batches(
         if source.stem in isolated:
             if cur_items:
                 segments.append((False, cur_items, cur_weights))
-                cur_items, cur_weights = [], []
+                cur_items = []
+                cur_weights = []
             segments.append((True, [source], [w]))
         else:
             cur_items.append(source)
