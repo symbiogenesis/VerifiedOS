@@ -125,7 +125,7 @@ Evidence stage: **independent replay**. Disposition: **evaluate now**. Inspected
 Selected sources:
 
 - [tools/vos/composer.py](../../tools/vos/composer.py); identity `b96169f76319dd55c7597462472257830370fe9c86c44236ae3379efe34bcd3e`.
-- [proofs/HandlerGraph.v](../../proofs/HandlerGraph.v); identity `0a088ecfd1e96010290cffe278da431c5aeab1b5b56a8e8b8a66ee69addfdd07`.
+- [proofs/HandlerGraph.v](../../proofs/HandlerGraph.v); identity `55c6d8415eebf9b84c36cc51e084d12d3daa016ed893ba3446f56c5c711274d3`.
 
 Assumptions and exclusions:
 
@@ -615,11 +615,11 @@ Sorted reference payload SHA-256: `23b690105f12b96f3ef7a997cf508a5b775e70bcaf077
 | Bound input or implementation | SHA-256 |
 | --- | --- |
 | [tools/vos/source_bindings.py](../../tools/vos/source_bindings.py) | `2e5f9e2b595edb7724bf31fd6cf2cf13e970951e08b619640da5ca91291ce4ac` |
-| [proofs/ProofSupport.v](../../proofs/ProofSupport.v) | `21fefa8c275f9a6ee41299d2d59b971974a8f89453cb8749bbec0d7d13e86a22` |
+| [proofs/ProofSupport.v](../../proofs/ProofSupport.v) | `530d3f148985f32bb42d64efc32db0feac46a3250e467ee4baeaa921fdbc5449` |
 | [tools/pyproject.toml](../../tools/pyproject.toml) | `7340fd0d1daf7751a80fdf2593831fd4958517d84839422f989752d439638f34` |
 | [tools/uv.lock](../../tools/uv.lock) | `0a470cbea5bb34c291a46053bc4c455f96ddd275adc435c14fab2a0babdbf0e1` |
 | [tools/vos/composer.py](../../tools/vos/composer.py) | `b96169f76319dd55c7597462472257830370fe9c86c44236ae3379efe34bcd3e` |
-| [proofs/HandlerGraph.v](../../proofs/HandlerGraph.v) | `0a088ecfd1e96010290cffe278da431c5aeab1b5b56a8e8b8a66ee69addfdd07` |
+| [proofs/HandlerGraph.v](../../proofs/HandlerGraph.v) | `55c6d8415eebf9b84c36cc51e084d12d3daa016ed893ba3446f56c5c711274d3` |
 | [tools/vos/math_evidence.py](../../tools/vos/math_evidence.py) | `60a5022e962ac4b3b13a3c7fab2edbb5ed9d1f744585b539d8650fbd6623c97d` |
 | [tools/vos/__init__.py](../../tools/vos/__init__.py) | `f4bf65b676335680ed2e74c496374a83a2d37380cb6bc32a0af94d192c788e36` |
 | [tools/vos/atomic.py](../../tools/vos/atomic.py) | `384e706e945f8cead1e1b3791f916f6e7f8783a7497c17dd3a551a765e670471` |

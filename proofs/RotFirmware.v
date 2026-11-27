@@ -118,7 +118,7 @@ Definition before_last (n : nat) : nat := @ProofSupport.before_last n.
    for the reason above. *)
 Definition only_if (a b : bool) : bool := @ProofSupport.only_if a b.
 
-Definition bool_eqb (a b : bool) : bool := if a then b else negb b.
+Definition bool_eqb (a b : bool) : bool := ProofSupport.bool_eqb a b.
 
 Lemma andb_split : forall a b : bool, andb a b = true -> a = true /\ b = true.
 Proof. exact ProofSupport.andb_split. Qed.
@@ -131,31 +131,22 @@ Lemma only_if_elim :
 Proof. exact ProofSupport.only_if_elim. Qed.
 
 Lemma bool_eqb_sound : forall a b : bool, bool_eqb a b = true -> a = b.
-Proof. intros a b. destruct a; destruct b; simpl; intros H;
-  try discriminate H; reflexivity. Qed.
+Proof. exact ProofSupport.bool_eqb_sound. Qed.
 
 Lemma nat_eqb_refl : forall n : nat, Nat.eqb n n = true.
 Proof. exact ProofSupport.nat_eqb_refl. Qed.
 
 Lemma nat_eqb_sound : forall a b : nat, Nat.eqb a b = true -> a = b.
-Proof.
-  intros a. induction a as [ | x IH ]; intros b H.
-  - destruct b as [ | y ]; [ reflexivity | discriminate H ].
-  - destruct b as [ | y ]; [ discriminate H | ]. simpl in H.
-    rewrite (IH y H). reflexivity.
-Qed.
+Proof. exact ProofSupport.nat_eqb_true. Qed.
 
 Lemma nat_leb_refl : forall n : nat, Nat.leb n n = true.
 Proof. exact ProofSupport.nat_leb_refl. Qed.
 
 Lemma nat_eqb_sym : forall a b : nat, Nat.eqb a b = Nat.eqb b a.
-Proof.
-  intros a. induction a as [ | x IH ]; intros b; destruct b as [ | y ];
-    try reflexivity. simpl. exact (IH y).
-Qed.
+Proof. exact ProofSupport.nat_eqb_sym. Qed.
 
 Lemma negb_true : forall b : bool, negb b = true -> b = false.
-Proof. intros b H. destruct b; [ discriminate H | reflexivity ]. Qed.
+Proof. exact ProofSupport.negb_true. Qed.
 
 (* The helpers' own floors, so that the day one of them stops deciding is
    the day it says so. Each is a base case no check below reaches. *)
@@ -201,12 +192,9 @@ Fixpoint pos_from {A : Type} (eqb : A -> A -> bool) (x : A) (l : list A)
 Definition pos {A : Type} (eqb : A -> A -> bool) (x : A) (l : list A)
   : option nat := pos_from eqb x l 0.
 
-Fixpoint occurrences {A : Type} (eqb : A -> A -> bool) (x : A)
+Definition occurrences {A : Type} (eqb : A -> A -> bool) (x : A)
                      (l : list A) : nat :=
-  match l with
-  | nil => 0
-  | cons y r => if eqb x y then S (occurrences eqb x r) else occurrences eqb x r
-  end.
+  ProofSupport.occurrences_by eqb x l.
 
 (* False where either member is absent, which is what makes a deletion a
    refusal rather than a silence (reading 12). *)
@@ -356,24 +344,19 @@ Definition drop_at {A : Type} (n : nat) (l : list A) : list A := @ProofSupport.d
 
 (* Re-enter at the suffix beginning at n, which is what a resume path that
    was not a boot-chain variant would be (R-09-010). *)
-Fixpoint suffix_at {A : Type} (n : nat) (l : list A) : list A :=
-  match n, l with
-  | 0, _ => l
-  | S k, cons _ r => suffix_at k r
-  | S _, nil => nil
-  end.
+Definition suffix_at {A : Type} (n : nat) (l : list A) : list A := @ProofSupport.suffix_at A n l.
 
 (* Repeat one member, one weakening per position. *)
 Definition insert_at {A : Type} (n : nat) (x : A) (l : list A) : list A := @ProofSupport.insert_at A n x l.
 
 Definition transpositions {A : Type} (l : list A) : list (list A) :=
-  map_over (fun n => swap_at n l) (upto (before_last (count_of l))).
+  @ProofSupport.transpositions A l.
 
 Definition deletions {A : Type} (l : list A) : list (list A) :=
-  map_over (fun n => drop_at n l) (upto (count_of l)).
+  @ProofSupport.deletions A l.
 
 Definition proper_suffixes {A : Type} (l : list A) : list (list A) :=
-  map_over (fun n => suffix_at (S n) l) (upto (count_of l)).
+  @ProofSupport.proper_suffixes A l.
 
 Definition duplications {A : Type} (x : A) (l : list A) : list (list A) :=
   map_over (fun n => insert_at n x l) (upto (S (count_of l))).

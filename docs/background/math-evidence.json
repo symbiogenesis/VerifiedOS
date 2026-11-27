@@ -69,7 +69,7 @@
     {
       "id": "eth378",
       "title": "Reported ETH refutation by deterministic bounded-width SAT",
-      "claim": "For each fixed k >= 2, the selected Lean target states exact counting and SAT decision on canonical k-CNF with n variables and L encoding bits in (L+1)^O_k(1) * 2^O_k(n*(log log n)^2/sqrt(log n)) time and polynomial all-prefix visited-tape space. This contradicts ETH and standard fixed-width SETH if established. Anthropic independently gives a uniform counting algorithm. An external verifier reports a successful default-kernel comparison of OpenAI’s pinned solution.",
+      "claim": "For each fixed k >= 2, the selected Lean target states exact counting and SAT decision on canonical k-CNF with n variables and L encoding bits in (L+1)^O_k(1) * 2^O_k(n*(log log n)^2/sqrt(log n)) time and polynomial all-prefix visited-tape space. This contradicts ETH and standard fixed-width SETH if established. Anthropic independently gives a uniform counting algorithm. An external verifier reports a successful default-kernel comparison of OpenAI\u2019s pinned solution.",
       "sources": [
         {
           "url": "https://github.com/openai/math/blob/7ef5c0cc5ca4b0e072b7a050fca09ab24bc6fa3a/lean/docs/378.md",
@@ -207,7 +207,7 @@
     {
       "id": "integer109",
       "title": "Integer multiplication on tapes and earlier constructions",
-      "claim": "OpenAI’s November fixed deterministic multitape machine writes the full product of two n-bit integers in n*(log n)^(1/2+o(1)) worst-case steps with O(n) visited cells. Weak ETH gives a lower bound of order n*sqrt(log n) even for the low n bits. The earlier conditional CrocSwap constructions and platypii’s separate end-to-end Lean theorem carry their own evidence.",
+      "claim": "OpenAI\u2019s November fixed deterministic multitape machine writes the full product of two n-bit integers in n*(log n)^(1/2+o(1)) worst-case steps with O(n) visited cells. Weak ETH gives a lower bound of order n*sqrt(log n) even for the low n bits. The earlier conditional CrocSwap constructions and platypii\u2019s separate end-to-end Lean theorem carry their own evidence.",
       "sources": [
         {
           "url": "https://github.com/CrocSwap/integer-mult-bounds/blob/f9f85c1e4fa1e955ff39f10fca447e3e2a4e4adc/certificates/selected-result.json",
@@ -387,7 +387,7 @@
         {
           "url": "proofs/HandlerGraph.v",
           "kind": "local-sha256",
-          "identity": "0a088ecfd1e96010290cffe278da431c5aeab1b5b56a8e8b8a66ee69addfdd07"
+          "identity": "55c6d8415eebf9b84c36cc51e084d12d3daa016ed893ba3446f56c5c711274d3"
         }
       ],
       "inspected": "2026-11-25",
@@ -451,7 +451,7 @@
     },
     {
       "id": "forced-navier-stokes",
-      "title": "Forced three-dimensional Navier–Stokes breakdown",
+      "title": "Forced three-dimensional Navier\u2013Stokes breakdown",
       "claim": "OpenAI supplies formal counterexamples with smooth forcing on Euclidean space and the periodic torus (Clay alternatives C and D). A third-party record reports matching and checking both statements.",
       "sources": [
         {
@@ -487,8 +487,8 @@
     },
     {
       "id": "unforced-navier-stokes",
-      "title": "Unforced three-dimensional Navier–Stokes claim",
-      "claim": "Alpöge and Buckmaster claim unforced blow-up in space and on the torus. The selected Lean package derives the conclusions from profile or certificate hypotheses.",
+      "title": "Unforced three-dimensional Navier\u2013Stokes claim",
+      "claim": "Alp\u00f6ge and Buckmaster claim unforced blow-up in space and on the torus. The selected Lean package derives the conclusions from profile or certificate hypotheses.",
       "sources": [
         {
           "url": "https://github.com/tristanbuckmaster/navier-stokes/blob/ad53419de079eb8f95f60313473374624a348546/lean/NOTICE",
@@ -599,7 +599,7 @@
     {
       "id": "rank-three",
       "title": "Finite rank of three-by-three multiplication",
-      "claim": "Tomar reports exact tensor rank 23 for 3-by-3 multiplication over F2. Reduction mod two and Laderman’s integral construction give the same optimum for integer-coefficient bilinear schemes.",
+      "claim": "Tomar reports exact tensor rank 23 for 3-by-3 multiplication over F2. Reduction mod two and Laderman\u2019s integral construction give the same optimum for integer-coefficient bilinear schemes.",
       "sources": [
         {
           "url": "https://arxiv.org/abs/2610.11823v3",

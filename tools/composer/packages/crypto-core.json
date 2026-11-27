@@ -12,15 +12,15 @@
     },
     {
       "path": "proofs/Keccak.v",
-      "sha256": "c471bec624d0597c7be5433c702688397e36508acaf1c07dc6915bf6508e0fa5"
+      "sha256": "1ede1643f5a1f8b321b82b9a174a47879363c59778c1f077494184b8e6f9a8ab"
     },
     {
       "path": "proofs/Sha256.v",
-      "sha256": "7729acceb6b82405877a82a361f06f9549d8eecf97c8511668af6724bbcb4b5f"
+      "sha256": "0cb687e0d2ec3c03846c35c4d6df12563be141ba095d5069c6f120f46a529ade"
     },
     {
       "path": "proofs/AesGcm.v",
-      "sha256": "a156754e3d39d76bf961757bbca71652aeb4c506255f3c8a80bfbd5f6f3582ed"
+      "sha256": "72294bd669a84d292c105adcf8ca89d49b22ec636e531342cc27123abc79dc47"
     },
     {
       "path": "proofs/MlDsa.v",

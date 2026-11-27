@@ -72,14 +72,11 @@
    (*| END derived |*)
    ========================================================================= *)
 
+Require ProofSupport.
+Import ProofSupport.Tactics.
 Require Import Keccak.
 
 Open Scope list_scope.
-
-(* Defer VM evaluation to the kernel's cast check at Qed, avoiding a
-   separate tactic-side evaluation. *)
-Local Ltac vm_reflexivity :=
-  intros; lazymatch goal with |- _ = ?b => vm_cast_no_check (@eq_refl _ b) end.
 
 (* -------------------------------------------------------------------------
    Helpers added on top of [Keccak.v](Keccak.v).
@@ -111,7 +108,7 @@ Definition occurs_once {A : Type} (eqb : A -> A -> bool) (x : A) (l : list A) : 
   Nat.eqb (count_where (eqb x) l) 1.
 
 Definition any_of {A : Type} (p : A -> bool) (l : list A) : bool :=
-  negb (all_of (fun x => negb (p x)) l).
+  @ProofSupport.any_of A p l.
 
 (* The two arithmetic helpers are checked where they round rather than only
    where they are used, because every value the parameter sets below feed

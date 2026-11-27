@@ -56,16 +56,14 @@
    (*| END derived |*)
    ========================================================================= *)
 
+Require ProofSupport.
+Import ProofSupport.Tactics.
 Require Import PqArith.
 Require Import Keccak.
 
 From Stdlib Require Import ZArith List Arith Lia.
 
 Open Scope Z_scope.
-
-(* Casts eq_refl to the goal unevaluated so only Qed evaluates it. *)
-Local Ltac vm_reflexivity :=
-  intros; lazymatch goal with |- _ = ?b => vm_cast_no_check (@eq_refl _ b) end.
 
 (* -------------------------------------------------------------------------
    The parameter set. R-05-058a freezes ML-KEM-1024; the statements below are

@@ -2359,52 +2359,30 @@ Fixpoint sum_closing_bit_depth (prefix : list Rec) : nat :=
   end.
 
 Lemma nat_leb_max_l : forall a b : nat, Nat.leb a (Nat.max a b) = true.
-Proof.
-  intros a. induction a as [ | x IH ]; intros b.
-  - reflexivity.
-  - destruct b as [ | y ]; [ exact (nat_leb_refl (S x)) | exact (IH y) ].
-Qed.
+Proof. exact ProofSupport.nat_max_left. Qed.
 
 Lemma nat_leb_max_r : forall a b : nat, Nat.leb b (Nat.max a b) = true.
-Proof.
-  intros a. induction a as [ | x IH ]; intros b.
-  - exact (nat_leb_refl b).
-  - destruct b as [ | y ]; [ reflexivity | exact (IH y) ].
-Qed.
+Proof. exact ProofSupport.nat_max_right. Qed.
 
 Lemma nat_leb_max_lub :
   forall a b c : nat,
     Nat.leb a c = true -> Nat.leb b c = true -> Nat.leb (Nat.max a b) c = true.
-Proof.
-  intros a. induction a as [ | x IH ]; intros b c Ha Hb.
-  - exact Hb.
-  - destruct b as [ | y ]; [ exact Ha | ].
-    destruct c as [ | z ]; [ discriminate Ha | exact (IH y z Ha Hb) ].
-Qed.
+Proof. exact ProofSupport.nat_max_upper. Qed.
 
 Lemma nat_leb_succ_r : forall a b : nat, Nat.leb a b = true -> Nat.leb a (S b) = true.
-Proof.
-  intros a. induction a as [ | x IH ]; intros b H; [ reflexivity | ].
-  destruct b as [ | y ]; [ discriminate H | exact (IH y H) ].
-Qed.
+Proof. exact ProofSupport.nat_leb_succ_r. Qed.
 
 Lemma nat_leb_add_l : forall a b : nat, Nat.leb a (Nat.add a b) = true.
-Proof.
-  intros a. induction a as [ | x IH ]; intros b; [ reflexivity | exact (IH b) ].
-Qed.
+Proof. exact ProofSupport.nat_leb_add_r. Qed.
 
 Lemma nat_leb_add_r : forall a b : nat, Nat.leb b (Nat.add a b) = true.
 Proof.
-  intros a. induction a as [ | x IH ]; intros b.
-  - exact (nat_leb_refl b).
-  - simpl. exact (nat_leb_succ_r b (Nat.add x b) (IH b)).
+  intros a b. rewrite ProofSupport.nat_add_comm. exact (ProofSupport.nat_leb_add_r b a).
 Qed.
 
 Lemma nat_leb_add_mono_r :
   forall a b c : nat, Nat.leb b c = true -> Nat.leb (Nat.add a b) (Nat.add a c) = true.
-Proof.
-  intros a. induction a as [ | x IH ]; intros b c H; [ exact H | exact (IH b c H) ].
-Qed.
+Proof. exact ProofSupport.nat_leb_add_left. Qed.
 
 Lemma nat_leb_add_mono_l :
   forall a b c : nat, Nat.leb a b = true -> Nat.leb (Nat.add a c) (Nat.add b c) = true.
@@ -2415,12 +2393,7 @@ Proof.
 Qed.
 
 Lemma nat_add_comm_local : forall a b : nat, Nat.add a b = Nat.add b a.
-Proof.
-  intros a. induction a as [ | x IH ]; intros b.
-  - induction b as [ | y IHb ]; [ reflexivity | simpl; rewrite <- IHb; reflexivity ].
-  - simpl. rewrite IH.
-    induction b as [ | y IHb ]; [ reflexivity | simpl; rewrite IHb; reflexivity ].
-Qed.
+Proof. exact ProofSupport.nat_add_comm. Qed.
 
 Lemma nat_add_assoc_local : forall a b c : nat, Nat.add a (Nat.add b c) = Nat.add (Nat.add a b) c.
 Proof.

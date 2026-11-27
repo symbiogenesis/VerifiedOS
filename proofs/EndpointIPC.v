@@ -141,28 +141,12 @@ Lemma count_of_map :
 Proof. exact ProofSupport.count_of_map. Qed.
 
 Lemma leb_split : forall v k : nat, Nat.leb v k = true -> Nat.ltb v k = true \/ v = k.
-Proof.
-  intros v. induction v as [ | a IH ]; intros k H.
-  - destruct k as [ | b ]; [ right; reflexivity | left; reflexivity ].
-  - destruct k as [ | b ].
-    + discriminate H.
-    + simpl in H. destruct (IH b H) as [ Hlt | Heq ].
-      * left. exact Hlt.
-      * right. rewrite Heq. reflexivity.
-Qed.
+Proof. exact ProofSupport.nat_leb_split. Qed.
 
 Lemma all_of_upto :
   forall (p : nat -> bool) (n v : nat),
     all_of p (upto n) = true -> Nat.ltb v n = true -> p v = true.
-Proof.
-  intros p n. induction n as [ | k IH ]; intros v H Hv.
-  - discriminate Hv.
-  - simpl in H. destruct (all_of_app nat p (upto k) (cons k nil) H) as [ Hk Hlast ].
-    simpl in Hlast. destruct (andb_split _ _ Hlast) as [ Hpk _ ].
-    simpl in Hv. destruct (leb_split v k Hv) as [ Hlt | Heq ].
-    + exact (IH v Hk Hlt).
-    + rewrite Heq. exact Hpk.
-Qed.
+Proof. exact ProofSupport.all_of_upto. Qed.
 
 (* The helpers' own floors, so that the day one of them stops deciding is
    the day it says so. Each is a base case no other check below reaches. *)

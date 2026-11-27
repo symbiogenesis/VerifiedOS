@@ -115,14 +115,11 @@
    (*| END derived |*)
    ========================================================================= *)
 
+Require ProofSupport.
+Import ProofSupport.Tactics.
 Require Import MemoryPlan.
 From Stdlib Require Import Bool List Arith Lia.
 Import ListNotations.
-
-(* Defer VM evaluation to the kernel's cast check at Qed, avoiding a
-   separate tactic-side evaluation. *)
-Local Ltac vm_reflexivity :=
-  intros; lazymatch goal with |- _ = ?b => vm_cast_no_check (@eq_refl _ b) end.
 
 (* -------------------------------------------------------------------------
    Objects, families and the interval predicates. Each predicate is stated

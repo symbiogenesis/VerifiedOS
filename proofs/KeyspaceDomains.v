@@ -82,16 +82,13 @@ Require Import JournalIndex.
    gate would have to hold against the first.
    ------------------------------------------------------------------------- *)
 
-Definition bool_eqb (a b : bool) : bool := if a then b else negb b.
+Definition bool_eqb (a b : bool) : bool := ProofSupport.bool_eqb a b.
 
 Lemma bool_eqb_refl : forall a : bool, bool_eqb a a = true.
-Proof. intros a. destruct a; reflexivity. Qed.
+Proof. exact ProofSupport.bool_eqb_refl. Qed.
 
 Lemma bool_eqb_true : forall a b : bool, bool_eqb a b = true -> a = b.
-Proof.
-  intros a b H. destruct a; destruct b; simpl in H;
-    try discriminate H; reflexivity.
-Qed.
+Proof. exact ProofSupport.bool_eqb_sound. Qed.
 
 Definition opt_eqb (a b : option nat) : bool :=
   match a, b with
@@ -117,14 +114,10 @@ Definition prefixes {A : Type} (l : list A) : list (list A) :=
   map_over (fun i => take i l) (upto (S (count_of l))).
 
 Lemma negb_true_elim : forall b : bool, negb b = true -> b = false.
-Proof. intros b H. destruct b; [ discriminate H | reflexivity ]. Qed.
+Proof. exact ProofSupport.negb_true. Qed.
 
 Lemma nat_eqb_sym : forall a b : nat, Nat.eqb a b = Nat.eqb b a.
-Proof.
-  intros a. induction a as [ | x IH ]; intros b.
-  - destruct b; reflexivity.
-  - destruct b as [ | y ]; [ reflexivity | simpl; exact (IH y) ].
-Qed.
+Proof. exact ProofSupport.nat_eqb_sym. Qed.
 
 Lemma nat_strict_trans :
   forall a b c : nat,
@@ -269,12 +262,7 @@ Fixpoint lex_leb (a b : list nat) : bool :=
           (andb (Nat.eqb x y) (lex_leb r s))
   end.
 
-Fixpoint lex_eqb (a b : list nat) : bool :=
-  match a, b with
-  | nil, nil => true
-  | cons x r, cons y s => andb (Nat.eqb x y) (lex_eqb r s)
-  | _, _ => false
-  end.
+Definition lex_eqb (a b : list nat) : bool := ProofSupport.list_eqb Nat.eqb a b.
 
 Lemma lex_eqb_refl : forall a : list nat, lex_eqb a a = true.
 Proof. exact (ProofSupport.list_eqb_refl nat Nat.eqb nat_eqb_refl). Qed.
@@ -365,7 +353,7 @@ Proof.
       rewrite (nat_eqb_sym y x) in E2. rewrite E2 in N1. discriminate N1.
     + destruct (andb_split _ _ A2) as [ _ N2 ].
       rewrite (nat_eqb_sym x y) in E1. rewrite E1 in N2. discriminate N2.
-    + simpl. rewrite E1. exact (IH s G1 G2).
+    + unfold lex_eqb. simpl. rewrite E1. exact (IH s G1 G2).
 Qed.
 
 (* The order's own floor, and the reason each token of it is load-bearing:
@@ -676,10 +664,7 @@ Qed.
 Lemma count_of_app :
   forall (A : Type) (l r : list A),
     count_of (app l r) = Nat.add (count_of l) (count_of r).
-Proof.
-  intros A l. induction l as [ | x s IH ]; intros r;
-    [ reflexivity | simpl; rewrite IH; reflexivity ].
-Qed.
+Proof. exact ProofSupport.count_of_app. Qed.
 
 (*| discharges: R-10-005 |*)
 Theorem the_specification_snapshot_adds_at_most_the_declared_constant :

@@ -8,7 +8,7 @@
     },
     {
       "path": "proofs/ProofSupport.v",
-      "sha256": "21fefa8c275f9a6ee41299d2d59b971974a8f89453cb8749bbec0d7d13e86a22"
+      "sha256": "530d3f148985f32bb42d64efc32db0feac46a3250e467ee4baeaa921fdbc5449"
     },
     {
       "path": "tools/pyproject.toml",

@@ -145,13 +145,10 @@ Lemma andb_join : forall a b : bool, a = true -> b = true -> andb a b = true.
 Proof. exact ProofSupport.andb_join. Qed.
 
 Lemma orb_split : forall a b : bool, orb a b = false -> a = false /\ b = false.
-Proof.
-  intros a b H. destruct a; destruct b; simpl in H;
-    try discriminate H; split; reflexivity.
-Qed.
+Proof. exact ProofSupport.orb_false_split. Qed.
 
 Lemma negb_true : forall b : bool, negb b = true -> b = false.
-Proof. intros b H. destruct b; [discriminate H | reflexivity]. Qed.
+Proof. exact ProofSupport.negb_true. Qed.
 
 Lemma all_of_mono :
   forall (A : Type) (p q : A -> bool) (l : list A),
@@ -160,29 +157,17 @@ Lemma all_of_mono :
 Proof. exact ProofSupport.all_of_mono. Qed.
 
 Lemma all_of_true : forall (A : Type) (l : list A), all_of (fun _ => true) l = true.
-Proof.
-  intros A l. induction l as [ | x r IH ].
-  - reflexivity.
-  - simpl. exact IH.
-Qed.
+Proof. exact ProofSupport.all_of_true. Qed.
 
 Lemma all_of_app :
   forall (A : Type) (p : A -> bool) (a b : list A),
     all_of p (app a b) = andb (all_of p a) (all_of p b).
-Proof.
-  intros A p a b. induction a as [ | x r IH ]; simpl.
-  - reflexivity.
-  - rewrite IH. destruct (p x); reflexivity.
-Qed.
+Proof. exact ProofSupport.all_of_app_eq. Qed.
 
 Lemma any_of_app :
   forall (A : Type) (p : A -> bool) (a b : list A),
     any_of p (app a b) = orb (any_of p a) (any_of p b).
-Proof.
-  intros A p a b. induction a as [ | x r IH ]; simpl.
-  - reflexivity.
-  - rewrite IH. destruct (p x); reflexivity.
-Qed.
+Proof. exact ProofSupport.any_of_app. Qed.
 
 Lemma all_of_flatten_map :
   forall (A B : Type) (p : B -> bool) (f : A -> list B) (l : list A),
@@ -206,16 +191,10 @@ Lemma nat_eqb_refl : forall n : nat, Nat.eqb n n = true.
 Proof. exact ProofSupport.nat_eqb_refl. Qed.
 
 Lemma nat_eqb_true : forall i j : nat, Nat.eqb i j = true -> i = j.
-Proof.
-  induction i as [ | i IH ]; destruct j as [ | j ]; simpl; intros H; try discriminate H.
-  - reflexivity.
-  - f_equal. exact (IH j H).
-Qed.
+Proof. exact ProofSupport.nat_eqb_true. Qed.
 
 Lemma nat_eqb_sym : forall i j : nat, Nat.eqb i j = Nat.eqb j i.
-Proof.
-  induction i as [ | i IH ]; destruct j as [ | j ]; simpl; try reflexivity. exact (IH j).
-Qed.
+Proof. exact ProofSupport.nat_eqb_sym. Qed.
 
 Lemma nat_leb_split : forall i j : nat, Nat.leb i j = orb (Nat.ltb i j) (Nat.eqb i j).
 Proof.
@@ -820,21 +799,13 @@ Definition drop_at {A : Type} (n : nat) (l : list A) : list A := @ProofSupport.d
    "re-entries into suffixes of the same table", and R-15-247d requires its
    order on every one of those, so a suffix is the weakening that phrase
    invites and the family below is what refuses it. *)
-Fixpoint suffix_at {A : Type} (n : nat) (l : list A) : list A :=
-  match n, l with
-  | 0, _ => l
-  | S k, cons _ r => suffix_at k r
-  | S _, nil => nil
-  end.
+Definition suffix_at {A : Type} (n : nat) (l : list A) : list A :=
+  @ProofSupport.suffix_at A n l.
 
 (* Insert a step at n: with a phase's read, the poll-until-done loop and
    the retry R-15-247f refuses, one weakening per position per phase. *)
-Fixpoint insert_at {A : Type} (n : nat) (p : A) (l : list A) : list A :=
-  match n, l with
-  | 0, _ => cons p l
-  | S k, cons a r => cons a (insert_at k p r)
-  | S _, nil => cons p nil
-  end.
+Definition insert_at {A : Type} (n : nat) (p : A) (l : list A) : list A :=
+  @ProofSupport.insert_at A n p l.
 
 (* R-15-247f's literal: one read, per phase. *)
 Definition single_read_ok (ks : list nat) (l : list Step) : bool :=
@@ -875,13 +846,13 @@ Proof.
 Qed.
 
 Definition transpositions (l : list Step) : list (list Step) :=
-  map_over (fun n => swap_at n l) (upto (before_last (count_of l))).
+  @ProofSupport.transpositions Step l.
 
 Definition deletions (l : list Step) : list (list Step) :=
-  map_over (fun n => drop_at n l) (upto (count_of l)).
+  @ProofSupport.deletions Step l.
 
 Definition proper_suffixes (l : list Step) : list (list Step) :=
-  map_over (fun n => suffix_at (S n) l) (upto (count_of l)).
+  @ProofSupport.proper_suffixes Step l.
 
 Definition extra_reads (ks : list nat) (l : list Step) : list (list Step) :=
   flatten (map_over (fun k => map_over (fun n => insert_at n (PhaseRead k) l)

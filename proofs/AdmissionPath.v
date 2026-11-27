@@ -3435,10 +3435,7 @@ Example the_terse_carrier_draws_the_same_refusal :
    ========================================================================= *)
 
 Lemma orb_split : forall a b : bool, orb a b = false -> a = false /\ b = false.
-Proof.
-  intros a b H. destruct a; destruct b; simpl in H;
-    try discriminate H; split; reflexivity.
-Qed.
+Proof. exact ProofSupport.orb_false_split. Qed.
 
 (* A checker that admits whatever the composer is carrying the right state
    for: the composer's build record read as evidence, which R-06-015b's

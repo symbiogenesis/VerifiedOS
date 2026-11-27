@@ -41,15 +41,9 @@
    ========================================================================= *)
 
 Require ProofSupport.
+Import ProofSupport.Tactics.
 
 Require Import RingContract.
-
-(* An equality closed by one evaluation. `vm_compute. reflexivity.` evaluates
-   the goal in the tactic and again where the kernel checks its cast at Qed;
-   this casts eq_refl to the goal unevaluated, so only the check at Qed
-   evaluates it. *)
-Local Ltac vm_reflexivity :=
-  intros; lazymatch goal with |- _ = ?b => vm_cast_no_check (@eq_refl _ b) end.
 
 (* -------------------------------------------------------------------------
    Shared collection implementations and compatibility lemmas live in
@@ -88,12 +82,7 @@ Definition swap_at {A : Type} (n : nat) (l : list A) : list A := @ProofSupport.s
 
 Definition drop_at {A : Type} (n : nat) (l : list A) : list A := @ProofSupport.drop_at A n l.
 
-Fixpoint suffix_at {A : Type} (n : nat) (l : list A) : list A :=
-  match n, l with
-  | 0, _ => l
-  | S k, cons _ r => suffix_at k r
-  | S _, nil => nil
-  end.
+Definition suffix_at {A : Type} (n : nat) (l : list A) : list A := @ProofSupport.suffix_at A n l.
 
 Definition insert_at {A : Type} (n : nat) (x : A) (l : list A) : list A := @ProofSupport.insert_at A n x l.
 
@@ -136,25 +125,13 @@ Lemma nat_leb_refl : forall n : nat, Nat.leb n n = true.
 Proof. exact ProofSupport.nat_leb_refl. Qed.
 
 Lemma nat_leb_succ_r : forall a b : nat, Nat.leb a b = true -> Nat.leb a (S b) = true.
-Proof.
-  induction a as [| x IH]; intros b H.
-  - reflexivity.
-  - destruct b as [| y]; [ discriminate H | simpl in H; simpl; exact (IH y H) ].
-Qed.
+Proof. exact ProofSupport.nat_leb_succ_r. Qed.
 
 Lemma nat_leb_from_succ : forall a b : nat, Nat.leb (S a) b = true -> Nat.leb a b = true.
-Proof.
-  induction a as [| x IH]; intros b H.
-  - reflexivity.
-  - destruct b as [| y]; [ discriminate H | simpl in H; simpl; exact (IH y H) ].
-Qed.
+Proof. exact ProofSupport.nat_leb_pred. Qed.
 
 Lemma nat_leb_pred : forall n m : nat, Nat.leb n m = true -> Nat.leb (Nat.pred n) m = true.
-Proof.
-  intros n m H. destruct n as [| k].
-  - reflexivity.
-  - simpl. exact (nat_leb_from_succ k m H).
-Qed.
+Proof. exact ProofSupport.nat_leb_pred_l. Qed.
 
 (* Subtraction matches on its first argument, so `n - 0` is stuck wherever `n`
    is a variable and this is not the identity the prelude reduces for free. *)
@@ -847,13 +824,13 @@ Proof. vm_reflexivity. Qed.
 
 (* The four generators, over any chain. *)
 Definition transpositions {A : Type} (l : list A) : list (list A) :=
-  map_over (fun k => swap_at k l) (upto (Nat.pred (count_of l))).
+  @ProofSupport.transpositions A l.
 
 Definition deletions {A : Type} (l : list A) : list (list A) :=
-  map_over (fun k => drop_at k l) (upto (count_of l)).
+  @ProofSupport.deletions A l.
 
 Definition proper_suffixes {A : Type} (l : list A) : list (list A) :=
-  map_over (fun k => suffix_at (S k) l) (upto (count_of l)).
+  @ProofSupport.proper_suffixes A l.
 
 Definition duplications {A : Type} (l : list A) (d : A) : list (list A) :=
   map_over (fun k => insert_at k (at_member l k d) l) (upto (count_of l)).

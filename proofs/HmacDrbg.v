@@ -63,20 +63,18 @@
    (*| END derived |*)
    ========================================================================= *)
 
+Require ProofSupport.
+Import ProofSupport.Tactics.
 Require Import Sha256.
 
 Open Scope list_scope.
-
-(* Casts eq_refl to the goal unevaluated so only Qed evaluates it. *)
-Local Ltac vm_reflexivity :=
-  intros; lazymatch goal with |- _ = ?b => vm_cast_no_check (@eq_refl _ b) end.
 
 (* -------------------------------------------------------------------------
    Helpers this file adds to Sha256.v's, in the same idiom.
    ------------------------------------------------------------------------- *)
 
 Lemma nat_eqb_refl : forall n : nat, Nat.eqb n n = true.
-Proof. induction n as [| n IH]; [reflexivity | exact IH]. Qed.
+Proof. exact ProofSupport.nat_eqb_refl. Qed.
 
 Lemma andb_left : forall a b : bool, andb a b = true -> a = true.
 Proof. intros a b H. destruct a; [reflexivity | discriminate H]. Qed.

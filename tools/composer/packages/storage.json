@@ -56,15 +56,15 @@
     },
     {
       "path": "proofs/JournalIndex.v",
-      "sha256": "312d6506b7eb853256df8cca2dc0f5749538244b9fd99086c17b00f15a476f36"
+      "sha256": "05f5e001a5943b1361168afdd923e64ce93f46973cc6b5b255f2626cecdfc75a"
     },
     {
       "path": "proofs/StorageRecovery.v",
-      "sha256": "db46bae068cc54c92c0edf332fa62bfb521531c87752d28c77c0d03caa578484"
+      "sha256": "6f2bcd060a3887ea5ba1a316b09cc6355731843b13cd2c024a9ac0fbb9547e6a"
     },
     {
       "path": "proofs/KeyspaceDomains.v",
-      "sha256": "899c22468e3c9a66b5c6db7e898606267de6a215df0e0b2227975e468165bcf4"
+      "sha256": "235d73368e469d0d2250e3e863bcfd2410e722e84b7bf96af17cd91bf790fe65"
     },
     {
       "path": "storage/src/typed_entry.c",
@@ -76,7 +76,7 @@
     },
     {
       "path": "proofs/ObjectTransactor.v",
-      "sha256": "2d1c83783431ac344e327d26f7c7f74be18de855b5fed69e0570c9b3a95960b9"
+      "sha256": "5667dcedbe051200829747318ccd64c41df8e0252b4f479d3d3bfde9cb95ce9e"
     },
     {
       "path": "storage/src/typed_tree.c",

@@ -62,14 +62,10 @@ Fixpoint mem_nat (x : nat) (l : list nat) : bool :=
   | cons y r => orb (Nat.eqb x y) (mem_nat x r)
   end.
 
-Definition bool_eqb (a b : bool) : bool := if a then b else negb b.
+Definition bool_eqb (a b : bool) : bool := ProofSupport.bool_eqb a b.
 
-Fixpoint list_eqb {A : Type} (eqb : A -> A -> bool) (l1 l2 : list A) : bool :=
-  match l1, l2 with
-  | nil, nil => true
-  | cons x r1, cons y r2 => andb (eqb x y) (list_eqb eqb r1 r2)
-  | _, _ => false
-  end.
+Definition list_eqb {A : Type} (eqb : A -> A -> bool) (l1 l2 : list A) : bool :=
+  @ProofSupport.list_eqb A eqb l1 l2.
 
 Definition prev_cycle (t : nat) : nat := match t with 0 => 0 | S k => k end.
 
@@ -78,36 +74,22 @@ Definition prev_cycle (t : nat) : nat := match t with 0 => 0 | S k => k end.
    ------------------------------------------------------------------------- *)
 
 Lemma eqb_refl_nat : forall n : nat, Nat.eqb n n = true.
-Proof. induction n as [ | n IH ]; simpl; [ reflexivity | exact IH ]. Qed.
+Proof. exact ProofSupport.nat_eqb_refl. Qed.
 
 Lemma eqb_sound_nat : forall a b : nat, Nat.eqb a b = true -> a = b.
-Proof.
-  induction a as [ | a IH ]; intros b H.
-  - destruct b as [ | b ]; [ reflexivity | discriminate H ].
-  - destruct b as [ | b ]; [ discriminate H | ].
-    simpl in H. rewrite (IH b H). reflexivity.
-Qed.
+Proof. exact ProofSupport.nat_eqb_true. Qed.
 
 Lemma add_zero_r_nat : forall n : nat, Nat.add n 0 = n.
-Proof.
-  induction n as [ | n IH ]; simpl; [ reflexivity | rewrite IH; reflexivity ].
-Qed.
+Proof. exact ProofSupport.nat_add_zero. Qed.
 
 Lemma add_zero_l_nat : forall n : nat, Nat.add 0 n = n.
 Proof. intros n. reflexivity. Qed.
 
 Lemma add_succ_r_nat : forall n k : nat, Nat.add n (S k) = S (Nat.add n k).
-Proof.
-  induction n as [ | n IH ]; intros k; simpl;
-    [ reflexivity | rewrite IH; reflexivity ].
-Qed.
+Proof. exact ProofSupport.nat_add_succ. Qed.
 
 Lemma add_comm_nat : forall a b : nat, Nat.add a b = Nat.add b a.
-Proof.
-  induction a as [ | a IH ]; intros b; simpl.
-  - rewrite add_zero_r_nat. reflexivity.
-  - rewrite IH. rewrite add_succ_r_nat. reflexivity.
-Qed.
+Proof. exact ProofSupport.nat_add_comm. Qed.
 
 Lemma add_assoc_nat :
   forall a b c : nat, Nat.add a (Nat.add b c) = Nat.add (Nat.add a b) c.
@@ -117,38 +99,22 @@ Proof.
 Qed.
 
 Lemma leb_refl_nat : forall n : nat, Nat.leb n n = true.
-Proof. induction n as [ | n IH ]; simpl; [ reflexivity | exact IH ]. Qed.
+Proof. exact ProofSupport.nat_leb_refl. Qed.
 
 Lemma leb_trans_nat :
   forall a b c : nat, Nat.leb a b = true -> Nat.leb b c = true ->
     Nat.leb a c = true.
-Proof.
-  induction a as [ | a IH ]; intros b c H1 H2.
-  - reflexivity.
-  - destruct b as [ | b ]; [ discriminate H1 | ].
-    destruct c as [ | c ]; [ discriminate H2 | ].
-    simpl in H1. simpl in H2. simpl. exact (IH b c H1 H2).
-Qed.
+Proof. exact ProofSupport.nat_leb_trans. Qed.
 
 Lemma leb_succ_r_nat :
   forall a b : nat, Nat.leb a b = true -> Nat.leb a (S b) = true.
-Proof.
-  induction a as [ | a IH ]; intros b H.
-  - reflexivity.
-  - destruct b as [ | b ]; [ discriminate H | ].
-    simpl in H. simpl. exact (IH b H).
-Qed.
+Proof. exact ProofSupport.nat_leb_succ_r. Qed.
 
 Lemma leb_add_r_nat : forall a b : nat, Nat.leb a (Nat.add a b) = true.
-Proof.
-  induction a as [ | a IH ]; intros b; simpl; [ reflexivity | exact (IH b) ].
-Qed.
+Proof. exact ProofSupport.nat_leb_add_r. Qed.
 
 Lemma leb_drop_left : forall a b, Nat.leb (S a) b = true -> Nat.leb a b = true.
-Proof.
-  induction a as [|a IHa]; intros b H; [reflexivity|].
-  destruct b as [|b]; [discriminate H|]. simpl in *. exact (IHa b H).
-Qed.
+Proof. exact ProofSupport.nat_leb_pred. Qed.
 
 Lemma leb_add_mono_r_nat :
   forall a b c : nat, Nat.leb a b = true ->
@@ -163,13 +129,7 @@ Lemma all_of_mono :
   forall {A : Type} (p q : A -> bool) (l : list A),
     (forall x : A, p x = true -> q x = true) ->
     all_of p l = true -> all_of q l = true.
-Proof.
-  intros A p q l H. induction l as [ | x r IH ]; simpl; intros Hall.
-  - reflexivity.
-  - destruct (p x) eqn:Ex.
-    + rewrite (H x Ex). simpl. exact (IH Hall).
-    + discriminate Hall.
-Qed.
+Proof. exact ProofSupport.all_of_mono. Qed.
 
 Lemma map_over_compose :
   forall {A B C : Type} (f : B -> C) (g : A -> B) (l : list A),

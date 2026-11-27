@@ -8,7 +8,7 @@
     },
     {
       "path": "proofs/ProofSupport.v",
-      "sha256": "21fefa8c275f9a6ee41299d2d59b971974a8f89453cb8749bbec0d7d13e86a22"
+      "sha256": "530d3f148985f32bb42d64efc32db0feac46a3250e467ee4baeaa921fdbc5449"
     },
     {
       "path": "tools/pyproject.toml",
@@ -24,7 +24,7 @@
     },
     {
       "path": "proofs/AdmissionPath.v",
-      "sha256": "c804f3736dd3d825f03af965ea23824dcd7ac1d4756013c78ecb5a59f8e44b5d"
+      "sha256": "e7c868e83f2daedb86b6897d085ef2be4e4373ae7622c425d0c3c33db19e9a9c"
     },
     {
       "path": "tools/vos/composer.py",
@@ -32,7 +32,7 @@
     },
     {
       "path": "proofs/HandlerGraph.v",
-      "sha256": "0a088ecfd1e96010290cffe278da431c5aeab1b5b56a8e8b8a66ee69addfdd07"
+      "sha256": "55c6d8415eebf9b84c36cc51e084d12d3daa016ed893ba3446f56c5c711274d3"
     },
     {
       "path": "tools/vos/composition.py",

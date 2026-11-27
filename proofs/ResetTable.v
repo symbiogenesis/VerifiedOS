@@ -35,6 +35,7 @@
    (*| END derived |*)
    ========================================================================= *)
 
+Require ProofSupport.
 Require Import CyclicExecutive.
 Require Import MemoryPlan.
 
@@ -142,14 +143,7 @@ Qed.
 Lemma all_of_members :
   forall (p : nat -> bool) (l : list nat) (e : nat),
     all_of p l = true -> any_of (Nat.eqb e) l = true -> p e = true.
-Proof.
-  intros p l e. induction l as [ | y r IH ]; intros Hall Hmem.
-  - discriminate Hmem.
-  - simpl in Hall. destruct (andb_split _ _ Hall) as [ Hy Hr ].
-    revert Hmem. simpl. destruct (Nat.eqb e y) eqn:E; simpl; intros Hmem.
-    + rewrite (eqb_true _ _ E). exact Hy.
-    + exact (IH Hr Hmem).
-Qed.
+Proof. exact (ProofSupport.all_of_eqb_member nat Nat.eqb ProofSupport.nat_eqb_true). Qed.
 
 Lemma all_of_members_intro :
   forall (p : nat -> bool) (l : list nat),
@@ -1091,18 +1085,19 @@ Proof.
 Qed.
 
 Definition pair_eqb (a b : RiderStep * RiderStep) : bool :=
-  andb (rider_step_eqb (fst a) (fst b)) (rider_step_eqb (snd a) (snd b)).
+  ProofSupport.pair_eqb rider_step_eqb rider_step_eqb a b.
 
 Lemma pair_eqb_refl : forall p : RiderStep * RiderStep, pair_eqb p p = true.
 Proof.
-  intros [ p q ]. unfold pair_eqb. simpl.
+  intros [ p q ]. unfold pair_eqb, ProofSupport.pair_eqb. simpl.
   rewrite rider_step_eqb_refl. rewrite rider_step_eqb_refl. reflexivity.
 Qed.
 
 Lemma pair_eqb_true :
   forall a b : RiderStep * RiderStep, pair_eqb a b = true -> a = b.
 Proof.
-  intros [ a1 a2 ] [ b1 b2 ] H. unfold pair_eqb in H. simpl in H.
+  intros [ a1 a2 ] [ b1 b2 ] H.
+  unfold pair_eqb, ProofSupport.pair_eqb in H. simpl in H.
   destruct (andb_split _ _ H) as [ H1 H2 ].
   rewrite (rider_step_eqb_true a1 b1 H1).
   rewrite (rider_step_eqb_true a2 b2 H2). reflexivity.
@@ -1112,14 +1107,7 @@ Lemma all_of_pair_members :
   forall (p : RiderStep * RiderStep -> bool) (l : list (RiderStep * RiderStep))
          (e : RiderStep * RiderStep),
     all_of p l = true -> any_of (pair_eqb e) l = true -> p e = true.
-Proof.
-  intros p l e. induction l as [ | y r IH ]; intros Hall Hmem.
-  - discriminate Hmem.
-  - simpl in Hall. destruct (andb_split _ _ Hall) as [ Hy Hr ].
-    revert Hmem. simpl. destruct (pair_eqb e y) eqn:E; simpl; intros Hmem.
-    + rewrite (pair_eqb_true e y E). exact Hy.
-    + exact (IH Hr Hmem).
-Qed.
+Proof. exact (ProofSupport.all_of_eqb_member (RiderStep * RiderStep) pair_eqb pair_eqb_true). Qed.
 
 Lemma all_of_pair_members_intro :
   forall (p : RiderStep * RiderStep -> bool) (l : list (RiderStep * RiderStep)),

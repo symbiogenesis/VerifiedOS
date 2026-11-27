@@ -50,13 +50,10 @@
    (*| END derived |*)
    ========================================================================= *)
 From Stdlib Require Import ZArith List Arith Lia.
-Require CryptoLists.
+Require ProofSupport CryptoLists.
+Import ProofSupport.Tactics.
 
 Open Scope Z_scope.
-
-(* Casts eq_refl to the goal unevaluated so only Qed evaluates it. *)
-Local Ltac vm_reflexivity :=
-  intros; lazymatch goal with |- _ = ?b => vm_cast_no_check (@eq_refl _ b) end.
 
 (* -------------------------------------------------------------------------
    Helpers over the standard list library, in the idiom the sibling

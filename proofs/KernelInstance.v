@@ -85,10 +85,10 @@ Lemma only_if_elim : forall a b : bool, only_if a b = true -> a = true -> b = tr
 Proof. exact ProofSupport.only_if_elim. Qed.
 
 Lemma bool_eqb_sound : forall a b : bool, bool_eqb a b = true -> a = b.
-Proof. intros a b H. destruct a; destruct b; try discriminate H; reflexivity. Qed.
+Proof. exact ProofSupport.bool_eqb_sound. Qed.
 
 Lemma bool_eqb_holds : forall a : bool, bool_eqb a a = true.
-Proof. intros a. destruct a; reflexivity. Qed.
+Proof. exact ProofSupport.bool_eqb_refl. Qed.
 
 Lemma nat_eqb_sound : forall a b : nat, Nat.eqb a b = true -> a = b.
 Proof. exact ProofSupport.nat_eqb_true. Qed.
@@ -127,11 +127,7 @@ Qed.
 Lemma all_of_true :
   forall (A : Type) (p : A -> bool) (l : list A),
     (forall x : A, p x = true) -> all_of p l = true.
-Proof.
-  intros A p l H. induction l as [ | x r IH ].
-  - reflexivity.
-  - simpl. rewrite (H x). rewrite IH. reflexivity.
-Qed.
+Proof. exact ProofSupport.all_of_const. Qed.
 
 Lemma all_of_member :
   forall (A : Type) (eqb : A -> A -> bool),
@@ -571,7 +567,8 @@ Lemma replay_csr_ignores_unwritten_suffix :
     last_csr_write k.(csr_eqb) c after = None ->
     ctx_csr (replay k pre (app before after)) c = ctx_csr (replay k pre before) c.
 Proof.
-  intros k pre before after c H. unfold replay, ctx_csr.
+  intros k pre before after c H. unfold replay. simpl.
+  unfold Trace, kcsr, kmachine in *.
   rewrite last_csr_write_app, H. reflexivity.
 Qed.
 

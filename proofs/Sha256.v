@@ -37,24 +37,18 @@
    ========================================================================= *)
 
 Require ProofSupport CryptoLists.
+Import ProofSupport.Tactics.
 
 Open Scope list_scope.
-
-(* Defer VM evaluation to the kernel's cast check at Qed, avoiding a
-   separate tactic-side evaluation. *)
-Local Ltac vm_reflexivity :=
-  intros; lazymatch goal with |- _ = ?b => vm_cast_no_check (@eq_refl _ b) end.
 
 (* -------------------------------------------------------------------------
    Shared collection implementations and compatibility lemmas live in
    ProofSupport. Numeric and domain-specific helpers remain local.
    ------------------------------------------------------------------------- *)
 
-Fixpoint map_over {A B : Type} (f : A -> B) (l : list A) : list B :=
-  match l with nil => nil | x :: r => f x :: map_over f r end.
+Definition map_over {A B : Type} (f : A -> B) (l : list A) : list B := @ProofSupport.map_over A B f l.
 
-Fixpoint length_of {A : Type} (l : list A) : nat :=
-  match l with nil => 0 | _ :: r => S (length_of r) end.
+Definition length_of {A : Type} (l : list A) : nat := @ProofSupport.length_of A l.
 
 Definition take_of {A : Type} (n : nat) (l : list A) : list A := @ProofSupport.take_of A n l.
 
@@ -81,8 +75,7 @@ Definition fold_over {A B : Type} (f : B -> A -> B) (acc : B) (l : list A) : B :
 
 Definition concat_of {A : Type} (l : list (list A)) : list A := @ProofSupport.concat_of A l.
 
-Fixpoint all_of {A : Type} (p : A -> bool) (l : list A) : bool :=
-  match l with nil => true | x :: r => andb (p x) (all_of p r) end.
+Definition all_of {A : Type} (p : A -> bool) (l : list A) : bool := @ProofSupport.all_of A p l.
 
 Definition count_where {A : Type} (p : A -> bool) (l : list A) : nat := @ProofSupport.count_where A p l.
 

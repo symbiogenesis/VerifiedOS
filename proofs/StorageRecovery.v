@@ -166,7 +166,7 @@ Proof.
     [|discriminate].
   apply andb_true_iff in E as [_ E].
   apply complete_selected_is_exact in E. inversion H; subst out.
-  split; [exact E|]. intros b. unfold recover_under. rewrite E. reflexivity.
+  split; [exact E|]. intros b. rewrite recover_under_specification. rewrite E. reflexivity.
 Qed.
 
 Theorem a_missing_manifest_member_refuses_publication : forall m cut j s r,

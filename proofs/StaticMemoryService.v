@@ -22,13 +22,10 @@
    ========================================================================= *)
 
 From Stdlib Require Import List Lia PeanoNat.
+Require ProofSupport.
+Import ProofSupport.Tactics.
 Require Import IndexedUpdates.
 Import ListNotations.
-
-(* Defer VM evaluation to the kernel's cast check at Qed, avoiding a
-   separate tactic-side evaluation. *)
-Local Ltac vm_reflexivity :=
-  intros; lazymatch goal with |- _ = ?b => vm_cast_no_check (@eq_refl _ b) end.
 
 (* -------------------------------------------------------------------------
    Bytes and the two spellings of the map. The reference multiplies and

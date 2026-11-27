@@ -113,9 +113,7 @@ Lemma only_if_elim :
 Proof. exact ProofSupport.only_if_elim. Qed.
 
 Lemma all_of_true : forall (A : Type) (l : list A), all_of (fun _ => true) l = true.
-Proof.
-  intros A l. induction l as [ | x r IH ]; [ reflexivity | exact IH ].
-Qed.
+Proof. exact ProofSupport.all_of_true. Qed.
 
 Lemma nat_leb_refl : forall n : nat, Nat.leb n n = true.
 Proof. exact ProofSupport.nat_leb_refl. Qed.
@@ -360,11 +358,8 @@ Definition pos (u : nat) (l : list nat) : option nat := pos_from u l 0.
 Definition occurs (u : nat) (l : list nat) : bool :=
   match pos u l with Some _ => true | None => false end.
 
-Fixpoint occurrences (u : nat) (l : list nat) : nat :=
-  match l with
-  | nil => 0
-  | cons v r => if Nat.eqb u v then S (occurrences u r) else occurrences u r
-  end.
+Definition occurrences (u : nat) (l : list nat) : nat :=
+  ProofSupport.occurrences_by Nat.eqb u l.
 
 (* False where either unit is absent, which is what makes a deletion a
    refusal rather than a silence (reading 9). *)
@@ -435,28 +430,12 @@ Lemma all_of_app :
 Proof. exact ProofSupport.all_of_app. Qed.
 
 Lemma leb_split : forall v k : nat, Nat.leb v k = true -> Nat.ltb v k = true \/ v = k.
-Proof.
-  intros v. induction v as [ | a IH ]; intros k H.
-  - destruct k as [ | b ]; [ right; reflexivity | left; reflexivity ].
-  - destruct k as [ | b ].
-    + discriminate H.
-    + destruct (IH b H) as [ Hlt | Heq ].
-      * left. exact Hlt.
-      * right. exact (f_equal S Heq).
-Qed.
+Proof. exact ProofSupport.nat_leb_split. Qed.
 
 Lemma all_of_upto :
   forall (p : nat -> bool) (n v : nat),
     all_of p (upto n) = true -> Nat.ltb v n = true -> p v = true.
-Proof.
-  intros p n. induction n as [ | k IH ]; intros v H Hv.
-  - discriminate Hv.
-  - destruct (all_of_app nat p (upto k) (cons k nil) H) as [ Hk Hlast ].
-    simpl in Hlast. destruct (andb_split _ _ Hlast) as [ Hpk _ ].
-    destruct (leb_split v k Hv) as [ Hlt | Heq ].
-    + exact (IH v Hk Hlt).
-    + rewrite Heq. exact Hpk.
-Qed.
+Proof. exact ProofSupport.all_of_upto. Qed.
 
 (* S1 (R-12-073's start-order clause, R-07-027, R-07-028): the obligation
    read at an arbitrary pair of an arbitrary order, which is what lets the
@@ -775,48 +754,30 @@ Proof. intros m s1 s2 d H. unfold spec_supervisor. rewrite H. reflexivity. Qed.
 
 (* Transpose the adjacent pair at n: the natural wrong move on an ordered
    bring-up, and one weakening per adjacent position. *)
-Fixpoint swap_at (n : nat) (l : list nat) : list nat :=
-  match n, l with
-  | 0, cons a (cons b r) => cons b (cons a r)
-  | 0, _ => l
-  | S k, cons a r => cons a (swap_at k r)
-  | S _, nil => nil
-  end.
+Definition swap_at (n : nat) (l : list nat) : list nat :=
+  @ProofSupport.swap_at nat n l.
 
 (* Delete the unit at n: a member of the roster never started. *)
-Fixpoint drop_at (n : nat) (l : list nat) : list nat :=
-  match n, l with
-  | 0, cons _ r => r
-  | 0, nil => nil
-  | S k, cons a r => cons a (drop_at k r)
-  | S _, nil => nil
-  end.
+Definition drop_at (n : nat) (l : list nat) : list nat :=
+  @ProofSupport.drop_at nat n l.
 
 (* Re-enter the order at the suffix beginning at n, which is what a bring-up
    resumed after a subtree restart would be if the tree were not static. *)
-Fixpoint suffix_at (n : nat) (l : list nat) : list nat :=
-  match n, l with
-  | 0, _ => l
-  | S k, cons _ r => suffix_at k r
-  | S _, nil => nil
-  end.
+Definition suffix_at (n : nat) (l : list nat) : list nat :=
+  @ProofSupport.suffix_at nat n l.
 
 (* Start one unit a second time, one weakening per position. *)
-Fixpoint insert_at (n : nat) (u : nat) (l : list nat) : list nat :=
-  match n, l with
-  | 0, _ => cons u l
-  | S k, cons a r => cons a (insert_at k u r)
-  | S _, nil => cons u nil
-  end.
+Definition insert_at (n : nat) (u : nat) (l : list nat) : list nat :=
+  @ProofSupport.insert_at nat n u l.
 
 Definition transpositions (l : list nat) : list (list nat) :=
-  map_over (fun n => swap_at n l) (upto (before_last (count_of l))).
+  @ProofSupport.transpositions nat l.
 
 Definition deletions (l : list nat) : list (list nat) :=
-  map_over (fun n => drop_at n l) (upto (count_of l)).
+  @ProofSupport.deletions nat l.
 
 Definition proper_suffixes (l : list nat) : list (list nat) :=
-  map_over (fun n => suffix_at (S n) l) (upto (count_of l)).
+  @ProofSupport.proper_suffixes nat l.
 
 Definition duplicate_starts (l : list nat) : list (list nat) :=
   map_over (fun n => insert_at n 0 l) (upto (S (count_of l))).

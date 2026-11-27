@@ -18,6 +18,10 @@
 
 Open Scope list_scope.
 
+Module Tactics.
+Ltac vm_reflexivity :=
+  intros; lazymatch goal with |- _ = ?b => vm_cast_no_check (@eq_refl _ b) end.
+End Tactics.
 
 Fixpoint all_of {A : Type} (p : A -> bool) (l : list A) : bool :=
   match l with
@@ -88,8 +92,30 @@ Fixpoint patch_at {A : Type} (f : A -> A) (n : nat) (l : list A) : list A :=
   | S _, nil => nil
   end.
 
+Fixpoint suffix_at {A : Type} (n : nat) (l : list A) : list A :=
+  match n, l with
+  | 0, _ => l
+  | S k, cons _ r => suffix_at k r
+  | S _, nil => nil
+  end.
+
+Fixpoint occurrences_by {A : Type} (eqb : A -> A -> bool) (x : A) (l : list A) : nat :=
+  match l with
+  | nil => 0
+  | cons y r => if eqb x y then S (occurrences_by eqb x r) else occurrences_by eqb x r
+  end.
+
 Definition before_last (n : nat) : nat :=
   match n with 0 => 0 | S k => k end.
+
+Definition transpositions {A : Type} (l : list A) : list (list A) :=
+  map_over (fun n => swap_at n l) (upto (before_last (count_of l))).
+
+Definition deletions {A : Type} (l : list A) : list (list A) :=
+  map_over (fun n => drop_at n l) (upto (count_of l)).
+
+Definition proper_suffixes {A : Type} (l : list A) : list (list A) :=
+  map_over (fun n => suffix_at (S n) l) (upto (count_of l)).
 
 Definition only_if (a b : bool) : bool := orb (negb a) b.
 
@@ -620,6 +646,107 @@ Proof.
   intros A l n. induct_on_the_position n l.
   - simpl. exact (nat_leb_succ (count_of s)).
   - destruct l as [ | a s ]; [ reflexivity | ]. simpl. exact (IH s).
+Qed.
+
+Lemma orb_false_split : forall a b : bool, orb a b = false -> a = false /\ b = false.
+Proof.
+  intros a b H. destruct a; destruct b; simpl in H;
+    try discriminate H; split; reflexivity.
+Qed.
+
+Lemma orb_true_split : forall a b : bool, orb a b = true -> a = true \/ b = true.
+Proof.
+  intros a b H. destruct a; destruct b; simpl in H;
+    try discriminate H; [ left | left | right ]; reflexivity.
+Qed.
+
+Lemma negb_true : forall b : bool, negb b = true -> b = false.
+Proof. intros b H. destruct b; [ discriminate H | reflexivity ]. Qed.
+
+Lemma bool_eqb_refl : forall a : bool, bool_eqb a a = true.
+Proof. intros [ | ]; reflexivity. Qed.
+
+Lemma bool_eqb_sound : forall a b : bool, bool_eqb a b = true -> a = b.
+Proof. intros [ | ] [ | ] H; try discriminate H; reflexivity. Qed.
+
+Lemma nat_eqb_sym : forall a b : nat, Nat.eqb a b = Nat.eqb b a.
+Proof.
+  intros a. induction a as [ | x IH ]; intros b; destruct b as [ | y ];
+    try reflexivity. simpl. exact (IH y).
+Qed.
+
+Lemma nat_leb_succ_r : forall a b : nat,
+  Nat.leb a b = true -> Nat.leb a (S b) = true.
+Proof.
+  intros a b H. exact (nat_leb_trans a b (S b) H (nat_leb_succ b)).
+Qed.
+
+Lemma nat_leb_pred : forall a b : nat,
+  Nat.leb (S a) b = true -> Nat.leb a b = true.
+Proof.
+  intros a b H. exact (nat_leb_trans a (S a) b (nat_leb_succ a) H).
+Qed.
+
+Lemma nat_leb_pred_l : forall n m : nat,
+  Nat.leb n m = true -> Nat.leb (Nat.pred n) m = true.
+Proof.
+  intros [ | a ] m H; [ exact H | exact (nat_leb_pred a m H) ].
+Qed.
+
+Lemma nat_leb_total : forall a b : nat, orb (Nat.leb a b) (Nat.leb b a) = true.
+Proof.
+  intros a. induction a as [ | x IH ]; intros b.
+  - reflexivity.
+  - destruct b as [ | y ]; [ reflexivity | simpl; exact (IH y) ].
+Qed.
+
+Lemma nat_leb_antisym : forall a b : nat,
+  Nat.leb a b = true -> Nat.leb b a = true -> Nat.eqb a b = true.
+Proof.
+  intros a. induction a as [ | x IH ]; intros b H1 H2.
+  - destruct b as [ | y ]; [ reflexivity | discriminate H2 ].
+  - destruct b as [ | y ]; [ discriminate H1 | exact (IH y H1 H2) ].
+Qed.
+
+Lemma nat_leb_split : forall v k : nat,
+  Nat.leb v k = true -> Nat.ltb v k = true \/ v = k.
+Proof.
+  intros v. induction v as [ | a IH ]; intros k H.
+  - destruct k as [ | b ]; [ right; reflexivity | left; reflexivity ].
+  - destruct k as [ | b ]; [ discriminate H | ].
+    simpl in H. destruct (IH b H) as [ Hlt | Heq ].
+    + left. exact Hlt.
+    + right. rewrite Heq. reflexivity.
+Qed.
+
+Lemma all_of_const : forall (A : Type) (p : A -> bool) (l : list A),
+  (forall x : A, p x = true) -> all_of p l = true.
+Proof.
+  intros A p l Hp. induction l as [ | x r IH ];
+    [ reflexivity | simpl; rewrite (Hp x); exact IH ].
+Qed.
+
+Lemma all_of_true : forall (A : Type) (l : list A), all_of (fun _ => true) l = true.
+Proof. intros A l. exact (all_of_const A (fun _ => true) l (fun _ => eq_refl)). Qed.
+
+Lemma all_of_upto : forall (p : nat -> bool) (n v : nat),
+  all_of p (upto n) = true -> Nat.ltb v n = true -> p v = true.
+Proof.
+  intros p n. induction n as [ | k IH ]; intros v H Hv.
+  - discriminate Hv.
+  - simpl in H. destruct (all_of_app nat p (upto k) (cons k nil) H) as [ Hk Hlast ].
+    simpl in Hlast. destruct (andb_split _ _ Hlast) as [ Hpk _ ].
+    simpl in Hv. destruct (nat_leb_split v k Hv) as [ Hlt | Heq ].
+    + exact (IH v Hk Hlt).
+    + rewrite Heq. exact Hpk.
+Qed.
+
+Lemma any_of_app : forall (A : Type) (p : A -> bool) (a b : list A),
+  any_of p (app a b) = orb (any_of p a) (any_of p b).
+Proof.
+  intros A p a b. induction a as [ | x r IH ]; simpl.
+  - reflexivity.
+  - rewrite IH. destruct (p x); reflexivity.
 Qed.
 
 Example equality_comparisons_refuse_different_shapes_and_fields :

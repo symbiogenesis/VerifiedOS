@@ -18,12 +18,9 @@
    (*| END derived |*)
    ========================================================================= *)
 From Stdlib Require Import Bool List Arith Lia.
+Require ProofSupport.
+Import ProofSupport.Tactics.
 Import ListNotations.
-
-(* Defer VM evaluation to the kernel's cast check at Qed, avoiding a
-   separate tactic-side evaluation. *)
-Local Ltac vm_reflexivity :=
-  intros; lazymatch goal with |- _ = ?b => vm_cast_no_check (@eq_refl _ b) end.
 
 Inductive App := Editor | Painter.
 Definition appeqb (a b : App) : bool :=

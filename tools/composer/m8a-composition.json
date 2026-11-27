@@ -16,7 +16,7 @@
         },
         {
           "path": "proofs/ProofSupport.v",
-          "sha256": "21fefa8c275f9a6ee41299d2d59b971974a8f89453cb8749bbec0d7d13e86a22"
+          "sha256": "530d3f148985f32bb42d64efc32db0feac46a3250e467ee4baeaa921fdbc5449"
         },
         {
           "path": "tools/pyproject.toml",
@@ -32,7 +32,7 @@
         },
         {
           "path": "proofs/HandlerGraph.v",
-          "sha256": "0a088ecfd1e96010290cffe278da431c5aeab1b5b56a8e8b8a66ee69addfdd07"
+          "sha256": "55c6d8415eebf9b84c36cc51e084d12d3daa016ed893ba3446f56c5c711274d3"
         },
         {
           "path": "tools/vos/__init__.py",
@@ -97,7 +97,7 @@
         },
         {
           "path": "proofs/ProofSupport.v",
-          "sha256": "21fefa8c275f9a6ee41299d2d59b971974a8f89453cb8749bbec0d7d13e86a22"
+          "sha256": "530d3f148985f32bb42d64efc32db0feac46a3250e467ee4baeaa921fdbc5449"
         },
         {
           "path": "tools/pyproject.toml",
@@ -113,7 +113,7 @@
         },
         {
           "path": "proofs/AdmissionPath.v",
-          "sha256": "c804f3736dd3d825f03af965ea23824dcd7ac1d4756013c78ecb5a59f8e44b5d"
+          "sha256": "e7c868e83f2daedb86b6897d085ef2be4e4373ae7622c425d0c3c33db19e9a9c"
         },
         {
           "path": "tools/vos/__init__.py",
@@ -226,15 +226,15 @@
       "sources": [
         {
           "path": "proofs/RotFirmware.v",
-          "sha256": "0f32fd467d2a35e27ee21cf7df28974ee9ece6598f624e8726fbda946f97c8ae"
+          "sha256": "5668b0cf73d0a49aec04fe1117665b3265864f4e1fa193c8d8a9e54d00735aa3"
         },
         {
           "path": "proofs/RomVerifier.v",
-          "sha256": "bd147a2d0bbc329e79ad0ed961fadf23def9d88af23b874d745219183b926e28"
+          "sha256": "c54fab2234119d9f28bb09b86a69634538be899faa7e2d44bce75e2f666eee4d"
         },
         {
           "path": "proofs/Keccak.v",
-          "sha256": "c471bec624d0597c7be5433c702688397e36508acaf1c07dc6915bf6508e0fa5"
+          "sha256": "1ede1643f5a1f8b321b82b9a174a47879363c59778c1f077494184b8e6f9a8ab"
         }
       ],
       "descriptor": {
@@ -258,7 +258,7 @@
       "sources": [
         {
           "path": "proofs/MModeFirmware.v",
-          "sha256": "e9ce27ceba13d7ca6fdfdea42f6d30c25d21e5244a45fa8d412a8378a18e0157"
+          "sha256": "b1d205afaa63eb58c3195f6689fa664a3a939a000ca582a4e986913b06059e0d"
         }
       ],
       "descriptor": {
@@ -282,7 +282,7 @@
       "sources": [
         {
           "path": "proofs/KernelInstance.v",
-          "sha256": "c06d410ca09f3750644630253432f7fbcdd610a47094f03613a9518b54d5be8b"
+          "sha256": "fc3bf2334e92896009661ec721b2e0ec092dd4344984b93312f21cc307961dab"
         },
         {
           "path": "proofs/PartitionContext.v",
@@ -314,7 +314,7 @@
       "sources": [
         {
           "path": "proofs/SupervisionTree.v",
-          "sha256": "889f2b472e935778501e5076a222d0cbfa61b9e77b2c632031dfd7ac8c79a704"
+          "sha256": "29c268a6009436d206d474ee03f65d4d8b9d08f0bae90442fab288c0750d5324"
         },
         {
           "path": "supervisor/src/manifest.c",
@@ -342,15 +342,15 @@
       "sources": [
         {
           "path": "proofs/Keccak.v",
-          "sha256": "c471bec624d0597c7be5433c702688397e36508acaf1c07dc6915bf6508e0fa5"
+          "sha256": "1ede1643f5a1f8b321b82b9a174a47879363c59778c1f077494184b8e6f9a8ab"
         },
         {
           "path": "proofs/Sha256.v",
-          "sha256": "7729acceb6b82405877a82a361f06f9549d8eecf97c8511668af6724bbcb4b5f"
+          "sha256": "0cb687e0d2ec3c03846c35c4d6df12563be141ba095d5069c6f120f46a529ade"
         },
         {
           "path": "proofs/AesGcm.v",
-          "sha256": "a156754e3d39d76bf961757bbca71652aeb4c506255f3c8a80bfbd5f6f3582ed"
+          "sha256": "72294bd669a84d292c105adcf8ca89d49b22ec636e531342cc27123abc79dc47"
         },
         {
           "path": "proofs/MlDsa.v",
@@ -359,7 +359,7 @@
       ],
       "descriptor": {
         "path": "tools/composer/packages/crypto-core.json",
-        "sha256": "e3465b5965460c4854f4461177bb3306b5f5272c49087f791fb9fae2ff272690"
+        "sha256": "a276b2bbc0f42454fed6ddac2c9f5dba047fc3d9880c31bf69e8784e6d87f6e9"
       },
       "artifact_slot": "crypto-core-artifact",
       "entry": null,
@@ -382,16 +382,16 @@
         },
         {
           "path": "proofs/JournalIndex.v",
-          "sha256": "312d6506b7eb853256df8cca2dc0f5749538244b9fd99086c17b00f15a476f36"
+          "sha256": "05f5e001a5943b1361168afdd923e64ce93f46973cc6b5b255f2626cecdfc75a"
         },
         {
           "path": "proofs/StorageRecovery.v",
-          "sha256": "db46bae068cc54c92c0edf332fa62bfb521531c87752d28c77c0d03caa578484"
+          "sha256": "6f2bcd060a3887ea5ba1a316b09cc6355731843b13cd2c024a9ac0fbb9547e6a"
         }
       ],
       "descriptor": {
         "path": "tools/composer/packages/storage.json",
-        "sha256": "857eb2519913f9b6257ef3ed9fea9bc432095c835deccedee5173b57df349fd1"
+        "sha256": "74fa121880f7b472c08f6e96e3330d4c92b8d2f9daafd10e92e78f048d39d5cf"
       },
       "artifact_slot": "storage-artifact",
       "entry": null,
@@ -414,7 +414,7 @@
         },
         {
           "path": "proofs/ProofSupport.v",
-          "sha256": "21fefa8c275f9a6ee41299d2d59b971974a8f89453cb8749bbec0d7d13e86a22"
+          "sha256": "530d3f148985f32bb42d64efc32db0feac46a3250e467ee4baeaa921fdbc5449"
         },
         {
           "path": "tools/pyproject.toml",
@@ -711,7 +711,7 @@
       ],
       "descriptor": {
         "path": "tools/composer/packages/copy-service.json",
-        "sha256": "49d19465b33dbd43940c96fd75adf1b88351a803c29d35056a8f0b9691fd4b80"
+        "sha256": "9ed46c38702951313e20dc2072cd29ff680b10bc4633616708a09a4361b80786"
       },
       "artifact_slot": "copy-service-artifact",
       "entry": null,
@@ -734,7 +734,7 @@
         },
         {
           "path": "proofs/ProofSupport.v",
-          "sha256": "21fefa8c275f9a6ee41299d2d59b971974a8f89453cb8749bbec0d7d13e86a22"
+          "sha256": "530d3f148985f32bb42d64efc32db0feac46a3250e467ee4baeaa921fdbc5449"
         },
         {
           "path": "tools/pyproject.toml",
@@ -750,7 +750,7 @@
         },
         {
           "path": "proofs/HandlerGraph.v",
-          "sha256": "0a088ecfd1e96010290cffe278da431c5aeab1b5b56a8e8b8a66ee69addfdd07"
+          "sha256": "55c6d8415eebf9b84c36cc51e084d12d3daa016ed893ba3446f56c5c711274d3"
         },
         {
           "path": "tools/vos/composition.py",
@@ -967,7 +967,7 @@
       ],
       "descriptor": {
         "path": "tools/composer/packages/composer.json",
-        "sha256": "d486e4d6937442e0294a2f250c321352b9bd61059813d6918a6e382cb197c39b"
+        "sha256": "bf55942abbb285ffdaf59bf26a0592e9b188901715d0a6a265d1829e5b293ad9"
       },
       "artifact_slot": "composer-artifact",
       "entry": null,
@@ -990,7 +990,7 @@
         },
         {
           "path": "proofs/ProofSupport.v",
-          "sha256": "21fefa8c275f9a6ee41299d2d59b971974a8f89453cb8749bbec0d7d13e86a22"
+          "sha256": "530d3f148985f32bb42d64efc32db0feac46a3250e467ee4baeaa921fdbc5449"
         },
         {
           "path": "tools/pyproject.toml",
@@ -1006,7 +1006,7 @@
         },
         {
           "path": "proofs/AdmissionPath.v",
-          "sha256": "c804f3736dd3d825f03af965ea23824dcd7ac1d4756013c78ecb5a59f8e44b5d"
+          "sha256": "e7c868e83f2daedb86b6897d085ef2be4e4373ae7622c425d0c3c33db19e9a9c"
         },
         {
           "path": "tools/vos/composer.py",
@@ -1014,7 +1014,7 @@
         },
         {
           "path": "proofs/HandlerGraph.v",
-          "sha256": "0a088ecfd1e96010290cffe278da431c5aeab1b5b56a8e8b8a66ee69addfdd07"
+          "sha256": "55c6d8415eebf9b84c36cc51e084d12d3daa016ed893ba3446f56c5c711274d3"
         },
         {
           "path": "tools/vos/composition.py",
@@ -1171,7 +1171,7 @@
       ],
       "descriptor": {
         "path": "tools/composer/packages/admission.json",
-        "sha256": "8a89282ce3d29c63845633c852529411c080c53d117b2ed2532eb37ff91331c6"
+        "sha256": "0f147a183b35a1c830deab0ce2ad1cfe2f689a9020902260075ca2cd5b4d45fb"
       },
       "artifact_slot": "admission-artifact",
       "entry": null,

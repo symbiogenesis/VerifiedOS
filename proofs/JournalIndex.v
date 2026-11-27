@@ -142,7 +142,7 @@ Lemma andb_join : forall a b : bool, a = true -> b = true -> andb a b = true.
 Proof. exact ProofSupport.andb_join. Qed.
 
 Lemma orb_split : forall a b : bool, orb a b = false -> a = false /\ b = false.
-Proof. intros a b H. destruct a; [ discriminate H | exact (conj eq_refl H) ]. Qed.
+Proof. exact ProofSupport.orb_false_split. Qed.
 
 Lemma only_if_elim :
   forall a b : bool, only_if a b = true -> a = true -> b = true.
@@ -158,11 +158,7 @@ Lemma nat_leb_refl : forall n : nat, Nat.leb n n = true.
 Proof. exact ProofSupport.nat_leb_refl. Qed.
 
 Lemma nat_leb_total : forall a b : nat, orb (Nat.leb a b) (Nat.leb b a) = true.
-Proof.
-  intros a. induction a as [ | x IH ]; intros b.
-  - reflexivity.
-  - destruct b as [ | y ]; [ reflexivity | simpl; exact (IH y) ].
-Qed.
+Proof. exact ProofSupport.nat_leb_total. Qed.
 
 Lemma nat_leb_trans :
   forall a b c : nat, Nat.leb a b = true -> Nat.leb b c = true -> Nat.leb a c = true.
@@ -170,39 +166,22 @@ Proof. exact ProofSupport.nat_leb_trans. Qed.
 
 Lemma nat_leb_antisym :
   forall a b : nat, Nat.leb a b = true -> Nat.leb b a = true -> Nat.eqb a b = true.
-Proof.
-  intros a. induction a as [ | x IH ]; intros b H1 H2.
-  - destruct b as [ | y ]; [ reflexivity | discriminate H2 ].
-  - destruct b as [ | y ]; [ discriminate H1 | ].
-    exact (IH y H1 H2).
-Qed.
+Proof. exact ProofSupport.nat_leb_antisym. Qed.
 
 Lemma all_of_app :
   forall (A : Type) (p : A -> bool) (l r : list A),
     all_of p (app l r) = andb (all_of p l) (all_of p r).
-Proof.
-  intros A p l. induction l as [ | x s IH ]; intros r.
-  - reflexivity.
-  - simpl. rewrite IH. destruct (p x); reflexivity.
-Qed.
+Proof. exact ProofSupport.all_of_app_eq. Qed.
 
 Lemma any_of_app :
   forall (A : Type) (p : A -> bool) (l r : list A),
     any_of p (app l r) = orb (any_of p l) (any_of p r).
-Proof.
-  intros A p l. induction l as [ | x s IH ]; intros r.
-  - reflexivity.
-  - simpl. rewrite IH. destruct (p x); reflexivity.
-Qed.
+Proof. exact ProofSupport.any_of_app. Qed.
 
 Lemma all_of_const :
   forall (A : Type) (p : A -> bool) (l : list A),
     (forall x : A, p x = true) -> all_of p l = true.
-Proof.
-  intros A p l H. induction l as [ | x r IH ].
-  - reflexivity.
-  - simpl. rewrite (H x). exact IH.
-Qed.
+Proof. exact ProofSupport.all_of_const. Qed.
 
 Lemma all_of_mono :
   forall (A : Type) (p q : A -> bool) (l : list A),
@@ -1388,12 +1367,8 @@ Definition swap_at {A : Type} (n : nat) (l : list A) : list A :=
 Definition drop_at {A : Type} (n : nat) (l : list A) : list A :=
   ProofSupport.drop_at n l.
 
-Fixpoint suffix_at {A : Type} (n : nat) (l : list A) : list A :=
-  match n, l with
-  | 0, _ => l
-  | S k, cons _ r => suffix_at k r
-  | S _, nil => nil
-  end.
+Definition suffix_at {A : Type} (n : nat) (l : list A) : list A :=
+  ProofSupport.suffix_at n l.
 
 Definition insert_at {A : Type} (n : nat) (x : A) (l : list A) : list A :=
   ProofSupport.insert_at n x l.

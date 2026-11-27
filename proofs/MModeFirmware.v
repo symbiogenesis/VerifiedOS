@@ -70,13 +70,13 @@
 
 Require ProofSupport.
 
-Definition bool_eqb (a b : bool) : bool := if a then b else negb b.
+Definition bool_eqb (a b : bool) : bool := ProofSupport.bool_eqb a b.
 
 Lemma bool_eqb_refl : forall a : bool, bool_eqb a a = true.
-Proof. intros [ | ]; reflexivity. Qed.
+Proof. exact ProofSupport.bool_eqb_refl. Qed.
 
 Lemma bool_eqb_sound : forall a b : bool, bool_eqb a b = true -> a = b.
-Proof. intros [ | ] [ | ] H; try discriminate H; reflexivity. Qed.
+Proof. exact ProofSupport.bool_eqb_sound. Qed.
 
 Lemma andb_split : forall a b : bool, andb a b = true -> a = true /\ b = true.
 Proof. exact ProofSupport.andb_split. Qed.
@@ -85,16 +85,13 @@ Lemma andb_join : forall a b : bool, a = true -> b = true -> andb a b = true.
 Proof. exact ProofSupport.andb_join. Qed.
 
 Lemma orb_split : forall a b : bool, orb a b = true -> a = true \/ b = true.
-Proof.
-  intros [ | ] [ | ] H;
-    try discriminate H; [ left | left | right ]; reflexivity.
-Qed.
+Proof. exact ProofSupport.orb_true_split. Qed.
 
 Lemma orb_true_right : forall a : bool, orb a true = true.
 Proof. intros [ | ]; reflexivity. Qed.
 
 Lemma negb_true : forall a : bool, negb a = true -> a = false.
-Proof. intros [ | ] H; [ discriminate H | reflexivity ]. Qed.
+Proof. exact ProofSupport.negb_true. Qed.
 
 (* A disjunct that cannot hold alone is absorbed, and a conjunct that always
    holds is absorbed. The two shapes are what the "what refutes it is the
@@ -135,11 +132,7 @@ Proof. exact ProofSupport.all_of_mono. Qed.
 Lemma all_of_of_forall :
   forall (A : Type) (q : A -> bool) (l : list A),
     (forall x : A, q x = true) -> all_of q l = true.
-Proof.
-  intros A q l H. induction l as [ | x r IH ].
-  - reflexivity.
-  - simpl. rewrite (H x). exact IH.
-Qed.
+Proof. exact ProofSupport.all_of_const. Qed.
 
 (* A universal check over a list, read back at one member. This is what
    makes a finite check over an enumerated domain the property rather than

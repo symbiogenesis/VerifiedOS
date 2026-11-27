@@ -150,26 +150,17 @@ Qed.
 
 Lemma leb_trans : forall a b c : nat,
   Nat.leb a b = true -> Nat.leb b c = true -> Nat.leb a c = true.
-Proof.
-  induction a as [| k IH]; intros b c Hab Hbc.
-  - reflexivity.
-  - destruct b as [| j]; [ discriminate Hab | ].
-    destruct c as [| i]; [ discriminate Hbc | ].
-    exact (IH j i Hab Hbc).
-Qed.
+Proof. exact ProofSupport.nat_leb_trans. Qed.
 
 Lemma add_succ_right : forall a k : nat, a + S k = S (a + k).
-Proof.
-  induction a as [| n IH]; intros k; simpl;
-    [ reflexivity | rewrite (IH k); reflexivity ].
-Qed.
+Proof. exact ProofSupport.nat_add_succ. Qed.
 
 Lemma leb_add_right : forall a k : nat, Nat.leb a (a + k) = true.
-Proof. induction a as [| n IH]; intros k; simpl; [ reflexivity | exact (IH k) ]. Qed.
+Proof. exact ProofSupport.nat_leb_add_r. Qed.
 
 Lemma leb_add_left : forall k a b : nat,
   Nat.leb a b = true -> Nat.leb (k + a) (k + b) = true.
-Proof. induction k as [| n IH]; intros a b H; simpl; [ exact H | exact (IH a b H) ]. Qed.
+Proof. exact ProofSupport.nat_leb_add_left. Qed.
 
 Lemma add_assoc_nat : forall a b c : nat, a + b + c = a + (b + c).
 Proof.
@@ -183,26 +174,15 @@ Proof. intros A p x l Hx Hl. simpl. rewrite Hx. exact Hl. Qed.
 
 Lemma all_of_weaken : forall (A : Type) (p q : A -> bool) (l : list A),
   (forall x : A, p x = true -> q x = true) -> all_of p l = true -> all_of q l = true.
-Proof.
-  intros A p q l H. induction l as [| x r IH]; intros Hl.
-  - reflexivity.
-  - simpl in Hl. destruct (andb_split _ _ Hl) as [ Hx Hr ].
-    apply all_of_cons; [ exact (H x Hx) | exact (IH Hr) ].
-Qed.
+Proof. exact ProofSupport.all_of_mono. Qed.
 
 Lemma all_of_map : forall (A B : Type) (p : B -> bool) (f : A -> B) (l : list A),
   all_of p (map_over f l) = all_of (fun x => p (f x)) l.
-Proof.
-  intros A B p f. induction l as [| x r IH]; simpl;
-    [ reflexivity | rewrite IH; reflexivity ].
-Qed.
+Proof. exact ProofSupport.all_of_map. Qed.
 
 Lemma all_of_const : forall (A : Type) (p : A -> bool) (l : list A),
   (forall x : A, p x = true) -> all_of p l = true.
-Proof.
-  intros A p l H. induction l as [| x r IH]; simpl;
-    [ reflexivity | rewrite (H x); exact IH ].
-Qed.
+Proof. exact ProofSupport.all_of_const. Qed.
 
 Lemma all_of_take : forall (A : Type) (p : A -> bool) (n : nat) (l : list A),
   all_of p l = true -> all_of p (take_of n l) = true.

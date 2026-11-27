@@ -17,13 +17,11 @@
    ========================================================================= *)
 
 From Stdlib Require Import Bool List Arith Lia.
+Require ProofSupport.
+Import ProofSupport.Tactics.
 Require Import CyclicExecutive MemoryPlan ElasticDomain.
 Import ListNotations.
 Local Open Scope nat_scope.
-
-(* Defer evaluation of the equality to the kernel's VM cast check at Qed. *)
-Local Ltac vm_reflexivity :=
-  intros; lazymatch goal with |- _ = ?b => vm_cast_no_check (@eq_refl _ b) end.
 
 Lemma pool_upto_in : forall n k, In k (upto n) -> k < n.
 Proof.

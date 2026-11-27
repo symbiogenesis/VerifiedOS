@@ -142,12 +142,8 @@ Definition swap_at {A : Type} (n : nat) (l : list A) : list A :=
 Definition drop_at {A : Type} (n : nat) (l : list A) : list A :=
   ProofSupport.drop_at n l.
 
-Fixpoint suffix_at {A : Type} (n : nat) (l : list A) : list A :=
-  match n, l with
-  | 0, _ => l
-  | S k, cons _ r => suffix_at k r
-  | S _, nil => nil
-  end.
+Definition suffix_at {A : Type} (n : nat) (l : list A) : list A :=
+  ProofSupport.suffix_at n l.
 
 Definition insert_at {A : Type} (n : nat) (x : A) (l : list A) : list A :=
   ProofSupport.insert_at n x l.
@@ -189,13 +185,7 @@ Proof. exact ProofSupport.nat_eqb_refl. Qed.
 Lemma leb_trans :
   forall a b c : nat,
     Nat.leb a b = true -> Nat.leb b c = true -> Nat.leb a c = true.
-Proof.
-  intros a. induction a as [ | x IH ]; intros b c Hab Hbc.
-  - reflexivity.
-  - destruct b as [ | y ]; [ discriminate Hab | ].
-    destruct c as [ | z ]; [ discriminate Hbc | ].
-    exact (IH y z Hab Hbc).
-Qed.
+Proof. exact ProofSupport.nat_leb_trans. Qed.
 
 (* A conjunction over a list read back at a stronger predicate, and the two
    facts about `filter_of` every closure proof below rests on. *)
@@ -219,13 +209,7 @@ Qed.
 Lemma all_of_app :
   forall (A : Type) (p : A -> bool) (l r : list A),
     all_of p (app l r) = true -> all_of p l = true /\ all_of p r = true.
-Proof.
-  intros A p l r. induction l as [ | x s IH ]; intros H.
-  - split; [ reflexivity | exact H ].
-  - simpl in H. destruct (andb_split _ _ H) as [ Hx Hs ].
-    destruct (IH Hs) as [ Hl Hr ]. split; [ | exact Hr ].
-    simpl. apply andb_join; [ exact Hx | exact Hl ].
-Qed.
+Proof. exact ProofSupport.all_of_app. Qed.
 
 Lemma all_of_app_join :
   forall (A : Type) (p : A -> bool) (l r : list A),
@@ -256,28 +240,12 @@ Qed.
 (* Reading a conjunction over `upto n` back at one of its members: the lemma
    that lets a bounded family be stated of an arbitrary index. *)
 Lemma leb_split : forall v k : nat, Nat.leb v k = true -> Nat.ltb v k = true \/ v = k.
-Proof.
-  intros v. induction v as [ | a IH ]; intros k H.
-  - destruct k as [ | b ]; [ right; reflexivity | left; reflexivity ].
-  - destruct k as [ | b ].
-    + discriminate H.
-    + destruct (IH b H) as [ Hlt | Heq ].
-      * left. exact Hlt.
-      * right. rewrite Heq. reflexivity.
-Qed.
+Proof. exact ProofSupport.nat_leb_split. Qed.
 
 Lemma all_of_upto :
   forall (p : nat -> bool) (n v : nat),
     all_of p (upto n) = true -> Nat.ltb v n = true -> p v = true.
-Proof.
-  intros p n. induction n as [ | k IH ]; intros v H Hv.
-  - discriminate Hv.
-  - destruct (all_of_app nat p (upto k) (cons k nil) H) as [ Hk Hlast ].
-    simpl in Hlast. destruct (andb_split _ _ Hlast) as [ Hpk _ ].
-    destruct (leb_split v k Hv) as [ Hlt | Heq ].
-    + exact (IH v Hk Hlt).
-    + rewrite Heq. exact Hpk.
-Qed.
+Proof. exact ProofSupport.all_of_upto. Qed.
 
 (* The three facts a selection carries, each stated once over an arbitrary
    predicate so that every selector below is an instance rather than a fourth
@@ -2450,13 +2418,13 @@ Proof. intros m t H. exact (template_ok_condition m t H TDeclaredFlows). Qed.
    deletion, a proper suffix and a duplicated stage, one per position, from
    the composed template's own stage list rather than authored one by one. *)
 Definition transpositions (t : list Stage) : list (list Stage) :=
-  map_over (fun n => swap_at n t) (upto (before_last (count_of t))).
+  @ProofSupport.transpositions Stage t.
 
 Definition deletions (t : list Stage) : list (list Stage) :=
-  map_over (fun n => drop_at n t) (upto (count_of t)).
+  @ProofSupport.deletions Stage t.
 
 Definition proper_suffixes (t : list Stage) : list (list Stage) :=
-  map_over (fun n => suffix_at (S n) t) (upto (count_of t)).
+  @ProofSupport.proper_suffixes Stage t.
 
 Definition duplicate_stages (s : Stage) (t : list Stage) : list (list Stage) :=
   map_over (fun n => insert_at n s t) (upto (S (count_of t))).

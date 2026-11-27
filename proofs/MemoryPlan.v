@@ -112,11 +112,8 @@ Fixpoint at_list {A : Type} (l : list A) (n : nat) (d : A) : A :=
   | cons x r => match n with 0 => x | S k => at_list r k d end
   end.
 
-Fixpoint occurrences (u : nat) (l : list nat) : nat :=
-  match l with
-  | nil => 0
-  | cons v r => if Nat.eqb u v then S (occurrences u r) else occurrences u r
-  end.
+Definition occurrences (u : nat) (l : list nat) : nat :=
+  ProofSupport.occurrences_by Nat.eqb u l.
 
 (* Implication as a boolean, written out rather than taken from a library
    for the reason above. *)
@@ -143,11 +140,7 @@ Qed.
 Lemma all_of_const :
   forall (A : Type) (p : A -> bool) (l : list A),
     (forall x : A, p x = true) -> all_of p l = true.
-Proof.
-  intros A p l H. induction l as [ | x r IH ].
-  - reflexivity.
-  - simpl. rewrite (H x). exact IH.
-Qed.
+Proof. exact ProofSupport.all_of_const. Qed.
 
 Lemma all_of_app :
   forall (A : Type) (p : A -> bool) (l r : list A),
@@ -175,23 +168,12 @@ Qed.
    as a bounded quantifier over the index rather than only as the
    enumeration that decided it. *)
 Lemma leb_split : forall v k : nat, Nat.leb v k = true -> Nat.ltb v k = true \/ v = k.
-Proof.
-  intros v k. rewrite PeanoNat.Nat.leb_le, PeanoNat.Nat.ltb_lt.
-  apply PeanoNat.Nat.le_lteq.
-Qed.
+Proof. exact ProofSupport.nat_leb_split. Qed.
 
 Lemma all_of_upto :
   forall (p : nat -> bool) (n v : nat),
     all_of p (upto n) = true -> Nat.ltb v n = true -> p v = true.
-Proof.
-  intros p n. induction n as [ | k IH ]; intros v H Hv.
-  - discriminate Hv.
-  - simpl in H. destruct (all_of_app nat p (upto k) (cons k nil) H) as [ Hk Hlast ].
-    simpl in Hlast. destruct (andb_split _ _ Hlast) as [ Hpk _ ].
-    simpl in Hv. destruct (leb_split v k Hv) as [ Hlt | Heq ].
-    + exact (IH v Hk Hlt).
-    + rewrite Heq. exact Hpk.
-Qed.
+Proof. exact ProofSupport.all_of_upto. Qed.
 
 (* And the same conjunction built rather than read, which is what turns a
    boolean check over the roster into a decision procedure for the
@@ -290,7 +272,7 @@ Proof. exact PeanoNat.Nat.leb_refl. Qed.
 
 Lemma leb_trans :
   forall a b c : nat, Nat.leb a b = true -> Nat.leb b c = true -> Nat.leb a c = true.
-Proof. intros a b c. rewrite !PeanoNat.Nat.leb_le. apply PeanoNat.Nat.le_trans. Qed.
+Proof. exact ProofSupport.nat_leb_trans. Qed.
 
 Lemma ltb_leb_false : forall n m : nat, Nat.ltb m n = true -> Nat.leb n m = false.
 Proof. intros n m. rewrite PeanoNat.Nat.ltb_lt, PeanoNat.Nat.leb_gt. trivial. Qed.
@@ -340,11 +322,7 @@ Proof. intros a b i. rewrite !PeanoNat.Nat.leb_le. apply PeanoNat.Nat.le_add_le_
 Lemma count_of_app :
   forall (A : Type) (l r : list A),
     count_of (app l r) = count_of l + count_of r.
-Proof.
-  intros A l r. induction l as [ | x s IH ].
-  - reflexivity.
-  - simpl. rewrite IH. reflexivity.
-Qed.
+Proof. exact ProofSupport.count_of_app. Qed.
 
 (* The helpers' own floors, so that the day one of them stops deciding is
    the day it says so. Each is a base case no other check below reaches. *)
@@ -2422,10 +2400,10 @@ Definition drop_at {A : Type} (n : nat) (l : list A) : list A := @ProofSupport.d
 Definition insert_at {A : Type} (n : nat) (x : A) (l : list A) : list A := @ProofSupport.insert_at A n x l.
 
 Definition transpositions {A : Type} (l : list A) : list (list A) :=
-  map_over (fun n => swap_at n l) (upto (before_last (count_of l))).
+  @ProofSupport.transpositions A l.
 
 Definition deletions {A : Type} (l : list A) : list (list A) :=
-  map_over (fun n => drop_at n l) (upto (count_of l)).
+  @ProofSupport.deletions A l.
 
 Definition duplications (l : list nat) : list (list nat) :=
   map_over (fun n => insert_at n 0 l) (upto (S (count_of l))).

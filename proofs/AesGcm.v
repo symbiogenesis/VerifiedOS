@@ -40,11 +40,8 @@
    ========================================================================= *)
 
 Require ProofSupport CryptoLists.
+Import ProofSupport.Tactics.
 Open Scope list_scope.
-
-(* Defer evaluation of the equality to the kernel's VM cast check at Qed. *)
-Local Ltac vm_reflexivity :=
-  intros; lazymatch goal with |- _ = ?b => vm_cast_no_check (@eq_refl _ b) end.
 
 (* -------------------------------------------------------------------------
    List helpers retain their public names as aliases of the shared prelude
