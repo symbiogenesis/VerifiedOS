@@ -24,8 +24,8 @@
     "sha256": "b47e2e2147e339567e28a762510af6de4f3eb640c2091b3a697254121f156ba1"
   },
   "frozen_canonical_conservativity_manifest": {
-    "path": "docs/implementation/retained-evidence/q35p-canonical-conservativity-20261127/manifest.json",
-    "sha256": "86e7bf2fda88a47512833ec879df55663d843fc09a37330706b4ef20e234c9e2"
+    "path": "docs/implementation/retained-evidence/q35p-canonical-tag-effects-20261127/manifest.json",
+    "sha256": "b1ec37b27b3c9a176bd49c19181ba9e22c768c3df78d2e98f1ac79a98fed0546"
   },
   "reproducer": "docs/implementation/retained-evidence/close3-q35p-20261013/bindings.sail.txt",
   "reproducer_sha256": "aff11682da08211dc364a767dcec579b008d1ca1603054d8e9ab71c82e0701b4",

@@ -7,14 +7,14 @@ canonical-consumer acceptance remains owed.
 
 ## Retained evidence
 
-- [Canonical hart-0 TagConservativity recursive kernel and native assumption closure](../implementation/retained-evidence/q35p-canonical-conservativity-20261127/manifest.json),
-  SHA256 `86e7bf2fda88a47512833ec879df55663d843fc09a37330706b4ef20e234c9e2`.
+- [Canonical hart-0 tag effects and conservativity recursive kernel and native assumption closure](../implementation/retained-evidence/q35p-canonical-tag-effects-20261127/manifest.json),
+  SHA256 `b1ec37b27b3c9a176bd49c19181ba9e22c768c3df78d2e98f1ac79a98fed0546`.
   Strict compilation of `TagInterpreter.v`, `TagConservativity.v`,
   `CanonicalPhysicalCallerBridge.v`, and `CanonicalTagConservativity.v` against
   the canonical hart-0 term (`rv64d_types`, `rv64d`, `riscv_extras`), native
-  `Print Assumptions` audit across all `1,038` enumerated declarations (`122` in
+  `Print Assumptions` audit across all `1,079` enumerated declarations (`122` in
   `CanonicalTagPlaneInst`, `145` in `CanonicalOldOutcomesInst`, `307` in
-  `CanonicalPhysicalCallerBridge`, and `464` in `CanonicalTagConservativity`,
+  `CanonicalPhysicalCallerBridge`, and `505` in `CanonicalTagConservativity`,
   all closed under the global context), full recursive `rocqchk -silent -o`
   (`-norec` absent) on both `CanonicalPhysicalCallerBridge` and
   `CanonicalTagConservativity` matching the exact `31` classified floating-point
@@ -260,28 +260,44 @@ all four authored modules (`TagInterpreter.v`, `TagConservativity.v`,
 `CanonicalTagConservativity` instantiates
 `CanonicalOldOutcomes := TagConservativity.OldOutcomes rv64d_types.Arch rv64d_types.Interface`,
 bridges `CanonicalPhysicalCallerBridge.T.run` to `CanonicalOldOutcomes.run_old`,
-and proves caller-level tag-preservation and conservativity lemmas over
-`rv64d.read_ram` and `rv64d.write_ram`: `read_ram kind (Physaddr addr) width false`
+and proves caller-level tag-preservation, conservativity, and positive canonical
+hart-0 tag-effect semantics over `rv64d.read_ram`, `rv64d.write_ram`,
+`rv64d.__ReadRAM_Meta`, and `rv64d.__WriteRAM_Meta`: `read_ram kind (Physaddr addr) width false`
 equals `finish_read addr width kind default_meta`, is `tag_free`, steps via
 `MemRead` without emitting `TagRead`, and preserves `tags` unchanged; `write_ram`
 under a `MemWrite` refusal (`Err tt`) returns `false` without invoking
-`__WriteRAM_Meta` and preserves `tags` unchanged; and negative controls exclude
+`__WriteRAM_Meta` and preserves `tags` unchanged; negative controls exclude
 `read_ram kind (Physaddr addr) width true`, `__ReadRAM_Meta`, and
-`__WriteRAM_Meta (zeros 64) 1 meta` from `CanonicalOldOutcomes.tag_free`.
+`__WriteRAM_Meta (zeros 64) 1 meta` from `CanonicalOldOutcomes.tag_free`;
+`read_ram_with_meta_ok` and `read_ram_with_meta_err` establish symbolic
+`TagRead`-before-`MemRead` ordering, returned tag bits, data-bit preservation,
+and abort behavior when `read_meta = true`; `write_data_ok_step` and
+`write_ram_ok_step` connect `MemWrite` `Ok` responses to `__WriteRAM_Meta`; and
+concrete controls directly on `rv64d` (`log2_cap_size = 3`, 8-byte granules)
+check aligned 8-byte capability writes across all three `Ok` variants (`None`,
+`Some true`, `Some false`) updating granule `1` and framing neighbors `0` and
+`2`, partial/cross-granule (`addr = 7, width = 2`) and multi-granule (`addr = 7,
+width = 18`) writes emitting ascending `TagWrite` sequences and framing
+untouched neighbors, fixed-width wraparound (`addr = 2^64 - 1, width = 2`) via
+lazy `reflexivity`, `read_ram` with `read_meta = true` distinguishing stored
+`true` from absent `false` tags, `D.try_catch`/`D.catch_early_return` forwarding
+of `D.write_tag_bool`/`D.read_tag_bool`, and distinguishing negative controls
+(`<>` for omitted, reordered, and extra `TagWrite` traces; `Fail Check` for
+wrong `D.write_tag_bool`/`I.TagWrite` return types).
 
-The driver audits all `1,038` enumerated declarations under native `Print Assumptions`
+The driver audits all `1,079` enumerated declarations under native `Print Assumptions`
 (`122` in `CanonicalTagPlaneInst`, `145` in `CanonicalOldOutcomesInst`, `307` in
-`CanonicalPhysicalCallerBridge`, and `464` in `CanonicalTagConservativity`, all
+`CanonicalPhysicalCallerBridge`, and `505` in `CanonicalTagConservativity`, all
 `Closed under the global context`) and runs full recursive `rocqchk -silent -o`
-(`-norec` absent) on both `CanonicalPhysicalCallerBridge` (`26.088` seconds) and
-`CanonicalTagConservativity` (`24.429` seconds, `50.517` seconds total), both
+(`-norec` absent) on both `CanonicalPhysicalCallerBridge` (`28.145` seconds) and
+`CanonicalTagConservativity` (`27.193` seconds, `55.338` seconds total), both
 exiting `0` with only the exact `31` classified floating-point axioms in
 [the canonical machine term](canonical-machine-term.md#the-31-the-emission-declares)
 (`0` `Stdlib.Reals`, `0` `Program.Wf`/`Values_lemmas`, `0` new tag, conservativity,
 or bridge axioms) and zero installed-prefix changes. `candidate.json` binds
 `frozen_canonical_conservativity_manifest` to
-[Canonical hart-0 TagConservativity recursive kernel and native assumption closure](../implementation/retained-evidence/q35p-canonical-conservativity-20261127/manifest.json),
-SHA256 `86e7bf2fda88a47512833ec879df55663d843fc09a37330706b4ef20e234c9e2`.
+[Canonical hart-0 tag effects and conservativity recursive kernel and native assumption closure](../implementation/retained-evidence/q35p-canonical-tag-effects-20261127/manifest.json),
+SHA256 `b1ec37b27b3c9a176bd49c19181ba9e22c768c3df78d2e98f1ac79a98fed0546`.
 
 ## Paired emulator emission
 
@@ -318,8 +334,8 @@ size with private support. Q35p's isolated 29-module support comparison, V1
 instance readings, native `Print Assumptions` audit, and four-partition
 recursive `rocqchk -silent -o` closure checkpoint are retained against the
 November inputs, and the canonical hart-0 closure replay extends native
-`Print Assumptions` (`1,038` closed declarations in
-`q35p-canonical-conservativity-20261127`)
+`Print Assumptions` (`1,079` closed declarations in
+`q35p-canonical-tag-effects-20261127`)
 and un-admitted recursive `rocqchk -silent -o` (`31` classified floating-point
 axioms, `F-480`) to `TagInterpreter`, `TagConservativity`,
 `CanonicalPhysicalCallerBridge`, and `CanonicalTagConservativity`. Q35p remains open for the

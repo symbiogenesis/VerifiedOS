@@ -1,6 +1,6 @@
 (* SPDX-License-Identifier: Apache-2.0 *)
-From SailStdpp Require Import Base ConcurrencyInterfaceTypes TypeCasts.
-From stdpp Require Import bitvector.definitions.
+From SailStdpp Require Import Base ConcurrencyInterface ConcurrencyInterfaceTypes ConcurrencyInterfaceBuiltins TypeCasts.
+From stdpp Require Import gmap bitvector.definitions.
 Require Import rv64d_types rv64d TagInterpreter TagConservativity CanonicalPhysicalCallerBridge.
 Import ListNotations.
 
@@ -390,3 +390,312 @@ Proof.
   vm_compute in Hfree.
   exact Hfree.
 Qed.
+
+Lemma read_ram_with_meta_ok {Frame : Type}
+  (old : forall Response, I.outcome (fun _ => exception) Response -> Frame -> option (Response * Frame))
+  fuel kind access addr width tags frame bits req_tag frame' :
+  read_access kind = inl access ->
+  old _ (I.MemRead (Z.to_N width) (I.ReadReq.make (Z.to_N width) addr access None tt false)) frame =
+    Some (inl (bits, req_tag), frame') ->
+  exists data,
+    bv_unsigned data = bv_unsigned bits /\
+    T.run old (S (S (S fuel))) (read_ram kind (Physaddr addr) width true) tags frame =
+    Some (@T.Answer exception Frame (mword (8 * width) * bool)
+            (data, T.tag_get tags (tag_key addr)) tags frame'
+            [I.IEvent (I.TagRead (tag_key addr)) (T.tag_get tags (tag_key addr));
+             I.IEvent (I.MemRead (Z.to_N width)
+                          (I.ReadReq.make (Z.to_N width) addr access None tt false))
+                (inl (bits, req_tag))]).
+Proof.
+  intros Hkind Hold.
+  destruct (read_data_mem_read_ok old fuel addr width access (T.tag_get tags (tag_key addr))
+              tags frame bits req_tag frame' Hold)
+    as [data [Hbits Hrun]].
+  exists data. split.
+  - exact Hbits.
+  - rewrite read_ram_tag_interpretation.
+    unfold finish_read. rewrite Hkind, Hrun.
+    reflexivity.
+Qed.
+
+Lemma read_ram_with_meta_err {Frame : Type}
+  (old : forall Response, I.outcome (fun _ => exception) Response -> Frame -> option (Response * Frame))
+  fuel kind access addr width tags frame frame' :
+  read_access kind = inl access ->
+  old _ (I.MemRead (Z.to_N width) (I.ReadReq.make (Z.to_N width) addr access None tt false)) frame =
+    Some (inr tt, frame') ->
+  old _ (I.GenericFail "exit") frame' = None ->
+  T.run old (S (S (S (S fuel)))) (read_ram kind (Physaddr addr) width true) tags frame = None.
+Proof.
+  intros Hkind Hmem Hfail.
+  rewrite read_ram_tag_interpretation.
+  unfold finish_read. rewrite Hkind.
+  erewrite read_data_mem_read_err; [reflexivity | exact Hmem | exact Hfail].
+Qed.
+
+Lemma write_data_ok_step {Frame : Type}
+  (old : forall Response, I.outcome (fun _ => exception) Response -> Frame -> option (Response * Frame))
+  fuel addr width kind data meta tags frame frame' :
+  exists bits : bv (8 * Z.to_N width)%N,
+    bv_unsigned bits = bv_unsigned data /\
+    (forall status : option bool,
+       old _ (I.MemWrite (Z.to_N width)
+                (I.WriteReq.make (Z.to_N width) addr kind bits None tt None)) frame =
+         Some (inl status, frame') ->
+       T.run old (S fuel) (write_data addr width kind data meta) tags frame =
+       T.push
+         (I.IEvent (I.MemWrite (Z.to_N width)
+                      (I.WriteReq.make (Z.to_N width) addr kind bits None tt None))
+            (inl status))
+         (T.run old fuel (D.bind (__WriteRAM_Meta addr width meta) (fun _ => I.Ret true)) tags frame')).
+Proof.
+  destruct (write_data_exact_reply addr width kind data meta)
+    as [bits [resume [Hbits [Heq [Hok _]]]]].
+  exists bits. split.
+  - exact Hbits.
+  - intros status Hold.
+    rewrite Heq. cbn [T.run T.step]. rewrite Hold, Hok. reflexivity.
+Qed.
+
+Lemma write_ram_ok_step {Frame : Type}
+  (old : forall Response, I.outcome (fun _ => exception) Response -> Frame -> option (Response * Frame))
+  fuel kind access addr width data meta tags frame frame' :
+  write_access kind = inl access ->
+  exists bits : bv (8 * Z.to_N width)%N,
+    bv_unsigned bits = bv_unsigned data /\
+    (forall status : option bool,
+       old _ (I.MemWrite (Z.to_N width)
+                (I.WriteReq.make (Z.to_N width) addr access bits None tt None)) frame =
+         Some (inl status, frame') ->
+       T.run old (S fuel) (write_ram kind (Physaddr addr) width data meta) tags frame =
+       T.push
+         (I.IEvent (I.MemWrite (Z.to_N width)
+                      (I.WriteReq.make (Z.to_N width) addr access bits None tt None))
+            (inl status))
+         (T.run old fuel (D.bind (__WriteRAM_Meta addr width meta) (fun _ => I.Ret true)) tags frame')).
+Proof.
+  intro Hkind.
+  rewrite write_ram_request_order, Hkind.
+  apply write_data_ok_step.
+Qed.
+
+Local Open Scope stdpp_scope.
+
+Definition canon_word (z : Z) : mword 64 := to_bits_truncate 64 z.
+
+Record canon_frame := CanonFrame {
+  canon_data_bytes : gmap Z Z;
+  canon_register_values : gmap Z Z;
+  canon_output_messages : list string
+}.
+
+Definition canon_inhabited_frame : canon_frame :=
+  CanonFrame (<[0 := 37]> empty) (<[4 := 91]> empty) ["preserved"%string].
+
+Definition canon_environment (status : option bool + unit) (read_ok : bool) Resp
+  (oc : I.outcome (fun _ => exception) Resp) (f : canon_frame) : option (Resp * canon_frame) :=
+  match oc in I.outcome _ Resp return option (Resp * canon_frame) with
+  | I.MemWrite _ _ => Some (status, f)
+  | I.MemRead n _ => Some ((if read_ok then inl (Z_to_bv (8 * n) 0, None) else inr tt), f)
+  | _ => None
+  end.
+
+Inductive canon_observation :=
+| CanonRTag (key : Z) (value : bool)
+| CanonWTag (key : Z) (value : bool)
+| CanonRData
+| CanonWData
+| CanonOther.
+
+Definition canon_observe (ev : I.iEvent (fun _ => exception)) : canon_observation :=
+  match ev with
+  | I.IEvent oc response =>
+    (match oc in I.outcome _ Resp return Resp -> canon_observation with
+     | I.TagRead key => fun value => CanonRTag (uint key) value
+     | I.TagWrite key value => fun _ => CanonWTag (uint key) value
+     | I.MemRead _ _ => fun _ => CanonRData
+     | I.MemWrite _ _ => fun _ => CanonWData
+     | _ => fun _ => CanonOther
+     end) response
+  end.
+
+Definition canon_trace {X} status read_ok fuel (p : M X) tags :=
+  match T.run (canon_environment status read_ok) fuel p tags canon_inhabited_frame with
+  | None => None
+  | Some r => Some (map canon_observe (@T.events exception canon_frame X r))
+  end.
+
+Definition canon_final {X} status read_ok fuel (p : M X) tags :=
+  match T.run (canon_environment status read_ok) fuel p tags canon_inhabited_frame with
+  | None => None
+  | Some r => Some (@T.returned exception canon_frame X r,
+                    @T.final_tags exception canon_frame X r,
+                    @T.final_frame exception canon_frame X r)
+  end.
+
+Example canon_aligned_capability_meta :
+  canon_trace (inl None) true 10 (__WriteRAM_Meta (canon_word 8) 8 true) empty =
+    Some [CanonWTag 1 true] /\
+  canon_trace (inl None) true 10 (__WriteRAM_Meta (canon_word 8) 8 false) empty =
+    Some [CanonWTag 1 false].
+Proof. Timeout 10 vm_compute. split; reflexivity. Qed.
+
+Example canon_aligned_capability_write_ram :
+  forall (status : option bool) (meta : bool),
+    let tags0 := T.tag_put (T.tag_put (T.tag_put empty (canon_word 0) true)
+                                       (canon_word 1) (negb meta))
+                           (canon_word 2) true in
+    let expected_tags := T.tag_put tags0 (canon_word 1) meta in
+    canon_trace (inl status) true 10
+      (write_ram Write_plain (Physaddr (canon_word 8)) 8 (zeros 64) meta) tags0 =
+      Some [CanonWData; CanonWTag 1 meta] /\
+    canon_final (inl status) true 10
+      (write_ram Write_plain (Physaddr (canon_word 8)) 8 (zeros 64) meta) tags0 =
+      Some (true, expected_tags, canon_inhabited_frame) /\
+    T.tag_get expected_tags (canon_word 0) = true /\
+    T.tag_get expected_tags (canon_word 1) = meta /\
+    T.tag_get expected_tags (canon_word 2) = true.
+Proof.
+  Timeout 10 (intros [b|] meta; [destruct b|]; destruct meta;
+              vm_compute; repeat split; reflexivity).
+Qed.
+
+Example canon_partial_granule_meta :
+  canon_trace (inl None) true 10 (__WriteRAM_Meta (canon_word 7) 2 false) empty =
+  Some [CanonWTag 0 false; CanonWTag 1 false].
+Proof. Timeout 10 vm_compute. reflexivity. Qed.
+
+Example canon_partial_granule_write_ram :
+  let tags0 := T.tag_put (T.tag_put (T.tag_put empty (canon_word 0) true)
+                                     (canon_word 1) true)
+                         (canon_word 2) true in
+  let expected_tags :=
+    T.tag_put (T.tag_put tags0 (canon_word 0) false) (canon_word 1) false in
+  canon_trace (inl None) true 10
+    (write_ram Write_plain (Physaddr (canon_word 7)) 2 (zeros 16) false) tags0 =
+    Some [CanonWData; CanonWTag 0 false; CanonWTag 1 false] /\
+  canon_final (inl None) true 10
+    (write_ram Write_plain (Physaddr (canon_word 7)) 2 (zeros 16) false) tags0 =
+    Some (true, expected_tags, canon_inhabited_frame) /\
+  T.tag_get expected_tags (canon_word 0) = false /\
+  T.tag_get expected_tags (canon_word 1) = false /\
+  T.tag_get expected_tags (canon_word 2) = true.
+Proof. Timeout 10 vm_compute. repeat split; reflexivity. Qed.
+
+Example canon_multiple_granules_meta :
+  canon_trace (inl None) true 10 (__WriteRAM_Meta (canon_word 7) 18 false) empty =
+  Some [CanonWTag 0 false; CanonWTag 1 false; CanonWTag 2 false; CanonWTag 3 false].
+Proof. Timeout 10 vm_compute. reflexivity. Qed.
+
+Example canon_multiple_granules_write_ram :
+  let tags0 :=
+    T.tag_put (T.tag_put (T.tag_put (T.tag_put (T.tag_put empty (canon_word 0) true)
+                                                (canon_word 1) true)
+                                     (canon_word 2) true)
+                          (canon_word 3) true)
+              (canon_word 4) true in
+  let expected_tags :=
+    T.tag_put (T.tag_put (T.tag_put (T.tag_put tags0 (canon_word 0) false)
+                                     (canon_word 1) false)
+                          (canon_word 2) false)
+              (canon_word 3) false in
+  canon_trace (inl None) true 10
+    (write_ram Write_plain (Physaddr (canon_word 7)) 18 (zeros 144) false) tags0 =
+    Some [CanonWData; CanonWTag 0 false; CanonWTag 1 false; CanonWTag 2 false; CanonWTag 3 false] /\
+  canon_final (inl None) true 10
+    (write_ram Write_plain (Physaddr (canon_word 7)) 18 (zeros 144) false) tags0 =
+    Some (true, expected_tags, canon_inhabited_frame) /\
+  T.tag_get expected_tags (canon_word 0) = false /\
+  T.tag_get expected_tags (canon_word 1) = false /\
+  T.tag_get expected_tags (canon_word 2) = false /\
+  T.tag_get expected_tags (canon_word 3) = false /\
+  T.tag_get expected_tags (canon_word 4) = true.
+Proof. Timeout 10 vm_compute. repeat split; reflexivity. Qed.
+
+Example canon_fixed_width_wraparound_meta :
+  canon_trace (inl None) true 10
+    (__WriteRAM_Meta (canon_word 18446744073709551615) 2 false) empty = Some [].
+Proof. reflexivity. Qed.
+
+Example canon_fixed_width_wraparound_write_ram :
+  forall tags,
+    canon_final (inl None) true 10
+      (write_ram Write_plain (Physaddr (canon_word 18446744073709551615)) 2 (zeros 16) false) tags =
+    Some (true, tags, canon_inhabited_frame).
+Proof. intro tags. reflexivity. Qed.
+
+Example canon_metadata_read_present_vs_absent :
+  let tags_set := T.tag_put empty (canon_word 1) true in
+  let project (r : option (mword (8 * 8) * bool * T.tagmap * canon_frame)) :=
+    option_map (fun '((data, tag), tags', f') => (bv_unsigned data, tag, tags', f')) r in
+  canon_trace (inl None) true 10
+    (read_ram Read_plain (Physaddr (canon_word 8)) 8 true) tags_set =
+    Some [CanonRTag 1 true; CanonRData] /\
+  canon_trace (inl None) true 10
+    (read_ram Read_plain (Physaddr (canon_word 8)) 8 true) empty =
+    Some [CanonRTag 1 false; CanonRData] /\
+  project (canon_final (inl None) true 10
+             (read_ram Read_plain (Physaddr (canon_word 8)) 8 true) tags_set) =
+    Some (0, true, tags_set, canon_inhabited_frame) /\
+  project (canon_final (inl None) true 10
+             (read_ram Read_plain (Physaddr (canon_word 8)) 8 true) empty) =
+    Some (0, false, empty, canon_inhabited_frame) /\
+  canon_final (inl None) true 10
+    (read_ram Read_plain (Physaddr (canon_word 8)) 8 true) tags_set <>
+  canon_final (inl None) true 10
+    (read_ram Read_plain (Physaddr (canon_word 8)) 8 true) empty.
+Proof. Timeout 10 vm_compute. repeat split; [reflexivity.. | intro H; inversion H]. Qed.
+
+Example canon_early_return_carries_write :
+  @D.catch_early_return bool exception
+    (D.bind (@D.write_tag_bool (bool + exception)%type (canon_word 1) true)
+       (fun _ => @D.early_return bool bool exception true)) =
+  I.Next (I.TagWrite (canon_word 1) true) (fun _ => I.Ret true).
+Proof. reflexivity. Qed.
+
+Example canon_early_return_carries_read :
+  @D.catch_early_return bool exception
+    (D.bind (@D.read_tag_bool (bool + exception)%type (canon_word 1))
+       (fun tag => @D.early_return bool bool exception tag)) =
+  I.Next (I.TagRead (canon_word 1)) (fun tag => I.Ret tag).
+Proof. reflexivity. Qed.
+
+Example canon_real_exception_is_caught :
+  @D.try_catch bool exception exception
+    (D.throw (Error_not_implemented "example"%string)) (fun _ => D.returnm true) =
+  I.Ret true.
+Proof. reflexivity. Qed.
+
+Example canon_write_tag_is_not_an_exception :
+  @D.try_catch unit exception exception (D.write_tag_bool (canon_word 1) true)
+    (fun _ => D.fail "must not catch tag"%string) =
+  I.Next (I.TagWrite (canon_word 1) true) I.Ret.
+Proof. reflexivity. Qed.
+
+Example canon_read_tag_is_not_an_exception :
+  @D.try_catch bool exception exception (D.read_tag_bool (canon_word 1))
+    (fun _ => D.fail "must not catch tag"%string) =
+  I.Next (I.TagRead (canon_word 1)) I.Ret.
+Proof. reflexivity. Qed.
+
+Example canon_missing_reordered_extra_tag_refused :
+  canon_trace (inl None) true 10 (__WriteRAM_Meta (canon_word 7) 2 false) empty <>
+    Some [CanonWTag 0 false] /\
+  canon_trace (inl None) true 10 (__WriteRAM_Meta (canon_word 7) 2 false) empty <>
+    Some [CanonWTag 1 false; CanonWTag 0 false] /\
+  canon_trace (inl None) true 10 (__WriteRAM_Meta (canon_word 7) 2 false) empty <>
+    Some [CanonWTag 0 false; CanonWTag 1 false; CanonWTag 2 false].
+Proof. Timeout 10 vm_compute. repeat split; discriminate. Qed.
+
+Example canon_absent_response_refused :
+  ~ T.legal (canon_environment (inl None) true) (I.TagRead (canon_word 0)) true
+    empty canon_inhabited_frame empty canon_inhabited_frame.
+Proof. Timeout 10 vm_compute. discriminate. Qed.
+
+Example canon_discarded_write_refused :
+  ~ T.legal (canon_environment (inl None) true) (I.TagWrite (canon_word 1) true) tt
+    empty canon_inhabited_frame empty canon_inhabited_frame.
+Proof. Timeout 10 vm_compute. discriminate. Qed.
+
+Fail Check (D.write_tag_bool (E := exception) (canon_word 1) true : M bool).
+Fail Check (I.TagWrite (canon_word 1) true : I.outcome (fun _ => exception) bool).

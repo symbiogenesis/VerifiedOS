@@ -516,11 +516,41 @@ class CanonicalClosureControls(unittest.TestCase):
         recipe = json.loads(
             (repo / "tools/sail-tag-outcomes/candidate.json").read_text(encoding="utf-8"),
         )
-        for key in ("frozen_canonical_conservativity_manifest",):
-            entry = recipe[key]
-            manifest = repo / entry["path"]
-            self.assertTrue(manifest.is_file(), f"missing {key}: {manifest}")
-            require_sha(manifest, entry["sha256"])
+        entry = recipe["frozen_canonical_conservativity_manifest"]
+        self.assertEqual(
+            entry["path"],
+            "docs/implementation/retained-evidence/q35p-canonical-tag-effects-20261127/manifest.json",
+        )
+        self.assertEqual(
+            entry["sha256"],
+            "b1ec37b27b3c9a176bd49c19181ba9e22c768c3df78d2e98f1ac79a98fed0546",
+        )
+        manifest = repo / entry["path"]
+        self.assertTrue(manifest.is_file(), f"missing frozen_canonical_conservativity_manifest: {manifest}")
+        require_sha(manifest, entry["sha256"])
+        require_sha(
+            repo / "tools/sail-tag-outcomes/CanonicalTagConservativity.v",
+            cast("str", _HELPERS["CANONICAL_TAG_CONSERVATIVITY_SHA256"]),
+        )
+        bundle_dir = manifest.parent
+        assumptions_doc = json.loads((bundle_dir / "assumptions.json").read_text(encoding="utf-8"))
+        kernel_doc = json.loads((bundle_dir / "kernel-check.json").read_text(encoding="utf-8"))
+        installed_doc = json.loads(
+            (bundle_dir / "installed-comparison.json").read_text(encoding="utf-8"),
+        )
+        verify_frozen_canonical_closure(
+            manifest, entry["sha256"], assumptions_doc, kernel_doc, installed_doc,
+        )
+        self.assertEqual(assumptions_doc["total_declarations"], 1079)
+        self.assertEqual(
+            {mod: assumptions_doc["modules"][mod]["declaration_count"] for mod in AUTHORED_CANONICAL_MODULES},
+            {
+                "TagInterpreter": 122,
+                "TagConservativity": 145,
+                "CanonicalPhysicalCallerBridge": 307,
+                "CanonicalTagConservativity": 505,
+            },
+        )
 
 
 if __name__ == "__main__":

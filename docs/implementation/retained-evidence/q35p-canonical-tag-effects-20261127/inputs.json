@@ -1,5 +1,5 @@
 {
-  "candidate_recipe_sha256": "0cdfec3537c35e8ddb65a0602e6bba903ae60c44c6e2e15f71e41ee6aa02ef05",
+  "candidate_recipe_sha256": "04b6255963b0624089046383e653ef149992e71991d180dcc1ecee9559b9da32",
   "canonical_bridge_source_sha256": "420b764eef05c2d2cf392975b67afcd7242b82f241bc1100e3b74edad6f51112",
   "canonical_callers_manifest_sha256": "e1a92981e480aadecdd6baebb1fd4f98d836c2bb3b89039c6599cc36cff1a4d7",
   "canonical_diagnostic_manifest_sha256": "7372aa91c69788edf57e531c9b333ad3ce820cf7432a6f543deca56ea5947188",
@@ -121,16 +121,15 @@
       "source_sha256": "a1596ee4f4e48d6f917476f3b3e190f9f93df19122681ad7baa22c3383625566"
     }
   },
-  "canonical_tag_conservativity_source_sha256": "62e5d9b57293ddb44b2c7586fd5aba0c8e9c82f35ae724e8079a5cace0c10015",
-  "driver_sha256": "902a376a0c1f3efa45e6fec55f1e2bc006433379136baeddd43fac613e8abdf2",
-  "frozen_canonical_closure_manifest_sha256": "0bebb10f9f6dd53d0af6bb3912fef8dbb0acc715e96a5b21bb38f04dae5dbf26",
+  "canonical_tag_conservativity_source_sha256": "934bc9c4671ef249decfd9edf3ebba8f431ba7e919883672ecda1b91621ea41e",
+  "driver_sha256": "a6f129d705b3f797ee71aeecbcdd38c317956564425914b31ef68b6619646a1d",
   "frozen_canonical_conservativity_manifest_sha256": null,
   "reading_sources_sha256": {
     "tools/vos/__init__.py": "f4bf65b676335680ed2e74c496374a83a2d37380cb6bc32a0af94d192c788e36",
     "tools/vos/corpus.py": "902c15dd9f7f6a8e4e07e837265ba780424923dcd8e75a108eaa7a7df6d55b08",
     "tools/vos/proofaudit.py": "2db215e9ea440306ec64a163535ee5c401c5d5b0f0c6caa8da09c114f0bdc449",
     "tools/vos/proofcites.py": "68086def081be64bc164576ab940b87af67c889268409e5ddb4dbbbf167709a5",
-    "tools/vos/proofenv.py": "1d51bdb83c1f09f675e5eec631016ca25ba16c4001e1dca75ec3ddd30f82b4f1",
+    "tools/vos/proofenv.py": "c0cb72478a85aedea1bbe9a440e2a7a2b42c339abe0ccf26b7e90e60177db0f5",
     "tools/vos/prooflex.py": "d3cc29a77d0f9b214afeaa4bb7b54a8ffefac77e04bc7881ff5d25f237731913",
     "tools/vos/proofs.py": "e97b1c3c7ae00098c9204396b27897eabdfc13cb4636d8daf4361421de51c226",
     "tools/vos/register.py": "b59170d22a2a2074c3cdade9510362c8e1fa0a1086694f89afa1b3d7efe67534"

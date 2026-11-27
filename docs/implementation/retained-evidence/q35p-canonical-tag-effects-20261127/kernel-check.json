@@ -64,7 +64,7 @@
         "/root/build/fanout-retained/4b3b843a3b9fe80d0323/holdfast-20261124-canonical/lane/whole-term-diagnostic",
         "",
         "-R",
-        "/root/build/lane-hf-q35p-conservativity-20261127/canonical-conservativity",
+        "/root/build/lane-hf-q35p-tag-effects-20261127/canonical-tag-effects",
         "",
         "CanonicalPhysicalCallerBridge"
       ],
@@ -102,7 +102,7 @@
         "rv64d.riscv_ui64ToF32",
         "rv64d.riscv_ui64ToF64"
       ],
-      "elapsed_seconds": 26.08766108400596,
+      "elapsed_seconds": 28.144715022994205,
       "exit_code": 0,
       "expected_axioms": [
         "rv64d.riscv_f32Add",
@@ -199,7 +199,7 @@
         "/root/build/fanout-retained/4b3b843a3b9fe80d0323/holdfast-20261124-canonical/lane/whole-term-diagnostic",
         "",
         "-R",
-        "/root/build/lane-hf-q35p-conservativity-20261127/canonical-conservativity",
+        "/root/build/lane-hf-q35p-tag-effects-20261127/canonical-tag-effects",
         "",
         "CanonicalTagConservativity"
       ],
@@ -237,7 +237,7 @@
         "rv64d.riscv_ui64ToF32",
         "rv64d.riscv_ui64ToF64"
       ],
-      "elapsed_seconds": 24.4294132990035,
+      "elapsed_seconds": 27.19323962800263,
       "exit_code": 0,
       "expected_axioms": [
         "rv64d.riscv_f32Add",
@@ -314,5 +314,5 @@
       "unexpected_axioms": []
     }
   },
-  "total_elapsed_seconds": 50.51707438300946
+  "total_elapsed_seconds": 55.337954650996835
 }
