@@ -27,7 +27,7 @@ class OracleExtent:
     def contains(self, addr: int) -> bool:
         return self.span > 0 and self.base <= addr < self.base + self.span
 
-    def overlaps(self, other: "OracleExtent") -> bool:
+    def overlaps(self, other: OracleExtent) -> bool:
         if self.span <= 0 or other.span <= 0:
             return False
         return self.base < other.base + other.span and other.base < self.base + self.span

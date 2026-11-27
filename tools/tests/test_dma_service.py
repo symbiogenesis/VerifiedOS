@@ -11,7 +11,8 @@ from pathlib import Path
 from typing import cast
 
 from tests.harness import Case, ensure
-from vos import env, gallina, proof_staging, ring as ring_owner, toolenv
+from vos import env, gallina, proof_staging, toolenv
+from vos import ring as ring_owner
 from vos.corpus import find_root
 from vos.jsonutil import unique_object
 
@@ -97,15 +98,15 @@ def _load_dma_config(root: Path) -> DmaConfig:
                 max_payload_bytes=_as_int(rec[idx_max_payload], "max_payload_bytes"),
                 max_segment_count=_as_int(rec[idx_max_segs], "max_segment_count"),
                 cancellable=cancellable,
-                cancel_points=_as_int(cancel_raw["points"], "cancel.points") if cancel_raw else 0,
-                commit_index=_as_int(cancel_raw["commit_index"], "cancel.commit_index") if cancel_raw else 0,
-                quiescence_bound=_as_int(cancel_raw["quiescence_bound"], "cancel.quiescence_bound") if cancel_raw else 0,
+                cancel_points=_as_int(cancel_raw["points"], "cancel.points") if cancel_raw is not None else 0,
+                commit_index=_as_int(cancel_raw["commit_index"], "cancel.commit_index") if cancel_raw is not None else 0,
+                quiescence_bound=_as_int(cancel_raw["quiescence_bound"], "cancel.quiescence_bound") if cancel_raw is not None else 0,
                 held_capabilities=_as_int(op_dma["held_capabilities"], "dma.held_capabilities"),
                 extent_validated_bytes=_as_int(op_dma["extent_validated_bytes"], "dma.extent_validated_bytes"),
                 descriptor_validation_cost=_as_int(op_dma["descriptor_validation_cost"], "dma.descriptor_validation_cost"),
                 segment_validation_cost=_as_int(op_dma["segment_validation_cost"], "dma.segment_validation_cost"),
                 validation_cost=_as_int(rec[idx_val_cost], "validation_cost"),
-                max_to_terminal=_as_int(cancel_raw["max_to_terminal"], "cancel.max_to_terminal") if cancel_raw else 0,
+                max_to_terminal=_as_int(cancel_raw["max_to_terminal"], "cancel.max_to_terminal") if cancel_raw is not None else 0,
             ),
         )
 

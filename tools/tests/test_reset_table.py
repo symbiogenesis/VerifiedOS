@@ -420,9 +420,11 @@ class ResetTableTests(unittest.TestCase):
 
         raw = json.dumps(valid)
         dup = raw.replace('"schema": 1', '"schema": 1, "schema": 1', 1)
-        with sandbox_tree({"table.json": dup, str(SCHEMA): (ROOT / SCHEMA).read_text(encoding="utf-8")}) as tmp:
-            with self.assertRaisesRegex(reset_table.ResetTableError, "duplicate JSON key"):
-                reset_table.load_reset_table(tmp / "table.json", schema_path=tmp / SCHEMA)
+        with (
+            sandbox_tree({"table.json": dup, str(SCHEMA): (ROOT / SCHEMA).read_text(encoding="utf-8")}) as tmp,
+            self.assertRaisesRegex(reset_table.ResetTableError, "duplicate JSON key"),
+        ):
+            reset_table.load_reset_table(tmp / "table.json", schema_path=tmp / SCHEMA)
 
     def test_rejects_session_derived_retained_and_residency_violations(self) -> None:
         retained_non_res = _valid_table()

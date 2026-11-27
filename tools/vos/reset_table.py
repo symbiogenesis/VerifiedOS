@@ -66,9 +66,7 @@ def _step_matches(step: dict[str, Any], op: str, *,
         return False
     if extent_id is not None and step.get("extent_id") != extent_id:
         return False
-    if socket_id is not None and step.get("socket_id") != socket_id:
-        return False
-    return True
+    return not (socket_id is not None and step.get("socket_id") != socket_id)
 
 
 def _validate_references_and_steps(
@@ -190,10 +188,9 @@ def _validate_labels_and_power_vector(
             held_by_any.add(reg_id)
 
         for reg_id, reg in regions_by_id.items():
-            if _intervals_overlap(arena_lo, arena_len, cast(int, reg["base"]), cast(int, reg["length"])):
-                if reg_id not in declared_rids:
-                    raise ResetTableError(
-                        f"domain {dom_id} arena overlaps undeclared region {reg_id}")
+            if _intervals_overlap(arena_lo, arena_len, cast(int, reg["base"]), cast(int, reg["length"])) and reg_id not in declared_rids:
+                raise ResetTableError(
+                    f"domain {dom_id} arena overlaps undeclared region {reg_id}")
 
         has_second_class = any(reg["class"] == "second_class" for reg in held_regions)
         if dom["class"] == "second_class" or has_second_class:
@@ -282,12 +279,12 @@ def _validate_cold_walk_and_staging(
                 raise ResetTableError(
                     f"R-15-198a staging violation: ahead island {ahead_id} release must precede inference island {inf_island} release")
             for dom_id, dom in domains_by_id.items():
-                if dom["island_id"] == inf_island and dom["retention_label"] == "image_derived":
-                    if not _precedes(steps,
-                                     lambda s, a=ahead_id: _step_matches(s, "island_release", island_id=a),
-                                     lambda s, d=dom_id: _step_matches(s, "domain_complete", domain_id=d)):
-                        raise ResetTableError(
-                            f"R-15-198a staging violation: ahead island {ahead_id} release must precede fill completion of {dom_id}")
+                if (dom["island_id"] == inf_island and dom["retention_label"] == "image_derived"
+                        and not _precedes(steps,
+                                          lambda s, a=ahead_id: _step_matches(s, "island_release", island_id=a),
+                                          lambda s, d=dom_id: _step_matches(s, "domain_complete", domain_id=d))):
+                    raise ResetTableError(
+                        f"R-15-198a staging violation: ahead island {ahead_id} release must precede fill completion of {dom_id}")
 
 
 def _validate_entropy_order(data: dict[str, Any]) -> None:
@@ -301,9 +298,9 @@ def _validate_entropy_order(data: dict[str, Any]) -> None:
     if not (_precedes(steps, lambda s: s["op"] == "entropy_tests_begin", lambda s: s["op"] == "memory_controller_up")
             and _precedes(steps, lambda s: s["op"] == "memory_controller_up", lambda s: s["op"] == "entropy_verdict_extended")):
         raise ResetTableError("R-15-198a entropy violation: tests must run under memory_controller_up before verdict")
-    if _first_index(steps, lambda s: s["op"] == "draws_entropy") is not None:
-        if not _precedes(steps, lambda s: s["op"] == "entropy_verdict_extended", lambda s: s["op"] == "draws_entropy"):
-            raise ResetTableError("R-09-006a violation: entropy_verdict_extended must precede draws_entropy")
+    if (_first_index(steps, lambda s: s["op"] == "draws_entropy") is not None
+            and not _precedes(steps, lambda s: s["op"] == "entropy_verdict_extended", lambda s: s["op"] == "draws_entropy")):
+        raise ResetTableError("R-09-006a violation: entropy_verdict_extended must precede draws_entropy")
     for step in steps:
         if step["op"] == "island_release":
             isl_id = cast(str, step["island_id"])
