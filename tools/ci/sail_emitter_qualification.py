@@ -53,12 +53,28 @@ def command(argv: list[str], checkout: Path, log: Path, *, timeout: int,
                        stdout=stream, stderr=subprocess.STDOUT)
 
 
-def source_candidate(checkout: Path, root: Path, upload: Path,
-                     environment: dict[str, str]) -> tuple[Path, dict[str, object]]:
+def _locked_sail_source(checkout: Path) -> tuple[Path, dict[str, Any]]:
     source_lock = checkout / "tools/sail-lsp/sources.lock.json"
-    sail_source, = [row for row in load(source_lock)["sources"] if row["name"] == "sail"]
+    sail_rows = [row for row in load(source_lock)["sources"] if row["name"] == "sail"]
+    if len(sail_rows) != 1:
+        raise ValueError("tools/sail-lsp/sources.lock.json must name exactly one sail source")
+    sail_source = sail_rows[0]
     if sail_source["version"] != env.SAIL_VERSION:
         raise ValueError("the checked release source differs from the locked Sail version")
+    return source_lock, sail_source
+
+
+def _retained_source_inputs(checkout: Path) -> tuple[Path, Path, Path]:
+    license_path = evidence_input(checkout / SCOPED, "LICENSE.sail")
+    patch = evidence_input(checkout / SCOPED, "sail-emission-syntax.patch")
+    dune_project = evidence_input(checkout / INITIAL, "backend-dune-project.txt")
+    return license_path, patch, dune_project
+
+
+def source_candidate(checkout: Path, root: Path, upload: Path,
+                     environment: dict[str, str]) -> tuple[Path, dict[str, object]]:
+    source_lock, sail_source = _locked_sail_source(checkout)
+    license_path, patch, dune_project = _retained_source_inputs(checkout)
     archive = root / "sail.tbz"
     receipts.download(sail_source["url"], archive, sail_source["sha256"])
     destination = root / "source"
@@ -68,10 +84,7 @@ def source_candidate(checkout: Path, root: Path, upload: Path,
     checkout_source = destination / sail_source["directory"]
     if list(destination.iterdir()) != [checkout_source]:
         raise ValueError("Sail source archive has an unexpected root")
-    license_path = evidence_input(checkout / SCOPED, "LICENSE.sail")
     exact(checkout_source / "LICENSE", receipts.digest(license_path))
-    patch = evidence_input(checkout / SCOPED, "sail-emission-syntax.patch")
-    dune_project = evidence_input(checkout / INITIAL, "backend-dune-project.txt")
 
     backend = root / "backend"
     (backend / "src").mkdir(parents=True)
@@ -145,9 +158,10 @@ def check_comparison(stock: dict[str, Any], candidate: dict[str, Any], repeat: d
         raise ValueError("native plugin population or load order differs beyond the Rocq plugin")
 
 
-def check_frozen_pair(checkout: Path, stock: dict[str, Any],
-                      candidate: dict[str, Any]) -> dict[str, str]:
-    """Join hosted inputs to the refreshed receipts and output bytes to the frozen readings."""
+def _verified_retained_readings(
+    checkout: Path,
+) -> tuple[dict[str, str], dict[str, dict[str, Any]]]:
+    """Verify frozen Q35o readings and refreshed receipts against retained manifests."""
     directory = checkout / FROZEN
     comparison = evidence_input(directory, "comparison.json")
     inputs = evidence_input(directory, "inputs.json")
@@ -157,13 +171,16 @@ def check_frozen_pair(checkout: Path, stock: dict[str, Any],
     if result["library_inputs_unchanged"] is not True:
         raise ValueError("the Rocq library inputs changed during the frozen comparison")
     frozen_inputs = load(inputs)
-    handwritten = exact(checkout / "model/handwritten_support/riscv_extras.v", frozen_inputs["handwritten_source"])
-    library_inputs = exact(directory / "library-inputs-before.json", frozen_inputs["library_inputs"]["sha256"])
+    handwritten = exact(checkout / "model/handwritten_support/riscv_extras.v",
+                        frozen_inputs["handwritten_source"])
+    library_path = evidence_input(directory, "library-inputs-before.json")
+    library_inputs = exact(library_path, frozen_inputs["library_inputs"]["sha256"])
     bound = {"comparison": receipts.digest(comparison), "inputs": receipts.digest(inputs),
              "handwritten_source": handwritten, "library_inputs": library_inputs}
     generation = frozen_inputs["generation_receipts"]
     unchanged = ("format", "target", "outputs", "axioms")
-    for label, observed in (("original", stock), ("candidate", candidate)):
+    refreshed_pair: dict[str, dict[str, Any]] = {}
+    for label in ("original", "candidate"):
         member = f"{label}-generation.json"
         path = evidence_input(checkout / REPLAY, member)
         bound[label] = receipts.digest(path)
@@ -175,13 +192,29 @@ def check_frozen_pair(checkout: Path, stock: dict[str, Any],
         bound[f"refreshed_{label}"] = receipts.digest(refreshed_path)
         for key in unchanged:
             if refreshed[key] != frozen[key]:
-                raise ValueError(f"refreshed {label} {key} differ from the frozen canonical comparison")
-        if (refreshed["toolchain"]["library"] != frozen["toolchain"]["library"]
-                or observed["toolchain"]["library"] != refreshed["toolchain"]["library"]):
+                raise ValueError(
+                    f"refreshed {label} {key} differ from the frozen canonical comparison",
+                )
+        if refreshed["toolchain"]["library"] != frozen["toolchain"]["library"]:
             raise ValueError(f"{label} Sail library differs from the frozen canonical comparison")
         # The launcher replaces tree/checkout paths. The installed Sail path is host-specific.
         if refreshed["command"][1:] != frozen["command"][1:]:
-            raise ValueError(f"refreshed {label} arguments differ from the frozen canonical comparison")
+            raise ValueError(
+                f"refreshed {label} arguments differ from the frozen canonical comparison",
+            )
+        refreshed_pair[label] = refreshed
+    return bound, refreshed_pair
+
+
+def check_frozen_pair(checkout: Path, stock: dict[str, Any],
+                      candidate: dict[str, Any]) -> dict[str, str]:
+    """Join hosted inputs to the refreshed receipts and output bytes to the frozen readings."""
+    bound, refreshed_pair = _verified_retained_readings(checkout)
+    unchanged = ("format", "target", "outputs", "axioms")
+    for label, observed in (("original", stock), ("candidate", candidate)):
+        refreshed = refreshed_pair[label]
+        if observed["toolchain"]["library"] != refreshed["toolchain"]["library"]:
+            raise ValueError(f"{label} Sail library differs from the frozen canonical comparison")
         if observed["inputs"] != refreshed["inputs"]:
             raise ValueError(f"hosted {label} inputs differ from the refreshed generation receipt")
         for key in unchanged:
@@ -190,6 +223,75 @@ def check_frozen_pair(checkout: Path, stock: dict[str, Any],
         if observed["command"][1:] != refreshed["command"][1:]:
             raise ValueError(f"hosted {label} arguments differ from the frozen canonical comparison")
     return bound
+
+
+def _verify_live_model_inputs(checkout: Path, label: str,
+                              receipt: dict[str, Any]) -> dict[str, object]:
+    receipt_inputs = receipt["inputs"]
+    configuration = receipt_inputs["configuration"]
+    if configuration["path"] != "model/config/verifiedos.json":
+        raise ValueError(f"refreshed {label} receipt names unexpected configuration path")
+    config_sha = exact(checkout / configuration["path"], configuration["sha256"])
+
+    project_file = receipt_inputs["project_file"]
+    if project_file["path"] != "model/model/riscv.sail_project":
+        raise ValueError(f"refreshed {label} receipt names unexpected project file path")
+    project_sha = exact(checkout / project_file["path"], project_file["sha256"])
+
+    target_cmake = receipt_inputs["target_cmake"]
+    if target_cmake["path"] != "model/model/CMakeLists.txt":
+        raise ValueError(f"refreshed {label} receipt names unexpected CMakeLists path")
+    cmake_sha = exact(checkout / target_cmake["path"], target_cmake["sha256"])
+
+    expected_sources = receipt_inputs["sources"]
+    expected_digests = expected_sources["sha256"]
+    if (not isinstance(expected_digests, dict) or not expected_digests
+            or expected_sources["files"] != len(expected_digests)
+            or rocqterm.aggregate(expected_digests) != expected_sources["aggregate"]):
+        raise ValueError(f"refreshed {label} sources manifest is internally inconsistent")
+
+    prefix = f"{rocqterm.MODEL_SOURCES}/"
+    observed_digests: dict[str, str] = {}
+    for rel, expected_sha in expected_digests.items():
+        if not isinstance(rel, str) or not rel.startswith(prefix) or not rel.endswith(".sail"):
+            raise ValueError(f"refreshed {label} sources manifest names unexpected path {rel!r}")
+        observed_digests[rel] = exact(checkout / rel, expected_sha)
+    observed_sources = rocqterm.manifest(observed_digests)
+    if observed_sources != expected_sources:
+        raise ValueError(f"live Sail sources differ from refreshed {label} generation receipt")
+    return {
+        "configuration_sha256": config_sha,
+        "project_file_sha256": project_sha,
+        "target_cmake_sha256": cmake_sha,
+        "sources_files": observed_sources["files"],
+        "sources_aggregate": observed_sources["aggregate"],
+    }
+
+
+def preflight_checkout(checkout: Path) -> dict[str, object]:
+    """Verify live checkout inputs against retained Q35o evidence without invoking Sail."""
+    source_lock, sail_source = _locked_sail_source(checkout)
+    license_path, patch, dune_project = _retained_source_inputs(checkout)
+    bound, refreshed_pair = _verified_retained_readings(checkout)
+    if refreshed_pair["original"]["inputs"] != refreshed_pair["candidate"]["inputs"]:
+        raise ValueError("refreshed original and candidate generation receipts disagree on inputs")
+    verified_inputs: dict[str, object] = {}
+    for label in ("original", "candidate"):
+        verified_inputs = _verify_live_model_inputs(checkout, label, refreshed_pair[label])
+    return {
+        "schema": "verifiedos-sail-emitter-preflight/1",
+        "status": "pass",
+        "checkout": str(checkout),
+        "sail_version": sail_source["version"],
+        "source_lock_sha256": receipts.digest(source_lock),
+        "retained_source_inputs": {
+            "license_sha256": receipts.digest(license_path),
+            "patch_sha256": receipts.digest(patch),
+            "dune_project_sha256": receipts.digest(dune_project),
+        },
+        "frozen_comparison": bound,
+        "model_inputs": verified_inputs,
+    }
 
 
 def qualify(checkout: Path, root: Path, upload: Path) -> None:
@@ -261,8 +363,28 @@ def qualify(checkout: Path, root: Path, upload: Path) -> None:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--root", type=Path, required=True)
+    parser.add_argument("--root", type=Path)
+    parser.add_argument("--preflight", action="store_true",
+                        help="verify live checkout inputs against retained Q35o evidence")
+    parser.add_argument("--checkout", type=Path,
+                        help="checkout root to preflight (defaults to repository root)")
     args = parser.parse_args()
+    repo_root = Path(__file__).resolve().parents[2]
+    if args.preflight:
+        if args.root is not None:
+            parser.error("--root cannot be combined with --preflight")
+        checkout = (args.checkout if args.checkout is not None else repo_root).resolve()
+        try:
+            summary = preflight_checkout(checkout)
+        except (KeyError, OSError, ValueError) as error:
+            print(f"FAIL canonical emitter preflight: {error}", file=sys.stderr)
+            return 1
+        print(f"PASS canonical emitter preflight: {checkout} (sail {summary['sail_version']})")
+        return 0
+    if args.checkout is not None:
+        parser.error("--checkout requires --preflight")
+    if args.root is None:
+        parser.error("the following arguments are required: --root")
     if os.environ.get("GITHUB_ACTIONS") != "true" or os.environ.get("GITHUB_REF") != "refs/heads/main":
         parser.error("canonical emitter qualification runs on GitHub Actions from main")
     root = args.root
@@ -272,7 +394,7 @@ def main() -> int:
     upload = root / "upload"
     upload.mkdir()
     try:
-        qualify(Path(__file__).resolve().parents[2], root, upload)
+        qualify(repo_root, root, upload)
     except (KeyError, OSError, ValueError, subprocess.SubprocessError, tarfile.TarError) as error:
         receipts.write(upload / "result.json", {"status": "refused", "diagnostic": str(error)})
         print(f"FAIL canonical emitter qualification: {error}", file=sys.stderr)

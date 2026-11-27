@@ -1,7 +1,10 @@
 # SPDX-License-Identifier: Apache-2.0
 """Fixture controls for the hosted Sail emitter qualification."""
 
+import json
+import os
 import shutil
+import sys
 from copy import deepcopy
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -10,7 +13,7 @@ from unittest.mock import patch
 
 from ci import sail_emitter_qualification as emitter
 from tests.harness import TOOLS, Case, ensure
-from vos import rocqterm
+from vos import env, rocqterm
 
 REVISION = "a" * 40
 PROVISIONED: dict[str, rocqterm.Named] = {
@@ -202,6 +205,87 @@ def changed_reading_inputs() -> None:
             shutil.copyfile(root / path.relative_to(checkout), path)
 
 
+def _copy_preflight_checkout(root: Path, checkout: Path) -> list[str]:
+    for directory in (emitter.SCOPED, emitter.INITIAL, emitter.REPLAY,
+                      emitter.FROZEN, emitter.REFRESH):
+        shutil.copytree(root / directory, checkout / directory)
+    refresh = emitter.load(root / emitter.REFRESH / "original-generation.json")
+    source_paths = [str(rel) for rel in sorted(refresh["inputs"]["sources"]["sha256"])]
+    fixed_files = [
+        "tools/sail-lsp/sources.lock.json",
+        "model/config/verifiedos.json",
+        "model/model/riscv.sail_project",
+        "model/model/CMakeLists.txt",
+        "model/handwritten_support/riscv_extras.v",
+    ]
+    for rel in [*fixed_files, *source_paths]:
+        target = checkout / rel
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(root / rel, target)
+    return source_paths
+
+
+def live_preflight() -> None:
+    root = TOOLS.parent
+    summary = emitter.preflight_checkout(root)
+    ensure(summary["status"] == "pass", f"unexpected preflight status: {summary}")
+    ensure(summary["sail_version"] == env.SAIL_VERSION, "preflight recorded unexpected Sail version")
+    refresh = emitter.load(root / emitter.REFRESH / "original-generation.json")
+    model_inputs = summary["model_inputs"]
+    if not isinstance(model_inputs, dict):
+        raise TypeError(f"expected dict model_inputs in preflight summary: {summary}")
+    ensure(model_inputs["sources_files"] == 133,
+           f"expected 133 Sail sources in preflight summary: {summary}")
+    ensure(model_inputs["sources_aggregate"] == refresh["inputs"]["sources"]["aggregate"],
+           "preflight aggregate digest differs from refreshed generation receipt")
+
+    clean_env = {key: value for key, value in os.environ.items()
+                 if key not in {"GITHUB_ACTIONS", "GITHUB_REF", "RUNNER_TEMP"}}
+    with (patch.dict(os.environ, clean_env, clear=True),
+          patch.object(sys, "argv", ["sail_emitter_qualification.py", "--preflight",
+                                     "--checkout", str(root)])):
+        ensure(emitter.main() == 0, "--preflight CLI failed on live checkout")
+
+
+def preflight_drift_controls() -> None:
+    root = TOOLS.parent
+    with TemporaryDirectory() as temporary:
+        checkout = Path(temporary)
+        source_paths = _copy_preflight_checkout(root, checkout)
+        ensure(emitter.preflight_checkout(checkout)["status"] == "pass",
+               "clean temporary checkout failed preflight")
+
+        def expect_refusal(diagnostic: str) -> None:
+            try:
+                emitter.preflight_checkout(checkout)
+            except ValueError as error:
+                ensure(diagnostic in str(error), f"unexpected refusal: {error}")
+            else:
+                raise AssertionError(f"preflight accepted drifted input: {diagnostic}")
+
+        for rel in (
+            "model/config/verifiedos.json",
+            "model/model/riscv.sail_project",
+            source_paths[0],
+            "model/handwritten_support/riscv_extras.v",
+            f"{emitter.SCOPED.as_posix()}/sail-emission-syntax.patch",
+        ):
+            target = checkout / rel
+            with target.open("ab") as stream:
+                stream.write(b"\n")
+            expect_refusal(Path(rel).name)
+            shutil.copyfile(root / rel, target)
+
+        lock_path = checkout / "tools/sail-lsp/sources.lock.json"
+        lock_data = emitter.load(lock_path)
+        for row in lock_data["sources"]:
+            if row["name"] == "sail":
+                row["version"] = "0.20.99"
+        lock_path.write_text(json.dumps(lock_data), encoding="utf-8")
+        expect_refusal("locked Sail version")
+        shutil.copyfile(root / "tools/sail-lsp/sources.lock.json", lock_path)
+
+
 def cases() -> list[Case]:
     return [
         Case("paired-canonical-emission", paired_comparison),
@@ -210,4 +294,6 @@ def cases() -> list[Case]:
         Case("retained-source-inputs", retained_source_inputs),
         Case("frozen-emission-join", frozen_emission_join),
         Case("changed-reading-inputs", changed_reading_inputs),
+        Case("live-preflight", live_preflight),
+        Case("preflight-drift-controls", preflight_drift_controls),
     ]
