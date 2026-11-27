@@ -2289,3 +2289,419 @@ Example exhaustion_cannot_disguise_a_missing_descendant :
   dag_intact (with_walk_depth demo_transactor 0) whole_view 7 = true /\
   dag_intact demo_transactor whole_view 33 = true.
 Proof. repeat split; reflexivity. Qed.
+
+(* =========================================================================
+   Binary-ID transaction-closure replay index (R-10-002, R-10-036).
+
+   Wraps JournalIndex.v's radix-2 bit-trie `TxnTrie` over `TxnIdBits`,
+   proving lookup equality with `JournalIndex.commits`, `apply_all` store
+   equality, bounded bit-depth space (proportional to admitted closing ID
+   bits rather than an untrusted maximum ID), and executable witnesses across
+   positive, absent, repeated-closing, sparse, and both recovery disciplines.
+   ========================================================================= *)
+
+Definition TxIndex : Type := TxnTrie.
+
+Definition tx_index_empty : TxIndex := TxnEmpty.
+
+Definition tx_index_insert (txn : nat) (idx : TxIndex) : TxIndex :=
+  index_mark_nat txn idx.
+
+Definition tx_index_build (prefix : list Rec) : TxIndex :=
+  commit_index prefix.
+
+Definition tx_index_lookup (idx : TxIndex) (txn : nat) : bool :=
+  indexed_commits idx txn.
+
+Definition tx_index_replay (prefix : list Rec) (s : Store) : Store :=
+  apply_all prefix (tx_index_lookup (tx_index_build prefix)) s.
+
+Fixpoint txn_bits_depth (key : TxnIdBits) : nat :=
+  match key with
+  | TxnOne => 1
+  | TxnEven rest => S (txn_bits_depth rest)
+  | TxnOdd rest => S (txn_bits_depth rest)
+  end.
+
+Definition tx_id_bit_depth (txn : nat) : nat :=
+  txn_bits_depth (txn_id_of_nat txn).
+
+Fixpoint tx_index_depth (idx : TxIndex) : nat :=
+  match idx with
+  | TxnEmpty => 0
+  | TxnBranch _ zero one =>
+      S (Nat.max (tx_index_depth zero) (tx_index_depth one))
+  end.
+
+Fixpoint tx_index_nodes (idx : TxIndex) : nat :=
+  match idx with
+  | TxnEmpty => 0
+  | TxnBranch _ zero one =>
+      S (Nat.add (tx_index_nodes zero) (tx_index_nodes one))
+  end.
+
+Fixpoint max_closing_bit_depth (prefix : list Rec) : nat :=
+  match prefix with
+  | nil => 0
+  | cons r rest =>
+      if rec_closes r
+      then Nat.max (tx_id_bit_depth (rec_txn r)) (max_closing_bit_depth rest)
+      else max_closing_bit_depth rest
+  end.
+
+Fixpoint sum_closing_bit_depth (prefix : list Rec) : nat :=
+  match prefix with
+  | nil => 0
+  | cons r rest =>
+      if rec_closes r
+      then Nat.add (tx_id_bit_depth (rec_txn r)) (sum_closing_bit_depth rest)
+      else sum_closing_bit_depth rest
+  end.
+
+Lemma nat_leb_max_l : forall a b : nat, Nat.leb a (Nat.max a b) = true.
+Proof.
+  intros a. induction a as [ | x IH ]; intros b.
+  - reflexivity.
+  - destruct b as [ | y ]; [ exact (nat_leb_refl (S x)) | exact (IH y) ].
+Qed.
+
+Lemma nat_leb_max_r : forall a b : nat, Nat.leb b (Nat.max a b) = true.
+Proof.
+  intros a. induction a as [ | x IH ]; intros b.
+  - exact (nat_leb_refl b).
+  - destruct b as [ | y ]; [ reflexivity | exact (IH y) ].
+Qed.
+
+Lemma nat_leb_max_lub :
+  forall a b c : nat,
+    Nat.leb a c = true -> Nat.leb b c = true -> Nat.leb (Nat.max a b) c = true.
+Proof.
+  intros a. induction a as [ | x IH ]; intros b c Ha Hb.
+  - exact Hb.
+  - destruct b as [ | y ]; [ exact Ha | ].
+    destruct c as [ | z ]; [ discriminate Ha | exact (IH y z Ha Hb) ].
+Qed.
+
+Lemma nat_leb_succ_r : forall a b : nat, Nat.leb a b = true -> Nat.leb a (S b) = true.
+Proof.
+  intros a. induction a as [ | x IH ]; intros b H; [ reflexivity | ].
+  destruct b as [ | y ]; [ discriminate H | exact (IH y H) ].
+Qed.
+
+Lemma nat_leb_add_l : forall a b : nat, Nat.leb a (Nat.add a b) = true.
+Proof.
+  intros a. induction a as [ | x IH ]; intros b; [ reflexivity | exact (IH b) ].
+Qed.
+
+Lemma nat_leb_add_r : forall a b : nat, Nat.leb b (Nat.add a b) = true.
+Proof.
+  intros a. induction a as [ | x IH ]; intros b.
+  - exact (nat_leb_refl b).
+  - simpl. exact (nat_leb_succ_r b (Nat.add x b) (IH b)).
+Qed.
+
+Lemma nat_leb_add_mono_r :
+  forall a b c : nat, Nat.leb b c = true -> Nat.leb (Nat.add a b) (Nat.add a c) = true.
+Proof.
+  intros a. induction a as [ | x IH ]; intros b c H; [ exact H | exact (IH b c H) ].
+Qed.
+
+Lemma nat_leb_add_mono_l :
+  forall a b c : nat, Nat.leb a b = true -> Nat.leb (Nat.add a c) (Nat.add b c) = true.
+Proof.
+  intros a. induction a as [ | x IH ]; intros b c H.
+  - exact (nat_leb_add_r b c).
+  - destruct b as [ | y ]; [ discriminate H | exact (IH y c H) ].
+Qed.
+
+Lemma nat_add_comm_local : forall a b : nat, Nat.add a b = Nat.add b a.
+Proof.
+  intros a. induction a as [ | x IH ]; intros b.
+  - induction b as [ | y IHb ]; [ reflexivity | simpl; rewrite <- IHb; reflexivity ].
+  - simpl. rewrite IH.
+    induction b as [ | y IHb ]; [ reflexivity | simpl; rewrite IHb; reflexivity ].
+Qed.
+
+Lemma nat_add_assoc_local : forall a b c : nat, Nat.add a (Nat.add b c) = Nat.add (Nat.add a b) c.
+Proof.
+  intros a. induction a as [ | x IH ]; intros b c; [ reflexivity | simpl; rewrite IH; reflexivity ].
+Qed.
+
+Lemma tx_index_depth_mark_bound :
+  forall (key : TxnIdBits) (idx : TxIndex),
+    Nat.leb (tx_index_depth (txn_mark key idx))
+            (Nat.max (txn_bits_depth key) (tx_index_depth idx)) = true.
+Proof.
+  intros key. induction key as [ rest IH | rest IH | ]; intros idx.
+  - destruct idx as [ | m zero one ].
+    + cbn [txn_mark tx_index_depth txn_bits_depth Nat.max Nat.leb].
+      specialize (IH TxnEmpty). cbn [tx_index_depth] in IH.
+      assert (Hmax : Nat.max (txn_bits_depth rest) 0 = txn_bits_depth rest).
+      { induction (txn_bits_depth rest); [ reflexivity | simpl; f_equal; assumption ]. }
+      rewrite Hmax in IH. exact IH.
+    + cbn [txn_mark tx_index_depth txn_bits_depth Nat.max Nat.leb].
+      apply nat_leb_max_lub.
+      * exact (nat_leb_trans (tx_index_depth zero)
+                 (Nat.max (tx_index_depth zero) (tx_index_depth one))
+                 (Nat.max (txn_bits_depth rest) (Nat.max (tx_index_depth zero) (tx_index_depth one)))
+                 (nat_leb_max_l _ _) (nat_leb_max_r _ _)).
+      * apply (nat_leb_trans (tx_index_depth (txn_mark rest one))
+                 (Nat.max (txn_bits_depth rest) (tx_index_depth one))
+                 (Nat.max (txn_bits_depth rest) (Nat.max (tx_index_depth zero) (tx_index_depth one)))
+                 (IH one)).
+        apply nat_leb_max_lub.
+        -- exact (nat_leb_max_l _ _).
+        -- exact (nat_leb_trans _ _ _ (nat_leb_max_r _ _) (nat_leb_max_r _ _)).
+  - destruct idx as [ | m zero one ].
+    + cbn [txn_mark tx_index_depth txn_bits_depth Nat.max Nat.leb].
+      specialize (IH TxnEmpty). cbn [tx_index_depth] in IH.
+      assert (Hmax : Nat.max (txn_bits_depth rest) 0 = txn_bits_depth rest).
+      { induction (txn_bits_depth rest); [ reflexivity | simpl; f_equal; assumption ]. }
+      rewrite Hmax in IH.
+      assert (Hmax2 : Nat.max (tx_index_depth (txn_mark rest TxnEmpty)) 0 =
+                      tx_index_depth (txn_mark rest TxnEmpty)).
+      { induction (tx_index_depth (txn_mark rest TxnEmpty)); [ reflexivity | simpl; f_equal; assumption ]. }
+      rewrite Hmax2. exact IH.
+    + cbn [txn_mark tx_index_depth txn_bits_depth Nat.max Nat.leb].
+      apply nat_leb_max_lub.
+      * apply (nat_leb_trans (tx_index_depth (txn_mark rest zero))
+                 (Nat.max (txn_bits_depth rest) (tx_index_depth zero))
+                 (Nat.max (txn_bits_depth rest) (Nat.max (tx_index_depth zero) (tx_index_depth one)))
+                 (IH zero)).
+        apply nat_leb_max_lub.
+        -- exact (nat_leb_max_l _ _).
+        -- exact (nat_leb_trans _ _ _ (nat_leb_max_l _ _) (nat_leb_max_r _ _)).
+      * exact (nat_leb_trans (tx_index_depth one)
+                 (Nat.max (tx_index_depth zero) (tx_index_depth one))
+                 (Nat.max (txn_bits_depth rest) (Nat.max (tx_index_depth zero) (tx_index_depth one)))
+                 (nat_leb_max_r _ _) (nat_leb_max_r _ _)).
+  - destruct idx as [ | m zero one ]; cbn [txn_mark tx_index_depth txn_bits_depth Nat.max Nat.leb].
+    + reflexivity.
+    + exact (nat_leb_max_r 0 (Nat.max (tx_index_depth zero) (tx_index_depth one))).
+Qed.
+
+Lemma tx_index_nodes_mark_bound :
+  forall (key : TxnIdBits) (idx : TxIndex),
+    Nat.leb (tx_index_nodes (txn_mark key idx))
+            (Nat.add (txn_bits_depth key) (tx_index_nodes idx)) = true.
+Proof.
+  intros key. induction key as [ rest IH | rest IH | ]; intros idx.
+  - destruct idx as [ | m zero one ].
+    + cbn [txn_mark tx_index_nodes txn_bits_depth Nat.add Nat.leb].
+      specialize (IH TxnEmpty). cbn [tx_index_nodes] in IH.
+      exact IH.
+    + cbn [txn_mark tx_index_nodes txn_bits_depth Nat.leb].
+      change (Nat.leb (Nat.add (tx_index_nodes zero) (tx_index_nodes (txn_mark rest one)))
+                      (Nat.add (txn_bits_depth rest) (S (Nat.add (tx_index_nodes zero) (tx_index_nodes one)))) = true).
+      rewrite (nat_add_comm_local (txn_bits_depth rest) (S (Nat.add (tx_index_nodes zero) (tx_index_nodes one)))).
+      simpl.
+      rewrite (nat_add_comm_local (Nat.add (tx_index_nodes zero) (tx_index_nodes one)) (txn_bits_depth rest)).
+      apply nat_leb_succ_r.
+      rewrite nat_add_assoc_local.
+      rewrite (nat_add_comm_local (txn_bits_depth rest) (tx_index_nodes zero)).
+      rewrite <- nat_add_assoc_local.
+      apply nat_leb_add_mono_r.
+      exact (IH one).
+  - destruct idx as [ | m zero one ].
+    + cbn [txn_mark tx_index_nodes txn_bits_depth Nat.leb].
+      specialize (IH TxnEmpty). cbn [tx_index_nodes] in IH.
+      assert (Hadd0 : forall x : nat, Nat.add x 0 = x).
+      { intros x. induction x; [ reflexivity | simpl; f_equal; assumption ]. }
+      change (Nat.leb (Nat.add (tx_index_nodes (txn_mark rest TxnEmpty)) 0)
+                      (Nat.add (txn_bits_depth rest) 0) = true).
+      rewrite !Hadd0. rewrite Hadd0 in IH. exact IH.
+    + cbn [txn_mark tx_index_nodes txn_bits_depth Nat.leb].
+      change (Nat.leb (Nat.add (tx_index_nodes (txn_mark rest zero)) (tx_index_nodes one))
+                      (Nat.add (txn_bits_depth rest) (S (Nat.add (tx_index_nodes zero) (tx_index_nodes one)))) = true).
+      rewrite (nat_add_comm_local (txn_bits_depth rest) (S (Nat.add (tx_index_nodes zero) (tx_index_nodes one)))).
+      simpl.
+      rewrite (nat_add_comm_local (Nat.add (tx_index_nodes zero) (tx_index_nodes one)) (txn_bits_depth rest)).
+      apply nat_leb_succ_r.
+      rewrite nat_add_assoc_local.
+      apply nat_leb_add_mono_l.
+      exact (IH zero).
+  - destruct idx as [ | m zero one ]; cbn [txn_mark tx_index_nodes txn_bits_depth].
+    + reflexivity.
+    + exact (nat_leb_succ_r _ _ (nat_leb_refl (S (Nat.add (tx_index_nodes zero) (tx_index_nodes one))))).
+Qed.
+
+(*| discharges: R-10-036 |*)
+Theorem tx_index_depth_bounded :
+  forall prefix : list Rec,
+    Nat.leb (tx_index_depth (tx_index_build prefix)) (max_closing_bit_depth prefix) = true.
+Proof.
+  intros prefix. induction prefix as [ | r rest IH ].
+  - reflexivity.
+  - unfold tx_index_build. cbn [commit_index max_closing_bit_depth].
+    destruct (rec_closes r).
+    + apply (nat_leb_trans _ (Nat.max (tx_id_bit_depth (rec_txn r)) (tx_index_depth (commit_index rest)))).
+      * exact (tx_index_depth_mark_bound (txn_id_of_nat (rec_txn r)) (commit_index rest)).
+      * apply nat_leb_max_lub.
+        -- exact (nat_leb_max_l _ _).
+        -- exact (nat_leb_trans _ _ _ IH (nat_leb_max_r _ _)).
+    + exact IH.
+Qed.
+
+(*| discharges: R-10-036 |*)
+Theorem tx_index_space_bounded :
+  forall prefix : list Rec,
+    Nat.leb (tx_index_nodes (tx_index_build prefix)) (sum_closing_bit_depth prefix) = true.
+Proof.
+  intros prefix. induction prefix as [ | r rest IH ].
+  - reflexivity.
+  - unfold tx_index_build. cbn [commit_index sum_closing_bit_depth].
+    destruct (rec_closes r).
+    + apply (nat_leb_trans _ (Nat.add (tx_id_bit_depth (rec_txn r)) (tx_index_nodes (commit_index rest)))).
+      * exact (tx_index_nodes_mark_bound (txn_id_of_nat (rec_txn r)) (commit_index rest)).
+      * apply nat_leb_add_mono_r. exact IH.
+    + exact IH.
+Qed.
+
+(*| discharges: R-10-036 |*)
+Theorem tx_index_lookup_eq_commits :
+  forall (prefix : list Rec) (txn : nat),
+    tx_index_lookup (tx_index_build prefix) txn = commits prefix txn.
+Proof.
+  intros prefix txn. exact (commit_index_exact prefix txn).
+Qed.
+
+(*| discharges: R-10-002, R-10-036 |*)
+Theorem tx_index_apply_all_eq :
+  forall (prefix : list Rec) (s : Store),
+    apply_all prefix (tx_index_lookup (tx_index_build prefix)) s =
+    apply_all prefix (commits prefix) s.
+Proof.
+  intros prefix s.
+  apply apply_all_same_commit_decisions.
+  intros txn. exact (tx_index_lookup_eq_commits prefix txn).
+Qed.
+
+(*| discharges: R-10-002, R-10-036 |*)
+Theorem tx_index_recover_under_eq :
+  forall (cut : Discipline) (j : list Rec) (s : Store),
+    tx_index_replay (cut j) s = recover_under cut j s.
+Proof.
+  intros cut j s. unfold tx_index_replay.
+  rewrite tx_index_apply_all_eq.
+  symmetry. exact (recover_under_specification cut j s).
+Qed.
+
+Definition tx_rec_demo (txn blk val : nat) (cl : bool) : Rec :=
+  {| rec_txn := txn; rec_block := blk; rec_value := val;
+     rec_closes := cl; rec_len := 2; rec_landed := 2 |}.
+
+Definition tx_closure_demo_journal : list Rec :=
+  cons (tx_rec_demo 1 0 11 false)
+  (cons (tx_rec_demo 1 1 12 true)
+  (cons (tx_rec_demo 2 2 21 true)
+  (cons (tx_rec_demo 2 3 22 true)
+  (cons (tx_rec_demo 3 4 31 false)
+  (cons (tx_rec_demo 3 5 32 false)
+  (cons (tx_rec_demo 1023 6 99 true) nil)))))).
+
+Definition tx_closure_sparse_prefix : list Rec :=
+  cons (tx_rec_demo 1023 6 99 true) nil.
+
+Example tx_index_sparse_id_space_is_bit_depth_bounded :
+  tx_id_bit_depth 1023 = 11 /\
+  tx_index_depth (tx_index_build tx_closure_sparse_prefix) = 11 /\
+  tx_index_nodes (tx_index_build tx_closure_sparse_prefix) = 11.
+Proof. repeat split; reflexivity. Qed.
+
+Example tx_index_positive_absent_and_repeated_closing_agree :
+  let idx := tx_index_build tx_closure_demo_journal in
+  map_over (tx_index_lookup idx) (cons 0 (cons 1 (cons 2 (cons 3 (cons 4 (cons 1023 (cons 2048 nil))))))) =
+    map_over (commits tx_closure_demo_journal) (cons 0 (cons 1 (cons 2 (cons 3 (cons 4 (cons 1023 (cons 2048 nil))))))) /\
+  tx_index_lookup idx 1 = true /\
+  tx_index_lookup idx 2 = true /\
+  tx_index_lookup idx 3 = false /\
+  tx_index_lookup idx 2048 = false /\
+  tx_index_lookup idx 1023 = true.
+Proof. repeat split; reflexivity. Qed.
+
+Example tx_index_both_recovery_disciplines_agree :
+  let torn := tear_at 2 1 tx_closure_demo_journal in
+  map_over (tx_index_replay (scan tx_closure_demo_journal) demo_base) (upto 8) =
+    map_over (apply_all (scan tx_closure_demo_journal) (commits (scan tx_closure_demo_journal)) demo_base) (upto 8) /\
+  map_over (tx_index_replay (sieve tx_closure_demo_journal) demo_base) (upto 8) =
+    map_over (apply_all (sieve tx_closure_demo_journal) (commits (sieve tx_closure_demo_journal)) demo_base) (upto 8) /\
+  map_over (tx_index_replay (scan torn) demo_base) (upto 8) =
+    map_over (apply_all (scan torn) (commits (scan torn)) demo_base) (upto 8) /\
+  map_over (tx_index_replay (sieve torn) demo_base) (upto 8) =
+    map_over (apply_all (sieve torn) (commits (sieve torn)) demo_base) (upto 8).
+Proof. repeat split; reflexivity. Qed.
+
+(* =========================================================================
+   Path-local runtime Merkle reader extensions (R-06-005, R-10-001).
+   ========================================================================= *)
+
+(*| discharges: R-10-001 |*)
+Theorem path_read_authenticates_visited_chain :
+  forall (t : Transactor) (st : Objects) (root target : nat)
+         (route : list nat) (b : nat),
+    path_read t st root target route = Some b ->
+    AuthenticatedObjectPath t st root target route.
+Proof.
+  intros t st root target route b H.
+  exact (proj1 (path_reader_authenticates_every_link t st root target route b H)).
+Qed.
+
+(*| discharges: R-06-005, R-10-001 |*)
+Theorem path_read_returns_exact_bytes :
+  forall (t : Transactor) (st : Objects) (root target : nat)
+         (route : list nat) (b : nat) (o : Obj),
+    path_read t st root target route = Some b ->
+    st target = Some o ->
+    address t o = target /\ obj_bytes o = b.
+Proof.
+  intros t st root target route b o H Hs.
+  destruct (path_reader_authenticates_every_link t st root target route b H)
+    as [_ [o' [Ho' [Ha Hb]]]].
+  rewrite Hs in Ho'. injection Ho' as Eo. subst o'.
+  exact (conj Ha Hb).
+Qed.
+
+Lemma path_read_from_agrees_on_path :
+  forall (fuel : nat) (t : Transactor) (st1 st2 : Objects)
+         (seen : TxnTrie) (root target : nat) (route : list nat),
+    (forall n : nat, mem_of n (cons root route) = true -> st1 n = st2 n) ->
+    path_read_from fuel t st1 seen root target route =
+    path_read_from fuel t st2 seen root target route.
+Proof.
+  intros fuel. induction fuel as [ | remaining IH ];
+    intros t st1 st2 seen root target route Hagree.
+  - reflexivity.
+  - cbn [path_read_from].
+    destruct (indexed_commits seen root); [ reflexivity | ].
+    rewrite (Hagree root (mem_of_head root route)).
+    destruct (st2 root) as [ o | ]; [ | reflexivity ].
+    destruct (Nat.eqb (address t o) root); [ | reflexivity ].
+    destruct route as [ | next rest ]; [ reflexivity | ].
+    destruct (mem_of next (obj_kids o)); [ | reflexivity ].
+    apply IH. intros n Hn. apply Hagree.
+    exact (mem_of_tail n root (cons next rest) Hn).
+Qed.
+
+(*| discharges: R-10-001 |*)
+Theorem path_read_ignores_unavailable_sibling_subtree :
+  forall (t : Transactor) (st1 st2 : Objects) (root target : nat) (route : list nat),
+    (forall n : nat, mem_of n (cons root route) = true -> st1 n = st2 n) ->
+    path_read t st1 root target route = path_read t st2 root target route.
+Proof.
+  intros t st1 st2 root target route H.
+  exact (path_read_from_agrees_on_path
+    (S (walk_depth t)) t st1 st2 TxnEmpty root target route H).
+Qed.
+
+Example path_read_refusal_witnesses_and_sibling_independence :
+  path_read demo_transactor unverified_parent_objects 17 7 (cons 7 nil) = None /\
+  path_read demo_transactor demo_objects 99 7 (cons 7 nil) = None /\
+  path_read demo_transactor demo_objects 19 17 nil = None /\
+  path_read demo_transactor strayed_objects 17 5 (cons 5 nil) = None /\
+  path_read demo_transactor rogue_objects 17 9 (cons 9 nil) = None /\
+  path_read demo_transactor cyclic_path_objects 5 5 (cons 5 nil) = None /\
+  path_read (with_walk_depth demo_transactor 0) demo_objects 17 7 (cons 7 nil) = None /\
+  path_read demo_transactor missing_sibling_objects 17 7 (cons 7 nil) = Some 7 /\
+  path_read demo_transactor rogue_objects 17 7 (cons 7 nil) = Some 7.
+Proof. repeat split; reflexivity. Qed.
+
