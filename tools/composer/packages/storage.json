@@ -24,7 +24,7 @@
     },
     {
       "path": "storage/src/storage_publish.c",
-      "sha256": "ef2e8907784c936b26443160135b234c331b107bf47d8ce3faddd6e68e6e6145"
+      "sha256": "013b00c9266f16ad46380b43ac0766fa7f44d18012dafdde36f8ef6a894de54e"
     },
     {
       "path": "storage/include/vos_node_image.h",

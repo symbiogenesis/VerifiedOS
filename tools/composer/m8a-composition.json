@@ -391,7 +391,7 @@
       ],
       "descriptor": {
         "path": "tools/composer/packages/storage.json",
-        "sha256": "6aa8d9f61831d677849ad2d897f2638cf27f02f31fbaec9a7e06b54c4c551dbf"
+        "sha256": "857eb2519913f9b6257ef3ed9fea9bc432095c835deccedee5173b57df349fd1"
       },
       "artifact_slot": "storage-artifact",
       "entry": null,

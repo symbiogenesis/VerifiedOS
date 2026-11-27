@@ -196,10 +196,10 @@ def _compile_and_run_c_harness() -> None:
             (
                 "publish",
                 "skip independently sealed pending checkpoint recovery",
-                "if (selected->commit_mode == VOS_STORAGE_COMMIT_FRESH ||\n"
-                "        selected->fresh_region_version != 0u ||\n"
-                "        (crypto->epoch_sealed_mask & (1u << crypto_slot)) != 0u) {",
-                "if (0 && selected->commit_mode == VOS_STORAGE_COMMIT_FRESH) {",
+                "if (selected->commit_mode == VOS_STORAGE_COMMIT_FRESH || \\\n"
+                "        selected->fresh_region_version != 0u || \\\n"
+                "        (crypto->epoch_sealed_mask & (1u << crypto_slot)) != 0u) { \\",
+                "if (0 && selected->commit_mode == VOS_STORAGE_COMMIT_FRESH) { \\",
             ),
             (
                 "publish",
@@ -251,62 +251,9 @@ def _compile_and_run_c_harness() -> None:
                 "!equal_bytes_ct(actual_digest, ext.content_digest, VOS_CRYPTO_DIGEST_BYTES)) {",
                 "0) {\n        (void)actual_digest;",
             ),
-            (
-                "publish",
-                "typed: skip independently sealed pending checkpoint recovery",
-                "struct vos_storage_typed_checkpoint *selected = &medium->checkpoint;\n"
-                "    if (selected->commit_mode == VOS_STORAGE_COMMIT_FRESH ||\n"
-                "        selected->fresh_region_version != 0u ||\n"
-                "        (crypto->epoch_sealed_mask & (1u << crypto_slot)) != 0u) {",
-                "struct vos_storage_typed_checkpoint *selected = &medium->checkpoint;\n"
-                "    if (0 && selected->commit_mode == VOS_STORAGE_COMMIT_FRESH) {",
-            ),
-            (
-                "publish",
-                "typed: accept replayed nonce record below committed generation in typed Reopen",
-                "const struct vos_storage_typed_checkpoint *cp = &medium->checkpoint;\n"
-                "    if (medium->nonce_record.reserved_generation < cp->generation) {",
-                "const struct vos_storage_typed_checkpoint *cp = &medium->checkpoint;\n"
-                "    if (0 && medium->nonce_record.reserved_generation < cp->generation) {",
-            ),
-            (
-                "publish",
-                "typed: skip committed redo journal prefix replay in typed Reopen",
-                "if (medium->journal_count > VOS_STORAGE_TYPED_MAX_JOURNAL_FRAMES) {\n"
-                "            return 0;\n"
-                "        }\n"
-                "        const uint64_t j_gen = medium->journal[0].tx_generation;\n"
-                "        if (j_gen == cp->generation) {",
-                "if (medium->journal_count > VOS_STORAGE_TYPED_MAX_JOURNAL_FRAMES) {\n"
-                "            return 0;\n"
-                "        }\n"
-                "        const uint64_t j_gen = medium->journal[0].tx_generation;\n"
-                "        if (0 && j_gen == cp->generation) {",
-            ),
-            (
-                "publish",
-                "typed: refuse torn primary before trying authenticated fallback in typed Reopen",
-                "const int fallback_valid = medium->has_fallback && verify_typed_checkpoint_mac(\n"
-                "        &store->ops, crypto, crypto_slot, expected_domain_id, key_epoch,\n"
-                "        medium->geometry.arena_nodes, &medium->fallback_checkpoint);\n"
-                "    if (!primary_valid && !fallback_valid) {",
-                "const int fallback_valid = medium->has_fallback && verify_typed_checkpoint_mac(\n"
-                "        &store->ops, crypto, crypto_slot, expected_domain_id, key_epoch,\n"
-                "        medium->geometry.arena_nodes, &medium->fallback_checkpoint);\n"
-                "    if (!primary_valid) {",
-            ),
-            (
-                "publish",
-                "typed: skip fallback checkpoint refresh on typed publish",
-                "    medium->journal_reusable = 1u;\n"
-                "    medium->fallback_checkpoint = next_cp;\n"
-                "    medium->has_fallback = 1u;\n\n"
-                "    if (!persist_typed_store(store)) {",
-                "    medium->journal_reusable = 1u;\n"
-                "    (void)next_cp;\n"
-                "    medium->has_fallback = 1u;\n\n"
-                "    if (!persist_typed_store(store)) {",
-            ),
+            # Shared macro mutants above (`DEFINE_STORAGE_REOPEN_FN` and
+            # `DEFINE_STORAGE_PUBLISH_FN`) inject the same defects into both
+            # untyped and typed storage protocol instances.
         ]
 
         for idx, (kind, label, target, replacement) in enumerate(mutants):
@@ -432,13 +379,13 @@ def _compile_and_run_blkdev_image_join() -> None:
         ensure("storage_blkdev_join: ok" in ran.stdout, f"unexpected output: {ran.stdout!r}")
 
         original = PUBLISH_SOURCE.read_text(encoding="utf-8")
-        target = ("medium->checkpoint = next_cp;\n"
-                  "        if (!persist_store(store)) return 0;\n"
-                  "        if (cut_point == VOS_STORAGE_CUT_BEFORE_EPOCH_SEAL) {")
+        target = ("medium->checkpoint = next_cp; \\\n"
+                  "        if (!PERSIST_FN(store)) return 0; \\\n"
+                  "        if (cut_point == VOS_STORAGE_CUT_BEFORE_EPOCH_SEAL) { \\")
         ensure(original.count(target) == 1, "pending persistence mutant anchor must be unique")
         candidate = tmp_path / "missing_pending_persistence.c"
         candidate.write_text(original.replace(target, target.replace(
-            "if (!persist_store(store)) return 0;", "(void)store;"), 1),
+            "if (!PERSIST_FN(store)) return 0;", "(void)store;"), 1),
             encoding="utf-8", newline="\n")
         obj = tmp_path / "missing_pending_persistence.o"
         built = subprocess.run([
