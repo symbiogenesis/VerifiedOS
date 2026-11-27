@@ -1854,5 +1854,81 @@
       "supports_rocq_9_3_0": true,
       "notes": "Compatible with Rocq 9.3.0 switches (rocq.lock, quickchick recipe, contained-compiler.lock) and sail.lock; excluded from 9.1.1 and 9.2.0 switches because rocq-runtime < 9.3 caps dune < 3.24."
     }
+  },
+  "local_dune_3_25_0_trial": {
+    "date": "2026-11-27",
+    "base_revision": "1fee373b15c6b490855bea2017ba4b06cb494e2c",
+    "adopted": false,
+    "rocq.lock_candidate": {
+      "candidate_export_sha256": "5e8b95fb55c76d53003ed809f43c79e59aa271b40fe4a591aa258e0fb4ee691c",
+      "changed_packages": {
+        "dune": [
+          "3.24.2",
+          "3.25.0"
+        ]
+      },
+      "local_controls": [
+        "isolated OPAMROOT build of ocaml-base-compiler.5.4.1, ocamlfind.1.9.8, rocq-core.9.3.0, rocq-stdlib.9.2.0, rocq-stdpp.1.13.0",
+        "dune --version == 3.25.0; rocq c -v == 9.3.0",
+        "ProofSupport.v strict rocq c and rocqchk -silent -o exited 0 with zero axioms"
+      ],
+      "blocking_gates": [
+        "tools/fiat_crypto_emit.py (K-88) binds tools/generated/fiat-crypto/manifest.json to rocq.lock SHA-256",
+        "tools/opam/sail-support-qualification.json base_lock.sha256",
+        "tools/development-tools.json dune_109/dune_110",
+        "Guest CI acceptance"
+      ]
+    },
+    "sail.lock_candidate": {
+      "candidate_export_sha256": "545770555a9dd76ec5232f5cc2b771068f7736e16aecb47f868f97fdb5f47713",
+      "changed_packages": {
+        "dune": [
+          "3.24.2",
+          "3.25.0"
+        ],
+        "dune-private-libs": [
+          "3.24.2",
+          "3.25.0"
+        ],
+        "dune-site": [
+          "3.24.2",
+          "3.25.0"
+        ],
+        "dyn": [
+          "3.24.2",
+          "3.25.0"
+        ],
+        "fs-io": [
+          "3.24.2",
+          "3.25.0"
+        ],
+        "ordering": [
+          "3.24.2",
+          "3.25.0"
+        ],
+        "stdune": [
+          "3.24.2",
+          "3.25.0"
+        ],
+        "top-closure": [
+          "3.24.2",
+          "3.25.0"
+        ]
+      },
+      "local_controls": [
+        "isolated OPAMROOT build of ocaml-base-compiler.5.4.1, ocamlfind.1.9.8, sail.0.20.3",
+        "dune --version == 3.25.0; sail --version == Sail 0.20.3 (sail @ opam-v2.6.1 0.20.3)"
+      ],
+      "blocking_gates": [
+        "paired with rocq.lock under tools/development-tools.json dune_109",
+        "Guest CI acceptance"
+      ]
+    },
+    "retained_older_dune": {
+      "quickchick.lock": "3.23.1 (DUNE) until hosted instrument-switches.yml exports RECIPE_DUNE 3.25.0",
+      "contained-compiler.lock": "3.24.2 (bound by SHA-256 in Q39 compiler_provenance receipts)",
+      "rupicola.lock": "3.23.1 (capped < 3.24 by rocq-runtime.9.2.0)",
+      "certirocq.lock": "3.23.1 (capped < 3.24 by rocq-runtime.9.1.1)"
+    }
   }
 }

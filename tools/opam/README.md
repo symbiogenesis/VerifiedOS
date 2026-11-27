@@ -218,12 +218,30 @@ assumptions, recursive kernel checks, an independent clean import and the
 before replacing that snapshot. This does not resume the deferred bootstrap
 backport or the Rocq 9.3 compatibility trial.
 
-For the other snapshots, `dune.3.25.0` is compatible with `rocq.lock`,
-`sail.lock`, and `contained-compiler.lock` (alongside `ocaml-base-compiler.4.14.5`
-for `contained-compiler.lock`), while `rupicola.lock` has no compatible upgrades
-because `rocq-runtime.9.2.0` caps `dune < 3.24` and no lowering package has a
-new release since 2025-10-06. All production snapshots remain unchanged pending
-their hosted or consumer acceptance gates.
+For the other snapshots, isolated fresh `OPAMROOT` builds on 2026-11-27 proved
+that `rocq.lock` (candidate export SHA-256
+`5e8b95fb55c76d53003ed809f43c79e59aa271b40fe4a591aa258e0fb4ee691c`,
+`ProofSupport.v` strict `rocq c` and `rocqchk -silent -o` exit 0 with zero
+axioms) and `sail.lock` (candidate export SHA-256
+`545770555a9dd76ec5232f5cc2b771068f7736e16aecb47f868f97fdb5f47713`,
+`sail --version` `0.20.3`) build cleanly with `dune.3.25.0` and only Dune
+packages changed. Both snapshots remain at `dune.3.24.2` until `Q45` lands them
+together with: (1) Fiat-Crypto generator rebuild and re-emission
+([fiat_crypto_emit.py](../fiat_crypto_emit.py) binds
+[manifest.json](../generated/fiat-crypto/manifest.json) to `rocq.lock`'s exact
+SHA-256 under `K-88`), (2) [sail-support-qualification.json](sail-support-qualification.json)'s
+`base_lock.sha256` refresh, (3) [development-tools.json](../development-tools.json)'s
+`dune_109` and `dune_110` update, and (4) Guest CI acceptance. `quickchick.lock`
+retains `dune.3.23.1` (`quickchick.py`'s `DUNE`) until a passing hosted
+[instrument-switches.yml](../../.github/workflows/instrument-switches.yml)
+(`build=recipe`) run exports the `RECIPE_DUNE = "3.25.0"` switch, collapsing
+`DUNE` and `RECIPE_DUNE` back to `3.25.0`. `contained-compiler.lock` remains at
+`dune.3.24.2` (with `ocaml-base-compiler.4.14.5` and `dune.3.25.0` as
+candidates) pending Q39's contained-compiler rebuild because
+[compiler_provenance.py](../vos/compiler_provenance.py) binds retained target
+receipts to that lock's SHA-256. `rupicola.lock` (Rocq 9.2.0) and
+`certirocq.lock` (Rocq 9.1.1) are hard-capped at `dune.3.23.1` by upstream
+`rocq-runtime` (`dune < 3.24`) until those stacks move to Rocq 9.3.0.
 
 Retained versions have concrete constraints: CertiRocq's
 [published metadata](https://github.com/rocq-prover/opam/blob/d8e264789b0dd225a865ea6c923b0f75b82ad93f/released/packages/rocq-certirocq/rocq-certirocq.0.9.1%2B9.1/opam)
