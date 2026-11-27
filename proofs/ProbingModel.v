@@ -2242,3 +2242,2674 @@ Example four_shares_and_three_probes_have_a_positive_normalizer :
     (fun xs => share_view gf2 (0 :: 2 :: 3 :: nil) (encode gf2 true xs))
     (false :: true :: false :: nil) = (1, 8).
 Proof. reflexivity. Qed.
+
+(* =========================================================================
+   Adaptive probing equivalence over ProbeStrategy, and instantiation for
+   the general (n+1)-share additive encoding (R-15-053a, R-05-004a).
+   ========================================================================= *)
+
+Definition probe_eqb (p1 p2 : Probe) : bool :=
+  andb (Nat.eqb (p_wire p1) (p_wire p2)) (Nat.eqb (p_cycle p1) (p_cycle p2)).
+
+Lemma probe_eqb_refl : forall p : Probe, probe_eqb p p = true.
+Proof.
+  intros [w t]. unfold probe_eqb. simpl.
+  rewrite Nat.eqb_refl, Nat.eqb_refl. reflexivity.
+Qed.
+
+Lemma probe_eqb_sound : forall p1 p2 : Probe, probe_eqb p1 p2 = true -> p1 = p2.
+Proof.
+  intros [w1 t1] [w2 t2] H. unfold probe_eqb in H. simpl in H.
+  apply andb_prop in H. destruct H as [Hw Ht].
+  apply Nat.eqb_eq in Hw. apply Nat.eqb_eq in Ht. subst. reflexivity.
+Qed.
+
+Definition trace_entry_eqb (m : Sharing)
+    (e1 e2 : Probe * list (Val m)) : bool :=
+  andb (probe_eqb (fst e1) (fst e2))
+       (list_eqb (v_eqb m) (snd e1) (snd e2)).
+
+Definition trace_eqb (m : Sharing)
+    (tr1 tr2 : list (Probe * list (Val m))) : bool :=
+  list_eqb (trace_entry_eqb m) tr1 tr2.
+
+Lemma trace_entry_eqb_refl :
+  forall (m : Sharing) (e : Probe * list (Val m)),
+    trace_entry_eqb m e e = true.
+Proof.
+  intros m [p vs]. unfold trace_entry_eqb. simpl.
+  rewrite probe_eqb_refl. induction vs as [|v r IH]; simpl; [reflexivity|].
+  rewrite (v_eqb_refl m v). exact IH.
+Qed.
+
+Lemma trace_eqb_refl :
+  forall (m : Sharing) (tr : list (Probe * list (Val m))),
+    trace_eqb m tr tr = true.
+Proof.
+  intros m tr. unfold trace_eqb. induction tr as [|e r IH]; simpl; [reflexivity|].
+  rewrite trace_entry_eqb_refl. exact IH.
+Qed.
+
+Lemma trace_eqb_sound :
+  forall (m : Sharing) (tr1 tr2 : list (Probe * list (Val m))),
+    trace_eqb m tr1 tr2 = true -> tr1 = tr2.
+Proof.
+  intros m tr1. unfold trace_eqb.
+  induction tr1 as [|[p1 vs1] r1 IH]; intros [|[p2 vs2] r2] H;
+    try reflexivity; try discriminate H.
+  simpl in H. apply andb_prop in H. destruct H as [He Hr].
+  unfold trace_entry_eqb in He. simpl in He.
+  apply andb_prop in He. destruct He as [Hp Hvs].
+  apply probe_eqb_sound in Hp. apply list_eqb_sound in Hvs.
+  subst. f_equal. apply IH. exact Hr.
+Qed.
+
+Fixpoint strategy_admissible {V : Type} (c : Circuit) (fuel : nat)
+    (st : ProbeStrategy V) : Prop :=
+  match fuel, st with
+  | O, _ => True
+  | S f, strategy_stop _ => True
+  | S f, strategy_query _ p next =>
+      Nat.ltb (p_wire p) (wire_count c) = true /\
+      forall seen : list V, strategy_admissible c f (next seen)
+  end.
+
+Definition AdaptiveProbingSecure (x : Experiment) (E : Expansion) : Prop :=
+  forall (fuel : nat) (st : ProbeStrategy (Val (x_share x))),
+    Nat.leb fuel (x_order x) = true ->
+    strategy_admissible (x_circuit x) fuel st ->
+    forall s1 s2 : x_secret x,
+      SameDistribution (x_prob x)
+        (list (Probe * list (Val (x_share x))))
+        (trace_eqb (x_share x))
+        (adaptive_view fuel x E st s1)
+        (adaptive_view fuel x E st s2).
+
+(* Extract the fixed probe list and flat observation vector determined by a
+   strategy and a candidate trace, together with whether the trace matches
+   the strategy's query structure and expansion lengths. *)
+Fixpoint trace_accepts (fuel : nat) (x : Experiment) (E : Expansion)
+    (st : ProbeStrategy (Val (x_share x)))
+    (tr : list (Probe * list (Val (x_share x)))) : bool :=
+  match fuel, st, tr with
+  | O, _, nil => true
+  | S _, strategy_stop _, nil => true
+  | S f, strategy_query _ p next, (p', vs) :: rest =>
+      andb (probe_eqb p' p)
+           (andb (Nat.eqb (count_of vs) (count_of (E (x_circuit x) p)))
+                 (trace_accepts f x E (next vs) rest))
+  | _, _, _ => false
+  end.
+
+Fixpoint trace_probes (fuel : nat) (x : Experiment)
+    (st : ProbeStrategy (Val (x_share x)))
+    (tr : list (Probe * list (Val (x_share x)))) : list Probe :=
+  match fuel, st, tr with
+  | S f, strategy_query _ p next, (_, vs) :: rest =>
+      p :: trace_probes f x (next vs) rest
+  | _, _, _ => nil
+  end.
+
+Fixpoint trace_values {V : Type}
+    (tr : list (Probe * list V)) : list V :=
+  match tr with
+  | nil => nil
+  | (_, vs) :: rest => app vs (trace_values rest)
+  end.
+
+Lemma list_eqb_refl_sharing :
+  forall (m : Sharing) (l : list (Val m)),
+    list_eqb (v_eqb m) l l = true.
+Proof.
+  intros m l. induction l as [|x r IH]; simpl; [reflexivity|].
+  rewrite (v_eqb_refl m x). exact IH.
+Qed.
+
+Lemma list_eqb_app_eq_len :
+  forall (m : Sharing) (a1 a2 b1 b2 : list (Val m)),
+    count_of a1 = count_of a2 ->
+    list_eqb (v_eqb m) (app a1 b1) (app a2 b2) =
+    andb (list_eqb (v_eqb m) a1 a2) (list_eqb (v_eqb m) b1 b2).
+Proof.
+  intros m a1. induction a1 as [|x r1 IH]; intros [|y r2] b1 b2 Hlen;
+    simpl in *; try discriminate Hlen.
+  - reflexivity.
+  - rewrite <- Bool.andb_assoc. f_equal. apply IH. lia.
+Qed.
+
+Lemma x_view_cons :
+  forall (x : Experiment) (E : Expansion) (p : Probe) (ps : list Probe)
+         (s : x_secret x) (tape : Tape (x_prob x)),
+    x_view x E (p :: ps) s tape =
+    app (x_view x E (p :: nil) s tape) (x_view x E ps s tape).
+Proof.
+  intros x E p ps s tape. unfold x_view, probe_set. simpl.
+  rewrite app_nil_r_eq.
+  generalize (E (x_circuit x) p) as l1.
+  generalize (flat_map_over (E (x_circuit x)) ps) as l2.
+  intros l2 l1. induction l1 as [|o r IH]; simpl; [reflexivity|].
+  rewrite IH. reflexivity.
+Qed.
+
+Lemma x_view_single_length :
+  forall (x : Experiment) (E : Expansion) (p : Probe)
+         (s : x_secret x) (tape : Tape (x_prob x)),
+    count_of (x_view x E (p :: nil) s tape) =
+    count_of (E (x_circuit x) p).
+Proof.
+  intros x E p s tape. unfold x_view, probe_set. simpl.
+  rewrite app_nil_r_eq.
+  induction (E (x_circuit x) p) as [|o r IH]; simpl; [reflexivity|].
+  rewrite IH. reflexivity.
+Qed.
+
+Lemma trace_probes_length :
+  forall (fuel : nat) (x : Experiment)
+         (st : ProbeStrategy (Val (x_share x)))
+         (tr : list (Probe * list (Val (x_share x)))),
+    count_of (trace_probes fuel x st tr) <= fuel.
+Proof.
+  induction fuel as [|f IH]; intros x st tr;
+    destruct st as [|p next], tr as [|[p' vs] rest];
+    simpl; try lia.
+  specialize (IH x (next vs) rest). lia.
+Qed.
+
+Lemma trace_probes_wires_exist :
+  forall (fuel : nat) (x : Experiment)
+         (st : ProbeStrategy (Val (x_share x)))
+         (tr : list (Probe * list (Val (x_share x)))),
+    strategy_admissible (x_circuit x) fuel st ->
+    wires_exist (x_circuit x) (map_over p_wire (trace_probes fuel x st tr)) = true.
+Proof.
+  induction fuel as [|f IH]; intros x st tr Hadm;
+    destruct st as [|p next], tr as [|[p' vs] rest];
+    try reflexivity.
+  cbn [strategy_admissible] in Hadm. destruct Hadm as [Hp Hnext].
+  unfold wires_exist. cbn [trace_probes].
+  change (map_over p_wire (p :: trace_probes f x (next vs) rest))
+    with (p_wire p :: map_over p_wire (trace_probes f x (next vs) rest)).
+  change (all_of (fun w => Nat.ltb w (wire_count (x_circuit x)))
+                 (p_wire p :: map_over p_wire (trace_probes f x (next vs) rest)))
+    with (andb (Nat.ltb (p_wire p) (wire_count (x_circuit x)))
+               (all_of (fun w => Nat.ltb w (wire_count (x_circuit x)))
+                       (map_over p_wire (trace_probes f x (next vs) rest)))).
+  rewrite Hp. simpl. exact (IH x (next vs) rest (Hnext vs)).
+Qed.
+
+Lemma adaptive_trace_reduces_to_fixed_view :
+  forall (fuel : nat) (x : Experiment) (E : Expansion)
+         (st : ProbeStrategy (Val (x_share x)))
+         (tr : list (Probe * list (Val (x_share x))))
+         (s : x_secret x) (tape : Tape (x_prob x)),
+    trace_eqb (x_share x) (adaptive_view fuel x E st s tape) tr =
+    andb (trace_accepts fuel x E st tr)
+         (list_eqb (v_eqb (x_share x))
+            (x_view x E (trace_probes fuel x st tr) s tape)
+            (trace_values tr)).
+Proof.
+  induction fuel as [|f IH]; intros x E st tr s tape.
+  - destruct st, tr as [|[p' vs] rest]; reflexivity.
+  - destruct st as [|p next]; destruct tr as [|[p' vs] rest]; try reflexivity.
+    unfold trace_eqb.
+    change (list_eqb (trace_entry_eqb (x_share x))
+              (adaptive_view (S f) x E (strategy_query _ p next) s tape)
+              ((p', vs) :: rest))
+      with (andb (trace_entry_eqb (x_share x)
+                    (p, x_view x E (p :: nil) s tape) (p', vs))
+                 (trace_eqb (x_share x)
+                    (adaptive_view f x E (next (x_view x E (p :: nil) s tape)) s tape)
+                    rest)).
+    cbn [trace_accepts trace_probes trace_values].
+    rewrite (x_view_cons x E p (trace_probes f x (next vs) rest) s tape).
+    unfold trace_entry_eqb. cbn [fst snd].
+    destruct (probe_eqb p p') eqn:Epp'.
+    + apply probe_eqb_sound in Epp'. subst p'. rewrite probe_eqb_refl.
+      destruct (Nat.eqb (count_of vs) (count_of (E (x_circuit x) p))) eqn:Elen.
+      * apply Nat.eqb_eq in Elen.
+        rewrite list_eqb_app_eq_len by (rewrite x_view_single_length; symmetry; exact Elen).
+        cbn [andb].
+        destruct (list_eqb (v_eqb (x_share x))
+                    (x_view x E (p :: nil) s tape) vs) eqn:Evs.
+        -- apply list_eqb_sound in Evs. rewrite Evs. simpl.
+           exact (IH x E (next vs) rest s tape).
+        -- simpl. rewrite Bool.andb_false_r. reflexivity.
+      * destruct (list_eqb (v_eqb (x_share x))
+                    (x_view x E (p :: nil) s tape) vs) eqn:Evs; simpl.
+        -- apply list_eqb_sound in Evs. rewrite <- Evs in Elen.
+           rewrite x_view_single_length, Nat.eqb_refl in Elen. discriminate Elen.
+        -- reflexivity.
+    + assert (Hne : probe_eqb p' p = false).
+      { destruct (probe_eqb p' p) eqn:E2; [|reflexivity].
+        apply probe_eqb_sound in E2. subst. rewrite probe_eqb_refl in Epp'. discriminate. }
+      rewrite Hne. reflexivity.
+Qed.
+
+(*| discharges: R-15-053a |*)
+Theorem fixed_implies_adaptive_probing_secure :
+  forall (x : Experiment) (E : Expansion),
+    FiniteMassQualification (x_prob x) ->
+    ProbingSecure x E ->
+    AdaptiveProbingSecure x E.
+Proof.
+  intros x E _ Hfixed fuel st Hle Hadm s1 s2 tr.
+  apply Nat.leb_le in Hle.
+  apply eq_trans with
+    (pr (x_prob x) (fun t =>
+       andb (trace_accepts fuel x E st tr)
+            (list_eqb (v_eqb (x_share x))
+               (x_view x E (trace_probes fuel x st tr) s1 t)
+               (trace_values tr)))).
+  - apply pr_ext. intros t. apply adaptive_trace_reduces_to_fixed_view.
+  - apply eq_trans with
+      (pr (x_prob x) (fun t =>
+         andb (trace_accepts fuel x E st tr)
+              (list_eqb (v_eqb (x_share x))
+                 (x_view x E (trace_probes fuel x st tr) s2 t)
+                 (trace_values tr)))).
+    + destruct (trace_accepts fuel x E st tr) eqn:Hacc.
+      * apply Hfixed. unfold admissible_probes. apply andb_true_intro. split.
+        -- apply Nat.leb_le.
+           pose proof (trace_probes_length fuel x st tr). lia.
+        -- exact (trace_probes_wires_exist fuel x st tr Hadm).
+      * reflexivity.
+    + apply pr_ext. intros t. symmetry. apply adaptive_trace_reduces_to_fixed_view.
+Qed.
+
+Fixpoint strategy_of_probes {V : Type} (ps : list Probe) : ProbeStrategy V :=
+  match ps with
+  | nil => strategy_stop V
+  | p :: rest => strategy_query V p (fun _ => strategy_of_probes rest)
+  end.
+
+Lemma strategy_of_probes_admissible :
+  forall (V : Type) (c : Circuit) (ps : list Probe),
+    wires_exist c (map_over p_wire ps) = true ->
+    strategy_admissible c (count_of ps) (strategy_of_probes ps : ProbeStrategy V).
+Proof.
+  intros V c ps. induction ps as [|p rest IH]; intros Hw; simpl in *; [exact I|].
+  apply andb_prop in Hw. destruct Hw as [Hp Hrest].
+  split; [exact Hp | intros _; exact (IH Hrest)].
+Qed.
+
+Lemma adaptive_view_strategy_of_probes :
+  forall (x : Experiment) (E : Expansion) (ps : list Probe)
+         (s : x_secret x) (tape : Tape (x_prob x)),
+    trace_values (adaptive_view (count_of ps) x E (strategy_of_probes ps) s tape) =
+    x_view x E ps s tape.
+Proof.
+  intros x E ps s tape. induction ps as [|p rest IH]; simpl.
+  - reflexivity.
+  - rewrite IH. symmetry. apply x_view_cons.
+Qed.
+
+(* Helper for Perm symmetry. *)
+Lemma perm_sym_local : forall {A : Type} (l1 l2 : list A), Perm l1 l2 -> Perm l2 l1.
+Proof.
+  intros A l1 l2 H. induction H.
+  - apply perm_nil.
+  - apply perm_skip. exact IHPerm.
+  - apply perm_swap.
+  - eapply perm_trans; eauto.
+Qed.
+
+Lemma perm_from_eqb_counts :
+  forall {A : Type} (eqA : A -> A -> bool) (l1 l2 : list A),
+    (forall u v, eqA u v = true -> u = v) ->
+    (forall u, eqA u u = true) ->
+    (forall a : A, count_of (filter_of (fun z => eqA z a) l1) =
+                   count_of (filter_of (fun z => eqA z a) l2)) ->
+    Perm l1 l2.
+Proof.
+  intros A eqA l1. induction l1 as [|x r1 IH]; intros l2 Hsound Hrefl Hocc.
+  - destruct l2 as [|y r2]; [apply perm_nil|].
+    specialize (Hocc y). simpl in Hocc. rewrite Hrefl in Hocc. discriminate Hocc.
+  - assert (Hin : ProofSupport.Member x l2).
+    { specialize (Hocc x). simpl in Hocc. rewrite Hrefl in Hocc.
+      clear -Hocc Hsound. induction l2 as [|y r2 IH2]; simpl in *; [discriminate|].
+      destruct (eqA y x) eqn:Eyx.
+      - left. symmetry. apply Hsound. exact Eyx.
+      - right. apply IH2. exact Hocc. }
+    assert (Hsplit : exists l2', Perm l2 (x :: l2')).
+    { clear -Hin. induction l2 as [|y r2 IH2]; simpl in *; [contradiction|].
+      destruct Hin as [Hy | Hr].
+      - subst y. exists r2. apply perm_refl.
+      - destruct (IH2 Hr) as [r2' Hr2']. exists (y :: r2').
+        eapply perm_trans; [apply perm_skip; exact Hr2' | apply perm_swap]. }
+    destruct Hsplit as [l2' Hl2'].
+    apply perm_sym_local in Hl2'.
+    eapply perm_trans; [|exact Hl2'].
+    apply perm_skip. apply IH.
+    + exact Hsound.
+    + exact Hrefl.
+    + intros a.
+      pose proof (Hocc a) as Ha.
+      pose proof (count_of_perm _ _ (perm_filter (fun z => eqA z a) _ _ Hl2')) as Hp.
+      cbn [filter_of ProofSupport.filter_of] in Ha, Hp.
+      rewrite count_of_is_length in Ha, Hp.
+      rewrite <- Hp in Ha.
+      destruct (eqA x a); simpl in Ha; repeat rewrite count_of_is_length; unfold filter_of; lia.
+Qed.
+
+Lemma counting_pushforward :
+  forall (T : Type) (enum : list T) (A B : Type) (eqA : A -> A -> bool)
+         (eqB : B -> B -> bool) (f g : T -> A) (h : A -> B),
+    (forall a1 a2, eqA a1 a2 = true -> a1 = a2) ->
+    (forall a, eqA a a = true) ->
+    SameDistribution (counting T enum) A eqA f g ->
+    SameDistribution (counting T enum) B eqB (fun t => h (f t)) (fun t => h (g t)).
+Proof.
+  intros T enum A B eqA eqB f g h Hsound Hrefl Hsame.
+  apply (equal_image_multisets_are_identically_distributed T enum B eqB
+           (fun t => h (f t)) (fun t => h (g t))).
+  rewrite <- (map_over_compose h f enum), <- (map_over_compose h g enum).
+  apply (perm_map h). apply (perm_from_eqb_counts eqA); [exact Hsound|exact Hrefl|].
+  intros a. rewrite <- count_filter_image, <- count_filter_image.
+  rewrite <- counting_pr, <- counting_pr. exact (Hsame a).
+Qed.
+
+Fixpoint chunk_trace (c : Circuit) (E : Expansion) (ps : list Probe)
+    {V : Type} (vals : list V) : list (Probe * list V) :=
+  match ps with
+  | nil => nil
+  | p :: rest =>
+      let k := count_of (E c p) in
+      (p, ProofSupport.take_of k vals) ::
+        chunk_trace c E rest (ProofSupport.drop_of k vals)
+  end.
+
+Lemma take_drop_exact :
+  forall {A : Type} (k : nat) (l1 l2 : list A),
+    count_of l1 = k ->
+    ProofSupport.take_of k (app l1 l2) = l1 /\
+    ProofSupport.drop_of k (app l1 l2) = l2.
+Proof.
+  intros A k l1. revert k. induction l1 as [|x r IH]; intros [|k] l2 Hk;
+    simpl in *; try discriminate Hk.
+  - split; reflexivity.
+  - destruct (IH k l2 ltac:(lia)) as [Ht Hd]. split; [f_equal; exact Ht | exact Hd].
+Qed.
+
+Lemma count_of_take_le :
+  forall {A : Type} (k : nat) (l : list A),
+    k <= count_of l -> count_of (ProofSupport.take_of k l) = k.
+Proof.
+  intros A k. induction k as [|k IH]; intros [|x r] H; simpl in *; try lia.
+  f_equal. apply IH. lia.
+Qed.
+
+Lemma trace_eqb_chunk_iff :
+  forall (x : Experiment) (E : Expansion) (ps : list Probe)
+         (s : x_secret x) (tape : Tape (x_prob x))
+         (o : list (Val (x_share x))),
+    count_of o = count_of (probe_set E (x_circuit x) ps) ->
+    trace_eqb (x_share x)
+      (adaptive_view (count_of ps) x E (strategy_of_probes ps) s tape)
+      (chunk_trace (x_circuit x) E ps o) =
+    list_eqb (v_eqb (x_share x)) (x_view x E ps s tape) o.
+Proof.
+  intros x E ps s tape. induction ps as [|p rest IH]; intros o Hlen.
+  - unfold probe_set in Hlen. simpl in Hlen.
+    destruct o; [reflexivity | discriminate Hlen].
+  - unfold trace_eqb.
+    change (list_eqb (trace_entry_eqb (x_share x))
+              (adaptive_view (count_of (p :: rest)) x E (strategy_of_probes (p :: rest)) s tape)
+              (chunk_trace (x_circuit x) E (p :: rest) o))
+      with (andb (trace_entry_eqb (x_share x)
+                    (p, x_view x E (p :: nil) s tape)
+                    (p, ProofSupport.take_of (count_of (E (x_circuit x) p)) o))
+                 (trace_eqb (x_share x)
+                    (adaptive_view (count_of rest) x E (strategy_of_probes rest) s tape)
+                    (chunk_trace (x_circuit x) E rest
+                       (ProofSupport.drop_of (count_of (E (x_circuit x) p)) o)))).
+    rewrite (x_view_cons x E p rest s tape).
+    assert (Hlen1 : count_of (x_view x E (p :: nil) s tape) = count_of (E (x_circuit x) p))
+      by apply x_view_single_length.
+    assert (Hlen_app : count_of (E (x_circuit x) p) <= count_of o).
+    { unfold probe_set in Hlen. simpl in Hlen. rewrite Hlen.
+      clear. induction (E (x_circuit x) p) as [|? ? IHl]; simpl; lia. }
+    assert (Htake_len : count_of (ProofSupport.take_of (count_of (E (x_circuit x) p)) o)
+                        = count_of (E (x_circuit x) p))
+      by (apply count_of_take_le; exact Hlen_app).
+    assert (Ho_split : o = app (ProofSupport.take_of (count_of (E (x_circuit x) p)) o)
+                               (ProofSupport.drop_of (count_of (E (x_circuit x) p)) o)).
+    { clear. generalize (count_of (E (x_circuit x) p)) o.
+      induction n as [|n IH]; intros [|y r]; simpl; try reflexivity.
+      f_equal. apply IH. }
+    rewrite Ho_split at 3.
+    rewrite list_eqb_app_eq_len by (rewrite Hlen1, Htake_len; reflexivity).
+    unfold trace_entry_eqb. cbn [fst snd]. rewrite probe_eqb_refl. cbn [andb].
+    f_equal. apply IH.
+    unfold probe_set in *. simpl in Hlen.
+    rewrite Ho_split in Hlen at 1.
+    repeat rewrite count_of_is_length in *.
+    repeat rewrite length_app in Hlen.
+    lia.
+Qed.
+
+Lemma x_view_length :
+  forall (x : Experiment) (E : Expansion) (ps : list Probe)
+         (s : x_secret x) (tape : Tape (x_prob x)),
+    count_of (x_view x E ps s tape) = count_of (probe_set E (x_circuit x) ps).
+Proof.
+  intros x E ps s tape. unfold x_view.
+  induction (probe_set E (x_circuit x) ps); simpl; auto.
+Qed.
+
+(*| discharges: R-15-053a |*)
+Theorem adaptive_implies_fixed_probing_secure :
+  forall (x : Experiment) (E : Expansion),
+    AdaptiveProbingSecure x E ->
+    ProbingSecure x E.
+Proof.
+  intros x E Hadapt ps Hadm s1 s2 o.
+  unfold admissible_probes in Hadm. apply andb_prop in Hadm.
+  destruct Hadm as [Hord Hw].
+  destruct (Nat.eq_dec (count_of o) (count_of (probe_set E (x_circuit x) ps))) as [Hlen|Hne].
+  - specialize (Hadapt (count_of ps) (strategy_of_probes ps) Hord
+                 (strategy_of_probes_admissible _ (x_circuit x) ps Hw)
+                 s1 s2 (chunk_trace (x_circuit x) E ps o)).
+    eapply eq_trans; [|eapply eq_trans; [exact Hadapt|]].
+    + apply pr_ext. intros t. symmetry. apply trace_eqb_chunk_iff. exact Hlen.
+    + apply pr_ext. intros t. apply trace_eqb_chunk_iff. exact Hlen.
+  - apply eq_trans with (pr (x_prob x) (fun _ => false)).
+    + apply pr_ext. intros t.
+      destruct (list_eqb (v_eqb (x_share x)) (x_view x E ps s1 t) o) eqn:E1; [|reflexivity].
+      apply list_eqb_sound in E1. exfalso. apply Hne. rewrite <- E1.
+      apply x_view_length.
+    + apply pr_ext. intros t.
+      destruct (list_eqb (v_eqb (x_share x)) (x_view x E ps s2 t) o) eqn:E2; [|reflexivity].
+      apply list_eqb_sound in E2. exfalso. apply Hne. rewrite <- E2.
+      apply x_view_length.
+Qed.
+
+(*| discharges: R-15-053a |*)
+Theorem adaptive_probing_equivalence :
+  forall (x : Experiment) (E : Expansion),
+    FiniteMassQualification (x_prob x) ->
+    (ProbingSecure x E <-> AdaptiveProbingSecure x E).
+Proof.
+  intros x E Hq. split.
+  - apply fixed_implies_adaptive_probing_secure. exact Hq.
+  - apply adaptive_implies_fixed_probing_secure.
+Qed.
+
+(* General (n+1)-share additive encoding experiment and adaptive theorem. *)
+Fixpoint input_wires_circuit (k : nat) : Circuit :=
+  match k with
+  | O => nil
+  | S m => app (input_wires_circuit m) (cons (g_in m) nil)
+  end.
+
+Lemma input_wires_count :
+  forall k : nat, wire_count (input_wires_circuit k) = k.
+Proof.
+  induction k as [|k IH]; simpl; [reflexivity|].
+  unfold wire_count in *.
+  rewrite count_of_is_length, length_app. simpl.
+  rewrite <- count_of_is_length. lia.
+Qed.
+
+Lemma at_member_app_last :
+  forall {A : Type} (l : list A) (x d : A),
+    at_member (app l (cons x nil)) (count_of l) d = x.
+Proof.
+  intros A l x d. induction l as [|y r IH]; simpl; [reflexivity | exact IH].
+Qed.
+
+Lemma input_wires_gate_at :
+  forall k w : nat,
+    w < k -> gate_at (input_wires_circuit k) w = g_in w.
+Proof.
+  induction k as [|k IH]; intros w Hw; [lia|].
+  unfold gate_at. simpl.
+  destruct (Nat.lt_ge_cases w k) as [Hlt | Hge].
+  - rewrite at_member_app_l; [apply IH; exact Hlt|].
+    rewrite <- (input_wires_count k) in Hlt.
+    unfold wire_count in Hlt. apply Nat.ltb_lt. exact Hlt.
+  - assert (E : w = k) by lia. subst w.
+    assert (Hk : k = count_of (input_wires_circuit k))
+      by (symmetry; apply input_wires_count).
+    rewrite Hk at 3. apply at_member_app_last.
+Qed.
+
+Lemma wf_from_input_wires :
+  forall total k i : nat, wf_from total i (input_wires_circuit k) = true.
+Proof.
+  intros total k. induction k as [|k IH]; intros i; simpl; [reflexivity|].
+  assert (Happ : forall l1 l2 j,
+    wf_from total j (app l1 l2) =
+    andb (wf_from total j l1) (wf_from total (Nat.add j (count_of l1)) l2)).
+  { clear. induction l1 as [|x r1 IHl]; intros l2 j; simpl.
+    - rewrite add_zero_r_nat. reflexivity.
+    - rewrite IHl, add_succ_r_nat. destruct (gate_well_formed total j x); reflexivity. }
+  rewrite Happ. rewrite IH. reflexivity.
+Qed.
+
+Lemma input_wires_well_formed :
+  forall k : nat, well_formed (input_wires_circuit k) = true.
+Proof.
+  intros k. unfold well_formed. apply wf_from_input_wires.
+Qed.
+
+Definition d_share_experiment (m : Sharing) (n : nat) : Experiment := {|
+  x_share := m;
+  x_prob := counting (list (Val m)) (mask_tuples m n);
+  x_circuit := input_wires_circuit (S n);
+  x_ops := fun _ _ => v_zero m;
+  x_secret := Val m;
+  x_in := fun s tape _ i => at_member (encode m s tape) i (v_zero m);
+  x_init := fun _ _ _ => v_zero m;
+  x_order := n
+|}.
+
+Lemma d_share_experiment_value :
+  forall (m : Sharing) (n : nat) (s : Val m) (tape : list (Val m))
+         (t w : nat),
+    w <= n ->
+    value_at m (fun _ _ => v_zero m) (input_wires_circuit (S n))
+      (fun _ => v_zero m)
+      (fun _ i => at_member (encode m s tape) i (v_zero m)) t w =
+    at_member (encode m s tape) w (v_zero m).
+Proof.
+  intros m n s tape t w Hw. unfold value_at.
+  rewrite input_wires_count. cbn [eval_wire].
+  rewrite input_wires_gate_at by lia. reflexivity.
+Qed.
+
+(*| discharges: R-15-053a, R-05-004a |*)
+Theorem d_share_experiment_probing_secure :
+  forall (m : Sharing) (n : nat),
+    QualifiedProbingSecure (d_share_experiment m n) ex_stable.
+Proof.
+  intros m n. split; [apply input_wires_well_formed|]. split.
+  - exists (qualified_mask_counting m n). exact I.
+  - intros ps Hadm s1 s2.
+    unfold admissible_probes in Hadm. apply andb_prop in Hadm.
+    destruct Hadm as [Hord Hw].
+    unfold x_order in Hord. apply Nat.leb_le in Hord.
+    unfold wires_exist in Hw. unfold d_share_experiment in Hw. cbn [x_circuit] in Hw.
+    rewrite input_wires_count in Hw.
+    assert (Hbound : forall j, In j (map p_wire ps) -> j <= n).
+    { intros j Hj. rewrite <- map_over_is_map in Hj.
+      clear -Hw Hj. induction ps as [|p r IH]; simpl in *; [contradiction|].
+      apply andb_prop in Hw. destruct Hw as [Hp Hr].
+      destruct Hj as [Hp_eq|Hj].
+      - subst j. apply Nat.ltb_lt in Hp. lia.
+      - apply IH; assumption. }
+    assert (Hlen : length (map p_wire ps) <= n).
+    { rewrite length_map, <- count_of_is_length. exact Hord. }
+    pose proof (d_share_encoding_hides_from_d_minus_one_probes m n
+                  (map p_wire ps) s1 s2 Hlen Hbound) as Hdist.
+    assert (Hview : forall s tape,
+      x_view (d_share_experiment m n) ex_stable ps s tape =
+      share_view m (map p_wire ps) (encode m s tape)).
+    { intros s tape. unfold x_view, probe_set, share_view, d_share_experiment.
+      cbn [x_circuit x_ops x_init x_in x_share].
+      rewrite <- map_over_is_map.
+      clear -Hw. induction ps as [|p r IH]; [reflexivity|].
+      simpl in Hw. apply andb_prop in Hw. destruct Hw as [Hp Hr].
+      apply Nat.ltb_lt in Hp.
+      change (map_over (obs_value m (fun _ _ => v_zero m) (input_wires_circuit (S n))
+                         (fun _ => v_zero m)
+                         (fun _ i => at_member (encode m s tape) i (v_zero m)))
+                       (flat_map_over (ex_stable (input_wires_circuit (S n))) (p :: r)))
+        with (cons (value_at m (fun _ _ => v_zero m) (input_wires_circuit (S n))
+                      (fun _ => v_zero m)
+                      (fun _ i => at_member (encode m s tape) i (v_zero m))
+                      (p_cycle p) (p_wire p))
+                   (map_over (obs_value m (fun _ _ => v_zero m) (input_wires_circuit (S n))
+                                (fun _ => v_zero m)
+                                (fun _ i => at_member (encode m s tape) i (v_zero m)))
+                             (flat_map_over (ex_stable (input_wires_circuit (S n))) r))).
+      rewrite (d_share_experiment_value m n s tape (p_cycle p) (p_wire p) ltac:(lia)).
+      change (map_over (fun i => at_member (encode m s tape) i (v_zero m)) (map_over p_wire (p :: r)))
+        with (cons (at_member (encode m s tape) (p_wire p) (v_zero m))
+                   (map_over (fun i => at_member (encode m s tape) i (v_zero m)) (map_over p_wire r))).
+      f_equal. exact (IH Hr). }
+    intros o.
+    eapply eq_trans; [|eapply eq_trans; [exact (Hdist o)|]].
+    + apply pr_ext. intros t. rewrite Hview. reflexivity.
+    + apply pr_ext. intros t. rewrite Hview. reflexivity.
+Qed.
+
+(*| discharges: R-15-053a, R-05-004a |*)
+Theorem adaptive_d_share_hides_secret :
+  forall (m : Sharing) (n : nat),
+    AdaptiveProbingSecure (d_share_experiment m n) ex_stable.
+Proof.
+  intros m n.
+  destruct (d_share_experiment_probing_secure m n) as [_ [[Hq _] Hsec]].
+  apply (fixed_implies_adaptive_probing_secure (d_share_experiment m n) ex_stable Hq Hsec).
+Qed.
+
+(* =========================================================================
+   Separating witness: difference-only transition observations miss a
+   register reuse across complementary masked shares that the full register-
+   pair transition observation catches (R-15-053a).
+   ========================================================================= *)
+
+Definition diff_reuse_experiment : Experiment := {|
+  x_share := gf2;
+  x_prob := bit_tapes 1;
+  x_circuit := register_circuit;
+  x_ops := gf2_ops;
+  x_secret := bool;
+  x_in := fun s tape t _ =>
+            if Nat.even t then andb s (bit_at tape 0)
+            else andb (negb s) (bit_at tape 0);
+  x_init := fun s tape _ => andb (negb s) (bit_at tape 0);
+  x_order := 1
+|}.
+
+Lemma diff_reuse_wire0 : forall s tape t,
+  value_at gf2 gf2_ops register_circuit
+    (x_init diff_reuse_experiment s tape)
+    (x_in diff_reuse_experiment s tape) t 0 =
+  if Nat.even t then andb s (bit_at tape 0) else andb (negb s) (bit_at tape 0).
+Proof.
+  intros s tape t. unfold value_at. simpl. reflexivity.
+Qed.
+
+Lemma even_succ_bool : forall n : nat, Nat.even (S n) = negb (Nat.even n).
+Proof.
+  induction n as [|n IH]; [reflexivity|].
+  change (Nat.even (S (S n))) with (Nat.even n).
+  rewrite IH. destruct (Nat.even n); reflexivity.
+Qed.
+
+Lemma diff_reuse_wire1 : forall s tape t,
+  value_at gf2 gf2_ops register_circuit
+    (x_init diff_reuse_experiment s tape)
+    (x_in diff_reuse_experiment s tape) t 1 =
+  if Nat.even t then andb (negb s) (bit_at tape 0) else andb s (bit_at tape 0).
+Proof.
+  intros s tape [|t]; unfold value_at; cbn -[Nat.even]; [reflexivity|].
+  rewrite even_succ_bool.
+  destruct (Nat.even t); reflexivity.
+Qed.
+
+Lemma diff_reuse_delta_secret_free :
+  forall s1 s2 tape p,
+    Nat.ltb (p_wire p) (wire_count register_circuit) = true ->
+    obs_value gf2 gf2_ops register_circuit
+      (x_init diff_reuse_experiment s1 tape)
+      (x_in diff_reuse_experiment s1 tape) (obs_delta (p_wire p) (p_cycle p)) =
+    obs_value gf2 gf2_ops register_circuit
+      (x_init diff_reuse_experiment s2 tape)
+      (x_in diff_reuse_experiment s2 tape) (obs_delta (p_wire p) (p_cycle p)).
+Proof.
+  intros s1 s2 tape [w [|c]] Hw; cbn [obs_value p_wire p_cycle prev_cycle] in *.
+  - destruct w as [|[|w]]; try discriminate Hw.
+    + repeat rewrite diff_reuse_wire0. simpl.
+      destruct s1; destruct s2; destruct (bit_at tape 0); reflexivity.
+    + repeat rewrite diff_reuse_wire1. simpl.
+      destruct s1; destruct s2; destruct (bit_at tape 0); reflexivity.
+  - destruct w as [|[|w]]; try discriminate Hw.
+    + repeat rewrite diff_reuse_wire0. rewrite even_succ_bool.
+      destruct (Nat.even c); destruct s1; destruct s2; destruct (bit_at tape 0); reflexivity.
+    + repeat rewrite diff_reuse_wire1. rewrite even_succ_bool.
+      destruct (Nat.even c); destruct s1; destruct s2; destruct (bit_at tape 0); reflexivity.
+Qed.
+
+(*| discharges: R-15-053a |*)
+Theorem diff_only_misses_register_reuse_that_pair_catches :
+  ProbingSecure diff_reuse_experiment ex_transition_delta /\
+  Leaks diff_reuse_experiment ex_transition.
+Proof.
+  split.
+  - intros ps Hadm s1 s2.
+    unfold admissible_probes in Hadm. apply andb_prop in Hadm.
+    destruct Hadm as [_ Hw].
+    apply identical_views_are_identically_distributed. intros tape.
+    induction ps as [|p r IH]; [reflexivity|].
+    simpl in Hw. apply andb_prop in Hw. destruct Hw as [Hp Hr].
+    unfold x_view, probe_set. simpl.
+    f_equal.
+    + apply diff_reuse_delta_secret_free. exact Hp.
+    + exact (IH Hr).
+  - intros H.
+    specialize (H (cons (probe_of 1 1) nil) eq_refl false true).
+    specialize (H (cons false (cons true nil))).
+    vm_compute in H. discriminate H.
+Qed.
+
+(* =========================================================================
+   General glitch-robust PINI, NI, and SNI composition infrastructure:
+   circuit embedding, local expansions, product counting measures, linear
+   PINI, sequential/parallel PINI composition, and SNI/NI composition
+   (R-05-004a, R-15-053a).
+   ========================================================================= *)
+
+Definition obs_wire (o : Obs) : nat :=
+  match o with obs_at w _ => w | obs_delta w _ => w end.
+
+Definition obs_shift (off : nat) (o : Obs) : Obs :=
+  match o with
+  | obs_at w t => obs_at (off + w) t
+  | obs_delta w t => obs_delta (off + w) t
+  end.
+
+Definition shift_gate_1 (g : Gate) : Gate :=
+  match g with
+  | g_in i => g_in (2 * i)
+  | g_reg s => g_reg s
+  | g_op o args => g_op (2 * o) args
+  end.
+
+Definition shift_gate_2 (off : nat) (g : Gate) : Gate :=
+  match g with
+  | g_in i => g_in (S (2 * i))
+  | g_reg s => g_reg (off + s)
+  | g_op o args => g_op (S (2 * o)) (map_over (Nat.add off) args)
+  end.
+
+Definition combine_circuits (c1 c2 : Circuit) : Circuit :=
+  app (map_over shift_gate_1 c1) (map_over (shift_gate_2 (wire_count c1)) c2).
+
+Definition combine_ops {m : Sharing}
+    (ops1 ops2 : nat -> list (Val m) -> Val m)
+    (o : nat) (args : list (Val m)) : Val m :=
+  if Nat.even o then ops1 (Nat.div2 o) args else ops2 (Nat.div2 o) args.
+
+Lemma div2_double : forall n : nat, Nat.div2 (2 * n) = n.
+Proof.
+  induction n as [|n IH]; [reflexivity|].
+  replace (2 * S n) with (S (S (2 * n))) by lia.
+  simpl. f_equal. exact IH.
+Qed.
+
+Lemma even_double : forall n : nat, Nat.even (2 * n) = true.
+Proof.
+  induction n as [|n IH]; [reflexivity|].
+  replace (2 * S n) with (S (S (2 * n))) by lia.
+  exact IH.
+Qed.
+
+Lemma even_succ_double : forall n : nat, Nat.even (S (2 * n)) = false.
+Proof.
+  intros n. rewrite even_succ_bool, even_double. reflexivity.
+Qed.
+
+Lemma div2_succ_double : forall n : nat, Nat.div2 (S (2 * n)) = n.
+Proof.
+  induction n as [|n IH]; [reflexivity|].
+  replace (S (2 * S n)) with (S (S (S (2 * n)))) by lia.
+  cbn [Nat.div2]. f_equal. exact IH.
+Qed.
+
+Lemma combine_circuits_count :
+  forall c1 c2 : Circuit,
+    wire_count (combine_circuits c1 c2) = wire_count c1 + wire_count c2.
+Proof.
+  intros c1 c2. unfold combine_circuits, wire_count.
+  repeat rewrite count_of_is_length.
+  rewrite length_app. repeat rewrite map_over_is_map.
+  rewrite length_map, length_map.
+  reflexivity.
+Qed.
+
+Lemma at_member_map_over :
+  forall {A B : Type} (f : A -> B) (l : list A) (w : nat) (d1 : A) (d2 : B),
+    w < count_of l ->
+    at_member (map_over f l) w d2 = f (at_member l w d1).
+Proof.
+  intros A B f l. induction l as [|x r IH]; intros [|w] d1 d2 Hw; simpl in *; try lia;
+    [reflexivity | apply IH; lia].
+Qed.
+
+Lemma gate_at_combine_l :
+  forall c1 c2 w,
+    w < wire_count c1 ->
+    gate_at (combine_circuits c1 c2) w = shift_gate_1 (gate_at c1 w).
+Proof.
+  intros c1 c2 w Hw. unfold gate_at, combine_circuits.
+  rewrite at_member_app_l.
+  - apply at_member_map_over. exact Hw.
+  - rewrite map_over_is_map. repeat rewrite count_of_is_length.
+    rewrite length_map. apply Nat.ltb_lt.
+    unfold wire_count in Hw. rewrite count_of_is_length in Hw. exact Hw.
+Qed.
+
+Lemma at_member_app_r :
+  forall {A : Type} (l1 l2 : list A) (i : nat) (d : A),
+    count_of l1 <= i ->
+    at_member (app l1 l2) i d = at_member l2 (i - count_of l1) d.
+Proof.
+  intros A l1. induction l1 as [|x r IH]; intros l2 [|i] d Hi; simpl in *; try lia;
+    [reflexivity | reflexivity | apply IH; lia].
+Qed.
+
+Lemma gate_at_combine_r :
+  forall c1 c2 w,
+    w < wire_count c2 ->
+    gate_at (combine_circuits c1 c2) (wire_count c1 + w) =
+    shift_gate_2 (wire_count c1) (gate_at c2 w).
+Proof.
+  intros c1 c2 w Hw. unfold gate_at, combine_circuits.
+  assert (Hlen : count_of (map_over shift_gate_1 c1) = wire_count c1).
+  { unfold wire_count. rewrite count_of_is_length, map_over_is_map, length_map, count_of_is_length. reflexivity. }
+  rewrite at_member_app_r by lia.
+  rewrite Hlen, Nat.add_comm, Nat.add_sub.
+  apply at_member_map_over. exact Hw.
+Qed.
+
+Lemma wf_from_app :
+  forall l1 l2 total j,
+    wf_from total j (app l1 l2) =
+    andb (wf_from total j l1) (wf_from total (j + count_of l1) l2).
+Proof.
+  induction l1 as [|g r IH]; intros l2 total j; simpl.
+  - rewrite add_zero_r_nat. reflexivity.
+  - rewrite IH, add_succ_r_nat. destruct (gate_well_formed total j g); reflexivity.
+Qed.
+
+Lemma all_of_map_over :
+  forall {A B : Type} (p : B -> bool) (f : A -> B) (l : list A),
+    all_of p (map_over f l) = all_of (fun a => p (f a)) l.
+Proof.
+  intros A B p f l. induction l as [|x r IH]; simpl; [reflexivity|].
+  rewrite IH. reflexivity.
+Qed.
+
+Lemma combine_circuits_well_formed :
+  forall c1 c2 : Circuit,
+    well_formed c1 = true -> well_formed c2 = true ->
+    well_formed (combine_circuits c1 c2) = true.
+Proof.
+  intros c1 c2 H1 H2. unfold well_formed in *.
+  rewrite combine_circuits_count. unfold combine_circuits.
+  rewrite wf_from_app.
+  assert (Hlen1 : count_of (map_over shift_gate_1 c1) = wire_count c1).
+  { unfold wire_count. repeat rewrite count_of_is_length.
+    rewrite map_over_is_map, length_map. reflexivity. }
+  rewrite Hlen1.
+  apply andb_true_intro. split.
+  - assert (Hgen : forall l total j,
+      total <= wire_count c1 + wire_count c2 ->
+      wf_from (wire_count c1) j l = true ->
+      wf_from (wire_count c1 + wire_count c2) j (map_over shift_gate_1 l) = true).
+    { clear. induction l as [|g r IH]; intros total j Htot Hg; simpl in *; [reflexivity|].
+      apply andb_prop in Hg. destruct Hg as [Hg Hr].
+      apply andb_true_intro. split; [|apply IH with (total := total); assumption].
+      destruct g as [i|s|o args]; simpl in *; [reflexivity| |].
+      - apply Nat.ltb_lt in Hg. apply Nat.ltb_lt. lia.
+      - exact Hg. }
+    exact (Hgen c1 (wire_count c1) 0 ltac:(lia) H1).
+  - assert (Hgen2 : forall l off j,
+      wf_from (wire_count c2) j l = true ->
+      wf_from (off + wire_count c2) (off + j) (map_over (shift_gate_2 off) l) = true).
+    { clear. induction l as [|g r IH]; intros off j Hg; simpl in *; [reflexivity|].
+      apply andb_prop in Hg. destruct Hg as [Hg Hr].
+      apply andb_true_intro. split.
+      - destruct g as [i|s|o args]; simpl in *; [reflexivity| |].
+        + apply Nat.ltb_lt in Hg. apply Nat.ltb_lt. lia.
+        + rewrite all_of_map_over.
+          apply (all_of_mono (fun a => Nat.ltb a j)); [|exact Hg].
+          intros a Ha. apply Nat.ltb_lt in Ha. apply Nat.ltb_lt. lia.
+      - rewrite <- add_succ_r_nat. apply IH. exact Hr. }
+    replace (0 + wire_count c1) with (wire_count c1 + 0) by lia.
+    exact (Hgen2 c2 (wire_count c1) 0 H2).
+Qed.
+
+Lemma stable_sources_combine_l :
+  forall fuel c1 c2 w,
+    well_formed c1 = true ->
+    w < wire_count c1 ->
+    w < fuel ->
+    stable_sources (combine_circuits c1 c2) fuel w =
+    stable_sources c1 fuel w.
+Proof.
+  induction fuel as [|f IH]; intros c1 c2 w Hwf Hw Hf; [lia|].
+  simpl. rewrite gate_at_combine_l by exact Hw.
+  destruct (gate_at c1 w) as [i|s|o args] eqn:Eg; try reflexivity.
+  pose proof (well_formed_gate_reads_earlier_wires c1 w o args Hwf (proj2 (Nat.ltb_lt _ _) Hw) Eg) as Hargs.
+  clear Eg. induction args as [|a r IHa]; simpl; [reflexivity|].
+  simpl in Hargs. apply andb_prop in Hargs. destruct Hargs as [Ha Hr].
+  apply Nat.ltb_lt in Ha.
+  rewrite (IH c1 c2 a Hwf ltac:(lia) ltac:(lia)).
+  f_equal. apply IHa. exact Hr.
+Qed.
+
+Lemma flat_map_over_map_over :
+  forall {A B C : Type} (f : B -> list C) (g : A -> B) (l : list A),
+    flat_map_over f (map_over g l) = flat_map_over (fun a => f (g a)) l.
+Proof.
+  intros A B C f g l. induction l as [|x r IH]; simpl; [reflexivity|].
+  rewrite IH. reflexivity.
+Qed.
+
+Lemma map_over_flat_map_over :
+  forall {A B C : Type} (f : B -> C) (g : A -> list B) (l : list A),
+    map_over f (flat_map_over g l) = flat_map_over (fun a => map_over f (g a)) l.
+Proof.
+  intros A B C f g l. induction l as [|x r IH]; simpl; [reflexivity|].
+  rewrite map_over_is_map, map_app, <- map_over_is_map, <- map_over_is_map, IH.
+  reflexivity.
+Qed.
+
+Lemma stable_sources_combine_r :
+  forall fuel c1 c2 w,
+    well_formed c2 = true ->
+    w < wire_count c2 ->
+    w < fuel ->
+    stable_sources (combine_circuits c1 c2) fuel (wire_count c1 + w) =
+    map_over (Nat.add (wire_count c1)) (stable_sources c2 fuel w).
+Proof.
+  induction fuel as [|f IH]; intros c1 c2 w Hwf Hw Hf; [lia|].
+  simpl. rewrite gate_at_combine_r by exact Hw.
+  destruct (gate_at c2 w) as [i|s|o args] eqn:Eg; try reflexivity.
+  simpl. rewrite flat_map_over_map_over, map_over_flat_map_over.
+  pose proof (well_formed_gate_reads_earlier_wires c2 w o args Hwf (proj2 (Nat.ltb_lt _ _) Hw) Eg) as Hargs.
+  clear Eg. induction args as [|a r IHa]; simpl; [reflexivity|].
+  simpl in Hargs. apply andb_prop in Hargs. destruct Hargs as [Ha Hr].
+  apply Nat.ltb_lt in Ha.
+  rewrite (IH c1 c2 a Hwf ltac:(lia) ltac:(lia)).
+  f_equal. apply IHa. exact Hr.
+Qed.
+
+Lemma stable_sources_fuel_irrelevant :
+  forall n c w f1 f2,
+    well_formed c = true ->
+    w < wire_count c ->
+    w < n -> w < f1 -> w < f2 ->
+    stable_sources c f1 w = stable_sources c f2 w.
+Proof.
+  induction n as [|n IH]; intros c w f1 f2 Hwf Hw Hn Hf1 Hf2; [lia|].
+  destruct f1 as [|g1]; [lia|]. destruct f2 as [|g2]; [lia|].
+  simpl. destruct (gate_at c w) as [i|s|o args] eqn:Eg; try reflexivity.
+  pose proof (well_formed_gate_reads_earlier_wires c w o args Hwf (proj2 (Nat.ltb_lt _ _) Hw) Eg) as Hargs.
+  clear Eg. induction args as [|a r IHa]; simpl; [reflexivity|].
+  simpl in Hargs. apply andb_prop in Hargs. destruct Hargs as [Ha Hr].
+  apply Nat.ltb_lt in Ha.
+  rewrite (IH c a g1 g2 Hwf ltac:(lia) ltac:(lia) ltac:(lia) ltac:(lia)).
+  f_equal. apply IHa. exact Hr.
+Qed.
+
+(* Local expansions depend only on stable sources, the probed wire, and
+   the cycle, so circuit embedding and domain separation transport across
+   them uniformly. *)
+Record LocalExpansion (E : Expansion) : Prop := {
+  le_left_embed : forall c1 c2 p,
+    well_formed c1 = true -> well_formed c2 = true ->
+    p_wire p < wire_count c1 ->
+    E (combine_circuits c1 c2) p = E c1 p;
+  le_right_embed : forall c1 c2 p,
+    well_formed c1 = true -> well_formed c2 = true ->
+    p_wire p < wire_count c2 ->
+    E (combine_circuits c1 c2) (probe_of (wire_count c1 + p_wire p) (p_cycle p)) =
+    map_over (obs_shift (wire_count c1)) (E c2 p);
+  le_domain : forall c (dom : nat -> nat) p o,
+    well_formed c = true -> p_wire p < wire_count c ->
+    (forall w, w < wire_count c ->
+       match gate_at c w with
+       | g_in _ => True
+       | g_reg s => dom s = dom w
+       | g_op _ args => all_of (fun a => Nat.eqb (dom a) (dom w)) args = true
+       end) ->
+    ProofSupport.Member o (E c p) ->
+    obs_wire o < wire_count c /\ dom (obs_wire o) = dom (p_wire p)
+}.
+
+Lemma stable_sources_domain :
+  forall fuel c (dom : nat -> nat) w s,
+    well_formed c = true ->
+    w < wire_count c ->
+    (forall u, u < wire_count c ->
+       match gate_at c u with
+       | g_in _ => True
+       | g_reg r => dom r = dom u
+       | g_op _ args => all_of (fun a => Nat.eqb (dom a) (dom u)) args = true
+       end) ->
+    ProofSupport.Member s (stable_sources c fuel w) ->
+    s < wire_count c /\ dom s = dom w.
+Proof.
+  induction fuel as [|f IH]; intros c dom w s Hwf Hw Hdom Hs; simpl in *.
+  - destruct Hs as [<-|[]]. split; [exact Hw | reflexivity].
+  - destruct (gate_at c w) as [i|r|o args] eqn:Eg; simpl in Hs.
+    + destruct Hs as [<-|[]]. split; [exact Hw | reflexivity].
+    + destruct Hs as [<-|[]]. split; [exact Hw | reflexivity].
+    + pose proof (well_formed_gate_reads_earlier_wires c w o args Hwf (proj2 (Nat.ltb_lt _ _) Hw) Eg) as Hargs.
+      pose proof (Hdom w Hw) as Hwdom. rewrite Eg in Hwdom.
+      clear Eg. induction args as [|a rest IHa]; simpl in Hs; [contradiction|].
+      simpl in Hargs, Hwdom.
+      apply andb_prop in Hargs. destruct Hargs as [Ha Hrest].
+      apply andb_prop in Hwdom. destruct Hwdom as [Hadom Hrestdom].
+      apply Nat.ltb_lt in Ha. apply Nat.eqb_eq in Hadom.
+      assert (Hmem_app : forall {A} (l1 l2 : list A) (z : A),
+        ProofSupport.Member z (app l1 l2) ->
+        ProofSupport.Member z l1 \/ ProofSupport.Member z l2).
+      { clear. induction l1 as [|x r1 IHl]; intros l2 z Hz; simpl in *.
+        - right. exact Hz.
+        - destruct Hz as [->|Hz]; [left; left; reflexivity|].
+          destruct (IHl l2 z Hz); [left; right; assumption | right; assumption]. }
+      destruct (Hmem_app _ _ _ _ Hs) as [Hs1 | Hs2].
+      * destruct (IH c dom a s Hwf ltac:(lia) Hdom Hs1) as [Hs_lt Hs_dom].
+        split; [exact Hs_lt | rewrite Hs_dom; exact Hadom].
+      * apply IHa; assumption.
+Qed.
+
+Lemma member_map_over_inv :
+  forall {A B : Type} (f : A -> B) (l : list A) (y : B),
+    ProofSupport.Member y (map_over f l) ->
+    exists x, ProofSupport.Member x l /\ f x = y.
+Proof.
+  intros A B f l. induction l as [|a r IH]; intros y Hy; simpl in *; [contradiction|].
+  destruct Hy as [Heq | Hy].
+  - exists a. split; [left; reflexivity | symmetry; exact Heq].
+  - destruct (IH y Hy) as [x [Hx <-]]. exists x. split; [right; exact Hx | reflexivity].
+Qed.
+
+Lemma member_flat_map_over_inv :
+  forall {A B : Type} (f : A -> list B) (l : list A) (y : B),
+    ProofSupport.Member y (flat_map_over f l) ->
+    exists x, ProofSupport.Member x l /\ ProofSupport.Member y (f x).
+Proof.
+  intros A B f l. induction l as [|a r IH]; intros y Hy; simpl in *; [contradiction|].
+  assert (Happ : forall l1 l2 : list B,
+    ProofSupport.Member y (app l1 l2) ->
+    ProofSupport.Member y l1 \/ ProofSupport.Member y l2).
+  { clear. induction l1 as [|u r1 IH1]; intros l2 H; simpl in *; [right; exact H|].
+    destruct H as [->|H]; [left; left; reflexivity|].
+    destruct (IH1 l2 H); [left; right; assumption | right; assumption]. }
+  destruct (Happ _ _ Hy) as [H1 | H2].
+  - exists a. split; [left; reflexivity | exact H1].
+  - destruct (IH y H2) as [x [Hx Hfx]]. exists x. split; [right; exact Hx | exact Hfx].
+Qed.
+
+Lemma ex_stable_is_local : LocalExpansion ex_stable.
+Proof.
+  constructor.
+  - intros. reflexivity.
+  - intros. reflexivity.
+  - intros c dom [w t] o Hwf Hw _ Ho. simpl in *.
+    destruct Ho as [->|[]]. split; [exact Hw | reflexivity].
+Qed.
+
+Lemma ex_transition_is_local : LocalExpansion ex_transition.
+Proof.
+  constructor.
+  - intros. reflexivity.
+  - intros. reflexivity.
+  - intros c dom [w t] o Hwf Hw _ Ho. simpl in *.
+    destruct Ho as [->|[->|[]]]; split; [exact Hw | reflexivity | exact Hw | reflexivity].
+Qed.
+
+Lemma ex_transition_delta_is_local : LocalExpansion ex_transition_delta.
+Proof.
+  constructor.
+  - intros. reflexivity.
+  - intros. reflexivity.
+  - intros c dom [w t] o Hwf Hw _ Ho. simpl in *.
+    destruct Ho as [->|[]]. split; [exact Hw | reflexivity].
+Qed.
+
+Lemma ex_glitch_is_local : LocalExpansion ex_glitch.
+Proof.
+  constructor.
+  - intros c1 c2 [w t] H1 H2 Hw. simpl in Hw. unfold ex_glitch. simpl.
+    rewrite combine_circuits_count.
+    rewrite (stable_sources_fuel_irrelevant (S (wire_count c1 + wire_count c2))
+               (combine_circuits c1 c2) w (wire_count c1 + wire_count c2) (wire_count c1)
+               (combine_circuits_well_formed c1 c2 H1 H2)
+               ltac:(rewrite combine_circuits_count; lia)
+               ltac:(lia) ltac:(lia) ltac:(lia)).
+    rewrite stable_sources_combine_l by (assumption || lia). reflexivity.
+  - intros c1 c2 [w t] H1 H2 Hw. simpl in Hw. unfold ex_glitch. simpl.
+    rewrite combine_circuits_count.
+    rewrite (stable_sources_combine_r (wire_count c1 + wire_count c2) c1 c2 w H2 Hw ltac:(lia)).
+    rewrite (stable_sources_fuel_irrelevant (S (wire_count c2))
+               c2 w (wire_count c1 + wire_count c2) (wire_count c2)
+               H2 Hw ltac:(lia) ltac:(lia) ltac:(lia)).
+    rewrite map_over_compose, map_over_compose. reflexivity.
+  - intros c dom [w t] o Hwf Hw Hdom Ho. simpl in Hw. unfold ex_glitch in Ho. simpl in Ho.
+    apply member_map_over_inv in Ho. destruct Ho as [s [Hs <-]].
+    exact (stable_sources_domain (wire_count c) c dom w s Hwf Hw Hdom Hs).
+Qed.
+
+Lemma ex_robust_is_local : LocalExpansion ex_robust.
+Proof.
+  constructor.
+  - intros c1 c2 [w t] H1 H2 Hw. simpl in Hw. unfold ex_robust. simpl.
+    rewrite combine_circuits_count.
+    rewrite (stable_sources_fuel_irrelevant (S (wire_count c1 + wire_count c2))
+               (combine_circuits c1 c2) w (wire_count c1 + wire_count c2) (wire_count c1)
+               (combine_circuits_well_formed c1 c2 H1 H2)
+               ltac:(rewrite combine_circuits_count; lia)
+               ltac:(lia) ltac:(lia) ltac:(lia)).
+    rewrite stable_sources_combine_l by (assumption || lia). reflexivity.
+  - intros c1 c2 [w t] H1 H2 Hw. simpl in Hw. unfold ex_robust. simpl.
+    rewrite combine_circuits_count.
+    rewrite (stable_sources_combine_r (wire_count c1 + wire_count c2) c1 c2 w H2 Hw ltac:(lia)).
+    rewrite (stable_sources_fuel_irrelevant (S (wire_count c2))
+               c2 w (wire_count c1 + wire_count c2) (wire_count c2)
+               H2 Hw ltac:(lia) ltac:(lia) ltac:(lia)).
+    rewrite flat_map_over_map_over, map_over_flat_map_over. reflexivity.
+  - intros c dom [w t] o Hwf Hw Hdom Ho. simpl in Hw. unfold ex_robust in Ho. simpl in Ho.
+    apply member_flat_map_over_inv in Ho. destruct Ho as [s [Hs Ho]].
+    simpl in Ho. destruct Ho as [-> | [-> | []]];
+      exact (stable_sources_domain (wire_count c) c dom w s Hwf Hw Hdom Hs).
+Qed.
+
+Definition witness_LocalExpansion : LocalExpansion ex_robust := ex_robust_is_local.
+
+(* -------------------------------------------------------------------------
+   Share-domain-separated (linear / sharewise) gadgets are t-PINI for all t
+   under any LocalExpansion (including ex_robust).
+   ------------------------------------------------------------------------- *)
+
+Record ShareDomainSeparated (g : Gadget) (dom : nat -> nat) : Prop := {
+  sds_bound : forall w, w < wire_count (gd_circuit g) -> dom w < gd_shares g;
+  sds_out : forall k, k < gd_shares g -> dom (gd_out g k) = k;
+  sds_out_wire : forall k, k < gd_shares g -> gd_out g k < wire_count (gd_circuit g);
+  sds_in : forall w i a b tape t,
+    w < wire_count (gd_circuit g) -> gate_at (gd_circuit g) w = g_in i ->
+    (forall j, j < gd_inputs g -> a j (dom w) = b j (dom w)) ->
+    gd_assign g a tape t i = gd_assign g b tape t i;
+  sds_start : forall w a b tape,
+    w < wire_count (gd_circuit g) ->
+    (forall j, j < gd_inputs g -> a j (dom w) = b j (dom w)) ->
+    gd_start g a tape w = gd_start g b tape w;
+  sds_gate : forall w,
+    w < wire_count (gd_circuit g) ->
+    match gate_at (gd_circuit g) w with
+    | g_in _ => True
+    | g_reg s => dom s = dom w
+    | g_op _ args => all_of (fun a => Nat.eqb (dom a) (dom w)) args = true
+    end
+}.
+
+Definition witness_ShareDomainSeparated :
+  ShareDomainSeparated copy_gadget (fun w => w).
+Proof.
+  constructor.
+  - intros w Hw. simpl in Hw. exact Hw.
+  - intros k Hk. reflexivity.
+  - intros k Hk. simpl in *. exact Hk.
+  - intros w i a b tape t Hw Eg Hag.
+    unfold wire_count, gate_at in Hw, Eg. simpl in Hw, Eg.
+    destruct w as [|[|w]]; [| |lia]; inversion Eg; subst; apply Hag; simpl; lia.
+  - intros w a b tape Hw Hag. reflexivity.
+  - intros w Hw. destruct w as [|[|w]]; simpl; exact I.
+Defined.
+
+Lemma sds_eval_depends_only_on_domain :
+  forall (g : Gadget) (dom : nat -> nat) (a b : ShareMatrix g)
+         (tape : Tape (gd_prob g)) (fuel t w : nat),
+    well_formed (gd_circuit g) = true ->
+    ShareDomainSeparated g dom ->
+    w < wire_count (gd_circuit g) ->
+    (forall j, j < gd_inputs g -> a j (dom w) = b j (dom w)) ->
+    (forall u, u < wire_count (gd_circuit g) -> dom u = dom w ->
+       regs_at (gd_share g) (gd_ops g) (gd_circuit g)
+               (gd_start g a tape) (gd_assign g a tape) t u =
+       regs_at (gd_share g) (gd_ops g) (gd_circuit g)
+               (gd_start g b tape) (gd_assign g b tape) t u) ->
+    eval_wire (gd_share g) (gd_ops g) (gd_circuit g)
+      (regs_at (gd_share g) (gd_ops g) (gd_circuit g)
+         (gd_start g a tape) (gd_assign g a tape) t)
+      (gd_assign g a tape t) fuel w =
+    eval_wire (gd_share g) (gd_ops g) (gd_circuit g)
+      (regs_at (gd_share g) (gd_ops g) (gd_circuit g)
+         (gd_start g b tape) (gd_assign g b tape) t)
+      (gd_assign g b tape t) fuel w.
+Proof.
+  intros g dom a b tape fuel.
+  induction fuel as [|f IH]; intros t w Hwf Hsds Hw Hag Hregs; [reflexivity|].
+  simpl. destruct (gate_at (gd_circuit g) w) as [i|s|o args] eqn:Eg.
+  - exact (sds_in g dom Hsds w i a b tape t Hw Eg Hag).
+  - apply Hregs; [exact Hw | reflexivity].
+  - f_equal. apply map_over_ext_nat. intros u Hu.
+    pose proof (well_formed_gate_reads_earlier_wires _ w o args Hwf (proj2 (Nat.ltb_lt _ _) Hw) Eg) as Hargs.
+    pose proof (all_of_mem_nat (fun x => Nat.ltb x w) args u Hargs Hu) as Huw.
+    apply Nat.ltb_lt in Huw.
+    pose proof (sds_gate g dom Hsds w Hw) as Hdomw. rewrite Eg in Hdomw.
+    pose proof (all_of_mem_nat (fun x => Nat.eqb (dom x) (dom w)) args u Hdomw Hu) as Hudom.
+    apply Nat.eqb_eq in Hudom.
+    apply IH; [exact Hwf | exact Hsds | lia | rewrite Hudom; exact Hag |].
+    intros v Hv Hvd. apply Hregs; [exact Hv | rewrite Hvd; exact Hudom].
+Qed.
+
+Lemma sds_regs_depend_only_on_domain :
+  forall (g : Gadget) (dom : nat -> nat) (a b : ShareMatrix g)
+         (tape : Tape (gd_prob g)) (t w : nat),
+    well_formed (gd_circuit g) = true ->
+    ShareDomainSeparated g dom ->
+    w < wire_count (gd_circuit g) ->
+    (forall j, j < gd_inputs g -> a j (dom w) = b j (dom w)) ->
+    regs_at (gd_share g) (gd_ops g) (gd_circuit g)
+      (gd_start g a tape) (gd_assign g a tape) t w =
+    regs_at (gd_share g) (gd_ops g) (gd_circuit g)
+      (gd_start g b tape) (gd_assign g b tape) t w.
+Proof.
+  intros g dom a b tape t.
+  induction t as [|t IH]; intros w Hwf Hsds Hw Hag.
+  - simpl. exact (sds_start g dom Hsds w a b tape Hw Hag).
+  - simpl. unfold step_regs.
+    destruct (gate_at (gd_circuit g) w) as [i|s|o args] eqn:Eg.
+    + apply IH; assumption.
+    + pose proof (well_formed_register_source_exists _ w s Hwf (proj2 (Nat.ltb_lt _ _) Hw) Eg) as Hs.
+      apply Nat.ltb_lt in Hs.
+      pose proof (sds_gate g dom Hsds w Hw) as Hdomw. rewrite Eg in Hdomw.
+      apply (sds_eval_depends_only_on_domain g dom a b tape (wire_count (gd_circuit g)) t s Hwf Hsds Hs).
+      * rewrite Hdomw. exact Hag.
+      * intros u Hu Hud. apply IH; [exact Hwf | exact Hsds | exact Hu | rewrite Hud, Hdomw; exact Hag].
+    + apply IH; assumption.
+Qed.
+
+Lemma sds_value_depends_only_on_domain :
+  forall (g : Gadget) (dom : nat -> nat) (a b : ShareMatrix g)
+         (tape : Tape (gd_prob g)) (t w : nat),
+    well_formed (gd_circuit g) = true ->
+    ShareDomainSeparated g dom ->
+    w < wire_count (gd_circuit g) ->
+    (forall j, j < gd_inputs g -> a j (dom w) = b j (dom w)) ->
+    gd_value g a tape t w = gd_value g b tape t w.
+Proof.
+  intros g dom a b tape t w Hwf Hsds Hw Hag.
+  unfold gd_value, value_at.
+  apply (sds_eval_depends_only_on_domain g dom a b tape (wire_count (gd_circuit g)) t w Hwf Hsds Hw Hag).
+  intros u Hu Hud. apply (sds_regs_depend_only_on_domain g dom a b tape t u Hwf Hsds Hu).
+  rewrite Hud. exact Hag.
+Qed.
+
+Lemma card_in_le_list :
+  forall (g : Gadget) (l : list nat) (j : nat),
+    count_of (filter_of (fun k => mem_nat k l) (upto (gd_shares g))) <= count_of l.
+Proof.
+  intros g l j.
+  assert (Hgen : forall (u : list nat),
+    NoDup u -> count_of (filter_of (fun k => mem_nat k l) u) <= count_of l).
+  { clear. induction l as [|x r IH]; intros u Hnodup.
+    - induction u as [|a ua IHu]; simpl; [lia|].
+      inversion Hnodup; subst. apply IHu. exact H2.
+    - assert (Hsub : count_of (filter_of (fun k => mem_nat k (x :: r)) u) <=
+                     S (count_of (filter_of (fun k => mem_nat k r) u))).
+      { clear -Hnodup. induction u as [|a ua IHu]; simpl; [lia|].
+        inversion Hnodup; subst.
+        destruct (Nat.eqb a x) eqn:Eax.
+        + apply eqb_sound_nat in Eax. subst a. simpl.
+          assert (Hnot : forall z, In z ua -> z <> x) by (intros z Hz E; subst; contradiction).
+          assert (Hext : filter_of (fun k => orb (Nat.eqb k x) (mem_nat k r)) ua =
+                         filter_of (fun k => mem_nat k r) ua).
+          { clear -Hnot. induction ua as [|y ur IHu2]; simpl; [reflexivity|].
+            destruct (Nat.eqb y x) eqn:Eyx.
+            - exfalso. apply (Hnot y (or_introl eq_refl)). apply eqb_sound_nat. exact Eyx.
+            - simpl. destruct (mem_nat y r); rewrite IHu2 by (intros z Hz; apply (Hnot z (or_intror Hz))); reflexivity. }
+          rewrite Hext.
+          destruct (mem_nat x r); simpl; repeat rewrite count_of_is_length in *; cbn [length] in *; lia.
+        + simpl. destruct (mem_nat a r); specialize (IHu H2); simpl in *;
+            repeat rewrite count_of_is_length in *; cbn [length] in *; lia. }
+      specialize (IH u Hnodup). simpl in *. repeat rewrite count_of_is_length in *; cbn [length] in *; lia. }
+  apply Hgen.
+  (* upto n is NoDup *)
+  clear. generalize (gd_shares g) as n. intros n.
+  assert (Hnodup : forall m, NoDup (upto m)).
+  { induction m as [|m IHm]; simpl; [constructor|].
+    change (upto (S m)) with (ProofSupport.upto (S m)). simpl.
+    assert (Happ_nodup : forall l1 (z : nat), NoDup l1 -> ~ In z l1 -> NoDup (app l1 (z :: nil))).
+    { clear. induction l1 as [|a r IH1]; intros z Hn Hnin; simpl.
+      - constructor; [intros []|constructor].
+      - inversion Hn; subst. constructor.
+        + intros Hin. apply in_app_or in Hin. destruct Hin as [Ha1|[Ha2|[]]]; auto.
+          subst. apply Hnin. left. reflexivity.
+        + apply IH1; [exact H2 | intros Hz; apply Hnin; right; exact Hz]. }
+    apply Happ_nodup; [exact IHm|].
+    assert (Hlt : forall k z, In z (ProofSupport.upto k) -> z < k).
+    { clear. induction k as [|k IHk]; intros z Hz; simpl in *; [contradiction|].
+      apply in_app_or in Hz. destruct Hz as [Hz|[<-|[]]]; [specialize (IHk z Hz); lia | lia]. }
+    intros Hin. pose proof (Hlt m m Hin). lia. }
+  apply Hnodup.
+Qed.
+
+Lemma support_filter_true :
+  forall {A : Type} (p : A -> bool) (l : list A) (x : A),
+    ProofSupport.Member x (filter_of p l) -> p x = true.
+Proof.
+  intros A p l x. induction l as [|y r IH]; simpl; [contradiction|].
+  destruct (p y) eqn:Epy; simpl; intros H; [|exact (IH H)].
+  destruct H as [->|H]; [exact Epy | exact (IH H)].
+Qed.
+
+(*| discharges: R-05-004a, R-15-053a |*)
+Theorem linear_gadget_is_pini :
+  forall (g : Gadget) (dom : nat -> nat) (E : Expansion) (d : nat),
+    well_formed (gd_circuit g) = true ->
+    ShareDomainSeparated g dom ->
+    LocalExpansion E ->
+    PINI g E d.
+Proof.
+  intros g dom E d Hwf Hsds Hloc ps B Hw _.
+  set (doms := map_over (fun p => dom (p_wire p)) ps).
+  exists (fun _ k => mem_nat k doms). split.
+  - intros j _. unfold card_in.
+    apply Nat.leb_le.
+    pose proof (card_in_le_list g doms j) as Hle.
+    assert (Hlen : count_of doms = count_of ps).
+    { unfold doms. clear. induction ps as [|p r IH]; simpl; [reflexivity | f_equal; exact IH]. }
+    lia.
+  - intros a b Hagree.
+    apply identical_views_are_identically_distributed. intros tape.
+    unfold split_view. f_equal.
+    + unfold internal_view, probe_set.
+      apply support_map_ext. intros o Ho.
+      apply member_flat_map_over_inv in Ho. destruct Ho as [p [Hp Ho]].
+      assert (Hpw : p_wire p < wire_count (gd_circuit g)).
+      { clear -Hw Hp. unfold wires_exist in Hw.
+        induction ps as [|q r IH]; simpl in *; [contradiction|].
+        apply andb_prop in Hw. destruct Hw as [Hq Hr].
+        destruct Hp as [->|Hp]; [apply Nat.ltb_lt; exact Hq | apply IH; assumption]. }
+      destruct (le_domain E Hloc (gd_circuit g) dom p o Hwf Hpw (sds_gate g dom Hsds) Ho) as [How Hdomo].
+      assert (Hdom_in : mem_nat (dom (obs_wire o)) doms = true).
+      { rewrite Hdomo. unfold doms. clear -Hp.
+        induction ps as [|q r IH]; simpl in *; [contradiction|].
+        destruct Hp as [->|Hp]; simpl; [rewrite eqb_refl_nat; reflexivity|].
+        rewrite (IH Hp). destruct (Nat.eqb (dom (p_wire p)) (dom (p_wire q))); reflexivity. }
+      assert (Hag_o : forall j, j < gd_inputs g -> a j (dom (obs_wire o)) = b j (dom (obs_wire o))).
+      { intros j Hj. apply Hagree; [apply Nat.ltb_lt; exact Hj | |].
+        - apply Nat.ltb_lt. exact (sds_bound g dom Hsds (obs_wire o) How).
+        - unfold union_shares. rewrite Hdom_in. reflexivity. }
+      destruct o as [w t | w t]; simpl in *.
+      * apply (sds_value_depends_only_on_domain g dom a b tape t w Hwf Hsds How Hag_o).
+      * f_equal; apply (sds_value_depends_only_on_domain g dom a b tape _ w Hwf Hsds How Hag_o).
+    + unfold output_view, selected_outputs.
+      apply support_map_ext. intros k Hk.
+      pose proof (support_filter_true B (upto (gd_shares g)) k Hk) as HBk.
+      apply support_filter_member in Hk.
+      assert (Hk_lt : k < gd_shares g).
+      { revert Hk. generalize (gd_shares g) as n. intros n Hk.
+        unfold upto in *.
+        induction n as [|n IH]; simpl in *; [contradiction|].
+        assert (Happ : forall l1 l2 : list nat,
+          ProofSupport.Member k (app l1 l2) ->
+          ProofSupport.Member k l1 \/ ProofSupport.Member k l2).
+        { clear. induction l1 as [|x r1 IH1]; intros l2 H; simpl in *; [right; exact H|].
+          destruct H as [->|H]; [left; left; reflexivity|].
+          destruct (IH1 l2 H); [left; right; assumption | right; assumption]. }
+        destruct (Happ _ _ Hk) as [H1|[->|[]]]; [specialize (IH H1); lia | lia]. }
+      apply (sds_value_depends_only_on_domain g dom a b tape (gd_read g) (gd_out g k)
+               Hwf Hsds (sds_out_wire g dom Hsds k Hk_lt)).
+      intros j Hj. rewrite (sds_out g dom Hsds k Hk_lt).
+      apply Hagree; [apply Nat.ltb_lt; exact Hj | apply Nat.ltb_lt; exact Hk_lt |].
+      unfold union_shares. rewrite HBk. destruct (mem_nat k doms); reflexivity.
+Qed.
+
+(* =========================================================================
+   Counting product measures and general sequential/parallel PINI, NI, and
+   SNI composition theorems (R-05-004a, R-15-053a).
+   ========================================================================= *)
+
+Definition HasCountingMass (p : Probability) : Prop :=
+  forall (O : Type) (oeqb : O -> O -> bool) (f g : Tape p -> O),
+    SameDistribution p O oeqb f g ->
+    SameDistribution (counting (Tape p) (tape_enum p)) O oeqb f g.
+
+Lemma counting_has_counting_mass :
+  forall (T : Type) (enum : list T), HasCountingMass (counting T enum).
+Proof. intros T enum O oeqb f g H. exact H. Qed.
+
+Definition list_prod {A B : Type} (l1 : list A) (l2 : list B) : list (A * B) :=
+  flat_map_over (fun a => map_over (fun b => (a, b)) l2) l1.
+
+Lemma count_of_app_eq :
+  forall {A : Type} (l1 l2 : list A),
+    count_of (app l1 l2) = count_of l1 + count_of l2.
+Proof.
+  intros A l1 l2. repeat rewrite count_of_is_length. apply length_app.
+Qed.
+
+Lemma filter_of_app_eq :
+  forall {A : Type} (p : A -> bool) (l1 l2 : list A),
+    filter_of p (app l1 l2) = app (filter_of p l1) (filter_of p l2).
+Proof.
+  intros A p l1 l2. induction l1 as [|x r IH]; simpl; [reflexivity|].
+  destruct (p x); simpl; rewrite IH; reflexivity.
+Qed.
+
+Lemma count_filter_map_over :
+  forall {A B : Type} (f : A -> B) (q : B -> bool) (l : list A),
+    count_of (filter_of q (map_over f l)) = count_of (filter_of (fun a => q (f a)) l).
+Proof.
+  intros A B f q l. symmetry. apply count_filter_image.
+Qed.
+
+Fixpoint sum_nat_list (l : list nat) : nat :=
+  match l with nil => 0 | x :: r => x + sum_nat_list r end.
+
+Lemma counting_prod_right :
+  forall (A B : Type) (l1 : list A) (l2 : list B)
+         (O : Type) (oeqb : O -> O -> bool) (f g : A * B -> O),
+    (forall a : A, ProofSupport.Member a l1 ->
+       SameDistribution (counting B l2) O oeqb (fun b => f (a, b)) (fun b => g (a, b))) ->
+    SameDistribution (counting (A * B) (list_prod l1 l2)) O oeqb f g.
+Proof.
+  intros A B l1 l2 O oeqb f g H o.
+  repeat rewrite counting_pr.
+  unfold list_prod. induction l1 as [|a r IH]; cbn [flat_map_over]; [reflexivity|].
+  repeat rewrite filter_of_app_eq, count_of_app_eq.
+  rewrite count_filter_map_over, count_filter_map_over.
+  pose proof (H a (or_introl eq_refl) o) as Ha.
+  repeat rewrite counting_pr in Ha.
+  change (Tape (counting B l2)) with B in Ha.
+  rewrite Ha. f_equal. apply IH.
+  intros x Hx. apply H. right. exact Hx.
+Qed.
+
+Lemma count_prod_swap_sum :
+  forall (A B : Type) (l1 : list A) (l2 : list B) (q : A * B -> bool),
+    count_of (filter_of q (list_prod l1 l2)) =
+    sum_nat_list (map_over (fun b => count_of (filter_of (fun a => q (a, b)) l1)) l2).
+Proof.
+  intros A B l1 l2 q. unfold list_prod. induction l1 as [|a r IH]; cbn [flat_map_over].
+  - clear. induction l2 as [|b r2 IH2]; simpl; [reflexivity | exact IH2].
+  - rewrite filter_of_app_eq, count_of_app_eq, count_filter_map_over, IH.
+    clear. induction l2 as [|b r2 IH2]; [reflexivity|].
+    unfold count_of, map_over, filter_of in *. simpl in *.
+    destruct (q (a, b)); simpl in *; lia.
+Qed.
+
+Lemma counting_prod_left :
+  forall (A B : Type) (l1 : list A) (l2 : list B)
+         (O : Type) (oeqb : O -> O -> bool) (f g : A * B -> O),
+    (forall b : B, ProofSupport.Member b l2 ->
+       SameDistribution (counting A l1) O oeqb (fun a => f (a, b)) (fun a => g (a, b))) ->
+    SameDistribution (counting (A * B) (list_prod l1 l2)) O oeqb f g.
+Proof.
+  intros A B l1 l2 O oeqb f g H o.
+  repeat rewrite counting_pr.
+  rewrite count_prod_swap_sum, count_prod_swap_sum.
+  assert (Hext : map_over (fun b => count_of (filter_of (fun a => oeqb (f (a, b)) o) l1)) l2 =
+                 map_over (fun b => count_of (filter_of (fun a => oeqb (g (a, b)) o) l1)) l2).
+  { apply support_map_ext. intros b Hb.
+    pose proof (H b Hb o) as Hb0. repeat rewrite counting_pr in Hb0.
+    change (Tape (counting A l1)) with A in Hb0. exact Hb0. }
+  rewrite Hext. reflexivity.
+Qed.
+
+(* -------------------------------------------------------------------------
+   Combined circuit evaluation for sequential and parallel gadget composition.
+   ------------------------------------------------------------------------- *)
+
+Definition combine_assign {m : Sharing}
+    (asg1 asg2 : nat -> nat -> Val m) (cyc i : nat) : Val m :=
+  if Nat.even i then asg1 cyc (Nat.div2 i) else asg2 cyc (Nat.div2 i).
+
+Definition combine_start {m : Sharing}
+    (n1 : nat) (st1 st2 : nat -> Val m) (w : nat) : Val m :=
+  if Nat.ltb w n1 then st1 w else st2 (w - n1).
+
+Lemma eval_wire_combine_l :
+  forall (m : Sharing) (ops1 ops2 : nat -> list (Val m) -> Val m)
+         (c1 c2 : Circuit) (regs1 regs : nat -> Val m)
+         (asg1 asg2 : nat -> nat -> Val m) (cyc fuel w : nat),
+    well_formed c1 = true ->
+    w < wire_count c1 ->
+    (forall u, u < wire_count c1 -> regs u = regs1 u) ->
+    eval_wire m (combine_ops ops1 ops2) (combine_circuits c1 c2)
+      regs (combine_assign asg1 asg2 cyc) fuel w =
+    eval_wire m ops1 c1 regs1 (asg1 cyc) fuel w.
+Proof.
+  intros m ops1 ops2 c1 c2 regs1 regs asg1 asg2 cyc fuel.
+  induction fuel as [|f IH]; intros w Hwf Hw Hregs; [reflexivity|].
+  cbn [eval_wire]. rewrite gate_at_combine_l by exact Hw.
+  destruct (gate_at c1 w) as [i|s|o args] eqn:Eg; cbn [shift_gate_1].
+  - unfold combine_assign. rewrite even_double, div2_double. reflexivity.
+  - apply Hregs. exact Hw.
+  - unfold combine_ops. rewrite even_double, div2_double. f_equal.
+    apply map_over_ext_nat. intros a Ha.
+    pose proof (well_formed_gate_reads_earlier_wires c1 w o args Hwf (proj2 (Nat.ltb_lt _ _) Hw) Eg) as Hargs.
+    pose proof (all_of_mem_nat (fun b => Nat.ltb b w) args a Hargs Ha) as Haw.
+    apply Nat.ltb_lt in Haw.
+    apply IH; [exact Hwf | lia | exact Hregs].
+Qed.
+
+Lemma regs_at_combine_l :
+  forall (m : Sharing) (ops1 ops2 : nat -> list (Val m) -> Val m)
+         (c1 c2 : Circuit) (st1 st2 : nat -> Val m)
+         (asg1 asg2 : nat -> nat -> Val m) (t w : nat),
+    well_formed c1 = true ->
+    well_formed c2 = true ->
+    w < wire_count c1 ->
+    regs_at m (combine_ops ops1 ops2) (combine_circuits c1 c2)
+      (combine_start (wire_count c1) st1 st2)
+      (combine_assign asg1 asg2) t w =
+    regs_at m ops1 c1 st1 asg1 t w.
+Proof.
+  intros m ops1 ops2 c1 c2 st1 st2 asg1 asg2 t.
+  induction t as [|t IH]; intros w Hwf1 Hwf2 Hw.
+  - simpl. unfold combine_start. rewrite (proj2 (Nat.ltb_lt _ _) Hw). reflexivity.
+  - simpl. unfold step_regs. rewrite gate_at_combine_l by exact Hw.
+    destruct (gate_at c1 w) as [i|s|o args] eqn:Eg; simpl.
+    + apply IH; assumption.
+    + pose proof (well_formed_register_source_exists c1 w s Hwf1 (proj2 (Nat.ltb_lt _ _) Hw) Eg) as Hs.
+      apply Nat.ltb_lt in Hs.
+      rewrite combine_circuits_count.
+      rewrite (eval_fuel_irrelevant m (combine_ops ops1 ops2) (combine_circuits c1 c2)
+                 _ _ s (wire_count c1 + wire_count c2) (wire_count c1)
+                 (combine_circuits_well_formed c1 c2 Hwf1 Hwf2)
+                 ltac:(rewrite combine_circuits_count; apply Nat.ltb_lt; lia)
+                 ltac:(apply Nat.ltb_lt; lia) ltac:(apply Nat.ltb_lt; lia)).
+      apply eval_wire_combine_l; [exact Hwf1 | exact Hs |].
+      intros u Hu. apply IH; assumption.
+    + apply IH; assumption.
+Qed.
+
+Lemma value_at_combine_l :
+  forall (m : Sharing) (ops1 ops2 : nat -> list (Val m) -> Val m)
+         (c1 c2 : Circuit) (st1 st2 : nat -> Val m)
+         (asg1 asg2 : nat -> nat -> Val m) (t w : nat),
+    well_formed c1 = true ->
+    well_formed c2 = true ->
+    w < wire_count c1 ->
+    value_at m (combine_ops ops1 ops2) (combine_circuits c1 c2)
+      (combine_start (wire_count c1) st1 st2)
+      (combine_assign asg1 asg2) t w =
+    value_at m ops1 c1 st1 asg1 t w.
+Proof.
+  intros m ops1 ops2 c1 c2 st1 st2 asg1 asg2 t w Hwf1 Hwf2 Hw.
+  unfold value_at. rewrite combine_circuits_count.
+  rewrite (eval_fuel_irrelevant m (combine_ops ops1 ops2) (combine_circuits c1 c2)
+             _ _ w (wire_count c1 + wire_count c2) (wire_count c1)
+             (combine_circuits_well_formed c1 c2 Hwf1 Hwf2)
+             ltac:(rewrite combine_circuits_count; apply Nat.ltb_lt; lia)
+             ltac:(apply Nat.ltb_lt; lia) ltac:(apply Nat.ltb_lt; lia)).
+  apply eval_wire_combine_l; [exact Hwf1 | exact Hw |].
+  intros u Hu. apply regs_at_combine_l; assumption.
+Qed.
+
+Lemma eval_wire_combine_r :
+  forall (m : Sharing) (ops1 ops2 : nat -> list (Val m) -> Val m)
+         (c1 c2 : Circuit) (regs2 regs : nat -> Val m)
+         (asg1 asg2 : nat -> nat -> Val m) (cyc fuel w : nat),
+    well_formed c2 = true ->
+    w < wire_count c2 ->
+    (forall u, u < wire_count c2 -> regs (wire_count c1 + u) = regs2 u) ->
+    eval_wire m (combine_ops ops1 ops2) (combine_circuits c1 c2)
+      regs (combine_assign asg1 asg2 cyc) fuel (wire_count c1 + w) =
+    eval_wire m ops2 c2 regs2 (asg2 cyc) fuel w.
+Proof.
+  intros m ops1 ops2 c1 c2 regs2 regs asg1 asg2 cyc fuel.
+  induction fuel as [|f IH]; intros w Hwf Hw Hregs; [reflexivity|].
+  cbn [eval_wire]. rewrite gate_at_combine_r by exact Hw.
+  destruct (gate_at c2 w) as [i|s|o args] eqn:Eg; cbn [shift_gate_2].
+  - unfold combine_assign. rewrite even_succ_double, div2_succ_double. reflexivity.
+  - apply Hregs. exact Hw.
+  - unfold combine_ops. rewrite even_succ_double, div2_succ_double. f_equal.
+    rewrite map_over_compose. apply map_over_ext_nat. intros a Ha.
+    pose proof (well_formed_gate_reads_earlier_wires c2 w o args Hwf (proj2 (Nat.ltb_lt _ _) Hw) Eg) as Hargs.
+    pose proof (all_of_mem_nat (fun b => Nat.ltb b w) args a Hargs Ha) as Haw.
+    apply Nat.ltb_lt in Haw.
+    apply IH; [exact Hwf | lia | exact Hregs].
+Qed.
+
+Lemma regs_at_combine_r :
+  forall (m : Sharing) (ops1 ops2 : nat -> list (Val m) -> Val m)
+         (c1 c2 : Circuit) (st1 st2 : nat -> Val m)
+         (asg1 asg2 : nat -> nat -> Val m) (t w : nat),
+    well_formed c1 = true ->
+    well_formed c2 = true ->
+    w < wire_count c2 ->
+    regs_at m (combine_ops ops1 ops2) (combine_circuits c1 c2)
+      (combine_start (wire_count c1) st1 st2)
+      (combine_assign asg1 asg2) t (wire_count c1 + w) =
+    regs_at m ops2 c2 st2 asg2 t w.
+Proof.
+  intros m ops1 ops2 c1 c2 st1 st2 asg1 asg2 t.
+  induction t as [|t IH]; intros w Hwf1 Hwf2 Hw.
+  - simpl. unfold combine_start.
+    destruct (Nat.ltb (wire_count c1 + w) (wire_count c1)) eqn:Elt.
+    + apply Nat.ltb_lt in Elt. lia.
+    + rewrite Nat.add_comm, Nat.add_sub. reflexivity.
+  - simpl. unfold step_regs. rewrite gate_at_combine_r by exact Hw.
+    destruct (gate_at c2 w) as [i|s|o args] eqn:Eg; simpl.
+    + apply IH; assumption.
+    + pose proof (well_formed_register_source_exists c2 w s Hwf2 (proj2 (Nat.ltb_lt _ _) Hw) Eg) as Hs.
+      apply Nat.ltb_lt in Hs.
+      rewrite combine_circuits_count.
+      rewrite (eval_wire_combine_r m ops1 ops2 c1 c2
+                 (regs_at m ops2 c2 st2 asg2 t)
+                 (regs_at m (combine_ops ops1 ops2) (combine_circuits c1 c2)
+                    (combine_start (wire_count c1) st1 st2) (combine_assign asg1 asg2) t)
+                 asg1 asg2 t (wire_count c1 + wire_count c2) s Hwf2 Hs).
+      * apply (eval_fuel_irrelevant m ops2 c2 _ _ s (wire_count c1 + wire_count c2) (wire_count c2)
+                 Hwf2 ltac:(apply Nat.ltb_lt; exact Hs)
+                 ltac:(apply Nat.ltb_lt; lia) ltac:(apply Nat.ltb_lt; exact Hs)).
+      * intros u Hu. apply IH; assumption.
+    + apply IH; assumption.
+Qed.
+
+Lemma value_at_combine_r :
+  forall (m : Sharing) (ops1 ops2 : nat -> list (Val m) -> Val m)
+         (c1 c2 : Circuit) (st1 st2 : nat -> Val m)
+         (asg1 asg2 : nat -> nat -> Val m) (t w : nat),
+    well_formed c1 = true ->
+    well_formed c2 = true ->
+    w < wire_count c2 ->
+    value_at m (combine_ops ops1 ops2) (combine_circuits c1 c2)
+      (combine_start (wire_count c1) st1 st2)
+      (combine_assign asg1 asg2) t (wire_count c1 + w) =
+    value_at m ops2 c2 st2 asg2 t w.
+Proof.
+  intros m ops1 ops2 c1 c2 st1 st2 asg1 asg2 t w Hwf1 Hwf2 Hw.
+  unfold value_at. rewrite combine_circuits_count.
+  rewrite (eval_wire_combine_r m ops1 ops2 c1 c2
+             (regs_at m ops2 c2 st2 asg2 t)
+             (regs_at m (combine_ops ops1 ops2) (combine_circuits c1 c2)
+                (combine_start (wire_count c1) st1 st2) (combine_assign asg1 asg2) t)
+             asg1 asg2 t (wire_count c1 + wire_count c2) w Hwf2 Hw).
+  - apply (eval_fuel_irrelevant m ops2 c2 _ _ w (wire_count c1 + wire_count c2) (wire_count c2)
+             Hwf2 ltac:(apply Nat.ltb_lt; exact Hw)
+             ltac:(apply Nat.ltb_lt; lia) ltac:(apply Nat.ltb_lt; exact Hw)).
+  - intros u Hu. apply regs_at_combine_r; assumption.
+Qed.
+
+(* Splitting and interleaving observations across a combined circuit. *)
+Fixpoint split_probes_l (n1 : nat) (ps : list Probe) : list Probe :=
+  match ps with
+  | nil => nil
+  | p :: r => if Nat.ltb (p_wire p) n1 then p :: split_probes_l n1 r else split_probes_l n1 r
+  end.
+
+Fixpoint split_probes_r (n1 : nat) (ps : list Probe) : list Probe :=
+  match ps with
+  | nil => nil
+  | p :: r =>
+      if Nat.ltb (p_wire p) n1 then split_probes_r n1 r
+      else probe_of (p_wire p - n1) (p_cycle p) :: split_probes_r n1 r
+  end.
+
+Lemma split_probes_count :
+  forall n1 ps, count_of (split_probes_l n1 ps) + count_of (split_probes_r n1 ps) = count_of ps.
+Proof.
+  intros n1 ps. induction ps as [|p r IH]; simpl; [reflexivity|].
+  destruct (Nat.ltb (p_wire p) n1); simpl; lia.
+Qed.
+
+Lemma split_probes_wires_exist :
+  forall c1 c2 ps,
+    wires_exist (combine_circuits c1 c2) (map_over p_wire ps) = true ->
+    wires_exist c1 (map_over p_wire (split_probes_l (wire_count c1) ps)) = true /\
+    wires_exist c2 (map_over p_wire (split_probes_r (wire_count c1) ps)) = true.
+Proof.
+  intros c1 c2 ps Hw. unfold wires_exist in *.
+  rewrite combine_circuits_count in Hw.
+  induction ps as [|p r IH]; simpl in *; [split; reflexivity|].
+  apply andb_prop in Hw. destruct Hw as [Hp Hr].
+  destruct (IH Hr) as [IH1 IH2].
+  destruct (Nat.ltb (p_wire p) (wire_count c1)) eqn:Elt; simpl; split; try assumption.
+  - rewrite Elt. exact IH1.
+  - apply Nat.ltb_lt in Hp. apply Nat.ltb_ge in Elt.
+    replace (Nat.ltb (p_wire p - wire_count c1) (wire_count c2)) with true
+      by (symmetry; apply Nat.ltb_lt; lia).
+    exact IH2.
+Qed.
+
+Fixpoint interleave_obs (E : Expansion) (c1 c2 : Circuit) (ps : list Probe)
+    {V : Type} (v1 v2 : list V) : list V :=
+  match ps with
+  | nil => nil
+  | p :: r =>
+      if Nat.ltb (p_wire p) (wire_count c1) then
+        let k := count_of (E c1 p) in
+        app (ProofSupport.take_of k v1)
+            (interleave_obs E c1 c2 r (ProofSupport.drop_of k v1) v2)
+      else
+        let p2 := probe_of (p_wire p - wire_count c1) (p_cycle p) in
+        let k := count_of (E c2 p2) in
+        app (ProofSupport.take_of k v2)
+            (interleave_obs E c1 c2 r v1 (ProofSupport.drop_of k v2))
+  end.
+
+Lemma obs_value_combine_l :
+  forall (m : Sharing) (ops1 ops2 : nat -> list (Val m) -> Val m)
+         (c1 c2 : Circuit) (st1 st2 : nat -> Val m)
+         (asg1 asg2 : nat -> nat -> Val m) (o : Obs),
+    well_formed c1 = true -> well_formed c2 = true ->
+    obs_wire o < wire_count c1 ->
+    obs_value m (combine_ops ops1 ops2) (combine_circuits c1 c2)
+      (combine_start (wire_count c1) st1 st2)
+      (combine_assign asg1 asg2) o =
+    obs_value m ops1 c1 st1 asg1 o.
+Proof.
+  intros m ops1 ops2 c1 c2 st1 st2 asg1 asg2 o H1 H2 Hw.
+  destruct o as [w t | w t]; simpl in *.
+  - apply value_at_combine_l; assumption.
+  - f_equal; apply value_at_combine_l; assumption.
+Qed.
+
+Lemma obs_value_combine_r :
+  forall (m : Sharing) (ops1 ops2 : nat -> list (Val m) -> Val m)
+         (c1 c2 : Circuit) (st1 st2 : nat -> Val m)
+         (asg1 asg2 : nat -> nat -> Val m) (o : Obs),
+    well_formed c1 = true -> well_formed c2 = true ->
+    obs_wire o < wire_count c2 ->
+    obs_value m (combine_ops ops1 ops2) (combine_circuits c1 c2)
+      (combine_start (wire_count c1) st1 st2)
+      (combine_assign asg1 asg2) (obs_shift (wire_count c1) o) =
+    obs_value m ops2 c2 st2 asg2 o.
+Proof.
+  intros m ops1 ops2 c1 c2 st1 st2 asg1 asg2 o H1 H2 Hw.
+  destruct o as [w t | w t]; simpl in *.
+  - apply value_at_combine_r; assumption.
+  - f_equal; apply value_at_combine_r; assumption.
+Qed.
+
+Lemma le_domain_trivial_obs_wire :
+  forall E (Hloc : LocalExpansion E) c p o,
+    well_formed c = true -> p_wire p < wire_count c ->
+    ProofSupport.Member o (E c p) ->
+    obs_wire o < wire_count c.
+Proof.
+  intros E Hloc c p o Hwf Hw Ho.
+  destruct (le_domain E Hloc c (fun _ => 0) p o Hwf Hw) as [Hlt _].
+  - intros u Hu. destruct (gate_at c u) as [i|s|op args]; try exact I; try reflexivity.
+    clear. induction args; simpl; auto.
+  - exact Ho.
+  - exact Hlt.
+Qed.
+
+Lemma interleave_internal_view :
+  forall (E : Expansion) (Hloc : LocalExpansion E)
+         (m : Sharing) (ops1 ops2 : nat -> list (Val m) -> Val m)
+         (c1 c2 : Circuit) (st1 st2 : nat -> Val m)
+         (asg1 asg2 : nat -> nat -> Val m) (ps : list Probe),
+    well_formed c1 = true -> well_formed c2 = true ->
+    wires_exist (combine_circuits c1 c2) (map_over p_wire ps) = true ->
+    map_over (obs_value m (combine_ops ops1 ops2) (combine_circuits c1 c2)
+                (combine_start (wire_count c1) st1 st2)
+                (combine_assign asg1 asg2))
+             (probe_set E (combine_circuits c1 c2) ps) =
+    interleave_obs E c1 c2 ps
+      (map_over (obs_value m ops1 c1 st1 asg1)
+         (probe_set E c1 (split_probes_l (wire_count c1) ps)))
+      (map_over (obs_value m ops2 c2 st2 asg2)
+         (probe_set E c2 (split_probes_r (wire_count c1) ps))).
+Proof.
+  intros E Hloc m ops1 ops2 c1 c2 st1 st2 asg1 asg2 ps H1 H2 Hw.
+  unfold probe_set, wires_exist in *. rewrite combine_circuits_count in Hw.
+  assert (Hmap_app : forall {A B} (f : A -> B) (l1 l2 : list A),
+    map_over f (app l1 l2) = app (map_over f l1) (map_over f l2)).
+  { clear. intros A B f l1 l2. rewrite map_over_is_map, map_app. repeat rewrite <- map_over_is_map. reflexivity. }
+  induction ps as [|p r IH]; [reflexivity|].
+  cbn [map_over ProofSupport.map_over all_of ProofSupport.all_of] in Hw.
+  apply andb_prop in Hw. destruct Hw as [Hp Hr].
+  apply Nat.ltb_lt in Hp.
+  cbn [flat_map_over split_probes_l split_probes_r interleave_obs].
+  rewrite Hmap_app.
+  destruct (Nat.ltb (p_wire p) (wire_count c1)) eqn:Elt.
+  - apply Nat.ltb_lt in Elt.
+    cbn iota.
+    rewrite (le_left_embed E Hloc c1 c2 p H1 H2 Elt).
+    cbn [flat_map_over]. rewrite Hmap_app.
+    set (l1 := map_over (obs_value m ops1 c1 st1 asg1) (E c1 p)).
+    set (l1' := map_over (obs_value m ops1 c1 st1 asg1)
+                  (flat_map_over (E c1) (split_probes_l (wire_count c1) r))).
+    assert (Hlen : count_of l1 = count_of (E c1 p)).
+    { unfold l1. clear. induction (E c1 p); simpl; auto. }
+    destruct (take_drop_exact (count_of (E c1 p)) l1 l1' Hlen) as [Ht Hd].
+    rewrite Ht, Hd, (IH Hr). unfold l1, l1'. f_equal.
+    apply support_map_ext. intros o Ho.
+    apply obs_value_combine_l; try assumption.
+    exact (le_domain_trivial_obs_wire E Hloc c1 p o H1 Elt Ho).
+  - apply Nat.ltb_ge in Elt.
+    cbn iota.
+    set (p2 := probe_of (p_wire p - wire_count c1) (p_cycle p)).
+    assert (Hp2 : p_wire p2 < wire_count c2) by (unfold p2; simpl; lia).
+    assert (Hp_eq : p = probe_of (wire_count c1 + p_wire p2) (p_cycle p2)).
+    { destruct p as [pw pc]. unfold p2, probe_of in *. simpl in *. f_equal. lia. }
+    rewrite Hp_eq at 1.
+    rewrite (le_right_embed E Hloc c1 c2 p2 H1 H2 Hp2).
+    cbn [flat_map_over]. rewrite Hmap_app.
+    set (l2 := map_over (obs_value m ops2 c2 st2 asg2) (E c2 p2)).
+    set (l2' := map_over (obs_value m ops2 c2 st2 asg2)
+                  (flat_map_over (E c2) (split_probes_r (wire_count c1) r))).
+    assert (Hlen : count_of l2 = count_of (E c2 p2)).
+    { unfold l2. clear. induction (E c2 p2); simpl; auto. }
+    destruct (take_drop_exact (count_of (E c2 p2)) l2 l2' Hlen) as [Ht Hd].
+    rewrite Ht, Hd, (IH Hr). unfold l2, l2'. f_equal.
+    rewrite map_over_compose. apply support_map_ext. intros o Ho.
+    apply obs_value_combine_r; try assumption.
+    exact (le_domain_trivial_obs_wire E Hloc c2 p2 o H2 Hp2 Ho).
+Qed.
+
+(* -------------------------------------------------------------------------
+   Sequential composition of two Gadgets (`seq_gadget`), preserving PINI,
+   SNI+NI -> NI, and NI+SNI -> SNI.
+   ------------------------------------------------------------------------- *)
+
+Definition val_cast {m1 m2 : Sharing} (H : m1 = m2) (v : Val m1) : Val m2 :=
+  match H with eq_refl => v end.
+
+Definition seq_gadget (g1 g2 : Gadget) (Hshare : gd_share g2 = gd_share g1) : Gadget := {|
+  gd_share := gd_share g1;
+  gd_prob := counting (Tape (gd_prob g1) * Tape (gd_prob g2))
+               (list_prod (tape_enum (gd_prob g1)) (tape_enum (gd_prob g2)));
+  gd_circuit := combine_circuits (gd_circuit g1) (gd_circuit g2);
+  gd_ops := combine_ops (gd_ops g1)
+              (fun o args =>
+                 val_cast Hshare
+                   (gd_ops g2 o (map_over (val_cast (eq_sym Hshare)) args)));
+  gd_inputs := gd_inputs g1 + (gd_inputs g2 - 1);
+  gd_shares := gd_shares g1;
+  gd_out := fun k => wire_count (gd_circuit g1) + gd_out g2 k;
+  gd_read := gd_read g2;
+  gd_assign := fun a '(t1, t2) cyc i =>
+    let a1 : ShareMatrix g1 := fun j k => a j k in
+    let a2 : ShareMatrix g2 := fun j k =>
+      match j with
+      | O => val_cast (eq_sym Hshare)
+               (gd_value g1 a1 t1 (gd_read g1) (gd_out g1 k))
+      | S r => val_cast (eq_sym Hshare) (a (gd_inputs g1 + r) k)
+      end in
+    combine_assign (gd_assign g1 a1 t1)
+      (fun cyc2 i2 => val_cast Hshare (gd_assign g2 a2 t2 cyc2 i2)) cyc i;
+  gd_start := fun a '(t1, t2) w =>
+    let a1 : ShareMatrix g1 := fun j k => a j k in
+    let a2 : ShareMatrix g2 := fun j k =>
+      match j with
+      | O => val_cast (eq_sym Hshare)
+               (gd_value g1 a1 t1 (gd_read g1) (gd_out g1 k))
+      | S r => val_cast (eq_sym Hshare) (a (gd_inputs g1 + r) k)
+      end in
+    combine_start (wire_count (gd_circuit g1))
+      (gd_start g1 a1 t1)
+      (fun w2 => val_cast Hshare (gd_start g2 a2 t2 w2)) w
+|}.
+
+Fixpoint lookup_selected_share {V : Type} (sel : list nat) (vals : list V)
+    (k : nat) (dflt : V) : V :=
+  match sel, vals with
+  | s :: sr, v :: vr =>
+      if Nat.eqb s k then v else lookup_selected_share sr vr k dflt
+  | _, _ => dflt
+  end.
+
+Lemma lookup_selected_share_map :
+  forall {V : Type} (f : nat -> V) (sel : list nat) (k : nat) (dflt : V),
+    ProofSupport.Member k sel ->
+    lookup_selected_share sel (map_over f sel) k dflt = f k.
+Proof.
+  intros V f sel k dflt. induction sel as [|s sr IH]; simpl; intros Hk; [contradiction|].
+  destruct (Nat.eqb s k) eqn:Esk.
+  - apply eqb_sound_nat in Esk. subst s. reflexivity.
+  - destruct Hk as [Hk|Hk].
+    + subst s. rewrite eqb_refl_nat in Esk. discriminate Esk.
+    + exact (IH Hk).
+Qed.
+
+Lemma member_selected_outputs :
+  forall (g : Gadget) (B : nat -> bool) (k : nat),
+    k < gd_shares g -> B k = true ->
+    ProofSupport.Member k (selected_outputs g B).
+Proof.
+  intros g B k Hk HBk. unfold selected_outputs.
+  assert (Hmem_filter : forall {A : Type} (p : A -> bool) (l : list A) (x : A),
+    ProofSupport.Member x l -> p x = true -> ProofSupport.Member x (filter_of p l)).
+  { clear. intros A p l x. induction l as [|y r IH]; simpl; intros Hx Hpx; [contradiction|].
+    destruct (p y) eqn:Epy.
+    - destruct Hx as [->|Hx]; [left; reflexivity | right; exact (IH Hx Hpx)].
+    - destruct Hx as [->|Hx]; [rewrite Hpx in Epy; discriminate Epy | exact (IH Hx Hpx)]. }
+  apply Hmem_filter; [|exact HBk].
+  revert Hk. generalize (gd_shares g) as n. intros n Hk.
+  unfold upto.
+  assert (Hmem_app : forall {A : Type} (l1 l2 : list A) (x : A),
+    ProofSupport.Member x l1 \/ ProofSupport.Member x l2 ->
+    ProofSupport.Member x (app l1 l2)).
+  { clear. intros A l1 l2 x. induction l1 as [|y r IH]; simpl; intros [H|H].
+    - contradiction.
+    - exact H.
+    - destruct H as [->|H]; [left; reflexivity | right; exact (IH (or_introl H))].
+    - right; exact (IH (or_intror H)). }
+  induction n as [|n IH]; [lia|].
+  simpl. apply Hmem_app.
+  destruct (Nat.eq_dec k n) as [->|Hne]; [right; left; reflexivity | left; apply IH; lia].
+Qed.
+
+Definition seq_merge_shares (g1 : Gadget) (I1 I2 : ShareSet) : ShareSet :=
+  fun j k => if Nat.ltb j (gd_inputs g1) then I1 j k else I2 (S (j - gd_inputs g1)) k.
+
+Definition gadget_well_formed (g : Gadget) : Prop :=
+  well_formed (gd_circuit g) = true /\
+  0 < gd_inputs g /\
+  (forall k, k < gd_shares g -> gd_out g k < wire_count (gd_circuit g)).
+
+Lemma seq_gadget_well_formed :
+  forall g1 g2 Hshare,
+    gd_shares g1 = gd_shares g2 ->
+    gadget_well_formed g1 -> gadget_well_formed g2 ->
+    gadget_well_formed (seq_gadget g1 g2 Hshare).
+Proof.
+  intros g1 g2 Hshare Hsh [Hwf1 [Hin1 Hout1]] [Hwf2 [Hin2 Hout2]].
+  split; [apply combine_circuits_well_formed; assumption|].
+  split; [simpl; lia|].
+  intros k Hk. simpl in *. rewrite combine_circuits_count.
+  pose proof (Hout2 k ltac:(lia)). lia.
+Qed.
+
+Lemma selected_outputs_lt :
+  forall (g : Gadget) (B : nat -> bool) (k : nat),
+    ProofSupport.Member k (selected_outputs g B) -> k < gd_shares g.
+Proof.
+  intros g B k Hk. unfold selected_outputs in Hk.
+  apply support_filter_member in Hk.
+  revert Hk. generalize (gd_shares g) as n. intros n Hk.
+  unfold upto in Hk.
+  induction n as [|n IH]; simpl in *; [contradiction|].
+  assert (Happ : forall l1 l2 : list nat,
+    ProofSupport.Member k (app l1 l2) ->
+    ProofSupport.Member k l1 \/ ProofSupport.Member k l2).
+  { clear. induction l1 as [|x r1 IH1]; intros l2 H; simpl in *; [right; exact H|].
+    destruct H as [->|H]; [left; left; reflexivity|].
+    destruct (IH1 l2 H); [left; right; assumption | right; assumption]. }
+  destruct (Happ _ _ Hk) as [H1|[->|[]]]; [specialize (IH H1); lia | lia].
+Qed.
+
+(* Helper: combine_ops with identity cast produces identical eval_wire *)
+Lemma map_over_id_val : forall {A : Type} (l : list A), map_over (fun x : A => x) l = l.
+Proof. intros A l. induction l; simpl; congruence. Qed.
+
+Lemma eval_wire_regs_ops_ext :
+  forall (m : Sharing) (ops1 ops2 : nat -> list (Val m) -> Val m)
+         (c : Circuit) (regs1 regs2 ins : nat -> Val m) (fuel w : nat),
+    (forall o args, ops1 o args = ops2 o args) ->
+    (forall u, regs1 u = regs2 u) ->
+    eval_wire m ops1 c regs1 ins fuel w = eval_wire m ops2 c regs2 ins fuel w.
+Proof.
+  intros m ops1 ops2 c regs1 regs2 ins fuel.
+  induction fuel as [|f IH]; intros w Hops Hregs; [reflexivity|].
+  simpl. destruct (gate_at c w) as [i|s|o args].
+  - reflexivity.
+  - apply Hregs.
+  - rewrite Hops. f_equal. apply map_over_ext. intros a. apply IH; assumption.
+Qed.
+
+Lemma regs_at_ops_ext :
+  forall (m : Sharing) (ops1 ops2 : nat -> list (Val m) -> Val m)
+         (c : Circuit) (init : nat -> Val m) (ins : nat -> nat -> Val m) (t u : nat),
+    (forall o args, ops1 o args = ops2 o args) ->
+    regs_at m ops1 c init ins t u = regs_at m ops2 c init ins t u.
+Proof.
+  intros m ops1 ops2 c init ins t.
+  induction t as [|t IH]; intros u Hops; [reflexivity|].
+  simpl. unfold step_regs. destruct (gate_at c u) as [i|s|o args]; try apply IH; try exact Hops.
+  apply eval_wire_regs_ops_ext; [exact Hops | intros v; apply IH; exact Hops].
+Qed.
+
+Lemma value_at_ops_ext :
+  forall (m : Sharing) (ops1 ops2 : nat -> list (Val m) -> Val m)
+         (c : Circuit) (init : nat -> Val m) (ins : nat -> nat -> Val m) (t w : nat),
+    (forall o args, ops1 o args = ops2 o args) ->
+    value_at m ops1 c init ins t w = value_at m ops2 c init ins t w.
+Proof.
+  intros m ops1 ops2 c init ins t w Hops. unfold value_at.
+  apply eval_wire_regs_ops_ext; [exact Hops | intros u; apply regs_at_ops_ext; exact Hops].
+Qed.
+
+Lemma seq_simulable_compose :
+  forall (g1 g2 : Gadget) (Hshare : gd_share g2 = gd_share g1)
+         (E : Expansion) (ps : list Probe) (B : nat -> bool)
+         (I1 I2 : ShareSet) (B_mid : nat -> bool),
+    gd_shares g1 = gd_shares g2 ->
+    gadget_well_formed g1 ->
+    gadget_well_formed g2 ->
+    HasCountingMass (gd_prob g1) ->
+    HasCountingMass (gd_prob g2) ->
+    LocalExpansion E ->
+    wires_exist (combine_circuits (gd_circuit g1) (gd_circuit g2)) (map_over p_wire ps) = true ->
+    (forall k, k < gd_shares g2 -> I2 0 k = true -> B_mid k = true) ->
+    SimulableFrom g1 I1 (split_view g1 E (split_probes_l (wire_count (gd_circuit g1)) ps) B_mid) ->
+    SimulableFrom g2 I2 (split_view g2 E (split_probes_r (wire_count (gd_circuit g1)) ps) B) ->
+    SimulableFrom (seq_gadget g1 g2 Hshare) (seq_merge_shares g1 I1 I2)
+      (split_view (seq_gadget g1 g2 Hshare) E ps B).
+Proof.
+  intros g1 g2 Hshare E ps B I1 I2 B_mid Hsh
+         [Hwf1 [Hin1 Hout1]] [Hwf2 [Hin2 Hout2]] Hc1 Hc2 Hloc Hw Hmid Hsim1 Hsim2.
+  destruct g1 as [m1 p1 c1 ops1 in1 sh1 out1 r1 asg1 st1].
+  destruct g2 as [m2 p2 c2 ops2 in2 sh2 out2 r2 asg2 st2].
+  simpl in *. destruct Hshare. rename m2 into m1. subst sh2.
+  set (g1 := {| gd_share := m1; gd_prob := p1; gd_circuit := c1; gd_ops := ops1;
+                gd_inputs := in1; gd_shares := sh1; gd_out := out1; gd_read := r1;
+                gd_assign := asg1; gd_start := st1 |}).
+  set (g2 := {| gd_share := m1; gd_prob := p2; gd_circuit := c2; gd_ops := ops2;
+                gd_inputs := in2; gd_shares := sh1; gd_out := out2; gd_read := r2;
+                gd_assign := asg2; gd_start := st2 |}).
+  set (ps1 := split_probes_l (wire_count c1) ps).
+  set (ps2 := split_probes_r (wire_count c1) ps).
+  set (n_int1 := count_of (probe_set E c1 ps1)).
+  set (sel_mid := selected_outputs g1 B_mid).
+  set (reconstruct_a2 := fun (outer_a : ShareMatrix (seq_gadget g1 g2 eq_refl))
+                             (v1 : list (Val m1)) (j k : nat) =>
+         match j with
+         | O => lookup_selected_share sel_mid (ProofSupport.drop_of n_int1 v1) k (v_zero m1)
+         | S r => outer_a (in1 + r) k
+         end).
+  set (obs_of := fun (outer_a : ShareMatrix (seq_gadget g1 g2 eq_refl))
+                     (v1 : list (Val m1)) (t2 : Tape p2) =>
+         let a2 := reconstruct_a2 outer_a v1 in
+         app (interleave_obs E c1 c2 ps
+                (ProofSupport.take_of n_int1 v1)
+                (internal_view g2 E ps2 a2 t2))
+             (output_view g2 B a2 t2)).
+  assert (Hops_ext : forall o args,
+    combine_ops ops1 (fun o0 args0 => ops2 o0 (map_over (fun x => x) args0)) o args =
+    combine_ops ops1 ops2 o args).
+  { intros o args. unfold combine_ops. destruct (Nat.even o); [reflexivity|].
+    rewrite map_over_id_val. reflexivity. }
+  assert (Hsplit_eq : forall (outer_a : ShareMatrix (seq_gadget g1 g2 eq_refl))
+                             (t1 : Tape p1) (t2 : Tape p2),
+    let a1 : ShareMatrix g1 := fun j k => outer_a j k in
+    let a2_real : ShareMatrix g2 := fun j k =>
+      match j with
+      | O => gd_value g1 a1 t1 r1 (out1 k)
+      | S r => outer_a (in1 + r) k
+      end in
+    split_view (seq_gadget g1 g2 eq_refl) E ps B outer_a (t1, t2) =
+    app (interleave_obs E c1 c2 ps (internal_view g1 E ps1 a1 t1)
+                                    (internal_view g2 E ps2 a2_real t2))
+        (output_view g2 B a2_real t2)).
+  { intros outer_a t1 t2 a1 a2_real. unfold split_view. f_equal.
+    - unfold internal_view. simpl.
+      transitivity
+        (map_over (obs_value m1 (combine_ops ops1 ops2) (combine_circuits c1 c2)
+                     (combine_start (wire_count c1) (st1 a1 t1) (st2 a2_real t2))
+                     (fun cyc => combine_assign (asg1 a1 t1) (asg2 a2_real t2) cyc))
+                  (probe_set E (combine_circuits c1 c2) ps)).
+      + apply support_map_ext. intros o _.
+        destruct o as [w t | w t]; simpl;
+          [apply value_at_ops_ext; exact Hops_ext |
+           f_equal; apply value_at_ops_ext; exact Hops_ext].
+      + exact (interleave_internal_view E Hloc m1 ops1 ops2 c1 c2
+                 (st1 a1 t1) (st2 a2_real t2) (asg1 a1 t1) (asg2 a2_real t2) ps
+                 Hwf1 Hwf2 Hw).
+    - unfold output_view, selected_outputs. simpl.
+      apply support_map_ext. intros k Hk.
+      assert (Hk_lt : k < sh1).
+      { apply (selected_outputs_lt g1 B k). exact Hk. }
+      unfold gd_value. simpl.
+      rewrite (value_at_ops_ext m1 _ (combine_ops ops1 ops2) _ _ _ _ _ Hops_ext).
+      apply value_at_combine_r; [exact Hwf1 | exact Hwf2 | apply Hout2; exact Hk_lt]. }
+  assert (Htake_v1 : forall a1 t1,
+    ProofSupport.take_of n_int1 (split_view g1 E ps1 B_mid a1 t1) =
+    internal_view g1 E ps1 a1 t1 /\
+    ProofSupport.drop_of n_int1 (split_view g1 E ps1 B_mid a1 t1) =
+    output_view g1 B_mid a1 t1).
+  { intros a1 t1. unfold split_view. apply take_drop_exact.
+    unfold internal_view, n_int1. repeat rewrite count_of_is_length.
+    rewrite map_over_is_map, length_map. reflexivity. }
+  assert (Ha2_agree : forall outer_a t1,
+    let a1 : ShareMatrix g1 := fun j k => outer_a j k in
+    let a2_real : ShareMatrix g2 := fun j k =>
+      match j with
+      | O => gd_value g1 a1 t1 r1 (out1 k)
+      | S r => outer_a (in1 + r) k
+      end in
+    agree_on g2 I2 a2_real (reconstruct_a2 outer_a (split_view g1 E ps1 B_mid a1 t1))).
+  { intros outer_a t1 a1 a2_real j k Hj Hk HI.
+    destruct j as [|r]; [|reflexivity].
+    simpl in *. destruct (Htake_v1 a1 t1) as [_ Hdrop]. rewrite Hdrop.
+    unfold output_view, sel_mid.
+    symmetry. apply (lookup_selected_share_map (fun k0 => gd_value g1 a1 t1 r1 (out1 k0))).
+    apply member_selected_outputs; [apply Nat.ltb_lt; exact Hk | apply Hmid; [apply Nat.ltb_lt; exact Hk | exact HI]]. }
+  assert (Hpush_g2 : forall (a2_1 a2_2 : ShareMatrix g2) (v1_const : list (Val m1)),
+    agree_on g2 I2 a2_1 a2_2 ->
+    SameDistribution (counting (Tape p2) (tape_enum p2))
+      (list (Val m1)) (list_eqb (v_eqb m1))
+      (fun t2 => app (interleave_obs E c1 c2 ps (ProofSupport.take_of n_int1 v1_const)
+                        (internal_view g2 E ps2 a2_1 t2))
+                     (output_view g2 B a2_1 t2))
+      (fun t2 => app (interleave_obs E c1 c2 ps (ProofSupport.take_of n_int1 v1_const)
+                        (internal_view g2 E ps2 a2_2 t2))
+                     (output_view g2 B a2_2 t2))).
+  { intros a2_1 a2_2 v1_const Hag.
+    pose proof (Hc2 _ (list_eqb (v_eqb m1)) _ _ (Hsim2 a2_1 a2_2 Hag)) as Hdist2.
+    set (n_int2 := count_of (probe_set E c2 ps2)).
+    set (lift := fun (sv2 : list (Val m1)) =>
+      app (interleave_obs E c1 c2 ps (ProofSupport.take_of n_int1 v1_const)
+             (ProofSupport.take_of n_int2 sv2))
+          (ProofSupport.drop_of n_int2 sv2)).
+    assert (Hlift_eq : forall a2 t2,
+      lift (split_view g2 E ps2 B a2 t2) =
+      app (interleave_obs E c1 c2 ps (ProofSupport.take_of n_int1 v1_const)
+             (internal_view g2 E ps2 a2 t2))
+          (output_view g2 B a2 t2)).
+    { intros a2 t2. unfold lift, split_view. cbv beta.
+      destruct (take_drop_exact n_int2 (internal_view g2 E ps2 a2 t2) (output_view g2 B a2 t2)
+                  ltac:(unfold internal_view, n_int2; repeat rewrite count_of_is_length;
+                        rewrite map_over_is_map, length_map; reflexivity))
+        as [Ht Hd].
+      f_equal; [f_equal; exact Ht | exact Hd]. }
+    intros o.
+    eapply eq_trans; [|eapply eq_trans; [exact (counting_pushforward (Tape p2) (tape_enum p2)
+      (list (Val m1)) (list (Val m1)) (list_eqb (v_eqb m1)) (list_eqb (v_eqb m1))
+      (split_view g2 E ps2 B a2_1) (split_view g2 E ps2 B a2_2) lift
+      (list_eqb_sound m1) (list_eqb_refl_sharing m1) Hdist2 o)|]].
+    - apply pr_ext. intros t2. rewrite Hlift_eq. reflexivity.
+    - apply pr_ext. intros t2. rewrite Hlift_eq. reflexivity. }
+  intros outer_a outer_b Hagree.
+  set (a1 := (fun j k => outer_a j k) : ShareMatrix g1).
+  set (b1 := (fun j k => outer_b j k) : ShareMatrix g1).
+  assert (Hag_1 : agree_on g1 I1 a1 b1).
+  { intros j k Hj Hk HI. apply Hagree; [|exact Hk|].
+    - apply Nat.ltb_lt in Hj. apply Nat.ltb_lt. unfold g1, g2, seq_gadget in *. simpl in *. lia.
+    - unfold seq_merge_shares. rewrite Hj. exact HI. }
+  assert (Hag_ext : forall v1_const,
+    agree_on g2 I2 (reconstruct_a2 outer_a v1_const) (reconstruct_a2 outer_b v1_const)).
+  { intros v1_const j k Hj Hk HI. destruct j as [|r]; [reflexivity|].
+    simpl in *. apply Hagree; [|exact Hk|].
+    - apply Nat.ltb_lt in Hj. apply Nat.ltb_lt. unfold g1, g2, seq_gadget in *. simpl in *. lia.
+    - unfold seq_merge_shares, g1. simpl gd_inputs.
+      destruct (Nat.ltb (in1 + r) in1) eqn:Elt; [apply Nat.ltb_lt in Elt; lia|].
+      replace (in1 + r - in1) with r by lia. exact HI. }
+  assert (Hchain1 : SameDistribution (gd_prob (seq_gadget g1 g2 eq_refl))
+    (list (Val m1)) (list_eqb (v_eqb m1))
+    (split_view (seq_gadget g1 g2 eq_refl) E ps B outer_a)
+    (fun '(t1, t2) => obs_of outer_a (split_view g1 E ps1 B_mid a1 t1) t2)).
+  { simpl gd_prob. apply counting_prod_right. intros t1 _.
+    unfold obs_of. cbv beta.
+    pose proof (Htake_v1 a1 t1) as [Ht1 _].
+    intros o.
+    eapply eq_trans; [|exact (Hpush_g2 _ _ (split_view g1 E ps1 B_mid a1 t1) (Ha2_agree outer_a t1) o)].
+    apply pr_ext. intros t2. rewrite Hsplit_eq.
+    f_equal. f_equal. f_equal. f_equal. symmetry. exact Ht1. }
+  assert (Hchain2 : SameDistribution (gd_prob (seq_gadget g1 g2 eq_refl))
+    (list (Val m1)) (list_eqb (v_eqb m1))
+    (fun '(t1, t2) => obs_of outer_a (split_view g1 E ps1 B_mid a1 t1) t2)
+    (fun '(t1, t2) => obs_of outer_a (split_view g1 E ps1 B_mid b1 t1) t2)).
+  { simpl gd_prob. apply counting_prod_left. intros t2 _.
+    pose proof (Hc1 _ (list_eqb (v_eqb m1)) _ _ (Hsim1 a1 b1 Hag_1)) as Hdist1.
+    apply (counting_pushforward (Tape p1) (tape_enum p1)
+             (list (Val m1)) (list (Val m1)) (list_eqb (v_eqb m1)) (list_eqb (v_eqb m1))
+             (split_view g1 E ps1 B_mid a1) (split_view g1 E ps1 B_mid b1)
+             (fun v1 => obs_of outer_a v1 t2)
+             (list_eqb_sound m1) (list_eqb_refl_sharing m1) Hdist1). }
+  assert (Hchain3 : SameDistribution (gd_prob (seq_gadget g1 g2 eq_refl))
+    (list (Val m1)) (list_eqb (v_eqb m1))
+    (fun '(t1, t2) => obs_of outer_a (split_view g1 E ps1 B_mid b1 t1) t2)
+    (fun '(t1, t2) => obs_of outer_b (split_view g1 E ps1 B_mid b1 t1) t2)).
+  { simpl gd_prob. apply counting_prod_right. intros t1 _.
+    unfold obs_of. cbv beta.
+    apply (Hpush_g2 _ _ (split_view g1 E ps1 B_mid b1 t1)
+             (Hag_ext (split_view g1 E ps1 B_mid b1 t1))). }
+  assert (Hchain4 : SameDistribution (gd_prob (seq_gadget g1 g2 eq_refl))
+    (list (Val m1)) (list_eqb (v_eqb m1))
+    (fun '(t1, t2) => obs_of outer_b (split_view g1 E ps1 B_mid b1 t1) t2)
+    (split_view (seq_gadget g1 g2 eq_refl) E ps B outer_b)).
+  { simpl gd_prob. apply counting_prod_right. intros t1 _.
+    unfold obs_of. cbv beta.
+    pose proof (Htake_v1 b1 t1) as [Ht1 _].
+    intros o.
+    eapply eq_trans; [exact (Hpush_g2 _ _ (split_view g1 E ps1 B_mid b1 t1)
+                              (fun j k Hj Hk HI => eq_sym (Ha2_agree outer_b t1 j k Hj Hk HI)) o)|].
+    apply pr_ext. intros t2. rewrite Hsplit_eq.
+    f_equal. f_equal. f_equal. f_equal. exact Ht1. }
+  intros o.
+  eapply eq_trans; [exact (Hchain1 o)|].
+  eapply eq_trans; [exact (Hchain2 o)|].
+  eapply eq_trans; [exact (Hchain3 o)|].
+  exact (Hchain4 o).
+Qed.
+
+Lemma card_in_or_le :
+  forall (g : Gadget) (P Q : nat -> bool) (j : nat),
+    card_in g (fun i k => orb (P k) (Q k)) j <=
+    card_in g (fun _ k => P k) j + card_in g (fun _ k => Q k) j.
+Proof.
+  intros g P Q j. unfold card_in.
+  pose proof (count_filter_or P Q (upto (gd_shares g))) as H.
+  apply Nat.leb_le in H. exact H.
+Qed.
+
+Lemma card_in_ext :
+  forall (g : Gadget) (I1 I2 : ShareSet) (j : nat),
+    (forall k, I1 j k = I2 j k) ->
+    card_in g I1 j = card_in g I2 j.
+Proof.
+  intros g I1 I2 j H. unfold card_in. f_equal.
+  apply filter_of_ext. exact H.
+Qed.
+
+(*| discharges: R-05-004a, R-15-053a |*)
+Theorem pini_seq_compose :
+  forall (g1 g2 : Gadget) (Hshare : gd_share g2 = gd_share g1)
+         (E : Expansion) (d : nat),
+    gd_shares g1 = gd_shares g2 ->
+    gadget_well_formed g1 ->
+    gadget_well_formed g2 ->
+    HasCountingMass (gd_prob g1) ->
+    HasCountingMass (gd_prob g2) ->
+    LocalExpansion E ->
+    PINI g1 E d ->
+    PINI g2 E d ->
+    PINI (seq_gadget g1 g2 Hshare) E d.
+Proof.
+  intros g1 g2 Hshare E d Hsh Hgw1 Hgw2 Hc1 Hc2 Hloc Hpini1 Hpini2 ps B Hw Hord.
+  pose proof Hgw1 as [Hwf1 [Hin1 _]].
+  pose proof Hgw2 as [Hwf2 [Hin2 _]].
+  simpl in Hw.
+  destruct (split_probes_wires_exist (gd_circuit g1) (gd_circuit g2) ps Hw) as [Hw1 Hw2].
+  pose proof (split_probes_count (wire_count (gd_circuit g1)) ps) as Hcnt.
+  apply Nat.leb_le in Hord.
+  set (ps1 := split_probes_l (wire_count (gd_circuit g1)) ps).
+  set (ps2 := split_probes_r (wire_count (gd_circuit g1)) ps).
+  destruct (Hpini2 ps2 B Hw2 ltac:(apply Nat.leb_le; unfold ps2; lia)) as [I2 [Hb2 Hsim2]].
+  set (B_mid := fun k => orb (I2 0 k) (B k)).
+  destruct (Hpini1 ps1 B_mid Hw1 ltac:(apply Nat.leb_le; unfold ps1; lia)) as [I1 [Hb1 Hsim1]].
+  set (I_comp := seq_merge_shares g1 (fun j k => orb (I1 j k) (I2 0 k)) I2).
+  exists I_comp. split.
+  - intros j Hj. unfold BoundedBy in *. simpl in Hj. apply Nat.ltb_lt in Hj.
+    unfold I_comp, seq_merge_shares.
+    destruct (Nat.ltb j (gd_inputs g1)) eqn:Elt.
+    + assert (Hj1 : j < gd_inputs g1) by (apply Nat.ltb_lt; exact Elt).
+      pose proof (Hb1 j ltac:(apply Nat.ltb_lt; exact Hj1)) as H1.
+      pose proof (Hb2 0 ltac:(apply Nat.ltb_lt; exact Hin2)) as H2.
+      apply Nat.leb_le in H1. apply Nat.leb_le in H2. apply Nat.leb_le.
+      assert (Hc_or : count_of (filter_of (fun k => orb (I1 j k) (I2 0 k)) (upto (gd_shares g1))) <=
+                      count_of (filter_of (I1 j) (upto (gd_shares g1))) +
+                      count_of (filter_of (I2 0) (upto (gd_shares g1)))).
+      { pose proof (count_filter_or (fun k => I1 j k) (fun k => I2 0 k) (upto (gd_shares g1))) as Hle.
+        apply Nat.leb_le in Hle.
+        replace (filter_of (fun k => I1 j k) (upto (gd_shares g1)))
+          with (filter_of (I1 j) (upto (gd_shares g1))) in Hle
+          by (apply filter_of_ext; reflexivity).
+        replace (filter_of (fun k => I2 0 k) (upto (gd_shares g1)))
+          with (filter_of (I2 0) (upto (gd_shares g1))) in Hle
+          by (apply filter_of_ext; reflexivity).
+        exact Hle. }
+      unfold card_in in *. simpl gd_shares in *. rewrite <- Hsh in H2. unfold ps1, ps2 in *.
+      replace (filter_of (fun k => if j <? gd_inputs g1 then orb (I1 j k) (I2 0 k) else I2 (S (j - gd_inputs g1)) k) (upto (gd_shares g1)))
+        with (filter_of (fun k => orb (I1 j k) (I2 0 k)) (upto (gd_shares g1)))
+        by (apply filter_of_ext; intros k; rewrite Elt; reflexivity).
+      lia.
+    + assert (Hj1 : gd_inputs g1 <= j) by (apply Nat.ltb_ge; exact Elt).
+      pose proof (Hb2 (S (j - gd_inputs g1)) ltac:(apply Nat.ltb_lt; lia)) as H2.
+      apply Nat.leb_le in H2. apply Nat.leb_le.
+      unfold card_in in *. simpl gd_shares in *. rewrite <- Hsh in H2. unfold ps2 in H2.
+      replace (filter_of (fun k => if j <? gd_inputs g1 then orb (I1 j k) (I2 0 k) else I2 (S (j - gd_inputs g1)) k) (upto (gd_shares g1)))
+        with (filter_of (I2 (S (j - gd_inputs g1))) (upto (gd_shares g1)))
+        by (apply filter_of_ext; intros k; rewrite Elt; reflexivity).
+      lia.
+  - assert (Hmerge_eq : forall a b,
+      agree_on (seq_gadget g1 g2 Hshare) (union_shares I_comp B) a b ->
+      agree_on (seq_gadget g1 g2 Hshare)
+        (seq_merge_shares g1 (union_shares I1 B_mid) (union_shares I2 B)) a b).
+    { intros a b Hag j k Hj Hk HI. apply Hag; [exact Hj | exact Hk|].
+      unfold union_shares, I_comp, seq_merge_shares, B_mid in *.
+      destruct (Nat.ltb j (gd_inputs g1)); simpl in *;
+        [rewrite Bool.orb_assoc in HI; exact HI | exact HI]. }
+    intros a b Hag.
+    apply (seq_simulable_compose g1 g2 Hshare E ps B
+             (union_shares I1 B_mid) (union_shares I2 B) B_mid
+             Hsh Hgw1 Hgw2 Hc1 Hc2 Hloc Hw).
+    + intros k Hk HI. unfold union_shares, B_mid in *. rewrite HI. reflexivity.
+    + exact Hsim1.
+    + exact Hsim2.
+    + apply Hmerge_eq. exact Hag.
+Qed.
+
+(*| discharges: R-05-004a, R-15-053a |*)
+Theorem sni_ni_compose :
+  forall (g1 g2 : Gadget) (Hshare : gd_share g2 = gd_share g1)
+         (E : Expansion) (d : nat),
+    gd_shares g1 = gd_shares g2 ->
+    gadget_well_formed g1 ->
+    gadget_well_formed g2 ->
+    HasCountingMass (gd_prob g1) ->
+    HasCountingMass (gd_prob g2) ->
+    LocalExpansion E ->
+    SNI g1 E d ->
+    NI g2 E d ->
+    NI (seq_gadget g1 g2 Hshare) E d.
+Proof.
+  intros g1 g2 Hshare E d Hsh Hgw1 Hgw2 Hc1 Hc2 Hloc Hsni1 Hni2 ps B Hw Hs.
+  pose proof Hgw1 as [Hwf1 [Hin1 _]].
+  pose proof Hgw2 as [Hwf2 [Hin2 _]].
+  simpl in Hw.
+  destruct (split_probes_wires_exist (gd_circuit g1) (gd_circuit g2) ps Hw) as [Hw1 Hw2].
+  pose proof (split_probes_count (wire_count (gd_circuit g1)) ps) as Hcnt.
+  unfold split_size in Hs. simpl in Hs.
+  apply Nat.leb_le in Hs.
+  set (ps1 := split_probes_l (wire_count (gd_circuit g1)) ps).
+  set (ps2 := split_probes_r (wire_count (gd_circuit g1)) ps).
+  assert (Hsel_eq : selected_outputs (seq_gadget g1 g2 Hshare) B = selected_outputs g2 B).
+  { unfold selected_outputs. simpl. rewrite Hsh. reflexivity. }
+  assert (Hs2 : Nat.leb (split_size g2 ps2 B) d = true).
+  { unfold split_size. apply Nat.leb_le. rewrite Hsel_eq in Hs. unfold ps2. lia. }
+  destruct (Hni2 ps2 B Hw2 Hs2) as [I2 [Hb2 Hsim2]].
+  set (B_mid := I2 0).
+  assert (Hmid_le : count_of (selected_outputs g1 B_mid) <= split_size g2 ps2 B).
+  { pose proof (Hb2 0 ltac:(apply Nat.ltb_lt; exact Hin2)) as H2.
+    apply Nat.leb_le in H2. unfold card_in, selected_outputs, B_mid in *.
+    rewrite Hsh. exact H2. }
+  assert (Hs1 : Nat.leb (split_size g1 ps1 B_mid) d = true).
+  { unfold split_size in *. apply Nat.leb_le. rewrite Hsel_eq in Hs. unfold ps1, ps2 in *. lia. }
+  destruct (Hsni1 ps1 B_mid Hw1 Hs1) as [I1 [Hb1 Hsim1]].
+  exists (seq_merge_shares g1 I1 I2). split.
+  - intros j Hj. simpl in Hj. apply Nat.ltb_lt in Hj.
+    unfold seq_merge_shares. destruct (Nat.ltb j (gd_inputs g1)) eqn:Elt.
+    + assert (Hj1 : j < gd_inputs g1) by (apply Nat.ltb_lt; exact Elt).
+      pose proof (Hb1 j ltac:(apply Nat.ltb_lt; exact Hj1)) as H1.
+      apply Nat.leb_le in H1. apply Nat.leb_le.
+      unfold card_in, split_size in *. simpl gd_shares in *. unfold ps1, ps2 in *.
+      replace (filter_of (fun k => if j <? gd_inputs g1 then I1 j k else I2 (S (j - gd_inputs g1)) k) (upto (gd_shares g1)))
+        with (filter_of (I1 j) (upto (gd_shares g1)))
+        by (apply filter_of_ext; intros k; rewrite Elt; reflexivity).
+      lia.
+    + assert (Hj1 : gd_inputs g1 <= j) by (apply Nat.ltb_ge; exact Elt).
+      pose proof (Hb2 (S (j - gd_inputs g1)) ltac:(apply Nat.ltb_lt; lia)) as H2.
+      apply Nat.leb_le in H2. apply Nat.leb_le.
+      unfold card_in, split_size in *. simpl gd_shares in *. rewrite <- Hsh in H2. rewrite Hsel_eq. unfold ps2 in H2.
+      replace (filter_of (fun k => if j <? gd_inputs g1 then I1 j k else I2 (S (j - gd_inputs g1)) k) (upto (gd_shares g1)))
+        with (filter_of (I2 (S (j - gd_inputs g1))) (upto (gd_shares g1)))
+        by (apply filter_of_ext; intros k; rewrite Elt; reflexivity).
+      lia.
+  - apply (seq_simulable_compose g1 g2 Hshare E ps B I1 I2 B_mid
+             Hsh Hgw1 Hgw2 Hc1 Hc2 Hloc Hw).
+    + intros k _ HI. exact HI.
+    + exact Hsim1.
+    + exact Hsim2.
+Qed.
+
+(*| discharges: R-05-004a, R-15-053a |*)
+Theorem ni_sni_compose :
+  forall (g1 g2 : Gadget) (Hshare : gd_share g2 = gd_share g1)
+         (E : Expansion) (d : nat),
+    gd_shares g1 = gd_shares g2 ->
+    gadget_well_formed g1 ->
+    gadget_well_formed g2 ->
+    HasCountingMass (gd_prob g1) ->
+    HasCountingMass (gd_prob g2) ->
+    LocalExpansion E ->
+    NI g1 E d ->
+    SNI g2 E d ->
+    SNI (seq_gadget g1 g2 Hshare) E d.
+Proof.
+  intros g1 g2 Hshare E d Hsh Hgw1 Hgw2 Hc1 Hc2 Hloc Hni1 Hsni2 ps B Hw Hs.
+  pose proof Hgw1 as [Hwf1 [Hin1 _]].
+  pose proof Hgw2 as [Hwf2 [Hin2 _]].
+  simpl in Hw.
+  destruct (split_probes_wires_exist (gd_circuit g1) (gd_circuit g2) ps Hw) as [Hw1 Hw2].
+  pose proof (split_probes_count (wire_count (gd_circuit g1)) ps) as Hcnt.
+  unfold split_size in Hs. simpl in Hs.
+  apply Nat.leb_le in Hs.
+  set (ps1 := split_probes_l (wire_count (gd_circuit g1)) ps).
+  set (ps2 := split_probes_r (wire_count (gd_circuit g1)) ps).
+  assert (Hsel_eq : selected_outputs (seq_gadget g1 g2 Hshare) B = selected_outputs g2 B).
+  { unfold selected_outputs. simpl. rewrite Hsh. reflexivity. }
+  assert (Hs2 : Nat.leb (split_size g2 ps2 B) d = true).
+  { unfold split_size. apply Nat.leb_le. rewrite Hsel_eq in Hs. unfold ps2. lia. }
+  destruct (Hsni2 ps2 B Hw2 Hs2) as [I2 [Hb2 Hsim2]].
+  set (B_mid := I2 0).
+  assert (Hmid_le : count_of (selected_outputs g1 B_mid) <= count_of ps2).
+  { pose proof (Hb2 0 ltac:(apply Nat.ltb_lt; exact Hin2)) as H2.
+    apply Nat.leb_le in H2. unfold card_in, selected_outputs, B_mid in *.
+    rewrite Hsh. exact H2. }
+  assert (Hs1 : Nat.leb (split_size g1 ps1 B_mid) d = true).
+  { unfold split_size in *. apply Nat.leb_le. unfold ps1, ps2 in *. lia. }
+  destruct (Hni1 ps1 B_mid Hw1 Hs1) as [I1 [Hb1 Hsim1]].
+  exists (seq_merge_shares g1 I1 I2). split.
+  - intros j Hj. simpl in Hj. apply Nat.ltb_lt in Hj.
+    unfold seq_merge_shares. destruct (Nat.ltb j (gd_inputs g1)) eqn:Elt.
+    + assert (Hj1 : j < gd_inputs g1) by (apply Nat.ltb_lt; exact Elt).
+      pose proof (Hb1 j ltac:(apply Nat.ltb_lt; exact Hj1)) as H1.
+      apply Nat.leb_le in H1. apply Nat.leb_le.
+      unfold card_in, split_size in *. simpl gd_shares in *. unfold ps1, ps2 in *.
+      replace (filter_of (fun k => if j <? gd_inputs g1 then I1 j k else I2 (S (j - gd_inputs g1)) k) (upto (gd_shares g1)))
+        with (filter_of (I1 j) (upto (gd_shares g1)))
+        by (apply filter_of_ext; intros k; rewrite Elt; reflexivity).
+      lia.
+    + assert (Hj1 : gd_inputs g1 <= j) by (apply Nat.ltb_ge; exact Elt).
+      pose proof (Hb2 (S (j - gd_inputs g1)) ltac:(apply Nat.ltb_lt; lia)) as H2.
+      apply Nat.leb_le in H2. apply Nat.leb_le.
+      unfold card_in in *. simpl gd_shares in *. rewrite <- Hsh in H2. unfold ps2 in H2.
+      replace (filter_of (fun k => if j <? gd_inputs g1 then I1 j k else I2 (S (j - gd_inputs g1)) k) (upto (gd_shares g1)))
+        with (filter_of (I2 (S (j - gd_inputs g1))) (upto (gd_shares g1)))
+        by (apply filter_of_ext; intros k; rewrite Elt; reflexivity).
+      lia.
+  - apply (seq_simulable_compose g1 g2 Hshare E ps B I1 I2 B_mid
+             Hsh Hgw1 Hgw2 Hc1 Hc2 Hloc Hw).
+    + intros k _ HI. exact HI.
+    + exact Hsim1.
+    + exact Hsim2.
+Qed.
+
+(* -------------------------------------------------------------------------
+   Parallel composition of two t-PINI gadgets (even sharing common inputs)
+   and StrongPINI for arbitrary straight-line DAG composition.
+   ------------------------------------------------------------------------- *)
+
+Definition par_split_view (g1 g2 : Gadget) (Hshare : gd_share g2 = gd_share g1)
+    (E : Expansion) (ps : list Probe) (B1 B2 : nat -> bool)
+    (a : ShareMatrix g1) (tape : Tape (gd_prob g1) * Tape (gd_prob g2))
+    : list (Val (gd_share g1)) :=
+  let (t1, t2) := tape in
+  let a2 : ShareMatrix g2 := fun j k => val_cast (eq_sym Hshare) (a j k) in
+  let c_par := combine_circuits (gd_circuit g1) (gd_circuit g2) in
+  let ops_par := combine_ops (gd_ops g1)
+                   (fun o args =>
+                      val_cast Hshare
+                        (gd_ops g2 o (map_over (val_cast (eq_sym Hshare)) args))) in
+  let st_par := combine_start (wire_count (gd_circuit g1))
+                  (gd_start g1 a t1)
+                  (fun w2 => val_cast Hshare (gd_start g2 a2 t2 w2)) in
+  let asg_par := fun cyc i =>
+    combine_assign (gd_assign g1 a t1)
+      (fun cyc2 i2 => val_cast Hshare (gd_assign g2 a2 t2 cyc2 i2)) cyc i in
+  app (map_over (obs_value (gd_share g1) ops_par c_par st_par asg_par)
+                (probe_set E c_par ps))
+      (app (output_view g1 B1 a t1)
+           (map_over (val_cast Hshare) (output_view g2 B2 a2 t2))).
+
+(*| discharges: R-05-004a, R-15-053a |*)
+Theorem pini_par_compose :
+  forall (g1 g2 : Gadget) (Hshare : gd_share g2 = gd_share g1)
+         (E : Expansion) (d : nat),
+    gd_shares g1 = gd_shares g2 ->
+    gadget_well_formed g1 ->
+    gadget_well_formed g2 ->
+    HasCountingMass (gd_prob g1) ->
+    HasCountingMass (gd_prob g2) ->
+    LocalExpansion E ->
+    PINI g1 E d ->
+    PINI g2 E d ->
+    forall (ps : list Probe) (B1 B2 : nat -> bool),
+      wires_exist (combine_circuits (gd_circuit g1) (gd_circuit g2)) (map_over p_wire ps) = true ->
+      Nat.leb (count_of ps) d = true ->
+      exists I : ShareSet,
+        (forall j, (j < gd_inputs g1 \/ j < gd_inputs g2) ->
+           Nat.leb (card_in g1 I j) (count_of ps) = true) /\
+        (forall a b : ShareMatrix g1,
+           (forall j k, (j < gd_inputs g1 \/ j < gd_inputs g2) ->
+              k < gd_shares g1 ->
+              orb (I j k) (orb (B1 k) (B2 k)) = true -> a j k = b j k) ->
+           SameDistribution
+             (counting (Tape (gd_prob g1) * Tape (gd_prob g2))
+                (list_prod (tape_enum (gd_prob g1)) (tape_enum (gd_prob g2))))
+             (list (Val (gd_share g1))) (list_eqb (v_eqb (gd_share g1)))
+             (par_split_view g1 g2 Hshare E ps B1 B2 a)
+             (par_split_view g1 g2 Hshare E ps B1 B2 b)).
+Proof.
+  intros g1 g2 Hshare E d Hsh [Hwf1 [Hin1 Hout1]] [Hwf2 [Hin2 Hout2]]
+         Hc1 Hc2 Hloc Hpini1 Hpini2 ps B1 B2 Hw Hord.
+  destruct g1 as [m1 p1 c1 ops1 in1 sh1 out1 r1 asg1 st1].
+  destruct g2 as [m2 p2 c2 ops2 in2 sh2 out2 r2 asg2 st2].
+  simpl in *. destruct Hshare. rename m2 into m1. subst sh2.
+  set (g1 := {| gd_share := m1; gd_prob := p1; gd_circuit := c1; gd_ops := ops1;
+                gd_inputs := in1; gd_shares := sh1; gd_out := out1; gd_read := r1;
+                gd_assign := asg1; gd_start := st1 |}).
+  set (g2 := {| gd_share := m1; gd_prob := p2; gd_circuit := c2; gd_ops := ops2;
+                gd_inputs := in2; gd_shares := sh1; gd_out := out2; gd_read := r2;
+                gd_assign := asg2; gd_start := st2 |}).
+  destruct (split_probes_wires_exist c1 c2 ps Hw) as [Hw1 Hw2].
+  pose proof (split_probes_count (wire_count c1) ps) as Hcnt.
+  apply Nat.leb_le in Hord.
+  set (ps1 := split_probes_l (wire_count c1) ps).
+  set (ps2 := split_probes_r (wire_count c1) ps).
+  destruct (Hpini1 ps1 B1 Hw1 ltac:(apply Nat.leb_le; unfold ps1; lia)) as [I1 [Hb1 Hsim1]].
+  destruct (Hpini2 ps2 B2 Hw2 ltac:(apply Nat.leb_le; unfold ps2; lia)) as [I2 [Hb2 Hsim2]].
+  set (I := fun j k => orb (if Nat.ltb j in1 then I1 j k else false)
+                           (if Nat.ltb j in2 then I2 j k else false)).
+  exists I. split.
+  - intros j Hj. apply Nat.leb_le. unfold I, card_in. simpl.
+    set (f1 := fun k => if Nat.ltb j in1 then I1 j k else false).
+    set (f2 := fun k => if Nat.ltb j in2 then I2 j k else false).
+    pose proof (count_filter_or f1 f2 (upto sh1)) as Hor.
+    apply Nat.leb_le in Hor.
+    assert (Hext_or : filter_of (fun k => orb (if j <? in1 then I1 j k else false)
+                                              (if j <? in2 then I2 j k else false)) (upto sh1) =
+                      filter_of (fun a => orb (f1 a) (f2 a)) (upto sh1)).
+    { apply filter_of_ext. intros k. unfold f1, f2. reflexivity. }
+    rewrite Hext_or.
+    assert (Hsub1 : count_of (filter_of f1 (upto sh1)) <= count_of ps1).
+    { unfold f1. destruct (Nat.ltb j in1) eqn:Ej1.
+      - pose proof (Hb1 j Ej1) as H1. apply Nat.leb_le in H1.
+        unfold card_in in H1. simpl in H1.
+        replace (filter_of (fun k => I1 j k) (upto sh1))
+          with (filter_of (I1 j) (upto sh1)) in * by (apply filter_of_ext; reflexivity).
+        exact H1.
+      - generalize (upto sh1) as u. intros u.
+        induction u as [|x r IH]; simpl; [lia | exact IH]. }
+    assert (Hsub2 : count_of (filter_of f2 (upto sh1)) <= count_of ps2).
+    { unfold f2. destruct (Nat.ltb j in2) eqn:Ej2.
+      - pose proof (Hb2 j Ej2) as H2. apply Nat.leb_le in H2.
+        unfold card_in in H2. simpl in H2.
+        replace (filter_of (fun k => I2 j k) (upto sh1))
+          with (filter_of (I2 j) (upto sh1)) in * by (apply filter_of_ext; reflexivity).
+        exact H2.
+      - generalize (upto sh1) as u. intros u.
+        induction u as [|x r IH]; simpl; [lia | exact IH]. }
+    unfold ps1, ps2 in *. lia.
+  - intros a b Hagree.
+    assert (Hag1 : agree_on g1 (union_shares I1 B1) a b).
+    { intros j k Hj Hk HI. unfold g1 in Hj, Hk. simpl in Hj, Hk.
+      apply Hagree; [left; apply Nat.ltb_lt; exact Hj | apply Nat.ltb_lt; exact Hk|].
+      unfold I, union_shares in *. rewrite Hj in *.
+      destruct (I1 j k); destruct (B1 k); simpl in *; try discriminate; auto with bool. }
+    assert (Hag2 : agree_on g2 (union_shares I2 B2) a b).
+    { intros j k Hj Hk HI. unfold g2 in Hj, Hk. simpl in Hj, Hk.
+      apply Hagree; [right; apply Nat.ltb_lt; exact Hj | apply Nat.ltb_lt; exact Hk|].
+      unfold I, union_shares in *. rewrite Hj in *.
+      destruct (if j <? in1 then I1 j k else false); destruct (I2 j k); destruct (B1 k); destruct (B2 k);
+        simpl in *; auto; discriminate. }
+    assert (Hops_ext : forall o args,
+      combine_ops ops1 (fun o0 args0 => ops2 o0 (map_over (fun x => x) args0)) o args =
+      combine_ops ops1 ops2 o args).
+    { intros o args. unfold combine_ops. destruct (Nat.even o); [reflexivity|].
+      rewrite map_over_id_val. reflexivity. }
+    assert (Hpar_eq : forall m_in t1 t2,
+      par_split_view g1 g2 eq_refl E ps B1 B2 m_in (t1, t2) =
+      app (interleave_obs E c1 c2 ps (internal_view g1 E ps1 m_in t1)
+                                      (internal_view g2 E ps2 m_in t2))
+          (app (output_view g1 B1 m_in t1) (output_view g2 B2 m_in t2))).
+    { intros m_in t1 t2. unfold par_split_view. simpl. f_equal.
+      - transitivity
+          (map_over (obs_value m1 (combine_ops ops1 ops2) (combine_circuits c1 c2)
+                       (combine_start (wire_count c1) (st1 m_in t1) (st2 m_in t2))
+                       (fun cyc => combine_assign (asg1 m_in t1) (asg2 m_in t2) cyc))
+                    (probe_set E (combine_circuits c1 c2) ps)).
+        + apply support_map_ext. intros o _.
+          destruct o as [w t|w t]; simpl;
+            [apply value_at_ops_ext; exact Hops_ext |
+             f_equal; apply value_at_ops_ext; exact Hops_ext].
+        + exact (interleave_internal_view E Hloc m1 ops1 ops2 c1 c2
+                   (st1 m_in t1) (st2 m_in t2) (asg1 m_in t1) (asg2 m_in t2) ps
+                   Hwf1 Hwf2 Hw).
+      - f_equal. apply map_over_id_val. }
+    set (mid_fn := fun '(t1, t2) =>
+      app (interleave_obs E c1 c2 ps (internal_view g1 E ps1 a t1)
+                                      (internal_view g2 E ps2 b t2))
+          (app (output_view g1 B1 a t1) (output_view g2 B2 b t2))).
+    assert (Hstep1 : SameDistribution
+      (counting (Tape p1 * Tape p2) (list_prod (tape_enum p1) (tape_enum p2)))
+      (list (Val m1)) (list_eqb (v_eqb m1))
+      (par_split_view g1 g2 eq_refl E ps B1 B2 a) mid_fn).
+    { apply counting_prod_right. intros t1 _.
+      pose proof (Hc2 _ (list_eqb (v_eqb m1)) _ _ (Hsim2 a b Hag2)) as Hdist2.
+      set (n_int2 := count_of (probe_set E c2 ps2)).
+      set (lift2 := fun (sv2 : list (Val m1)) =>
+        app (interleave_obs E c1 c2 ps (internal_view g1 E ps1 a t1)
+               (ProofSupport.take_of n_int2 sv2))
+            (app (output_view g1 B1 a t1) (ProofSupport.drop_of n_int2 sv2))).
+      assert (Hlift2_a : forall t2,
+        lift2 (split_view g2 E ps2 B2 a t2) =
+        par_split_view g1 g2 eq_refl E ps B1 B2 a (t1, t2)).
+      { intros t2. rewrite Hpar_eq. unfold lift2, split_view. cbv beta.
+        destruct (take_drop_exact n_int2 (internal_view g2 E ps2 a t2) (output_view g2 B2 a t2)
+                    ltac:(unfold internal_view, n_int2; repeat rewrite count_of_is_length;
+                          rewrite map_over_is_map, length_map; reflexivity))
+          as [Ht Hd]. f_equal; [f_equal; exact Ht | f_equal; exact Hd]. }
+      assert (Hlift2_b : forall t2,
+        lift2 (split_view g2 E ps2 B2 b t2) = mid_fn (t1, t2)).
+      { intros t2. unfold lift2, mid_fn, split_view. cbv beta.
+        destruct (take_drop_exact n_int2 (internal_view g2 E ps2 b t2) (output_view g2 B2 b t2)
+                    ltac:(unfold internal_view, n_int2; repeat rewrite count_of_is_length;
+                          rewrite map_over_is_map, length_map; reflexivity))
+          as [Ht Hd]. f_equal; [f_equal; exact Ht | f_equal; exact Hd]. }
+      intros o.
+      eapply eq_trans; [|eapply eq_trans; [exact (counting_pushforward (Tape p2) (tape_enum p2)
+        (list (Val m1)) (list (Val m1)) (list_eqb (v_eqb m1)) (list_eqb (v_eqb m1))
+        (split_view g2 E ps2 B2 a) (split_view g2 E ps2 B2 b) lift2
+        (list_eqb_sound m1) (list_eqb_refl_sharing m1) Hdist2 o)|]].
+      - apply pr_ext. intros t2. rewrite Hlift2_a. reflexivity.
+      - apply pr_ext. intros t2. rewrite Hlift2_b. reflexivity. }
+    assert (Hstep2 : SameDistribution
+      (counting (Tape p1 * Tape p2) (list_prod (tape_enum p1) (tape_enum p2)))
+      (list (Val m1)) (list_eqb (v_eqb m1))
+      mid_fn (par_split_view g1 g2 eq_refl E ps B1 B2 b)).
+    { apply counting_prod_left. intros t2 _.
+      pose proof (Hc1 _ (list_eqb (v_eqb m1)) _ _ (Hsim1 a b Hag1)) as Hdist1.
+      set (n_int1 := count_of (probe_set E c1 ps1)).
+      set (lift1 := fun (sv1 : list (Val m1)) =>
+        app (interleave_obs E c1 c2 ps (ProofSupport.take_of n_int1 sv1)
+               (internal_view g2 E ps2 b t2))
+            (app (ProofSupport.drop_of n_int1 sv1) (output_view g2 B2 b t2))).
+      assert (Hlift1_a : forall t1,
+        lift1 (split_view g1 E ps1 B1 a t1) = mid_fn (t1, t2)).
+      { intros t1. unfold lift1, mid_fn, split_view. cbv beta.
+        destruct (take_drop_exact n_int1 (internal_view g1 E ps1 a t1) (output_view g1 B1 a t1)
+                    ltac:(unfold internal_view, n_int1; repeat rewrite count_of_is_length;
+                          rewrite map_over_is_map, length_map; reflexivity))
+          as [Ht Hd]. f_equal; [f_equal; exact Ht | f_equal; exact Hd]. }
+      assert (Hlift1_b : forall t1,
+        lift1 (split_view g1 E ps1 B1 b t1) =
+        par_split_view g1 g2 eq_refl E ps B1 B2 b (t1, t2)).
+      { intros t1. rewrite Hpar_eq. unfold lift1, split_view. cbv beta.
+        destruct (take_drop_exact n_int1 (internal_view g1 E ps1 b t1) (output_view g1 B1 b t1)
+                    ltac:(unfold internal_view, n_int1; repeat rewrite count_of_is_length;
+                          rewrite map_over_is_map, length_map; reflexivity))
+          as [Ht Hd]. f_equal; [f_equal; exact Ht | f_equal; exact Hd]. }
+      intros o.
+      eapply eq_trans; [|eapply eq_trans; [exact (counting_pushforward (Tape p1) (tape_enum p1)
+        (list (Val m1)) (list (Val m1)) (list_eqb (v_eqb m1)) (list_eqb (v_eqb m1))
+        (split_view g1 E ps1 B1 a) (split_view g1 E ps1 B1 b) lift1
+        (list_eqb_sound m1) (list_eqb_refl_sharing m1) Hdist1 o)|]].
+      - apply pr_ext. intros t1. rewrite Hlift1_a. reflexivity.
+      - apply pr_ext. intros t1. rewrite Hlift1_b. reflexivity. }
+    intros o. exact (eq_trans (Hstep1 o) (Hstep2 o)).
+Qed.
+
+(* Uniform-domain PINI (`StrongPINI`), where the same share-index set I_dom
+   covers all inputs and therefore composes across arbitrary DAGs with fan-out. *)
+Definition StrongPINI (g : Gadget) (E : Expansion) (d : nat) : Prop :=
+  forall (ps : list Probe) (B : nat -> bool),
+    wires_exist (gd_circuit g) (map_over p_wire ps) = true ->
+    Nat.leb (count_of ps) d = true ->
+    exists I_dom : nat -> bool,
+      Nat.leb (count_of (filter_of I_dom (upto (gd_shares g)))) (count_of ps) = true /\
+      SimulableFrom g (union_shares (fun _ k => I_dom k) B) (split_view g E ps B).
+
+(*| discharges: R-05-004a, R-15-053a |*)
+Theorem strong_pini_implies_pini :
+  forall (g : Gadget) (E : Expansion) (d : nat),
+    StrongPINI g E d -> PINI g E d.
+Proof.
+  intros g E d Hs ps B Hw Hord.
+  destruct (Hs ps B Hw Hord) as [I_dom [Hcnt Hsim]].
+  exists (fun _ k => I_dom k). split; [|exact Hsim].
+  intros j _. exact Hcnt.
+Qed.
+
+
+
+
+
+
