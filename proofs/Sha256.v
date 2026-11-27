@@ -923,7 +923,13 @@ Proof. vm_reflexivity. Qed.
 
 Example the_byte_reversed_length_agrees_at_the_empty_message :
   bits_eqb (sha256_with_a_byte_reversed_length nil) (sha256 nil) = true.
-Proof. vm_reflexivity. Qed.
+Proof.
+  assert (Hrefl : forall l : list bool, bits_eqb l l = true).
+  { induction l as [| [|] l IH]; [reflexivity | exact IH | exact IH]. }
+  assert (Hpad : pad_with_a_byte_reversed_length nil = pad nil) by vm_reflexivity.
+  unfold sha256_with_a_byte_reversed_length, sha256, sha256_over.
+  rewrite Hpad. exact (Hrefl _).
+Qed.
 
 Example the_exchanged_sigmas_miss_the_published_digest :
   bits_eqb (sha256_with_the_sigmas_exchanged abc) (sha256 abc) = false.
@@ -1234,7 +1240,19 @@ Example the_truncating_hmac_agrees_at_every_key_within_the_block :
   all_of (fun c => bits_eqb (hmac_with_the_long_key_truncated (fst c) (snd c))
                             (hmac_sha256 (fst c) (snd c)))
          short_key_cases = true.
-Proof. vm_reflexivity. Qed.
+Proof.
+  assert (Hrefl : forall l : list bool, bits_eqb l l = true).
+  { induction l as [| [|] l IH]; [reflexivity | exact IH | exact IH]. }
+  assert (Hshort : forall k m : list bool,
+    Nat.ltb block_bits (length_of k) = false ->
+    bits_eqb (hmac_with_the_long_key_truncated k m) (hmac_sha256 k m) = true).
+  { intros k m Hlt.
+    unfold hmac_with_the_long_key_truncated, hmac_sha256, hmac_over, hmac_key_over.
+    rewrite Hlt. exact (Hrefl _). }
+  unfold short_key_cases, all_of, fst, snd.
+  repeat (rewrite Hshort; [| vm_reflexivity]).
+  reflexivity.
+Qed.
 
 Example the_truncating_hmac_parts_at_every_key_beyond_the_block :
   all_of (fun c => negb (bits_eqb (hmac_with_the_long_key_truncated (fst c) (snd c))
