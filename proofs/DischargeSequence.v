@@ -2184,4 +2184,646 @@ Example the_refused_retained_domain_runs_the_exit_path :
 
 Definition witness_Machine : Machine := demo.
 
+(* =========================================================================
+   R-15-190b loader-filled OFF-image extents on chain re-execution.
+
+   On a chain execution (cold boot, unlock wake, standby exit, install
+   commit, or explicit reboot), a RETAINED image-derived domain is
+   re-verified in place via `spec_reentry_reader` with no discharge and no
+   byte rewritten, whereas an OFF image-derived domain is discharged and
+   sanitized first and has its extents (executable and data alike) filled
+   and verified by the R-09-006 RoT loader after domain tag discharge /
+   data sanitization and before execution release (`MeasuredExecution`).
+   ========================================================================= *)
+
+Inductive OffExtentKind : Type :=
+| OffExecExtent
+| OffDataExtent.
+
+Record OffImageConfig : Type := {
+  off_domain_phases : list nat;
+  off_extent_count : nat;
+  off_extent_kind : nat -> OffExtentKind;
+  off_extent_filled : nat -> bool;
+  off_extent_verified : nat -> bool
+}.
+
+Inductive ChainStep : Type :=
+| CS_Base (s : Step)
+| CS_LoaderFill (e : nat)
+| CS_ExtentVerified (e : nat).
+
+Definition cs_eqb (p q : ChainStep) : bool :=
+  match p, q with
+  | CS_Base s1, CS_Base s2 => step_eqb s1 s2
+  | CS_LoaderFill e1, CS_LoaderFill e2 => Nat.eqb e1 e2
+  | CS_ExtentVerified e1, CS_ExtentVerified e2 => Nat.eqb e1 e2
+  | _, _ => false
+  end.
+
+Lemma cs_eqb_refl : forall p : ChainStep, cs_eqb p p = true.
+Proof.
+  intros p. destruct p as [ s | e | e ]; simpl.
+  - apply step_eqb_refl.
+  - apply nat_eqb_refl.
+  - apply nat_eqb_refl.
+Qed.
+
+Lemma cs_eqb_true : forall p q : ChainStep, cs_eqb p q = true -> p = q.
+Proof.
+  intros p q. destruct p as [ s1 | e1 | e1 ]; destruct q as [ s2 | e2 | e2 ];
+    simpl; intros H; try discriminate H.
+  - rewrite (step_eqb_true s1 s2 H). reflexivity.
+  - rewrite (nat_eqb_true e1 e2 H). reflexivity.
+  - rewrite (nat_eqb_true e1 e2 H). reflexivity.
+Qed.
+
+Lemma cs_eqb_sym : forall p q : ChainStep, cs_eqb p q = cs_eqb q p.
+Proof.
+  intros p q. destruct p as [ s1 | e1 | e1 ]; destruct q as [ s2 | e2 | e2 ];
+    simpl; try reflexivity.
+  - apply step_eqb_sym.
+  - apply nat_eqb_sym.
+  - apply nat_eqb_sym.
+Qed.
+
+Fixpoint cs_occurs (s : ChainStep) (l : list ChainStep) : bool :=
+  match l with
+  | nil => false
+  | cons x r => orb (cs_eqb s x) (cs_occurs s r)
+  end.
+
+Fixpoint cs_precedes (p q : ChainStep) (l : list ChainStep) : bool :=
+  match l with
+  | nil => false
+  | cons x r =>
+      if cs_eqb q x then false
+      else if cs_eqb p x then cs_occurs q r
+      else cs_precedes p q r
+  end.
+
+Lemma cs_occurs_app :
+  forall (s : ChainStep) (a b : list ChainStep),
+    cs_occurs s (app a b) = orb (cs_occurs s a) (cs_occurs s b).
+Proof.
+  intros s a b. induction a as [ | x r IH ]; simpl.
+  - reflexivity.
+  - rewrite IH. destruct (cs_eqb s x); reflexivity.
+Qed.
+
+Lemma cs_precedes_occurs :
+  forall (p q : ChainStep) (l : list ChainStep),
+    cs_precedes p q l = true -> cs_occurs q l = true.
+Proof.
+  intros p q l. induction l as [ | x r IH ]; simpl; intros H.
+  - discriminate H.
+  - destruct (cs_eqb q x); simpl in *.
+    + discriminate H.
+    + destruct (cs_eqb p x); [ exact H | exact (IH H) ].
+Qed.
+
+Lemma cs_precedes_occurs_left :
+  forall (p q : ChainStep) (l : list ChainStep),
+    cs_precedes p q l = true -> cs_occurs p l = true.
+Proof.
+  intros p q l. induction l as [ | x r IH ]; simpl; intros H.
+  - discriminate H.
+  - destruct (cs_eqb q x); simpl in *.
+    + discriminate H.
+    + destruct (cs_eqb p x); [ reflexivity | exact (IH H) ].
+Qed.
+
+Lemma cs_precedes_trans :
+  forall (p q s : ChainStep) (l : list ChainStep),
+    cs_precedes p q l = true -> cs_precedes q s l = true ->
+    cs_precedes p s l = true.
+Proof.
+  intros p q s l. induction l as [ | x r IH ]; simpl; intros H1 H2.
+  - discriminate H1.
+  - destruct (cs_eqb q x); simpl in *.
+    + discriminate H1.
+    + destruct (cs_eqb s x); simpl in *.
+      * discriminate H2.
+      * destruct (cs_eqb p x); [ exact (cs_precedes_occurs q s r H2) | exact (IH H1 H2) ].
+Qed.
+
+Lemma cs_precedes_app_left :
+  forall (p q : ChainStep) (a b : list ChainStep),
+    cs_precedes p q a = true -> cs_precedes p q (app a b) = true.
+Proof.
+  intros p q a b. induction a as [ | x r IH ]; simpl; intros H.
+  - discriminate H.
+  - destruct (cs_eqb q x); [ discriminate H | ].
+    destruct (cs_eqb p x).
+    + rewrite cs_occurs_app. rewrite H. reflexivity.
+    + exact (IH H).
+Qed.
+
+Lemma cs_precedes_prefix :
+  forall (p q : ChainStep) (a b : list ChainStep),
+    cs_occurs p a = false -> cs_occurs q a = false ->
+    cs_precedes p q b = true -> cs_precedes p q (app a b) = true.
+Proof.
+  intros p q a b. induction a as [ | x r IH ]; simpl; intros Hp Hq H.
+  - exact H.
+  - destruct (orb_split _ _ Hp) as [ Hpx Hpr ].
+    destruct (orb_split _ _ Hq) as [ Hqx Hqr ].
+    rewrite Hqx. rewrite Hpx. exact (IH Hpr Hqr H).
+Qed.
+
+Lemma cs_precedes_split_app :
+  forall (p q : ChainStep) (a b : list ChainStep),
+    cs_occurs q a = false -> cs_occurs p a = true -> cs_occurs q b = true ->
+    cs_precedes p q (app a b) = true.
+Proof.
+  intros p q a b. induction a as [ | x r IH ]; simpl; intros Hqa Hpa Hqb.
+  - discriminate Hpa.
+  - destruct (orb_split _ _ Hqa) as [ Hqx Hqr ]. rewrite Hqx.
+    destruct (cs_eqb p x) eqn:Epx; simpl in *.
+    + rewrite cs_occurs_app. rewrite Hqb. destruct (cs_occurs q r); reflexivity.
+    + exact (IH Hqr Hpa Hqb).
+Qed.
+
+Lemma all_of_upto_mem :
+  forall (p : nat -> bool) (n k : nat),
+    all_of p (upto n) = true -> Nat.ltb k n = true -> p k = true.
+Proof.
+  intros p n k Hall Hlt.
+  assert (Hm : mem_nat k (upto n) = true) by (rewrite mem_upto; exact Hlt).
+  exact (all_of_at_mem p (upto n) k Hall Hm).
+Qed.
+
+Lemma all_of_upto_intro :
+  forall (p : nat -> bool) (n : nat),
+    (forall k : nat, Nat.ltb k n = true -> p k = true) ->
+    all_of p (upto n) = true.
+Proof.
+  intros p n. induction n as [ | k IH ]; intros H.
+  - reflexivity.
+  - simpl. rewrite all_of_app. apply andb_join.
+    + apply IH. intros j Hj. apply H. rewrite nat_ltb_S. rewrite Hj. reflexivity.
+    + simpl. apply andb_join; [ | reflexivity ].
+      apply H. rewrite nat_ltb_S. rewrite nat_eqb_refl.
+      destruct (Nat.ltb k k); reflexivity.
+Qed.
+
+Definition off_image_extents_ready (cfg : OffImageConfig) : bool :=
+  all_of (fun e => andb (cfg.(off_extent_filled) e) (cfg.(off_extent_verified) e))
+         (upto cfg.(off_extent_count)).
+
+Fixpoint loader_fill_steps (es : list nat) : list ChainStep :=
+  match es with
+  | nil => nil
+  | cons e rest => cons (CS_LoaderFill e) (cons (CS_ExtentVerified e) (loader_fill_steps rest))
+  end.
+
+Definition off_image_chain_seq (cfg : OffImageConfig) (r : Readings) : list ChainStep :=
+  cons (CS_Base RequestersInReset)
+       (app (map_over CS_Base (staggered r cfg.(off_domain_phases)
+                                 (cons DomainAddressable (cons ResidueConfirmed nil))))
+            (if all_of r cfg.(off_domain_phases)
+             then app (loader_fill_steps (upto cfg.(off_extent_count)))
+                      (cons (CS_Base MeasuredExecution) nil)
+             else nil)).
+
+Definition off_image_extent_ok (cfg : OffImageConfig) (l : list ChainStep) (e : nat) : bool :=
+  andb (cs_precedes (CS_Base ResidueConfirmed) (CS_LoaderFill e) l)
+       (andb (cs_precedes (CS_LoaderFill e) (CS_ExtentVerified e) l)
+             (cs_precedes (CS_ExtentVerified e) (CS_Base MeasuredExecution) l)).
+
+Definition off_image_phases_ok (cfg : OffImageConfig) (l : list ChainStep) : bool :=
+  all_of (fun k => andb (cs_precedes (CS_Base (PhaseDischarge k)) (CS_Base (PhaseRead k)) l)
+                        (cs_precedes (CS_Base (PhaseRead k)) (CS_Base ResidueConfirmed) l))
+         cfg.(off_domain_phases).
+
+Definition off_image_table_ok (cfg : OffImageConfig) (l : list ChainStep) : bool :=
+  andb (off_image_extents_ready cfg)
+       (andb (cs_precedes (CS_Base RequestersInReset) (CS_Base DomainAddressable) l)
+             (andb (cs_precedes (CS_Base DomainAddressable) (CS_Base ResidueConfirmed) l)
+                   (andb (cs_precedes (CS_Base ResidueConfirmed) (CS_Base MeasuredExecution) l)
+                         (andb (off_image_phases_ok cfg l)
+                               (all_of (off_image_extent_ok cfg l) (upto cfg.(off_extent_count))))))).
+
+Definition OffImageTableAdmitted (cfg : OffImageConfig) (l : list ChainStep) : Prop :=
+  off_image_extents_ready cfg = true
+  /\ cs_precedes (CS_Base RequestersInReset) (CS_Base DomainAddressable) l = true
+  /\ cs_precedes (CS_Base DomainAddressable) (CS_Base ResidueConfirmed) l = true
+  /\ cs_precedes (CS_Base ResidueConfirmed) (CS_Base MeasuredExecution) l = true
+  /\ (forall k : nat,
+        mem_nat k cfg.(off_domain_phases) = true ->
+        cs_precedes (CS_Base (PhaseDischarge k)) (CS_Base (PhaseRead k)) l = true
+        /\ cs_precedes (CS_Base (PhaseRead k)) (CS_Base ResidueConfirmed) l = true)
+  /\ (forall e : nat,
+        Nat.ltb e cfg.(off_extent_count) = true ->
+        cs_precedes (CS_Base ResidueConfirmed) (CS_LoaderFill e) l = true
+        /\ cs_precedes (CS_LoaderFill e) (CS_ExtentVerified e) l = true
+        /\ cs_precedes (CS_ExtentVerified e) (CS_Base MeasuredExecution) l = true).
+
+(*| discharges: R-15-190b, R-15-247d |*)
+Lemma off_image_table_ok_sound :
+  forall (cfg : OffImageConfig) (l : list ChainStep),
+    off_image_table_ok cfg l = true -> OffImageTableAdmitted cfg l.
+Proof.
+  intros cfg l H. unfold off_image_table_ok in H.
+  destruct (andb_split _ _ H) as [ Hready H1 ].
+  destruct (andb_split _ _ H1) as [ Hrst H2 ].
+  destruct (andb_split _ _ H2) as [ Haddr H3 ].
+  destruct (andb_split _ _ H3) as [ Hres H4 ].
+  destruct (andb_split _ _ H4) as [ Hph Hexts ].
+  unfold OffImageTableAdmitted.
+  split; [ exact Hready | ].
+  split; [ exact Hrst | ].
+  split; [ exact Haddr | ].
+  split; [ exact Hres | ].
+  split.
+  - intros k Hk. unfold off_image_phases_ok in Hph.
+    exact (andb_split _ _ (all_of_at_mem _ cfg.(off_domain_phases) k Hph Hk)).
+  - intros e He. unfold off_image_extent_ok in Hexts.
+    assert (Heok := all_of_upto_mem _ cfg.(off_extent_count) e Hexts He). cbv beta in Heok.
+    destruct (andb_split _ _ Heok) as [ Ha Hb ].
+    destruct (andb_split _ _ Hb) as [ Hc Hd ].
+    split; [ exact Ha | split; [ exact Hc | exact Hd ] ].
+Qed.
+
+(*| discharges: R-15-190b, R-15-247d |*)
+Lemma off_image_table_ok_complete :
+  forall (cfg : OffImageConfig) (l : list ChainStep),
+    OffImageTableAdmitted cfg l -> off_image_table_ok cfg l = true.
+Proof.
+  intros cfg l [ Hready [ Hrst [ Haddr [ Hres [ Hph Hexts ] ] ] ] ].
+  unfold off_image_table_ok.
+  apply andb_join; [ exact Hready | ].
+  apply andb_join; [ exact Hrst | ].
+  apply andb_join; [ exact Haddr | ].
+  apply andb_join; [ exact Hres | ].
+  apply andb_join.
+  - unfold off_image_phases_ok. apply all_of_by_mem. intros k Hk.
+    destruct (Hph k Hk) as [ H1 H2 ]. apply andb_join; [ exact H1 | exact H2 ].
+  - apply all_of_upto_intro. intros e He. unfold off_image_extent_ok.
+    destruct (Hexts e He) as [ H1 [ H2 H3 ] ].
+    apply andb_join; [ exact H1 | apply andb_join; [ exact H2 | exact H3 ] ].
+Qed.
+
+(*| discharges: R-15-190b, R-15-247d |*)
+Theorem off_image_extent_requires_loader_fill_before_exec :
+  forall (cfg : OffImageConfig) (l : list ChainStep) (e : nat),
+    off_image_table_ok cfg l = true ->
+    Nat.ltb e cfg.(off_extent_count) = true ->
+    cs_precedes (CS_Base ResidueConfirmed) (CS_LoaderFill e) l = true
+    /\ cs_precedes (CS_LoaderFill e) (CS_ExtentVerified e) l = true
+    /\ cs_precedes (CS_ExtentVerified e) (CS_Base MeasuredExecution) l = true
+    /\ cs_precedes (CS_LoaderFill e) (CS_Base MeasuredExecution) l = true
+    /\ (forall k : nat,
+          mem_nat k cfg.(off_domain_phases) = true ->
+          cs_precedes (CS_Base (PhaseRead k)) (CS_LoaderFill e) l = true).
+Proof.
+  intros cfg l e Hok He.
+  destruct (off_image_table_ok_sound cfg l Hok) as [ _ [ _ [ _ [ _ [ Hph Hexts ] ] ] ] ].
+  destruct (Hexts e He) as [ Hres_fill [ Hfill_ver Hver_exec ] ].
+  split; [ exact Hres_fill | ].
+  split; [ exact Hfill_ver | ].
+  split; [ exact Hver_exec | ].
+  split.
+  - exact (cs_precedes_trans _ _ _ l Hfill_ver Hver_exec).
+  - intros k Hk. destruct (Hph k Hk) as [ _ Hread_res ].
+    exact (cs_precedes_trans _ _ _ l Hread_res Hres_fill).
+Qed.
+
+Lemma cs_occurs_map_base :
+  forall (s : Step) (l : list Step),
+    cs_occurs (CS_Base s) (map_over CS_Base l) = occurs s l.
+Proof.
+  intros s l. induction l as [ | x r IH ]; simpl.
+  - reflexivity.
+  - rewrite IH. reflexivity.
+Qed.
+
+Lemma cs_occurs_fill_map_base :
+  forall (e : nat) (l : list Step),
+    cs_occurs (CS_LoaderFill e) (map_over CS_Base l) = false.
+Proof.
+  intros e l. induction l as [ | x r IH ]; simpl; [ reflexivity | exact IH ].
+Qed.
+
+Lemma cs_occurs_ver_map_base :
+  forall (e : nat) (l : list Step),
+    cs_occurs (CS_ExtentVerified e) (map_over CS_Base l) = false.
+Proof.
+  intros e l. induction l as [ | x r IH ]; simpl; [ reflexivity | exact IH ].
+Qed.
+
+Lemma cs_occurs_base_loader_fill :
+  forall (s : Step) (es : list nat),
+    cs_occurs (CS_Base s) (loader_fill_steps es) = false.
+Proof.
+  intros s es. induction es as [ | e r IH ]; simpl; [ reflexivity | exact IH ].
+Qed.
+
+Lemma cs_occurs_fill_loader_fill :
+  forall (e : nat) (es : list nat),
+    cs_occurs (CS_LoaderFill e) (loader_fill_steps es) = mem_nat e es.
+Proof.
+  intros e es. induction es as [ | k r IH ]; simpl.
+  - reflexivity.
+  - rewrite IH. destruct (Nat.eqb e k); reflexivity.
+Qed.
+
+Lemma cs_occurs_ver_loader_fill :
+  forall (e : nat) (es : list nat),
+    cs_occurs (CS_ExtentVerified e) (loader_fill_steps es) = mem_nat e es.
+Proof.
+  intros e es. induction es as [ | k r IH ]; simpl.
+  - reflexivity.
+  - rewrite IH. destruct (Nat.eqb e k); reflexivity.
+Qed.
+
+Lemma cs_precedes_map_base :
+  forall (p q : Step) (l : list Step),
+    precedes p q l = true ->
+    cs_precedes (CS_Base p) (CS_Base q) (map_over CS_Base l) = true.
+Proof.
+  intros p q l. induction l as [ | x r IH ]; simpl; intros H.
+  - discriminate H.
+  - destruct (step_eqb q x); simpl in *.
+    + discriminate H.
+    + destruct (step_eqb p x).
+      * rewrite cs_occurs_map_base. exact H.
+      * exact (IH H).
+Qed.
+
+Lemma cs_precedes_fill_verified :
+  forall (e : nat) (es : list nat),
+    nodup_nat es = true ->
+    mem_nat e es = true ->
+    cs_precedes (CS_LoaderFill e) (CS_ExtentVerified e) (loader_fill_steps es) = true.
+Proof.
+  intros e es. induction es as [ | k r IH ]; simpl; intros Hnd Hm.
+  - discriminate Hm.
+  - destruct (andb_split _ _ Hnd) as [ Hk Hr ]. apply negb_true in Hk.
+    destruct (Nat.eqb e k) eqn:E.
+    + reflexivity.
+    + simpl in Hm. exact (IH Hr Hm).
+Qed.
+
+Lemma occurs_phase_chain_tail :
+  forall (s : Step) (ks : list nat) (tail : list Step),
+    names_a_phase ks s = false ->
+    occurs s (phase_chain ks tail) = occurs s tail.
+Proof.
+  intros s ks tail H.
+  rewrite <- (staggered_positive all_positive ks tail (all_of_true nat ks)).
+  rewrite (occurs_staggered_absent s all_positive ks tail H).
+  unfold all_positive. rewrite (all_of_true nat ks). reflexivity.
+Qed.
+
+Lemma precedes_phase_chain_tail :
+  forall (p q : Step) (ks : list nat) (tail : list Step),
+    names_a_phase ks p = false ->
+    names_a_phase ks q = false ->
+    precedes p q tail = true ->
+    precedes p q (phase_chain ks tail) = true.
+Proof.
+  intros p q ks tail Hp Hq Htail.
+  induction ks as [ | k rest IH ]; simpl.
+  - exact Htail.
+  - destruct p; simpl in Hp; try (destruct (orb_split _ _ Hp) as [ Hpk Hpr ]);
+      destruct q; simpl in Hq; try (destruct (orb_split _ _ Hq) as [ Hqk Hqr ]);
+      simpl;
+      first [ rewrite Hpk, Hqk; exact (IH Hpr Hqr)
+            | rewrite Hpk; exact (IH Hpr Hq)
+            | rewrite Hqk; exact (IH Hp Hqr)
+            | exact (IH Hp Hq) ].
+Qed.
+
+Lemma precedes_phase_discharge_read :
+  forall (k : nat) (ks : list nat) (tail : list Step),
+    mem_nat k ks = true ->
+    precedes (PhaseDischarge k) (PhaseRead k) (phase_chain ks tail) = true.
+Proof.
+  intros k ks tail. induction ks as [ | j rest IH ]; simpl; intros Hm.
+  - discriminate Hm.
+  - destruct (Nat.eqb k j) eqn:E.
+    + reflexivity.
+    + simpl in Hm. exact (IH Hm).
+Qed.
+
+Lemma precedes_phase_read_to_tail :
+  forall (k : nat) (q : Step) (ks : list nat) (tail : list Step),
+    names_a_phase ks q = false ->
+    mem_nat k ks = true ->
+    occurs q tail = true ->
+    precedes (PhaseRead k) q (phase_chain ks tail) = true.
+Proof.
+  intros k q ks tail Hq Hm Htail.
+  induction ks as [ | j rest IH ]; simpl in *.
+  - discriminate Hm.
+  - destruct q; simpl in Hq;
+      try (destruct (orb_split _ _ Hq) as [ Hqj Hqr ]);
+      simpl.
+    + destruct (Nat.eqb k j); [ rewrite occurs_phase_chain_tail; [ exact Htail | exact Hq ] | exact (IH Hq Hm) ].
+    + rewrite Hqj. destruct (Nat.eqb k j).
+      * rewrite occurs_phase_chain_tail; [ exact Htail | exact Hqr ].
+      * exact (IH Hqr Hm).
+    + rewrite Hqj. destruct (Nat.eqb k j).
+      * rewrite occurs_phase_chain_tail; [ exact Htail | exact Hqr ].
+      * exact (IH Hqr Hm).
+    + rewrite Hqj. destruct (Nat.eqb k j).
+      * rewrite occurs_phase_chain_tail; [ exact Htail | exact Hqr ].
+      * exact (IH Hqr Hm).
+    + destruct (Nat.eqb k j); [ rewrite occurs_phase_chain_tail; [ exact Htail | exact Hq ] | exact (IH Hq Hm) ].
+    + destruct (Nat.eqb k j); [ rewrite occurs_phase_chain_tail; [ exact Htail | exact Hq ] | exact (IH Hq Hm) ].
+    + destruct (Nat.eqb k j); [ rewrite occurs_phase_chain_tail; [ exact Htail | exact Hq ] | exact (IH Hq Hm) ].
+    + destruct (Nat.eqb k j); [ rewrite occurs_phase_chain_tail; [ exact Htail | exact Hq ] | exact (IH Hq Hm) ].
+    + destruct (Nat.eqb k j); [ rewrite occurs_phase_chain_tail; [ exact Htail | exact Hq ] | exact (IH Hq Hm) ].
+    + destruct (Nat.eqb k j); [ rewrite occurs_phase_chain_tail; [ exact Htail | exact Hq ] | exact (IH Hq Hm) ].
+Qed.
+
+(*| discharges: R-15-190b, R-15-247d |*)
+Theorem off_image_chain_seq_admitted :
+  forall cfg : OffImageConfig,
+    off_image_extents_ready cfg = true ->
+    off_image_table_ok cfg (off_image_chain_seq cfg all_positive) = true.
+Proof.
+  intros cfg Hready. apply off_image_table_ok_complete.
+  unfold off_image_chain_seq.
+  rewrite (staggered_positive all_positive cfg.(off_domain_phases)
+             (cons DomainAddressable (cons ResidueConfirmed nil))
+             (all_of_true nat cfg.(off_domain_phases))).
+  unfold all_positive. rewrite (all_of_true nat cfg.(off_domain_phases)).
+  set (chain := phase_chain cfg.(off_domain_phases)
+                  (cons DomainAddressable (cons ResidueConfirmed nil))).
+  set (mid := map_over CS_Base chain).
+  set (fills := loader_fill_steps (upto cfg.(off_extent_count))).
+  set (tail := app fills (cons (CS_Base MeasuredExecution) nil)).
+  assert (Haddr_mid : cs_occurs (CS_Base DomainAddressable) mid = true).
+  { unfold mid, chain. rewrite cs_occurs_map_base.
+    rewrite (occurs_phase_chain_tail DomainAddressable _ _ eq_refl). reflexivity. }
+  assert (Hres_mid : cs_occurs (CS_Base ResidueConfirmed) mid = true).
+  { unfold mid, chain. rewrite cs_occurs_map_base.
+    rewrite (occurs_phase_chain_tail ResidueConfirmed _ _ eq_refl). reflexivity. }
+  assert (Hexec_nmid : cs_occurs (CS_Base MeasuredExecution) mid = false).
+  { unfold mid, chain. rewrite cs_occurs_map_base.
+    rewrite (occurs_phase_chain_tail MeasuredExecution _ _ eq_refl). reflexivity. }
+  assert (Hexec_tail : cs_occurs (CS_Base MeasuredExecution) tail = true).
+  { unfold tail. rewrite cs_occurs_app. simpl.
+    destruct (cs_occurs (CS_Base MeasuredExecution) fills); reflexivity. }
+  unfold OffImageTableAdmitted.
+  split; [ exact Hready | ].
+  split; [ simpl; rewrite cs_occurs_app; rewrite Haddr_mid; reflexivity | ].
+  split; [ simpl; apply cs_precedes_app_left; unfold mid, chain; apply cs_precedes_map_base;
+           apply precedes_phase_chain_tail; reflexivity | ].
+  split; [ simpl; apply cs_precedes_split_app; assumption | ].
+  split.
+  - intros k Hk. split.
+    + simpl. apply cs_precedes_app_left. unfold mid, chain.
+      apply cs_precedes_map_base. exact (precedes_phase_discharge_read k _ _ Hk).
+    + simpl. apply cs_precedes_app_left. unfold mid, chain.
+      apply cs_precedes_map_base. apply precedes_phase_read_to_tail; [ reflexivity | exact Hk | reflexivity ].
+  - intros e He.
+    assert (Hm : mem_nat e (upto cfg.(off_extent_count)) = true)
+      by (rewrite mem_upto; exact He).
+    split.
+    + simpl. apply cs_precedes_split_app.
+      * unfold mid. apply cs_occurs_fill_map_base.
+      * exact Hres_mid.
+      * unfold tail. rewrite cs_occurs_app. unfold fills.
+        rewrite cs_occurs_fill_loader_fill. rewrite Hm. reflexivity.
+    + split.
+      * change (cons (CS_Base RequestersInReset) (app mid tail))
+          with (app (cons (CS_Base RequestersInReset) mid) tail).
+        apply cs_precedes_prefix.
+        -- simpl. unfold mid. apply cs_occurs_fill_map_base.
+        -- simpl. unfold mid. apply cs_occurs_ver_map_base.
+        -- unfold tail. apply cs_precedes_app_left. unfold fills.
+           exact (cs_precedes_fill_verified e (upto cfg.(off_extent_count))
+                    (nodup_upto cfg.(off_extent_count)) Hm).
+      * change (cons (CS_Base RequestersInReset) (app mid tail))
+          with (app (cons (CS_Base RequestersInReset) mid) tail).
+        apply cs_precedes_prefix.
+        -- simpl. unfold mid. apply cs_occurs_ver_map_base.
+        -- simpl. exact Hexec_nmid.
+        -- unfold tail. apply cs_precedes_split_app.
+           ++ unfold fills. apply cs_occurs_base_loader_fill.
+           ++ unfold fills. rewrite cs_occurs_ver_loader_fill. exact Hm.
+           ++ reflexivity.
+Qed.
+
+(* R-15-190b composition: a verified retained domain re-enters in place with
+   zero discharge while an OFF image-derived domain on the same chain
+   execution discharges, confirms sanitization, and is loader-filled and
+   verified before MeasuredExecution. *)
+(*| discharges: R-15-190b, R-15-247d, R-15-247t |*)
+Theorem retained_and_off_image_reentry_composition :
+  forall (m : Machine) (ver : ExtentVerdicts m) (tag : TagPlane m)
+         (r : Readings) (cfg : OffImageConfig),
+    spec_reentry_reader m ver tag = true ->
+    off_image_extents_ready cfg = true ->
+    occurs DomainAddressable (reentry_path_of m ver tag r) = true
+    /\ carries_no_discharge m (reentry_path_of m ver tag r) = true
+    /\ off_image_table_ok cfg (off_image_chain_seq cfg all_positive) = true
+    /\ (forall e : nat,
+          Nat.ltb e cfg.(off_extent_count) = true ->
+          cs_precedes (CS_Base ResidueConfirmed) (CS_LoaderFill e)
+                      (off_image_chain_seq cfg all_positive) = true
+          /\ cs_precedes (CS_LoaderFill e) (CS_Base MeasuredExecution)
+                         (off_image_chain_seq cfg all_positive) = true).
+Proof.
+  intros m ver tag r cfg Hret Hoff.
+  destruct (a_verified_retained_domain_is_released_in_place m ver tag r Hret) as [ Haddr Hnodis ].
+  assert (Htbl := off_image_chain_seq_admitted cfg Hoff).
+  split; [ exact Haddr | ].
+  split; [ exact Hnodis | ].
+  split; [ exact Htbl | ].
+  intros e He. split.
+  - destruct (off_image_extent_requires_loader_fill_before_exec cfg
+                (off_image_chain_seq cfg all_positive) e Htbl He) as [ H1 _ ].
+    exact H1.
+  - destruct (off_image_extent_requires_loader_fill_before_exec cfg
+                (off_image_chain_seq cfg all_positive) e Htbl He) as [ _ [ _ [ _ [ H4 _ ] ] ] ].
+    exact H4.
+Qed.
+
+(* Refutation: an unfilled, unverified, or post-execution OFF-image release
+   cannot be admitted, both parametrically and on concrete sequences. *)
+Lemma cs_precedes_antisym_false :
+  forall (p q : ChainStep) (l : list ChainStep),
+    cs_precedes p q l = true -> cs_precedes q p l = false.
+Proof.
+  intros p q l. induction l as [ | x r IH ]; simpl; intros H.
+  - reflexivity.
+  - destruct (cs_eqb q x) eqn:Eq; simpl in *.
+    + discriminate H.
+    + destruct (cs_eqb p x) eqn:Ep; simpl in *.
+      * reflexivity.
+      * exact (IH H).
+Qed.
+
+(*| discharges: R-15-190b, R-15-247d |*)
+Theorem unfilled_off_image_release_refused :
+  forall (cfg : OffImageConfig) (l : list ChainStep) (e : nat),
+    Nat.ltb e cfg.(off_extent_count) = true ->
+    (cs_occurs (CS_LoaderFill e) l = false
+     \/ cs_occurs (CS_ExtentVerified e) l = false
+     \/ cs_precedes (CS_Base MeasuredExecution) (CS_LoaderFill e) l = true
+     \/ cs_precedes (CS_LoaderFill e) (CS_Base ResidueConfirmed) l = true) ->
+    ~ OffImageTableAdmitted cfg l /\ off_image_table_ok cfg l = false.
+Proof.
+  intros cfg l e He Hbad.
+  assert (Hnot : ~ OffImageTableAdmitted cfg l).
+  { intros Hadm.
+    destruct Hadm as [ _ [ _ [ _ [ _ [ _ Hexts ] ] ] ] ].
+    destruct (Hexts e He) as [ Hres_fill [ Hfill_ver Hver_exec ] ].
+    destruct Hbad as [ Hnofill | [ Hnover | [ Hearly_exec | Hpre_san ] ] ].
+    - rewrite (cs_precedes_occurs _ _ l Hres_fill) in Hnofill. discriminate Hnofill.
+    - rewrite (cs_precedes_occurs _ _ l Hfill_ver) in Hnover. discriminate Hnover.
+    - assert (Hfe := cs_precedes_trans _ _ _ l Hfill_ver Hver_exec).
+      rewrite (cs_precedes_antisym_false _ _ l Hfe) in Hearly_exec.
+      discriminate Hearly_exec.
+    - rewrite (cs_precedes_antisym_false _ _ l Hres_fill) in Hpre_san.
+      discriminate Hpre_san. }
+  split; [ exact Hnot | ].
+  destruct (off_image_table_ok cfg l) eqn:E; [ | reflexivity ].
+  exfalso. exact (Hnot (off_image_table_ok_sound cfg l E)).
+Qed.
+
+(* Concrete witnesses for R-15-190b OFF-image extents (1 executable, 1 data). *)
+Definition demo_off_config : OffImageConfig := {|
+  off_domain_phases := cons 0 (cons 1 nil);
+  off_extent_count := 2;
+  off_extent_kind := fun e => match e with 0 => OffExecExtent | _ => OffDataExtent end;
+  off_extent_filled := fun _ => true;
+  off_extent_verified := fun _ => true
+|}.
+
+Definition demo_off_seq : list ChainStep :=
+  off_image_chain_seq demo_off_config all_positive.
+
+(* Refuted variant 1: executable extent 0 never filled by the loader. *)
+Definition unfilled_off_seq : list ChainStep :=
+  drop_at 9 demo_off_seq.
+
+(* Refuted variant 2: data extent 1 filled but never verified. *)
+Definition unverified_off_seq : list ChainStep :=
+  drop_at 12 demo_off_seq.
+
+(* Refuted variant 3: loader fill placed before ResidueConfirmed. *)
+Definition pre_sanitization_fill_seq : list ChainStep :=
+  swap_at 8 demo_off_seq.
+
+(* Refuted variant 4: MeasuredExecution placed before extent 1's fill/verify. *)
+Definition early_exec_off_seq : list ChainStep :=
+  swap_at 12 demo_off_seq.
+
+(*| discharges: R-15-190b, R-15-247d |*)
+Example demo_off_image_accepted_and_refuted :
+  off_image_table_ok demo_off_config demo_off_seq = true
+  /\ off_image_table_ok demo_off_config unfilled_off_seq = false
+  /\ off_image_table_ok demo_off_config unverified_off_seq = false
+  /\ off_image_table_ok demo_off_config pre_sanitization_fill_seq = false
+  /\ off_image_table_ok demo_off_config early_exec_off_seq = false :=
+  conj eq_refl (conj eq_refl (conj eq_refl (conj eq_refl eq_refl))).
+
+Definition witness_OffImageConfig : OffImageConfig := demo_off_config.
+
 (* R-05-164: `run.py proofs` audits the complete native inventory. *)
+
