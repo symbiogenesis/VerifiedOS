@@ -7,6 +7,18 @@ canonical-consumer acceptance remains owed.
 
 ## Retained evidence
 
+- [Canonical hart-0 TagConservativity recursive kernel and native assumption closure](../implementation/retained-evidence/q35p-canonical-conservativity-20261127/manifest.json),
+  SHA256 `86e7bf2fda88a47512833ec879df55663d843fc09a37330706b4ef20e234c9e2`.
+  Strict compilation of `TagInterpreter.v`, `TagConservativity.v`,
+  `CanonicalPhysicalCallerBridge.v`, and `CanonicalTagConservativity.v` against
+  the canonical hart-0 term (`rv64d_types`, `rv64d`, `riscv_extras`), native
+  `Print Assumptions` audit across all `1,038` enumerated declarations (`122` in
+  `CanonicalTagPlaneInst`, `145` in `CanonicalOldOutcomesInst`, `307` in
+  `CanonicalPhysicalCallerBridge`, and `464` in `CanonicalTagConservativity`,
+  all closed under the global context), full recursive `rocqchk -silent -o`
+  (`-norec` absent) on both `CanonicalPhysicalCallerBridge` and
+  `CanonicalTagConservativity` matching the exact `31` classified floating-point
+  axioms, bound inputs, installed-prefix comparison, and replay commands.
 - [Canonical hart-0 recursive kernel and native assumption closure](../implementation/retained-evidence/q35p-canonical-closure-20261126/manifest.json),
   SHA256 `0bebb10f9f6dd53d0af6bb3912fef8dbb0acc715e96a5b21bb38f04dae5dbf26`.
   Strict compilation of `TagInterpreter.v` and `CanonicalPhysicalCallerBridge.v`
@@ -315,6 +327,33 @@ changes). `candidate.json` binds `frozen_canonical_closure_manifest` to
 [Canonical hart-0 recursive kernel and native assumption closure](../implementation/retained-evidence/q35p-canonical-closure-20261126/manifest.json),
 SHA256 `0bebb10f9f6dd53d0af6bb3912fef8dbb0acc715e96a5b21bb38f04dae5dbf26`.
 
+[CanonicalTagConservativity.v](../../tools/sail-tag-outcomes/CanonicalTagConservativity.v)
+extends that canonical hart-0 closure to `TagConservativity`. It instantiates
+`CanonicalOldOutcomes := TagConservativity.OldOutcomes rv64d_types.Arch rv64d_types.Interface`,
+bridges `CanonicalPhysicalCallerBridge.T.run` to `CanonicalOldOutcomes.run_old`,
+and proves caller-level tag-preservation and conservativity lemmas over
+`rv64d.read_ram` and `rv64d.write_ram`: `read_ram kind (Physaddr addr) width false`
+equals `finish_read addr width kind default_meta`, is `tag_free`, steps via
+`MemRead` without emitting `TagRead`, and preserves `tags` unchanged; `write_ram`
+under a `MemWrite` refusal (`Err tt`) returns `false` without invoking
+`__WriteRAM_Meta` and preserves `tags` unchanged; and negative controls exclude
+`read_ram kind (Physaddr addr) width true`, `__ReadRAM_Meta`, and
+`__WriteRAM_Meta (zeros 64) 1 meta` from `CanonicalOldOutcomes.tag_free`.
+Re-running [the canonical closure driver](../../tools/sail-tag-outcomes/canonical_closure.py)
+strictly compiles all four authored modules, audits all `1,038` enumerated
+declarations under native `Print Assumptions` (`122` in `CanonicalTagPlaneInst`,
+`145` in `CanonicalOldOutcomesInst`, `307` in `CanonicalPhysicalCallerBridge`,
+and `464` in `CanonicalTagConservativity`, all `Closed under the global context`),
+and runs full recursive `rocqchk -silent -o` (`-norec` absent) on both
+`CanonicalPhysicalCallerBridge` (`26.088` seconds) and
+`CanonicalTagConservativity` (`24.429` seconds, `50.517` seconds total), both
+exiting `0` with only the exact `31` classified floating-point axioms (`0`
+`Stdlib.Reals`, `0` `Program.Wf`/`Values_lemmas`, `0` new tag, conservativity,
+or bridge axioms) and zero installed-prefix changes. `candidate.json` binds
+`frozen_canonical_conservativity_manifest` to
+[Canonical hart-0 TagConservativity recursive kernel and native assumption closure](../implementation/retained-evidence/q35p-canonical-conservativity-20261127/manifest.json),
+SHA256 `86e7bf2fda88a47512833ec879df55663d843fc09a37330706b4ef20e234c9e2`.
+
 ## Paired emulator emission
 
 The stock Sail plugin population and the population containing the patched Rocq
@@ -350,9 +389,11 @@ size with private support. Q35p's isolated 29-module support comparison, V1
 instance readings, native `Print Assumptions` audit, and four-partition
 recursive `rocqchk -silent -o` closure checkpoint are retained against the
 November inputs, and the canonical hart-0 closure replay extends native
-`Print Assumptions` (`429` closed declarations) and un-admitted recursive
-`rocqchk -silent -o` (`31` classified floating-point axioms, `F-480`) to
-`TagInterpreter` and `CanonicalPhysicalCallerBridge`. Q35p remains open for the
+`Print Assumptions` (`429` closed declarations in `q35p-canonical-closure-20261126`,
+extended to `1,038` closed declarations in `q35p-canonical-conservativity-20261127`)
+and un-admitted recursive `rocqchk -silent -o` (`31` classified floating-point
+axioms, `F-480`) to `TagInterpreter`, `TagConservativity`,
+`CanonicalPhysicalCallerBridge`, and `CanonicalTagConservativity`. Q35p remains open for the
 Q35q hosted support declaration census, the Q35o hosted emitter verdict, Q35n
 cold production carriage, Q35b whole-term replay and closure with qualified
 support, F-480 disposition of the `31` floating-point axioms, and repeating the

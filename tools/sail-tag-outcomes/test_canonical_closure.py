@@ -13,6 +13,9 @@ _HELPERS = runpy.run_path(str(Path(__file__).with_name("canonical_closure.py")))
 AUTHORED_CANONICAL_MODULES = cast(
     "tuple[str, ...]", _HELPERS["AUTHORED_CANONICAL_MODULES"],
 )
+KERNEL_CHECK_MODULES = cast(
+    "tuple[str, ...]", _HELPERS["KERNEL_CHECK_MODULES"],
+)
 EXPECTED_CANONICAL_FP_AXIOMS = cast(
     "tuple[str, ...]", _HELPERS["EXPECTED_CANONICAL_FP_AXIOMS"],
 )
@@ -28,6 +31,7 @@ canonical_inventory_query = _HELPERS["canonical_inventory_query"]
 canonical_assumption_query = _HELPERS["canonical_assumption_query"]
 audit_canonical_assumptions = _HELPERS["audit_canonical_assumptions"]
 verify_canonical_kernel_check = _HELPERS["verify_canonical_kernel_check"]
+build_canonical_kernel_report = _HELPERS["build_canonical_kernel_report"]
 verify_frozen_canonical_closure = _HELPERS["verify_frozen_canonical_closure"]
 
 
@@ -160,11 +164,22 @@ class CanonicalClosureControls(unittest.TestCase):
                 "CanonicalTagPlaneInst",
                 ["CanonicalTagPlaneInst.tag_get", "CanonicalTagPlaneInst.legal_read"],
             ),
+            "TagConservativity": (
+                "CanonicalOldOutcomesInst",
+                ["CanonicalOldOutcomesInst.tag_free_run_preserved"],
+            ),
             "CanonicalPhysicalCallerBridge": (
                 "CanonicalPhysicalCallerBridge",
                 [
                     "CanonicalPhysicalCallerBridge.read_ram_request_order",
                     "CanonicalPhysicalCallerBridge.write_ram_request_order",
+                ],
+            ),
+            "CanonicalTagConservativity": (
+                "CanonicalTagConservativity",
+                [
+                    "CanonicalTagConservativity.read_ram_no_meta_preserves_tags",
+                    "CanonicalTagConservativity.write_ram_refusal_run",
                 ],
             ),
         }
@@ -179,6 +194,12 @@ class CanonicalClosureControls(unittest.TestCase):
                     if mod == "TagInterpreter":
                         self.assertIn(
                             "Module CanonicalTagPlaneInst := TagInterpreter.TagPlane "
+                            "rv64d_types.Arch rv64d_types.Interface.",
+                            content,
+                        )
+                    elif mod == "TagConservativity":
+                        self.assertIn(
+                            "Module CanonicalOldOutcomesInst := TagConservativity.OldOutcomes "
                             "rv64d_types.Arch rv64d_types.Interface.",
                             content,
                         )
@@ -209,13 +230,20 @@ class CanonicalClosureControls(unittest.TestCase):
 
         report = audit_canonical_assumptions(AUTHORED_CANONICAL_MODULES, make_query())
         self.assertTrue(report["all_closed"])
-        self.assertEqual(report["total_declarations"], 4)
+        self.assertEqual(report["total_declarations"], 7)
         self.assertEqual(
             report["modules"]["TagInterpreter"]["query_target"], "CanonicalTagPlaneInst",
         )
         self.assertTrue(report["modules"]["TagInterpreter"]["instantiated_functor"])
+        self.assertEqual(
+            report["modules"]["TagConservativity"]["query_target"], "CanonicalOldOutcomesInst",
+        )
+        self.assertTrue(report["modules"]["TagConservativity"]["instantiated_functor"])
         self.assertFalse(
             report["modules"]["CanonicalPhysicalCallerBridge"]["instantiated_functor"],
+        )
+        self.assertFalse(
+            report["modules"]["CanonicalTagConservativity"]["instantiated_functor"],
         )
 
         with self.assertRaisesRegex(ValueError, "empty native inventory"):
@@ -226,18 +254,30 @@ class CanonicalClosureControls(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "non-closed declaration"):
             audit_canonical_assumptions(
                 AUTHORED_CANONICAL_MODULES,
-                make_query(axiom_symbol="CanonicalPhysicalCallerBridge.read_ram_request_order"),
+                make_query(axiom_symbol="CanonicalTagConservativity.write_ram_refusal_run"),
             )
 
         target_ti, inv_ti = canonical_inventory_query("TagInterpreter")
         self.assertEqual(target_ti, "CanonicalTagPlaneInst")
         self.assertIn("Require rv64d_types TagInterpreter.", inv_ti)
+        target_tc, inv_tc = canonical_inventory_query("TagConservativity")
+        self.assertEqual(target_tc, "CanonicalOldOutcomesInst")
+        self.assertIn("Require rv64d_types TagConservativity.", inv_tc)
         assump_ti = canonical_assumption_query(
             "TagInterpreter",
             [{"name": "CanonicalTagPlaneInst.tag_get", "type": "Prop",
               "assumptions": [], "claims": []}],
         )
         self.assertIn("Print Assumptions CanonicalTagPlaneInst.tag_get.", assump_ti)
+        assump_tc = canonical_assumption_query(
+            "TagConservativity",
+            [{"name": "CanonicalOldOutcomesInst.tag_free_run_preserved", "type": "Prop",
+              "assumptions": [], "claims": []}],
+        )
+        self.assertIn(
+            "Print Assumptions CanonicalOldOutcomesInst.tag_free_run_preserved.",
+            assump_tc,
+        )
 
     def test_recursive_kernel_check_and_refusals(self) -> None:
         self.assertEqual(len(EXPECTED_CANONICAL_FP_AXIOMS), 31)
@@ -300,6 +340,27 @@ class CanonicalClosureControls(unittest.TestCase):
                 portable_flags=portable_flags,
             )
 
+        argv_conservativity = [
+            "/opt/rocq/bin/rocqchk", *portable_flags, "CanonicalTagConservativity",
+        ]
+        conserv_report = verify_canonical_kernel_check(
+            argv_conservativity, 0, "", summary,
+            target_module="CanonicalTagConservativity",
+            portable_flags=portable_flags,
+            elapsed_seconds=11.0,
+        )
+        multi_report = build_canonical_kernel_report({
+            "CanonicalPhysicalCallerBridge": report,
+            "CanonicalTagConservativity": conserv_report,
+        })
+        self.assertEqual(multi_report["schema"], "verifiedos-canonical-tag-kernel-check/2")
+        self.assertEqual(multi_report["target_modules"], list(KERNEL_CHECK_MODULES))
+        self.assertEqual(multi_report["axiom_count"], 31)
+        self.assertEqual(multi_report["total_elapsed_seconds"], 23.5)
+
+        with self.assertRaisesRegex(ValueError, "target order"):
+            build_canonical_kernel_report({"CanonicalTagConservativity": conserv_report})
+
         # Refuse non-zero exit code.
         with self.assertRaisesRegex(ValueError, "failed"):
             verify_canonical_kernel_check(
@@ -324,7 +385,7 @@ class CanonicalClosureControls(unittest.TestCase):
             "schema": "verifiedos-canonical-tag-assumptions/1",
             "all_closed": True,
             "modules_audited": list(AUTHORED_CANONICAL_MODULES),
-            "total_declarations": 2,
+            "total_declarations": 4,
             "modules": {
                 "TagInterpreter": {
                     "module": "TagInterpreter",
@@ -336,6 +397,16 @@ class CanonicalClosureControls(unittest.TestCase):
                     "non_closed": [],
                     "symbols": ["CanonicalTagPlaneInst.tag_get"],
                 },
+                "TagConservativity": {
+                    "module": "TagConservativity",
+                    "query_target": "CanonicalOldOutcomesInst",
+                    "instantiated_functor": True,
+                    "declaration_count": 1,
+                    "closed_count": 1,
+                    "all_closed": True,
+                    "non_closed": [],
+                    "symbols": ["CanonicalOldOutcomesInst.tag_free_run_preserved"],
+                },
                 "CanonicalPhysicalCallerBridge": {
                     "module": "CanonicalPhysicalCallerBridge",
                     "query_target": "CanonicalPhysicalCallerBridge",
@@ -346,10 +417,20 @@ class CanonicalClosureControls(unittest.TestCase):
                     "non_closed": [],
                     "symbols": ["CanonicalPhysicalCallerBridge.read_ram_request_order"],
                 },
+                "CanonicalTagConservativity": {
+                    "module": "CanonicalTagConservativity",
+                    "query_target": "CanonicalTagConservativity",
+                    "instantiated_functor": False,
+                    "declaration_count": 1,
+                    "closed_count": 1,
+                    "all_closed": True,
+                    "non_closed": [],
+                    "symbols": ["CanonicalTagConservativity.read_ram_no_meta_preserves_tags"],
+                },
             },
         }
         portable_flags = ["-silent", "-o", "-boot", "-R", "<out>", ""]
-        kernel_doc: dict[str, object] = {
+        bridge_target: dict[str, object] = {
             "schema": "verifiedos-canonical-tag-kernel-check/1",
             "recursive": True,
             "norec_absent": True,
@@ -366,6 +447,27 @@ class CanonicalClosureControls(unittest.TestCase):
             "missing_expected_axioms": [],
             "indices_not_mattering": ["Corelib.Init.Logic.eq"],
         }
+        conserv_target: dict[str, object] = {
+            "schema": "verifiedos-canonical-tag-kernel-check/1",
+            "recursive": True,
+            "norec_absent": True,
+            "norec_present": False,
+            "target_module": "CanonicalTagConservativity",
+            "argv": ["/run-1/rocqchk", *portable_flags, "CanonicalTagConservativity"],
+            "portable_flags": portable_flags,
+            "exit_code": 0,
+            "elapsed_seconds": 70.0,
+            "expected_axioms": sorted(EXPECTED_CANONICAL_FP_AXIOMS),
+            "axioms": sorted(EXPECTED_CANONICAL_FP_AXIOMS),
+            "axiom_count": 31,
+            "unexpected_axioms": [],
+            "missing_expected_axioms": [],
+            "indices_not_mattering": ["Corelib.Init.Logic.eq"],
+        }
+        kernel_doc = build_canonical_kernel_report({
+            "CanonicalPhysicalCallerBridge": bridge_target,
+            "CanonicalTagConservativity": conserv_target,
+        })
         with tempfile.TemporaryDirectory(prefix="vos-canon-manifest-") as directory:
             root = Path(directory)
             members: dict[str, dict[str, object]] = {}
@@ -390,8 +492,14 @@ class CanonicalClosureControls(unittest.TestCase):
             manifest_sha = sha(manifest)
 
             fresh_kernel = json.loads(json.dumps(kernel_doc))
-            fresh_kernel["argv"] = ["/run-2/rocqchk", *portable_flags, "CanonicalPhysicalCallerBridge"]
-            fresh_kernel["elapsed_seconds"] = 75.5
+            fresh_kernel["targets"]["CanonicalPhysicalCallerBridge"]["argv"] = [
+                "/run-2/rocqchk", *portable_flags, "CanonicalPhysicalCallerBridge",
+            ]
+            fresh_kernel["targets"]["CanonicalTagConservativity"]["argv"] = [
+                "/run-2/rocqchk", *portable_flags, "CanonicalTagConservativity",
+            ]
+            fresh_kernel["targets"]["CanonicalPhysicalCallerBridge"]["elapsed_seconds"] = 75.5
+            fresh_kernel["total_elapsed_seconds"] = 145.5
             verify_frozen_canonical_closure(
                 manifest, manifest_sha, assumptions_doc, fresh_kernel, {"/opt/rocq": []},
             )
@@ -409,14 +517,16 @@ class CanonicalClosureControls(unittest.TestCase):
                 )
 
             bad_kernel = json.loads(json.dumps(fresh_kernel))
-            bad_kernel["axioms"] = [*bad_kernel["axioms"][:-1], "Extra.ax"]
+            bad_kernel["targets"]["CanonicalTagConservativity"]["axioms"] = [
+                *bad_kernel["targets"]["CanonicalTagConservativity"]["axioms"][:-1], "Extra.ax",
+            ]
             with self.assertRaisesRegex(ValueError, "do not equal the 31 FP axioms"):
                 verify_frozen_canonical_closure(
                     manifest, manifest_sha, assumptions_doc, bad_kernel,
                 )
 
             norec_kernel = json.loads(json.dumps(fresh_kernel))
-            norec_kernel["portable_flags"].append("-norec")
+            norec_kernel["targets"]["CanonicalPhysicalCallerBridge"]["portable_flags"].append("-norec")
             with self.assertRaisesRegex(ValueError, "violated recursive check invariants"):
                 verify_frozen_canonical_closure(
                     manifest, manifest_sha, assumptions_doc, norec_kernel,
@@ -428,15 +538,16 @@ class CanonicalClosureControls(unittest.TestCase):
                     {"/opt/rocq": ["bin/rocq"]},
                 )
 
-    def test_candidate_recipe_binds_frozen_canonical_closure_manifest(self) -> None:
+    def test_candidate_recipe_binds_frozen_canonical_manifests(self) -> None:
         repo = Path(__file__).resolve().parents[2]
         recipe = json.loads(
             (repo / "tools/sail-tag-outcomes/candidate.json").read_text(encoding="utf-8"),
         )
-        entry = recipe["frozen_canonical_closure_manifest"]
-        manifest = repo / entry["path"]
-        self.assertTrue(manifest.is_file(), f"missing frozen_canonical_closure_manifest: {manifest}")
-        require_sha(manifest, entry["sha256"])
+        for key in ("frozen_canonical_closure_manifest", "frozen_canonical_conservativity_manifest"):
+            entry = recipe[key]
+            manifest = repo / entry["path"]
+            self.assertTrue(manifest.is_file(), f"missing {key}: {manifest}")
+            require_sha(manifest, entry["sha256"])
 
 
 if __name__ == "__main__":

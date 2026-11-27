@@ -27,6 +27,10 @@
     "path": "docs/implementation/retained-evidence/q35p-canonical-closure-20261126/manifest.json",
     "sha256": "0bebb10f9f6dd53d0af6bb3912fef8dbb0acc715e96a5b21bb38f04dae5dbf26"
   },
+  "frozen_canonical_conservativity_manifest": {
+    "path": "docs/implementation/retained-evidence/q35p-canonical-conservativity-20261127/manifest.json",
+    "sha256": "86e7bf2fda88a47512833ec879df55663d843fc09a37330706b4ef20e234c9e2"
+  },
   "reproducer": "docs/implementation/retained-evidence/close3-q35p-20261013/bindings.sail.txt",
   "reproducer_sha256": "aff11682da08211dc364a767dcec579b008d1ca1603054d8e9ab71c82e0701b4",
   "strict_support_modules": 29,

@@ -7,15 +7,22 @@ production support recipe, prover switch, Sail source or emitter.
 
 - `candidate.json` binds the immutable semantic patch, existing source recipe,
   unchanged minimal Sail reproducer, qualified private syntax-plugin identity,
-  and all four frozen manifests (`frozen_v1_manifest`,
-  `frozen_support_manifest`, `frozen_closure_manifest`, and
-  `frozen_canonical_closure_manifest`).
+  and all five frozen manifests (`frozen_v1_manifest`,
+  `frozen_support_manifest`, `frozen_closure_manifest`,
+  `frozen_canonical_closure_manifest`, and
+  `frozen_canonical_conservativity_manifest`).
 - `TagInterpreter.v` defines executable finite-map tag legality, a fixed handler
   for other outcomes, primitive continuation bridges and forwarding lemmas.
 - `TagControls.v` checks the actual emitted metadata and physical-memory callers,
   positive instances and distinguishing refusals.
 - `TagConservativity.v` proves that the tag interpreter preserves legacy requests,
   responses, event order and refusals for tag-free computations.
+- `CanonicalTagConservativity.v` extends `TagConservativity` and
+  `CanonicalPhysicalCallerBridge` to the canonical hart-0 term (`rv64d.read_ram`,
+  `rv64d.write_ram`, `read_data`, `finish_read`, `write_data`), proving tag-free
+  request/event preservation for `read_meta = false`, write-refusal tag
+  preservation without `__WriteRAM_Meta`, and negative exclusion of `read_meta = true`,
+  `__ReadRAM_Meta`, and `__WriteRAM_Meta`.
 - `PhysicalCallerBridge.v` checks every request kind in the minimal emitted caller,
   arbitrary successful data replies, tag ordering and exact refusals.
 - `replay.py` reproduces the selected support builds, actual minimal emission,
@@ -109,33 +116,38 @@ manifest bindings.
 
 ## Canonical hart-0 closure replay
 
-`canonical_closure.py` checks `TagInterpreter.v` and
-`CanonicalPhysicalCallerBridge.v` against the compiled canonical hart-0 term
-(`rv64d_types.vo`, `rv64d.vo`, `riscv_extras.vo`), the 29-module private
-canonical support (`SailStdpp`), and the matching private `stdpp` tree without
-mutating `replay.py` or the installed Rocq prefix. After verifying all input
-digests and snapshotting the Rocq prefix before and after, it strictly compiles
-both modules, runs a native `Print Assumptions` audit over every enumerated
-declaration of `CanonicalTagPlaneInst := TagInterpreter.TagPlane rv64d_types.Arch rv64d_types.Interface`
-(`122` declarations) and `CanonicalPhysicalCallerBridge` (`307` declarations),
-confirming all `429` declarations are `Closed under the global context`
-(`assumptions.json`), and runs full recursive `rocqchk -silent -o` (without
-`-norec`) on `CanonicalPhysicalCallerBridge` (`kernel-check.json`), verifying
-exit `0` and that the recursive context equals the exact `31` classified
-floating-point axioms in
+`canonical_closure.py` checks `TagInterpreter.v`, `TagConservativity.v`,
+`CanonicalPhysicalCallerBridge.v`, and `CanonicalTagConservativity.v` against the
+compiled canonical hart-0 term (`rv64d_types.vo`, `rv64d.vo`, `riscv_extras.vo`),
+the 29-module private canonical support (`SailStdpp`), and the matching private
+`stdpp` tree without mutating `replay.py` or the installed Rocq prefix. After
+verifying all input digests and snapshotting the Rocq prefix before and after, it
+strictly compiles all four modules, runs a native `Print Assumptions` audit over
+every enumerated declaration of
+`CanonicalTagPlaneInst := TagInterpreter.TagPlane rv64d_types.Arch rv64d_types.Interface`
+(`122` declarations),
+`CanonicalOldOutcomesInst := TagConservativity.OldOutcomes rv64d_types.Arch rv64d_types.Interface`
+(`145` declarations), `CanonicalPhysicalCallerBridge` (`307` declarations), and
+`CanonicalTagConservativity` (`464` declarations), confirming all `1,038`
+declarations are `Closed under the global context` (`assumptions.json`), and
+runs full recursive `rocqchk -silent -o` (without `-norec`) on both
+`CanonicalPhysicalCallerBridge` and `CanonicalTagConservativity`
+(`kernel-check.json`), verifying exit `0` and that the recursive context equals
+the exact `31` classified floating-point axioms in
 [the canonical machine term](../../docs/assurance/canonical-machine-term.md#the-31-the-emission-declares)
 with `0` `Stdlib.Reals`, `0` `Program.Wf`/`Values_lemmas`, and `0` new
-tag/bridge axioms.
+tag/conservativity/bridge axioms.
 
 Run in the native guest under the checkout's assigned `/root/build/lane-*` root:
 
 ```sh
 python3 tools/sail-tag-outcomes/canonical_closure.py \
-  --out "/root/build/lane-$lane/canonical-closure"
+  --out "/root/build/lane-$lane/canonical-conservativity"
 ```
 
 Focused host helper controls for `canonical_closure.py` and the
-`frozen_canonical_closure_manifest` binding run with:
+`frozen_canonical_closure_manifest` /
+`frozen_canonical_conservativity_manifest` bindings run with:
 
 ```powershell
 python -m unittest discover -s tools/sail-tag-outcomes -p "test_*.py"

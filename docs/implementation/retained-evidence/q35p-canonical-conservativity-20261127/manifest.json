@@ -1,0 +1,34 @@
+{
+  "files": {
+    "assumptions.json": {
+      "bytes": 60732,
+      "encoding": "identity",
+      "path": "assumptions.json",
+      "sha256": "9b474e60b20b89283c55389e5594429bd899c155ebd2296042bbd501adfdeb2c"
+    },
+    "commands.json": {
+      "bytes": 25763,
+      "encoding": "identity",
+      "path": "commands.json",
+      "sha256": "200bee02794325e2d276659e4c1aafd7213161dbd0528d7dac4c556a03afad30"
+    },
+    "inputs.json": {
+      "bytes": 19026,
+      "encoding": "identity",
+      "path": "inputs.json",
+      "sha256": "566c5d2a289744710054d9bd9298ced2b868e47e0414fb13f555926729e6c852"
+    },
+    "installed-comparison.json": {
+      "bytes": 58,
+      "encoding": "identity",
+      "path": "installed-comparison.json",
+      "sha256": "a55c4d78e2e61f69d2568bfa540cb137458bed2f7eaae6da0455427da7f2262d"
+    },
+    "kernel-check.json": {
+      "bytes": 9634,
+      "encoding": "identity",
+      "path": "kernel-check.json",
+      "sha256": "546ee6027f9f2e3e6030ba6149653269d07588238774a8b80097c94abd733677"
+    }
+  }
+}
