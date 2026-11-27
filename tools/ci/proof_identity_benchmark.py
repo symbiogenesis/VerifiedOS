@@ -10,7 +10,6 @@ import platform
 import statistics
 import subprocess
 import sys
-import tarfile
 import tempfile
 import time
 from pathlib import Path
@@ -18,6 +17,7 @@ from typing import NotRequired, TypedDict, cast
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
+from ci import paired_benchmark
 from ci.archive_scan_benchmark import validate_base
 
 
@@ -32,7 +32,6 @@ def worker(root: Path, implementation: Path, work: Path, output: Path) -> None:
     """Hash the actual installed context afresh, without compiling any project proof."""
     if sys.platform == "win32":
         raise RuntimeError("native proof identity requires a Linux worker")
-    import resource
 
     sys.path.insert(0, str(implementation))
     gate = importlib.import_module("vos.cli.proofs")
@@ -43,9 +42,11 @@ def worker(root: Path, implementation: Path, work: Path, output: Path) -> None:
     if context is None:
         raise RuntimeError("the installed context cannot authorize proof reuse")
     digest = hashlib.sha256(json.dumps(context, sort_keys=True).encode("utf-8")).hexdigest()
-    output.write_text(json.dumps({"seconds": seconds, "context_sha256": digest,
-                                  "peak_rss_kib": resource.getrusage(resource.RUSAGE_SELF).ru_maxrss})
-                      + "\n", encoding="utf-8")
+    paired_benchmark.write_json_atomic(
+        output,
+        {"seconds": seconds, "context_sha256": digest,
+         "peak_rss_kib": paired_benchmark.peak_rss_kib()},
+    )
 
 
 def native_controls() -> None:
@@ -60,8 +61,7 @@ def native_controls() -> None:
 
 def compare(root: Path, base: str, output: Path) -> None:
     revision = validate_base(root, base)
-    if subprocess.check_output(["git", "-C", str(root), "status", "--porcelain"], text=True):
-        raise ValueError("comparison requires a clean indexed checkout")
+    paired_benchmark.require_clean_checkout(root, check_output=subprocess.check_output)
     samples: dict[str, list[Sample]] = {"baseline": [], "candidate": []}
     output.parent.mkdir(parents=True, exist_ok=True)
 
@@ -73,24 +73,19 @@ def compare(root: Path, base: str, output: Path) -> None:
                   "samples": samples,
                   "median_seconds": {name: statistics.median(sample["seconds"] for sample in rows)
                                      for name, rows in samples.items() if rows}}
-        pending = output.with_suffix(".pending")
-        pending.write_text(json.dumps(record, indent=2) + "\n", encoding="utf-8")
-        pending.replace(output)
+        paired_benchmark.write_json_atomic(output, record)
 
     checkpoint("measuring")
     (root / "out").mkdir(exist_ok=True)
     with tempfile.TemporaryDirectory(prefix="vos-proof-identity-", dir=root / "out") as temporary:
         scratch = Path(temporary)
-        archive = scratch / "tools.tar"
-        subprocess.run(["git", "-C", str(root), "archive", "--format=tar", "-o", str(archive),
-                        base, "tools"], check=True)
-        with tarfile.open(archive) as stream:
-            stream.extractall(scratch / "baseline", filter="data")
-        implementations = {"baseline": scratch / "baseline/tools", "candidate": root / "tools"}
+        baseline_tools = paired_benchmark.extract_baseline_tools(
+            root, base, scratch, run=subprocess.run,
+        )
+        implementations = {"baseline": baseline_tools, "candidate": root / "tools"}
         expected = ""
         for repetition in range(2):
-            order = ("baseline", "candidate") if repetition == 0 else ("candidate", "baseline")
-            for name in order:
+            for name in paired_benchmark.paired_order(repetition):
                 sample_path = scratch / "sample.json"
                 started = time.perf_counter()
                 subprocess.run([sys.executable, str(Path(__file__).resolve()), "--worker-tools",
@@ -108,10 +103,12 @@ def compare(root: Path, base: str, output: Path) -> None:
                 print(f"{name}: {sample['seconds']:.3f}s", flush=True)
         checkpoint("native-controls")
         native_controls()
-    if (subprocess.check_output(["git", "-C", str(root), "rev-parse", "HEAD"], text=True).strip()
-            != revision or subprocess.check_output(
-                ["git", "-C", str(root), "status", "--porcelain"], text=True)):
-        raise RuntimeError("comparison inputs changed")
+    paired_benchmark.verify_unchanged_checkout(
+        root, revision,
+        revision_message="comparison inputs changed",
+        dirty_message="comparison inputs changed",
+        check_output=subprocess.check_output,
+    )
     checkpoint("complete")
 
 

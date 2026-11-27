@@ -12,16 +12,18 @@ import hashlib
 import json
 import os
 import platform
-import re
 import runpy
 import statistics
 import subprocess
 import sys
-import tarfile
 import tempfile
 import time
 from pathlib import Path
 from typing import Any, Protocol, cast
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from ci import paired_benchmark
+from vos.jsonutil import unique_object
 
 _CONTROLS = ["CensusControls", "SailStdpp.TypeCasts", "SailStdpp.State_monad"]
 
@@ -46,19 +48,11 @@ def digest(path: Path) -> str:
 
 
 def write(path: Path, value: object) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    temporary = path.with_suffix(path.suffix + ".tmp")
-    temporary.write_text(json.dumps(value, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
-    temporary.replace(path)
+    paired_benchmark.write_json_atomic(path, value, ensure_ascii=False)
 
 
 def unique(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
-    result: dict[str, Any] = {}
-    for key, value in pairs:
-        if key in result:
-            raise ValueError("duplicate native JSON key: " + key)
-        result[key] = value
-    return result
+    return unique_object(pairs, duplicate_error=lambda key: ValueError("duplicate native JSON key: " + key))
 
 
 def relative(root: Path, name: str) -> Path:
@@ -150,11 +144,7 @@ def prepare_dataset(root: Path, specification: dict[str, str], roots: list[str],
             "roots": roots, "searches": searches, "readings": readings, "input_hashes": hashes}
 
 
-def peak_rss() -> int | None:
-    if sys.platform != "linux":
-        return None
-    import resource
-    return resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+peak_rss = paired_benchmark.peak_rss_kib
 
 
 def value_digest(value: object) -> str:
@@ -238,14 +228,10 @@ def worker(tools: Path, prepared: Path, output: Path) -> int:
 
 
 def compare(root: Path, base: str, descriptor: Path, output: Path, timeout: int) -> int:
-    if re.fullmatch(r"[0-9a-f]{40}", base) is None:
-        raise ValueError("performance base must be a full lowercase commit SHA")
-    revision = subprocess.check_output(["git", "-C", str(root), "rev-parse", "HEAD"], text=True).strip()
-    if revision == base:
-        raise ValueError("performance base must properly precede the tested revision")
-    subprocess.run(["git", "-C", str(root), "merge-base", "--is-ancestor", base, revision], check=True)
-    if subprocess.check_output(["git", "-C", str(root), "status", "--porcelain"], text=True):
-        raise ValueError("census comparison requires a clean indexed checkout")
+    revision = paired_benchmark.validate_base(
+        root, base, same_error="performance base must properly precede the tested revision",
+    )
+    paired_benchmark.require_clean_checkout(root, "census comparison requires a clean indexed checkout")
     specification = json.loads(descriptor.read_text(encoding="utf-8"))
     if (specification.get("schema") != "verifiedos-census-benchmark-inputs/1" or not specification.get("support")
             or "controls" not in specification or specification.keys() - {"schema", "support", "controls", "unavailable"}):
@@ -271,14 +257,11 @@ def compare(root: Path, base: str, descriptor: Path, output: Path, timeout: int)
             report["temporary_raw_bytes"] = sum(dataset["raw_bytes"] for dataset in datasets.values())
             prepared = scratch / "inputs.json"
             write(prepared, datasets)
-            archive = scratch / "tools.tar"
-            subprocess.run(["git", "-C", str(root), "archive", "--format=tar", "-o", str(archive), base, "tools"], check=True)
-            with tarfile.open(archive) as source:
-                source.extractall(scratch / "baseline", filter="data")
+            baseline_tools = paired_benchmark.extract_baseline_tools(root, base, scratch)
             reference: object = None
             for repetition in range(2):
-                for variant in (("baseline", "candidate") if repetition == 0 else ("candidate", "baseline")):
-                    tools = scratch / "baseline/tools" if variant == "baseline" else root / "tools"
+                for variant in paired_benchmark.paired_order(repetition):
+                    tools = baseline_tools if variant == "baseline" else root / "tools"
                     sample = output.with_name(output.stem + f"-{variant}-{repetition + 1}.json")
                     report.update(status="running", active={"variant": variant, "repetition": repetition + 1, "checkpoint": str(sample)})
                     write(output, report)
@@ -300,9 +283,11 @@ def compare(root: Path, base: str, descriptor: Path, output: Path, timeout: int)
                 for name, expected in dataset["input_hashes"].items():
                     require(digest(root / name) == expected, "retained indexed inputs changed during comparison")
             require(digest(descriptor) == report["descriptor_sha256"], "input selection changed during comparison")
-            require(subprocess.check_output(["git", "-C", str(root), "rev-parse", "HEAD"], text=True).strip() == revision
-                    and not subprocess.check_output(["git", "-C", str(root), "status", "--porcelain"], text=True),
-                    "indexed source revision changed during comparison")
+            paired_benchmark.verify_unchanged_checkout(
+                root, revision,
+                revision_message="indexed source revision changed during comparison",
+                dirty_message="indexed source revision changed during comparison",
+            )
             complete = bool(datasets.get("controls"))
             report.update(status="complete" if complete else "incomplete-control-evidence",
                           decisions_identical=True, median_seconds={variant: statistics.median(

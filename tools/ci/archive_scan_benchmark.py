@@ -7,15 +7,16 @@ import importlib.util
 import json
 import os
 import platform
-import re
 import statistics
 import subprocess
 import sys
-import tarfile
 import tempfile
 import time
 from pathlib import Path
 from typing import NotRequired, TypedDict, cast
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from ci import paired_benchmark
 
 
 class Sample(TypedDict):
@@ -29,15 +30,9 @@ class Sample(TypedDict):
 
 def validate_base(root: Path, base: str) -> str:
     """Require a proper committed ancestor, never a revision expression."""
-    if re.fullmatch(r"[0-9a-f]{40}", base) is None:
-        raise ValueError("performance base must be a full lowercase commit SHA")
-    revision = subprocess.check_output(
-        ["git", "-C", str(root), "rev-parse", "HEAD"], text=True).strip()
-    if base == revision:
-        raise ValueError("performance base must precede the tested revision")
-    subprocess.run(["git", "-C", str(root), "merge-base", "--is-ancestor", base, revision],
-                   check=True, capture_output=True)
-    return revision
+    return paired_benchmark.validate_base(
+        root, base, check_output=subprocess.check_output, run=subprocess.run,
+    )
 
 
 def worker(root: Path, tools: Path, output: Path) -> None:
@@ -55,15 +50,13 @@ def worker(root: Path, tools: Path, output: Path) -> None:
     started = time.perf_counter()
     report = checker.run(root, clock=clock)
     elapsed = time.perf_counter() - started
-    peak_rss: int | None = None
-    if sys.platform == "linux":
-        import resource
-
-        peak_rss = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
-    output.write_text(json.dumps({"wall_seconds": elapsed, "units": clock.units(),
-                                  "findings": report.findings, "report": report.out,
-                                  "peak_rss_kib": peak_rss},
-                                 indent=2) + "\n", encoding="utf-8")
+    peak_rss = paired_benchmark.peak_rss_kib()
+    paired_benchmark.write_json_atomic(
+        output,
+        {"wall_seconds": elapsed, "units": clock.units(),
+         "findings": report.findings, "report": report.out,
+         "peak_rss_kib": peak_rss},
+    )
 
 
 def compare(root: Path, base: str, output: Path, repetitions: int) -> None:
@@ -71,8 +64,7 @@ def compare(root: Path, base: str, output: Path, repetitions: int) -> None:
     revision = validate_base(root, base)
     if repetitions < 2:
         raise ValueError("at least two repetitions are required")
-    if subprocess.check_output(["git", "-C", str(root), "status", "--porcelain"], text=True):
-        raise ValueError("benchmark requires a clean indexed checkout")
+    paired_benchmark.require_clean_checkout(root, check_output=subprocess.check_output)
     samples: dict[str, list[Sample]] = {"baseline": [], "candidate": []}
     # Baseline modules resolve repository-owned data from their __file__ ancestry.
     # Keep their sources below the real ignored output root so those imports find
@@ -80,16 +72,13 @@ def compare(root: Path, base: str, output: Path, repetitions: int) -> None:
     (root / "out").mkdir(exist_ok=True)
     with tempfile.TemporaryDirectory(prefix="vos-archive-comparison-", dir=root / "out") as temporary:
         scratch = Path(temporary)
-        archive = scratch / "tools.tar"
-        subprocess.run(["git", "-C", str(root), "archive", "--format=tar", "-o", str(archive),
-                        base, "tools"], check=True)
-        with tarfile.open(archive) as source:
-            source.extractall(scratch / "baseline", filter="data")
-        tools_paths = {"baseline": scratch / "baseline" / "tools", "candidate": root / "tools"}
+        baseline_tools = paired_benchmark.extract_baseline_tools(
+            root, base, scratch, run=subprocess.run,
+        )
+        tools_paths = {"baseline": baseline_tools, "candidate": root / "tools"}
         reference: tuple[int, list[str]] | None = None
         for iteration in range(repetitions):
-            order = ("baseline", "candidate") if iteration % 2 == 0 else ("candidate", "baseline")
-            for variant in order:
+            for variant in paired_benchmark.paired_order(iteration):
                 result_path = scratch / f"{variant}-{iteration}.json"
                 started = time.perf_counter()
                 subprocess.run([sys.executable, str(Path(__file__).resolve()), "--worker-tools",
@@ -105,10 +94,9 @@ def compare(root: Path, base: str, output: Path, repetitions: int) -> None:
                 samples[variant].append(sample)
                 print(f"{variant} repetition {iteration + 1}: {sample['wall_seconds']:.3f}s",
                       flush=True)
-    if subprocess.check_output(["git", "-C", str(root), "rev-parse", "HEAD"], text=True).strip() != revision:
-        raise RuntimeError("revision changed during comparison")
-    if subprocess.check_output(["git", "-C", str(root), "status", "--porcelain"], text=True):
-        raise RuntimeError("corpus changed during comparison")
+    paired_benchmark.verify_unchanged_checkout(
+        root, revision, check_output=subprocess.check_output,
+    )
     report = reference[1] if reference is not None else []
     data = {
         "baseline_revision": base, "candidate_revision": revision,
@@ -121,8 +109,7 @@ def compare(root: Path, base: str, output: Path, repetitions: int) -> None:
                            for variant, values in samples.items()},
         "samples": samples,
     }
-    output.parent.mkdir(parents=True, exist_ok=True)
-    output.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+    paired_benchmark.write_json_atomic(output, data)
     print(json.dumps(data["median_seconds"], indent=2), flush=True)
 
 

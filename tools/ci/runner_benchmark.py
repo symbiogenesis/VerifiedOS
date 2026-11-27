@@ -8,7 +8,6 @@ import inspect
 import json
 import os
 import platform
-import re
 import statistics
 import subprocess
 import sys
@@ -17,6 +16,9 @@ import tempfile
 import time
 from pathlib import Path
 from typing import NotRequired, TypedDict, cast
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from ci import paired_benchmark
 
 
 class Sample(TypedDict):
@@ -44,12 +46,8 @@ TREE_INTERVAL = 0.1
 
 def _peak_rss_kb() -> float | None:
     """The measured worker's process peak, unavailable on the Windows API route."""
-    if sys.platform == "win32":
-        return None
-    import resource
-
-    value = float(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
-    return value / 1024 if sys.platform == "darwin" else value
+    rss = paired_benchmark.peak_rss_kib()
+    return None if rss is None else float(rss)
 
 
 def _identity(root: Path) -> str:
@@ -154,14 +152,14 @@ def worker(root: Path, tools: Path, kind: str, output: Path) -> None:
     else:
         data = _work(root, kind)
         data.update(peak_tree_rss_kb=None, peak_descendant_processes=None, tree_samples=0)
-    output.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+    paired_benchmark.write_json_atomic(output, data)
 
 
 def _measure(root: Path, sources: dict[str, Path], scratch: Path, repetitions: int,
              samples: dict[str, dict[str, list[Sample]]]) -> None:
     reference: dict[str, tuple[int, list[str], bool]] = {}
     for iteration in range(repetitions):
-        order = ("baseline", "candidate") if iteration % 2 == 0 else ("candidate", "baseline")
+        order = paired_benchmark.paired_order(iteration)
         for kind in ("markdown", "proof_headers"):
             for variant in order:
                 result = scratch / f"{kind}-{variant}-{iteration}.json"
@@ -182,23 +180,27 @@ def _measure(root: Path, sources: dict[str, Path], scratch: Path, repetitions: i
 
 
 def _check_inputs(root: Path, scope: str, revision: str) -> None:
-    if (_identity(root) != scope
-            or subprocess.check_output(["git", "-C", str(root), "rev-parse", "HEAD"], text=True).strip() != revision
-            or subprocess.check_output(["git", "-C", str(root), "status", "--porcelain"], text=True)):
+    if _identity(root) != scope:
         raise RuntimeError("benchmark inputs changed")
+    paired_benchmark.verify_unchanged_checkout(
+        root, revision,
+        revision_message="benchmark inputs changed",
+        dirty_message="benchmark inputs changed",
+        check_output=subprocess.check_output,
+    )
 
 
 def compare(root: Path, base: str, output: Path, repetitions: int) -> None:
     """Alternate both implementations against one clean, hash-bound indexed corpus."""
-    if re.fullmatch(r"[0-9a-f]{40}", base) is None:
-        raise ValueError("performance base must be a full lowercase commit SHA")
-    revision = subprocess.check_output(["git", "-C", str(root), "rev-parse", "HEAD"], text=True).strip()
-    if base == revision or repetitions < 2:
+    revision = paired_benchmark.validate_base(
+        root, base,
+        same_error="benchmark requires a proper ancestor and at least two repetitions",
+        check_output=subprocess.check_output,
+        run=subprocess.run,
+    )
+    if repetitions < 2:
         raise ValueError("benchmark requires a proper ancestor and at least two repetitions")
-    subprocess.run(["git", "-C", str(root), "merge-base", "--is-ancestor", base, revision],
-                   check=True, capture_output=True)
-    if subprocess.check_output(["git", "-C", str(root), "status", "--porcelain"], text=True):
-        raise ValueError("benchmark requires a clean indexed checkout")
+    paired_benchmark.require_clean_checkout(root, check_output=subprocess.check_output)
     scope = _identity(root)
     samples: dict[str, dict[str, list[Sample]]] = {
         variant: {kind: [] for kind in ("markdown", "proof_headers")}
@@ -208,12 +210,10 @@ def compare(root: Path, base: str, output: Path, repetitions: int) -> None:
     try:
         with tempfile.TemporaryDirectory(prefix="vos-runner-comparison-", dir=root / "out") as temporary:
             scratch = Path(temporary)
-            archive = scratch / "tools.tar"
-            subprocess.run(["git", "-C", str(root), "archive", "--format=tar", "-o", str(archive),
-                            base, "tools"], check=True)
-            with tarfile.open(archive) as source:
-                source.extractall(scratch / "baseline", filter="data")
-            sources = {"baseline": scratch / "baseline" / "tools", "candidate": root / "tools"}
+            baseline_tools = paired_benchmark.extract_baseline_tools(
+                root, base, scratch, run=subprocess.run, tar_open=tarfile.open,
+            )
+            sources = {"baseline": baseline_tools, "candidate": root / "tools"}
             _measure(root, sources, scratch, repetitions, samples)
         _check_inputs(root, scope, revision)
     except (OSError, ValueError, RuntimeError, subprocess.SubprocessError) as exc:
@@ -236,8 +236,7 @@ def compare(root: Path, base: str, output: Path, repetitions: int) -> None:
                       for kind, values in parts.items()} for variant, parts in samples.items()},
         "samples": samples,
     }
-    output.parent.mkdir(parents=True, exist_ok=True)
-    output.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+    paired_benchmark.write_json_atomic(output, data)
     print(json.dumps(data["median_component_seconds"], indent=2), flush=True)
     if failure:
         raise RuntimeError(failure)
