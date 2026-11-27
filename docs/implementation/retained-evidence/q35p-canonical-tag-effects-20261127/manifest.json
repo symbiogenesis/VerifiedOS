@@ -1,22 +1,22 @@
 {
   "files": {
     "assumptions.json": {
-      "bytes": 60732,
+      "bytes": 63250,
       "encoding": "identity",
       "path": "assumptions.json",
-      "sha256": "9b474e60b20b89283c55389e5594429bd899c155ebd2296042bbd501adfdeb2c"
+      "sha256": "f0b30da72eb9ae7c452c5029b9fa63c67f4b64bbdcba135c4c6895a76018d401"
     },
     "commands.json": {
-      "bytes": 25763,
+      "bytes": 25404,
       "encoding": "identity",
       "path": "commands.json",
-      "sha256": "200bee02794325e2d276659e4c1aafd7213161dbd0528d7dac4c556a03afad30"
+      "sha256": "9fd9398939fba557a12c5bd2b61d922c0dd02191c0e319d3f1b4ef57143ace1f"
     },
     "inputs.json": {
-      "bytes": 19026,
+      "bytes": 18912,
       "encoding": "identity",
       "path": "inputs.json",
-      "sha256": "566c5d2a289744710054d9bd9298ced2b868e47e0414fb13f555926729e6c852"
+      "sha256": "dbcd165da28a2c0c953677c94662b7361c66fe241f5e92fb455952264cc68f87"
     },
     "installed-comparison.json": {
       "bytes": 58,
@@ -25,10 +25,10 @@
       "sha256": "a55c4d78e2e61f69d2568bfa540cb137458bed2f7eaae6da0455427da7f2262d"
     },
     "kernel-check.json": {
-      "bytes": 9634,
+      "bytes": 9625,
       "encoding": "identity",
       "path": "kernel-check.json",
-      "sha256": "546ee6027f9f2e3e6030ba6149653269d07588238774a8b80097c94abd733677"
+      "sha256": "758fbb476aa9b36b31181015a3ab341269be11c41c5d64fccd063f995fcb6415"
     }
   }
 }

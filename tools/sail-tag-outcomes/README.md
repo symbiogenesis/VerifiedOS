@@ -18,10 +18,19 @@ production support recipe, prover switch, Sail source or emitter.
   responses, event order and refusals for tag-free computations.
 - `CanonicalTagConservativity.v` extends `TagConservativity` and
   `CanonicalPhysicalCallerBridge` to the canonical hart-0 term (`rv64d.read_ram`,
-  `rv64d.write_ram`, `read_data`, `finish_read`, `write_data`), proving tag-free
-  request/event preservation for `read_meta = false`, write-refusal tag
-  preservation without `__WriteRAM_Meta`, and negative exclusion of `read_meta = true`,
-  `__ReadRAM_Meta`, and `__WriteRAM_Meta`.
+  `rv64d.write_ram`, `rv64d.__ReadRAM_Meta`, `rv64d.__WriteRAM_Meta`,
+  `read_data`, `finish_read`, `write_data`), proving tag-free request/event
+  preservation for `read_meta = false`, write-refusal tag preservation without
+  `__WriteRAM_Meta`, negative exclusion of `read_meta = true`, `__ReadRAM_Meta`,
+  and `__WriteRAM_Meta`, positive symbolic tag semantics (`read_ram_with_meta_ok`,
+  `read_ram_with_meta_err`, `write_data_ok_step`, `write_ram_ok_step`), and
+  canonical hart-0 concrete controls (aligned 8-byte capability writes across all
+  three `Ok` variants with neighbor framing, partial/cross-granule and
+  multi-granule writes emitting ascending `TagWrite` sequences, fixed-width
+  wraparound via lazy `reflexivity`, `read_ram` with `read_meta = true`
+  distinguishing present vs absent tags, `D.try_catch`/`D.catch_early_return`
+  forwarding of `D.write_tag_bool`/`D.read_tag_bool`, and distinguishing
+  negative trace/type controls).
 - `PhysicalCallerBridge.v` checks every request kind in the minimal emitted caller,
   arbitrary successful data replies, tag ordering and exact refusals.
 - `replay.py` reproduces the selected support builds, actual minimal emission,
@@ -127,7 +136,7 @@ every enumerated declaration of
 (`122` declarations),
 `CanonicalOldOutcomesInst := TagConservativity.OldOutcomes rv64d_types.Arch rv64d_types.Interface`
 (`145` declarations), `CanonicalPhysicalCallerBridge` (`307` declarations), and
-`CanonicalTagConservativity` (`464` declarations), confirming all `1,038`
+`CanonicalTagConservativity` (`505` declarations), confirming all `1,079`
 declarations are `Closed under the global context` (`assumptions.json`), and
 runs full recursive `rocqchk -silent -o` (without `-norec`) on both
 `CanonicalPhysicalCallerBridge` and `CanonicalTagConservativity`
@@ -135,13 +144,15 @@ runs full recursive `rocqchk -silent -o` (without `-norec`) on both
 the exact `31` classified floating-point axioms in
 [the canonical machine term](../../docs/assurance/canonical-machine-term.md#the-31-the-emission-declares)
 with `0` `Stdlib.Reals`, `0` `Program.Wf`/`Values_lemmas`, and `0` new
-tag/conservativity/bridge axioms.
+tag/conservativity/bridge axioms, matching the frozen manifest at
+`docs/implementation/retained-evidence/q35p-canonical-tag-effects-20261127/manifest.json`
+(SHA-256 `b1ec37b27b3c9a176bd49c19181ba9e22c768c3df78d2e98f1ac79a98fed0546`).
 
 Run in the native guest under the checkout's assigned `/root/build/lane-*` root:
 
 ```sh
 python3 tools/sail-tag-outcomes/canonical_closure.py \
-  --out "/root/build/lane-$lane/canonical-conservativity"
+  --out "/root/build/lane-$lane/canonical-tag-effects"
 ```
 
 Focused host helper controls for `canonical_closure.py` and the
