@@ -1,14 +1,19 @@
 # Pool and heap reference
 
-This is executable reference work toward [Q34c](../../PLAN.md),
+This is the executable reference and Gallina formalization for [Q34c](../../PLAN.md),
 under the existing [elastic-domain contract](contracts/elastic-domain.md).
-[ElasticPool.v](../../proofs/ElasticPool.v) now proves universal refinement from
-the finite 5-phase, two-generation quarantine metadata state machine
-(`meta_init`, `meta_step`, `meta_run`) to `PoolGuarantees` and `HeapNarrows` over
-any admitted layout. Q34c remains open: connecting the Python reference's
-holder-map barrier checks and descendant/parent lifetime checks to that machine,
-realizing and admitting the native C/assembly service and heap library, and
-completing cold Guest CI proof acceptance are still absent.
+[ElasticPool.v](../../proofs/ElasticPool.v) completes `Q34c-i`'s Gallina proofs
+(185 declared checkable symbols all `Closed under the global context` under `Print Assumptions`,
+and `rocqchk -silent -o` passing locally on `ElasticPool` and `ElasticPoolCampaign` with
+`Axioms: <none>`): universal refinement from the finite 5-phase, two-generation
+quarantine metadata state machine (`meta_init`, `meta_step`, `meta_run`) to
+`PoolGuarantees`, `HeapNarrows`, and `HeapZeroedAtHandoff` (`HeapGuarantees`) over any
+admitted layout, the composition-fixed size-class table and granule-exact narrowed-length
+theorems, per-island pool disjointness and launch-island binding, holder-map/revocation-barrier
+linking (`LinkedMetaState`), parent/child descendant lifetime invalidation (`NestedHeapState`),
+and exhausted-class refusal (`meta_alloc_class`). What `Q34c-ii` retains is realizing the
+native C/assembly pool service and default heap library, connecting M4.4/R2's runtime
+barrier and sweep implementation, and completing cold Guest CI acceptance.
 
 [elastic_pool.py](../../tools/vos/elastic_pool.py) implements composition-fixed
 size classes, fixed disjoint slots, per-island/memory-class pool selection, exact
@@ -102,17 +107,55 @@ filter. Under `layout_admitted` (exact size classes, alignment, arena bounds,
 and `extents_separate`-shaped pairwise byte-disjointness, which the Python
 reference strengthens with 8-byte revocation-granule separation), `meta_init_inv`
 and `meta_step_preserves_inv` preserve `meta_inv`, and
-`meta_run_refines_pool_guarantees` and `meta_run_refines_heap_narrows` prove
+`meta_run_refines_pool_guarantees`, `meta_run_refines_heap_narrows`,
+`meta_run_refines_heap_zeroed_at_handoff`, and `meta_run_refines_heap_guarantees` prove
 universally across all admitted layouts and arbitrary operation lists that the
-emitted history satisfies `PoolGuarantees` and `HeapNarrows`. Executable
-witnesses (`meta_two_gen_quarantine_refuses_early_alloc` and
+emitted history satisfies `PoolGuarantees`, `HeapNarrows`, and eager sub-allocation zeroing
+(`HeapZeroedAtHandoff`, closing `F-783` alongside `unzeroed_reuse_satisfies_heap_narrows_but_not_zeroed`).
+Executable witnesses (`meta_two_gen_quarantine_refuses_early_alloc` and
 `meta_two_gen_quarantine_reuses_after_second_sweep`) demonstrate that a slot
 released while `ms_sweep_active = true` stays quarantined after `OpBarrier` and
 `OpSweepEnd`, refusing `OpAlloc` until a second `OpSweepBegin` and `OpSweepEnd`
-pass completes. What remains open is linking `OpBarrier` to the explicit holder
-inventory checks in [revocation.py](../../tools/vos/revocation.py), linking
-descendant/parent lifetime checks across nested heaps, realizing the Python/C/native
-service and heap library, and obtaining cold Guest CI acceptance.
+pass completes.
+
+Beyond the single-level state machine, [ElasticPool.v](../../proofs/ElasticPool.v) proves all
+five remaining `Q34c-i` Gallina extensions with explicit refutations and closed `witness_<Record>`
+definitions (`185` symbols closed under `Print Assumptions`, `0` axioms):
+
+- **Size-class table and granule-exact narrowed length (`R-15-007c`, `R-15-007k`, `R-08-047b`, closing `F-782`)**:
+  `std_size_classes_discharge_r15_007k` discharges `all_of class_exact std_size_classes = true`
+  across the composition-fixed table (`16`–`65536` bytes), and
+  `requested_length_granule_exact` / `narrowed_grant_preserves_bounded_exactly` prove that
+  rounding a positive request up to its class granule yields a narrowed length whose representable
+  granule divides both the class-aligned base and the rounded length without runtime `CRRL`/`CRAM`
+  rounding.
+- **Per-island pool disjointness (`R-08-047a`, `R-08-005a`)**:
+  `island_pools_disjoint_bytes_and_granules` and `member_binds_launch_island_pool` prove
+  pairwise distinct keys, byte disjointness, 8-byte revocation-granule separation, and 64-byte
+  aligned revocable-union containment across `DomainIslandPools`, while `shared_granule_pools_refused`
+  refutes a shared-granule boundary.
+- **Holder-map / revocation-barrier linking (`R-08-006`, `R-08-007a`)**:
+  `LinkedMetaState` (`linked_init`, `linked_step`, `linked_run`) gates `OpBarrier` on
+  `no_holder_for_pending`; `linked_run_refines_pool_guarantees`, `linked_run_refines_heap_narrows`,
+  and `linked_run_refines_heap_zeroed_at_handoff` transfer invariants across arbitrary holder clears
+  and additions, while `stale_register_copy_blocks_barrier_and_reuse`,
+  `stale_holder_any_kind_blocks_barrier_and_reuse`, and
+  `linked_clear_register_enables_barrier_and_reuse` prove that stale `HReg`/`HSavedCtx`/`HStoredCell`
+  holders block barrier completion and slot reuse until cleared.
+- **Descendant lifetime refinement**:
+  `NestedHeapState` (`nested_init`, `nested_step`, `nested_run`) gates child heap actions on
+  parent slot phase and monotonic generation; `nested_run_refines_parent_and_child_guarantees`
+  preserves `PoolGuarantees` and `HeapGuarantees` at both levels, and
+  `parent_release_invalidates_descendant_forever` /
+  `parent_realloc_at_next_gen_keeps_old_descendant_dead` prove that parent release permanently
+  invalidates bound child operations even after parent slot reallocation at the next generation.
+- **Exhausted-class refusal (`R-08-047`)**:
+  `exhausted_class_refuses_allocation` and `exhausted_class_cannot_borrow_witness` prove that
+  exhausting one size class refuses allocation without borrowing from larger free classes and leaves
+  slots, event histories, and memory bytes unchanged.
+
+`Q34c-ii` retains the native C/assembly realization of the pool service and default heap
+library, M4.4/R2 runtime holder-map and sweep integration, and cold Guest CI acceptance.
 
 [elastic_pool_campaign.py](../../tools/vos/elastic_pool_campaign.py) generates
 actual finite allocator histories, including all command words of length four,

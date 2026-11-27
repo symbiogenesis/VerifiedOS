@@ -10,8 +10,9 @@
    reuse barrier are verified separately.
    (*| BEGIN derived: cited entries |*)
    Owner: docs/requirements-register.md
-   Requirements: R-08-006 R-08-047b R-15-007k
-   SHA256: 626b50df8799150a7a87c3a4e85fab3d74e148629016b0f5f8f583fa4513df22
+   Requirements: R-05-126 R-08-005a R-08-006 R-08-007a R-08-047 R-08-047a R-08-047b R-15-007c
+      R-15-007k R-17-045
+   SHA256: 4f53920794a1dec57149621e6dc21eb410a902b64359df206619a7bde3e058d1
    (*| END derived |*)
    ========================================================================= *)
 
@@ -1818,4 +1819,1420 @@ Example meta_two_gen_quarantine_reuses_after_second_sweep :
      SweepBegin; SweepEnd;
      Zero 80 16; Grant 2 0 80 (chunk_cap 80 16)].
 Proof. split; [vm_reflexivity | split; vm_reflexivity]. Qed.
+
+(* =========================================================================
+   1. Composition-Fixed Size-Class Table & Request-Level Granule Exactness
+      (R-15-007c, R-15-007k, R-08-047b, Q34c Finding 1)
+   ========================================================================= *)
+
+Definition std_size_classes : list SizeClass :=
+  [{| sc_length := 16; sc_align := 16 |};
+   {| sc_length := 32; sc_align := 32 |};
+   {| sc_length := 64; sc_align := 64 |};
+   {| sc_length := 128; sc_align := 128 |};
+   {| sc_length := 256; sc_align := 256 |};
+   {| sc_length := 512; sc_align := 512 |};
+   {| sc_length := 1024; sc_align := 1024 |};
+   {| sc_length := 2048; sc_align := 2048 |};
+   {| sc_length := 4096; sc_align := 4096 |};
+   {| sc_length := 8192; sc_align := 8192 |};
+   {| sc_length := 16384; sc_align := 16384 |};
+   {| sc_length := 32768; sc_align := 32768 |};
+   {| sc_length := 65536; sc_align := 65536 |}].
+
+Lemma granule_exponent_le_step : forall f len,
+  granule_exponent f len <= granule_exponent (S f) len.
+Proof.
+  intros f len. rewrite granule_exponent_step.
+  destruct (Nat.leb (64 * (2 * pow2 (granule_exponent f len))) len); lia.
+Qed.
+
+Lemma granule_exponent_mono_fuel : forall f1 f2 len,
+  f1 <= f2 -> granule_exponent f1 len <= granule_exponent f2 len.
+Proof.
+  intros f1 f2 len Hle. induction Hle as [|f2 Hle IH]; [lia|].
+  pose proof (granule_exponent_le_step f2 len) as Hstep. lia.
+Qed.
+
+Lemma pow2_mono : forall e1 e2, e1 <= e2 -> pow2 e1 <= pow2 e2.
+Proof.
+  intros e1 e2 Hle. induction Hle as [|e2 Hle IH]; [lia|].
+  rewrite pow2_step. pose proof (pow2_pos e2) as Hpos. apply Nat.leb_le in Hpos. lia.
+Qed.
+
+Lemma granule_exponent_mono_len : forall f len1 len2,
+  len1 <= len2 -> granule_exponent f len1 <= granule_exponent f len2.
+Proof.
+  intros f. induction f as [|f IH]; intros len1 len2 Hle; [simpl; lia|].
+  rewrite !granule_exponent_step.
+  specialize (IH len1 len2 Hle).
+  destruct (Nat.leb (64 * (2 * pow2 (granule_exponent f len1))) len1) eqn:E1;
+  destruct (Nat.leb (64 * (2 * pow2 (granule_exponent f len2))) len2) eqn:E2;
+    try lia.
+  apply Nat.leb_le in E1. apply Nat.leb_gt in E2.
+  destruct (Nat.eq_dec (granule_exponent f len1) (granule_exponent f len2)) as [Heq|Hne].
+  - rewrite Heq in E1. lia.
+  - lia.
+Qed.
+
+Lemma granule_exponent_stable : forall f1 f2 len,
+  f1 <= f2 ->
+  len < 64 * (2 * pow2 (granule_exponent f1 len)) ->
+  granule_exponent f2 len = granule_exponent f1 len.
+Proof.
+  intros f1 f2 len Hle Hlt. induction Hle as [|f2 Hle IH]; [reflexivity|].
+  rewrite granule_exponent_step, IH.
+  destruct (Nat.leb (64 * (2 * pow2 (granule_exponent f1 len))) len) eqn:E; [|reflexivity].
+  apply Nat.leb_le in E. lia.
+Qed.
+
+Lemma class_exact_at_12 : forall n,
+  Nat.leb 128 n = true ->
+  Nat.ltb n (64 * (2 * pow2 (granule_exponent 12 n))) = true ->
+  Nat.eqb (n mod pow2 (granule_exponent 12 n)) 0 = true ->
+  class_exact {| sc_length := n; sc_align := n |} = true.
+Proof.
+  intros n Hge Hlt Hmod.
+  apply Nat.leb_le in Hge. apply Nat.ltb_lt in Hlt. apply Nat.eqb_eq in Hmod.
+  unfold class_exact, representable_granule. simpl.
+  replace (n <=? 127) with false by (symmetry; apply Nat.leb_gt; lia).
+  rewrite (granule_exponent_stable 12 n n) by lia.
+  rewrite Hmod.
+  replace (0 <? n) with true by (symmetry; apply Nat.ltb_lt; lia).
+  reflexivity.
+Qed.
+
+Lemma all_of_cons_true : forall (A : Type) (p : A -> bool) (x : A) (xs : list A),
+  p x = true -> all_of p xs = true -> all_of p (x :: xs) = true.
+Proof.
+  intros A p x xs Hx Hxs. unfold all_of in *. simpl. rewrite Hx, Hxs. reflexivity.
+Qed.
+
+Theorem std_size_classes_discharge_r15_007k :
+  all_of class_exact std_size_classes = true.
+Proof.
+  unfold std_size_classes.
+  apply all_of_cons_true; [vm_reflexivity|].
+  apply all_of_cons_true; [vm_reflexivity|].
+  apply all_of_cons_true; [vm_reflexivity|].
+  apply all_of_cons_true; [apply class_exact_at_12; vm_reflexivity|].
+  apply all_of_cons_true; [apply class_exact_at_12; vm_reflexivity|].
+  apply all_of_cons_true; [apply class_exact_at_12; vm_reflexivity|].
+  apply all_of_cons_true; [apply class_exact_at_12; vm_reflexivity|].
+  apply all_of_cons_true; [apply class_exact_at_12; vm_reflexivity|].
+  apply all_of_cons_true; [apply class_exact_at_12; vm_reflexivity|].
+  apply all_of_cons_true; [apply class_exact_at_12; vm_reflexivity|].
+  apply all_of_cons_true; [apply class_exact_at_12; vm_reflexivity|].
+  apply all_of_cons_true; [apply class_exact_at_12; vm_reflexivity|].
+  apply all_of_cons_true; [apply class_exact_at_12; vm_reflexivity|].
+  reflexivity.
+Qed.
+
+Definition round_up_to_granule (req g : nat) : nat :=
+  let r := req mod g in
+  if Nat.eqb r 0 then req else req + (g - r).
+
+Definition round_request_for_class (sc : SizeClass) (req : nat) : nat :=
+  round_up_to_granule req (representable_granule (sc_length sc)).
+
+Definition narrowed_size_class (sc : SizeClass) (req : nat) : SizeClass :=
+  {| sc_length := round_request_for_class sc req; sc_align := sc_align sc |}.
+
+Lemma representable_granule_pos : forall len, 0 < representable_granule len.
+Proof.
+  intro len. unfold representable_granule. destruct (Nat.leb len 127); [lia|].
+  pose proof (pow2_pos (granule_exponent len len)) as H. apply Nat.leb_le in H. lia.
+Qed.
+
+Lemma pow2_divides_mono : forall e1 e2, e1 <= e2 -> pow2 e2 mod pow2 e1 = 0.
+Proof.
+  intros e1 e2 Hle. induction Hle as [|e2 Hle IH].
+  - pose proof (pow2_pos e1) as Hpos. apply Nat.leb_le in Hpos.
+    apply Nat.Div0.mod_same.
+  - rewrite pow2_step. apply Nat.Div0.mod_divides in IH.
+    destruct IH as [k Hk]. rewrite Hk.
+    apply Nat.Div0.mod_divides. exists (2 * k). lia.
+Qed.
+
+Lemma representable_granule_mono_divides : forall l1 l2,
+  l1 <= l2 ->
+  representable_granule l2 mod representable_granule l1 = 0.
+Proof.
+  intros l1 l2 Hle. unfold representable_granule.
+  destruct (Nat.leb l1 127) eqn:E1.
+  - apply Nat.mod_1_r.
+  - apply Nat.leb_gt in E1.
+    replace (l2 <=? 127) with false by (symmetry; apply Nat.leb_gt; lia).
+    apply pow2_divides_mono.
+    apply Nat.le_trans with (m := granule_exponent l1 l2).
+    + apply granule_exponent_mono_len. exact Hle.
+    + apply granule_exponent_mono_fuel. exact Hle.
+Qed.
+
+Lemma class_exact_props : forall sc,
+  class_exact sc = true ->
+  0 < sc_length sc /\
+  0 < sc_align sc /\
+  sc_length sc mod representable_granule (sc_length sc) = 0 /\
+  sc_align sc mod representable_granule (sc_length sc) = 0.
+Proof.
+  intros sc H. unfold class_exact in H. cbv zeta in H.
+  apply andb_prop in H. destruct H as [H Hal].
+  apply andb_prop in H. destruct H as [H Hlen].
+  apply andb_prop in H. destruct H as [Hpl Hpa].
+  apply Nat.ltb_lt in Hpl. apply Nat.ltb_lt in Hpa.
+  apply Nat.eqb_eq in Hlen. apply Nat.eqb_eq in Hal.
+  repeat split; assumption.
+Qed.
+
+Lemma round_up_to_granule_props : forall req g len,
+  0 < g ->
+  0 < req ->
+  req <= len ->
+  len mod g = 0 ->
+  let rounded := round_up_to_granule req g in
+  rounded mod g = 0 /\ req <= rounded /\ rounded <= len.
+Proof.
+  intros req g len Hg Hreq Hle Hlenmod.
+  unfold round_up_to_granule. cbv zeta.
+  destruct (Nat.eqb (req mod g) 0) eqn:Emod.
+  - apply Nat.eqb_eq in Emod. repeat split; try assumption; lia.
+  - apply Nat.eqb_neq in Emod.
+    pose proof (Nat.mod_upper_bound req g ltac:(lia)) as Hmod_lt.
+    pose proof (Nat.div_mod_eq req g) as Hdm.
+    assert (Hreq_decomp : req = g * (req / g) + req mod g) by lia.
+    assert (Hrounded_eq : req + (g - req mod g) = (req / g + 1) * g) by nia.
+    split.
+    + rewrite Hrounded_eq. apply Nat.Div0.mod_mul.
+    + split; [lia|].
+      apply Nat.Div0.mod_divides in Hlenmod. destruct Hlenmod as [q Hq].
+      assert (Hq_gt : req / g < q) by nia.
+      nia.
+Qed.
+
+Theorem requested_length_granule_exact : forall sc req,
+  class_exact sc = true ->
+  0 < req ->
+  req <= sc_length sc ->
+  let g := representable_granule (sc_length sc) in
+  let rounded := round_request_for_class sc req in
+  rounded mod g = 0 /\
+  req <= rounded /\
+  rounded <= sc_length sc /\
+  class_exact (narrowed_size_class sc req) = true /\
+  (forall b, b mod sc_align sc = 0 ->
+    b mod representable_granule rounded = 0 /\
+    rounded mod representable_granule rounded = 0).
+Proof.
+  intros sc req Hce Hreq Hle.
+  destruct (class_exact_props sc Hce) as [Hslen [Hsal [Hsmod Hamod]]].
+  pose proof (representable_granule_pos (sc_length sc)) as Hgpos.
+  pose proof (round_up_to_granule_props req (representable_granule (sc_length sc))
+                (sc_length sc) Hgpos Hreq Hle Hsmod) as [Hrmod [Hreq_r Hr_len]].
+  fold (round_request_for_class sc req) in Hrmod, Hreq_r, Hr_len.
+  set (rounded := round_request_for_class sc req) in *.
+  set (g := representable_granule (sc_length sc)) in *.
+  pose proof (representable_granule_mono_divides rounded (sc_length sc) Hr_len) as Hgdiv.
+  assert (Hr_own : rounded mod representable_granule rounded = 0).
+  { exact (mod_through_a_multiple rounded g (representable_granule rounded) Hrmod Hgdiv). }
+  assert (Ha_own : sc_align sc mod representable_granule rounded = 0).
+  { exact (mod_through_a_multiple (sc_align sc) g (representable_granule rounded) Hamod Hgdiv). }
+  assert (Hce_n : class_exact (narrowed_size_class sc req) = true).
+  { unfold class_exact, narrowed_size_class. cbn [sc_length sc_align]. fold rounded.
+    replace (0 <? rounded) with true by (symmetry; apply Nat.ltb_lt; lia).
+    replace (0 <? sc_align sc) with true by (symmetry; apply Nat.ltb_lt; lia).
+    rewrite Hr_own, Ha_own. reflexivity. }
+  cbv zeta.
+  split; [exact Hrmod|].
+  split; [exact Hreq_r|].
+  split; [exact Hr_len|].
+  split; [exact Hce_n|].
+  intros addr Haddr.
+  split; [exact (mod_through_a_multiple addr (sc_align sc) _ Haddr Ha_own) | exact Hr_own].
+Qed.
+
+Theorem narrowed_grant_preserves_bounded_exactly :
+  forall a w cls b sc req,
+    nth_error (ar_classes a) cls = Some sc ->
+    class_exact sc = true ->
+    b mod sc_align sc = 0 ->
+    ar_base a <= b ->
+    b + sc_length sc <= ar_base a + ar_span a ->
+    0 < req ->
+    req <= sc_length sc ->
+    let rounded := round_request_for_class sc req in
+    let a' := {| ar_base := ar_base a;
+                 ar_span := ar_span a;
+                 ar_classes := [narrowed_size_class sc req];
+                 ar_initial := ar_initial a |} in
+    BoundedExactly a' [Grant w 0 b (chunk_cap b rounded)] /\
+    b mod representable_granule rounded = 0 /\
+    rounded mod representable_granule rounded = 0.
+Proof.
+  intros a w cls b sc req _ Hce Hbal Hbot Htop Hreq Hle.
+  destruct (requested_length_granule_exact sc req Hce Hreq Hle)
+    as [_ [_ [Hr_len [Hce_n Hbprops]]]].
+  destruct (Hbprops b Hbal) as [Hb_own Hr_own].
+  repeat split; try assumption.
+  intros q Hq. simpl in Hq.
+  assert (Hq0 : q = 0) by (apply Nat.ltb_lt in Hq; lia). subst q.
+  unfold exact_at, grant_exact, chunk_cap; cbn [nth_error ar_classes].
+  rewrite Hce_n.
+  unfold narrowed_size_class; cbn [ar_base ar_span cap_base cap_length sc_length sc_align].
+  apply andb_true_intro; split; [|apply Nat.leb_le; lia].
+  apply andb_true_intro; split; [|apply Nat.leb_le; exact Hbot].
+  apply andb_true_intro; split; [|apply Nat.eqb_eq; reflexivity].
+  apply andb_true_intro; split; [|apply Nat.eqb_eq; reflexivity].
+  apply Nat.eqb_eq. exact Hbal.
+Qed.
+
+(* =========================================================================
+   2. Eager Zeroing Inside Sub-Allocation Reuse
+      (R-05-126, R-08-047b, R-17-045, Q34c Finding 2)
+   ========================================================================= *)
+
+Definition HeapZeroedAtHandoff (chunk : Arena) (h : list AllocEvent) : Prop :=
+  ZeroedAtHandoff chunk h.
+
+Definition HeapGuarantees (chunk : Arena) (h : list AllocEvent) : Prop :=
+  HeapNarrows chunk h /\ HeapZeroedAtHandoff chunk h.
+
+Theorem heap_zeroed_at_handoff_bytes : forall chunk h,
+  HeapZeroedAtHandoff chunk h ->
+  forall q w c b k x, q < length h ->
+    nth_error h q = Some (Grant w c b k) ->
+    b <= x < b + class_len chunk c ->
+    memory_before chunk h q x = 0.
+Proof.
+  intros chunk h Hz. exact (every_byte_is_zero_at_handoff chunk h Hz).
+Qed.
+
+Theorem meta_init_heap_zeroed : forall chunk slots,
+  layout_admitted chunk slots ->
+  HeapZeroedAtHandoff chunk (ms_hist (meta_init slots)).
+Proof.
+  intros chunk slots Hladm.
+  destruct (meta_init_inv chunk slots Hladm) as [_ [[_ [_ [Hz _]]] _]].
+  exact Hz.
+Qed.
+
+Theorem meta_step_preserves_heap_zeroed : forall chunk st op,
+  meta_inv chunk st ->
+  HeapZeroedAtHandoff chunk (ms_hist (meta_step chunk st op)).
+Proof.
+  intros chunk st op Hinv.
+  destruct (meta_step_preserves_inv chunk st op Hinv) as [_ [[_ [_ [Hz _]]] _]].
+  exact Hz.
+Qed.
+
+Theorem meta_run_refines_heap_zeroed_at_handoff : forall chunk slots ops,
+  layout_admitted chunk slots ->
+  HeapZeroedAtHandoff chunk (ms_hist (meta_run chunk (meta_init slots) ops)).
+Proof.
+  intros chunk slots ops Hladm.
+  destruct (meta_run_refines_pool_guarantees chunk slots ops Hladm)
+    as [_ [_ [Hz _]]].
+  exact Hz.
+Qed.
+
+Theorem meta_run_refines_heap_guarantees : forall chunk slots ops,
+  layout_admitted chunk slots ->
+  HeapGuarantees chunk (ms_hist (meta_run chunk (meta_init slots) ops)).
+Proof.
+  intros chunk slots ops Hladm.
+  split.
+  - exact (meta_run_refines_heap_narrows chunk slots ops Hladm).
+  - exact (meta_run_refines_heap_zeroed_at_handoff chunk slots ops Hladm).
+Qed.
+
+(* Q34c Finding 2 refutation: a reused sub-allocation inside a chunk can
+   satisfy `HeapNarrows` while retaining the member's own earlier bytes
+   unless `HeapZeroedAtHandoff` is also enforced. *)
+Definition unzeroed_suballoc_reuse_history : list AllocEvent :=
+  [Zero 2048 16; Grant 1 0 2048 (chunk_cap 2048 16); Write 2048 7;
+   Release 2048 0; BarrierDone; SweepBegin; SweepEnd;
+   Grant 1 0 2048 (chunk_cap 2048 16)].
+
+Theorem unzeroed_reuse_satisfies_heap_narrows_but_not_zeroed :
+  HeapNarrows chunk_arena unzeroed_suballoc_reuse_history /\
+  ~ HeapZeroedAtHandoff chunk_arena unzeroed_suballoc_reuse_history /\
+  memory_before chunk_arena unzeroed_suballoc_reuse_history 7 2048 = 7.
+Proof.
+  split; [split; [|split]; intros q Hq; refine (all_of_upto _ _ q _ Hq); reflexivity|].
+  split; [|reflexivity].
+  intros Hz. specialize (Hz 7 eq_refl). discriminate Hz.
+Qed.
+
+(* =========================================================================
+   3. Per-Island Pool Disjointness and Revocable Union Containment
+      (R-08-047a, R-08-005a)
+   ========================================================================= *)
+
+Definition rev_granule : nat := 8.
+Definition rot_union_align : nat := 64.
+
+Record IslandPoolEntry : Type := {
+  ipe_island : nat;
+  ipe_mem_class : MemClass;
+  ipe_arena : Arena
+}.
+
+Record DomainIslandPools : Type := {
+  dip_domain : Domain;
+  dip_pools : list IslandPoolEntry;
+  dip_core_island : nat -> nat;
+  dip_launch_core : nat -> option nat;
+  dip_island_revocable : nat -> list (nat * nat)
+}.
+
+Definition granule_first (b : nat) : nat := b / rev_granule.
+
+Definition granule_limit (b s : nat) : nat := (b + s + (rev_granule - 1)) / rev_granule.
+
+Definition arena_bytes_disjoint (a1 a2 : Arena) : bool :=
+  Nat.leb (ar_base a1 + ar_span a1) (ar_base a2)
+  || Nat.leb (ar_base a2 + ar_span a2) (ar_base a1).
+
+Definition arena_granules_disjoint (a1 a2 : Arena) : bool :=
+  Nat.leb (granule_limit (ar_base a1) (ar_span a1)) (granule_first (ar_base a2))
+  || Nat.leb (granule_limit (ar_base a2) (ar_span a2)) (granule_first (ar_base a1)).
+
+Definition entry_key_eqb (e1 e2 : IslandPoolEntry) : bool :=
+  Nat.eqb (ipe_island e1) (ipe_island e2)
+  && class_eqb (ipe_mem_class e1) (ipe_mem_class e2).
+
+Definition revocable_interval_ok (iv : nat * nat) : bool :=
+  let '(b, s) := iv in
+  Nat.ltb 0 s
+  && Nat.eqb (b mod rot_union_align) 0
+  && Nat.eqb ((b + s) mod rot_union_align) 0.
+
+Definition arena_in_revocable_union (a : Arena) (ivs : list (nat * nat)) : bool :=
+  any_of (fun iv =>
+    let '(b, s) := iv in
+    revocable_interval_ok iv
+    && Nat.leb b (ar_base a)
+    && Nat.leb (ar_base a + ar_span a) (b + s)) ivs.
+
+Definition entry_ok (dip : DomainIslandPools) (e : IslandPoolEntry) : bool :=
+  Nat.ltb 0 (ar_span (ipe_arena e))
+  && all_of class_exact (ar_classes (ipe_arena e))
+  && arena_in_revocable_union (ipe_arena e) (dip_island_revocable dip (ipe_island e)).
+
+Definition entries_separate (e1 e2 : IslandPoolEntry) : bool :=
+  negb (entry_key_eqb e1 e2)
+  && arena_bytes_disjoint (ipe_arena e1) (ipe_arena e2)
+  && arena_granules_disjoint (ipe_arena e1) (ipe_arena e2).
+
+Fixpoint pairwise_pool_disjoint (pools : list IslandPoolEntry) : bool :=
+  match pools with
+  | [] => true
+  | e :: rest => all_of (entries_separate e) rest && pairwise_pool_disjoint rest
+  end.
+
+Definition member_launch_bound (dip : DomainIslandPools) (m : nat) : bool :=
+  match dip_launch_core dip m with
+  | None => false
+  | Some core =>
+      launch_ok (dip_domain dip) m core
+      && all_of (fun mc =>
+           any_of (fun e =>
+             Nat.eqb (ipe_island e) (dip_core_island dip core)
+             && class_eqb (ipe_mem_class e) mc) (dip_pools dip)) all_classes
+  end.
+
+Definition domain_island_pools_admitted (dip : DomainIslandPools) : bool :=
+  envelope_admits (dip_domain dip)
+  && all_of (entry_ok dip) (dip_pools dip)
+  && pairwise_pool_disjoint (dip_pools dip)
+  && all_of (member_launch_bound dip) (dom_members (dip_domain dip)).
+
+Definition bind_member_pool
+    (dip : DomainIslandPools) (m : nat) (mc : MemClass) : option IslandPoolEntry :=
+  if mem_nat m (dom_members (dip_domain dip))
+  then match dip_launch_core dip m with
+       | None => None
+       | Some core =>
+           if launch_ok (dip_domain dip) m core
+           then find (fun e =>
+             Nat.eqb (ipe_island e) (dip_core_island dip core)
+             && class_eqb (ipe_mem_class e) mc) (dip_pools dip)
+           else None
+       end
+  else None.
+
+Lemma entries_separate_sym : forall e1 e2,
+  entries_separate e1 e2 = true -> entries_separate e2 e1 = true.
+Proof.
+  intros e1 e2 H. unfold entries_separate in *.
+  apply andb_prop in H. destruct H as [H Hgr].
+  apply andb_prop in H. destruct H as [Hk Hby].
+  apply andb_true_intro. split; [apply andb_true_intro; split|].
+  - apply negb_true_iff. apply negb_true_iff in Hk.
+    destruct (entry_key_eqb e2 e1) eqn:E21; [|reflexivity].
+    unfold entry_key_eqb in E21. apply andb_prop in E21. destruct E21 as [Hi Hc].
+    apply Nat.eqb_eq in Hi. apply class_eqb_true in Hc.
+    unfold entry_key_eqb in Hk. rewrite <- Hi, <- Hc, Nat.eqb_refl, class_eqb_refl in Hk.
+    discriminate Hk.
+  - unfold arena_bytes_disjoint in *. apply orb_true_iff in Hby. apply orb_true_iff.
+    destruct Hby as [H|H]; [right|left]; exact H.
+  - unfold arena_granules_disjoint in *. apply orb_true_iff in Hgr. apply orb_true_iff.
+    destruct Hgr as [H|H]; [right|left]; exact H.
+Qed.
+
+Lemma pairwise_pool_disjoint_nth : forall pools i j e1 e2,
+  pairwise_pool_disjoint pools = true ->
+  nth_error pools i = Some e1 ->
+  nth_error pools j = Some e2 ->
+  i <> j ->
+  entries_separate e1 e2 = true.
+Proof.
+  intro pools. induction pools as [|x rest IH]; intros i j e1 e2 Hpd Hi Hj Hne.
+  - destruct i; discriminate Hi.
+  - simpl in Hpd. apply andb_prop in Hpd. destruct Hpd as [Hx Hr].
+    destruct i as [|i]; destruct j as [|j].
+    + exfalso. apply Hne. reflexivity.
+    + simpl in Hi, Hj. injection Hi as <-.
+      apply all_of_in with (l := rest); [exact Hx|]. eapply nth_error_In. exact Hj.
+    + simpl in Hi, Hj. injection Hj as <-.
+      apply entries_separate_sym.
+      apply all_of_in with (l := rest); [exact Hx|]. eapply nth_error_In. exact Hi.
+    + simpl in Hi, Hj. apply (IH i j e1 e2 Hr Hi Hj). lia.
+Qed.
+
+Lemma granule_separation_implies_byte_and_granule_distinct : forall b1 s1 b2 s2 x1 x2,
+  0 < s1 -> 0 < s2 ->
+  arena_granules_disjoint
+    {| ar_base := b1; ar_span := s1; ar_classes := []; ar_initial := fun _ => 0 |}
+    {| ar_base := b2; ar_span := s2; ar_classes := []; ar_initial := fun _ => 0 |} = true ->
+  b1 <= x1 < b1 + s1 ->
+  b2 <= x2 < b2 + s2 ->
+  x1 <> x2 /\ x1 / rev_granule <> x2 / rev_granule.
+Proof.
+  intros b1 s1 b2 s2 x1 x2 Hs1 Hs2 Hgr Hx1 Hx2.
+  unfold arena_granules_disjoint, granule_first, granule_limit, rev_granule in Hgr.
+  simpl in Hgr.
+  assert (Hstep : forall a c d y, 0 < d -> a <= y < a + d ->
+    (a + d + 7) / 8 <= c / 8 -> y / 8 < c / 8).
+  { intros a c d y Hd Hy Hlim.
+    assert (Hy_div : y / 8 <= (a + d - 1) / 8) by (apply Nat.Div0.div_le_mono; lia).
+    assert (Hnext : (a + d - 1) / 8 + 1 = (a + d + 7) / 8).
+    { replace (a + d + 7) with ((a + d - 1) + 1 * 8) by lia.
+      rewrite Nat.div_add by lia. lia. }
+    lia. }
+  apply orb_true_iff in Hgr. destruct Hgr as [H12|H21].
+  - apply Nat.leb_le in H12.
+    assert (Hx1_lt : x1 / 8 < b2 / 8) by (eapply Hstep; [exact Hs1 | exact Hx1 | exact H12]).
+    assert (Hb2_le : b2 / 8 <= x2 / 8) by (apply Nat.Div0.div_le_mono; lia).
+    unfold rev_granule. split; [|lia].
+    intro Heq. subst x2. lia.
+  - apply Nat.leb_le in H21.
+    assert (Hx2_lt : x2 / 8 < b1 / 8) by (eapply Hstep; [exact Hs2 | exact Hx2 | exact H21]).
+    assert (Hb1_le : b1 / 8 <= x1 / 8) by (apply Nat.Div0.div_le_mono; lia).
+    unfold rev_granule. split; [|lia].
+    intro Heq. subst x2. lia.
+Qed.
+
+Theorem island_pools_disjoint_bytes_and_granules :
+  forall dip i j e1 e2,
+    domain_island_pools_admitted dip = true ->
+    nth_error (dip_pools dip) i = Some e1 ->
+    nth_error (dip_pools dip) j = Some e2 ->
+    i <> j ->
+    (ipe_island e1, ipe_mem_class e1) <> (ipe_island e2, ipe_mem_class e2) /\
+    arena_bytes_disjoint (ipe_arena e1) (ipe_arena e2) = true /\
+    arena_granules_disjoint (ipe_arena e1) (ipe_arena e2) = true /\
+    arena_in_revocable_union (ipe_arena e1) (dip_island_revocable dip (ipe_island e1)) = true /\
+    arena_in_revocable_union (ipe_arena e2) (dip_island_revocable dip (ipe_island e2)) = true /\
+    (forall x1 x2,
+      ar_base (ipe_arena e1) <= x1 < ar_base (ipe_arena e1) + ar_span (ipe_arena e1) ->
+      ar_base (ipe_arena e2) <= x2 < ar_base (ipe_arena e2) + ar_span (ipe_arena e2) ->
+      x1 <> x2 /\ x1 / rev_granule <> x2 / rev_granule).
+Proof.
+  intros dip i j e1 e2 Hadm Hi Hj Hne.
+  unfold domain_island_pools_admitted in Hadm.
+  apply andb_prop in Hadm. destruct Hadm as [Hadm _].
+  apply andb_prop in Hadm. destruct Hadm as [Hadm Hpd].
+  apply andb_prop in Hadm. destruct Hadm as [_ Hent].
+  pose proof (pairwise_pool_disjoint_nth (dip_pools dip) i j e1 e2 Hpd Hi Hj Hne) as Hsep.
+  unfold entries_separate in Hsep.
+  apply andb_prop in Hsep. destruct Hsep as [Hsep Hgr].
+  apply andb_prop in Hsep. destruct Hsep as [Hk Hby].
+  pose proof (all_of_in _ _ _ _ Hent (nth_error_In _ _ Hi)) as Hok1.
+  pose proof (all_of_in _ _ _ _ Hent (nth_error_In _ _ Hj)) as Hok2.
+  unfold entry_ok in Hok1, Hok2.
+  apply andb_prop in Hok1. destruct Hok1 as [Hok1 Hun1].
+  apply andb_prop in Hok1. destruct Hok1 as [Hs1 _].
+  apply andb_prop in Hok2. destruct Hok2 as [Hok2 Hun2].
+  apply andb_prop in Hok2. destruct Hok2 as [Hs2 _].
+  apply Nat.ltb_lt in Hs1. apply Nat.ltb_lt in Hs2.
+  split.
+  - intro Heq. injection Heq as Hi_eq Hc_eq.
+    unfold entry_key_eqb in Hk. rewrite Hi_eq, Hc_eq, Nat.eqb_refl, class_eqb_refl in Hk.
+    discriminate Hk.
+  - split; [exact Hby|].
+    split; [exact Hgr|].
+    split; [exact Hun1|].
+    split; [exact Hun2|].
+    intros x1 x2 Hx1 Hx2.
+    eapply granule_separation_implies_byte_and_granule_distinct;
+      [exact Hs1 | exact Hs2 | | exact Hx1 | exact Hx2].
+    unfold arena_granules_disjoint in *. exact Hgr.
+Qed.
+
+Lemma find_some_in_list : forall (A : Type) (p : A -> bool) (l : list A) (x : A),
+  find p l = Some x -> In x l /\ p x = true.
+Proof.
+  intros A p l x. induction l as [|y rest IH]; intros H; simpl in H; [discriminate H|].
+  destruct (p y) eqn:Ey.
+  - injection H as <-. split; [left; reflexivity | exact Ey].
+  - destruct (IH H) as [Hin Hp]. split; [right; exact Hin | exact Hp].
+Qed.
+
+Lemma any_of_implies_find_some : forall (A : Type) (p : A -> bool) (l : list A),
+  any_of p l = true -> exists x, find p l = Some x.
+Proof.
+  intros A p l H. induction l as [|y rest IH]; simpl in H; [discriminate H|].
+  simpl. destruct (p y) eqn:Ey; [exists y; reflexivity|].
+  simpl in H. exact (IH H).
+Qed.
+
+Lemma in_mem_nat : forall m l, In m l -> mem_nat m l = true.
+Proof.
+  intros m l Hin. induction l as [|y rest IH]; [contradiction|].
+  simpl. destruct Hin as [->|Hin].
+  - rewrite Nat.eqb_refl. reflexivity.
+  - rewrite (IH Hin). apply orb_true_r.
+Qed.
+
+Theorem member_binds_launch_island_pool :
+  forall dip m mc,
+    domain_island_pools_admitted dip = true ->
+    (In m (dom_members (dip_domain dip)) ->
+      exists core e,
+        dip_launch_core dip m = Some core /\
+        launch_ok (dip_domain dip) m core = true /\
+        bind_member_pool dip m mc = Some e /\
+        In e (dip_pools dip) /\
+        ipe_island e = dip_core_island dip core /\
+        ipe_mem_class e = mc /\
+        arena_in_revocable_union (ipe_arena e) (dip_island_revocable dip (ipe_island e)) = true) /\
+    (~ In m (dom_members (dip_domain dip)) ->
+      bind_member_pool dip m mc = None).
+Proof.
+  intros dip m mc Hadm. split.
+  - intro Hin.
+    unfold domain_island_pools_admitted in Hadm.
+    apply andb_prop in Hadm. destruct Hadm as [Hadm Hmem].
+    apply andb_prop in Hadm. destruct Hadm as [Hadm _].
+    apply andb_prop in Hadm. destruct Hadm as [_ Hent].
+    pose proof (all_of_in _ _ _ _ Hmem Hin) as Hmb.
+    unfold member_launch_bound in Hmb.
+    destruct (dip_launch_core dip m) as [core|] eqn:Ecore; [|discriminate Hmb].
+    apply andb_prop in Hmb. destruct Hmb as [Hlok Hcls].
+    assert (Hmc_in : In mc all_classes) by (destruct mc; simpl; auto).
+    pose proof (all_of_in _ _ _ _ Hcls Hmc_in) as Hany.
+    destruct (any_of_implies_find_some _ _ _ Hany) as [e He].
+    exists core, e.
+    destruct (find_some_in_list _ _ _ _ He) as [Hein Hep].
+    apply andb_prop in Hep. destruct Hep as [Hisl Hmc].
+    apply Nat.eqb_eq in Hisl. apply class_eqb_true in Hmc.
+    pose proof (all_of_in _ _ _ _ Hent Hein) as Hok.
+    unfold entry_ok in Hok. apply andb_prop in Hok. destruct Hok as [_ Hun].
+    repeat split; try assumption.
+    unfold bind_member_pool. rewrite (in_mem_nat _ _ Hin), Ecore, Hlok. exact He.
+  - intro Hnot. unfold bind_member_pool.
+    destruct (mem_nat m (dom_members (dip_domain dip))) eqn:Emem; [|reflexivity].
+    exfalso. apply Hnot. exact (mem_nat_in _ _ Emem).
+Qed.
+
+Definition witness_IslandPoolEntry : IslandPoolEntry := {|
+  ipe_island := 0;
+  ipe_mem_class := FirstClass;
+  ipe_arena := {| ar_base := 64; ar_span := 64;
+                  ar_classes := [{| sc_length := 16; sc_align := 16 |}];
+                  ar_initial := fun _ => 0 |}
+|}.
+
+Definition witness_SecondClassPoolEntry : IslandPoolEntry := {|
+  ipe_island := 0;
+  ipe_mem_class := SecondClass;
+  ipe_arena := {| ar_base := 128; ar_span := 64;
+                  ar_classes := [{| sc_length := 32; sc_align := 32 |}];
+                  ar_initial := fun _ => 0 |}
+|}.
+
+Definition witness_DomainIslandPools : DomainIslandPools := {|
+  dip_domain := demo_domain;
+  dip_pools := [witness_IslandPoolEntry; witness_SecondClassPoolEntry];
+  dip_core_island := fun _ => 0;
+  dip_launch_core := fun m => if Nat.ltb m 2 then Some 0 else None;
+  dip_island_revocable := fun isl => if Nat.eqb isl 0 then [(64, 128)] else []
+|}.
+
+Example demo_domain_island_pools_admitted :
+  domain_island_pools_admitted witness_DomainIslandPools = true.
+Proof. vm_reflexivity. Qed.
+
+Definition shared_granule_pools : DomainIslandPools := {|
+  dip_domain := demo_domain;
+  dip_pools :=
+    [{| ipe_island := 0; ipe_mem_class := FirstClass;
+        ipe_arena := {| ar_base := 64; ar_span := 4;
+                        ar_classes := [{| sc_length := 4; sc_align := 4 |}];
+                        ar_initial := fun _ => 0 |} |};
+     {| ipe_island := 0; ipe_mem_class := SecondClass;
+        ipe_arena := {| ar_base := 68; ar_span := 4;
+                        ar_classes := [{| sc_length := 4; sc_align := 4 |}];
+                        ar_initial := fun _ => 0 |} |}];
+  dip_core_island := fun _ => 0;
+  dip_launch_core := fun m => if Nat.ltb m 2 then Some 0 else None;
+  dip_island_revocable := fun isl => if Nat.eqb isl 0 then [(64, 64)] else []
+|}.
+
+Example shared_granule_pools_refused :
+  domain_island_pools_admitted shared_granule_pools = false.
+Proof. reflexivity. Qed.
+
+(* =========================================================================
+   4. Holder-Map / Revocation-Barrier Linking (R-08-006, R-08-007a)
+   ========================================================================= *)
+
+Inductive HolderKind : Type :=
+| HReg
+| HSavedCtx
+| HStoredCell.
+
+Record HolderEntry : Type := {
+  he_id : nat;
+  he_kind : HolderKind;
+  he_cap : option Cap
+}.
+
+Record LinkedMetaState : Type := {
+  lm_meta : MetaState;
+  lm_holders : list HolderEntry
+}.
+
+Definition witness_HolderEntry : HolderEntry := {|
+  he_id := 0;
+  he_kind := HReg;
+  he_cap := Some (chunk_cap 64 16)
+|}.
+
+Definition witness_LinkedMetaState : LinkedMetaState := {|
+  lm_meta := witness_MetaState;
+  lm_holders := [witness_HolderEntry]
+|}.
+
+Definition holder_touches_slot (h : HolderEntry) (s : MetaSlot) : bool :=
+  match he_cap h, ms_phase s with
+  | Some k, PPending =>
+      overlaps (cap_base k) (cap_length k)
+               (sl_base (ms_layout s)) (sl_len (ms_layout s))
+  | _, _ => false
+  end.
+
+Definition no_holder_for_pending
+    (holders : list HolderEntry) (slots : list MetaSlot) : bool :=
+  all_of (fun s => negb (any_of (fun h => holder_touches_slot h s) holders)) slots.
+
+Inductive LinkedOp : Type :=
+| LMeta (op : MetaOp)
+| LClearHolder (holder_idx : nat)
+| LAddHolder (h : HolderEntry).
+
+Definition clear_holder_entry (h : HolderEntry) : HolderEntry :=
+  {| he_id := he_id h; he_kind := he_kind h; he_cap := None |}.
+
+Fixpoint clear_holder_at (idx : nat) (hs : list HolderEntry) : list HolderEntry :=
+  match hs, idx with
+  | [], _ => []
+  | h :: rest, 0 => clear_holder_entry h :: rest
+  | h :: rest, S n => h :: clear_holder_at n rest
+  end.
+
+Definition linked_init (slots : list SlotLayout) (holders : list HolderEntry)
+  : LinkedMetaState := {|
+  lm_meta := meta_init slots;
+  lm_holders := holders
+|}.
+
+Definition linked_step (a : Arena) (st : LinkedMetaState) (lop : LinkedOp)
+  : LinkedMetaState :=
+  match lop with
+  | LMeta OpBarrier =>
+      if no_holder_for_pending (lm_holders st) (ms_slots (lm_meta st))
+      then {| lm_meta := meta_step a (lm_meta st) OpBarrier;
+              lm_holders := lm_holders st |}
+      else st
+  | LMeta op =>
+      {| lm_meta := meta_step a (lm_meta st) op;
+         lm_holders := lm_holders st |}
+  | LClearHolder idx =>
+      {| lm_meta := lm_meta st;
+         lm_holders := clear_holder_at idx (lm_holders st) |}
+  | LAddHolder h =>
+      {| lm_meta := lm_meta st;
+         lm_holders := lm_holders st ++ [h] |}
+  end.
+
+Fixpoint linked_run (a : Arena) (st : LinkedMetaState) (lops : list LinkedOp)
+  : LinkedMetaState :=
+  match lops with
+  | [] => st
+  | lop :: rest => linked_run a (linked_step a st lop) rest
+  end.
+
+Fixpoint effective_meta_ops (a : Arena) (st : LinkedMetaState) (lops : list LinkedOp)
+  : list MetaOp :=
+  match lops with
+  | [] => []
+  | lop :: rest =>
+      let prefix :=
+        match lop with
+        | LMeta OpBarrier =>
+            if no_holder_for_pending (lm_holders st) (ms_slots (lm_meta st))
+            then [OpBarrier] else []
+        | LMeta op => [op]
+        | LClearHolder _ => []
+        | LAddHolder _ => []
+        end in
+      prefix ++ effective_meta_ops a (linked_step a st lop) rest
+  end.
+
+Lemma meta_run_app : forall a st ops1 ops2,
+  meta_run a st (ops1 ++ ops2) = meta_run a (meta_run a st ops1) ops2.
+Proof.
+  intros a st ops1 ops2. revert st.
+  induction ops1 as [|op rest IH]; intros st; simpl; [reflexivity|].
+  apply IH.
+Qed.
+
+Theorem linked_run_refines_meta_run : forall a lops st,
+  lm_meta (linked_run a st lops) =
+  meta_run a (lm_meta st) (effective_meta_ops a st lops).
+Proof.
+  intros a lops. induction lops as [|lop rest IH]; intros st; simpl; [reflexivity|].
+  rewrite IH. destruct lop as [op|idx|h]; simpl.
+  - destruct op; simpl; try reflexivity.
+    destruct (no_holder_for_pending (lm_holders st) (ms_slots (lm_meta st))); reflexivity.
+  - reflexivity.
+  - reflexivity.
+Qed.
+
+Theorem linked_run_refines_pool_guarantees : forall a slots holders lops,
+  layout_admitted a slots ->
+  PoolGuarantees a (ms_hist (lm_meta (linked_run a (linked_init slots holders) lops))).
+Proof.
+  intros a slots holders lops Hladm.
+  rewrite linked_run_refines_meta_run. simpl.
+  exact (meta_run_refines_pool_guarantees a slots
+           (effective_meta_ops a (linked_init slots holders) lops) Hladm).
+Qed.
+
+Theorem linked_run_refines_heap_narrows : forall a slots holders lops,
+  layout_admitted a slots ->
+  HeapNarrows a (ms_hist (lm_meta (linked_run a (linked_init slots holders) lops))).
+Proof.
+  intros a slots holders lops Hladm.
+  rewrite linked_run_refines_meta_run. simpl.
+  exact (meta_run_refines_heap_narrows a slots
+           (effective_meta_ops a (linked_init slots holders) lops) Hladm).
+Qed.
+
+Theorem linked_run_refines_heap_zeroed_at_handoff : forall a slots holders lops,
+  layout_admitted a slots ->
+  HeapZeroedAtHandoff a (ms_hist (lm_meta (linked_run a (linked_init slots holders) lops))).
+Proof.
+  intros a slots holders lops Hladm.
+  rewrite linked_run_refines_meta_run. simpl.
+  exact (meta_run_refines_heap_zeroed_at_handoff a slots
+           (effective_meta_ops a (linked_init slots holders) lops) Hladm).
+Qed.
+
+Lemma holder_blocks_no_holder_for_pending : forall holders slots s h k,
+  In s slots ->
+  ms_phase s = PPending ->
+  In h holders ->
+  he_cap h = Some k ->
+  overlaps (cap_base k) (cap_length k)
+           (sl_base (ms_layout s)) (sl_len (ms_layout s)) = true ->
+  no_holder_for_pending holders slots = false.
+Proof.
+  intros holders slots s h k Hs Hph Hh Hcap Hov.
+  destruct (no_holder_for_pending holders slots) eqn:E; [|reflexivity].
+  unfold no_holder_for_pending in E.
+  pose proof (all_of_in _ _ _ _ E Hs) as Hneg.
+  apply negb_true_iff in Hneg.
+  assert (Htouch : holder_touches_slot h s = true).
+  { unfold holder_touches_slot. rewrite Hcap, Hph. exact Hov. }
+  assert (Hany : any_of (fun h0 => holder_touches_slot h0 s) holders = true).
+  { clear E Hneg. induction holders as [|hd tl IH]; [contradiction|].
+    simpl. destruct Hh as [->|Hh].
+    - rewrite Htouch. reflexivity.
+    - rewrite (IH Hh). apply orb_true_r. }
+  rewrite Hany in Hneg. discriminate Hneg.
+Qed.
+
+Lemma linked_barrier_blocked_inert : forall a st idx s h k,
+  nth_error (ms_slots (lm_meta st)) idx = Some s ->
+  ms_phase s = PPending ->
+  In h (lm_holders st) ->
+  he_cap h = Some k ->
+  overlaps (cap_base k) (cap_length k)
+           (sl_base (ms_layout s)) (sl_len (ms_layout s)) = true ->
+  no_holder_for_pending (lm_holders st) (ms_slots (lm_meta st)) = false /\
+  linked_step a st (LMeta OpBarrier) = st.
+Proof.
+  intros a st idx s h k Es Hph Hh Hcap Hov.
+  pose proof (holder_blocks_no_holder_for_pending
+                (lm_holders st) (ms_slots (lm_meta st)) s h k
+                (nth_error_In _ _ Es) Hph Hh Hcap Hov) as Hblk.
+  split; [exact Hblk|].
+  simpl. rewrite Hblk. reflexivity.
+Qed.
+
+Lemma nth_error_map_slot_phase_pending : forall f slots idx s,
+  nth_error slots idx = Some s ->
+  ms_phase s = PPending ->
+  f PPending = PPending ->
+  nth_error (map (map_slot_phase f) slots) idx = Some s.
+Proof.
+  intros f slots idx s Es Hph Hf.
+  rewrite nth_error_map, Es. simpl. f_equal.
+  unfold map_slot_phase. destruct s as [l ph z]. simpl in *.
+  subst ph. rewrite Hf. reflexivity.
+Qed.
+
+Theorem stale_holder_any_kind_blocks_barrier_and_reuse :
+  forall a st idx s h k,
+    nth_error (ms_slots (lm_meta st)) idx = Some s ->
+    ms_phase s = PPending ->
+    In h (lm_holders st) ->
+    he_cap h = Some k ->
+    overlaps (cap_base k) (cap_length k)
+             (sl_base (ms_layout s)) (sl_len (ms_layout s)) = true ->
+    no_holder_for_pending (lm_holders st) (ms_slots (lm_meta st)) = false /\
+    linked_step a st (LMeta OpBarrier) = st /\
+    let st' := linked_run a st [LMeta OpBarrier; LMeta OpSweepBegin; LMeta OpSweepEnd] in
+    nth_error (ms_slots (lm_meta st')) idx = Some s /\
+    linked_step a st' (LMeta (OpAlloc idx)) = st'.
+Proof.
+  intros a st idx s h k Es Hph Hh Hcap Hov.
+  destruct (linked_barrier_blocked_inert a st idx s h k Es Hph Hh Hcap Hov)
+    as [Hblk Hbar].
+  split; [exact Hblk | split; [exact Hbar|]].
+  cbv zeta. simpl. rewrite Hblk.
+  assert (Hsb : nth_error (ms_slots (lm_meta (linked_step a st (LMeta OpSweepBegin)))) idx = Some s).
+  { simpl. destruct (negb (ms_sweep_active (lm_meta st))); [|exact Es].
+    simpl. apply nth_error_map_slot_phase_pending; [exact Es | exact Hph | reflexivity]. }
+  assert (Hse : nth_error (ms_slots (lm_meta (linked_run a st [LMeta OpSweepBegin; LMeta OpSweepEnd]))) idx = Some s).
+  { simpl. destruct (negb (ms_sweep_active (lm_meta st))) eqn:Esw.
+    - simpl. apply nth_error_map_slot_phase_pending; [|exact Hph | reflexivity].
+      simpl in Hsb. rewrite Esw in Hsb. exact Hsb.
+    - destruct (ms_sweep_active (lm_meta st)) eqn:Esw2; [|exact Es].
+      simpl. apply nth_error_map_slot_phase_pending; [exact Es | exact Hph | reflexivity]. }
+  split; [exact Hse|].
+  simpl in Hse |- *. rewrite Hse, Hph. reflexivity.
+Qed.
+
+Theorem stale_register_copy_blocks_barrier_and_reuse :
+  forall a st idx s h k,
+    nth_error (ms_slots (lm_meta st)) idx = Some s ->
+    ms_phase s = PPending ->
+    In h (lm_holders st) ->
+    he_kind h = HReg ->
+    he_cap h = Some k ->
+    overlaps (cap_base k) (cap_length k)
+             (sl_base (ms_layout s)) (sl_len (ms_layout s)) = true ->
+    no_holder_for_pending (lm_holders st) (ms_slots (lm_meta st)) = false /\
+    linked_step a st (LMeta OpBarrier) = st /\
+    let st' := linked_run a st [LMeta OpBarrier; LMeta OpSweepBegin; LMeta OpSweepEnd] in
+    nth_error (ms_slots (lm_meta st')) idx = Some s /\
+    linked_step a st' (LMeta (OpAlloc idx)) = st'.
+Proof.
+  intros a st idx s h k Es Hph Hh _ Hcap Hov.
+  exact (stale_holder_any_kind_blocks_barrier_and_reuse a st idx s h k Es Hph Hh Hcap Hov).
+Qed.
+
+Definition linked_stale_holders : list HolderEntry :=
+  [{| he_id := 0; he_kind := HReg; he_cap := Some (chunk_cap 64 16) |};
+   {| he_id := 1; he_kind := HSavedCtx; he_cap := None |};
+   {| he_id := 2; he_kind := HStoredCell; he_cap := None |}].
+
+Example linked_clear_register_enables_barrier_and_reuse :
+  let init := linked_init meta_ref_slots linked_stale_holders in
+  let pending := linked_run pool_reference_arena init
+                   [LMeta (OpAlloc 0); LMeta (OpRelease 0)] in
+  linked_step pool_reference_arena pending (LMeta OpBarrier) = pending /\
+  let reused := linked_run pool_reference_arena pending
+                  [LClearHolder 0; LMeta OpBarrier; LMeta OpSweepBegin;
+                   LMeta OpSweepEnd; LMeta (OpAlloc 0)] in
+  map ms_phase (ms_slots (lm_meta reused)) = [PLive; PFree] /\
+  ms_next_id (lm_meta reused) = 2.
+Proof. split; [vm_reflexivity | split; vm_reflexivity]. Qed.
+
+(* =========================================================================
+   5. Parent/Child Descendant Lifetime Refinement
+   ========================================================================= *)
+
+Record NestedHeapState : Type := {
+  nh_parent : MetaState;
+  nh_parent_gens : list nat;
+  nh_bound_slot : nat;
+  nh_bound_gen : nat;
+  nh_child : MetaState
+}.
+
+Definition witness_NestedHeapState : NestedHeapState := {|
+  nh_parent := witness_MetaState;
+  nh_parent_gens := [0];
+  nh_bound_slot := 0;
+  nh_bound_gen := 1;
+  nh_child := witness_MetaState
+|}.
+
+Inductive ChildOp : Type :=
+| ChildAlloc (slot_idx : nat)
+| ChildWrite (slot_idx off val : nat)
+| ChildRelease (slot_idx : nat)
+| ChildBarrier
+| ChildSweepBegin
+| ChildSweepEnd.
+
+Definition child_to_meta_op (cop : ChildOp) : MetaOp :=
+  match cop with
+  | ChildAlloc idx => OpAlloc idx
+  | ChildWrite idx off val => OpWrite idx off val
+  | ChildRelease idx => OpRelease idx
+  | ChildBarrier => OpBarrier
+  | ChildSweepBegin => OpSweepBegin
+  | ChildSweepEnd => OpSweepEnd
+  end.
+
+Inductive NestedOp : Type :=
+| NParent (op : MetaOp)
+| NChild (cop : ChildOp).
+
+Fixpoint inc_gen_at (idx : nat) (gens : list nat) : list nat :=
+  match gens, idx with
+  | [], _ => []
+  | g :: rest, 0 => S g :: rest
+  | g :: rest, S n => g :: inc_gen_at n rest
+  end.
+
+Lemma nth_error_inc_gen_eq : forall idx gens g,
+  nth_error gens idx = Some g ->
+  nth_error (inc_gen_at idx gens) idx = Some (S g).
+Proof.
+  intro idx. induction idx as [|idx IH]; intros gens g Hnth.
+  - destruct gens; [discriminate Hnth|]. simpl in *. injection Hnth as <-. reflexivity.
+  - destruct gens; [discriminate Hnth|]. simpl in *. apply IH. exact Hnth.
+Qed.
+
+Lemma nth_error_inc_gen_ne : forall idx j gens,
+  j <> idx ->
+  nth_error (inc_gen_at idx gens) j = nth_error gens j.
+Proof.
+  intro idx. induction idx as [|idx IH]; intros j gens Hne.
+  - destruct gens; destruct j; simpl; try reflexivity. exfalso. apply Hne. reflexivity.
+  - destruct gens; destruct j; simpl; try reflexivity. apply IH. lia.
+Qed.
+
+Lemma nth_error_inc_gen_none : forall idx gens,
+  nth_error gens idx = None ->
+  nth_error (inc_gen_at idx gens) idx = None.
+Proof.
+  intro idx. induction idx as [|idx IH]; intros gens Hnth.
+  - destruct gens; simpl in *; [reflexivity | discriminate Hnth].
+  - destruct gens; simpl in *; [reflexivity | apply IH; exact Hnth].
+Qed.
+
+Definition parent_binding_live (nh : NestedHeapState) : bool :=
+  match nth_error (ms_slots (nh_parent nh)) (nh_bound_slot nh),
+        nth_error (nh_parent_gens nh) (nh_bound_slot nh) with
+  | Some s, Some g =>
+      match ms_phase s with
+      | PLive => Nat.eqb g (nh_bound_gen nh)
+      | _ => false
+      end
+  | _, _ => false
+  end.
+
+Definition nested_init
+    (parent_st : MetaState) (parent_gens : list nat)
+    (parent_slot parent_gen : nat) (child_slots : list SlotLayout)
+  : NestedHeapState := {|
+  nh_parent := parent_st;
+  nh_parent_gens := parent_gens;
+  nh_bound_slot := parent_slot;
+  nh_bound_gen := parent_gen;
+  nh_child := meta_init child_slots
+|}.
+
+Definition nested_step (pa ca : Arena) (nh : NestedHeapState) (nop : NestedOp)
+  : NestedHeapState :=
+  match nop with
+  | NParent op =>
+      let gens' :=
+        match op with
+        | OpAlloc idx =>
+            match nth_error (ms_slots (nh_parent nh)) idx with
+            | Some s =>
+                match ms_phase s with
+                | PFree => inc_gen_at idx (nh_parent_gens nh)
+                | _ => nh_parent_gens nh
+                end
+            | None => nh_parent_gens nh
+            end
+        | _ => nh_parent_gens nh
+        end in
+      {| nh_parent := meta_step pa (nh_parent nh) op;
+         nh_parent_gens := gens';
+         nh_bound_slot := nh_bound_slot nh;
+         nh_bound_gen := nh_bound_gen nh;
+         nh_child := nh_child nh |}
+  | NChild cop =>
+      if parent_binding_live nh
+      then {| nh_parent := nh_parent nh;
+              nh_parent_gens := nh_parent_gens nh;
+              nh_bound_slot := nh_bound_slot nh;
+              nh_bound_gen := nh_bound_gen nh;
+              nh_child := meta_step ca (nh_child nh) (child_to_meta_op cop) |}
+      else nh
+  end.
+
+Fixpoint nested_run (pa ca : Arena) (nh : NestedHeapState) (nops : list NestedOp)
+  : NestedHeapState :=
+  match nops with
+  | [] => nh
+  | nop :: rest => nested_run pa ca (nested_step pa ca nh nop) rest
+  end.
+
+Lemma nested_run_preserves_invs : forall pa ca nops nh,
+  meta_inv pa (nh_parent nh) ->
+  meta_inv ca (nh_child nh) ->
+  meta_inv pa (nh_parent (nested_run pa ca nh nops)) /\
+  meta_inv ca (nh_child (nested_run pa ca nh nops)).
+Proof.
+  intros pa ca nops. induction nops as [|nop rest IH]; intros nh Hp Hc; simpl;
+    [exact (conj Hp Hc)|].
+  apply IH; destruct nop as [op|cop]; simpl.
+  - exact (meta_step_preserves_inv pa (nh_parent nh) op Hp).
+  - destruct (parent_binding_live nh); [exact Hp | exact Hp].
+  - exact Hc.
+  - destruct (parent_binding_live nh);
+      [exact (meta_step_preserves_inv ca (nh_child nh) (child_to_meta_op cop) Hc) | exact Hc].
+Qed.
+
+Theorem nested_run_refines_parent_and_child_guarantees :
+  forall pa ca nh nops,
+    meta_inv pa (nh_parent nh) ->
+    meta_inv ca (nh_child nh) ->
+    PoolGuarantees pa (ms_hist (nh_parent (nested_run pa ca nh nops))) /\
+    HeapGuarantees ca (ms_hist (nh_child (nested_run pa ca nh nops))).
+Proof.
+  intros pa ca nh nops Hp Hc.
+  destruct (nested_run_preserves_invs pa ca nops nh Hp Hc)
+    as [[_ [Hpg _]] [_ [Hcg _]]].
+  split; [exact Hpg|].
+  destruct Hcg as [Hd [He [Hz Hr]]].
+  exact (conj (conj He (conj Hd Hr)) Hz).
+Qed.
+
+Definition bound_permanently_dead (nh : NestedHeapState) : Prop :=
+  match nth_error (ms_slots (nh_parent nh)) (nh_bound_slot nh),
+        nth_error (nh_parent_gens nh) (nh_bound_slot nh) with
+  | Some s, Some g =>
+      (ms_phase s <> PLive /\ nh_bound_gen nh <= g) \/
+      (S (nh_bound_gen nh) <= g)
+  | _, _ => True
+  end.
+
+Lemma bound_permanently_dead_not_live : forall nh,
+  bound_permanently_dead nh -> parent_binding_live nh = false.
+Proof.
+  intros nh Hdead. unfold bound_permanently_dead, parent_binding_live in *.
+  destruct (nth_error (ms_slots (nh_parent nh)) (nh_bound_slot nh)) as [s|]; [|reflexivity].
+  destruct (nth_error (nh_parent_gens nh) (nh_bound_slot nh)) as [g|]; [|reflexivity].
+  destruct (ms_phase s); try reflexivity.
+  destruct Hdead as [[Hne _]|Hgt]; [exfalso; apply Hne; reflexivity|].
+  apply Nat.eqb_neq. lia.
+Qed.
+
+Lemma bound_permanently_dead_intro : forall nh,
+  (forall s g,
+    nth_error (ms_slots (nh_parent nh)) (nh_bound_slot nh) = Some s ->
+    nth_error (nh_parent_gens nh) (nh_bound_slot nh) = Some g ->
+    (ms_phase s <> PLive /\ nh_bound_gen nh <= g) \/ (S (nh_bound_gen nh) <= g)) ->
+  bound_permanently_dead nh.
+Proof.
+  intros nh H. unfold bound_permanently_dead.
+  destruct (nth_error (ms_slots (nh_parent nh)) (nh_bound_slot nh)) as [s|] eqn:Es; [|exact I].
+  destruct (nth_error (nh_parent_gens nh) (nh_bound_slot nh)) as [g|] eqn:Eg; [|exact I].
+  exact (H s g eq_refl eq_refl).
+Qed.
+
+Lemma bound_permanently_dead_elim : forall nh s g,
+  bound_permanently_dead nh ->
+  nth_error (ms_slots (nh_parent nh)) (nh_bound_slot nh) = Some s ->
+  nth_error (nh_parent_gens nh) (nh_bound_slot nh) = Some g ->
+  (ms_phase s <> PLive /\ nh_bound_gen nh <= g) \/ (S (nh_bound_gen nh) <= g).
+Proof.
+  intros nh s g Hdead Es Eg. unfold bound_permanently_dead in Hdead.
+  rewrite Es, Eg in Hdead. exact Hdead.
+Qed.
+
+Lemma map_slot_phase_dead_preserved : forall f s g nh,
+  (forall ph, ph <> PLive -> f ph <> PLive) ->
+  (ms_phase s <> PLive /\ nh_bound_gen nh <= g \/ S (nh_bound_gen nh) <= g) ->
+  ms_phase (map_slot_phase f s) <> PLive /\ nh_bound_gen nh <= g \/ S (nh_bound_gen nh) <= g.
+Proof.
+  intros f [l ph z] g nh Hf Hprev. unfold map_slot_phase in *. simpl in *.
+  destruct Hprev as [[Hne Hle]|Hgt].
+  - left. split; [exact (Hf ph Hne) | exact Hle].
+  - right. exact Hgt.
+Qed.
+
+Lemma nested_step_preserves_dead : forall pa ca nh nop,
+  bound_permanently_dead nh ->
+  bound_permanently_dead (nested_step pa ca nh nop) /\
+  nh_child (nested_step pa ca nh nop) = nh_child nh.
+Proof.
+  intros pa ca nh nop Hdead.
+  pose proof (bound_permanently_dead_not_live nh Hdead) as Hnl.
+  destruct nop as [op|cop].
+  - split; [|reflexivity].
+    destruct op as [idx|idx off val|idx| | |]; simpl.
+    + destruct (nth_error (ms_slots (nh_parent nh)) idx) as [s0|] eqn:Es0;
+        simpl; [|exact Hdead].
+      destruct (ms_phase s0) eqn:Eph0; simpl; try exact Hdead.
+      apply bound_permanently_dead_intro. intros s g Hs Hg. simpl in *.
+      destruct (Nat.eq_dec idx (nh_bound_slot nh)) as [Heq|Hne].
+      * subst idx.
+        rewrite (nth_error_replace_slot_eq (nh_bound_slot nh) _ s0 _ Es0) in Hs.
+        injection Hs as <-.
+        destruct (nth_error (nh_parent_gens nh) (nh_bound_slot nh)) as [g0|] eqn:Eg0.
+        -- rewrite (nth_error_inc_gen_eq (nh_bound_slot nh) _ g0 Eg0) in Hg.
+           injection Hg as Heqg. rewrite <- Heqg.
+           pose proof (bound_permanently_dead_elim nh s0 g0 Hdead Es0 Eg0) as Hprev.
+           destruct Hprev as [[_ Hle]|Hgt]; right; lia.
+        -- rewrite (nth_error_inc_gen_none (nh_bound_slot nh) _ Eg0) in Hg. discriminate Hg.
+      * rewrite (nth_error_replace_slot_ne idx (nh_bound_slot nh) _ _ ltac:(lia)) in Hs.
+        rewrite (nth_error_inc_gen_ne idx (nh_bound_slot nh) _ ltac:(lia)) in Hg.
+        exact (bound_permanently_dead_elim nh s g Hdead Hs Hg).
+    + destruct (nth_error (ms_slots (nh_parent nh)) idx) as [s0|] eqn:Es0;
+        simpl; [|exact Hdead].
+      destruct (ms_phase s0) eqn:Eph0; simpl; try exact Hdead.
+      destruct (Nat.ltb off (sl_len (ms_layout s0))); simpl; [|exact Hdead].
+      apply bound_permanently_dead_intro. intros s g Hs Hg. simpl in *.
+      destruct (Nat.eq_dec idx (nh_bound_slot nh)) as [Heq|Hne].
+      * subst idx.
+        rewrite (nth_error_replace_slot_eq (nh_bound_slot nh) _ s0 _ Es0) in Hs.
+        injection Hs as <-.
+        pose proof (bound_permanently_dead_elim nh s0 g Hdead Es0 Hg) as Hprev.
+        rewrite Eph0 in Hprev. exact Hprev.
+      * rewrite (nth_error_replace_slot_ne idx (nh_bound_slot nh) _ _ ltac:(lia)) in Hs.
+        exact (bound_permanently_dead_elim nh s g Hdead Hs Hg).
+    + destruct (nth_error (ms_slots (nh_parent nh)) idx) as [s0|] eqn:Es0;
+        simpl; [|exact Hdead].
+      destruct (ms_phase s0) eqn:Eph0; simpl; try exact Hdead.
+      apply bound_permanently_dead_intro. intros s g Hs Hg. simpl in *.
+      destruct (Nat.eq_dec idx (nh_bound_slot nh)) as [Heq|Hne].
+      * subst idx.
+        rewrite (nth_error_replace_slot_eq (nh_bound_slot nh) _ s0 _ Es0) in Hs.
+        injection Hs as <-.
+        pose proof (bound_permanently_dead_elim nh s0 g Hdead Es0 Hg) as Hprev.
+        destruct Hprev as [[_ Hle]|Hgt]; left; split; try discriminate; lia.
+      * rewrite (nth_error_replace_slot_ne idx (nh_bound_slot nh) _ _ ltac:(lia)) in Hs.
+        exact (bound_permanently_dead_elim nh s g Hdead Hs Hg).
+    + apply bound_permanently_dead_intro. intros s g Hs Hg. simpl in *.
+      rewrite nth_error_map in Hs.
+      destruct (nth_error (ms_slots (nh_parent nh)) (nh_bound_slot nh)) as [s0|] eqn:Es0;
+        [|discriminate Hs].
+      simpl in Hs. injection Hs as <-.
+      pose proof (bound_permanently_dead_elim nh s0 g Hdead Es0 Hg) as Hprev.
+      apply map_slot_phase_dead_preserved; [|exact Hprev].
+      intros ph Hne; destruct ph; try discriminate; exfalso; apply Hne; reflexivity.
+    + destruct (negb (ms_sweep_active (nh_parent nh))); simpl; [|exact Hdead].
+      apply bound_permanently_dead_intro. intros s g Hs Hg. simpl in *.
+      rewrite nth_error_map in Hs.
+      destruct (nth_error (ms_slots (nh_parent nh)) (nh_bound_slot nh)) as [s0|] eqn:Es0;
+        [|discriminate Hs].
+      simpl in Hs. injection Hs as <-.
+      pose proof (bound_permanently_dead_elim nh s0 g Hdead Es0 Hg) as Hprev.
+      apply map_slot_phase_dead_preserved; [|exact Hprev].
+      intros ph Hne; destruct ph; try discriminate; exfalso; apply Hne; reflexivity.
+    + destruct (ms_sweep_active (nh_parent nh)); simpl; [|exact Hdead].
+      apply bound_permanently_dead_intro. intros s g Hs Hg. simpl in *.
+      rewrite nth_error_map in Hs.
+      destruct (nth_error (ms_slots (nh_parent nh)) (nh_bound_slot nh)) as [s0|] eqn:Es0;
+        [|discriminate Hs].
+      simpl in Hs. injection Hs as <-.
+      pose proof (bound_permanently_dead_elim nh s0 g Hdead Es0 Hg) as Hprev.
+      apply map_slot_phase_dead_preserved; [|exact Hprev].
+      intros ph Hne; destruct ph; try discriminate; exfalso; apply Hne; reflexivity.
+  - simpl. rewrite Hnl. split; [exact Hdead | reflexivity].
+Qed.
+
+Lemma nested_run_preserves_dead : forall pa ca nops nh,
+  bound_permanently_dead nh ->
+  bound_permanently_dead (nested_run pa ca nh nops) /\
+  nh_child (nested_run pa ca nh nops) = nh_child nh.
+Proof.
+  intros pa ca nops. induction nops as [|nop rest IH]; intros nh Hdead; simpl;
+    [exact (conj Hdead eq_refl)|].
+  destruct (nested_step_preserves_dead pa ca nh nop Hdead) as [Hdead1 Hch1].
+  destruct (IH (nested_step pa ca nh nop) Hdead1) as [Hdead2 Hch2].
+  split; [exact Hdead2 | congruence].
+Qed.
+
+Theorem parent_release_invalidates_descendant_forever :
+  forall pa ca nh s,
+    nth_error (ms_slots (nh_parent nh)) (nh_bound_slot nh) = Some s ->
+    ms_phase s = PLive ->
+    nth_error (nh_parent_gens nh) (nh_bound_slot nh) = Some (nh_bound_gen nh) ->
+    let nh_rel := nested_step pa ca nh (NParent (OpRelease (nh_bound_slot nh))) in
+    forall nops,
+      let nh_after := nested_run pa ca nh_rel nops in
+      parent_binding_live nh_after = false /\
+      nh_child nh_after = nh_child nh /\
+      (forall idx, nested_step pa ca nh_after (NChild (ChildAlloc idx)) = nh_after) /\
+      (forall idx off val,
+        nested_step pa ca nh_after (NChild (ChildWrite idx off val)) = nh_after) /\
+      (forall idx, nested_step pa ca nh_after (NChild (ChildRelease idx)) = nh_after).
+Proof.
+  intros pa ca nh s Es Hph Eg.
+  set (nh_rel := nested_step pa ca nh (NParent (OpRelease (nh_bound_slot nh)))).
+  assert (Hdead0 : bound_permanently_dead nh_rel).
+  { unfold nh_rel, bound_permanently_dead. simpl.
+    rewrite Es, Hph. simpl.
+    rewrite (nth_error_replace_slot_eq (nh_bound_slot nh) _ s _ Es). simpl. rewrite Eg.
+    simpl. left. split; [discriminate | lia]. }
+  assert (Hch0 : nh_child nh_rel = nh_child nh) by reflexivity.
+  cbv zeta. intro nops.
+  destruct (nested_run_preserves_dead pa ca nops nh_rel Hdead0) as [Hdead_a Hch_a].
+  pose proof (bound_permanently_dead_not_live _ Hdead_a) as Hnl.
+  split; [exact Hnl|].
+  split; [congruence|].
+  split; [intro idx; simpl; rewrite Hnl; reflexivity|].
+  split; [intros idx off val; simpl; rewrite Hnl; reflexivity|].
+  intro idx. simpl. rewrite Hnl. reflexivity.
+Qed.
+
+Definition nested_child_slots : list SlotLayout :=
+  [{| sl_base := 64; sl_class := 0; sl_len := 8 |};
+   {| sl_base := 72; sl_class := 0; sl_len := 8 |}].
+
+Definition nested_child_arena : Arena := {|
+  ar_base := 64; ar_span := 16;
+  ar_classes := [{| sc_length := 8; sc_align := 8 |}];
+  ar_initial := fun _ => 19
+|}.
+
+Example parent_realloc_at_next_gen_keeps_old_descendant_dead :
+  let p0 := meta_step pool_reference_arena (meta_init meta_ref_slots) (OpAlloc 0) in
+  let nh0 := nested_init p0 [1; 0] 0 1 nested_child_slots in
+  let nh1 := nested_run pool_reference_arena nested_child_arena nh0
+               [NChild (ChildAlloc 0);
+                NParent (OpRelease 0); NParent OpBarrier;
+                NParent OpSweepBegin; NParent OpSweepEnd;
+                NParent (OpAlloc 0)] in
+  nth_error (nh_parent_gens nh1) 0 = Some 2 /\
+  parent_binding_live nh1 = false /\
+  nested_step pool_reference_arena nested_child_arena nh1 (NChild (ChildAlloc 1)) = nh1 /\
+  nested_step pool_reference_arena nested_child_arena nh1 (NChild (ChildWrite 0 0 99)) = nh1 /\
+  nested_step pool_reference_arena nested_child_arena nh1 (NChild (ChildRelease 0)) = nh1.
+Proof.
+  repeat split; vm_reflexivity.
+Qed.
+
+(* =========================================================================
+   6. Exhausted-Class Refusal (R-08-047)
+   ========================================================================= *)
+
+Fixpoint find_free_slot_in_class (cls idx : nat) (slots : list MetaSlot) : option nat :=
+  match slots with
+  | [] => None
+  | s :: rest =>
+      match ms_phase s with
+      | PFree => if Nat.eqb (sl_class (ms_layout s)) cls
+                 then Some idx
+                 else find_free_slot_in_class cls (S idx) rest
+      | _ => find_free_slot_in_class cls (S idx) rest
+      end
+  end.
+
+Definition meta_alloc_class (a : Arena) (st : MetaState) (cls : nat) : MetaState * bool :=
+  match find_free_slot_in_class cls 0 (ms_slots st) with
+  | Some idx => (meta_step a st (OpAlloc idx), true)
+  | None => (st, false)
+  end.
+
+Definition class_exhausted (st : MetaState) (cls : nat) : Prop :=
+  forall i s,
+    nth_error (ms_slots st) i = Some s ->
+    sl_class (ms_layout s) = cls ->
+    ms_phase s <> PFree.
+
+Lemma find_free_slot_in_class_none : forall cls slots idx,
+  (forall i s, nth_error slots i = Some s ->
+    sl_class (ms_layout s) = cls -> ms_phase s <> PFree) ->
+  find_free_slot_in_class cls idx slots = None.
+Proof.
+  intros cls slots. induction slots as [|s rest IH]; intros idx Hexh; simpl; [reflexivity|].
+  assert (Hrest : forall i s0, nth_error rest i = Some s0 ->
+    sl_class (ms_layout s0) = cls -> ms_phase s0 <> PFree).
+  { intros i s0 Hi Hc. exact (Hexh (S i) s0 Hi Hc). }
+  destruct (ms_phase s) eqn:Eph; try exact (IH (S idx) Hrest).
+  destruct (Nat.eqb (sl_class (ms_layout s)) cls) eqn:Ec; [|exact (IH (S idx) Hrest)].
+  apply Nat.eqb_eq in Ec.
+  exfalso. exact (Hexh 0 s eq_refl Ec Eph).
+Qed.
+
+Theorem exhausted_class_refuses_allocation : forall a st cls,
+  class_exhausted st cls ->
+  meta_alloc_class a st cls = (st, false) /\
+  (forall idx s,
+    nth_error (ms_slots st) idx = Some s ->
+    sl_class (ms_layout s) = cls ->
+    meta_step a st (OpAlloc idx) = st) /\
+  ms_slots (fst (meta_alloc_class a st cls)) = ms_slots st /\
+  ms_hist (fst (meta_alloc_class a st cls)) = ms_hist st /\
+  (forall x,
+    memory_before a (ms_hist (fst (meta_alloc_class a st cls)))
+                    (length (ms_hist (fst (meta_alloc_class a st cls)))) x =
+    memory_before a (ms_hist st) (length (ms_hist st)) x).
+Proof.
+  intros a st cls Hexh.
+  assert (Hnone : find_free_slot_in_class cls 0 (ms_slots st) = None).
+  { apply find_free_slot_in_class_none. exact Hexh. }
+  assert (Halloc : meta_alloc_class a st cls = (st, false)).
+  { unfold meta_alloc_class. rewrite Hnone. reflexivity. }
+  repeat split.
+  - exact Halloc.
+  - intros idx s Es Hcls. simpl. rewrite Es.
+    pose proof (Hexh idx s Es Hcls) as Hnp.
+    destruct (ms_phase s); try reflexivity.
+    exfalso. apply Hnp. reflexivity.
+  - rewrite Halloc. reflexivity.
+  - rewrite Halloc. reflexivity.
+  - intro x. rewrite Halloc. reflexivity.
+Qed.
+
+Definition mixed_class_slots : list SlotLayout :=
+  [{| sl_base := 64; sl_class := 0; sl_len := 16 |};
+   {| sl_base := 96; sl_class := 1; sl_len := 32 |}].
+
+Example exhausted_class_cannot_borrow_witness :
+  let st := meta_run pool_reference_arena (meta_init mixed_class_slots)
+              [OpAlloc 0; OpWrite 0 3 42] in
+  meta_alloc_class pool_reference_arena st 0 = (st, false) /\
+  map ms_phase (ms_slots st) = [PLive; PFree] /\
+  memory_before pool_reference_arena (ms_hist st) (length (ms_hist st)) 67 = 42.
+Proof.
+  repeat split; vm_reflexivity.
+Qed.
+
 
