@@ -318,7 +318,7 @@ Both pins nest `logsem/machine_utils` at the head of its `cerise` branch, and [G
 
 The [pilot plan](PLAN.md#sequencing) pins the external HoldFast first-slice
 harness and its binding checker for the packet validator.
-That revision's [license manifest](https://github.com/symbiogenesis/HoldFast/blob/b0e72a5477bf77f25158ad52f2d74f3ed17265fe/REUSE.toml)
+That revision's [license manifest](https://github.com/symbiogenesis/HoldFast/blob/85b9462f6787b4fd070322e0a3587fa28d8071d2/REUSE.toml)
 assigns Apache-2.0 to the tools and examples. VerifiedOS retains the harness
 and binding reports, simulator traces and compiler-input digests as development
 evidence. The HoldFast source, compiled parser,
