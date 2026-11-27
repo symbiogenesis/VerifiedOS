@@ -213,6 +213,22 @@ trap cause 28 / HTIF 284). These development measurements carry no qualified
 producer, installed entry or capability wiring, trial acceptance, or production
 admission.
 
+The [Q25bb purecap HoldFast copy client target run and expanded controls (85b9462f)](../docs/implementation/retained-evidence/holdfast-q25bb-purecap-client-20261127/manifest.json),
+SHA256 `766c81fb127658d869bafed075a7ff7b960ee76fecdad7bcef986afc43b86be1`,
+executes HoldFast's purecap `holdfast_copy_trial` (`85b9462f`) against the
+byte-identical `498127d6` copy-service text extents (5,436 service text bytes)
+on the source-bound Sail simulator (`verdict: pass`, 9,490,563 commit-trace
+records, 4,876,085 retired instructions), passes all eight target-side negative
+controls (`mutated-payload-limit` exit 14, `mutated-snapshot-byte` exit 7,
+`mutated-suffix-clobber` exit 8, `mutated-refusal-output` exit 2,
+`mutated-overlapping-views` exit 9, `mutated-narrow-arena-cap` CHERI trap cause
+28 / HTIF 284, `mutated-read-only-arena-cap` CHERI trap cause 28 / HTIF 284,
+and `mutated-untagged-arena-cap` CHERI trap cause 28 / HTIF 284), and confirms
+host-native vs purecap-target exit-code parity via `holdfast-copy-trial` across
+baseline and the four C controls. These development measurements carry no
+qualified producer, installed entry or capability wiring, trial acceptance, or
+production admission.
+
 ## Notification device adapter
 
 `copy-service notification` accepts the same compiler and model arguments as
