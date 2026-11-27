@@ -13,8 +13,8 @@ from vos import copy_q25bb_client as q25bb
 
 REPO_ROOT = TOOLS.parent
 EVIDENCE_ROOT = REPO_ROOT / "docs/implementation/retained-evidence"
-BUNDLE_20261127 = EVIDENCE_ROOT / "holdfast-q25bb-purecap-client-20261127"
-BUNDLE_DIR = BUNDLE_20261127
+BUNDLE_F594585 = EVIDENCE_ROOT / "holdfast-q25bb-purecap-client-f594585-20261127"
+BUNDLE_DIR = BUNDLE_F594585
 
 
 def _sha256(raw: bytes) -> str:
@@ -59,36 +59,53 @@ def _check_envelope_metrics(report: dict[str, Any], envelope: dict[str, Any]) ->
 
 def _retained_bundle_positive() -> None:
     _check_manifest(
-        BUNDLE_20261127,
+        BUNDLE_DIR,
         {"report.json", "envelope.json", "controls.json", "native-parity.json", "driver.py.txt"},
     )
     ensure(
-        (BUNDLE_20261127 / "driver.py.txt").read_bytes()
+        (BUNDLE_DIR / "driver.py.txt").read_bytes()
         == (REPO_ROOT / "tools/vos/copy_q25bb_client.py").read_bytes(),
         "retained driver.py.txt must match tools/vos/copy_q25bb_client.py",
     )
 
-    report, envelope, controls = q25bb.validate_bundle_dir(BUNDLE_20261127)
+    report, envelope, controls = q25bb.validate_bundle_dir(BUNDLE_DIR)
     _check_envelope_metrics(report, envelope)
     ctrl_map = cast(dict[str, Any], controls["controls"])
     ensure(
-        ctrl_map["mutated-payload-limit"]["code"] == 14
+        len(ctrl_map) == 15
+        and ctrl_map["mutated-payload-limit"]["code"] == 14
         and ctrl_map["mutated-snapshot-byte"]["code"] == 7
         and ctrl_map["mutated-suffix-clobber"]["code"] == 8
         and ctrl_map["mutated-refusal-output"]["code"] in (2, 6)
+        and ctrl_map["mutated-stale-generation"]["code"] == 3
+        and ctrl_map["mutated-duplicate-request"]["code"] == 5
+        and ctrl_map["mutated-full-ring"]["code"] == 11
+        and ctrl_map["mutated-too-small-dst"]["code"] == 6
         and ctrl_map["mutated-overlapping-views"]["code"] == 9
         and ctrl_map["mutated-narrow-arena-cap"]["verdict"] == "trap"
+        and ctrl_map["mutated-narrow-arena-cap"]["code"] == 284
         and ctrl_map["mutated-narrow-arena-cap"]["trap_cause"] == 28
         and ctrl_map["mutated-read-only-arena-cap"]["verdict"] == "trap"
+        and ctrl_map["mutated-read-only-arena-cap"]["code"] == 284
         and ctrl_map["mutated-read-only-arena-cap"]["trap_cause"] == 28
         and ctrl_map["mutated-untagged-arena-cap"]["verdict"] == "trap"
-        and ctrl_map["mutated-untagged-arena-cap"]["trap_cause"] == 28,
+        and ctrl_map["mutated-untagged-arena-cap"]["code"] == 284
+        and ctrl_map["mutated-untagged-arena-cap"]["trap_cause"] == 28
+        and ctrl_map["mutated-narrow-ring-cap"]["verdict"] == "trap"
+        and ctrl_map["mutated-narrow-ring-cap"]["code"] == 284
+        and ctrl_map["mutated-narrow-ring-cap"]["trap_cause"] == 28
+        and ctrl_map["mutated-read-only-ring-cap"]["verdict"] == "trap"
+        and ctrl_map["mutated-read-only-ring-cap"]["code"] == 284
+        and ctrl_map["mutated-read-only-ring-cap"]["trap_cause"] == 28
+        and ctrl_map["mutated-untagged-ring-cap"]["verdict"] == "trap"
+        and ctrl_map["mutated-untagged-ring-cap"]["code"] == 284
+        and ctrl_map["mutated-untagged-ring-cap"]["trap_cause"] == 28,
         f"unexpected negative control results: {ctrl_map}",
     )
-    native_parity = json.loads((BUNDLE_20261127 / "native-parity.json").read_text(encoding="utf-8"))
+    native_parity = json.loads((BUNDLE_DIR / "native-parity.json").read_text(encoding="utf-8"))
     ensure(
         native_parity["all_parity_matched"] is True
-        and native_parity["holdfast_revision"] == "85b9462f6787b4fd070322e0a3587fa28d8071d2"
+        and native_parity["holdfast_revision"] == "f594585fed3430e7c385f661ff73e3d70a6b4762"
         and set(native_parity["parity_checks"].keys())
         == {native for native, _ in q25bb.PARITY_CASE_MAP},
         f"unexpected native parity record: {native_parity}",
@@ -102,7 +119,7 @@ def _wrapper_and_client_scoping() -> None:
 
     pos_wrapper = q25bb.entry_wrapper(arena_bytes)
     ensure("li x31, 524288" in pos_wrapper and "li x31, 16384" in pos_wrapper, pos_wrapper)
-    ensure("q25bb_arena +" not in pos_wrapper, pos_wrapper)
+    ensure("q25bb_arena +" not in pos_wrapper and "q25bb_ring +" not in pos_wrapper, pos_wrapper)
     ensure("candperm" not in pos_wrapper and "cgetaddr" not in pos_wrapper, pos_wrapper)
 
     narrow_wrapper = q25bb.entry_wrapper(arena_bytes, narrow_arena_by=1)
@@ -114,9 +131,35 @@ def _wrapper_and_client_scoping() -> None:
     untagged_wrapper = q25bb.entry_wrapper(arena_bytes, untagged_arena=True)
     ensure("cgetaddr x11, c11" in untagged_wrapper, untagged_wrapper)
 
+    narrow_ring_wrapper = q25bb.entry_wrapper(arena_bytes, narrow_ring=True)
+    ensure(
+        f"li x31, q25bb_ring + {q25bb.RING_BYTES - 4096}" in narrow_ring_wrapper
+        and "csetaddr c10, c10, x31" in narrow_ring_wrapper,
+        narrow_ring_wrapper,
+    )
+
+    ro_ring_wrapper = q25bb.entry_wrapper(arena_bytes, read_only_ring=True)
+    ensure(
+        "cgetperm x31, c10" in ro_ring_wrapper
+        and "andi x31, x31, -5" in ro_ring_wrapper
+        and "candperm c10, c10, x31" in ro_ring_wrapper,
+        ro_ring_wrapper,
+    )
+
+    untagged_ring_wrapper = q25bb.entry_wrapper(arena_bytes, untagged_ring=True)
+    ensure("cgetaddr x10, c10" in untagged_ring_wrapper, untagged_ring_wrapper)
+
     _refuse(
         lambda: q25bb.entry_wrapper(arena_bytes, read_only_arena=True, untagged_arena=True),
-        "at most one arena capability mutation",
+        "at most one capability mutation",
+    )
+    _refuse(
+        lambda: q25bb.entry_wrapper(arena_bytes, narrow_arena_by=1, read_only_ring=True),
+        "at most one capability mutation",
+    )
+    _refuse(
+        lambda: q25bb.entry_wrapper(arena_bytes, narrow_ring=True, untagged_ring=True),
+        "at most one capability mutation",
     )
 
     sample_asm = "\n".join([
@@ -171,8 +214,8 @@ def _wrapper_and_client_scoping() -> None:
 
 
 def _mutated_report_refusals() -> None:
-    report, envelope, controls = q25bb.validate_bundle_dir(BUNDLE_20261127)
-    native_parity = json.loads((BUNDLE_20261127 / "native-parity.json").read_text(encoding="utf-8"))
+    report, envelope, controls = q25bb.validate_bundle_dir(BUNDLE_DIR)
+    native_parity = json.loads((BUNDLE_DIR / "native-parity.json").read_text(encoding="utf-8"))
 
     for key, bad_val in (
         ("qualified_producer", True),
@@ -236,18 +279,40 @@ def _mutated_report_refusals() -> None:
         "expected code in (9,)",
     )
 
-    bad_ctrl_code = copy.deepcopy(controls)
-    bad_ctrl_code["controls"]["mutated-payload-limit"]["code"] = 0
+    for ctrl_name, expected_code in (
+        ("mutated-payload-limit", 14),
+        ("mutated-stale-generation", 3),
+        ("mutated-duplicate-request", 5),
+        ("mutated-full-ring", 11),
+        ("mutated-too-small-dst", 6),
+    ):
+        bad_ctrl_code = copy.deepcopy(controls)
+        bad_ctrl_code["controls"][ctrl_name]["code"] = 0
+        _refuse(
+            lambda c=bad_ctrl_code: q25bb.validate_bundle(report, envelope, c, native_parity),
+            f"expected code in ({expected_code},)",
+        )
+
+    for ring_trap in ("mutated-narrow-ring-cap", "mutated-untagged-ring-cap"):
+        bad_ring_verdict = copy.deepcopy(controls)
+        bad_ring_verdict["controls"][ring_trap]["verdict"] = "fail"
+        _refuse(
+            lambda c=bad_ring_verdict: q25bb.validate_bundle(report, envelope, c, native_parity),
+            "expected verdict 'trap'",
+        )
+
+    bad_ring_ro_cause = copy.deepcopy(controls)
+    bad_ring_ro_cause["controls"]["mutated-read-only-ring-cap"]["trap_cause"] = 0
     _refuse(
-        lambda: q25bb.validate_bundle(report, envelope, bad_ctrl_code, native_parity),
-        "expected code in (14,)",
+        lambda: q25bb.validate_bundle(report, envelope, bad_ring_ro_cause, native_parity),
+        "expected CHERI trap cause 28",
     )
 
     missing_ctrl = copy.deepcopy(controls)
     del missing_ctrl["controls"]["mutated-suffix-clobber"]
     _refuse(
         lambda: q25bb.validate_bundle(report, envelope, missing_ctrl, native_parity),
-        "expected all 8 negative controls",
+        "expected all 15 negative controls",
     )
 
     bad_parity_exit = copy.deepcopy(native_parity)
