@@ -160,7 +160,7 @@ def standing_services_and_implicit_authority_refused() -> None:
     for svc_name in ("audio", "radio", "display", "storage", "revocation", "consent", "inference"):
         dropped = replace(everyday.standing, **{svc_name: False})
         _refused(
-            lambda: wp.validate_recipe(replace(everyday, standing=dropped)),
+            lambda d=dropped: wp.validate_recipe(replace(everyday, standing=d)),
             f"dropped required standing services {svc_name}",
         )
 

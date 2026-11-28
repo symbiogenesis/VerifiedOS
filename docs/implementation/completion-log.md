@@ -3895,3 +3895,63 @@ Landed: Tier A. Local strict Rocq proofs, `rocqchk`, assumption closure, `typech
 Calibration: `Q32b` (48 h, range 24–72 h, Class X) split into `Q32b-i` (retained estimate 22 h, range 12–32 h; `actual n/a · agent-parallel`, excluded from the human fit) and `Q32b-ii` (26 h, range 12–40 h, Class X).
 
 Landed: Tier A. Local strict Rocq proofs, `rocqchk`, assumption closure, C17 ASan/UBSan execution, compiled mutant checks, and host/WSL `test_semantic_checkpoint` passed; hosted Host/Guest CI and live target barrier joins remain pending.
+
+<a id="q34f-i-prove-wasm-application-host-lifecycle-and-build-c17-engine"></a>
+
+### Q34f-i · Prove Wasm application host lifecycle and build C17 engine
+
+  * Authored `proofs/WasmAppHost.v` (74 top-level declarations: 11 records with 11/11 closed `witness_<R>` terms, 13 theorems, 2 helper lemmas, 3 examples, 16 `discharges` claims), bounded GC-free C17 `wasm-host/` (`vos_wasm_host.h`, `wasm_host.c`, `test_wasm_host.c`, `README.md` linking `storage/src/crypto_core.c`), and `tools/tests/test_wasm_host.py` (`INDEPENDENT_CASES = True`, 2/2 host and 3/3 WSL cases passing). Formalizes canonical bundle/closure validation (`Prepare` executing no start function or grants), clear-group `Launch` without path-as-authority, binding-scoped `InvokeImport` without fixed-tier capability export, pre/post-commit transactional `Replace`, sweep-before-reuse `Cancel`/`Close`, HMAC-authenticated `Restore` without resurrected grants or session keys, and epoch non-wrap. Verified at merge `4640ec72` (from lane commit `00d2f089`) under strict Rocq 9.3.0 compilation (zero warnings/errors), `rocqchk -silent -o` (`Axioms: <none>`), `Print Assumptions` (`Closed under the global context` on all 18 statements), `clang -std=c17 -Wall -Wextra -Werror -Wstrict-prototypes -pedantic`, and `gcc -fsanitize=address,undefined` (14/14 compiled behavioral mutants killed, 0 stillborn). Integration with Q34g's Core 3.0 interpreter, Q34h's resident producer, Q34d's native yields, and composed target measurements remain open under `Q34f-ii`.
+
+Calibration: `Q34f` (132 h, range 84–180 h, Class I) split into `Q34f-i` (retained estimate 42 h, range 28–56 h; `actual n/a · agent-parallel`, excluded from the human fit) and `Q34f-ii` (90 h, range 56–124 h, Class I).
+
+Landed: Tier A. Local strict Rocq proofs, `rocqchk`, assumption closure, C17 ASan/UBSan execution, compiled mutant checks, and host/WSL `test_wasm_host` passed; hosted Host/Guest CI and Core 3.0 engine integration remain pending.
+
+<a id="q41a-i-prove-environmental-sensor-topology-and-build-c17-fail-stop-controller"></a>
+
+### Q41a-i · Prove environmental sensor topology and build C17 fail-stop controller
+
+  * Authored `proofs/EnvironmentalSensors.v` (120 declarations: 3 inductives, 15 records with 15/15 closed `witness_<R>` terms, 73 definitions, 6 fixpoints, 11 theorems, 10 lemmas, 2 examples), bounded GC-free C17 `env-sensors/` (`vos_env_sensors.h`, `env_sensors.c`, `test_env_sensors.c`, `README.md`), and `tools/tests/test_env_sensors.py` (`INDEPENDENT_CASES = True`, 2/2 host and 3/3 WSL cases passing). Formalizes the four sensor families, total `rails(P)`/`clocks(P)`/datapath/logic-tier topology coverage across `RoT`, both S-class lockstep instances, and all islands, acyclic non-self-justifying monitor dependency graphs, immutable field inequalities, software-unmaskable RoT latches, immediate direct RoT watchdog bites, table-authorized gate intervals, power-loss reset holds, and closed attested event records. Verified at merge `01bf7bd5` (from lane commits `ca188ef0`/`1dc5a5c5`) under strict Rocq 9.3.0 compilation (zero stderr), `rocqchk -silent -o` (`Axioms: <none>`), `Print Assumptions` (`Closed under the global context`), `clang -std=c17 -Wall -Wextra -Werror -Wstrict-prototypes -pedantic`, and `gcc -fsanitize=address,undefined` (15/15 compiled behavioral mutants killed, 0 stillborn). Process-specific analog cell integration, elaborated RTL/cell boundary wiring, M3 firmware wiring, and Q6a supply gating remain open under `Q41a-ii`.
+
+Calibration: `Q41a` (70 h, range 40–100 h, Class X) split into `Q41a-i` (retained estimate 24 h, range 16–32 h; `actual n/a · agent-parallel`, excluded from the human fit) and `Q41a-ii` (46 h, range 24–68 h, Class X).
+
+Landed: Tier A. Local strict Rocq proofs, `rocqchk`, assumption closure, C17 ASan/UBSan execution, compiled mutant checks, and host/WSL `test_env_sensors` passed; hosted Host/Guest CI and analog/RTL cell integration remain pending.
+
+<a id="q34e-i-prove-desktop-focus-dispatch-bound-exhaustion-ladder-and-slot-geometry"></a>
+
+### Q34e-i · Prove desktop focus dispatch bound, exhaustion ladder and slot geometry
+
+  * Authored `proofs/DesktopAdmission.v` (1,488 lines; 144 declarations: 8 records with 8/8 closed `witness_<R>` terms, 44 theorems/lemmas, 9 `discharges` claims), `tools/vos/desktop_admission.py` (894 lines), and `tools/tests/test_desktop_admission.py` (`INDEPENDENT_CASES = True`, 8/8 passing on Windows and WSL). Formalizes `R-08-047d` pool exhaustion-ladder invariants (floor reservation, focused/protected flags, LRU eligible background hibernation, reuse barrier, clean ceiling refusal), `R-07-037g` minimum-share admission and `R-11-006c` focus dispatch bounds over an eight-member desktop roster with a build member, and `R-11-022a` offline slot-geometry comparison refuting shorter-visit-period candidates whose added switch/tail overhead worsens service. Verified at merge `e7ec9c61` (from lane commit `95974c63`) under strict Rocq 9.3.0 compilation (zero diagnostics), `rocqchk -silent -o` (`Axioms: <none>`), `Print Assumptions` (`Closed under the global context` across all 144 symbols), `typecheck`, and `test_desktop_admission`. Live composed-image target measurements and exhaustion campaigns remain open under `Q34e-ii`.
+
+Calibration: `Q34e` (36 h, range 18–54 h, Class X) split into `Q34e-i` (retained estimate 12 h, range 6–18 h; `actual n/a · agent-parallel`, excluded from the human fit) and `Q34e-ii` (24 h, range 12–36 h, Class X).
+
+Landed: Tier A. Local strict Rocq proofs, `rocqchk`, assumption closure, `typecheck`, and host/WSL `test_desktop_admission` passed; hosted Host/Guest CI and live target measurements remain pending.
+
+<a id="q32c-i-prove-workflow-preset-catalog-mode-graph-and-reclamation-economics"></a>
+
+### Q32c-i · Prove workflow preset catalog, mode graph and reclamation economics
+
+  * Authored `proofs/WorkflowPresets.v` (131 declarations, 282 native inventory symbols: 10 records with 10/10 closed `witness_<R>` terms, 16 theorems, 17 lemmas, 3 examples), `tools/vos/workflow_presets.py`, and `tools/tests/test_workflow_presets.py` (`INDEPENDENT_CASES = True`, 9/9 passing on Windows and WSL). Formalizes all six workflow preset recipes, explicit reachable `PowerMode`/`PresetRecipe`/`FocusRung` transition graphs (refusing Cartesian assumptions), standing-service preservation, exact steady/transition peak byte ledgers with `Reusable`-gated overlap credits, `FrozenResident`/`SemanticHibernation`/`FixedPoolReuse` comparisons, and repeated-toggling dwell/quarantine/endurance bounds. Verified at merge `ddf601e3` (from lane commit `ae247335`) under strict Rocq 9.3.0 compilation (zero warnings/errors), `rocqchk -silent -o` (`Axioms: <none>`), `Print Assumptions` (`Closed under the global context` across all 282 symbols), `typecheck`, and `test_workflow_presets`. Live composed-roster preset instantiation and target hibernation measurements remain open under `Q32c-ii`.
+
+Calibration: `Q32c` (24 h, range 12–36 h, Class X) split into `Q32c-i` (retained estimate 9 h, range 5–13 h; `actual n/a · agent-parallel`, excluded from the human fit) and `Q32c-ii` (15 h, range 7–23 h, Class X).
+
+Landed: Tier A. Local strict Rocq proofs, `rocqchk`, assumption closure, `typecheck`, and host/WSL `test_workflow_presets` passed; hosted Host/Guest CI and live composed preset measurements remain pending.
+
+<a id="q9-i-prove-compatibility-successor-generation-workflow-and-build-c17-job-service"></a>
+
+### Q9-i · Prove compatibility successor-generation workflow and build C17 job service
+
+  * Authored `proofs/CompatibilityWorkflow.v` (99 declarations: 17 records with 17/17 closed `witness_<R>` terms, 20 theorems/lemmas/examples), bounded GC-free C17 `compat-workflow/` (`vos_compat_workflow.h`, `compat_workflow.c`, `test_compat_workflow.c`, `README.md` linking `storage/src/crypto_core.c`), and `tools/tests/test_compat_workflow.py` (`INDEPENDENT_CASES = True`, 2/2 host and 3/3 WSL cases passing). Formalizes all nine explicit-authority operations, `R-02-008` same-generation native execution refusal, all eight `R-08-046` bounded pools and the six-state member lifecycle, complete `ProofCache` identity keying, epoch non-wrap, diagnostic truncation markers, `(candidate_root, test_id, boot_epoch)` result binding, and `R-12-020` external-authenticator decline. Verified at merge `16bbb387` (from lane commits `563bee8f`/`75d2b7cc`) under strict Rocq 9.3.0 compilation, `rocqchk -silent -o` (`Axioms: <none>`), `Print Assumptions` (`Closed under the global context`), `clang -std=c17 -Wall -Wextra -Werror -Wstrict-prototypes -pedantic`, and `gcc -fsanitize=address,undefined` (16/16 compiled behavioral mutants killed, 0 stillborn). Live two-generation prototype execution and turnaround measurements remain open under `Q9-ii`.
+
+Calibration: `Q9` (14 h, range 8–20 h, Class X) split into `Q9-i` (retained estimate 5 h, range 3–7 h; `actual n/a · agent-parallel`, excluded from the human fit) and `Q9-ii` (9 h, range 5–13 h, Class X).
+
+Landed: Tier A. Local strict Rocq proofs, `rocqchk`, assumption closure, C17 ASan/UBSan execution, compiled mutant checks, and host/WSL `test_compat_workflow` passed; hosted Host/Guest CI and live two-generation measurements remain pending.
+
+<a id="m110-i-prove-resident-toolchain-bounded-pools-and-build-c17-coordinator"></a>
+
+### M1.10-i · Prove resident toolchain bounded pools and build C17 coordinator
+
+  * Authored `proofs/ResidentToolchain.v` (15 inductives, 10 records with 10/10 closed `witness_<R>` terms, 72 definitions/fixpoints, 27 theorems/lemmas, 5 examples; 313 module-local symbols), bounded GC-free C17 `resident-toolchain/` (`vos_resident_tc.h`, `resident_tc.c`, `test_resident_tc.c`, `README.md` linking `storage/src/crypto_core.c`), and `tools/tests/test_resident_toolchain.py` (`INDEPENDENT_CASES = True`, 2/2 host and 3/3 WSL cases passing). Formalizes distribution-route license screening, closure audits requiring named sub-ports over `unsafe` exceptions, bounded resumable `R-08-046` pass activations with non-execute outputs, `ReadingA`/`ReadingB` and `R-08-014`/`R-08-018a` pool-sharing checks, and host-vs-device bootstrap reproduction receipts preserving `R-06-014` De Bruijn root relocation. Verified at merge `07e23907` (from lane commit `2b474277`) under strict Rocq 9.3.0 compilation (zero diagnostics), `rocqchk -silent -o` (`Axioms: <none>`), `Print Assumptions` (`Closed under the global context`), `clang -std=c17 -Wall -Wextra -Werror -Wstrict-prototypes -pedantic`, and `gcc -fsanitize=address,undefined` (14/14 compiled behavioral mutants killed, 0 stillborn). Native purecap compiler/prover porting and live M6.10 self-build admission remain open under `M1.10-ii`.
+
+Calibration: `M1.10` (40 h, range 24–56 h, Class X) split into `M1.10-i` (retained estimate 14 h, range 8–20 h; `actual n/a · agent-parallel`, excluded from the human fit) and `M1.10-ii` (26 h, range 16–36 h, Class X).
+
+Landed: Tier A. Local strict Rocq proofs, `rocqchk`, assumption closure, C17 ASan/UBSan execution, compiled mutant checks, and host/WSL `test_resident_toolchain` passed; hosted Host/Guest CI and native resident porting remain pending.

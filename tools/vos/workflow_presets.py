@@ -90,7 +90,7 @@ class StandingServices:
     consent: bool = True
     inference: bool = True
 
-    def missing_relative_to(self, required: "StandingServices") -> tuple[str, ...]:
+    def missing_relative_to(self, required: StandingServices) -> tuple[str, ...]:
         fields = ("audio", "radio", "display", "storage", "revocation", "consent", "inference")
         missing: list[str] = []
         for name in fields:
@@ -367,7 +367,7 @@ def validate_recipe(
     store_used = recipe.ledger.store_total
 
     if not recipe.enabled:
-        if not recipe.unavailable_reason or not recipe.unavailable_reason.strip():
+        if recipe.unavailable_reason is None or not recipe.unavailable_reason.strip():
             raise WorkflowPresetError(f"{ctx}: disabled recipe must state unavailable_reason")
         return eff_ram, store_used
 
