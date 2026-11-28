@@ -678,8 +678,8 @@ def _surface_and_proof_contract() -> None:
     for c_path in (COMPAT_H, COMPAT_C, COMPAT_TEST_C):
         text = c_path.read_text(encoding="utf-8")
         first_line = text.splitlines()[0] if text.splitlines() else ""
-        ensure(first_line == "/* SPDX-License-Identifier: Apache-2.0 */",
-               f"missing /* SPDX-License-Identifier: Apache-2.0 */ header in {c_path}")
+        ensure(first_line == "// SPDX-License-Identifier: Apache-2.0",
+               f"missing // SPDX-License-Identifier: Apache-2.0 header in {c_path}")
         for forbidden in ("malloc(", "calloc(", "realloc(", "free("):
             ensure(forbidden not in text, f"forbidden heap allocator {forbidden} in {c_path}")
 

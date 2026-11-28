@@ -1,4 +1,4 @@
-/* SPDX-License-Identifier: Apache-2.0 */
+// SPDX-License-Identifier: Apache-2.0
 #include "vos_compat_workflow.h"
 
 #include <stdio.h>
