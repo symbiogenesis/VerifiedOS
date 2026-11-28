@@ -3835,3 +3835,63 @@ Landed: Tier A. Local strict Rocq proofs, `rocqchk`, C17 ASan/UBSan execution, a
 Calibration: `Q42c` (72 h, range 48–96 h, Class X) split into `Q42c-i` (retained estimate 27 h, range 18–36 h; `actual n/a · agent-parallel`, excluded from the human fit) and `Q42c-ii` (45 h, range 30–60 h, Class X).
 
 Landed: Tier A. Local strict Rocq compilation, `rocqchk`, assumption closure, proof header check, and host/WSL `test_migration_session` passed; hosted cold proof CI and target/foundation integration remain pending.
+
+<a id="q42b-i-prove-trusted-screen-witness-scoping-and-realize-c17-backupmigration-screen-module"></a>
+
+### Q42b-i · Prove trusted-screen witness scoping and realize C17 backup/migration screen module
+
+  * Authored `proofs/BackupTrustedScreen.v` (915 lines; 57 declarations: 3 inductives, 5 records with 5/5 closed `witness_<R>` terms, 2 fixpoints, 26 definitions, 4 lemmas, 13 theorems, 4 examples), bounded GC-free C17 `trusted-screen/` (`vos_trusted_screen.h`, `trusted_screen.c`, `test_trusted_screen.c`, `README.md` linking `backup/src/backup.c` and `storage/src/crypto_core.c`), and `tools/tests/test_backup_trusted_screen.py` (`INDEPENDENT_CASES = True`, 3/3 host and 4/4 WSL cases passing). Proves live primary-credential and trusted-path gating, one-time `RecoverySecret-v1` display with mandatory buffer zeroization on every exit (`Complete`/`Cancel`/`Lock`/`Fault`), explicit `R-17-054a` and restore discard/freshness caveats, non-truncated migration root confirmation, and HMAC-authenticated one-use consent witnesses expiring on lock/restart/profile/plan changes. Verified at merge `5e9144fc` (from lane commit `9b43fb49`) under strict Rocq 9.3.0 compilation (zero stderr), `rocqchk -silent -o` (`Axioms: <none>`), `Print Assumptions` (`Closed under the global context` on all 21 statements), `clang -std=c17 -Wall -Wextra -Werror -Wstrict-prototypes`, and `gcc -fsanitize=address,undefined` (12/12 compiled behavioral mutants killed, 0 stillborn). Live trusted-consent UI integration, credential/unlock service wiring, and purecap target execution remain open under `Q42b-ii`.
+
+Calibration: `Q42b` (20 h, range 14–26 h, Class I) split into `Q42b-i` (retained estimate 12 h, range 8–16 h; `actual n/a · agent-parallel`, excluded from the human fit) and `Q42b-ii` (8 h, range 6–10 h, Class I).
+
+Landed: Tier A. Local strict Rocq proofs, `rocqchk`, assumption closure, C17 ASan/UBSan execution, compiled mutant checks, and host/WSL `test_backup_trusted_screen` passed; hosted Host/Guest CI and live trusted-path wiring remain pending.
+
+<a id="m69b-i-prove-attested-custody-bridge-and-realize-bounded-c17-session-custody-vault"></a>
+
+### M6.9b-i · Prove attested custody bridge and realize bounded C17 session-custody vault
+
+  * Authored `proofs/AttestedCustodyBridge.v` (1,597 lines; 105 declarations: 11 records with 11/11 closed `witness_<R>` terms, 2 inductives, 67 definitions/fixpoints, 25 theorems/lemmas/examples), bounded GC-free C17 `session-custody/` (`vos_session_custody.h`, `session_custody.c`, `test_session_custody.c`, `README.md` linking `attested-tls/src/attested_tls.c` and `storage/src/crypto_core.c`), and `tools/tests/test_attested_custody_bridge.py` (`INDEPENDENT_CASES = True`, 2/2 host and 3/3 WSL cases passing). Formalizes protected crypto-core TLS context lookup into `CredentialHandles.authorize_and_charge`, concrete-to-`AttestedSession` forward simulation, A-to-B-to-A spent-context refusal, monotonic teardown invalidation, and `EXPORTER-Channel-Binding` custody derivation without caller-supplied exporters. Verified at merge `8e32daf9` (from lane commit `c5caa052`) under strict Rocq 9.3.0 compilation (zero stderr), `rocqchk -silent -o` (`Axioms: <none>`), `Print Assumptions` (`Closed under the global context` on all 25 statements), `clang -std=c17 -Wall -Wextra -Werror -Wstrict-prototypes -pedantic`, and `gcc -fsanitize=address,undefined` (13/13 compiled behavioral mutants killed, 0 stillborn). Live admitted TLS 1.3 stack handshake/exporter wiring and purecap target execution remain open under `M6.9b-ii`.
+
+Calibration: `M6.9b` (24 h, range 16–32 h, Class X) split into `M6.9b-i` (retained estimate 12 h, range 8–16 h; `actual n/a · agent-parallel`, excluded from the human fit) and `M6.9b-ii` (12 h, range 8–16 h, Class X).
+
+Landed: Tier A. Local strict Rocq proofs, `rocqchk`, assumption closure, C17 ASan/UBSan execution, compiled mutant checks, and host/WSL `test_attested_custody_bridge` passed; hosted Host/Guest CI and live TLS 1.3 integration remain pending.
+
+<a id="m610-i-prove-trusted-path-generation-mint-and-offline-inclusion-and-build-c17-coordinator"></a>
+
+### M6.10-i · Prove trusted-path generation mint and offline inclusion and build C17 coordinator
+
+  * Authored `proofs/DeviceGeneration.v` (1,157 lines; 123 declarations: 21 records/inductives with 16/16 closed `witness_<R>` terms, 81 definitions/fixpoints, 15 theorems, 3 lemmas, 3 examples), bounded GC-free C17 `device-generation/` (`vos_device_gen.h`, `device_gen.c`, `test_device_gen.c`, `README.md` linking `storage/src/crypto_core.c`), and `tools/tests/test_device_generation.py` (`INDEPENDENT_CASES = True`, 2/2 host and 3/3 WSL cases passing). Formalizes `R-13-027b` trusted-path mint ordering and all three adverse mint refusals, `R-11-018` composition-mode entry/exit, `R-13-023b` offline closure provenance (refusing unlogged fetched objects), `R-13-028` fixed-package reuse with fresh concrete TAL/global checks within `R-06-015a` budgets, and A/B transactor rollback. Verified at merge `64a1f176` (from lane commit `0954312e`) under strict Rocq 9.3.0 compilation (zero stderr), `rocqchk -silent -o` (`Axioms: <none>`), `Print Assumptions` (`Closed under the global context` on all 21 statements), `clang -std=c17 -Wall -Wextra -Werror -Wstrict-prototypes -pedantic`, and `gcc -fsanitize=address,undefined` (13/13 compiled behavioral mutants killed, 0 stillborn). Live M1.10/M6.2a/M6.3a/M5.4 target integration and occupancy measurement remain open under `M6.10-ii`.
+
+Calibration: `M6.10` (30 h, range 18–42 h, Class I) split into `M6.10-i` (retained estimate 16 h, range 10–22 h; `actual n/a · agent-parallel`, excluded from the human fit) and `M6.10-ii` (14 h, range 8–20 h, Class I).
+
+Landed: Tier A. Local strict Rocq proofs, `rocqchk`, assumption closure, C17 ASan/UBSan execution, compiled mutant checks, and host/WSL `test_device_generation` passed; hosted Host/Guest CI and live target integration remain pending.
+
+<a id="s6-i-prove-deterministic-replay-record-invariants-and-realize-bounded-c17-recorderverifier"></a>
+
+### S6-i · Prove deterministic-replay record invariants and realize bounded C17 recorder/verifier
+
+  * Authored `proofs/ReplayRecord.v` (1,418 lines; 124 declarations: 11 records with 11/11 closed `witness_<R>` terms, 56 proof statements—19 theorems, 21 lemmas, 16 examples—and 7 `discharges` annotations), bounded GC-free C17 `replay/` (`vos_replay_record.h`, `replay_record.c`, `test_replay_record.c`, `README.md` linking `storage/src/crypto_core.c`), and `tools/tests/test_replay_record_c.py` (`INDEPENDENT_CASES = True`, 2/2 host and 3/3 WSL cases passing). Proves closed four-source classification, monotonic `(slot, core, retire, ordinal)` coordinates, pre-invocation worst-case capacity reservation, sticky failure latching, independent binding/count validation, and strict demand-cursor replay semantics. Verified at merge `aa86da25` (from lane commit `a96048d4`) under strict Rocq 9.3.0 compilation (zero stderr), `rocqchk -silent -o` (`Axioms: <none>`), `Print Assumptions` (`Closed under the global context` on all 56 statements), `clang -std=c17 -Wall -Wextra -Werror -Wstrict-prototypes -pedantic`, and `gcc -fsanitize=address,undefined` (12/12 compiled behavioral mutants killed, 0 stillborn). Public-source adapters, RoT sealing/writer integration, and complete-machine replay remain open under `S6-ii`.
+
+Calibration: `S6` (30 h, range 18–42 h, Class I) split into `S6-i` (retained estimate 16 h, range 10–22 h; `actual n/a · agent-parallel`, excluded from the human fit) and `S6-ii` (14 h, range 8–20 h, Class I).
+
+Landed: Tier A. Local strict Rocq proofs, `rocqchk`, assumption closure, C17 ASan/UBSan execution, compiled mutant checks, and host/WSL `test_replay_record_c` passed; hosted Host/Guest CI and operational adapters remain pending.
+
+<a id="q34d-i-prove-compositional-yield-bound-lowering-and-build-cfg-reaction-cost-verifier"></a>
+
+### Q34d-i · Prove compositional yield-bound lowering and build CFG reaction-cost verifier
+
+  * Authored `proofs/YieldBound.v` (1,885 lines; 127 top-level declarations, 169 compiled symbols, 6 records with 6/6 closed `witness_<R>` terms, 66 theorems/lemmas), `tools/vos/yield_bound.py` (881 lines), and `tools/tests/test_yield_bound.py` (`INDEPENDENT_CASES = True`, 7/7 passing on Windows and WSL). Formalizes CFG poll-site placement on back-edges and recursive entries, strip-mining, sink-before-yield lowering on `switch-requested`, compositional `FnCostTriple` `(entry_to_first_poll, poll_to_poll, last_poll_to_exit)` call-inlining soundness, invocation-gap bounds bridging `ElasticDomain.invocation_gaps_bounded`, and `TAL-014` expressiveness separation. Verified at merge `305abeff` (from lane commit `efd0a878`) under strict Rocq 9.3.0 compilation (zero stderr), `rocqchk -silent -o` (`Axioms: <none>`), `Print Assumptions` (`Closed under the global context` across all 169 symbols), `typecheck`, and `test_yield_bound`. Certifying-toolchain pass integration and measured demonstration overhead remain open under `Q34d-ii`.
+
+Calibration: `Q34d` (32 h, range 20–44 h, Class I) split into `Q34d-i` (retained estimate 18 h, range 12–24 h; `actual n/a · agent-parallel`, excluded from the human fit) and `Q34d-ii` (14 h, range 8–20 h, Class I).
+
+Landed: Tier A. Local strict Rocq proofs, `rocqchk`, assumption closure, `typecheck`, and host/WSL `test_yield_bound` passed; hosted Host/Guest CI and native toolchain integration remain pending.
+
+<a id="q32b-i-prove-semantic-checkpoint-and-lockunlock-recovery-and-build-c17-slate-pilot"></a>
+
+### Q32b-i · Prove semantic checkpoint and lock/unlock recovery and build C17 slate pilot
+
+  * Authored `proofs/SemanticCheckpoint.v` (1,288 lines; 99 declarations: 6 records with 6/6 closed `witness_<R>` terms, 5 inductives, 58 definitions, 15 theorems, 15 examples), bounded GC-free C17 `checkpoint/` (`vos_checkpoint.h`, `checkpoint.c`, `test_checkpoint.c`, `README.md` linking `storage/src/crypto_core.c`), and `tools/tests/test_semantic_checkpoint.py` (`INDEPENDENT_CASES = True`, 1/1 host and 2/2 WSL cases passing). Proves semantic-only checkpoint exclusions, A/B transactional crash-cut preservation across every swap phase, lock/unlock current-grant recovery without tagged or session authority resurrection, and full `Roots` reuse-barrier enforcement across editor and image-workspace slate exchanges. Verified at merge `dd6758c1` (from lane commit `379cc389`) under strict Rocq 9.3.0 compilation (zero stderr), `rocqchk -silent -o` (`Axioms: <none>`), `Print Assumptions` (`Closed under the global context` on all 30 statements), `clang -std=c17 -Wall -Wextra -Werror -Wstrict-prototypes -pedantic`, and `gcc -fsanitize=address,undefined` (14/14 compiled behavioral mutants killed, 0 stillborn). Live M4.4/R2 target barrier joins and executable target traces remain open under `Q32b-ii`.
+
+Calibration: `Q32b` (48 h, range 24–72 h, Class X) split into `Q32b-i` (retained estimate 22 h, range 12–32 h; `actual n/a · agent-parallel`, excluded from the human fit) and `Q32b-ii` (26 h, range 12–40 h, Class X).
+
+Landed: Tier A. Local strict Rocq proofs, `rocqchk`, assumption closure, C17 ASan/UBSan execution, compiled mutant checks, and host/WSL `test_semantic_checkpoint` passed; hosted Host/Guest CI and live target barrier joins remain pending.

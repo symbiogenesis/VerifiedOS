@@ -153,9 +153,8 @@ def _issue_oracle_witness(
             return None
         if needs_discard and not caveats.get("discard_loss", False):
             return None
-    if flow == "migration":
-        if not (tp.receiver_cred and caveats.get("migration_roots", False)):
-            return None
+    if flow == "migration" and not (tp.receiver_cred and caveats.get("migration_roots", False)):
+        return None
     mac = _witness_mac(
         tp.hmac_key, seq, tp.epoch, flow, tp.profile, tp.generation,
         obj_id, dst_id, plan_id, needs_discard, root_digest,
@@ -265,7 +264,7 @@ def _consent_and_migration_oracle() -> None:
     roots = ("RoT-A", "RoT-B")
     too_many = tuple(f"RoT-{i}" for i in range(MAX_ROOTS + 1))
     ensure(len(too_many) > MAX_ROOTS, "oversize root set exceeds capacity")
-    ensure(roots[:1] != roots and ("RoT-A", "RoT-Evil") != roots,
+    ensure(roots[:1] != roots and roots != ("RoT-A", "RoT-Evil"),
            "truncated or substituted roots refused")
 
 
